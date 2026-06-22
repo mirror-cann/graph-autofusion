@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -23,7 +23,7 @@ using namespace af::ascir_op;
 using namespace testing;
 
 class RegReduceApicallTest : public ::testing::Test {
-protected:
+ protected:
   void SetUp() override {
     ge::PlatformContext::GetInstance().Reset();
     auto stub_v2 = std::make_shared<ge::RuntimeStubV2Common>();
@@ -73,7 +73,7 @@ TEST_F(RegReduceApicallTest, RegReduceApi_Test_001) {
   tensorx.attr.axis = {z0.id, z1.id, z2.id};
   tensorx.attr.vectorized_axis = {z0.id, z2.id};
   tensorx.attr.repeats = {z0.size, z1.size, z2.size};
-  tensorx.attr.strides = {z1.size*z2.size, z2.size, One};
+  tensorx.attr.strides = {z1.size * z2.size, z2.size, One};
   tensorx.attr.mem.tensor_id = 1;
   tensorx.attr.mem.alloc_type = af::AllocType::kAllocTypeBuffer;
   tensorx.attr.mem.position = af::Position::kPositionVecIn;
@@ -96,7 +96,7 @@ TEST_F(RegReduceApicallTest, RegReduceApi_Test_001) {
 
   std::string dtype_name;
   Tensor::DtypeName(tensory.attr.dtype, dtype_name);
-// Setup inputs
+  // Setup inputs
   Tensor tensor1(tensorx, dtype_name);
   tensor1.is_constant = true;
   Tensor tensor2(tensorx, dtype_name);
@@ -108,7 +108,8 @@ TEST_F(RegReduceApicallTest, RegReduceApi_Test_001) {
   inputs.push_back(std::ref(tensor3));
 
   // Setup outputs
-  Tensor output_tensor(tensory, dtype_name);;
+  Tensor output_tensor(tensory, dtype_name);
+  ;
   outputs.push_back(std::ref(output_tensor));
 
   codegen::ApiTensor x_tensor, y_tensor;
@@ -176,7 +177,7 @@ TEST_F(RegReduceApicallTest, RegReduceApi_Test_002) {
   tensorx.attr.axis = {z0.id, z1.id, z2.id};
   tensorx.attr.vectorized_axis = {z0.id, z2.id};
   tensorx.attr.repeats = {z0.size, z1.size, z2.size};
-  tensorx.attr.strides = {z1.size*z2.size, z2.size, One};
+  tensorx.attr.strides = {z1.size * z2.size, z2.size, One};
   tensorx.attr.mem.tensor_id = 1;
   tensorx.attr.mem.alloc_type = af::AllocType::kAllocTypeBuffer;
   tensorx.attr.mem.position = af::Position::kPositionVecIn;
@@ -199,7 +200,7 @@ TEST_F(RegReduceApicallTest, RegReduceApi_Test_002) {
 
   std::string dtype_name;
   Tensor::DtypeName(tensory.attr.dtype, dtype_name);
-// Setup inputs
+  // Setup inputs
   Tensor tensor1(tensorx, dtype_name);
   tensor1.is_constant = true;
   Tensor tensor2(tensorx, dtype_name);
@@ -278,7 +279,7 @@ TEST_F(RegReduceApicallTest, RegReduceApi_Test_003) {
   tensorx.attr.axis = {z0.id, z1.id, z2.id, z3.id};
   tensorx.attr.vectorized_axis = {z0.id, z2.id, z3.id};
   tensorx.attr.repeats = {z0.size, z1.size, z2.size, z3.size};
-  tensorx.attr.strides = {z1.size*z2.size*z3.size, z2.size*z3.size, z3.size, One};
+  tensorx.attr.strides = {z1.size * z2.size * z3.size, z2.size * z3.size, z3.size, One};
   tensorx.attr.mem.tensor_id = 1;
   tensorx.attr.mem.alloc_type = af::AllocType::kAllocTypeBuffer;
   tensorx.attr.mem.position = af::Position::kPositionVecIn;
@@ -301,7 +302,7 @@ TEST_F(RegReduceApicallTest, RegReduceApi_Test_003) {
 
   std::string dtype_name;
   Tensor::DtypeName(tensory.attr.dtype, dtype_name);
-// Setup inputs
+  // Setup inputs
   Tensor tensor1(tensorx, dtype_name);
   tensor1.is_constant = true;
   Tensor tensor2(tensorx, dtype_name);
@@ -313,7 +314,8 @@ TEST_F(RegReduceApicallTest, RegReduceApi_Test_003) {
   inputs.push_back(std::ref(tensor3));
 
   // Setup outputs
-  Tensor output_tensor(tensory, dtype_name);;
+  Tensor output_tensor(tensory, dtype_name);
+  ;
   outputs.push_back(std::ref(output_tensor));
 
   codegen::ApiTensor x_tensor, y_tensor;
@@ -376,7 +378,7 @@ TEST_F(RegReduceApicallTest, RegReduceApi_Test_004) {
   tensorx.attr.axis = {z0.id, z1.id, z2.id};
   tensorx.attr.vectorized_axis = {z0.id, z2.id};
   tensorx.attr.repeats = {z0.size, z1.size, z2.size};
-  tensorx.attr.strides = {z1.size*z2.size, z2.size, One};
+  tensorx.attr.strides = {z1.size * z2.size, z2.size, One};
   tensorx.attr.mem.tensor_id = 1;
   tensorx.attr.mem.alloc_type = af::AllocType::kAllocTypeBuffer;
   tensorx.attr.mem.position = af::Position::kPositionVecIn;
@@ -399,7 +401,7 @@ TEST_F(RegReduceApicallTest, RegReduceApi_Test_004) {
 
   std::string dtype_name;
   Tensor::DtypeName(tensory.attr.dtype, dtype_name);
-// Setup inputs
+  // Setup inputs
   Tensor tensor1(tensorx, dtype_name);
   tensor1.is_constant = true;
   Tensor tensor2(tensorx, dtype_name);
@@ -411,7 +413,8 @@ TEST_F(RegReduceApicallTest, RegReduceApi_Test_004) {
   inputs.push_back(std::ref(tensor3));
 
   // Setup outputs
-  Tensor output_tensor(tensory, dtype_name);;
+  Tensor output_tensor(tensory, dtype_name);
+  ;
   outputs.push_back(std::ref(output_tensor));
 
   codegen::ApiTensor x_tensor, y_tensor;
@@ -474,7 +477,7 @@ TEST_F(RegReduceApicallTest, RegReduceApicallTest_Int32_Inner) {
   tensorx.attr.axis = {z0.id, z1.id, z2.id};
   tensorx.attr.vectorized_axis = {z0.id, z2.id};
   tensorx.attr.repeats = {z0.size, z1.size, z2.size};
-  tensorx.attr.strides = {z1.size*z2.size, z2.size, One};
+  tensorx.attr.strides = {z1.size * z2.size, z2.size, One};
   tensorx.attr.mem.tensor_id = 1;
   tensorx.attr.mem.alloc_type = af::AllocType::kAllocTypeBuffer;
   tensorx.attr.mem.position = af::Position::kPositionVecIn;
@@ -499,7 +502,7 @@ TEST_F(RegReduceApicallTest, RegReduceApicallTest_Int32_Inner) {
 
   std::string dtype_name;
   Tensor::DtypeName(tensory.attr.dtype, dtype_name);
-// Setup inputs
+  // Setup inputs
   Tensor tensor1(tensorx, dtype_name);
   tensor1.is_constant = true;
   Tensor tensor2(tensorx, dtype_name);
@@ -511,7 +514,8 @@ TEST_F(RegReduceApicallTest, RegReduceApicallTest_Int32_Inner) {
   inputs.push_back(std::ref(tensor3));
 
   // Setup outputs
-  Tensor output_tensor(tensory, dtype_name);;
+  Tensor output_tensor(tensory, dtype_name);
+  ;
   outputs.push_back(std::ref(output_tensor));
 
   codegen::ApiTensor x_tensor, y_tensor;
@@ -574,7 +578,7 @@ TEST_F(RegReduceApicallTest, RegReduceApicallTest_Int32_Outer) {
   tensorx.attr.axis = {z0.id, z1.id, z2.id};
   tensorx.attr.vectorized_axis = {z0.id, z2.id};
   tensorx.attr.repeats = {z0.size, z1.size, z2.size};
-  tensorx.attr.strides = {z1.size*z2.size, z2.size, One};
+  tensorx.attr.strides = {z1.size * z2.size, z2.size, One};
   tensorx.attr.mem.tensor_id = 1;
   tensorx.attr.mem.alloc_type = af::AllocType::kAllocTypeBuffer;
   tensorx.attr.mem.position = af::Position::kPositionVecIn;
@@ -599,7 +603,7 @@ TEST_F(RegReduceApicallTest, RegReduceApicallTest_Int32_Outer) {
 
   std::string dtype_name;
   Tensor::DtypeName(tensory.attr.dtype, dtype_name);
-// Setup inputs
+  // Setup inputs
   Tensor tensor1(tensorx, dtype_name);
   tensor1.is_constant = true;
   Tensor tensor2(tensorx, dtype_name);
@@ -611,7 +615,8 @@ TEST_F(RegReduceApicallTest, RegReduceApicallTest_Int32_Outer) {
   inputs.push_back(std::ref(tensor3));
 
   // Setup outputs
-  Tensor output_tensor(tensory, dtype_name);;
+  Tensor output_tensor(tensory, dtype_name);
+  ;
   outputs.push_back(std::ref(output_tensor));
 
   codegen::ApiTensor x_tensor, y_tensor;
@@ -699,7 +704,7 @@ TEST_F(RegReduceApicallTest, RegReduceApicallTest_ReduceMean_NoNeed_MultiReduce_
 
   std::string dtype_name;
   Tensor::DtypeName(tensory.attr.dtype, dtype_name);
-// Setup inputs
+  // Setup inputs
   Tensor tensor1(tensorx, dtype_name);
   tensor1.is_constant = true;
   Tensor tensor2(tensorx, dtype_name);
@@ -711,7 +716,8 @@ TEST_F(RegReduceApicallTest, RegReduceApicallTest_ReduceMean_NoNeed_MultiReduce_
   inputs.push_back(std::ref(tensor3));
 
   // Setup outputs
-  Tensor output_tensor(tensory, dtype_name);;
+  Tensor output_tensor(tensory, dtype_name);
+  ;
   outputs.push_back(std::ref(output_tensor));
 
   codegen::ApiTensor x_tensor, y_tensor;
@@ -799,7 +805,7 @@ TEST_F(RegReduceApicallTest, RegReduceApicallTest_ReduceMean_NoNeed_MultiReduce_
 
   std::string dtype_name;
   Tensor::DtypeName(tensory.attr.dtype, dtype_name);
-// Setup inputs
+  // Setup inputs
   Tensor tensor1(tensorx, dtype_name);
   tensor1.is_constant = true;
   Tensor tensor2(tensorx, dtype_name);
@@ -811,7 +817,8 @@ TEST_F(RegReduceApicallTest, RegReduceApicallTest_ReduceMean_NoNeed_MultiReduce_
   inputs.push_back(std::ref(tensor3));
 
   // Setup outputs
-  Tensor output_tensor(tensory, dtype_name);;
+  Tensor output_tensor(tensory, dtype_name);
+  ;
   outputs.push_back(std::ref(output_tensor));
 
   codegen::ApiTensor x_tensor, y_tensor;

@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -44,7 +44,7 @@ BufferImpl::BufferImpl(const std::size_t buffer_size, const std::uint8_t default
   }
 }
 
-void BufferImpl::CopyFrom(const std::uint8_t * const data, const std::size_t buffer_size) {
+void BufferImpl::CopyFrom(const std::uint8_t *const data, const std::size_t buffer_size) {
   auto const proto_msg = data_.GetProtoMsg();
   if ((proto_msg != nullptr) && (data != nullptr)) {
     try {
@@ -58,15 +58,14 @@ void BufferImpl::CopyFrom(const std::uint8_t * const data, const std::size_t buf
   }
 }
 
-BufferImpl::BufferImpl(const std::shared_ptr<google::protobuf::Message> &proto_owner,
-                       proto::AttrDef * const buffer)
+BufferImpl::BufferImpl(const std::shared_ptr<google::protobuf::Message> &proto_owner, proto::AttrDef *const buffer)
     : data_(proto_owner, buffer) {
   if (data_.GetProtoMsg() != nullptr) {
     buffer_ = data_.GetProtoMsg()->mutable_bt();
   }
 }
 
-BufferImpl::BufferImpl(const std::shared_ptr<google::protobuf::Message> &proto_owner, std::string * const buffer)
+BufferImpl::BufferImpl(const std::shared_ptr<google::protobuf::Message> &proto_owner, std::string *const buffer)
     : data_(proto_owner, nullptr) {
   buffer_ = buffer;
 }
@@ -118,15 +117,14 @@ uint8_t BufferImpl::operator[](const size_t index) const {
 
 Buffer::Buffer() : impl_(MakeShared<BufferImpl>()) {}
 
-Buffer::Buffer(const Buffer &other)
-    : impl_(MakeShared<BufferImpl>(*(other.impl_))) {}
+Buffer::Buffer(const Buffer &other) : impl_(MakeShared<BufferImpl>(*(other.impl_))) {}
 
 Buffer::Buffer(const std::size_t buffer_size, const std::uint8_t default_val)
     : impl_(MakeShared<BufferImpl>(buffer_size, default_val)) {}
 
 Buffer::~Buffer() {}
 
-Buffer Buffer::CopyFrom(const std::uint8_t * const data, const std::size_t buffer_size) {
+Buffer Buffer::CopyFrom(const std::uint8_t *const data, const std::size_t buffer_size) {
   Buffer buffer;
   if (buffer.impl_ != nullptr) {
     buffer.impl_->CopyFrom(data, buffer_size);
@@ -134,10 +132,10 @@ Buffer Buffer::CopyFrom(const std::uint8_t * const data, const std::size_t buffe
   return buffer;
 }
 
-Buffer::Buffer(const ProtoMsgOwner &proto_owner, proto::AttrDef * const buffer)
+Buffer::Buffer(const ProtoMsgOwner &proto_owner, proto::AttrDef *const buffer)
     : impl_(MakeShared<BufferImpl>(proto_owner, buffer)) {}
 
-Buffer::Buffer(const ProtoMsgOwner &proto_owner, std::string * const buffer)
+Buffer::Buffer(const ProtoMsgOwner &proto_owner, std::string *const buffer)
     : impl_(MakeShared<BufferImpl>(proto_owner, buffer)) {}
 
 Buffer &Buffer::operator=(const Buffer &other) {
@@ -165,13 +163,21 @@ void Buffer::ClearBuffer() {
   impl_->ClearBuffer();
 }
 
-const std::uint8_t *Buffer::data() const { return GetData(); }
+const std::uint8_t *Buffer::data() const {
+  return GetData();
+}
 
-std::uint8_t *Buffer::data() { return GetData(); }
+std::uint8_t *Buffer::data() {
+  return GetData();
+}
 
-std::size_t Buffer::size() const { return GetSize(); }
+std::size_t Buffer::size() const {
+  return GetSize();
+}
 
-void Buffer::clear() { return ClearBuffer(); }
+void Buffer::clear() {
+  return ClearBuffer();
+}
 
 uint8_t Buffer::operator[](const size_t index) const {
   return (*impl_)[index];
@@ -185,7 +191,7 @@ Buffer BufferUtils::CreateCopyFrom(const Buffer &other) {
   return BufferUtils::CreateCopyFrom(other.GetData(), other.GetSize());
 }
 
-Buffer BufferUtils::CreateCopyFrom(const std::uint8_t * const data, const std::size_t buffer_size) {
+Buffer BufferUtils::CreateCopyFrom(const std::uint8_t *const data, const std::size_t buffer_size) {
   return Buffer::CopyFrom(data, buffer_size);
 }
 
@@ -196,4 +202,4 @@ void BufferUtils::ShareFrom(const Buffer &from, Buffer &to) {
 void BufferUtils::CopyFrom(const Buffer &from, Buffer &to) {
   to = BufferUtils::CreateCopyFrom(from);
 }
-}  // namespace ge
+}  // namespace af

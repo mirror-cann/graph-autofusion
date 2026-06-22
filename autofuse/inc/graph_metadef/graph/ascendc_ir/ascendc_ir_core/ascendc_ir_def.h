@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -33,76 +33,76 @@ using AscIrAttrDef = af::proto::AscIrAttrDef;
 using AscNodeAttrGroupsDef = af::proto::AscNodeAttrGroupsDef;
 using AscGraphAttrGroupsDef = af::proto::AscGraphAttrGroupsDef;
 using AscTensorAttrGroupsDef = af::proto::AscTensorAttrGroupsDef;
-}
-}
+}  // namespace proto
+}  // namespace ascendc_ir
 namespace af {
 #ifdef AUTOFUSE_USE_GE_METADEF
 using AfAttrGroupsBase = af::AttrGroupsBase;
 using AttrHolder = ge::AttrHolder;
-using ge::Operator;
-using ge::GRAPH_FAILED;
-using ge::GRAPH_SUCCESS;
-using ge::FAILED;
 using ge::DataType;
-using ge::GeTensorDesc;
-using ge::DT_UNDEFINED;
+using ge::DT_BF16;
+using ge::DT_BOOL;
+using ge::DT_COMPLEX128;
+using ge::DT_COMPLEX64;
+using ge::DT_DOUBLE;
 using ge::DT_FLOAT;
 using ge::DT_FLOAT16;
-using ge::DT_INT8;
+using ge::DT_HIFLOAT8;
 using ge::DT_INT16;
 using ge::DT_INT32;
-using ge::DT_INT64;
 using ge::DT_INT4;
-using ge::DT_UINT8;
+using ge::DT_INT64;
+using ge::DT_INT8;
+using ge::DT_QINT16;
+using ge::DT_QINT32;
+using ge::DT_QINT8;
+using ge::DT_QUINT16;
+using ge::DT_QUINT8;
+using ge::DT_RESOURCE;
+using ge::DT_STRING;
 using ge::DT_UINT16;
 using ge::DT_UINT32;
 using ge::DT_UINT64;
-using ge::DT_BOOL;
-using ge::DT_DOUBLE;
-using ge::DT_STRING;
-using ge::DT_COMPLEX64;
-using ge::DT_COMPLEX128;
-using ge::DT_QINT8;
-using ge::DT_QINT16;
-using ge::DT_QINT32;
-using ge::DT_QUINT8;
-using ge::DT_QUINT16;
-using ge::DT_RESOURCE;
-using ge::DT_BF16;
-using ge::DT_HIFLOAT8;
-using ge::SUCCESS;
-using ge::OutDataAnchor;
-using ge::Symbol;
+using ge::DT_UINT8;
+using ge::DT_UNDEFINED;
 using ge::Expression;
+using ge::FAILED;
+using ge::GeTensorDesc;
+using ge::GRAPH_FAILED;
+using ge::GRAPH_SUCCESS;
+using ge::Operator;
+using ge::OutDataAnchor;
+using ge::SUCCESS;
+using ge::Symbol;
 namespace sym {
-using ge::sym::Add;
-using ge::sym::Sub;
-using ge::sym::Mul;
-using ge::sym::Div;
-using ge::sym::Max;
-using ge::sym::Min;
-using ge::sym::Pow;
-using ge::sym::Mod;
 using ge::sym::Abs;
-using ge::sym::Log;
-using ge::sym::Coeff;
-using ge::sym::Rational;
-using ge::sym::Ceiling;
+using ge::sym::Add;
 using ge::sym::Align;
 using ge::sym::AlignWithPositiveInteger;
-using ge::sym::Floor;
+using ge::sym::Ceiling;
+using ge::sym::Coeff;
+using ge::sym::Div;
 using ge::sym::Eq;
-using ge::sym::Ne;
+using ge::sym::Floor;
 using ge::sym::Ge;
 using ge::sym::Gt;
-using ge::sym::Le;
-using ge::sym::Lt;
-using ge::sym::Not;
-using ge::sym::Neg;
-using ge::sym::LogicalAnd;
-using ge::sym::LogicalOr;
 using ge::sym::kSymbolOne;
 using ge::sym::kSymbolZero;
+using ge::sym::Le;
+using ge::sym::Log;
+using ge::sym::LogicalAnd;
+using ge::sym::LogicalOr;
+using ge::sym::Lt;
+using ge::sym::Max;
+using ge::sym::Min;
+using ge::sym::Mod;
+using ge::sym::Mul;
+using ge::sym::Ne;
+using ge::sym::Neg;
+using ge::sym::Not;
+using ge::sym::Pow;
+using ge::sym::Rational;
+using ge::sym::Sub;
 }  // namespace sym
 #else
 using AfAttrGroupsBase = AttrGroupsBase;
@@ -112,9 +112,9 @@ class Operator;
 namespace {
 constexpr int64_t kIdNone = -1;
 const std::string kDataIndex = "index";
-}
+}  // namespace
 struct SizeVar {
-  using Type = enum : int32_t  {
+  using Type = enum : int32_t {
     kSizeTypeVar = 0,
     kSizeTypeConst = 1,
   };
@@ -150,7 +150,7 @@ struct Axis {
     kAxisTypeInvalid
   };
 
-  int64_t id{kIdNone};    // axis id
+  int64_t id{kIdNone};  // axis id
 
   // [HI] 轴的名字，图内唯一
   std::string name;  // axis name
@@ -178,11 +178,7 @@ struct Axis {
 };
 using AxisPtr = std::shared_ptr<Axis>;
 using AxisId = int64_t;
-enum class TransType : int64_t {
-  kSplit = 0,
-  kMerge,
-  kValid
-};
+enum class TransType : int64_t { kSplit = 0, kMerge, kValid };
 struct OneTransInfo {
   TransType trans_type;
   std::vector<AxisPtr> src_axis;
@@ -217,15 +213,15 @@ enum class ComputeUnit : int32_t {
 };
 
 enum class ApiType : int32_t {
-  kAPITypeBuffer, // Workspace/Data/Constant/IndexExpr/Output
-  kAPITypeCompute, // Load/Store/ReduceStore/Elewise/BroadCast/Reduce/Transpose
+  kAPITypeBuffer,   // Workspace/Data/Constant/IndexExpr/Output
+  kAPITypeCompute,  // Load/Store/ReduceStore/Elewise/BroadCast/Reduce/Transpose
   kAPITypeInvalid,
 };
 
-enum class ExecuteCondition: int32_t {
-  kNoCache = 0, // 不缓存
-  kCacheBlockSplitFusedBroadcastAxis, // 缓存，条件是合轴后的广播轴拆分到T和t中
-  kCacheBlockSplitOriginBroadcastAxis, // 缓存，条件是合轴后分到T中的原始轴都是广播轴
+enum class ExecuteCondition : int32_t {
+  kNoCache = 0,                         // 不缓存
+  kCacheBlockSplitFusedBroadcastAxis,   // 缓存，条件是合轴后的广播轴拆分到T和t中
+  kCacheBlockSplitOriginBroadcastAxis,  // 缓存，条件是合轴后分到T中的原始轴都是广播轴
   kConditionInvalid,
 };
 
@@ -260,8 +256,9 @@ class AscIrAttrDefBase {
   virtual ~AscIrAttrDefBase() = default;
   graphStatus Serialize(ascendc_ir::proto::AscIrAttrDef &asc_ir_attr_def);
   graphStatus Deserialize(const ascendc_ir::proto::AscIrAttrDef &asc_ir_attr_def);
-  std::unique_ptr<AscIrAttrDefBase> Clone();;
-  template<typename T>
+  std::unique_ptr<AscIrAttrDefBase> Clone();
+  ;
+  template <typename T>
   graphStatus GetAttrValue(const std::string &attr_name, T &attr_value) {
     auto *const v = attr_store_.GetAnyValue(attr_name);
     if (v == nullptr) {
@@ -275,17 +272,18 @@ class AscIrAttrDefBase {
     attr_value = *(v->Get<T>());
     return af::GRAPH_SUCCESS;
   }
-  template<typename T>
+  template <typename T>
   T *DownCastTo() {
     // 子类没有成员，所以可以这样搞
     static_assert(std::is_base_of<AscIrAttrDefBase, T>::value, "Template parameter must be derived from IrAttrDefBase");
     return reinterpret_cast<T *>(this);
   }
-  template<typename T>
+  template <typename T>
   const T *DownCastTo() const {
     static_assert(std::is_base_of<AscIrAttrDefBase, T>::value, "Template parameter must be derived from IrAttrDefBase");
     return reinterpret_cast<const T *>(this);
   }
+
  protected:
   AttrStore::CustomDefinedAttrStore attr_store_;
 };
@@ -323,8 +321,8 @@ struct MemAttr {
   // TODO 待删除
   std::string name;
   // reuse_id配合que_id表达que的共用和复用
-  // que_id相同，一个reuse_id对应一组tensor, 该组中的多个tensor共用该que_id, tensor使用该que的offset由使用者自己计算和维护
-  // que_id相同，多个reuse_id对应多组tensor，每组tensor间复用该que_id
+  // que_id相同，一个reuse_id对应一组tensor, 该组中的多个tensor共用该que_id,
+  // tensor使用该que的offset由使用者自己计算和维护 que_id相同，多个reuse_id对应多组tensor，每组tensor间复用该que_id
   int64_t reuse_id = kIdNone;
 };
 
@@ -343,14 +341,14 @@ struct MemBufAttr {
 };
 
 struct MemOptAttr {
-  int64_t reuse_id = kIdNone; // TODO 待删除, 正式方案放在MemAttr
+  int64_t reuse_id = kIdNone;  // TODO 待删除, 正式方案放在MemAttr
   int64_t ref_tensor = kIdNone;
   int64_t merge_scope = kIdNone;
 };
 
 struct TmpBufDesc {
   Expression size;
-  int64_t life_time_axis_id = -1; // -1: 生命周期为API级别, >= 0: loop级别
+  int64_t life_time_axis_id = -1;  // -1: 生命周期为API级别, >= 0: loop级别
 };
 
 struct TmpBuffer {
@@ -358,7 +356,6 @@ struct TmpBuffer {
   MemAttr mem{};
   int64_t id = kIdNone;
 };
-
 
 class AscNodeAttr : public AfAttrGroupsBase {
  public:
@@ -386,11 +383,11 @@ class AscNodeAttr : public AfAttrGroupsBase {
         api(other.api),
         ir_attr(other.ir_attr ? other.ir_attr->Clone() : nullptr),
         tmp_buffers(other.tmp_buffers) {}
-// 没有注册ir属性时，调用这个接口
+  // 没有注册ir属性时，调用这个接口
   static AscNodeAttr *Create(af::Operator &op);
 
-// 注册了ir属性时，调用这个接口
-  template<typename IrAttrDef>
+  // 注册了ir属性时，调用这个接口
+  template <typename IrAttrDef>
   static AscNodeAttr *Create(af::Operator &op) {
     static_assert(
         std::is_base_of<AscIrAttrDefBase, IrAttrDef>::value && !std::is_same<IrAttrDef, AscIrAttrDefBase>::value,
@@ -398,9 +395,10 @@ class AscNodeAttr : public AfAttrGroupsBase {
     return CreateImplWithIrAttrInit<IrAttrDef>(op);
   }
   std::unique_ptr<AfAttrGroupsBase> CloneAf() override;
+
  private:
   static AscNodeAttr *CreateImpl(af::Operator &op);
-  template<typename IrAttrDef>
+  template <typename IrAttrDef>
   static AscNodeAttr *CreateImplWithIrAttrInit(af::Operator &op) {
     auto attr_group = CreateImpl(op);
     GE_ASSERT_NOTNULL(attr_group);
@@ -487,6 +485,7 @@ class AscTensorDataType {
     }
   }
   AscTensorDataType() = default;
+
  private:
   friend struct AscNodeOutputs;
   friend class AscTensorAttr;
@@ -496,8 +495,8 @@ class AscTensorDataType {
 
 class AscTensorAttr : public AfAttrGroupsBase {
   friend class AscGraphUtils;
- public:
 
+ public:
   // [HI] 该`Tensor`的数据类型
   AscTensorDataType dtype;
 
@@ -536,36 +535,36 @@ class AscTensorAttr : public AfAttrGroupsBase {
 }  // namespace af
 
 namespace ge {
-using af::SizeVar;
-using af::SizeVarPtr;
-using af::Axis;
-using af::AxisPtr;
-using af::AxisId;
-using af::TransType;
-using af::OneTransInfo;
-using af::TransInfoRoadOfGraph;
-using af::ComputeType;
-using af::ComputeUnit;
-using af::ApiType;
-using af::ExecuteCondition;
-using af::ApiInfo;
-using af::SchedInfo;
-using af::AscIrAttrDefBase;
 using af::AllocType;
-using af::MemHardware;
-using af::Position;
-using af::MemAttr;
-using af::MemQueAttr;
-using af::MemBufAttr;
-using af::MemOptAttr;
-using af::TmpBufDesc;
-using af::TmpBuffer;
-using af::AscGraphType;
-using af::AscNodeAttr;
+using af::ApiInfo;
+using af::ApiType;
 using af::AscDataIrAttrDef;
 using af::AscGraphAttr;
-using af::AscTensorDataType;
+using af::AscGraphType;
+using af::AscIrAttrDefBase;
+using af::AscNodeAttr;
 using af::AscTensorAttr;
+using af::AscTensorDataType;
+using af::Axis;
+using af::AxisId;
+using af::AxisPtr;
+using af::ComputeType;
+using af::ComputeUnit;
+using af::ExecuteCondition;
+using af::MemAttr;
+using af::MemBufAttr;
+using af::MemHardware;
+using af::MemOptAttr;
+using af::MemQueAttr;
+using af::OneTransInfo;
+using af::Position;
+using af::SchedInfo;
+using af::SizeVar;
+using af::SizeVarPtr;
+using af::TmpBufDesc;
+using af::TmpBuffer;
+using af::TransInfoRoadOfGraph;
+using af::TransType;
 }  // namespace ge
 
 #endif  // METADEF_CXX_ASCENDC_IR_DEF_H

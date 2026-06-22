@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -28,22 +28,20 @@ class GE_FUNC_VISIBILITY StringUtils {
  public:
   static std::string &Ltrim(std::string &s) {
 #if __cplusplus >= 201103L
-    (void)s.erase(s.begin(), std::find_if(s.begin(), s.end(),
-                                          [](const int32_t c) { return std::isspace(c) == 0; }));
+    (void)s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](const int32_t c) { return std::isspace(c) == 0; }));
 #else
-    (void)s.erase(s.begin(), std::find_if(s.begin(), s.end(),
-                                          std::not1(std::ptr_fun<int32_t, int32_t>(std::isspace))));
+    (void)s.erase(s.begin(), std::find_if(s.begin(), s.end(), std::not1(std::ptr_fun<int32_t, int32_t>(std::isspace))));
 #endif
     return s;
   }
   // lint -esym(551,*)
-  static std::string &Rtrim(std::string &s) {  /*lint !e618*/
+  static std::string &Rtrim(std::string &s) { /*lint !e618*/
 #if __cplusplus >= 201103L
-    (void)s.erase(std::find_if(s.rbegin(), s.rend(),
-                               [](const int32_t c) { return std::isspace(c) == 0; }).base(), s.end());
+    (void)s.erase(std::find_if(s.rbegin(), s.rend(), [](const int32_t c) { return std::isspace(c) == 0; }).base(),
+                  s.end());
 #else
-    (void)s.erase(std::find_if(s.rbegin(), s.rend(),
-                               std::not1(std::ptr_fun<int32_t, int32_t>(std::isspace))).base(), s.end());
+    (void)s.erase(std::find_if(s.rbegin(), s.rend(), std::not1(std::ptr_fun<int32_t, int32_t>(std::isspace))).base(),
+                  s.end());
 #endif
     return s;
   }
@@ -54,7 +52,9 @@ class GE_FUNC_VISIBILITY StringUtils {
   ///  @param [in] string to be trimmed
   ///  @return string after trim
   ///
-  static std::string &Trim(std::string &s) { return Ltrim(Rtrim(s)); }
+  static std::string &Trim(std::string &s) {
+    return Ltrim(Rtrim(s));
+  }
 
   ///
   ///  @ingroup domi_common
@@ -67,7 +67,7 @@ class GE_FUNC_VISIBILITY StringUtils {
     std::vector<std::string, std::allocator<std::string>> elems;
 
     if (str.empty()) {
-      (void) elems.emplace_back("");
+      (void)elems.emplace_back("");
       return elems;
     }
 
@@ -75,18 +75,18 @@ class GE_FUNC_VISIBILITY StringUtils {
     std::string item;
 
     while (getline(ss, item, delim)) {
-      (void) elems.push_back(item);
+      (void)elems.push_back(item);
     }
 
     const auto str_size = str.size();
     if ((str_size > 0U) && (str[str_size - 1U] == delim)) {
-      (void) elems.emplace_back("");
+      (void)elems.emplace_back("");
     }
 
     return elems;
   }
 
-  template<typename Iterator>
+  template <typename Iterator>
   static std::string Join(Iterator begin, Iterator end, const std::string &separator) {
     if (begin == end) {
       return "";
@@ -158,7 +158,7 @@ class GE_FUNC_VISIBILITY StringUtils {
   ///  @param [in] ... format Filling Content
   ///  @return formatted string
   ///
-  static std::string FormatString(const char_t * const format, ...) {
+  static std::string FormatString(const char_t *const format, ...) {
     const uint32_t MAX_BUFFER_LEN = 1024U;  // the stack memory plint check result must be less than 1024
     va_list args;
     va_start(args, format);
@@ -210,12 +210,12 @@ class GE_FUNC_VISIBILITY StringUtils {
     // 查找和替换所有的子串
     std::string::size_type pos = str.find(to_replace);
     while (pos != std::string::npos) {
-      (void) str.replace(pos, to_replace.length(), replace_with);  // 用新的子串替换
-      pos += replace_with.length();                        // 移动到替换后的位置继续查找
+      (void)str.replace(pos, to_replace.length(), replace_with);  // 用新的子串替换
+      pos += replace_with.length();                               // 移动到替换后的位置继续查找
       pos = str.find(to_replace, pos);
     }
   }
 };
-}  // namespace ge
+}  // namespace af
 
 #endif  // INC_COMMON_STRING_UTIL_H_

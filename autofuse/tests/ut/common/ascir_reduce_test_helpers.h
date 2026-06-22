@@ -33,9 +33,7 @@ struct ReduceTestEnv {
   att::SubAxis axis0;
   att::SubAxis axis1;
 
-  explicit ReduceTestEnv(const char *reduce_name)
-      : graph("reduce_test_graph")
-  {
+  explicit ReduceTestEnv(const char *reduce_name) : graph("reduce_test_graph") {
     s0 = graph.CreateSizeVar("s0");
     s1 = graph.CreateSizeVar("s1");
     z0 = graph.CreateAxis("z0", s0);
@@ -63,10 +61,8 @@ struct ReduceTestEnv {
     axis1.repeat = s1;
   }
 
-  void SetIoAttrs(const std::vector<ge::Expression> &in_strides,
-                  const std::vector<ge::Expression> &out_repeats,
-                  const std::vector<ge::Expression> &out_strides)
-  {
+  void SetIoAttrs(const std::vector<ge::Expression> &in_strides, const std::vector<ge::Expression> &out_repeats,
+                  const std::vector<ge::Expression> &out_strides) {
     node->inputs[0].attr.strides = in_strides;
     node->inputs[0].attr.vectorized_axis = {z0.id, z1.id};
     node->inputs[0].attr.vectorized_strides = in_strides;
@@ -79,8 +75,7 @@ struct ReduceTestEnv {
 
 inline att::TensorPtr BuildParserTensor(const std::string &name, const std::vector<att::SubAxis *> &axes,
                                         const std::vector<ge::Expression> &repeats,
-                                        const std::vector<ge::Expression> &strides)
-{
+                                        const std::vector<ge::Expression> &strides) {
   auto tensor = std::make_shared<att::Tensor>();
   tensor->name = name;
   tensor->data_type_size = 2U;
@@ -90,16 +85,15 @@ inline att::TensorPtr BuildParserTensor(const std::string &name, const std::vect
   return tensor;
 }
 
-inline att::NodeInfo BuildReduceNodeInfo(ReduceTestEnv &env, const std::string &node_name)
-{
+inline att::NodeInfo BuildReduceNodeInfo(ReduceTestEnv &env, const std::string &node_name) {
   att::NodeInfo node_info;
   node_info.name = node_name;
   node_info.node_type = "Max";
   node_info.node_ptr = env.node;
   node_info.inputs = {BuildParserTensor("x", {&env.axis0, &env.axis1}, {ge::Symbol(8), ge::Symbol(16)},
                                         {ge::Symbol(16), ge::Symbol(1)})};
-  node_info.outputs = {BuildParserTensor("y", {&env.axis0, &env.axis1}, {ge::Symbol(8), ge::Symbol(1)},
-                                         {ge::Symbol(1), ge::Symbol(0)})};
+  node_info.outputs = {
+      BuildParserTensor("y", {&env.axis0, &env.axis1}, {ge::Symbol(8), ge::Symbol(1)}, {ge::Symbol(1), ge::Symbol(0)})};
   node_info.loop_axes = {&env.axis1};
   (void)ascir_param::EnrichAscirGraphNodeParams(env.graph);
   (void)att::FillReduceSpecificParams(env.node, node_info);

@@ -20,7 +20,7 @@ using namespace af::ascir_op;
 using namespace testing;
 
 class ArgMaxApicallTest : public ::testing::Test {
-protected:
+ protected:
   void SetUp() override {}
   void TearDown() override {}
 };
@@ -62,7 +62,7 @@ TEST_F(ArgMaxApicallTest, ReduceApi_Test_ArgMax) {
   tensorx.attr.axis = {z0.id, z1.id, z2.id};
   tensorx.attr.vectorized_axis = {z0.id, z2.id};
   tensorx.attr.repeats = {z0.size, z1.size, z2.size};
-  tensorx.attr.strides = {z1.size*z2.size, z2.size, One};
+  tensorx.attr.strides = {z1.size * z2.size, z2.size, One};
   tensorx.attr.mem.tensor_id = 1;
   tensorx.attr.mem.alloc_type = af::AllocType::kAllocTypeBuffer;
   tensorx.attr.mem.position = af::Position::kPositionVecIn;
@@ -163,7 +163,7 @@ TEST_F(ArgMaxApicallTest, ReduceApi_Test_ArgMaxMultiRPhase1) {
   tensorx.attr.axis = {z0.id, z1.id, z2.id};
   tensorx.attr.vectorized_axis = {z0.id, z2.id};
   tensorx.attr.repeats = {z0.size, z1.size, z2.size};
-  tensorx.attr.strides = {z1.size*z2.size, z2.size, One};
+  tensorx.attr.strides = {z1.size * z2.size, z2.size, One};
   tensorx.attr.mem.tensor_id = 1;
   tensorx.attr.mem.alloc_type = af::AllocType::kAllocTypeBuffer;
   tensorx.attr.mem.position = af::Position::kPositionVecIn;
@@ -291,7 +291,7 @@ TEST_F(ArgMaxApicallTest, ReduceApi_Test_ArgMaxMultiRPhase2) {
   tensorx.attr.axis = {z0.id, z1.id, z2.id};
   tensorx.attr.vectorized_axis = {z0.id, z2.id};
   tensorx.attr.repeats = {z0.size, z1.size, z2.size};
-  tensorx.attr.strides = {z1.size*z2.size, z2.size, One};
+  tensorx.attr.strides = {z1.size * z2.size, z2.size, One};
   tensorx.attr.mem.tensor_id = 1;
   tensorx.attr.mem.alloc_type = af::AllocType::kAllocTypeBuffer;
   tensorx.attr.mem.position = af::Position::kPositionVecIn;

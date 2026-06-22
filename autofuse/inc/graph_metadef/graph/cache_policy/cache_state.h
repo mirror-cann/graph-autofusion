@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -29,12 +29,12 @@ using DelCacheFunc = std::function<bool(CacheInfo &)>;
 using CCStatType = std::unordered_map<uint64_t, std::vector<CacheInfo>>;
 
 class CacheInfo {
-friend class CacheState;
-public:
+  friend class CacheState;
+
+ public:
   CacheInfo(const uint64_t timer_count, const CacheItemId item_id, const CacheDescPtr &desc)
-     : item_id_(item_id), desc_(desc), timer_count_(timer_count) {}
-  CacheInfo(const CacheInfo &other)
-     : item_id_(other.item_id_), desc_(other.desc_), timer_count_(other.timer_count_) {}
+      : item_id_(item_id), desc_(desc), timer_count_(timer_count) {}
+  CacheInfo(const CacheInfo &other) : item_id_(other.item_id_), desc_(other.desc_), timer_count_(other.timer_count_) {}
   CacheInfo &operator=(const CacheInfo &other) {
     timer_count_ = other.timer_count_;
     item_id_ = other.item_id_;
@@ -60,7 +60,7 @@ public:
     return desc_;
   }
 
-private:
+ private:
   CacheItemId item_id_;
   CacheDescPtr desc_;
   uint64_t timer_count_;
@@ -76,7 +76,7 @@ struct CacheInfoQueue {
 };
 
 class CacheState {
-public:
+ public:
   CacheState() = default;
   ~CacheState() = default;
 
@@ -97,7 +97,8 @@ public:
   uint64_t GetCurTimerCount() const {
     return cache_timer_count_;
   }
-private:
+
+ private:
   CacheItemId GetNextCacheItemId();
   void RecoveryCacheItemId(const std::vector<CacheItemId> &cache_items);
   uint64_t GetNextTimerCount() {
@@ -115,5 +116,5 @@ private:
   uint64_t cache_timer_count_ = 0U;
   std::mutex cache_timer_count_mu_;
 };
-}  // namespace ge
+}  // namespace af
 #endif

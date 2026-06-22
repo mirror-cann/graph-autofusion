@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -47,7 +47,8 @@ class Source {
   virtual size_t GetDimIdx() const {
     return std::numeric_limits<size_t>::max();
   }
-private:
+
+ private:
   size_t global_index_{std::numeric_limits<size_t>::max()};
 };
 using SourcePtr = std::shared_ptr<Source>;
@@ -79,9 +80,9 @@ struct SymbolCheckInfo {
   std::string file;
   int64_t line{};
   std::string dfx_info;
-  explicit SymbolCheckInfo(const Expression &in_expr,
-      const std::string &in_file = "", const int64_t in_line = -1, const std::string &dfx = "")
-       : expr(in_expr), file(in_file), line(in_line), dfx_info(dfx) {}
+  explicit SymbolCheckInfo(const Expression &in_expr, const std::string &in_file = "", const int64_t in_line = -1,
+                           const std::string &dfx = "")
+      : expr(in_expr), file(in_file), line(in_line), dfx_info(dfx) {}
   SymbolCheckInfo() = default;
   bool operator==(const SymbolCheckInfo &other) const {
     return this->expr == other.expr;
@@ -99,12 +100,7 @@ struct SymbolCheckInfoKeyLess {
 // dynamic：不管hint值是否相等，均生成新符号
 // duck：当hint值相同时，则不生成新符号，使用之前生成过的符号
 // static：根据hint值生成符号，同时添加一个Assert（sym == hint）的guard
-enum class DynamicMode {
-  kDynamic = 0,
-  kDuck = 1,
-  kStatic = 2,
-  kEnd = 3
-};
+enum class DynamicMode { kDynamic = 0, kDuck = 1, kStatic = 2, kEnd = 3 };
 
 struct ShapeEnvSetting {
   bool specialize_zero_one{false};
@@ -119,23 +115,23 @@ struct Replacement {
   int32_t rank;
   bool has_replace;
   Replacement(const Expression &a, const int32_t in_rank, bool in_has_replace = false)
-       : replace_expr(a), rank(in_rank), has_replace(in_has_replace) {}
+      : replace_expr(a), rank(in_rank), has_replace(in_has_replace) {}
   Replacement() : rank(0), has_replace(false) {}
   bool operator<=(const Replacement &other);
 };
 
 class ShapeEnvAttr : public AttrGroupsBase {
-public:
+ public:
   ShapeEnvAttr() = default;
   ~ShapeEnvAttr() override = default;
   explicit ShapeEnvAttr(const ShapeEnvSetting &shape_env_setting) : shape_env_setting_(shape_env_setting) {}
 
-  ShapeEnvAttr(const ShapeEnvAttr& other);
-  ShapeEnvAttr &operator=(const ShapeEnvAttr& other);
+  ShapeEnvAttr(const ShapeEnvAttr &other);
+  ShapeEnvAttr &operator=(const ShapeEnvAttr &other);
   graphStatus Serialize(proto::AttrGroupDef &attr_group_def) override;
   graphStatus Deserialize(const proto::AttrGroupDef &attr_group_def, AttrHolder *attr_holder) override;
   // 只支持int32，uint32, int64, uint64
-  template<typename T>
+  template <typename T>
   typename std::enable_if<std::is_integral<T>::value, Symbol>::type CreateSymbol(T hint, const SourcePtr &source) {
     const std::lock_guard<std::mutex> lk(mutex_);
     auto hint_int64 = static_cast<int64_t>(hint);
@@ -182,22 +178,21 @@ public:
   void SimplifySymbolCheckInfo();
   Expression EvaluateExpr(const Expression &expr);
   graphStatus AppendReplacement(const Expression &target, const Expression &replacement);
-  graphStatus AppendSymbolAssertInfo(const Expression &expr,
-      const std::string &file = "", const int64_t line = 0L);
-  graphStatus AppendSymbolCheckInfo(const Expression &expr,
-      const std::string &file = "", const int64_t line = 0L);
+  graphStatus AppendSymbolAssertInfo(const Expression &expr, const std::string &file = "", const int64_t line = 0L);
+  graphStatus AppendSymbolCheckInfo(const Expression &expr, const std::string &file = "", const int64_t line = 0L);
   const std::vector<SymbolCheckInfo> GetAllSymbolCheckInfos() const;
   const std::vector<SymbolCheckInfo> GetAllSymbolAssertInfos() const;
   bool HasSymbolCheckInfo(const Expression &e) const;
   bool HasSymbolAssertInfo(const Expression &e) const;
   TriBool HasSymbolInfo(const Expression &expr) const;
   std::unique_ptr<AttrGroupsBase> CloneAf() override;
-  void SetGuardDfxContextInfo(const std::string &guard_dfx_info) const ;
+  void SetGuardDfxContextInfo(const std::string &guard_dfx_info) const;
   void ClearGuardDfxContextInfo() const;
   void ClearSymbolValueInfo() {
     symbol_to_value_.clear();
     value_to_symbol_.clear();
   }
+
  private:
   void SimplifySymbolCheckInfo(std::set<SymbolCheckInfo, SymbolCheckInfoKeyLess> &symbol_check_infos) const;
   void AppendInitReplacement(const Expression &expr);
@@ -213,7 +208,7 @@ public:
   bool CheckReplacementCycle(const Expression &expr1, const Expression &expr2) const;
   using UMapExprReplacement = std::unordered_map<Expression, Replacement, ExpressionHash, ExpressionKeyEq>;
   using UMapExprInt = std::unordered_map<Expression, int64_t, ExpressionHash, ExpressionKeyEq>;
-  using UMapExprSource= std::unordered_map<Expression, SourcePtr, ExpressionHash, ExpressionKeyEq>;
+  using UMapExprSource = std::unordered_map<Expression, SourcePtr, ExpressionHash, ExpressionKeyEq>;
   UMapExprReplacement replacements_;
   UMapExprInt symbol_to_value_;
   UMapExprSource symbol_to_source_;

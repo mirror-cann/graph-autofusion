@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -37,7 +37,7 @@ struct WeightInfo {
   ge::Format ori_format;
   uint8_t *data;
   int64_t shape_size;
-  size_t total_data_size; // data_size * sizeof(datatype). !!!Could be zero!!!
+  size_t total_data_size;  // data_size * sizeof(datatype). !!!Could be zero!!!
   inline void CalcTotalDataSize() {
     if (shape.GetDimNum() == 0) {
       shape_size = 1;
@@ -52,25 +52,21 @@ struct WeightInfo {
     }
   }
 
-  WeightInfo(const ge::GeTensorDesc &tensor_desc,
+  WeightInfo(const ge::GeTensorDesc &tensor_desc, void *data_p);
+
+  WeightInfo(const ge::NodePtr &node, const int32_t &index, void *data_p);
+
+  WeightInfo(const ge::GeShape &shape_p, const ge::GeShape &ori_shape_p, const ge::DataType &datatype_p,
+             const ge::DataType &ori_datatype_p, const ge::Format &format_p, const ge::Format &ori_format_p,
              void *data_p);
 
-  WeightInfo(const ge::NodePtr &node, const int32_t &index,
+  WeightInfo(ge::GeShape &&shape_p, ge::GeShape &&ori_shape_p, const ge::DataType &datatype_p,
+             const ge::DataType &ori_datatype_p, const ge::Format &format_p, const ge::Format &ori_format_p,
              void *data_p);
 
-  WeightInfo(const ge::GeShape &shape_p, const ge::GeShape &ori_shape_p,
-             const ge::DataType &datatype_p, const ge::DataType &ori_datatype_p,
-             const ge::Format &format_p, const ge::Format &ori_format_p, void *data_p);
+  WeightInfo(const ge::GeShape &shape_p, const ge::DataType &datatype_p, const ge::Format &format_p, void *data_p);
 
-  WeightInfo(ge::GeShape &&shape_p, ge::GeShape &&ori_shape_p,
-             const ge::DataType &datatype_p, const ge::DataType &ori_datatype_p,
-             const ge::Format &format_p, const ge::Format &ori_format_p, void *data_p);
-
-  WeightInfo(const ge::GeShape &shape_p, const ge::DataType &datatype_p,
-             const ge::Format &format_p, void *data_p);
-
-  WeightInfo(ge::GeShape &&shape_p, const ge::DataType &datatype_p,
-             const ge::Format &format_p, void *data_p);
+  WeightInfo(ge::GeShape &&shape_p, const ge::DataType &datatype_p, const ge::Format &format_p, void *data_p);
 };
 
 class FusionTurbo {
@@ -81,11 +77,9 @@ class FusionTurbo {
 
   ~FusionTurbo();
 
-  static Status BreakInput(const ge::NodePtr &node,
-                           const vector<int32_t> &input_index);
+  static Status BreakInput(const ge::NodePtr &node, const vector<int32_t> &input_index);
 
-  static Status BreakOutput(const ge::NodePtr &node,
-                            const vector<int32_t> &output_index);
+  static Status BreakOutput(const ge::NodePtr &node, const vector<int32_t> &output_index);
 
   static Status BreakAllInput(const ge::NodePtr &node);
 
@@ -102,7 +96,7 @@ class FusionTurbo {
    * Parameter include_control_nodes:
    * If only_care_data_nodes = true, then we will ignore the control outputs. */
   Status RemoveDanglingNode(const ge::NodePtr &node, const bool &only_care_data_nodes = false);
-  
+
   Status RemoveMultiNodesOnly(const std::vector<ge::NodePtr> &nodes);
 
   ge::NodePtr UpdateConst(const ge::NodePtr &node, const int32_t &index, const WeightInfo &w_info) const;
@@ -128,13 +122,12 @@ class FusionTurbo {
    */
   ge::NodePtr AddWeightAfter(const ge::NodePtr &node, const int32_t &index, const WeightInfo &w_info) const;
 
-  ge::NodePtr AddWeight(const ge::NodePtr &node, const string& tensor_name, const WeightInfo &w_info) const;
+  ge::NodePtr AddWeight(const ge::NodePtr &node, const string &tensor_name, const WeightInfo &w_info) const;
 
   /* Add a weight tensor and node as the last input of node. */
   ge::NodePtr AddWeight(const ge::NodePtr &node, const WeightInfo &w_info) const;
 
-  std::vector<ge::NodePtr> AddWeights(const ge::NodePtr &node,
-                                      const vector<WeightInfo> &w_infos) const;
+  std::vector<ge::NodePtr> AddWeights(const ge::NodePtr &node, const vector<WeightInfo> &w_infos) const;
 
   static ge::GeTensorPtr MutableWeight(const ge::NodePtr &node, int32_t index);
 
@@ -142,44 +135,35 @@ class FusionTurbo {
 
   static ge::NodePtr AddNodeOnly(ge::ComputeGraph &graph, const string &op_name, const string &op_type);
 
-  ge::NodePtr AddNodeOnly(const string &op_name, const string &op_type,
-                          size_t dynamic_num) const;
+  ge::NodePtr AddNodeOnly(const string &op_name, const string &op_type, size_t dynamic_num) const;
 
   static ge::NodePtr AddNodeOnly(ge::ComputeGraph &graph, const string &op_name, const string &op_type,
                                  size_t dynamic_num);
 
-  ge::NodePtr InsertNodeOnly(const string &op_name, const string &op_type,
-                             const ge::NodePtr &origin_node,
+  ge::NodePtr InsertNodeOnly(const string &op_name, const string &op_type, const ge::NodePtr &origin_node,
                              const size_t dynamic_num = 0UL) const;
 
   static ge::NodePtr InsertNodeOnly(ge::ComputeGraph &graph, const string &op_name, const string &op_type,
-                                    const ge::NodePtr &origin_node,
-                                    const size_t dynamic_num = 0UL);
+                                    const ge::NodePtr &origin_node, const size_t dynamic_num = 0UL);
 
-  static ge::OpDescPtr CreateOpDesc(const string &op_name,
-                                    const string &op_type, const size_t dynamic_num);
+  static ge::OpDescPtr CreateOpDesc(const string &op_name, const string &op_type, const size_t dynamic_num);
 
-  static Status TransferOutCtrlEdges(const std::vector<ge::NodePtr> &nodes,
-                                     const ge::NodePtr &new_node);
+  static Status TransferOutCtrlEdges(const std::vector<ge::NodePtr> &nodes, const ge::NodePtr &new_node);
 
-  static Status TransferInCtrlEdges(const std::vector<ge::NodePtr> &nodes,
-                                    const ge::NodePtr &new_node);
+  static Status TransferInCtrlEdges(const std::vector<ge::NodePtr> &nodes, const ge::NodePtr &new_node);
 
-  ge::NodePtr InsertNodeBefore(const string &op_name, const string &op_type,
-                               const ge::NodePtr &base_node, const int32_t &base_input_index,
-                               const int32_t &input_index = 0,
+  ge::NodePtr InsertNodeBefore(const string &op_name, const string &op_type, const ge::NodePtr &base_node,
+                               const int32_t &base_input_index, const int32_t &input_index = 0,
                                const int32_t &output_index = 0) const;
 
-  ge::NodePtr InsertNodeAfter(const string &op_name, const string &op_type,
-                              const ge::NodePtr &base_node, const int32_t &base_output_index,
-                              const int32_t &input_index = 0, const int32_t &output_index = 0) const;
+  ge::NodePtr InsertNodeAfter(const string &op_name, const string &op_type, const ge::NodePtr &base_node,
+                              const int32_t &base_output_index, const int32_t &input_index = 0,
+                              const int32_t &output_index = 0) const;
 
-  static Status LinkInput(Relations &input_relations,
-                          const ge::NodePtr &dst_node,
+  static Status LinkInput(Relations &input_relations, const ge::NodePtr &dst_node,
                           const TensorUptType &update_tensor = UPDATE_THIS);
 
-  static Status LinkOutput(Relations &output_relations,
-                           const ge::NodePtr &src_node,
+  static Status LinkOutput(Relations &output_relations, const ge::NodePtr &src_node,
                            const TensorUptType &update_tensor = UPDATE_THIS);
 
   static ge::NodePtr GetPeerOutNode(const ge::NodePtr &node, const int32_t &this_node_input_index);
@@ -188,32 +172,26 @@ class FusionTurbo {
 
   /* Check whether there is a path from [node1's] output [index1] to [node2].
    * The default value is -1 and -1 means any output is ok. */
-  static bool CheckConnected(const ge::NodePtr &node1, const ge::NodePtr &node2,
-                             const int32_t &index1 = -1);
+  static bool CheckConnected(const ge::NodePtr &node1, const ge::NodePtr &node2, const int32_t &index1 = -1);
 
   /* Default update input 0 of node. */
-  Status UpdateInputByPeer(const ge::NodePtr &node, const int32_t &index,
-                           const ge::NodePtr &peer_node, const int32_t &peer_index) const;
+  Status UpdateInputByPeer(const ge::NodePtr &node, const int32_t &index, const ge::NodePtr &peer_node,
+                           const int32_t &peer_index) const;
 
-  Status UpdateOutputByPeer(const ge::NodePtr &node, const int32_t &index,
-                            const ge::NodePtr &peer_node, const int32_t &peer_index) const;
+  Status UpdateOutputByPeer(const ge::NodePtr &node, const int32_t &index, const ge::NodePtr &peer_node,
+                            const int32_t &peer_index) const;
 
   static bool IsUnknownShape(const ge::NodePtr &node, const int32_t &index, const bool &is_input = true);
 
   static bool IsUnknownOriShape(const ge::NodePtr &node, const int32_t &index, const bool &is_input = true);
 
-  ge::NodePtr MultiInOne(const string &node_name, const string &node_type,
-                         Relations &input_relations,
-                         Relations &output_relations,
-                         const std::vector<ge::NodePtr> &old_nodes = {},
+  ge::NodePtr MultiInOne(const string &node_name, const string &node_type, Relations &input_relations,
+                         Relations &output_relations, const std::vector<ge::NodePtr> &old_nodes = {},
                          const bool &remove_old = true);
 
-  Status MultiInOne(const ge::NodePtr &new_node,
-                    Relations &input_relations,
-                    Relations &output_relations,
-                    const std::vector<ge::NodePtr> &old_nodes = {},
-                    const bool &remove_old = true);
-  
+  Status MultiInOne(const ge::NodePtr &new_node, Relations &input_relations, Relations &output_relations,
+                    const std::vector<ge::NodePtr> &old_nodes = {}, const bool &remove_old = true);
+
   static bool HasControl(const ge::NodePtr &node);
 
   static bool HasInControl(const ge::NodePtr &node);
@@ -239,12 +217,12 @@ class FusionTurbo {
   static NodeIndex GetPeerInFirstPair(const ge::NodePtr &node, int32_t index);
 
   static NodeIndex GetPeerOutPair(const ge::NodePtr &node, int32_t index);
+
  private:
   /* AddWeight will do either AddConstNode or UpdateConst. */
-  ge::NodePtr AddConstNode(const ge::NodePtr &node, const WeightInfo &w_info,
-                           const int32_t index) const;
+  ge::NodePtr AddConstNode(const ge::NodePtr &node, const WeightInfo &w_info, const int32_t index) const;
 
   ge::ComputeGraphPtr graph_;
 };
-}
-#endif // INC_REGISTER_GRAPH_OPTIMIZER_FUSION_COMMON_FUSION_TURBO_H
+}  // namespace fe
+#endif  // INC_REGISTER_GRAPH_OPTIMIZER_FUSION_COMMON_FUSION_TURBO_H

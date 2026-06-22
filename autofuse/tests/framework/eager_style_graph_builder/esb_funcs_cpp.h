@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -131,7 +131,7 @@ class Graph {
 };
 
 // todo 方法使用了if constexpr，因此需要C++17支持，如果不希望引入C++17，可以使用穷举特化的方式，会罗嗦一些
-template<typename T>
+template <typename T>
 Tensor EnsureTensor(T &&value, const Tensor &same_graph_tensor) {
   const auto graph = EsGetOwnerGraph(same_graph_tensor.GetEsbTensor());
   if (graph == nullptr) {

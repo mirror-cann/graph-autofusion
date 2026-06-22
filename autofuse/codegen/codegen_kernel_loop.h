@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2026 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -28,15 +28,8 @@ class ApiCall;
 struct Loop;
 class Axis;
 
-enum class LoopType : int8_t {
-  CALL = 0,
-  LOOP
-};
-enum class BoolType : int8_t {
-  FALSE = 0,
-  TRUE = 1,
-  FAILED = 2
-};
+enum class LoopType : int8_t { CALL = 0, LOOP };
+enum class BoolType : int8_t { FALSE = 0, TRUE = 1, FAILED = 2 };
 
 struct LoopBody {
   LoopType type;
@@ -49,26 +42,26 @@ struct LoopBody {
 struct ApiTensor {
   ascir::TensorId id;
   ascir::ReuseId reuse_id;
-  struct ApiTensor* reuse_from;
-  struct ApiTensor* reuse_next;
-  struct ApiTensor* share_prev;
-  struct ApiTensor* share_next;
+  struct ApiTensor *reuse_from;
+  struct ApiTensor *reuse_next;
+  struct ApiTensor *share_prev;
+  struct ApiTensor *share_next;
   mutable int32_t share_order;
-  const ApiCall* write;
-  std::vector<const ApiCall*> reads;
+  const ApiCall *write;
+  std::vector<const ApiCall *> reads;
 
   ApiTensor();
 };
 
 enum class ApiScene : int8_t {
-  kDefault = 0,          // 非CV融合场景
-  kCVFuseUBLoad,         // CV融合场景, load节点的输入tensor在UB上(Cube的输出)
+  kDefault = 0,   // 非CV融合场景
+  kCVFuseUBLoad,  // CV融合场景, load节点的输入tensor在UB上(Cube的输出)
 };
 
 enum class ComputeStage : int8_t {
-  kDefault = 0,          // 非CV融合场景
-  kCVFuseStage1,         // CV融合场景阶段1, Cube输出Tensor的生命周期之内
-  kCVFuseStage2,         // CV融合场景阶段2, Cube输出Tensor的生命周期之外
+  kDefault = 0,   // 非CV融合场景
+  kCVFuseStage1,  // CV融合场景阶段1, Cube输出Tensor的生命周期之内
+  kCVFuseStage2,  // CV融合场景阶段2, Cube输出Tensor的生命周期之外
 };
 
 struct ApiCallContext {
@@ -89,7 +82,7 @@ class ApiCall {
   // Public Member Function
   virtual Status Init(const ascir::NodeView &node);
   virtual Status ParseAttr(const ascir::NodeView &node) {
-    (void) node;
+    (void)node;
     return af::SUCCESS;
   }
   virtual Status BuildApiParam(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
@@ -126,17 +119,16 @@ class ApiCall {
 
   // 快速注册基本 dump 信息（api_name, inputs, outputs, tmp_buf, cal_count）
   // 供旧式 Generate 调用，不需要迁移到 BuildApiParam 即可输出初版 dump
-  ge::Status RegisterBasicDumpParam(
-      const std::string &api_name,
-      const std::vector<std::reference_wrapper<const Tensor>> &inputs,
-      const std::vector<std::reference_wrapper<const Tensor>> &outputs,
-      const CombinedExpression &cal_count = CombinedExpression{},
-      const std::string &tmp_buf_name = "") const;
+  ge::Status RegisterBasicDumpParam(const std::string &api_name,
+                                    const std::vector<std::reference_wrapper<const Tensor>> &inputs,
+                                    const std::vector<std::reference_wrapper<const Tensor>> &outputs,
+                                    const CombinedExpression &cal_count = CombinedExpression{},
+                                    const std::string &tmp_buf_name = "") const;
 
   // Public Member Variables
   std::string api_name_;
   ascir::AxisId axis;
-  std::string type; // ascir tpye
+  std::string type;  // ascir tpye
   int64_t depth;
   ascir::ComputeUnit unit;
   ascir::ComputeType compute_type;
@@ -165,7 +157,7 @@ class ApiCall {
 
 struct Loop {
   ascir::AxisId axis_id;
-  struct Loop* parent;
+  struct Loop *parent;
   std::vector<LoopBody> bodys;
   std::set<const ApiCall *> used_calls = {};
   bool is_graph_has_reduce_node = false;  // 当前图上是否有reduce节点
@@ -177,25 +169,26 @@ struct Loop {
   void AddCall(ApiCall *call);
 
   /* 将会通过new 申请内存，需要通过Destruct释放 */
-  Status ConstructFromNodes(ascir::NodeViewVisitorConst nodes, const Tiler &tiler, TPipe& tpipe);
+  Status ConstructFromNodes(ascir::NodeViewVisitorConst nodes, const Tiler &tiler, TPipe &tpipe);
   void Destruct();
 
-  Status Generate(const Tiler& tiler, const TPipe& tpipe, std::string &result,
+  Status Generate(const Tiler &tiler, const TPipe &tpipe, std::string &result,
                   ComputeStage stage = ComputeStage::kDefault);
-  const Tensor* GetReduceOutputTensor(const TPipe &tpipe) const;
-  const Tensor* GetReduceInputTensor(const TPipe &tpipe) const;
+  const Tensor *GetReduceOutputTensor(const TPipe &tpipe) const;
+  const Tensor *GetReduceInputTensor(const TPipe &tpipe) const;
   void CollectTensorCrossLoop(std::map<ascir::AxisId, std::vector<ApiCall *>> &api_calls);
   Status ActualSizeDefine(const Tiler &tiler, const TPipe &tpipe, std::string dtype_name, std::string &result);
 
  private:
-  Status GenerateLoop(const Tiler& tiler, const TPipe& tpipe, std::vector<ascir::AxisId>& current_axis, std::stringstream& ss);
-  Status GenerateBody(const Tiler& tiler, const TPipe& tpipe, std::vector<ascir::AxisId>& current_axis,
-                      std::stringstream& ss);
+  Status GenerateLoop(const Tiler &tiler, const TPipe &tpipe, std::vector<ascir::AxisId> &current_axis,
+                      std::stringstream &ss);
+  Status GenerateBody(const Tiler &tiler, const TPipe &tpipe, std::vector<ascir::AxisId> &current_axis,
+                      std::stringstream &ss);
   void GenerateEnCacheCondition(const Tiler &tiler, const TPipe &tpipe, const Axis &axis, std::stringstream &ss) const;
   bool IsFindInUsedCalls(const ApiCall *call) const;
   std::string GetReduceType() const;
   bool IsHaveReduceType(const std::string &type) const;
   bool IsBodyContainLoop() const;
 };
-} // namespace codegen
+}  // namespace codegen
 #endif

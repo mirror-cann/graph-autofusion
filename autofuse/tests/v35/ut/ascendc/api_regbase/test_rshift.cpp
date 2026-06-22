@@ -1,15 +1,15 @@
 /**
-* Copyright (c) Huawei Technologies Co., Ltd. 2024. All rights reserved.
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Copyright (c) Huawei Technologies Co., Ltd. 2024. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 /**
  * test_rshift.cpp
@@ -23,7 +23,7 @@
 
 using namespace AscendC;
 
-namespace af{
+namespace af {
 
 template <typename T1, typename T2>
 struct RShiftInputParam {
@@ -116,7 +116,6 @@ class TestRegbaseApiRShiftUT : public testing::Test {
     AscendC::GmFree(param.x1);
     AscendC::GmFree(param.x2);
   }
-
 };
 
 // ============ Tensor - Tensor 测试 ============
@@ -186,4 +185,4 @@ TEST_F(TestRegbaseApiRShiftUT, RShift_TensorTensor_Test) {
   RShiftTensorTensorTest<uint64_t, int64_t>((MAX_REPEAT_NUM - 1) * ONE_REPEAT_BYTE_SIZE / 2 / sizeof(uint64_t));
 }
 
-}  // namespace ge
+}  // namespace af

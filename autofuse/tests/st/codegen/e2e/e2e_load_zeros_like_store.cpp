@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -40,14 +40,14 @@ void LoadZerosLikeStore_BeforeAutofuse(af::AscGraph &graph) {
   load.attr.sched.axis = {z0.id, z1.id, z2.id};
   *load.y.axis = {z0.id, z1.id, z2.id};
   *load.y.repeats = {s0, s1, s2};
-  *load.y.strides = {s1*s2, s2, One};
+  *load.y.strides = {s1 * s2, s2, One};
 
   af::ascir_op::ZerosLike zeros_like("zeros_like");
   graph.AddNode(zeros_like);
   zeros_like.x = load.y;
   zeros_like.attr.sched.axis = {z0.id, z1.id, z2.id};
   *zeros_like.y.repeats = {s0, s1, s2};
-  *zeros_like.y.strides = {s1*s2, s2, One};
+  *zeros_like.y.strides = {s1 * s2, s2, One};
   zeros_like.attr.tmp_buffers = {{{af::Symbol(8192), -1}, MemAttr(), 0}};
 
   Store store("store");
@@ -57,7 +57,7 @@ void LoadZerosLikeStore_BeforeAutofuse(af::AscGraph &graph) {
   store.y.dtype = ge::DT_FLOAT16;
   *store.y.axis = {z0.id, z1.id, z2.id};
   *store.y.repeats = {s0, s1, s2};
-  *store.y.strides = {s1*s2, s2, One};
+  *store.y.strides = {s1 * s2, s2, One};
 
   Output y("y");
   graph.AddNode(y);
@@ -118,7 +118,7 @@ void LoadZerosLikeStore_AfterInferOutput(af::AscGraph &graph) {
   load->attr.api.compute_type = ComputeType::kComputeLoad;
 
   auto zeros_like = graph.FindNode("zeros_like");
-  zeros_like->outputs[0].attr.dtype =(ge::DataType)load->outputs[0].attr.dtype;
+  zeros_like->outputs[0].attr.dtype = (ge::DataType)load->outputs[0].attr.dtype;
   zeros_like->outputs[0].attr.axis = load->outputs[0].attr.axis;
   zeros_like->outputs[0].attr.repeats = load->outputs[0].attr.repeats;
   zeros_like->outputs[0].attr.strides = load->outputs[0].attr.strides;

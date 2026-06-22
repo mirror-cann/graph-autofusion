@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -38,13 +38,13 @@ struct AutoThreadSubTaskFlush {
 };
 
 struct AutoThreadParam {
-  uint16_t thread_dim{0U};  // thread dim after Pre-Thread
-  uint32_t input_output_num{0U};  // input + output
-  std::vector<uint64_t> task_addr_offset; // input + output + workspace
+  uint16_t thread_dim{0U};                 // thread dim after Pre-Thread
+  uint32_t input_output_num{0U};           // input + output
+  std::vector<uint64_t> task_addr_offset;  // input + output + workspace
 
   // Task Thread Dims.
-  std::vector<std::vector<std::vector<int64_t>>> *task_input_shape{nullptr}; // thread<input>
-  std::vector<std::vector<std::vector<int64_t>>> *task_output_shape{nullptr}; // thread<output>
+  std::vector<std::vector<std::vector<int64_t>>> *task_input_shape{nullptr};   // thread<input>
+  std::vector<std::vector<std::vector<int64_t>>> *task_output_shape{nullptr};  // thread<output>
 };
 
 class FFTSPlusTaskUpdate {
@@ -84,5 +84,5 @@ class FFTSPlusTaskUpdate {
     return SUCCESS;
   }
 };
-} // namespace ge
-#endif // INC_REGISTER_FFTS_PLUS_TASK_UPDATE_H_
+}  // namespace af
+#endif  // INC_REGISTER_FFTS_PLUS_TASK_UPDATE_H_

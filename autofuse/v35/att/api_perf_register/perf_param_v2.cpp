@@ -380,10 +380,7 @@ const std::map<std::string, std::vector<VfInstructPerf>> &PerfParamTableV2::GetV
       {
           kVmAdd,
           {
-              {VfInstructPerf{
-                  {kBfloat16, kFloat16, kFloat32},
-                  6,
-                  1}},
+              {VfInstructPerf{{kBfloat16, kFloat16, kFloat32}, 6, 1}},
           },
       },
       {

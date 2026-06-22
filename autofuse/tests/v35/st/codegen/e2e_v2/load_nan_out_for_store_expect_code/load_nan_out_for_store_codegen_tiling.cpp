@@ -16,4 +16,3 @@ extern "C" bool CodegenTiling(const std::string &op_name, const ascir::FusedSche
   tiling_func["TilingHead"] += ss.str();
   return true;
 }
-

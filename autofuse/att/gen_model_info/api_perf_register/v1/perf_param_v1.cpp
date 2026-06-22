@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -23,8 +23,9 @@ const Expr kMte2PipeHeadNormalB = CreateExpr(1575.03f);
 const Expr kMte2PipeHeadSmallK = CreateExpr(15.89f);
 const Expr kMte2PipeHeadSmallB = CreateExpr(882.09f);
 const Expr kMte3PipeHeadcost = CreateExpr(497.36f);
-}
-Expr PerfParamTableV1::GetMTE2PipeHead(const std::vector<NodeInfo> &node_infos, std::map<Expr, TernaryOp, ExprCmp> &ternary_ops) {
+}  // namespace
+Expr PerfParamTableV1::GetMTE2PipeHead(const std::vector<NodeInfo> &node_infos,
+                                       std::map<Expr, TernaryOp, ExprCmp> &ternary_ops) {
   Expr mte2_pipe_head;
   Expr max_data_size = af::sym::kSymbolZero;
   for (const auto &node : node_infos) {
@@ -570,20 +571,20 @@ PipeHeadPerfFunc PerfParamTableV1::GetPipeHeadPerfFunc(PipeType pipe_type) const
 
 PerfParamTableV1::PerfParamTableV1() {
   pipes_head_perf.emplace(PipeType::AIV_MTE2, &PerfParamTableV1::GetMTE2PipeHead);
-  pipes_head_perf.emplace(PipeType::AIV_MTE3,
-                          [](const std::vector<NodeInfo> &node_infos,
-                             std::map<Expr, TernaryOp, ExprCmp> &ternary_ops) -> Expr {
-                            (void)node_infos;
-                            (void)ternary_ops;
-                            return kMte3PipeHeadcost;
-                          });
-  pipes_head_perf.emplace(PipeType::AIV_VEC,
-                          [](const std::vector<NodeInfo> &node_infos,
-                             std::map<Expr, TernaryOp, ExprCmp> &ternary_ops) -> Expr {
-                            (void)node_infos;
-                            (void)ternary_ops;
-                            return kVecheadcost;
-                          });
+  pipes_head_perf.emplace(
+      PipeType::AIV_MTE3,
+      [](const std::vector<NodeInfo> &node_infos, std::map<Expr, TernaryOp, ExprCmp> &ternary_ops) -> Expr {
+        (void)node_infos;
+        (void)ternary_ops;
+        return kMte3PipeHeadcost;
+      });
+  pipes_head_perf.emplace(
+      PipeType::AIV_VEC,
+      [](const std::vector<NodeInfo> &node_infos, std::map<Expr, TernaryOp, ExprCmp> &ternary_ops) -> Expr {
+        (void)node_infos;
+        (void)ternary_ops;
+        return kVecheadcost;
+      });
 }
 
 Expr PerfParamTableV1::GetOpHeadCost() const {

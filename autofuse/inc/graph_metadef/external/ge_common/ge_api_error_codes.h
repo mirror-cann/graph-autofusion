@@ -37,7 +37,7 @@
 #endif
 
 #ifndef GE_ERRORNO_DEFINE
-#define GE_ERRORNO_DEFINE(runtime, type, level, sysid, modid, name, value)                                 \
+#define GE_ERRORNO_DEFINE(runtime, type, level, sysid, modid, name, value)                                \
   constexpr af::Status name = ((static_cast<uint32_t>(0xFFU & (static_cast<uint32_t>(runtime))) << 30U) | \
                                (static_cast<uint32_t>(0xFFU & (static_cast<uint32_t>(type))) << 28U) |    \
                                (static_cast<uint32_t>(0xFFU & (static_cast<uint32_t>(level))) << 25U) |   \
@@ -127,13 +127,13 @@ namespace ge {
 using StatusFactory = af::StatusFactory;
 using ErrorNoRegisterar = af::ErrorNoRegisterar;
 using Status = af::Status;
-using af::SUCCESS;
 using af::FAILED;
+using af::SUCCESS;
 }  // namespace ge
 
 #endif  // GE_ERRORNO
 
 namespace af {
-  GE_ERRORNO_DEFINE(0b01, 0b01, 0b000, 8, 0, END_OF_SEQUENCE, 7);
+GE_ERRORNO_DEFINE(0b01, 0b01, 0b000, 8, 0, END_OF_SEQUENCE, 7);
 }
 #endif  // INC_EXTERNAL_GE_COMMON_GE_API_ERROR_CODES_H_

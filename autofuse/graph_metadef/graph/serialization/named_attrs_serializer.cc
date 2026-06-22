@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -26,7 +26,7 @@ graphStatus NamedAttrsSerializer::Serialize(const AnyValue &av, GeIrAttrDef &def
   return Serialize(named_attrs, func);
 }
 
-graphStatus NamedAttrsSerializer::Serialize(const af::NamedAttrs &named_attr, proto::NamedAttrs* proto_attr) const {
+graphStatus NamedAttrsSerializer::Serialize(const af::NamedAttrs &named_attr, proto::NamedAttrs *proto_attr) const {
   GE_CHECK_NOTNULL(proto_attr);
   proto_attr->set_name(named_attr.GetName().c_str());
   const auto mutable_attr = proto_attr->mutable_attr();
@@ -68,8 +68,8 @@ graphStatus NamedAttrsSerializer::Deserialize(const proto::NamedAttrs &proto_att
       return FAILED;
     }
     if (named_attrs.SetAttr(sub_proto_attr.first, attr_value) != GRAPH_SUCCESS) {
-      GELOGE(GRAPH_FAILED, "NamedAttrs [%s] set attr [%s] failed.",
-             named_attrs.GetName().c_str(), sub_proto_attr.first.c_str());
+      GELOGE(GRAPH_FAILED, "NamedAttrs [%s] set attr [%s] failed.", named_attrs.GetName().c_str(),
+             sub_proto_attr.first.c_str());
       return GRAPH_FAILED;
     }
   }
@@ -77,4 +77,4 @@ graphStatus NamedAttrsSerializer::Deserialize(const proto::NamedAttrs &proto_att
 }
 
 REG_GEIR_SERIALIZER(named_attr_serializer, NamedAttrsSerializer, GetTypeId<af::NamedAttrs>(), GeIrAttrDef::kFunc);
-}  // namespace ge
+}  // namespace af

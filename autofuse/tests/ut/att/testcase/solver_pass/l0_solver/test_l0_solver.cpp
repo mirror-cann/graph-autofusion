@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -21,53 +21,55 @@
 using namespace att;
 
 class MockUtL0TileSolver : public L0TileSolver {
-  public:
-    MockUtL0TileSolver() {}
-    explicit MockUtL0TileSolver(L0TileInput input) : L0TileSolver(input) {}
-    void SetL0A(uint32_t value) { L0A_ = value; }
-    void SetL0B(uint32_t value) { L0B_ = value; }
-    void SetL0C(uint32_t value) { L0C_ = value; }
-    bool CheckBufferUseValid() override {
-      uint32_t l0A = input_.l0_vars[0].value * input_.l0_vars[2].value * 4;
-      uint32_t l0B = input_.l0_vars[2].value * input_.l0_vars[1].value * 4;
-      uint32_t l0C = input_.l0_vars[0].value * input_.l0_vars[1].value * 4;
-      if (l0A > L0A_ || l0B > L0B_ || l0C > L0C_) {
-        return false;
-      }
-      return true;
+ public:
+  MockUtL0TileSolver() {}
+  explicit MockUtL0TileSolver(L0TileInput input) : L0TileSolver(input) {}
+  void SetL0A(uint32_t value) {
+    L0A_ = value;
+  }
+  void SetL0B(uint32_t value) {
+    L0B_ = value;
+  }
+  void SetL0C(uint32_t value) {
+    L0C_ = value;
+  }
+  bool CheckBufferUseValid() override {
+    uint32_t l0A = input_.l0_vars[0].value * input_.l0_vars[2].value * 4;
+    uint32_t l0B = input_.l0_vars[2].value * input_.l0_vars[1].value * 4;
+    uint32_t l0C = input_.l0_vars[0].value * input_.l0_vars[1].value * 4;
+    if (l0A > L0A_ || l0B > L0B_ || l0C > L0C_) {
+      return false;
     }
+    return true;
+  }
 
-  private:
-    uint32_t L0A_;
-    uint32_t L0B_;
-    uint32_t L0C_;
+ private:
+  uint32_t L0A_;
+  uint32_t L0B_;
+  uint32_t L0C_;
 };
 
 class TestL0SolverUt : public ::testing::Test {
  public:
-  static void TearDownTestCase()
-  {
+  static void TearDownTestCase() {
     std::cout << "Test end." << std::endl;
   }
-  static void SetUpTestCase()
-  {
+  static void SetUpTestCase() {
     std::cout << "Test begin." << std::endl;
   }
   void SetUp() override {
-     // Code here will be called immediately after the constructor (right
-     // before each test).
+    // Code here will be called immediately after the constructor (right
+    // before each test).
   }
 
   void TearDown() override {
-     // Code here will be called immediately after each test (right
-     // before the destructor).
+    // Code here will be called immediately after each test (right
+    // before the destructor).
   }
   MockUtL0TileSolver solver;
 };
 
-
-TEST_F(TestL0SolverUt, TEST_CHECK_INPUT)
-{
+TEST_F(TestL0SolverUt, TEST_CHECK_INPUT) {
   EXPECT_EQ(solver.CheckInput(), false);
 
   L0Var M;
@@ -100,12 +102,12 @@ TEST_F(TestL0SolverUt, TEST_CHECK_INPUT)
   solver.input_.core_num = 0;
   EXPECT_EQ(solver.CheckInput(), false);
   solver.input_.core_num = 24;
-  solver.input_.l0_vars[0].align=0;
+  solver.input_.l0_vars[0].align = 0;
   EXPECT_EQ(solver.CheckInput(), false);
-  solver.input_.l0_vars[0].align=32;
+  solver.input_.l0_vars[0].align = 32;
   EXPECT_EQ(solver.CheckInput(), false);
-  solver.input_.l0_vars[0].align=16;
-  solver.input_.l0_vars[0].prompt_align=0;
+  solver.input_.l0_vars[0].align = 16;
+  solver.input_.l0_vars[0].prompt_align = 0;
   EXPECT_EQ(solver.CheckInput(), false);
 
   L0TileInput input_2;
@@ -123,8 +125,7 @@ TEST_F(TestL0SolverUt, TEST_CHECK_INPUT)
   EXPECT_EQ(solver.CheckInput(), false);
 }
 
-TEST_F(TestL0SolverUt, TEST_MAX_CORE_NUM)
-{
+TEST_F(TestL0SolverUt, TEST_MAX_CORE_NUM) {
   L0Var M;
   L0Var N;
   L0Var K;
@@ -155,8 +156,7 @@ TEST_F(TestL0SolverUt, TEST_MAX_CORE_NUM)
   EXPECT_EQ(solver.MaxCoreNum(input.l0_vars, input.core_num), 8);
 }
 
-TEST_F(TestL0SolverUt, TEST_GET_MAC_USE)
-{
+TEST_F(TestL0SolverUt, TEST_GET_MAC_USE) {
   L0Var M;
   L0Var N;
   L0Var K;
@@ -190,8 +190,7 @@ TEST_F(TestL0SolverUt, TEST_GET_MAC_USE)
   EXPECT_EQ(solver.GetMacUse(), 4096);
 }
 
-TEST_F(TestL0SolverUt, TEST_CHECK_OUTPUT)
-{
+TEST_F(TestL0SolverUt, TEST_CHECK_OUTPUT) {
   L0Var M;
   L0Var N;
   L0Var K;
@@ -232,9 +231,7 @@ TEST_F(TestL0SolverUt, TEST_CHECK_OUTPUT)
   EXPECT_EQ(solver.CheckOutput(), true);
 }
 
-
-TEST_F(TestL0SolverUt, TEST_RUN)
-{
+TEST_F(TestL0SolverUt, TEST_RUN) {
   L0Var M;
   L0Var N;
   L0Var K;

@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -20,7 +20,7 @@
 namespace att {
 // 负责注册所有的评估函数（包括ASCIR API, AscendC Api）
 class EvalCosts {
-public:
+ public:
   static EvalCosts &Instance();
 
   void RegisterFunc(const std::string &op_type, const Perf &perf_func) {
@@ -47,20 +47,20 @@ public:
   EvalCosts() = default;
   ~EvalCosts() = default;
 
-private:
+ private:
   std::unordered_map<std::string, Perf> func_container_;
   std::unordered_map<std::string, AscendCPerf> ascendc_func_container_;
 };
 
 class FuncRegister {
-public:
+ public:
   FuncRegister(const std::string &op_type, const Perf &func) {
     EvalCosts::Instance().RegisterFunc(op_type, func);
   }
   ~FuncRegister() = default;
 };
 class AscendcFuncRegister {
-public:
+ public:
   AscendcFuncRegister(const std::string &op_type, const AscendCPerf &func) {
     EvalCosts::Instance().RegisterAscendCFunc(op_type, func);
   }
@@ -124,17 +124,15 @@ ge::Status WholeReduceSumPerf(const NodeDetail &node_info, PerfOutputInfo &perf)
 ge::Status WholeReduceMaxPerf(const NodeDetail &node_info, PerfOutputInfo &perf);
 ge::Status WholeReduceMinPerf(const NodeDetail &node_info, PerfOutputInfo &perf);
 // load store的API在不同形态的拟合形式不一样，暂不放在本文件定义
-}
+}  // namespace ascendcperf
 // AscendC和ASCIR均可以使用下面的宏注册
-#define REGISTER_EVAL_FUNC(op_type, func_name) \
-  FuncRegister eval_##op_type(op_type, func_name)
-#define REGISTER_ASCENDC_EVAL_FUNC(op_type, func_name) \
-  AscendcFuncRegister ascendc_eval_##op_type(op_type, func_name)
+#define REGISTER_EVAL_FUNC(op_type, func_name) FuncRegister eval_##op_type(op_type, func_name)
+#define REGISTER_ASCENDC_EVAL_FUNC(op_type, func_name) AscendcFuncRegister ascendc_eval_##op_type(op_type, func_name)
 
 #define REGISTER_ASCENDC_EVAL_FUNC_TAG(op_type, tag, func_name) \
   AscendcFuncRegister JOIN_A_B_C(eval_, op_type, tag)((op_type) + (#tag), (func_name))
 
 #define REGISTER_EVAL_FUNC_TAG(op_type, tag, func_name) \
   FuncRegister JOIN_A_B_C(eval_, op_type, tag)((op_type) + (#tag), (func_name))
-} // namespace att
-#endif // API_PERF_REGISTER_ASCENDC_API_PERF_H_
+}  // namespace att
+#endif  // API_PERF_REGISTER_ASCENDC_API_PERF_H_

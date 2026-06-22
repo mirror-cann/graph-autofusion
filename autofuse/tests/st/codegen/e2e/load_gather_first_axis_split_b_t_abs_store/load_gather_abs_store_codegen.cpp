@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -24,20 +24,19 @@
 
 using namespace ascir;
 
-std::vector<std::string> splitString(const std::string& input, char delimiter) {
+std::vector<std::string> splitString(const std::string &input, char delimiter) {
   std::vector<std::string> result;
   std::stringstream ss(input);
   std::string token;
 
   while (std::getline(ss, token, delimiter)) {
-      result.push_back(token);
+    result.push_back(token);
   }
 
   return result;
 }
 
-class LoadGather_FirstAxis_B_T_AbsStoreST : public testing::Test {
-};
+class LoadGather_FirstAxis_B_T_AbsStoreST : public testing::Test {};
 
 TEST_F(LoadGather_FirstAxis_B_T_AbsStoreST, LoadGather_FirstAxis_B_T_AbsStoreCodegen) {
   bool gen_success = true;
@@ -52,19 +51,20 @@ TEST_F(LoadGather_FirstAxis_B_T_AbsStoreST, LoadGather_FirstAxis_B_T_AbsStoreCod
   impl_graph.CopyFrom(graph);
   LoadGather_FirstAxis_B_T_AbsStore_AfterAutofuse(impl_graph, ge::DT_FLOAT);
 
-  std::cout<<"ATT_SO_NAME="<<ATT_SO_NAME<<std::endl;
-  std::cout<<"KERNEL_SRC_LIST="<<KERNEL_SRC_LIST<<std::endl;
+  std::cout << "ATT_SO_NAME=" << ATT_SO_NAME << std::endl;
+  std::cout << "KERNEL_SRC_LIST=" << KERNEL_SRC_LIST << std::endl;
   std::vector<std::string> parts = splitString(KERNEL_SRC_LIST, ':');
-  std::string kernel_src_file_name = parts[0];      // load_gather_abs_store_kernel.cpp
-  std::string tiling_src_file_name = parts[1];      // load_gather_abs_store_tiling.cpp
-  std::string tiling_data_src_file_name = parts[2]; // load_gather_abs_store_tiling_data.h
+  std::string kernel_src_file_name = parts[0];       // load_gather_abs_store_kernel.cpp
+  std::string tiling_src_file_name = parts[1];       // load_gather_abs_store_tiling.cpp
+  std::string tiling_data_src_file_name = parts[2];  // load_gather_abs_store_tiling_data.h
 
   std::cout << utils::DebugImplGraphStr(impl_graph) << std::endl;
 
   try {
-    auto codegen = codegen::Codegen(codegen::CodegenOptions{
-         // lib + 用例文件夹名 + _gen_tiling.so
-        .tiling_lib_path = ATT_SO_NAME, .tiling_lib_codegen_symbol = "CodegenTiling", .using_att_calc_qbt_size = false});
+    auto codegen = codegen::Codegen(codegen::CodegenOptions{// lib + 用例文件夹名 + _gen_tiling.so
+                                                            .tiling_lib_path = ATT_SO_NAME,
+                                                            .tiling_lib_codegen_symbol = "CodegenTiling",
+                                                            .using_att_calc_qbt_size = false});
     std::fstream kernel_file(kernel_src_file_name, std::ios::out);
     std::fstream tiling_file(tiling_src_file_name, std::ios::out);
     std::fstream tiling_data_file(tiling_data_src_file_name, std::ios::out);
@@ -81,8 +81,7 @@ TEST_F(LoadGather_FirstAxis_B_T_AbsStoreST, LoadGather_FirstAxis_B_T_AbsStoreCod
     kernel_file << tilig_stub << RemoveSubDirInclude(result.kernel);
     tiling_file << result.tiling;
     tiling_data_file << result.tiling_data;
-  }
-  catch (...) {
+  } catch (...) {
     gen_success = false;
   }
 

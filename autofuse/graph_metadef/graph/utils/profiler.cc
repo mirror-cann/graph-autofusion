@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -40,7 +40,7 @@ void DumpEventType(const EventType et, std::ostream &out_stream) {
       break;
   }
 }
-}
+}  // namespace
 
 void Profiler::RecordCurrentThread(const int64_t element, const int64_t event, const EventType et) {
   Record(element, GetThread(), event, et, std::chrono::system_clock::now());
@@ -64,9 +64,9 @@ void Profiler::RegisterString(const int64_t index, const std::string &str) {
   }
 
   // can not use strcpy_s, which will copy nothing when the length of str beyond kMaxStrLen
-  const auto ret = strncpy_s(ge::PtrAdd<StrHash>(GetStringHashes(),
-                                             static_cast<size_t>(kMaxStrIndex), static_cast<size_t>(index))->str,
-                             kMaxStrLen, str.c_str(), kMaxStrLen - 1UL);
+  const auto ret = strncpy_s(
+      ge::PtrAdd<StrHash>(GetStringHashes(), static_cast<size_t>(kMaxStrIndex), static_cast<size_t>(index))->str,
+      kMaxStrLen, str.c_str(), kMaxStrLen - 1UL);
   if (ret != EN_OK) {
     GELOGW("Register string failed, index %ld, str %s", index, str.c_str());
   }
@@ -78,9 +78,9 @@ void Profiler::RegisterStringHash(const int64_t index, const uint64_t hash, cons
   }
 
   // can not use strcpy_s, which will copy nothing when the length of str beyond kMaxStrLen
-  const auto ret = strncpy_s(ge::PtrAdd<StrHash>(GetStringHashes(),
-                                             static_cast<size_t>(kMaxStrIndex), static_cast<size_t>(index))->str,
-                             kMaxStrLen, str.c_str(), kMaxStrLen - 1UL);
+  const auto ret = strncpy_s(
+      ge::PtrAdd<StrHash>(GetStringHashes(), static_cast<size_t>(kMaxStrIndex), static_cast<size_t>(index))->str,
+      kMaxStrLen, str.c_str(), kMaxStrLen - 1UL);
   if (ret != EN_OK) {
     GELOGW("Register string failed, index %ld, str %s", index, str.c_str());
   }
@@ -100,11 +100,10 @@ void Profiler::Dump(std::ostream &out_stream) const {
     return;
   }
   size_t print_size = record_size_;
-  out_stream << "Profiler version: " << &kVersion[0]
-             << ", dump start, records num: " << print_size << std::endl;
+  out_stream << "Profiler version: " << &kVersion[0] << ", dump start, records num: " << print_size << std::endl;
   if (print_size > records_.size()) {
-    out_stream << "Too many records(" << print_size << "), the records after "
-               << records_.size() << " will be dropped" << std::endl;
+    out_stream << "Too many records(" << print_size << "), the records after " << records_.size() << " will be dropped"
+               << std::endl;
     print_size = records_.size();
   }
   for (size_t i = 0UL; i < print_size; ++i) {
@@ -123,13 +122,17 @@ void Profiler::Dump(std::ostream &out_stream) const {
 }
 void Profiler::DumpByIndex(const int64_t index, std::ostream &out_stream) const {
   if ((index < 0) || (index >= kMaxStrIndex) ||
-      (strnlen(ge::PtrAdd<const StrHash>(GetStringHashes(),
-          static_cast<size_t>(kMaxStrIndex),
-          static_cast<size_t>(index))->str, kMaxStrLen) == 0UL)) {
+      (strnlen(
+           ge::PtrAdd<const StrHash>(GetStringHashes(), static_cast<size_t>(kMaxStrIndex), static_cast<size_t>(index))
+               ->str,
+           kMaxStrLen) == 0UL)) {
     out_stream << "UNKNOWN(" << index << ")";
   } else {
-    out_stream << '[' << ge::PtrAdd<const StrHash>(GetStringHashes(),
-        static_cast<size_t>(kMaxStrIndex), static_cast<size_t>(index))->str << "]";
+    out_stream << '['
+               << ge::PtrAdd<const StrHash>(GetStringHashes(), static_cast<size_t>(kMaxStrIndex),
+                                            static_cast<size_t>(index))
+                      ->str
+               << "]";
   }
 }
 Profiler::Profiler() : record_size_(0UL), records_(), indexes_to_str_hashes_() {}
@@ -153,5 +156,5 @@ Profiler::StringHashesPointer Profiler::GetStringHashes() {
   return indexes_to_str_hashes_;
 }
 Profiler::~Profiler() = default;
-}
-}
+}  // namespace profiling
+}  // namespace af

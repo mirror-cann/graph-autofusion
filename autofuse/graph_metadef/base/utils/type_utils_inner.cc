@@ -75,8 +75,7 @@ const std::map<std::string, Format> kStringToFormatMap = {
     {"FRACTAL_Z_WINO", FORMAT_FRACTAL_Z_WINO},
     {"C1HWC0", FORMAT_C1HWC0},
     {"RESERVED", FORMAT_RESERVED},
-    {"UNDEFINED", FORMAT_RESERVED}
-  };
+    {"UNDEFINED", FORMAT_RESERVED}};
 
 const std::map<std::string, DataType> kStringTodataTypeMap = {
     {"DT_UNDEFINED", DT_UNDEFINED},            // Used to indicate a DataType field has not been set.
@@ -108,12 +107,12 @@ const std::map<std::string, DataType> kStringTodataTypeMap = {
     {"DT_STRING", DT_STRING},                  // string type
     // add for json input
     {"DT_FLOAT32", DT_FLOAT},
-    {"DT_VARIANT", DT_VARIANT},                // dt_variant type
-    {"DT_BFLOAT16", DT_BF16},                  // dt_bf16 type
-    {"DT_INT4", DT_INT4},                      // dt_int4 type
-    {"DT_UINT1", DT_UINT1},                    // dt_uint1 type
-    {"DT_INT2", DT_INT2},                      // dt_int2 type
-    {"DT_UINT2", DT_UINT2},                    // dt_uint2 type
+    {"DT_VARIANT", DT_VARIANT},  // dt_variant type
+    {"DT_BFLOAT16", DT_BF16},    // dt_bf16 type
+    {"DT_INT4", DT_INT4},        // dt_int4 type
+    {"DT_UINT1", DT_UINT1},      // dt_uint1 type
+    {"DT_INT2", DT_INT2},        // dt_int2 type
+    {"DT_UINT2", DT_UINT2},      // dt_uint2 type
     {"DT_HIFLOAT8", DT_HIFLOAT8},
     {"DT_FLOAT8_E5M2", DT_FLOAT8_E5M2},
     {"DT_FLOAT8_E4M3FN", DT_FLOAT8_E4M3FN},
@@ -123,11 +122,10 @@ const std::map<std::string, DataType> kStringTodataTypeMap = {
     {"DT_FLOAT4_E2M1", DT_FLOAT4_E2M1},  // mxfp4
     {"DT_FLOAT4_E1M2", DT_FLOAT4_E1M2},  // mxfp4
     {"DT_HIFLOAT4", ge::DT_HIFLOAT4},
-    {"RESERVED", DT_UNDEFINED},                // RESERVED will be deserialized to DT_UNDEFINED
+    {"RESERVED", DT_UNDEFINED},  // RESERVED will be deserialized to DT_UNDEFINED
 };
 
-}
-
+}  // namespace
 
 bool TypeUtilsInner::IsDataTypeValid(const DataType dt) {
   const uint32_t num = static_cast<uint32_t>(dt);
@@ -139,11 +137,10 @@ bool TypeUtilsInner::IsDataTypeValid(const DataType dt) {
 
 bool TypeUtilsInner::IsFormatValid(const Format format) {
   const uint32_t num = static_cast<uint32_t>(GetPrimaryFormat(format));
-  GE_CHK_BOOL_EXEC((num <= FORMAT_RESERVED),
-                   REPORT_INNER_ERR_MSG("E18888", "The Format is invalid, num:%u > FORMAT_RESERVED:%d",
-                                      num, FORMAT_RESERVED);
-                   return false,
-                   "[Check][Param] The Format is invalid, num:%u > FORMAT_RESERVED:%d", num, FORMAT_RESERVED);
+  GE_CHK_BOOL_EXEC(
+      (num <= FORMAT_RESERVED),
+      REPORT_INNER_ERR_MSG("E18888", "The Format is invalid, num:%u > FORMAT_RESERVED:%d", num, FORMAT_RESERVED);
+      return false, "[Check][Param] The Format is invalid, num:%u > FORMAT_RESERVED:%d", num, FORMAT_RESERVED);
   return true;
 }
 
@@ -166,8 +163,8 @@ bool TypeUtilsInner::IsFormatValid(std::string format) {
   return true;
 }
 
-graphStatus TypeUtilsInner::SplitFormatFromStr(const std::string &str,
-                                               std::string &primary_format_str, int32_t &sub_format) {
+graphStatus TypeUtilsInner::SplitFormatFromStr(const std::string &str, std::string &primary_format_str,
+                                               int32_t &sub_format) {
   const size_t split_pos = str.find_first_of(':');
   if (split_pos != std::string::npos) {
     const std::string sub_format_str = str.substr(split_pos + 1U);
@@ -212,4 +209,4 @@ bool TypeUtilsInner::CheckUint64MulOverflow(const uint64_t a, const uint32_t b) 
   }
   return true;
 }
-}  // namespace ge
+}  // namespace af

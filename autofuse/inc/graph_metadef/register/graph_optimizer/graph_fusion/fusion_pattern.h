@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -26,8 +26,8 @@ class FusionPattern {
  public:
   struct OpDesc;
   using OpDescPtr = std::shared_ptr<OpDesc>;
-  using OutputMapVecStr = std::initializer_list<std::pair<uint32_t, std::initializer_list<const char*>>>;
-  using OutputMapStr = std::initializer_list<std::pair<uint32_t, const char*>>;
+  using OutputMapVecStr = std::initializer_list<std::pair<uint32_t, std::initializer_list<const char *>>>;
+  using OutputMapStr = std::initializer_list<std::pair<uint32_t, const char *>>;
   using OutputMapDesc = std::map<uint32_t, std::vector<FusionPattern::OpDescPtr>>;
   /**
    * @ingroup fe
@@ -39,7 +39,7 @@ class FusionPattern {
     std::vector<OpDescPtr> inputs;   // all input Ops
     OutputMapDesc outputs;           // all output Ops
     bool repeatable;                 // flag to show if match multiple Ops or not
-    bool check_unique;                  // flag op desc can be matched by only one node
+    bool check_unique;               // flag op desc can be matched by only one node
     bool is_output;                  // flag to show if the op is output node
     bool is_output_fullmatch;        // flag to match all output
     size_t output_size;              // all output size
@@ -186,6 +186,7 @@ class FusionPattern {
   std::shared_ptr<FusionPattern::OpDesc> GetOpDesc(const std::string &id) const;
 
   const std::vector<std::shared_ptr<FusionPattern::OpDesc>> &GetOpDescs() const;
+
  private:
   FusionPattern(const FusionPattern &) = default;
   FusionPattern &operator=(const FusionPattern &) = default;
@@ -204,9 +205,9 @@ class FusionPattern {
   bool has_error_ = false;
 };
 struct CmpKey {
-  bool operator() (const std::shared_ptr<FusionPattern::OpDesc> &key1,
-      const std::shared_ptr<FusionPattern::OpDesc> &key2) const {
-      return (key1->id) < (key2->id);
+  bool operator()(const std::shared_ptr<FusionPattern::OpDesc> &key1,
+                  const std::shared_ptr<FusionPattern::OpDesc> &key2) const {
+    return (key1->id) < (key2->id);
   }
 };
 }  // namespace fe

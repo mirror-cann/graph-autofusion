@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2026 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -32,7 +32,7 @@ const std::string kEnCacheOriginBroadcastAxis = "enable_cache_origin_brc_axis";
 const std::string kEnCacheFusedBroadcastAxis = "enable_cache_fused_brc_axis";
 const std::string kEnCacheA = "dis_enable_cache_a";
 const std::string kEnCacheR = "dis_enable_cache_r";
-}
+}  // namespace
 
 Loop::Loop(const ascir::AxisId axis) : axis_id(axis), parent(nullptr) {}
 
@@ -281,8 +281,8 @@ Status Loop::ConstructFromNodes(ascir::NodeViewVisitorConst nodes, const Tiler &
     GE_CHK_STATUS_RET(call->Init(node), "ApiCall Init failed, ascir type:%s", node->GetTypePtr());
     call->exec_condition = node->attr.sched.exec_condition;
     call->enable_cache = this->is_graph_has_reduce_node
-                              ? IsNodeSplitB(node, tiler, call->enable_cache_with_condition, current_loop->is_ar)
-                              : IsValidCacheCondition(call->exec_condition);
+                             ? IsNodeSplitB(node, tiler, call->enable_cache_with_condition, current_loop->is_ar)
+                             : IsValidCacheCondition(call->exec_condition);
     call->axis = current_loop->axis_id;
     call->depth = current_axis.size();
     InitApiCallContext(node, tpipe, call, lifecycle_edge);
@@ -449,7 +449,7 @@ Status Loop::GenerateBody(const Tiler &tiler, const TPipe &tpipe, std::vector<as
 
   for (const auto &body : this->bodys) {
     if ((body.type == LoopType::CALL) && (body.call->api_call_context.scene == ApiScene::kCVFuseUBLoad ||
-         body.call->api_call_context.stage != this->compute_stage)) {
+                                          body.call->api_call_context.stage != this->compute_stage)) {
       continue;
     }
     if (body.type == LoopType::LOOP) {
@@ -539,7 +539,7 @@ bool Loop::IsHaveReduceType(const std::string &type) const {
 }
 
 /* 获取reduce api的输出tensor */
-const Tensor* Loop::GetReduceOutputTensor(const TPipe &tpipe) const {
+const Tensor *Loop::GetReduceOutputTensor(const TPipe &tpipe) const {
   for (auto it = this->bodys.rbegin(); it != this->bodys.rend(); ++it) {
     if (it->type == LoopType::CALL) {
       auto out_tensor_ptr = tpipe.GetTensor(it->call->outputs[0].id);
@@ -551,7 +551,7 @@ const Tensor* Loop::GetReduceOutputTensor(const TPipe &tpipe) const {
 }
 
 /* 获取reduce api的输入tensor */
-const Tensor* Loop::GetReduceInputTensor(const TPipe &tpipe) const {
+const Tensor *Loop::GetReduceInputTensor(const TPipe &tpipe) const {
   for (auto it = this->bodys.rbegin(); it != this->bodys.rend(); ++it) {
     if (it->type == LoopType::CALL) {
       auto in_tensor_ptr = tpipe.GetTensor(it->call->inputs[0]->id);
@@ -562,7 +562,8 @@ const Tensor* Loop::GetReduceInputTensor(const TPipe &tpipe) const {
   return nullptr;
 }
 
-static void CreateInnerLoopSizeAndActualSize(const TPipe &tpipe, const Tiler &tiler, const Axis &axis, std::stringstream &ss) {
+static void CreateInnerLoopSizeAndActualSize(const TPipe &tpipe, const Tiler &tiler, const Axis &axis,
+                                             std::stringstream &ss) {
   if (axis.from.size() == 1) {
     ss << tiler.GenInnerLoopSizeAndActualSize(axis.split_pair_other_id, axis.id);
     return;
@@ -650,10 +651,13 @@ Status Loop::GenerateLoop(const Tiler &tiler, const TPipe &tpipe, std::vector<as
       const auto &tile_inner = tiler.GetAxis(axis.split_pair_other_id);
       af::Expression actual_size = af::Symbol(tile_inner.actual_size.name.c_str());
       tpipe.tiler.actual_sizes.emplace_back(std::make_pair(tile_inner.size_expr, actual_size));
-      ss << tile_inner.actual_size.AsArg() << " = stageSize;" << std::endl; // 多轮循环不能使用curAivM * curAivN，否则奇数尾块计算有精度问题
+      ss << tile_inner.actual_size.AsArg() << " = stageSize;"
+         << std::endl;  // 多轮循环不能使用curAivM * curAivN，否则奇数尾块计算有精度问题
       auto ub_tensor = tpipe.GetTensor(tpipe.cube_output_tensor_id);
-      GE_CHK_BOOL_RET_STATUS(ub_tensor != nullptr, af::FAILED, "Codegen CV Fusion MatmulOutput UB tensor id[%ld] "
-                             "not found", tpipe.cube_output_tensor_id);
+      GE_CHK_BOOL_RET_STATUS(ub_tensor != nullptr, af::FAILED,
+                             "Codegen CV Fusion MatmulOutput UB tensor id[%ld] "
+                             "not found",
+                             tpipe.cube_output_tensor_id);
       ss << ub_tensor->Str() << "_actual_size = " << tile_inner.actual_size.Str() << ";" << std::endl;
     }
     GE_CHK_STATUS_RET(this->GenerateBody(tiler, tpipe, current_axis, ss),
@@ -666,10 +670,12 @@ Status Loop::GenerateLoop(const Tiler &tiler, const TPipe &tpipe, std::vector<as
       Tensor::DtypeName(reduce_dst_tensor->dtype, dtype_name);
       std::set<ascir::AxisId> r_from_axis;
       for (size_t i = 0; i < reduce_dst_tensor->axis_strides.size(); i++) {
-        if ((reduce_src_tensor->axis_strides[i] != 0 || reduce_src_tensor->axis_size[i] != 1) && reduce_dst_tensor->axis_strides[i] == 0) {  // 如果目标张量的轴步长为0
+        if ((reduce_src_tensor->axis_strides[i] != 0 || reduce_src_tensor->axis_size[i] != 1) &&
+            reduce_dst_tensor->axis_strides[i] == 0) {  // 如果目标张量的轴步长为0
           auto axis_id = reduce_dst_tensor->axis[i];    // 获取当前轴ID
           // 定义递归函数用于收集原始轴
-          std::function<void(int32_t)> collect_original_axes = [&tiler, &r_from_axis, &collect_original_axes](int32_t current_axis_id) {
+          std::function<void(int32_t)> collect_original_axes = [&tiler, &r_from_axis,
+                                                                &collect_original_axes](int32_t current_axis_id) {
             auto axis = tiler.GetAxis(current_axis_id);  // 获取当前轴对象
             if (axis.type == ascir::Axis::Type::kAxisTypeOriginal) {
               r_from_axis.insert(current_axis_id);  // 如果是原始轴则加入集合
@@ -898,11 +904,14 @@ Status ApiCall::PreProcess(const TPipe &tpipe, const std::vector<ascir::AxisId> 
                            const std::vector<std::reference_wrapper<const Tensor>> &outputs,
                            std::string &result) const {
   stringstream ss;
-  bool is_all_outputs_ub_scalar = std::all_of(outputs.begin(), outputs.end(),
-      [](const std::reference_wrapper<const Tensor> &t) { return t.get().is_ub_scalar; });
-  bool is_any_output_need_two_loop = std::any_of(outputs.begin(), outputs.end(),
-      [](const std::reference_wrapper<const Tensor> &t) { return t.get().alloc_type == af::AllocType::kAllocTypeQueue &&
-          t.get().que_buf_num_value == 2 && t.get().need_gen_get_value_of_ub_scalar; });
+  bool is_all_outputs_ub_scalar =
+      std::all_of(outputs.begin(), outputs.end(),
+                  [](const std::reference_wrapper<const Tensor> &t) { return t.get().is_ub_scalar; });
+  bool is_any_output_need_two_loop =
+      std::any_of(outputs.begin(), outputs.end(), [](const std::reference_wrapper<const Tensor> &t) {
+        return t.get().alloc_type == af::AllocType::kAllocTypeQueue && t.get().que_buf_num_value == 2 &&
+               t.get().need_gen_get_value_of_ub_scalar;
+      });
   if (is_all_outputs_ub_scalar && !current_axis.empty()) {
     const auto loop_axis = tpipe.tiler.GetAxis(current_axis.back());
     // 如果当前节点输出tensor是ub_scalar，且ub的queue buffer num是2，且需要生成ub_scalar的get value代码
@@ -924,14 +933,15 @@ Status ApiCall::PostProcess(const TPipe &tpipe, const std::vector<ascir::AxisId>
                             std::string &result) const {
   (void)tpipe;
   stringstream ss;
-  bool is_all_outputs_ub_scalar = std::all_of(outputs.begin(), outputs.end(),
-      [](const std::reference_wrapper<const Tensor> &t) { return t.get().is_ub_scalar; });
+  bool is_all_outputs_ub_scalar =
+      std::all_of(outputs.begin(), outputs.end(),
+                  [](const std::reference_wrapper<const Tensor> &t) { return t.get().is_ub_scalar; });
   bool first_gen_get_value = true;
   for (size_t i = 0; i < outputs.size(); ++i) {
     const auto &ub = outputs[i].get();
     if (ub.is_ub_scalar && !current_axis.empty()) {
       GELOGD("t_name:%s, need_gen_get_value_of_ub_scalar:%d", ub.Str().c_str(),
-            static_cast<int32_t>(ub.need_gen_get_value_of_ub_scalar));
+             static_cast<int32_t>(ub.need_gen_get_value_of_ub_scalar));
       // 生成ub_scalar的变量初始化定义
       if (ub.need_gen_get_value_of_ub_scalar) {
         if (first_gen_get_value) {
@@ -1482,12 +1492,10 @@ bool ApiCall::IsUnitLastRead(const ApiTensor &tensor) const {
   return false;
 }
 
-ge::Status ApiCall::RegisterBasicDumpParam(
-    const std::string &api_name,
-    const std::vector<std::reference_wrapper<const Tensor>> &inputs,
-    const std::vector<std::reference_wrapper<const Tensor>> &outputs,
-    const CombinedExpression &cal_count,
-    const std::string &tmp_buf_name) const {
+ge::Status ApiCall::RegisterBasicDumpParam(const std::string &api_name,
+                                           const std::vector<std::reference_wrapper<const Tensor>> &inputs,
+                                           const std::vector<std::reference_wrapper<const Tensor>> &outputs,
+                                           const CombinedExpression &cal_count, const std::string &tmp_buf_name) const {
   auto api_param = std::make_shared<CodegenApiParam>();
   api_param->api_name = api_name;
 
@@ -1528,14 +1536,14 @@ static void GenTemplateParams(const CodegenApiParam &api_param, stringstream &ss
   ss << ">";
 }
 
-static void GenOuterLoopAxesPreProcess(const CodegenApiParam &api_param, const Tiler& tiler, stringstream &ss) {
+static void GenOuterLoopAxesPreProcess(const CodegenApiParam &api_param, const Tiler &tiler, stringstream &ss) {
   if (api_param.outer_loop_axes.empty()) {
     return;
   }
   for (size_t i = 0; i < api_param.outer_loop_axes.size(); i++) {
     std::string loop_iter = "outer_for_" + std::to_string(i);
-    ss << "for (int " << loop_iter << " = 0; " << loop_iter << " < " << api_param.outer_loop_axes[i].ToStr(tiler) << "; "
-       << loop_iter << "++) {" << std::endl;
+    ss << "for (int " << loop_iter << " = 0; " << loop_iter << " < " << api_param.outer_loop_axes[i].ToStr(tiler)
+       << "; " << loop_iter << "++) {" << std::endl;
   }
 }
 
@@ -1548,7 +1556,7 @@ static void GenOuterLoopAxesPostProcess(const CodegenApiParam &api_param, string
   }
 }
 
-static void GenApiCallCommon(const CodegenApiParam &api_param, const Tiler& tiler, stringstream &ss) {
+static void GenApiCallCommon(const CodegenApiParam &api_param, const Tiler &tiler, stringstream &ss) {
   ss << api_param.api_name;
   GenTemplateParams(api_param, ss);
   ss << "(";
@@ -1582,7 +1590,7 @@ static void GenApiCallPostProcess(const CodegenApiParam &api_param, stringstream
 }
 }  // namespace
 
-Status ApiCall::GenDimensionParam(const CodegenApiParam &api_param, const Tiler& tiler, stringstream &ss) const {
+Status ApiCall::GenDimensionParam(const CodegenApiParam &api_param, const Tiler &tiler, stringstream &ss) const {
   ss << api_param.cal_count.ToStr(tiler) << ");" << std::endl;
   return af::SUCCESS;
 }
@@ -1594,8 +1602,8 @@ Status ApiCall::GenerateApiCallString(const TPipe &tpipe, std::string &result) c
   GenOuterLoopAxesPreProcess(*api_param, tpipe.tiler, ss);
   GenApiCallPreProcess(*api_param, ss);
   GenApiCallCommon(*api_param, tpipe.tiler, ss);
-  GE_CHK_STATUS_RET(GenDimensionParam(*api_param, tpipe.tiler, ss), "GenDimensionParam failed, graph name: %s, node name: %s",
-                    graph_name.c_str(), node_name.c_str());
+  GE_CHK_STATUS_RET(GenDimensionParam(*api_param, tpipe.tiler, ss),
+                    "GenDimensionParam failed, graph name: %s, node name: %s", graph_name.c_str(), node_name.c_str());
   GenApiCallPostProcess(*api_param, ss);
   GenOuterLoopAxesPostProcess(*api_param, ss);
   result = ss.str();

@@ -27,15 +27,13 @@ struct ResLimit {
 };
 
 extern "C" int64_t GenerateTopnSolutions(const std::vector<std::map<std::string, std::string>> &input_configs,
-                                          int64_t topn,
-                                          std::vector<AutofuseTilingData> &tiling_datas,
-                                          std::vector<int64_t> &workspaces,
-                                          std::vector<int64_t> &block_dims, ResLimit *res_limit = nullptr);
+                                         int64_t topn, std::vector<AutofuseTilingData> &tiling_datas,
+                                         std::vector<int64_t> &workspaces, std::vector<int64_t> &block_dims,
+                                         ResLimit *res_limit = nullptr);
 std::string GetTilingDataRepr(const AutofuseTilingData *tiling_data);
 extern "C" double GetModeledPerfForTesting(const AutofuseTilingData *tiling_data);
 
-class E2EBackendInductorTopnCode : public testing::Test {
-};
+class E2EBackendInductorTopnCode : public testing::Test {};
 
 TEST_F(E2EBackendInductorTopnCode, GenerateTopnSolutionsTop1ReturnsOriginalConfigCandidate) {
   ResLimit res_limit = {1, 48, 0, 192 * 1024, {0}};

@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -82,17 +82,17 @@ void GatherAbsStore_BeforeAutofuse(af::AscGraph &graph) {
 
 void GatherAbsStore_AfterInferOutput(af::AscGraph &graph) {
   auto x1 = graph.FindNode("x1");
-  x1->attr.api.compute_type = ComputeType::kComputeInvalid; // ComputeType::COMPUTE_DATA;
+  x1->attr.api.compute_type = ComputeType::kComputeInvalid;  // ComputeType::COMPUTE_DATA;
 
   auto x2 = graph.FindNode("x2");
-  x2->attr.api.compute_type = ComputeType::kComputeInvalid; // ComputeType::COMPUTE_DATA;
+  x2->attr.api.compute_type = ComputeType::kComputeInvalid;  // ComputeType::COMPUTE_DATA;
 
   auto gather = graph.FindNode("gather");
   gather->outputs[0].attr.dtype = ge::DT_FLOAT;
   gather->attr.api.compute_type = ComputeType::kComputeGather;
 
   auto abs = graph.FindNode("abs");
-  abs->outputs[0].attr.dtype =(ge::DataType)gather->outputs[0].attr.dtype;
+  abs->outputs[0].attr.dtype = (ge::DataType)gather->outputs[0].attr.dtype;
   abs->outputs[0].attr.axis = gather->outputs[0].attr.axis;
   abs->outputs[0].attr.repeats = gather->outputs[0].attr.repeats;
   abs->outputs[0].attr.strides = gather->outputs[0].attr.strides;
@@ -137,14 +137,13 @@ void GatherAbsStore_AfterScheduler_z1z2_splitTo_z1z2TBz1z2Tbz1z2t(af::AscGraph &
   auto z1 = all_axis[1]->id;
   auto z2 = all_axis[2]->id;
 
-  
   std::vector<AxisId> axes{z1, z2};
   auto z1z2 = graph.MergeAxis(axes);
   auto [z1z2T, z1z2t] = graph.TileSplit(z1z2->id);
   auto [z1z2TB, z1z2Tb] = graph.BlockSplit(z1z2T->id);
   vector<AxisId> vectorized_axis{z1z2t->id};
   vector<AxisId> axis{z1z2TB->id, z1z2Tb->id, z1z2t->id};
-  vector<af::Expression> axis_repeats{z1z2TB->size,z1z2Tb->size,z1z2t->size};
+  vector<af::Expression> axis_repeats{z1z2TB->size, z1z2Tb->size, z1z2t->size};
   vector<af::Expression> axis_strides{z1z2Tb->size * z1z2t->size, z1z2t->size, One};
   vector<af::Expression> vectorized_strides{One};
   auto size = ge::GetSizeByDataType(ge::DT_FLOAT);

@@ -124,12 +124,12 @@ class ConcatScheduleCaseGeneratorV2Test : public ::testing::Test {
 
 TEST_F(ConcatScheduleCaseGeneratorV2Test, ConcatTailDim_SplitConcat) {
   af::AscGraph graph("concat_last_dim_graph");
-  std::vector<int> concat_dim_sizes{412,
-                                    4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
-                                    4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
-                                    4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
-                                    16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16,
-                                    16, 16, 16,};
+  std::vector<int> concat_dim_sizes{
+      412, 4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,
+      4,   4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,
+      4,   4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  16, 16, 16,
+      16,  16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16,
+  };
   auto s0 = graph.CreateSizeVar("s0");
   auto concat_size = af::Expression(af::Symbol(0));
   std::vector<std::shared_ptr<Data>> data_ops;
@@ -161,10 +161,12 @@ TEST_F(ConcatScheduleCaseGeneratorV2Test, ConcatTailDim_SplitConcat) {
   size_t index = 0;
   size_t last_end = 0;
   for (const auto &group : groups) {
-    std::cout << "index: " << index << ", start: " << group.start << ", end: " << group.end << ", type: " << group.group_type << std::endl;
+    std::cout << "index: " << index << ", start: " << group.start << ", end: " << group.end
+              << ", type: " << group.group_type << std::endl;
     std::vector<int> dims(concat_dim_sizes.begin() + static_cast<int64_t>(group.start),
                           concat_dim_sizes.begin() + static_cast<int64_t>(group.end));
-    std::cout << "  " << af::ToString(dims) << "count = " << group.end - group.start << ", size = " << group.size << std::endl;
+    std::cout << "  " << af::ToString(dims) << "count = " << group.end - group.start << ", size = " << group.size
+              << std::endl;
     EXPECT_EQ(group.start, last_end);
     last_end = group.end;
     ++index;
@@ -207,10 +209,12 @@ TEST_F(ConcatScheduleCaseGeneratorV2Test, ConcatTailDim_SplitConcat_LargeRowNum)
   size_t index = 0;
   size_t last_end = 0;
   for (const auto &group : groups) {
-    std::cout << "index: " << index << ", start: " << group.start << ", end: " << group.end << ", type: " << group.group_type << std::endl;
+    std::cout << "index: " << index << ", start: " << group.start << ", end: " << group.end
+              << ", type: " << group.group_type << std::endl;
     std::vector<int> dims(concat_dim_sizes.begin() + static_cast<int64_t>(group.start),
                           concat_dim_sizes.begin() + static_cast<int64_t>(group.end));
-    std::cout << "  " << af::ToString(dims) << "count = " << group.end - group.start << ", size = " << group.size << std::endl;
+    std::cout << "  " << af::ToString(dims) << "count = " << group.end - group.start << ", size = " << group.size
+              << std::endl;
     EXPECT_EQ(group.start, last_end);
     last_end = group.end;
     ++index;
@@ -252,10 +256,12 @@ TEST_F(ConcatScheduleCaseGeneratorV2Test, ConcatFirstDim_InsertAxis) {
   size_t index = 0;
   size_t last_end = 0;
   for (const auto &group : groups) {
-    std::cout << "index: " << index << ", start: " << group.start << ", end: " << group.end << ", type: " << group.group_type << std::endl;
+    std::cout << "index: " << index << ", start: " << group.start << ", end: " << group.end
+              << ", type: " << group.group_type << std::endl;
     std::vector<int> dims(concat_dim_sizes.begin() + static_cast<int64_t>(group.start),
                           concat_dim_sizes.begin() + static_cast<int64_t>(group.end));
-    std::cout << "  " << af::ToString(dims) << "count = " << group.end - group.start << ", size = " << group.size << std::endl;
+    std::cout << "  " << af::ToString(dims) << "count = " << group.end - group.start << ", size = " << group.size
+              << std::endl;
     EXPECT_EQ(group.start, last_end);
     last_end = group.end;
     ++index;
@@ -367,18 +373,18 @@ TEST_F(ConcatScheduleCaseGeneratorV2Test, InputWithReduce_ForceSingleGroup) {
   auto s1 = af::Symbol(4);
   auto s2 = s1 + s1 + s1;
   auto graph = af::testing::AscGraphBuilder("test_input_reduce")
-      .Loops({s0, s2})
-      .Data("data0", 0, af::DT_FLOAT16)
-      .Load("load0", "data0", {s0, s1}, {s1, af::sym::kSymbolOne})
-      .Data("data1", 1, af::DT_FLOAT16)
-      .Load("load1", "data1", {s0, s1}, {s1, af::sym::kSymbolOne})
-      .Sum("sum0", "load1", {1})
-      .Data("data2", 2, af::DT_FLOAT16)
-      .Load("load2", "data2", {s0, s1}, {s1, af::sym::kSymbolOne})
-      .Concat("concat", {"load0", "sum0", "load2"}, 1)
-      .Store("store", "concat")
-      .Output("out", "store", 0, af::DT_FLOAT16)
-      .Build();
+                   .Loops({s0, s2})
+                   .Data("data0", 0, af::DT_FLOAT16)
+                   .Load("load0", "data0", {s0, s1}, {s1, af::sym::kSymbolOne})
+                   .Data("data1", 1, af::DT_FLOAT16)
+                   .Load("load1", "data1", {s0, s1}, {s1, af::sym::kSymbolOne})
+                   .Sum("sum0", "load1", {1})
+                   .Data("data2", 2, af::DT_FLOAT16)
+                   .Load("load2", "data2", {s0, s1}, {s1, af::sym::kSymbolOne})
+                   .Concat("concat", {"load0", "sum0", "load2"}, 1)
+                   .Store("store", "concat")
+                   .Output("out", "store", 0, af::DT_FLOAT16)
+                   .Build();
 
   auto concat_node = graph.FindNode("concat");
   ASSERT_TRUE(concat_node != nullptr);
@@ -402,23 +408,23 @@ TEST_F(ConcatScheduleCaseGeneratorV2Test, SixInputsWithSharedReduceAndTranspose)
   auto s1 = af::Symbol(4);
   auto s2 = s1 + s1 + s1 + s1 + s1 + s1;
   auto graph = af::testing::AscGraphBuilder("test_6input_reduce_transpose")
-      .Loops({s0, s2})
-      .Data("data0", 0, af::DT_FLOAT16)
-      .Load("load0", "data0", {s0, s1}, {s1, af::sym::kSymbolOne})
-      .Data("data_r", 1, af::DT_FLOAT16)
-      .Load("load_r", "data_r", {s0, s1}, {s1, af::sym::kSymbolOne})
-      .Sum("reduce0", "load_r", {1})
-      .Data("data2", 2, af::DT_FLOAT16)
-      .Load("load2", "data2", {s0, s1}, {s1, af::sym::kSymbolOne})
-      .Data("data_t", 3, af::DT_FLOAT16)
-      .Load("load_t", "data_t", {s0, s1}, {s1, af::sym::kSymbolOne})
-      .Transpose("transpose0", "load_t", {1, 0})
-      .Data("data4", 4, af::DT_FLOAT16)
-      .Load("load4", "data4", {s0, s1}, {s1, af::sym::kSymbolOne})
-      .Concat("concat", {"reduce0", "load0", "transpose0", "load2", "load4", "reduce0"}, 1)
-      .Store("store", "concat")
-      .Output("out", "store", 0, af::DT_FLOAT16)
-      .Build();
+                   .Loops({s0, s2})
+                   .Data("data0", 0, af::DT_FLOAT16)
+                   .Load("load0", "data0", {s0, s1}, {s1, af::sym::kSymbolOne})
+                   .Data("data_r", 1, af::DT_FLOAT16)
+                   .Load("load_r", "data_r", {s0, s1}, {s1, af::sym::kSymbolOne})
+                   .Sum("reduce0", "load_r", {1})
+                   .Data("data2", 2, af::DT_FLOAT16)
+                   .Load("load2", "data2", {s0, s1}, {s1, af::sym::kSymbolOne})
+                   .Data("data_t", 3, af::DT_FLOAT16)
+                   .Load("load_t", "data_t", {s0, s1}, {s1, af::sym::kSymbolOne})
+                   .Transpose("transpose0", "load_t", {1, 0})
+                   .Data("data4", 4, af::DT_FLOAT16)
+                   .Load("load4", "data4", {s0, s1}, {s1, af::sym::kSymbolOne})
+                   .Concat("concat", {"reduce0", "load0", "transpose0", "load2", "load4", "reduce0"}, 1)
+                   .Store("store", "concat")
+                   .Output("out", "store", 0, af::DT_FLOAT16)
+                   .Build();
 
   auto concat_node = graph.FindNode("concat");
   ASSERT_TRUE(concat_node != nullptr);
@@ -453,16 +459,16 @@ TEST_F(ConcatScheduleCaseGeneratorV2Test, Generate_SkipsUBConcatForGraphWithTran
   auto s2 = s1 + s1;
 
   auto graph_with_reduce = af::testing::AscGraphBuilder("graph_with_reduce")
-      .Loops({s0, s2})
-      .Data("data0", 0, af::DT_FLOAT16)
-      .Load("load0", "data0", {s0, s1}, {s1, af::sym::kSymbolOne})
-      .Data("data1", 1, af::DT_FLOAT16)
-      .Load("load1", "data1", {s0, s1}, {s1, af::sym::kSymbolOne})
-      .Sum("reduce0", "load1", {1})
-      .Concat("concat", {"load0", "reduce0"}, 1)
-      .Store("store", "concat")
-      .Output("out", "store", 0, af::DT_FLOAT16)
-      .Build();
+                               .Loops({s0, s2})
+                               .Data("data0", 0, af::DT_FLOAT16)
+                               .Load("load0", "data0", {s0, s1}, {s1, af::sym::kSymbolOne})
+                               .Data("data1", 1, af::DT_FLOAT16)
+                               .Load("load1", "data1", {s0, s1}, {s1, af::sym::kSymbolOne})
+                               .Sum("reduce0", "load1", {1})
+                               .Concat("concat", {"load0", "reduce0"}, 1)
+                               .Store("store", "concat")
+                               .Output("out", "store", 0, af::DT_FLOAT16)
+                               .Build();
 
   std::vector<std::string> score_functions;
   std::vector<::ascir::ImplGraph> graphs_with_reduce;
@@ -470,15 +476,15 @@ TEST_F(ConcatScheduleCaseGeneratorV2Test, Generate_SkipsUBConcatForGraphWithTran
   EXPECT_EQ(generator.Generate(graph_with_reduce, graphs_with_reduce, score_functions), SUCCESS);
 
   auto graph_no_reduce = af::testing::AscGraphBuilder("graph_no_reduce")
-      .Loops({s0, s2})
-      .Data("data0", 0, af::DT_FLOAT16)
-      .Load("load0", "data0", {s0, s1}, {s1, af::sym::kSymbolOne})
-      .Data("data1", 1, af::DT_FLOAT16)
-      .Load("load1", "data1", {s0, s1}, {s1, af::sym::kSymbolOne})
-      .Concat("concat", {"load0", "load1"}, 1)
-      .Store("store", "concat")
-      .Output("out", "store", 0, af::DT_FLOAT16)
-      .Build();
+                             .Loops({s0, s2})
+                             .Data("data0", 0, af::DT_FLOAT16)
+                             .Load("load0", "data0", {s0, s1}, {s1, af::sym::kSymbolOne})
+                             .Data("data1", 1, af::DT_FLOAT16)
+                             .Load("load1", "data1", {s0, s1}, {s1, af::sym::kSymbolOne})
+                             .Concat("concat", {"load0", "load1"}, 1)
+                             .Store("store", "concat")
+                             .Output("out", "store", 0, af::DT_FLOAT16)
+                             .Build();
 
   std::vector<std::string> score_functions2;
   std::vector<::ascir::ImplGraph> graphs_no_reduce;

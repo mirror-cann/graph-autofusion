@@ -27,8 +27,7 @@ constexpr size_t kHostFileIndex = 1;
 constexpr size_t kDeviceFileIndex = 2;
 constexpr size_t kExpectedKernelSrcCount = 3;
 
-class TestBackendPgoAddAbsInductorE2e : public testing::Test {
-};
+class TestBackendPgoAddAbsInductorE2e : public testing::Test {};
 
 TEST_F(TestBackendPgoAddAbsInductorE2e, PgoAddAbsInductorE2eCodegen) {
   auto graph = ascir::ShareGraph::AddAbsFusedGraph(3);

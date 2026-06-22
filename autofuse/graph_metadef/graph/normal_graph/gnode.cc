@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -24,61 +24,61 @@
 #include "common/util/mem_utils.h"
 #include "common/checker.h"
 
-#define NODE_ATTR_GET_IMP(ArgType)                                                                                     \
-  graphStatus GNode::GetAttr(const AscendString &name, ArgType &attr_value) const {                                    \
-    const char_t *const ascend_name = name.GetString();                                                                \
-    if (std::string(ascend_name).empty()) {                                                                            \
-      REPORT_INNER_ERR_MSG("E18888", "ascend std::string error.");                                                     \
-      GELOGE(GRAPH_PARAM_INVALID, "[Check][Param] GetAttr: ascend std::string error.");                                \
-      return GRAPH_PARAM_INVALID;                                                                                      \
-    }                                                                                                                  \
-                                                                                                                       \
-    if (impl_ == nullptr) {                                                                                            \
-      REPORT_INNER_ERR_MSG("E18888", "node impl is nullptr, check invalid.");                                          \
-      GELOGE(GRAPH_FAILED, "[Check][Param] GetAttr: node impl is nullptr.");                                           \
-      return GRAPH_FAILED;                                                                                             \
-    }                                                                                                                  \
-                                                                                                                       \
-    const std::shared_ptr<Node> node_ptr_share = impl_->node_ptr_.lock();                                              \
-    if (node_ptr_share == nullptr) {                                                                                   \
-      REPORT_INNER_ERR_MSG("E18888", "the node shared ptr is nullptr, check invalid.");                                \
-      GELOGE(GRAPH_FAILED, "[Check][Param] GetAttr: the node shared ptr is not valid.");                               \
-      return GRAPH_FAILED;                                                                                             \
-    }                                                                                                                  \
-    const Operator op = OpDescUtils::CreateOperatorFromNode(node_ptr_share);                                           \
-    if (op.GetAttr(ascend_name, attr_value) != GRAPH_SUCCESS) {                                                        \
-      GELOGW("[Get][Attr] of node[%s] failed.", node_ptr_share->GetName().c_str());                                    \
-      return GRAPH_FAILED;                                                                                             \
-    }                                                                                                                  \
-                                                                                                                       \
-    return GRAPH_SUCCESS;                                                                                              \
+#define NODE_ATTR_GET_IMP(ArgType)                                                       \
+  graphStatus GNode::GetAttr(const AscendString &name, ArgType &attr_value) const {      \
+    const char_t *const ascend_name = name.GetString();                                  \
+    if (std::string(ascend_name).empty()) {                                              \
+      REPORT_INNER_ERR_MSG("E18888", "ascend std::string error.");                       \
+      GELOGE(GRAPH_PARAM_INVALID, "[Check][Param] GetAttr: ascend std::string error.");  \
+      return GRAPH_PARAM_INVALID;                                                        \
+    }                                                                                    \
+                                                                                         \
+    if (impl_ == nullptr) {                                                              \
+      REPORT_INNER_ERR_MSG("E18888", "node impl is nullptr, check invalid.");            \
+      GELOGE(GRAPH_FAILED, "[Check][Param] GetAttr: node impl is nullptr.");             \
+      return GRAPH_FAILED;                                                               \
+    }                                                                                    \
+                                                                                         \
+    const std::shared_ptr<Node> node_ptr_share = impl_->node_ptr_.lock();                \
+    if (node_ptr_share == nullptr) {                                                     \
+      REPORT_INNER_ERR_MSG("E18888", "the node shared ptr is nullptr, check invalid.");  \
+      GELOGE(GRAPH_FAILED, "[Check][Param] GetAttr: the node shared ptr is not valid."); \
+      return GRAPH_FAILED;                                                               \
+    }                                                                                    \
+    const Operator op = OpDescUtils::CreateOperatorFromNode(node_ptr_share);             \
+    if (op.GetAttr(ascend_name, attr_value) != GRAPH_SUCCESS) {                          \
+      GELOGW("[Get][Attr] of node[%s] failed.", node_ptr_share->GetName().c_str());      \
+      return GRAPH_FAILED;                                                               \
+    }                                                                                    \
+                                                                                         \
+    return GRAPH_SUCCESS;                                                                \
   }
 
-#define NODE_ATTR_SET_IMP(ArgType)                                                                                     \
-  graphStatus GNode::SetAttr(const AscendString &name, ArgType &attr_value) const {                                    \
-    const char_t *const ascend_name = name.GetString();                                                                \
-    if (std::string(ascend_name).empty()) {                                                                            \
-      REPORT_INNER_ERR_MSG("E18888", "ascend std::string error.");                                                     \
-      GELOGE(GRAPH_PARAM_INVALID, "[Check][Param] SetAttr: ascend std::string error.");                                \
-      return GRAPH_PARAM_INVALID;                                                                                      \
-    }                                                                                                                  \
-                                                                                                                       \
-    if (impl_ == nullptr) {                                                                                            \
-      REPORT_INNER_ERR_MSG("E18888", "node impl is nullptr, check invalid.");                                          \
-      GELOGE(GRAPH_FAILED, "[Check][Param] SetAttr: node impl is nullptr.");                                           \
-      return GRAPH_FAILED;                                                                                             \
-    }                                                                                                                  \
-                                                                                                                       \
-    const std::shared_ptr<Node> node_ptr_share = impl_->node_ptr_.lock();                                              \
-    if (node_ptr_share == nullptr) {                                                                                   \
-      REPORT_INNER_ERR_MSG("E18888", "the node shared ptr is nullptr, check invalid.");                                \
-      GELOGE(GRAPH_FAILED, "[Check][Param] SetAttr: the node shared ptr is not valid.");                               \
-      return GRAPH_FAILED;                                                                                             \
-    }                                                                                                                  \
-                                                                                                                       \
-    Operator op = OpDescUtils::CreateOperatorFromNode(node_ptr_share);                                                 \
-    (void)op.SetAttr(ascend_name, attr_value);                                                                         \
-    return GRAPH_SUCCESS;                                                                                              \
+#define NODE_ATTR_SET_IMP(ArgType)                                                       \
+  graphStatus GNode::SetAttr(const AscendString &name, ArgType &attr_value) const {      \
+    const char_t *const ascend_name = name.GetString();                                  \
+    if (std::string(ascend_name).empty()) {                                              \
+      REPORT_INNER_ERR_MSG("E18888", "ascend std::string error.");                       \
+      GELOGE(GRAPH_PARAM_INVALID, "[Check][Param] SetAttr: ascend std::string error.");  \
+      return GRAPH_PARAM_INVALID;                                                        \
+    }                                                                                    \
+                                                                                         \
+    if (impl_ == nullptr) {                                                              \
+      REPORT_INNER_ERR_MSG("E18888", "node impl is nullptr, check invalid.");            \
+      GELOGE(GRAPH_FAILED, "[Check][Param] SetAttr: node impl is nullptr.");             \
+      return GRAPH_FAILED;                                                               \
+    }                                                                                    \
+                                                                                         \
+    const std::shared_ptr<Node> node_ptr_share = impl_->node_ptr_.lock();                \
+    if (node_ptr_share == nullptr) {                                                     \
+      REPORT_INNER_ERR_MSG("E18888", "the node shared ptr is nullptr, check invalid.");  \
+      GELOGE(GRAPH_FAILED, "[Check][Param] SetAttr: the node shared ptr is not valid."); \
+      return GRAPH_FAILED;                                                               \
+    }                                                                                    \
+                                                                                         \
+    Operator op = OpDescUtils::CreateOperatorFromNode(node_ptr_share);                   \
+    (void)op.SetAttr(ascend_name, attr_value);                                           \
+    return GRAPH_SUCCESS;                                                                \
   }
 
 namespace af {
@@ -90,7 +90,7 @@ class NodeImpl {
   NodeImpl(NodeImpl &) = delete;
   NodeImpl &operator=(const NodeImpl &) = delete;
 
-private:
+ private:
   friend class NodeAdapter;
   friend class GNode;
   std::weak_ptr<Node> node_ptr_;
@@ -146,8 +146,9 @@ GNodePtr NodeAdapter::Node2GNodePtr(const NodePtr &node) {
   return gnode;
 }
 
-GNode::GNode() { impl_ = ComGraphMakeShared<NodeImpl>(); }
-
+GNode::GNode() {
+  impl_ = ComGraphMakeShared<NodeImpl>();
+}
 
 graphStatus GNode::GetType(AscendString &type) const {
   if (impl_ == nullptr) {
@@ -205,10 +206,14 @@ std::pair<GNodePtr, int32_t> GNode::GetInDataNodesAndPortIndexs(const int32_t in
 
   const auto in_anchor = node_ptr->GetInDataAnchor(index);
   if (in_anchor == nullptr) {
-    REPORT_INNER_ERR_MSG("E18888", "Failed to get in data node of index[%d] from node[%s], "
-                      "the anchor does not exist", index, node_ptr->GetName().c_str());
-    GELOGE(GRAPH_FAILED, "[Get][Anchor] Failed to get in data node of index[%d] from node[%s], "
-           "the anchor does not exist", index, node_ptr->GetName().c_str());
+    REPORT_INNER_ERR_MSG("E18888",
+                         "Failed to get in data node of index[%d] from node[%s], "
+                         "the anchor does not exist",
+                         index, node_ptr->GetName().c_str());
+    GELOGE(GRAPH_FAILED,
+           "[Get][Anchor] Failed to get in data node of index[%d] from node[%s], "
+           "the anchor does not exist",
+           index, node_ptr->GetName().c_str());
     return gnode_idx;
   }
 
@@ -273,10 +278,14 @@ std::vector<std::pair<GNodePtr, int32_t>> GNode::GetOutDataNodesAndPortIndexs(co
 
   const auto out_anchor = node_ptr->GetOutDataAnchor(index);
   if (out_anchor == nullptr) {
-    REPORT_INNER_ERR_MSG("E18888", "Failed to get out data node of index %d from node %s, "
-           "the anchor does not exist", index, node_ptr->GetName().c_str());
-    GELOGE(GRAPH_FAILED, "[Get][Anchor] Failed to get out data node of index %d from node %s, "
-           "the anchor does not exist", index, node_ptr->GetName().c_str());
+    REPORT_INNER_ERR_MSG("E18888",
+                         "Failed to get out data node of index %d from node %s, "
+                         "the anchor does not exist",
+                         index, node_ptr->GetName().c_str());
+    GELOGE(GRAPH_FAILED,
+           "[Get][Anchor] Failed to get out data node of index %d from node %s, "
+           "the anchor does not exist",
+           index, node_ptr->GetName().c_str());
     return {};
   }
 
@@ -360,9 +369,8 @@ graphStatus GNode::GetInputConstData(const int32_t index, Tensor &data) const {
     while ((parent_node != nullptr) && (parent_node->GetType() == DATA)) {
       parent_node = NodeUtils::GetParentInput(parent_node);
     }
-    if ((parent_node != nullptr) &&
-        ((parent_node->GetType() == CONSTANT) || (parent_node->GetType() == CONSTANTOP))) {
-      const Operator const_op =  OpDescUtils::CreateOperatorFromNode(parent_node);
+    if ((parent_node != nullptr) && ((parent_node->GetType() == CONSTANT) || (parent_node->GetType() == CONSTANTOP))) {
+      const Operator const_op = OpDescUtils::CreateOperatorFromNode(parent_node);
       if (const_op.GetAttr(ATTR_NAME_WEIGHTS.c_str(), data) != GRAPH_SUCCESS) {
         REPORT_INNER_ERR_MSG("E18888", "Input data node[%s] of node[%s] get data failed.",
                              parent_node->GetName().c_str(), node_ptr->GetName().c_str());
@@ -477,12 +485,12 @@ graphStatus GNode::GetDynamicInputIndexesByName(const AscendString &name, std::v
   }
 
   if (op_desc->GetDynamicInputIndexesByName(node_name, indexes) != GRAPH_SUCCESS || indexes.empty()) {
-      const std::string error_message = indexes.empty() ?
-          "the dynamic input indexes is empty, input name is " + node_name + "." :
-          "get dynamic input index by name failed, input name is " + node_name + ".";
-      REPORT_INNER_ERR_MSG("E18888", "%s", error_message.c_str());
-      GELOGE(GRAPH_FAILED, "[Check][Param] %s", error_message.c_str());
-      return GRAPH_FAILED;
+    const std::string error_message = indexes.empty()
+                                          ? "the dynamic input indexes is empty, input name is " + node_name + "."
+                                          : "get dynamic input index by name failed, input name is " + node_name + ".";
+    REPORT_INNER_ERR_MSG("E18888", "%s", error_message.c_str());
+    GELOGE(GRAPH_FAILED, "[Check][Param] %s", error_message.c_str());
+    return GRAPH_FAILED;
   }
 
   return GRAPH_SUCCESS;
@@ -517,12 +525,12 @@ graphStatus GNode::GetDynamicOutputIndexesByName(const AscendString &name, std::
   }
 
   if (op_desc->GetDynamicOutputIndexesByName(node_name, indexes) != GRAPH_SUCCESS || indexes.empty()) {
-      const std::string error_message = indexes.empty() ?
-          "the dynamic output indexes is empty, output name is " + node_name + "." :
-          "get dynamic output index by name failed, output name is " + node_name + ".";
-      REPORT_INNER_ERR_MSG("E18888", "%s", error_message.c_str());
-      GELOGE(GRAPH_FAILED, "[Check][Param] %s", error_message.c_str());
-      return GRAPH_FAILED;
+    const std::string error_message =
+        indexes.empty() ? "the dynamic output indexes is empty, output name is " + node_name + "."
+                        : "get dynamic output index by name failed, output name is " + node_name + ".";
+    REPORT_INNER_ERR_MSG("E18888", "%s", error_message.c_str());
+    GELOGE(GRAPH_FAILED, "[Check][Param] %s", error_message.c_str());
+    return GRAPH_FAILED;
   }
 
   return GRAPH_SUCCESS;
@@ -610,7 +618,8 @@ graphStatus GNode::GetInputDesc(const int32_t index, TensorDesc &tensor_desc) co
   }
   const ConstGeTensorDescPtr ge_tensor_desc = op_desc->GetInputDescPtr(static_cast<uint32_t>(index));
   if (ge_tensor_desc == nullptr) {
-    GELOGW("[Get][TensorDesc] of node[%s] failed, input is optional input with no edge and index is [%d]", node_ptr->GetName().c_str(), index);
+    GELOGW("[Get][TensorDesc] of node[%s] failed, input is optional input with no edge and index is [%d]",
+           node_ptr->GetName().c_str(), index);
     return GRAPH_FAILED;
   }
   tensor_desc = TensorAdapter::GeTensorDesc2TensorDesc(*ge_tensor_desc);
@@ -988,8 +997,7 @@ graphStatus GNode::GetSubgraph(uint32_t index, GraphPtr &graph) const {
   const ComputeGraphPtr compute_graph_ptr = NodeUtils::GetSubgraph(*node_ptr, index);
   if (compute_graph_ptr == nullptr) {
     REPORT_INNER_ERR_MSG("E18888", "get subgraph[%u] failed from node[%s].", index, node_ptr->GetName().c_str());
-    GELOGE(GRAPH_FAILED, "[Get][SubGraph] subgraph[%u] from node[%s] is nullptr.",
-           index, node_ptr->GetName().c_str());
+    GELOGE(GRAPH_FAILED, "[Get][SubGraph] subgraph[%u] from node[%s] is nullptr.", index, node_ptr->GetName().c_str());
     return GRAPH_FAILED;
   }
 
@@ -1077,29 +1085,27 @@ graphStatus GNode::SetSubgraphs(const AscendString &subgraph_ir_name, const std:
 }
 
 namespace {
-graphStatus GetAttrValue(const std::shared_ptr<Node> &node_ptr, const AscendString &name,
-                         uint32_t index, AttrValue &attr_value, bool is_input) {
-  auto tensor_desc = is_input ? node_ptr->GetOpDesc()->MutableInputDesc(index)
-                              : node_ptr->GetOpDesc()->MutableOutputDesc(index);
-  GE_ASSERT_NOTNULL(tensor_desc, "index: %u is invalid for node: %s %s",
-                    index, node_ptr->GetNamePtr(), node_ptr->GetTypePtr());
+graphStatus GetAttrValue(const std::shared_ptr<Node> &node_ptr, const AscendString &name, uint32_t index,
+                         AttrValue &attr_value, bool is_input) {
+  auto tensor_desc =
+      is_input ? node_ptr->GetOpDesc()->MutableInputDesc(index) : node_ptr->GetOpDesc()->MutableOutputDesc(index);
+  GE_ASSERT_NOTNULL(tensor_desc, "index: %u is invalid for node: %s %s", index, node_ptr->GetNamePtr(),
+                    node_ptr->GetTypePtr());
   GE_WARN_ASSERT_GRAPH_SUCCESS(tensor_desc->GetAttr(name.GetString(), attr_value.impl->MutableAnyValue()),
-                               "Attr: %s has not been set for node: %s %s",
-                               name.GetString(),
-                               node_ptr->GetNamePtr(),
+                               "Attr: %s has not been set for node: %s %s", name.GetString(), node_ptr->GetNamePtr(),
                                node_ptr->GetTypePtr());
   return GRAPH_SUCCESS;
 }
 
-graphStatus SetAttrValue(const std::shared_ptr<Node> &node_ptr, const AscendString &name,
-                         uint32_t index, const AttrValue &attr_value, bool is_input) {
-  auto tensor_desc = is_input ? node_ptr->GetOpDesc()->MutableInputDesc(index)
-                              : node_ptr->GetOpDesc()->MutableOutputDesc(index);
-  GE_ASSERT_NOTNULL(tensor_desc, "index: %u is invalid for node: %s %s",
-                    index, node_ptr->GetNamePtr(), node_ptr->GetTypePtr());
+graphStatus SetAttrValue(const std::shared_ptr<Node> &node_ptr, const AscendString &name, uint32_t index,
+                         const AttrValue &attr_value, bool is_input) {
+  auto tensor_desc =
+      is_input ? node_ptr->GetOpDesc()->MutableInputDesc(index) : node_ptr->GetOpDesc()->MutableOutputDesc(index);
+  GE_ASSERT_NOTNULL(tensor_desc, "index: %u is invalid for node: %s %s", index, node_ptr->GetNamePtr(),
+                    node_ptr->GetTypePtr());
   return tensor_desc->SetAttr(name.GetString(), attr_value.impl->MutableAnyValue());
 }
-}
+}  // namespace
 
 // 实现新的AttrValue接口
 graphStatus GNode::GetOutputAttr(const AscendString &name, uint32_t output_index, AttrValue &attr_value) const {
@@ -1129,4 +1135,4 @@ graphStatus GNode::SetInputAttr(const AscendString &name, uint32_t input_index, 
   GE_ASSERT_NOTNULL(node_ptr, "Gnode has invalid node source, try to call `AddNodeByOp` firstly");
   return SetAttrValue(node_ptr, name, input_index, attr_value, true);
 }
-}  // namespace ge
+}  // namespace af

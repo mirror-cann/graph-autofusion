@@ -21,8 +21,8 @@ namespace ascir {
 class AscGraph;
 class ScheduleGroup;
 class FusedScheduledResult;
-}
-}
+}  // namespace ascir
+}  // namespace ge
 
 namespace autofuse {
 namespace test {
@@ -51,22 +51,43 @@ inline void CleanupTestArtifacts() {
 //   - ST测试: "testcase/stub/"
 //   - UT测试: "testcase/stub/"
 //   - TOP_DIR: "autofuse/tests/st/att/testcase/stub/"
-inline int CopyStubFiles(const std::string& base_dir, const std::string& stub_path_prefix) {
+inline int CopyStubFiles(const std::string &base_dir, const std::string &stub_path_prefix) {
   // 创建目录
   (void)std::system("mkdir -p ./tiling ./register");
 
   // 拷贝stub文件
   int ret = 0;
-  ret = std::system(std::string("cp ").append(base_dir).append("/").append(stub_path_prefix).append("platform_ascendc.h ./tiling/ -f").c_str());
-  ret = std::system(std::string("cp ").append(base_dir).append("/").append(stub_path_prefix).append("tiling_api.h ./tiling/ -f").c_str());
-  ret = std::system(std::string("cp ").append(base_dir).append("/").append(stub_path_prefix).append("tiling_context.h ./tiling/ -f").c_str());
-  ret = std::system(std::string("cp ").append(base_dir).append("/").append(stub_path_prefix).append("tilingdata_base.h ./register/ -f").c_str());
+  ret = std::system(std::string("cp ")
+                        .append(base_dir)
+                        .append("/")
+                        .append(stub_path_prefix)
+                        .append("platform_ascendc.h ./tiling/ -f")
+                        .c_str());
+  ret = std::system(std::string("cp ")
+                        .append(base_dir)
+                        .append("/")
+                        .append(stub_path_prefix)
+                        .append("tiling_api.h ./tiling/ -f")
+                        .c_str());
+  ret = std::system(std::string("cp ")
+                        .append(base_dir)
+                        .append("/")
+                        .append(stub_path_prefix)
+                        .append("tiling_context.h ./tiling/ -f")
+                        .c_str());
+  ret = std::system(std::string("cp ")
+                        .append(base_dir)
+                        .append("/")
+                        .append(stub_path_prefix)
+                        .append("tilingdata_base.h ./register/ -f")
+                        .c_str());
   // 复制err_msg.h到当前目录，解决autofuse_tiling_func_common.h编译依赖
   // 根据stub_path_prefix判断路径
   std::string err_msg_path;
   if (stub_path_prefix.find("autofuse/tests") == 0) {
     // TOP_DIR调用：base_dir=项目根目录, stub_path_prefix=autofuse/tests/st/att/testcase/stub/
-    err_msg_path = base_dir + "/" + stub_path_prefix.substr(0, stub_path_prefix.find("st/att")) + "depends/common/inc/err_msg.h";
+    err_msg_path =
+        base_dir + "/" + stub_path_prefix.substr(0, stub_path_prefix.find("st/att")) + "depends/common/inc/err_msg.h";
   } else {
     // ST_DIR/UT_DIR调用：base_dir=autofuse/tests/st/att, stub_path_prefix=testcase/stub/
     err_msg_path = base_dir + "/../../depends/common/inc/err_msg.h";
@@ -78,7 +99,7 @@ inline int CopyStubFiles(const std::string& base_dir, const std::string& stub_pa
 
 // 拷贝op_log.h到当前目录
 // base_dir: 基础目录（如 TOP_DIR）
-inline int CopyOpLog(const std::string& base_dir) {
+inline int CopyOpLog(const std::string &base_dir) {
   return std::system(
       std::string("cp ").append(base_dir).append("/autofuse/tests/st/att/testcase/stub/op_log.h ./ -f").c_str());
 }
@@ -88,29 +109,23 @@ inline int CopyOpLog(const std::string& base_dir) {
 class AscGraph;
 class ScheduleGroup;
 
-inline void BuildSingleGraphToScheduleGroup(
-    AscGraph& graph,
-    ScheduleGroup& schedule_group,
-    uint32_t tiling_key);
+inline void BuildSingleGraphToScheduleGroup(AscGraph &graph, ScheduleGroup &schedule_group, uint32_t tiling_key);
 
 // 辅助函数：生成tiling函数并写文件
 // 需要前置声明相关类型，使用时需包含对应头文件
 class FusedScheduledResult;
 
-inline void GenerateTilingFunctionAndWriteToFile(
-    const std::string& op_name,
-    const FusedScheduledResult& fused_scheduled_result,
-    std::map<std::string, std::string>& options);
+inline void GenerateTilingFunctionAndWriteToFile(const std::string &op_name,
+                                                 const FusedScheduledResult &fused_scheduled_result,
+                                                 std::map<std::string, std::string> &options);
 
 // 辅助函数：生成tiling数据和头文件
-inline void GenerateTilingDataAndHeader(
-    const std::string& op_name,
-    const std::string& graph_name,
-    const FusedScheduledResult& fused_scheduled_result,
-    std::map<std::string, std::string>& options);
+inline void GenerateTilingDataAndHeader(const std::string &op_name, const std::string &graph_name,
+                                        const FusedScheduledResult &fused_scheduled_result,
+                                        std::map<std::string, std::string> &options);
 
 // 辅助函数：准备测试环境文件
-inline void PrepareTestEnvironmentFiles(const std::string& test_header_content = "");
+inline void PrepareTestEnvironmentFiles(const std::string &test_header_content = "");
 
 // 辅助函数：编译生成的tiling代码
 inline void CompileGeneratedTilingCode();

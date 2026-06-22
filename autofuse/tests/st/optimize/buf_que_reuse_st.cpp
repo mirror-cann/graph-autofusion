@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -30,8 +30,8 @@ using namespace std;
 using namespace af;
 using namespace af::ops;
 using namespace af::ascir_op;
-using af::testing::Sym;
 using af::testing::AscGraphBuilder;
+using af::testing::Sym;
 
 namespace optimize {
 
@@ -39,105 +39,105 @@ af::AscGraph CreatSomeInputFusedConcatGraph(const std::string &name) {
   auto s0 = Sym("s0");
   auto s1 = Sym("s1");
   return AscGraphBuilder(name)
-    .Loops({s0, s1 + s1 + s1 + s1})
-    .Data("data0", 0, {s0, s1}, {s1, af::sym::kSymbolOne})
-    .Load("load0", "data0", {s0, s1}, {s1, af::sym::kSymbolOne})
-    .Abs("abs0", "load0")
-    .Exp("exp0", "abs0")
-    .Data("data1", 1, {s0, s1}, {s1, af::sym::kSymbolOne})
-    .Load("load1", "data1", {s0, s1}, {s1, af::sym::kSymbolOne})
-    .Data("data2", 2, {s0, s1}, {s1, af::sym::kSymbolOne})
-    .Load("load2", "data2", {s0, s1}, {s1, af::sym::kSymbolOne})
-    .Abs("abs2", "load2")
-    .Exp("exp2", "abs2")
-    .Data("data3", 3, {s0, s1}, {s1, af::sym::kSymbolOne})
-    .Load("load3", "data3", {s0, s1}, {s1, af::sym::kSymbolOne})
-    .Concat("concat", {"exp0", "load1", "exp2", "load3"})
-    .Store("store", "concat")
-    .Output("output", "store", 0, af::DT_FLOAT16)
-    .Build();
+      .Loops({s0, s1 + s1 + s1 + s1})
+      .Data("data0", 0, {s0, s1}, {s1, af::sym::kSymbolOne})
+      .Load("load0", "data0", {s0, s1}, {s1, af::sym::kSymbolOne})
+      .Abs("abs0", "load0")
+      .Exp("exp0", "abs0")
+      .Data("data1", 1, {s0, s1}, {s1, af::sym::kSymbolOne})
+      .Load("load1", "data1", {s0, s1}, {s1, af::sym::kSymbolOne})
+      .Data("data2", 2, {s0, s1}, {s1, af::sym::kSymbolOne})
+      .Load("load2", "data2", {s0, s1}, {s1, af::sym::kSymbolOne})
+      .Abs("abs2", "load2")
+      .Exp("exp2", "abs2")
+      .Data("data3", 3, {s0, s1}, {s1, af::sym::kSymbolOne})
+      .Load("load3", "data3", {s0, s1}, {s1, af::sym::kSymbolOne})
+      .Concat("concat", {"exp0", "load1", "exp2", "load3"})
+      .Store("store", "concat")
+      .Output("output", "store", 0, af::DT_FLOAT16)
+      .Build();
 }
 
 af::AscGraph CreatBrcCascadeGraph(const std::string &name) {
   auto s0 = Symbol(128);
   auto s1 = Symbol(10);
   return AscGraphBuilder(name)
-    .Loops({s0, s1})
-    .Data("data0", 0)
-    .Load("load0", "data0")
-    .Data("data1", 1)
-    .Load("load1", "data1", {s0, af::sym::kSymbolOne}, {af::sym::kSymbolOne, af::sym::kSymbolZero})
-    .Broadcast("brc3", "load1", {s0, s1})
-    .Op<af::ascir_op::Gt>("gt", {"load0", "brc3"})
-    .template Op<af::ascir_op::Sigmoid>("sigmoid0", {"gt"})
-    .Abs("abs0", "gt")
-    .Scalar("scalar1", "")
-    .Broadcast("brc4", "scalar1", {af::sym::kSymbolOne, s1})
-    .Broadcast("brc5", "brc4", {s0, s1})
-    .Add("add", "abs0", "sigmoid0")
-    .Mul("mul", "add", "brc5")
-    .Abs("abs1", "mul")
-    .Abs("abs2", "abs1")
-    .Store("store", "abs2")
-    .Output("output", "store", 0)
-    .Build();
+      .Loops({s0, s1})
+      .Data("data0", 0)
+      .Load("load0", "data0")
+      .Data("data1", 1)
+      .Load("load1", "data1", {s0, af::sym::kSymbolOne}, {af::sym::kSymbolOne, af::sym::kSymbolZero})
+      .Broadcast("brc3", "load1", {s0, s1})
+      .Op<af::ascir_op::Gt>("gt", {"load0", "brc3"})
+      .template Op<af::ascir_op::Sigmoid>("sigmoid0", {"gt"})
+      .Abs("abs0", "gt")
+      .Scalar("scalar1", "")
+      .Broadcast("brc4", "scalar1", {af::sym::kSymbolOne, s1})
+      .Broadcast("brc5", "brc4", {s0, s1})
+      .Add("add", "abs0", "sigmoid0")
+      .Mul("mul", "add", "brc5")
+      .Abs("abs1", "mul")
+      .Abs("abs2", "abs1")
+      .Store("store", "abs2")
+      .Output("output", "store", 0)
+      .Build();
 }
 
 af::AscGraph CreatBrcReduceGraph(const std::string &name) {
   auto s0 = Symbol(12);
   auto s1 = Symbol(16);
   return AscGraphBuilder(name)
-    .Loops({s0, s1})
-    .Data("data0", 0)
-    .Load("load0", "data0", {s0, af::sym::kSymbolOne}, {af::sym::kSymbolOne, af::sym::kSymbolZero})
-    .Exp("exp0", "load0")
-    .Broadcast("brc0", "exp0", {s0, s1})
-    .Data("data1", 1)
-    .Load("load1", "data1")
-    .Relu("relu0", "load1")
-    .Add("add0", "brc0", "relu0")
-    .template Op<af::ascir_op::Sigmoid>("sigmoid", {"add0"})
-    .Max("max0", "sigmoid", {1})
-    .template Op<af::ascir_op::Sigmoid>("Sigmoid1", {"max0"})
-    .Store("store", "Sigmoid1")
-    .Output("output", "store", 0)
-    .Build();
+      .Loops({s0, s1})
+      .Data("data0", 0)
+      .Load("load0", "data0", {s0, af::sym::kSymbolOne}, {af::sym::kSymbolOne, af::sym::kSymbolZero})
+      .Exp("exp0", "load0")
+      .Broadcast("brc0", "exp0", {s0, s1})
+      .Data("data1", 1)
+      .Load("load1", "data1")
+      .Relu("relu0", "load1")
+      .Add("add0", "brc0", "relu0")
+      .template Op<af::ascir_op::Sigmoid>("sigmoid", {"add0"})
+      .Max("max0", "sigmoid", {1})
+      .template Op<af::ascir_op::Sigmoid>("Sigmoid1", {"max0"})
+      .Store("store", "Sigmoid1")
+      .Output("output", "store", 0)
+      .Build();
 }
 
 af::AscGraph CreatNestingLoadGraph(const std::string &name) {
   auto s0 = Sym("s0");
   auto s1 = Sym("s1");
   return AscGraphBuilder(name)
-    .Loops({s0, s1 + s1 + s1 + s1})
-    .Data("data0", 0, {s0, s1}, {s1, af::sym::kSymbolOne})
-    .Load("load0", "data0", {s0, s1}, {s1, af::sym::kSymbolOne})
-    .Data("data1", 1, {s0, s1}, {s1, af::sym::kSymbolOne})
-    .Load("load1", "data1", {s0, s1}, {s1, af::sym::kSymbolOne})
-    .Add("add0", "load0", "load1")
-    .Data("data2", 2, {s0, s1}, {s1, af::sym::kSymbolOne})
-    .Load("load2", "data2", {s0, s1}, {s1, af::sym::kSymbolOne})
-    .Add("add1", "add0", "load2")
-    .Data("data3", 3, {s0, s1}, {s1, af::sym::kSymbolOne})
-    .Load("load3", "data3", {s0, s1}, {s1, af::sym::kSymbolOne})
-    .Add("add2", "add1", "load3")
-    .Data("data4", 4, {s0, s1}, {s1, af::sym::kSymbolOne})
-    .Load("load4", "data4", {s0, s1}, {s1, af::sym::kSymbolOne})
-    .Add("add3", "add2", "load4")
-    .Data("data5", 5, {s0, s1}, {s1, af::sym::kSymbolOne})
-    .Load("load5", "data5", {s0, s1}, {s1, af::sym::kSymbolOne})
-    .Add("add4", "add3", "load5")
-    .Data("data6", 6, {s0, s1}, {s1, af::sym::kSymbolOne})
-    .Load("load6", "data6", {s0, s1}, {s1, af::sym::kSymbolOne})
-    .Add("add5", "add4", "load6")
-    .Add("add6", "add5", "load5")
-    .Add("add7", "add6", "load4")
-    .Add("add8", "add7", "load3")
-    .Add("add9", "add8", "load2")
-    .Add("add10", "add9", "load1")
-    .Add("add11", "add10", "load0")
-    .Store("store", "add11")
-    .Output("output", "store", 0, af::DT_FLOAT16)
-    .Build();
+      .Loops({s0, s1 + s1 + s1 + s1})
+      .Data("data0", 0, {s0, s1}, {s1, af::sym::kSymbolOne})
+      .Load("load0", "data0", {s0, s1}, {s1, af::sym::kSymbolOne})
+      .Data("data1", 1, {s0, s1}, {s1, af::sym::kSymbolOne})
+      .Load("load1", "data1", {s0, s1}, {s1, af::sym::kSymbolOne})
+      .Add("add0", "load0", "load1")
+      .Data("data2", 2, {s0, s1}, {s1, af::sym::kSymbolOne})
+      .Load("load2", "data2", {s0, s1}, {s1, af::sym::kSymbolOne})
+      .Add("add1", "add0", "load2")
+      .Data("data3", 3, {s0, s1}, {s1, af::sym::kSymbolOne})
+      .Load("load3", "data3", {s0, s1}, {s1, af::sym::kSymbolOne})
+      .Add("add2", "add1", "load3")
+      .Data("data4", 4, {s0, s1}, {s1, af::sym::kSymbolOne})
+      .Load("load4", "data4", {s0, s1}, {s1, af::sym::kSymbolOne})
+      .Add("add3", "add2", "load4")
+      .Data("data5", 5, {s0, s1}, {s1, af::sym::kSymbolOne})
+      .Load("load5", "data5", {s0, s1}, {s1, af::sym::kSymbolOne})
+      .Add("add4", "add3", "load5")
+      .Data("data6", 6, {s0, s1}, {s1, af::sym::kSymbolOne})
+      .Load("load6", "data6", {s0, s1}, {s1, af::sym::kSymbolOne})
+      .Add("add5", "add4", "load6")
+      .Add("add6", "add5", "load5")
+      .Add("add7", "add6", "load4")
+      .Add("add8", "add7", "load3")
+      .Add("add9", "add8", "load2")
+      .Add("add10", "add9", "load1")
+      .Add("add11", "add10", "load0")
+      .Store("store", "add11")
+      .Output("output", "store", 0, af::DT_FLOAT16)
+      .Build();
 }
 
 class BufQueReuseSt : public ::testing::Test {
@@ -330,16 +330,16 @@ TEST_F(BufQueReuseSt, TestInplaceChainVecCanReuseTque) {
 
 TEST_F(BufQueReuseSt, TestVecoutCanInplaceReuseCalc) {
   auto graph = AscGraphBuilder("InplaceGraph")
-    .Loops({Symbol(128)})
-    .Data("data0", 0)
-    .Load("load0", "data0")
-    .Load("load1", "data0")
-    .Op<af::ascir_op::Pow>("pow0", {"load0", "load1"})
-    .Load("load2", "data0")
-    .Add("add0", "pow0", "load2")
-    .Store("store", "add0")
-    .Output("output", "store", 0)
-    .Build();
+                   .Loops({Symbol(128)})
+                   .Data("data0", 0)
+                   .Load("load0", "data0")
+                   .Load("load1", "data0")
+                   .Op<af::ascir_op::Pow>("pow0", {"load0", "load1"})
+                   .Load("load2", "data0")
+                   .Add("add0", "pow0", "load2")
+                   .Store("store", "add0")
+                   .Output("output", "store", 0)
+                   .Build();
 
   ::ascir::FusedScheduledResult fused_scheduled_result;
   optimize::Optimizer optimizer(optimize::OptimizerOptions{});
@@ -381,17 +381,17 @@ TEST_F(BufQueReuseSt, TestVecoutCanInplaceReuseCalc) {
 
 TEST_F(BufQueReuseSt, TestTmpBuffReuse) {
   auto graph = AscGraphBuilder("tmp_buf_reuse_graph")
-    .Loops({Symbol(128)})
-    .Data("data0", 0)
-    .Load("load0", "data0")
-    .Load("load1", "data0")
-    .Op<af::ascir_op::Pow>("pow0", {"load0", "load1"})
-    .Abs("abs0", "pow0")
-    .Add("add0", "pow0", "abs0")
-    .template Op<af::ascir_op::Sigmoid>("sigmoid", {"add0"})
-    .Store("store", "sigmoid")
-    .Output("output", "store", 0)
-    .Build();
+                   .Loops({Symbol(128)})
+                   .Data("data0", 0)
+                   .Load("load0", "data0")
+                   .Load("load1", "data0")
+                   .Op<af::ascir_op::Pow>("pow0", {"load0", "load1"})
+                   .Abs("abs0", "pow0")
+                   .Add("add0", "pow0", "abs0")
+                   .template Op<af::ascir_op::Sigmoid>("sigmoid", {"add0"})
+                   .Store("store", "sigmoid")
+                   .Output("output", "store", 0)
+                   .Build();
 
   ::ascir::FusedScheduledResult fused_scheduled_result;
   optimize::Optimizer optimizer(optimize::OptimizerOptions{});

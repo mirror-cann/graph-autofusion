@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -221,8 +221,7 @@ TEST(PadTensorAxisToSched, NoNeedPad_Ok) {
   }
   EXPECT_EQ(static_cast<std::vector<AxisId>>(data.y.axis), std::vector<AxisId>({a.id, b.id, c.id}));
   EXPECT_EQ(static_cast<std::vector<SizeExpr>>(data.y.repeats), std::vector<SizeExpr>({A, B, C}));
-  EXPECT_EQ(static_cast<std::vector<SizeExpr>>(data.y.strides),
-            std::vector<SizeExpr>({C, 0, 1}));
+  EXPECT_EQ(static_cast<std::vector<SizeExpr>>(data.y.strides), std::vector<SizeExpr>({C, 0, 1}));
 }
 TEST(PadTensorAxisToSched, PadHead) {
   Graph graph("test_graph");
@@ -242,10 +241,8 @@ TEST(PadTensorAxisToSched, PadHead) {
     ASSERT_TRUE(PadOutputViewToSched(data.y));
   }
   EXPECT_EQ(static_cast<std::vector<AxisId>>(data.y.axis), std::vector<AxisId>({a.id, b.id, c.id, d.id}));
-  EXPECT_EQ(static_cast<std::vector<SizeExpr>>(data.y.repeats),
-            std::vector<SizeExpr>({1, 1, C, D}));
-  EXPECT_EQ(static_cast<std::vector<SizeExpr>>(data.y.strides),
-            std::vector<SizeExpr>({0, 0, D, 1}));
+  EXPECT_EQ(static_cast<std::vector<SizeExpr>>(data.y.repeats), std::vector<SizeExpr>({1, 1, C, D}));
+  EXPECT_EQ(static_cast<std::vector<SizeExpr>>(data.y.strides), std::vector<SizeExpr>({0, 0, D, 1}));
 }
 TEST(PadTensorAxisToSched, PadTail) {
   Graph graph("test_graph");
@@ -265,10 +262,8 @@ TEST(PadTensorAxisToSched, PadTail) {
     ASSERT_TRUE(PadOutputViewToSched(data.y));
   }
   EXPECT_EQ(static_cast<std::vector<AxisId>>(data.y.axis), std::vector<AxisId>({a.id, b.id, c.id, d.id}));
-  EXPECT_EQ(static_cast<std::vector<SizeExpr>>(data.y.repeats),
-            std::vector<SizeExpr>({A, B, 1, 1}));
-  EXPECT_EQ(static_cast<std::vector<SizeExpr>>(data.y.strides),
-            std::vector<SizeExpr>({B, 1, 0, 0}));
+  EXPECT_EQ(static_cast<std::vector<SizeExpr>>(data.y.repeats), std::vector<SizeExpr>({A, B, 1, 1}));
+  EXPECT_EQ(static_cast<std::vector<SizeExpr>>(data.y.strides), std::vector<SizeExpr>({B, 1, 0, 0}));
 }
 TEST(PadTensorAxisToSched, PadTail_NotContiguous) {
   Graph graph("test_graph");
@@ -290,10 +285,8 @@ TEST(PadTensorAxisToSched, PadTail_NotContiguous) {
     ASSERT_TRUE(PadOutputViewToSched(data.y));
   }
   EXPECT_EQ(static_cast<std::vector<AxisId>>(data.y.axis), std::vector<AxisId>({a.id, b.id, c.id, d.id}));
-  EXPECT_EQ(static_cast<std::vector<SizeExpr>>(data.y.repeats),
-            std::vector<SizeExpr>({A, 1, C, 1}));
-  EXPECT_EQ(static_cast<std::vector<SizeExpr>>(data.y.strides),
-            std::vector<SizeExpr>({C, 0, 1, 0}));
+  EXPECT_EQ(static_cast<std::vector<SizeExpr>>(data.y.repeats), std::vector<SizeExpr>({A, 1, C, 1}));
+  EXPECT_EQ(static_cast<std::vector<SizeExpr>>(data.y.strides), std::vector<SizeExpr>({C, 0, 1, 0}));
 }
 TEST(PadTensorAxisToSched, PadMiddle) {
   Graph graph("test_graph");
@@ -313,10 +306,8 @@ TEST(PadTensorAxisToSched, PadMiddle) {
     ASSERT_TRUE(PadOutputViewToSched(data.y));
   }
   EXPECT_EQ(static_cast<std::vector<AxisId>>(data.y.axis), std::vector<AxisId>({a.id, b.id, c.id, d.id}));
-  EXPECT_EQ(static_cast<std::vector<SizeExpr>>(data.y.repeats),
-            std::vector<SizeExpr>({A, 1, 1, D}));
-  EXPECT_EQ(static_cast<std::vector<SizeExpr>>(data.y.strides),
-            std::vector<SizeExpr>({D, 0, 0, 1}));
+  EXPECT_EQ(static_cast<std::vector<SizeExpr>>(data.y.repeats), std::vector<SizeExpr>({A, 1, 1, D}));
+  EXPECT_EQ(static_cast<std::vector<SizeExpr>>(data.y.strides), std::vector<SizeExpr>({D, 0, 0, 1}));
 }
 TEST(PadTensorAxisToSched, PadMultiple) {
   Graph graph("test_graph");
@@ -336,10 +327,8 @@ TEST(PadTensorAxisToSched, PadMultiple) {
     ASSERT_TRUE(PadOutputViewToSched(data.y));
   }
   EXPECT_EQ(static_cast<std::vector<AxisId>>(data.y.axis), std::vector<AxisId>({a.id, b.id, c.id, d.id}));
-  EXPECT_EQ(static_cast<std::vector<SizeExpr>>(data.y.repeats),
-            std::vector<SizeExpr>({1, B, 1, D}));
-  EXPECT_EQ(static_cast<std::vector<SizeExpr>>(data.y.strides),
-            std::vector<SizeExpr>({0, D, 0, 1}));
+  EXPECT_EQ(static_cast<std::vector<SizeExpr>>(data.y.repeats), std::vector<SizeExpr>({1, B, 1, D}));
+  EXPECT_EQ(static_cast<std::vector<SizeExpr>>(data.y.strides), std::vector<SizeExpr>({0, D, 0, 1}));
 }
 TEST(PadTensorAxisToSched, SameAxisNumButNotMatch_Failed) {
   Graph graph("test_graph");

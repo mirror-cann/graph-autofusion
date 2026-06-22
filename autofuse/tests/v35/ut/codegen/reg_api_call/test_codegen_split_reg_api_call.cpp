@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -27,11 +27,8 @@ class SplitRegApiCallUTest : public ::testing::Test {
   void SetUp() override {}
   void TearDown() override {}
 
-  static void BuildSplitGraph(const std::vector<af::Expression> &expressions,
-                               af::AscGraph &graph,
-                               codegen::TPipe &tpipe,
-                               codegen::Tiler &tiler,
-                               DataType data_type = af::DT_FLOAT16) {
+  static void BuildSplitGraph(const std::vector<af::Expression> &expressions, af::AscGraph &graph,
+                              codegen::TPipe &tpipe, codegen::Tiler &tiler, DataType data_type = af::DT_FLOAT16) {
     auto s0 = expressions[0];
     auto s1 = expressions[1];
     auto s2_1 = expressions[2];
@@ -69,7 +66,7 @@ class SplitRegApiCallUTest : public ::testing::Test {
 
     *split_op.y[1].axis = {z0.id, z1.id, z2.id, z3.id};
     *split_op.y[1].repeats = {s0, s1, s2_2, s3};
-    *split_op.y[1].strides = {s2_2 * s3, Zero, s3, One};    
+    *split_op.y[1].strides = {s2_2 * s3, Zero, s3, One};
 
     auto load = graph.FindNode("load");
     load->attr.api.compute_type = af::ComputeType::kComputeLoad;
@@ -104,7 +101,7 @@ class SplitRegApiCallUTest : public ::testing::Test {
     split->outputs[1].attr.mem.tensor_id = 3;
     split->outputs[1].attr.mem.alloc_type = af::AllocType::kAllocTypeQueue;
     split->outputs[1].attr.que.id = 3;
-    split->outputs[1].attr.opt.merge_scope = af::kIdNone;    
+    split->outputs[1].attr.opt.merge_scope = af::kIdNone;
 
     tiler.AddAxis(z0);
     tiler.AddAxis(z1);
@@ -118,7 +115,6 @@ class SplitRegApiCallUTest : public ::testing::Test {
     tpipe.CollectQues(graph);
     // add load1 tensor
     EXPECT_EQ(tpipe.AddTensor(load->outputs[0]), 0);
-
 
     // add add tensor
     EXPECT_EQ(tpipe.AddTensor(split->outputs[0]), 0);
@@ -164,150 +160,167 @@ TEST_F(SplitRegApiCallUTest, AllAligned) {
             "SplitAllAligned<half, 2>(t->s0, split_tiling, local_0, split_dst_tensors);\n");
 }
 
- TEST_F(SplitRegApiCallUTest, Unaligned_B8) {
-   codegen::Tiler tiler;
-   codegen::TPipe tpipe("tpipe", tiler);
+TEST_F(SplitRegApiCallUTest, Unaligned_B8) {
+  codegen::Tiler tiler;
+  codegen::TPipe tpipe("tpipe", tiler);
 
-   af::AscGraph graph("test_graph");
-   auto s0 = graph.CreateSizeVar("s0");
-   auto s1 = graph.CreateSizeVar(1);
-   auto s2_1 = graph.CreateSizeVar("s2_1");
-   auto s2_2 = graph.CreateSizeVar(16);
-   auto s3 = graph.CreateSizeVar(3);
+  af::AscGraph graph("test_graph");
+  auto s0 = graph.CreateSizeVar("s0");
+  auto s1 = graph.CreateSizeVar(1);
+  auto s2_1 = graph.CreateSizeVar("s2_1");
+  auto s2_2 = graph.CreateSizeVar(16);
+  auto s3 = graph.CreateSizeVar(3);
 
-   BuildSplitGraph({s0, s1, s2_1, s2_2, s3}, graph, tpipe, tiler, DT_INT8);
+  BuildSplitGraph({s0, s1, s2_1, s2_2, s3}, graph, tpipe, tiler, DT_INT8);
 
-   auto load = graph.FindNode("load");
-   auto split = graph.FindNode("split");
-   split->attr.tmp_buffers = {{{af::Symbol(8192), -1}, af::MemAttr(), 0}};
+  auto load = graph.FindNode("load");
+  auto split = graph.FindNode("split");
+  split->attr.tmp_buffers = {{{af::Symbol(8192), -1}, af::MemAttr(), 0}};
 
-   codegen::SplitRegApiCall call("Split");
-   EXPECT_EQ(call.Init(split), 0);
-   codegen::ApiTensor x1;
-   x1.id = load->outputs[0].attr.mem.tensor_id;
-   call.inputs.push_back(&x1);
+  codegen::SplitRegApiCall call("Split");
+  EXPECT_EQ(call.Init(split), 0);
+  codegen::ApiTensor x1;
+  x1.id = load->outputs[0].attr.mem.tensor_id;
+  call.inputs.push_back(&x1);
 
-   std::string result;
-   EXPECT_EQ(call.Generate(tpipe, vector<af::AxisId>{}, result), SUCCESS);
-   EXPECT_EQ(result,
-             "const split::SplitTiling<2> split_tiling {\n  .num_rows = static_cast<uint32_t>(t->s0), \n  .num_src_cols = (((16 + t->s2_1) * 3))/(1), \n  .num_dsts_cols = {((3 * t->s2_1))/(1), 48, }\n};\nint8_t *split_dst_addrs[] { (int8_t *)local_2.GetPhyAddr(), (int8_t *)local_3.GetPhyAddr(), };\nsplit::SplitExtend<int8_t, 2>((int8_t *)local_0.GetPhyAddr(), split_dst_addrs, tmp_buf_0, split_tiling);\n");
- }
+  std::string result;
+  EXPECT_EQ(call.Generate(tpipe, vector<af::AxisId>{}, result), SUCCESS);
+  EXPECT_EQ(
+      result,
+      "const split::SplitTiling<2> split_tiling {\n  .num_rows = static_cast<uint32_t>(t->s0), \n  .num_src_cols = "
+      "(((16 + t->s2_1) * 3))/(1), \n  .num_dsts_cols = {((3 * t->s2_1))/(1), 48, }\n};\nint8_t *split_dst_addrs[] { "
+      "(int8_t *)local_2.GetPhyAddr(), (int8_t *)local_3.GetPhyAddr(), };\nsplit::SplitExtend<int8_t, 2>((int8_t "
+      "*)local_0.GetPhyAddr(), split_dst_addrs, tmp_buf_0, split_tiling);\n");
+}
 
- TEST_F(SplitRegApiCallUTest, Unaligned_B8ToB16) {
-   codegen::Tiler tiler;
-   codegen::TPipe tpipe("tpipe", tiler);
+TEST_F(SplitRegApiCallUTest, Unaligned_B8ToB16) {
+  codegen::Tiler tiler;
+  codegen::TPipe tpipe("tpipe", tiler);
 
-   af::AscGraph graph("test_graph");
-   auto s0 = graph.CreateSizeVar("s0");
-   auto s1 = graph.CreateSizeVar(1);
-   auto s2_1 = graph.CreateSizeVar("s2_1");
-   auto s2_2 = graph.CreateSizeVar(16);
-   auto s3 = graph.CreateSizeVar(2);
+  af::AscGraph graph("test_graph");
+  auto s0 = graph.CreateSizeVar("s0");
+  auto s1 = graph.CreateSizeVar(1);
+  auto s2_1 = graph.CreateSizeVar("s2_1");
+  auto s2_2 = graph.CreateSizeVar(16);
+  auto s3 = graph.CreateSizeVar(2);
 
-   BuildSplitGraph({s0, s1, s2_1, s2_2, s3}, graph, tpipe, tiler, DT_INT8);
+  BuildSplitGraph({s0, s1, s2_1, s2_2, s3}, graph, tpipe, tiler, DT_INT8);
 
-   auto load = graph.FindNode("load");
-   auto split = graph.FindNode("split");
-   split->attr.tmp_buffers = {{{af::Symbol(8192), -1}, af::MemAttr(), 0}};
+  auto load = graph.FindNode("load");
+  auto split = graph.FindNode("split");
+  split->attr.tmp_buffers = {{{af::Symbol(8192), -1}, af::MemAttr(), 0}};
 
-   codegen::SplitRegApiCall call("Split");
-   EXPECT_EQ(call.Init(split), 0);
-   codegen::ApiTensor x1;
-   x1.id = load->outputs[0].attr.mem.tensor_id;
-   call.inputs.push_back(&x1);
+  codegen::SplitRegApiCall call("Split");
+  EXPECT_EQ(call.Init(split), 0);
+  codegen::ApiTensor x1;
+  x1.id = load->outputs[0].attr.mem.tensor_id;
+  call.inputs.push_back(&x1);
 
-   std::string result;
-   EXPECT_EQ(call.Generate(tpipe, vector<af::AxisId>{}, result), SUCCESS);
-   EXPECT_EQ(result,
-             "const split::SplitTiling<2> split_tiling {\n  .num_rows = static_cast<uint32_t>(t->s0), \n  .num_src_cols = ((16 + t->s2_1))/(1), \n  .num_dsts_cols = {(t->s2_1)/(1), 16, }\n};\nuint16_t *split_dst_addrs[] { (uint16_t *)local_2.GetPhyAddr(), (uint16_t *)local_3.GetPhyAddr(), };\nsplit::SplitExtend<uint16_t, 2>((uint16_t *)local_0.GetPhyAddr(), split_dst_addrs, tmp_buf_0, split_tiling);\n");
- }
+  std::string result;
+  EXPECT_EQ(call.Generate(tpipe, vector<af::AxisId>{}, result), SUCCESS);
+  EXPECT_EQ(result,
+            "const split::SplitTiling<2> split_tiling {\n  .num_rows = static_cast<uint32_t>(t->s0), \n  .num_src_cols "
+            "= ((16 + t->s2_1))/(1), \n  .num_dsts_cols = {(t->s2_1)/(1), 16, }\n};\nuint16_t *split_dst_addrs[] { "
+            "(uint16_t *)local_2.GetPhyAddr(), (uint16_t *)local_3.GetPhyAddr(), };\nsplit::SplitExtend<uint16_t, "
+            "2>((uint16_t *)local_0.GetPhyAddr(), split_dst_addrs, tmp_buf_0, split_tiling);\n");
+}
 
- TEST_F(SplitRegApiCallUTest, Unaligned_B16) {
-   codegen::Tiler tiler;
-   codegen::TPipe tpipe("tpipe", tiler);
+TEST_F(SplitRegApiCallUTest, Unaligned_B16) {
+  codegen::Tiler tiler;
+  codegen::TPipe tpipe("tpipe", tiler);
 
-   af::AscGraph graph("test_graph");
-   auto s0 = graph.CreateSizeVar("s0");
-   auto s1 = graph.CreateSizeVar(1);
-   auto s2_1 = graph.CreateSizeVar("s2_1");
-   auto s2_2 = graph.CreateSizeVar(16);
-   auto s3 = graph.CreateSizeVar(2);
+  af::AscGraph graph("test_graph");
+  auto s0 = graph.CreateSizeVar("s0");
+  auto s1 = graph.CreateSizeVar(1);
+  auto s2_1 = graph.CreateSizeVar("s2_1");
+  auto s2_2 = graph.CreateSizeVar(16);
+  auto s3 = graph.CreateSizeVar(2);
 
-   BuildSplitGraph({s0, s1, s2_1, s2_2, s3}, graph, tpipe, tiler);
+  BuildSplitGraph({s0, s1, s2_1, s2_2, s3}, graph, tpipe, tiler);
 
-   auto load = graph.FindNode("load");
-   auto split = graph.FindNode("split");
-   split->attr.tmp_buffers = {{{af::Symbol(8192), -1}, af::MemAttr(), 0}};
+  auto load = graph.FindNode("load");
+  auto split = graph.FindNode("split");
+  split->attr.tmp_buffers = {{{af::Symbol(8192), -1}, af::MemAttr(), 0}};
 
-   codegen::SplitRegApiCall call("Split");
-   EXPECT_EQ(call.Init(split), 0);
-   codegen::ApiTensor x1;
-   x1.id = load->outputs[0].attr.mem.tensor_id;
-   call.inputs.push_back(&x1);
+  codegen::SplitRegApiCall call("Split");
+  EXPECT_EQ(call.Init(split), 0);
+  codegen::ApiTensor x1;
+  x1.id = load->outputs[0].attr.mem.tensor_id;
+  call.inputs.push_back(&x1);
 
-   std::string result;
-   EXPECT_EQ(call.Generate(tpipe, vector<af::AxisId>{}, result), SUCCESS);
-   EXPECT_EQ(result,
-             "const split::SplitTiling<2> split_tiling {\n  .num_rows = static_cast<uint32_t>(t->s0), \n  .num_src_cols = (((16 + t->s2_1) * 2))/(1), \n  .num_dsts_cols = {((2 * t->s2_1))/(1), 32, }\n};\nhalf *split_dst_addrs[] { (half *)local_2.GetPhyAddr(), (half *)local_3.GetPhyAddr(), };\nsplit::SplitExtend<half, 2>((half *)local_0.GetPhyAddr(), split_dst_addrs, tmp_buf_0, split_tiling);\n");
- }
+  std::string result;
+  EXPECT_EQ(call.Generate(tpipe, vector<af::AxisId>{}, result), SUCCESS);
+  EXPECT_EQ(
+      result,
+      "const split::SplitTiling<2> split_tiling {\n  .num_rows = static_cast<uint32_t>(t->s0), \n  .num_src_cols = "
+      "(((16 + t->s2_1) * 2))/(1), \n  .num_dsts_cols = {((2 * t->s2_1))/(1), 32, }\n};\nhalf *split_dst_addrs[] { "
+      "(half *)local_2.GetPhyAddr(), (half *)local_3.GetPhyAddr(), };\nsplit::SplitExtend<half, 2>((half "
+      "*)local_0.GetPhyAddr(), split_dst_addrs, tmp_buf_0, split_tiling);\n");
+}
 
- TEST_F(SplitRegApiCallUTest, Unaligned_B32) {
-   codegen::Tiler tiler;
-   codegen::TPipe tpipe("tpipe", tiler);
+TEST_F(SplitRegApiCallUTest, Unaligned_B32) {
+  codegen::Tiler tiler;
+  codegen::TPipe tpipe("tpipe", tiler);
 
-   af::AscGraph graph("test_graph");
-   auto s0 = graph.CreateSizeVar("s0");
-   auto s1 = graph.CreateSizeVar(1);
-   auto s2_1 = graph.CreateSizeVar("s2_1");
-   auto s2_2 = graph.CreateSizeVar(16);
-   auto s3 = graph.CreateSizeVar(2);
+  af::AscGraph graph("test_graph");
+  auto s0 = graph.CreateSizeVar("s0");
+  auto s1 = graph.CreateSizeVar(1);
+  auto s2_1 = graph.CreateSizeVar("s2_1");
+  auto s2_2 = graph.CreateSizeVar(16);
+  auto s3 = graph.CreateSizeVar(2);
 
-   BuildSplitGraph({s0, s1, s2_1, s2_2, s3}, graph, tpipe, tiler, DT_INT32);
+  BuildSplitGraph({s0, s1, s2_1, s2_2, s3}, graph, tpipe, tiler, DT_INT32);
 
-   auto load = graph.FindNode("load");
-   auto split = graph.FindNode("split");
-   split->attr.tmp_buffers = {{{af::Symbol(8192), -1}, af::MemAttr(), 0}};
+  auto load = graph.FindNode("load");
+  auto split = graph.FindNode("split");
+  split->attr.tmp_buffers = {{{af::Symbol(8192), -1}, af::MemAttr(), 0}};
 
-   codegen::SplitRegApiCall call("Split");
-   EXPECT_EQ(call.Init(split), 0);
-   codegen::ApiTensor x1;
-   x1.id = load->outputs[0].attr.mem.tensor_id;
-   call.inputs.push_back(&x1);
+  codegen::SplitRegApiCall call("Split");
+  EXPECT_EQ(call.Init(split), 0);
+  codegen::ApiTensor x1;
+  x1.id = load->outputs[0].attr.mem.tensor_id;
+  call.inputs.push_back(&x1);
 
-   std::string result;
-   EXPECT_EQ(call.Generate(tpipe, vector<af::AxisId>{}, result), SUCCESS);
-   EXPECT_EQ(result,
-             "const split::SplitTiling<2> split_tiling {\n  .num_rows = static_cast<uint32_t>(t->s0), \n  .num_src_cols = (((16 + t->s2_1) * 2))/(1), \n  .num_dsts_cols = {((2 * t->s2_1))/(1), 32, }\n};\nint32_t *split_dst_addrs[] { (int32_t *)local_2.GetPhyAddr(), (int32_t *)local_3.GetPhyAddr(), };\nsplit::SplitExtend<int32_t, 2>((int32_t *)local_0.GetPhyAddr(), split_dst_addrs, tmp_buf_0, split_tiling);\n");
- }
+  std::string result;
+  EXPECT_EQ(call.Generate(tpipe, vector<af::AxisId>{}, result), SUCCESS);
+  EXPECT_EQ(
+      result,
+      "const split::SplitTiling<2> split_tiling {\n  .num_rows = static_cast<uint32_t>(t->s0), \n  .num_src_cols = "
+      "(((16 + t->s2_1) * 2))/(1), \n  .num_dsts_cols = {((2 * t->s2_1))/(1), 32, }\n};\nint32_t *split_dst_addrs[] { "
+      "(int32_t *)local_2.GetPhyAddr(), (int32_t *)local_3.GetPhyAddr(), };\nsplit::SplitExtend<int32_t, 2>((int32_t "
+      "*)local_0.GetPhyAddr(), split_dst_addrs, tmp_buf_0, split_tiling);\n");
+}
 
- TEST_F(SplitRegApiCallUTest, Unalign_B64) {
-   codegen::Tiler tiler;
-   codegen::TPipe tpipe("tpipe", tiler);
+TEST_F(SplitRegApiCallUTest, Unalign_B64) {
+  codegen::Tiler tiler;
+  codegen::TPipe tpipe("tpipe", tiler);
 
-   af::AscGraph graph("test_graph");
-   auto s0 = graph.CreateSizeVar("s0");
-   auto s1 = graph.CreateSizeVar(1);
-   auto s2_1 = graph.CreateSizeVar("s2_1");
-   auto s2_2 = graph.CreateSizeVar(16);
-   auto s3 = graph.CreateSizeVar(2);
+  af::AscGraph graph("test_graph");
+  auto s0 = graph.CreateSizeVar("s0");
+  auto s1 = graph.CreateSizeVar(1);
+  auto s2_1 = graph.CreateSizeVar("s2_1");
+  auto s2_2 = graph.CreateSizeVar(16);
+  auto s3 = graph.CreateSizeVar(2);
 
-   BuildSplitGraph({s0, s1, s2_1, s2_2, s3}, graph, tpipe, tiler, DT_INT64);
+  BuildSplitGraph({s0, s1, s2_1, s2_2, s3}, graph, tpipe, tiler, DT_INT64);
 
-   auto load = graph.FindNode("load");
-   auto split = graph.FindNode("split");
-   split->attr.tmp_buffers = {{{af::Symbol(8192), -1}, af::MemAttr(), 0}};
+  auto load = graph.FindNode("load");
+  auto split = graph.FindNode("split");
+  split->attr.tmp_buffers = {{{af::Symbol(8192), -1}, af::MemAttr(), 0}};
 
-   codegen::SplitRegApiCall call("Split");
-   EXPECT_EQ(call.Init(split), 0);
-   codegen::ApiTensor x1;
-   x1.id = load->outputs[0].attr.mem.tensor_id;
-   call.inputs.push_back(&x1);
+  codegen::SplitRegApiCall call("Split");
+  EXPECT_EQ(call.Init(split), 0);
+  codegen::ApiTensor x1;
+  x1.id = load->outputs[0].attr.mem.tensor_id;
+  call.inputs.push_back(&x1);
 
-   std::string result;
-   EXPECT_EQ(call.Generate(tpipe, vector<af::AxisId>{}, result), SUCCESS);
-   EXPECT_EQ(result,
-             "const split::SplitTiling<2> split_tiling {\n  .num_rows = static_cast<uint32_t>(t->s0), \n  .num_src_cols = (((16 + t->s2_1) * 4))/(1), \n  .num_dsts_cols = {((4 * t->s2_1))/(1), 64, }\n};\nuint32_t *split_dst_addrs[] { (uint32_t *)local_2.GetPhyAddr(), (uint32_t *)local_3.GetPhyAddr(), };\nsplit::SplitExtend<uint32_t, 2>((uint32_t *)local_0.GetPhyAddr(), split_dst_addrs, tmp_buf_0, split_tiling);\n");
- }
+  std::string result;
+  EXPECT_EQ(call.Generate(tpipe, vector<af::AxisId>{}, result), SUCCESS);
+  EXPECT_EQ(
+      result,
+      "const split::SplitTiling<2> split_tiling {\n  .num_rows = static_cast<uint32_t>(t->s0), \n  .num_src_cols = "
+      "(((16 + t->s2_1) * 4))/(1), \n  .num_dsts_cols = {((4 * t->s2_1))/(1), 64, }\n};\nuint32_t *split_dst_addrs[] { "
+      "(uint32_t *)local_2.GetPhyAddr(), (uint32_t *)local_3.GetPhyAddr(), };\nsplit::SplitExtend<uint32_t, "
+      "2>((uint32_t *)local_0.GetPhyAddr(), split_dst_addrs, tmp_buf_0, split_tiling);\n");
+}
 }  // namespace codegen
-
-

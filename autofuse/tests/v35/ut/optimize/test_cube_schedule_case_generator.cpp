@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -47,7 +47,7 @@ void ConstructJustMatMul(af::AscGraph &graph) {
   data0.y.dtype = af::DT_FLOAT16;
   *data0.y.axis = {z0.id, z1.id};
   data0.attr.api.compute_type = af::ComputeType::kComputeInvalid;
-  *data0.y.strides = {s1 ,af::ops::One};
+  *data0.y.strides = {s1, af::ops::One};
   *data0.y.repeats = {s0, s1};
   data0.ir_attr.SetIndex(0);
 
@@ -56,7 +56,7 @@ void ConstructJustMatMul(af::AscGraph &graph) {
   load0.x = data0.y;
   *load0.y.axis = {z0.id, z1.id};
   load0.y.dtype = af::DT_FLOAT16;
-  *load0.y.strides = {s1 ,af::ops::One};
+  *load0.y.strides = {s1, af::ops::One};
   *load0.y.repeats = {s0, s1};
 
   Data data1("data1", graph);
@@ -97,7 +97,7 @@ void ConstructJustMatMul(af::AscGraph &graph) {
   *store_op.y.axis = {z0.id, z1.id};
   store_op.y.dtype = af::DT_FLOAT;
   store_op.attr.api.compute_type = af::ComputeType::kComputeStore;
-  *store_op.y.strides = {s1 ,af::ops::One};
+  *store_op.y.strides = {s1, af::ops::One};
   *store_op.y.repeats = {s0, s1};
   store_op.ir_attr.SetOffset(af::ops::One);
 
@@ -118,7 +118,7 @@ void ConstructMatMulAndAdd(af::AscGraph &graph) {
   data0.y.dtype = af::DT_FLOAT;
   *data0.y.axis = {z0.id, z1.id};
   data0.attr.api.compute_type = af::ComputeType::kComputeInvalid;
-  *data0.y.strides = {s1 ,af::ops::One};
+  *data0.y.strides = {s1, af::ops::One};
   *data0.y.repeats = {s0, s1};
   data0.ir_attr.SetIndex(0);
 
@@ -127,7 +127,7 @@ void ConstructMatMulAndAdd(af::AscGraph &graph) {
   load0.x = data0.y;
   *load0.y.axis = {z0.id, z1.id};
   load0.y.dtype = af::DT_FLOAT;
-  *load0.y.strides = {s1 ,af::ops::One};
+  *load0.y.strides = {s1, af::ops::One};
   *load0.y.repeats = {s0, s1};
 
   Data data1("data1", graph);
@@ -188,7 +188,7 @@ void ConstructMatMulAndAdd(af::AscGraph &graph) {
   store_op.x = add_op.y;
   *store_op.y.axis = {z0.id, z1.id};
   store_op.y.dtype = af::DT_FLOAT;
-  *store_op.y.strides = {s1 ,af::ops::One};
+  *store_op.y.strides = {s1, af::ops::One};
   *store_op.y.repeats = {s0, s1};
 
   Output output_op("output");
@@ -208,7 +208,7 @@ void ConstructJustMatMulBias(af::AscGraph &graph) {
   data0.y.dtype = af::DT_FLOAT16;
   *data0.y.axis = {z0.id, z1.id};
   data0.attr.api.compute_type = af::ComputeType::kComputeInvalid;
-  *data0.y.strides = {s1 ,af::ops::One};
+  *data0.y.strides = {s1, af::ops::One};
   *data0.y.repeats = {s0, s1};
   data0.ir_attr.SetIndex(0);
 
@@ -217,7 +217,7 @@ void ConstructJustMatMulBias(af::AscGraph &graph) {
   load0.x = data0.y;
   *load0.y.axis = {z0.id, z1.id};
   load0.y.dtype = af::DT_FLOAT16;
-  *load0.y.strides = {s1 ,af::ops::One};
+  *load0.y.strides = {s1, af::ops::One};
   *load0.y.repeats = {s0, s1};
 
   Data data1("data1", graph);
@@ -276,7 +276,7 @@ void ConstructJustMatMulBias(af::AscGraph &graph) {
   store_op.attr.api.compute_type = af::ComputeType::kComputeStore;
   *store_op.y.axis = {z0.id, z1.id};
   store_op.y.dtype = af::DT_FLOAT;
-  *store_op.y.strides = {s1 ,af::ops::One};
+  *store_op.y.strides = {s1, af::ops::One};
   *store_op.y.repeats = {s0, s1};
   store_op.ir_attr.SetOffset(af::ops::One);
 
@@ -296,7 +296,6 @@ TEST_F(CubeScheduleCaseGeneratorTest, Test_Just_Matmul_Store) {
   ASSERT_EQ(tasks.size(), 1UL);
   ASSERT_EQ(tasks[0].grouped_graphs.size(), 1UL);
 }
-
 
 TEST_F(CubeScheduleCaseGeneratorTest, Test_MatMul_Add_Store) {
   af::AscGraph graph("matmul_add_store");
@@ -320,4 +319,4 @@ TEST_F(CubeScheduleCaseGeneratorTest, Test_MatMul_Bias_Store) {
   ASSERT_EQ(tasks.size(), 1UL);
   ASSERT_EQ(tasks[0].grouped_graphs.size(), 1UL);
 }
-}
+}  // namespace schedule

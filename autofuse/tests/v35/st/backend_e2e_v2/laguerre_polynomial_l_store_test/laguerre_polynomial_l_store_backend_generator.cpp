@@ -49,9 +49,9 @@ TEST_F(TestBackendLaguerrePolynomialLStoreE2e, LaguerrePolynomialLStoreE2eCodege
   std::map<std::string, std::string> laguerre_shape_info({{"s0", "stub_s0"}, {"s1", "stub_s1"}});
   auto graph = ascir::ShareGraph::LaguerrePolynomialLStoreFusedGraph(2);
   std::vector<std::string> laguerre_parts = splitString(KERNEL_SRC_LIST, ':');
-  const std::string& kernel_src_file_name = laguerre_parts[0];
-  const std::string& tiling_src_file_name = laguerre_parts[1];
-  const std::string& tiling_data_src_file_name = laguerre_parts[2];
+  const std::string &kernel_src_file_name = laguerre_parts[0];
+  const std::string &tiling_src_file_name = laguerre_parts[1];
+  const std::string &tiling_data_src_file_name = laguerre_parts[2];
 
   try {
     optimize::Optimizer laguerre_optimizer(optimize::OptimizerOptions{});

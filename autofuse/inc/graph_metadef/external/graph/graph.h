@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -63,7 +63,7 @@ class GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY Graph {
 
   Graph &SetOutputs(const std::vector<std::pair<Operator, std::vector<size_t>>> &output_indexs);
 
-  ATTRIBUTED_DEPRECATED(Graph &SetOutputs(const std::vector<std::pair<ge::Operator, AscendString) &)
+  ATTRIBUTED_DEPRECATED(Graph &SetOutputs(const std::vector < std::pair < ge::Operator, AscendString) &)
   Graph &SetOutputs(const std::vector<std::pair<af::Operator, std::string>> &outputs);
 
   Graph &SetOutputs(const std::vector<std::pair<af::Operator, AscendString>> &outputs);
@@ -149,7 +149,7 @@ class GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY Graph {
    */
   graphStatus RemoveSubgraph(const char *name);
 
-  std::vector<GNode> GetDirectNode () const;
+  std::vector<GNode> GetDirectNode() const;
 
   graphStatus RemoveNode(GNode &node);
 
@@ -159,8 +159,7 @@ class GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY Graph {
 
   GNode AddNodeByOp(const Operator &op);
 
-  graphStatus AddDataEdge(GNode &src_node, const int32_t src_port_index,
-                          GNode &dst_node, const int32_t dst_port_index);
+  graphStatus AddDataEdge(GNode &src_node, const int32_t src_port_index, GNode &dst_node, const int32_t dst_port_index);
 
   graphStatus AddControlEdge(GNode &src_node, GNode &dst_node);
 
@@ -191,11 +190,7 @@ class GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY Graph {
   graphStatus SetAttr(const AscendString &name, const AttrValue &attr_value);
   graphStatus GetAttr(const AscendString &name, AttrValue &attr_value) const;
 
-  enum class DumpFormat : uint32_t {
-    kOnnx,
-    kTxt,
-    kReadable
-  };
+  enum class DumpFormat : uint32_t { kOnnx, kTxt, kReadable };
   /**
    * 将graph序列化到ostream中
    * 不包含权重等数据，只包含图结构及相关属性
@@ -214,7 +209,6 @@ class GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY Graph {
   graphStatus DumpToFile(DumpFormat format, const AscendString &suffix) const;
 
  private:
-
   GraphImplPtr impl_{nullptr};
 };
 }  // namespace af

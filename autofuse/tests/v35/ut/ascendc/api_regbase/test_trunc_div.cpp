@@ -27,7 +27,7 @@ struct TensorTruncDivInputParam {
   uint32_t out_size{0};
 };
 
-class TestRegbaseApiTruncDiv :public testing::Test {
+class TestRegbaseApiTruncDiv : public testing::Test {
  protected:
   template <typename T>
   static void InvokeKernelWithTwoTensorInput(TensorTruncDivInputParam<T> &param) {
@@ -50,7 +50,6 @@ class TestRegbaseApiTruncDiv :public testing::Test {
     TruncDivExtend(l_y, l_x1, l_x2, param.size);
     UbToGm(param.y, l_y, param.size);
   }
-
 
   template <typename T>
   static void CreateTensorInput(TensorTruncDivInputParam<T> &param) {
@@ -134,5 +133,7 @@ TEST_F(TestRegbaseApiTruncDiv, TruncDiv_Test) {
   TruncDivTest<float>(MAX_REPEAT_NUM * ONE_REPEAT_BYTE_SIZE / 2 / sizeof(float));
   TruncDivTest<float>((ONE_BLK_SIZE - sizeof(float)) / sizeof(float));
   TruncDivTest<float>((ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) / sizeof(float));
-  TruncDivTest<float>(((MAX_REPEAT_NUM - 1) * ONE_REPEAT_BYTE_SIZE + (ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) + (ONE_BLK_SIZE - sizeof(float))) / 2 /sizeof(float));
+  TruncDivTest<float>(((MAX_REPEAT_NUM - 1) * ONE_REPEAT_BYTE_SIZE + (ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) +
+                       (ONE_BLK_SIZE - sizeof(float))) /
+                      2 / sizeof(float));
 }

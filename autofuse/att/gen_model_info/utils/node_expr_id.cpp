@@ -35,7 +35,7 @@ std::string GetShapeSummary(const Tensor *tensor) {
   result += "]";
   return result;
 }
-} // namespace
+}  // namespace
 
 // 从 NodeInfo 构建节点表达式标识符
 NodeExprId BuildNodeExprId(const att::NodeInfo &node_info) {
@@ -59,4 +59,4 @@ NodeExprId BuildNodeExprId(const att::NodeInfo &node_info) {
   return id;
 }
 
-} // namespace att
+}  // namespace att

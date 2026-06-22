@@ -568,7 +568,7 @@ struct OutputTensorInfo {
   int64_t length{};                 // tensor length
   OutputTensorInfo() : dims({}), data(nullptr) {}
   OutputTensorInfo(OutputTensorInfo &&out) noexcept = default;
-  OutputTensorInfo &operator=(OutputTensorInfo &&out)& noexcept {
+  OutputTensorInfo &operator=(OutputTensorInfo &&out) & noexcept {
     if (this != &out) {
       data_type = out.data_type;
       dims = out.dims;
@@ -578,7 +578,7 @@ struct OutputTensorInfo {
     return *this;
   }
   OutputTensorInfo(const OutputTensorInfo &) = delete;
-  OutputTensorInfo &operator=(const OutputTensorInfo &)& = delete;
+  OutputTensorInfo &operator=(const OutputTensorInfo &) & = delete;
 };
 
 struct ModelDistibuteDesc {
@@ -735,8 +735,8 @@ const std::set<std::string> ir_builder_suppported_options = {INPUT_FORMAT,
 
 // for interface: aclgrphParse
 const std::set<std::string> ir_parser_suppported_options = {
-    INPUT_FP16_NODES, IS_INPUT_ADJUST_HW_LAYOUT, IS_OUTPUT_ADJUST_HW_LAYOUT, OUTPUT,
-    OUT_NODES, ENABLE_SCOPE_FUSION_PASSES, INPUT_DATA_NAMES, INPUT_SHAPE};
+    INPUT_FP16_NODES, IS_INPUT_ADJUST_HW_LAYOUT,  IS_OUTPUT_ADJUST_HW_LAYOUT, OUTPUT,
+    OUT_NODES,        ENABLE_SCOPE_FUSION_PASSES, INPUT_DATA_NAMES,           INPUT_SHAPE};
 
 // for interface: aclgrphBuildInitialize
 const std::set<std::string> global_options = {CORE_TYPE,
@@ -795,7 +795,7 @@ static const char_t *const AI_CORE_CNT = "ai_core_cnt";
 static const char_t *const CUBE_CORE_CNT = "cube_core_cnt";
 static const char_t *const VECTOR_CORE_CNT = "vector_core_cnt";
 static const char_t *const OP_EXEC_NEVER_TIMEOUT = "_op_exec_never_timeout";
-} // public_attr
-}  // namespace ge
-#endif // GE_API_TYPES_DEF
+}  // namespace public_attr
+}  // namespace af
+#endif  // GE_API_TYPES_DEF
 #endif  // INC_EXTERNAL_GE_COMMON_GE_API_TYPES_H_

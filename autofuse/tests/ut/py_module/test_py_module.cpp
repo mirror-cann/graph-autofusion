@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -39,8 +39,8 @@ TEST_F(TestPyModule, DISABLED_UtilsDeserialize_symbol_source_info) {
     PyObject *type = PyUnicode_FromString("symbol_source_info");
     PyObject *obj = PyUnicode_FromString("{\"s0\":\"GetDimValueFromGraphInputData(0, 0);\"}");
 
-    PyTuple_SetItem(args, 0, type); // 添加到索引 0
-    PyTuple_SetItem(args, 1, obj); // 添加到索引 1
+    PyTuple_SetItem(args, 0, type);  // 添加到索引 0
+    PyTuple_SetItem(args, 1, obj);   // 添加到索引 1
 
     auto res = pyascir::UtilsDeserialize(nullptr, args, kwds);
     EXPECT_NE(res, nullptr);
@@ -54,8 +54,8 @@ TEST_F(TestPyModule, DISABLED_UtilsDeserialize_symbol_source_info) {
     PyObject *type = PyUnicode_FromString("symbol_source_info");
     PyObject *obj = PyUnicode_FromString("error_test");
 
-    PyTuple_SetItem(args, 0, type); // 添加到索引 0
-    PyTuple_SetItem(args, 1, obj); // 添加到索引 1
+    PyTuple_SetItem(args, 0, type);  // 添加到索引 0
+    PyTuple_SetItem(args, 1, obj);   // 添加到索引 1
 
     auto res = pyascir::UtilsDeserialize(nullptr, args, kwds);
     EXPECT_EQ(res, nullptr);
@@ -65,8 +65,8 @@ TEST_F(TestPyModule, DISABLED_UtilsDeserialize_symbol_source_info) {
     PyObject *type = PyUnicode_FromString("symbol_source_info");
     PyObject *obj = PyUnicode_FromString("{\"s0\": 1}");
 
-    PyTuple_SetItem(args, 0, type); // 添加到索引 0
-    PyTuple_SetItem(args, 1, obj); // 添加到索引 1
+    PyTuple_SetItem(args, 0, type);  // 添加到索引 0
+    PyTuple_SetItem(args, 1, obj);   // 添加到索引 1
 
     auto res = pyascir::UtilsDeserialize(nullptr, args, kwds);
     EXPECT_EQ(res, nullptr);
@@ -148,8 +148,8 @@ TEST_F(TestPyModule, DISABLED_UtilsDeserialize_asc_graph) {
     PyObject *type = PyUnicode_FromString("asc_graph");
     PyObject *obj = PyUnicode_FromString(to_be_deser.c_str());
 
-    PyTuple_SetItem(args, 0, type); // 添加到索引 0
-    PyTuple_SetItem(args, 1, obj); // 添加到索引 1
+    PyTuple_SetItem(args, 0, type);  // 添加到索引 0
+    PyTuple_SetItem(args, 1, obj);   // 添加到索引 1
 
     auto res = pyascir::UtilsDeserialize(nullptr, args, kwds);
     EXPECT_NE(res, nullptr);
@@ -163,8 +163,8 @@ TEST_F(TestPyModule, DISABLED_UtilsDeserialize_asc_graph) {
     PyObject *type = PyUnicode_FromString("asc_graph");
     PyObject *obj = PyUnicode_FromString("error");
 
-    PyTuple_SetItem(args, 0, type); // 添加到索引 0
-    PyTuple_SetItem(args, 1, obj); // 添加到索引 1
+    PyTuple_SetItem(args, 0, type);  // 添加到索引 0
+    PyTuple_SetItem(args, 1, obj);   // 添加到索引 1
 
     auto res = pyascir::UtilsDeserialize(nullptr, args, kwds);
     EXPECT_EQ(res, nullptr);
@@ -182,8 +182,8 @@ TEST_F(TestPyModule, DISABLED_UtilsDeserialize_compute_graph) {
     PyObject *type = PyUnicode_FromString("compute_graph");
     PyObject *obj = PyUnicode_FromString("error");
 
-    PyTuple_SetItem(args, 0, type); // 添加到索引 0
-    PyTuple_SetItem(args, 1, obj); // 添加到索引 1
+    PyTuple_SetItem(args, 0, type);  // 添加到索引 0
+    PyTuple_SetItem(args, 1, obj);   // 添加到索引 1
 
     auto res = pyascir::UtilsDeserialize(nullptr, args, kwds);
     EXPECT_EQ(res, nullptr);

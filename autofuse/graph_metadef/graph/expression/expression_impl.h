@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -19,9 +19,8 @@
 #include "graph/symbolizer/symbolic.h"
 #include "graph_metadef/graph/debug/ge_util.h"
 
-#define IF_NULL_RETURN_NULL(x)                                                                                         \
-  if ((x) == nullptr)                                                                                                  \
-  return nullptr
+#define IF_NULL_RETURN_NULL(x) \
+  if ((x) == nullptr) return nullptr
 
 namespace af {
 constexpr int32_t kSizeTwo = 2;
@@ -56,7 +55,7 @@ using SymEngineExprPtr = SymEngine::RCP<const SymEngine::Basic>;
 class ExpressionImpl {
  public:
   // 目前只支持int32_t,int64_t,uint32_t,uint64_t,const string&,const SymEngineExprPtr&
-  template<typename T>
+  template <typename T>
   static std::unique_ptr<ExpressionImpl> CreateExpressionImpl(T value, const std::string &name = "") {
     return ComGraphMakeUnique<ExpressionImpl>(value, name);
   }
@@ -122,6 +121,7 @@ class ExpressionImpl {
   ExpressionImplPtr CanonicalizeBoolExpr();
 
   std::vector<ExpressionImplPtr> GetArgs();
+
  private:
   double GetIntegerResult(const SymEngine::Integer &integer_expr) const;
 
@@ -180,6 +180,6 @@ ExpressionImplPtr Not(const ExpressionImplPtr &a);
 ExpressionImplPtr Neg(const ExpressionImplPtr &a);
 ExpressionImplPtr LogicalAnd(const std::vector<ExpressionImplPtr> &s);
 ExpressionImplPtr LogicalOr(const std::vector<ExpressionImplPtr> &s);
-}  // namespace ge
+}  // namespace af
 
 #endif  // GRAPH_EXPRESSION_EXPRESSION_IMPL_H_

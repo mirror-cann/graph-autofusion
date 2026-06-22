@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -35,7 +35,7 @@ const std::string &GetModuleHandleName(const TracingModule module) {
   static std::string invalid_name(kInvalidHandleName);
   return invalid_name;
 }
-}
+}  // namespace
 std::string TracingRecorder::GetHandleName() const {
   return GetModuleHandleName(module_) + std::to_string(handles_.size());
 }
@@ -52,8 +52,8 @@ void TracingRecorder::Initialize() {
     return;
   }
   if (static_cast<int32_t>(handles_.size()) >= kMaxAtracingProfilingHandleSzie) {
-    GELOGW("Tracing recorder init failed, handle size[%zu] is larger than max handle size[%d].",
-           handles_.size(), kMaxAtracingProfilingHandleSzie);
+    GELOGW("Tracing recorder init failed, handle size[%zu] is larger than max handle size[%d].", handles_.size(),
+           kMaxAtracingProfilingHandleSzie);
     return;
   }
   TraceAttr attr{};
@@ -92,8 +92,7 @@ void TracingRecorder::Initialize() {
 void TracingRecorder::SubmitTraceMsgs(const TracingRecord *tracing_record) {
   AtracingReporter reporter(handles_.back(), tracing_record);
   if (reporter.Report() != SUCCESS) {
-    GELOGW("Report failed of module[%s] for record[%s].", GetHandleName().c_str(),
-           tracing_record->Debug().c_str());
+    GELOGW("Report failed of module[%s] for record[%s].", GetHandleName().c_str(), tracing_record->Debug().c_str());
   }
 }
 
@@ -138,8 +137,8 @@ void TracingRecorder::Report() {
       Report(&records_[offset], loop_record_num);
       records_num -= loop_record_num;
       offset += loop_record_num;
-      GELOGI("%d msgs have been recorded, and the next step is to persist them to disk of module[%s].",
-             loop_record_num, GetHandleName().c_str());
+      GELOGI("%d msgs have been recorded, and the next step is to persist them to disk of module[%s].", loop_record_num,
+             GetHandleName().c_str());
       is_ready_ = false;
     } else {
       break;
@@ -176,4 +175,4 @@ TracingRecord *TracingRecorder::RecordMsgs(const std::vector<std::string> &traci
   records_.emplace_back(record);
   return &records_.back();
 }
-}
+}  // namespace ge

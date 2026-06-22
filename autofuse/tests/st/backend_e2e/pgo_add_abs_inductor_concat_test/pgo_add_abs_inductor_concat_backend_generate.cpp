@@ -28,8 +28,7 @@ constexpr size_t kHostFileIndex = 1;
 constexpr size_t kDeviceFileIndex = 2;
 constexpr size_t kExpectedKernelSrcCount = 3;
 
-class TestBackendPgoAddAbsInductorConcatE2e : public testing::Test {
-};
+class TestBackendPgoAddAbsInductorConcatE2e : public testing::Test {};
 
 TEST_F(TestBackendPgoAddAbsInductorConcatE2e, PgoAddAbsInductorConcatE2eCodegen) {
   af::AscGraph graph("pgo_add_abs_inductor_concat");

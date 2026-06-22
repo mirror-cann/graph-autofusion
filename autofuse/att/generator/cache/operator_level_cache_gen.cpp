@@ -30,9 +30,8 @@ std::vector<std::pair<std::string, std::string>> GetVarAccessors(const TilingMod
     GE_ASSERT_TRUE(args_manager.Process(false), "Args manager process failed.");
     auto input_vars = args_manager.GetInputVars();
     bool is_unique_group = (all_groups_prefix.size() == 1);
-    std::string group_prefix = is_unique_group
-                                 ? ""
-                                 : (model_info.schedule_group_ident.GetItemPrefix() + "_tiling_data.");
+    std::string group_prefix =
+        is_unique_group ? "" : (model_info.schedule_group_ident.GetItemPrefix() + "_tiling_data.");
 
     for (const auto &var : input_vars) {
       std::string var_name = Str(var);
@@ -60,8 +59,7 @@ std::string GenShapeKeyToStringCode(const std::string &key_name) {
   ss << "}.operator()().c_str()";
   return ss.str();
 }
-}
-
+}  // namespace
 
 ge::Status OperatorLevelCacheGen::GenFixedSizeHashMapDef(ge::CodePrinter &code_printer) {
   // 生成FixedSizeHashMap模板类定义
@@ -105,7 +103,8 @@ ge::Status OperatorLevelCacheGen::GenOperatorCacheFunctions(ge::CodePrinter &cod
                                                             const std::string &tiling_data_type_name) {
   // 生成算子级缓存函数（使用R"()"格式以提高性能）
   std::string find_func = R"(
-bool FindOperatorCache(std::array<uint32_t, kInputShapeSize>& input_shapes, )" + tiling_data_type_name +
+bool FindOperatorCache(std::array<uint32_t, kInputShapeSize>& input_shapes, )" +
+                          tiling_data_type_name +
                           R"(& tiling_data, OperatorLevelCache& cache) {
   const auto* result = cache.Find(input_shapes);
   if (result != nullptr) {
@@ -117,7 +116,8 @@ bool FindOperatorCache(std::array<uint32_t, kInputShapeSize>& input_shapes, )" +
 )";
 
   std::string save_func = R"(
-bool SaveOperatorCache(std::array<uint32_t, kInputShapeSize>& input_shapes, const )" + tiling_data_type_name +
+bool SaveOperatorCache(std::array<uint32_t, kInputShapeSize>& input_shapes, const )" +
+                          tiling_data_type_name +
                           R"(& tiling_data, OperatorLevelCache& cache) {
   return cache.Insert(input_shapes, tiling_data);
 }
@@ -188,9 +188,8 @@ ge::Status OperatorLevelCacheGen::GenInitAndQueryCacheCode(ge::CodePrinter &code
   code_printer.AddLine("  if (TilingCacheContext::FindOperatorCache(input_shapes) != nullptr) {");
   code_printer.AddLine(
       "      memcpy(&tiling_data, TilingCacheContext::FindOperatorCache(input_shapes), sizeof(tiling_data));");
-  code_printer.AddLine(
-      std::string("    OP_LOGI(OP_NAME, \"Operator level cache hit, input_shapes[%s]\", ") +
-      GenShapeKeyToStringCode("input_shapes") + ");");
+  code_printer.AddLine(std::string("    OP_LOGI(OP_NAME, \"Operator level cache hit, input_shapes[%s]\", ") +
+                       GenShapeKeyToStringCode("input_shapes") + ");");
   code_printer.AddLine("    return true;");
   code_printer.AddLine("  }");
   code_printer.AddLine("");
@@ -207,8 +206,9 @@ std::string OperatorLevelCacheGen::GenContextClass(const std::string &tiling_dat
  * 线程级别的缓存上下文，使用thread_local存储，无需线程ID
  */
 class TilingCacheContext {
-)" << GenContextClassStructure() << GenContextClassPublicMethods()
-      << GenContextCacheOperations(tiling_data_type_name) << GenContextHashFunction() << R"(
+)" << GenContextClassStructure()
+     << GenContextClassPublicMethods() << GenContextCacheOperations(tiling_data_type_name) << GenContextHashFunction()
+     << R"(
 };
 )";
 
@@ -264,16 +264,21 @@ std::string OperatorLevelCacheGen::GenFindOperatorCacheImpl(const std::string &t
   std::stringstream ss;
   ss << R"(
   // 查询算子级缓存（更新访问计数）
-  static )" << tiling_data_type_name << R"(* FindOperatorCache(const std::array<uint32_t, kInputShapeSize>& shape_key) {
-    )" << tiling_data_type_name << R"(* result = GetOperatorCache().Find(shape_key);
+  static )"
+     << tiling_data_type_name << R"(* FindOperatorCache(const std::array<uint32_t, kInputShapeSize>& shape_key) {
+    )"
+     << tiling_data_type_name
+     << R"(* result = GetOperatorCache().Find(shape_key);
     if (result != nullptr) {
-      OP_LOGI(OP_NAME, "[Operator Cache] HIT! key=[%s]", )" + GenShapeKeyToStringCode("shape_key") + R"();
+      OP_LOGI(OP_NAME, "[Operator Cache] HIT! key=[%s]", )" +
+            GenShapeKeyToStringCode("shape_key") + R"();
       // 更新访问计数
       size_t hash = Hash(shape_key);
       size_t index = hash % kOperatorCacheCapacity;
       access_counts_[index]++;
     } else {
-      OP_LOGI(OP_NAME, "[Operator Cache] MISS! key=[%s]", )" + GenShapeKeyToStringCode("shape_key") + R"();
+      OP_LOGI(OP_NAME, "[Operator Cache] MISS! key=[%s]", )" +
+            GenShapeKeyToStringCode("shape_key") + R"();
     }
     return result;
   }
@@ -286,15 +291,19 @@ std::string OperatorLevelCacheGen::GenSaveOperatorCacheImpl(const std::string &t
   ss << R"(
   // 插入算子级缓存（带LRU老化）
   static bool SaveOperatorCache(const std::array<uint32_t, kInputShapeSize>& shape_key,
-                                const )" << tiling_data_type_name << R"(& tiling_data) {
+                                const )"
+     << tiling_data_type_name
+     << R"(& tiling_data) {
     auto& cache = GetOperatorCache();
 
     // 1. 尝试直接插入
     if (cache.Insert(shape_key, tiling_data)) {
-      OP_LOGI(OP_NAME, "[Operator Cache] SAVE SUCCESS: key=[%s]", )" + GenShapeKeyToStringCode("shape_key") + R"();
+      OP_LOGI(OP_NAME, "[Operator Cache] SAVE SUCCESS: key=[%s]", )" +
+            GenShapeKeyToStringCode("shape_key") + R"();
       return true;
     }
-    OP_LOGI(OP_NAME, "[Operator Cache] SAVE FAILED (cache full), key=[%s]", )" + GenShapeKeyToStringCode("shape_key") + R"();
+    OP_LOGI(OP_NAME, "[Operator Cache] SAVE FAILED (cache full), key=[%s]", )" +
+            GenShapeKeyToStringCode("shape_key") + R"();
 
     // 2. 缓存满，执行LRU老化
     if (cache.Size() >= kOperatorCacheCapacity) {
@@ -351,5 +360,5 @@ private:
 
   return ss.str();
 }
-} // namespace cache
-} // namespace att
+}  // namespace cache
+}  // namespace att

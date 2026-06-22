@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -23,96 +23,93 @@ std::array<uint32_t, static_cast<size_t>(ge::DataType::DT_MAX)> TransferShapeUti
 std::array<uint32_t, static_cast<size_t>(ge::DataType::DT_MAX)> TransferShapeUtils::k0_list_{};
 std::array<uint32_t, static_cast<size_t>(ge::DataType::DT_MAX)> TransferShapeUtils::n0_list_{};
 const std::map<TransferShapeType, GetAlignedShapeFunc> TransferShapeUtils::get_aligned_shape_func_map = {
-        {TransferShapeType::ND_TO_ND, GetNdToNdAlignedShape},
-        {TransferShapeType::ND_TO_NZ, GetNdToNzAlignedShape},
-        {TransferShapeType::FULL_SIZE, GetFullSizeAlignedShape},
-        {TransferShapeType::NOT_FULL_SIZE, GetNotFullSizeAlignedShape},
+    {TransferShapeType::ND_TO_ND, GetNdToNdAlignedShape},
+    {TransferShapeType::ND_TO_NZ, GetNdToNzAlignedShape},
+    {TransferShapeType::FULL_SIZE, GetFullSizeAlignedShape},
+    {TransferShapeType::NOT_FULL_SIZE, GetNotFullSizeAlignedShape},
 };
 const std::map<TransferShapeType, TransferDimsFunc> TransferShapeUtils::transfer_dims_func_map = {
-        {TransferShapeType::ND_TO_ND, GetNdToNdAxisIndexMapping},
-        {TransferShapeType::ND_TO_NZ, GetNdToNzAxisIndexMapping},
-        {TransferShapeType::FULL_SIZE, GetFullSizeAxisIndexMapping},
-        {TransferShapeType::NOT_FULL_SIZE, GetNotFullSizeAxisIndexMapping},
+    {TransferShapeType::ND_TO_ND, GetNdToNdAxisIndexMapping},
+    {TransferShapeType::ND_TO_NZ, GetNdToNzAxisIndexMapping},
+    {TransferShapeType::FULL_SIZE, GetFullSizeAxisIndexMapping},
+    {TransferShapeType::NOT_FULL_SIZE, GetNotFullSizeAxisIndexMapping},
 };
 namespace {
-  const int64_t SHAPE_NUMBER_32 = 32;
-  const int64_t SHAPE_NUMBER_16 = 16;
-  const int64_t SHAPE_NUMBER_8 = 8;
-  const int64_t SHAPE_NUMBER_4 = 4;
-  const int64_t SHAPE_NUMBER_2 = 2;
-  const int64_t NI = 16;
-  const int64_t LSTM_NI = 4;
-  const int64_t GROUPS_DEFAULT_VALUE = 1;
-  const int64_t UNKNOWN_SHAPE_VALUE = -1;
-  const int64_t RNN_STATE_SIZE_DEFAULT_VALUE = -1;
-  const size_t NUMBER_2 = 2;
-  const size_t MINUS_VALUE_ONE = 1;
-  const size_t MINUS_VALUE_TWO = 2;
+const int64_t SHAPE_NUMBER_32 = 32;
+const int64_t SHAPE_NUMBER_16 = 16;
+const int64_t SHAPE_NUMBER_8 = 8;
+const int64_t SHAPE_NUMBER_4 = 4;
+const int64_t SHAPE_NUMBER_2 = 2;
+const int64_t NI = 16;
+const int64_t LSTM_NI = 4;
+const int64_t GROUPS_DEFAULT_VALUE = 1;
+const int64_t UNKNOWN_SHAPE_VALUE = -1;
+const int64_t RNN_STATE_SIZE_DEFAULT_VALUE = -1;
+const size_t NUMBER_2 = 2;
+const size_t MINUS_VALUE_ONE = 1;
+const size_t MINUS_VALUE_TWO = 2;
 
-  const size_t DIM_INDEX_N = 0;
-  const size_t DIM_INDEX_C = 1;
-  const size_t DIM_INDEX_H = 2;
-  const size_t DIM_INDEX_W = 3;
-  const size_t DIM_INDEX_D = 4;
-  const size_t DIM_INDEX_ZERO = 0;
-  const size_t DIM_INDEX_ONE = 1;
-  const size_t DIM_INDEX_TWO = 2;
-  const size_t DIM_INDEX_THREE = 3;
-  const size_t DIM_INDEX_FOUR = 4;
-  const size_t kM0Index = 0;
-  const size_t kK0Index = 1;
-  const size_t kN0Index = 2;
-  const size_t kNzMinDimNum = 2;
-  constexpr size_t MOKOCO_CONFIG_SIZE = 3;
-  const std::string kPltDtypeMKN = "DtypeMKN";
-  const std::string kPltDefault = "Default";
-  const std::map<ge::Format, FormatIndex> kFormatIndexMap = {
-          {ge::FORMAT_NCHW, {DIM_INDEX_ZERO, DIM_INDEX_ONE, DIM_INDEX_TWO, DIM_INDEX_THREE, DIM_INDEX_FOUR}},
-          {ge::FORMAT_NHWC, {DIM_INDEX_ZERO, DIM_INDEX_THREE, DIM_INDEX_ONE, DIM_INDEX_TWO, DIM_INDEX_FOUR}},
-          {ge::FORMAT_HWCN, {DIM_INDEX_THREE, DIM_INDEX_TWO, DIM_INDEX_ZERO, DIM_INDEX_ONE, DIM_INDEX_FOUR}},
-          {ge::FORMAT_CHWN, {DIM_INDEX_THREE, DIM_INDEX_ZERO, DIM_INDEX_ONE, DIM_INDEX_TWO, DIM_INDEX_FOUR}},
-          {ge::FORMAT_ND, {DIM_INDEX_ZERO, DIM_INDEX_ONE, DIM_INDEX_TWO, DIM_INDEX_THREE, DIM_INDEX_FOUR}},
-          {ge::FORMAT_NCDHW, {DIM_INDEX_ZERO, DIM_INDEX_ONE, DIM_INDEX_THREE, DIM_INDEX_FOUR, DIM_INDEX_TWO}},
-          {ge::FORMAT_NDHWC, {DIM_INDEX_ZERO, DIM_INDEX_FOUR, DIM_INDEX_TWO, DIM_INDEX_THREE, DIM_INDEX_ONE}},
-          {ge::FORMAT_DHWCN, {DIM_INDEX_FOUR, DIM_INDEX_THREE, DIM_INDEX_ONE, DIM_INDEX_TWO, DIM_INDEX_ZERO}},
-          {ge::FORMAT_DHWNC, {DIM_INDEX_THREE, DIM_INDEX_FOUR, DIM_INDEX_ONE, DIM_INDEX_TWO, DIM_INDEX_ZERO}}
-  };
+const size_t DIM_INDEX_N = 0;
+const size_t DIM_INDEX_C = 1;
+const size_t DIM_INDEX_H = 2;
+const size_t DIM_INDEX_W = 3;
+const size_t DIM_INDEX_D = 4;
+const size_t DIM_INDEX_ZERO = 0;
+const size_t DIM_INDEX_ONE = 1;
+const size_t DIM_INDEX_TWO = 2;
+const size_t DIM_INDEX_THREE = 3;
+const size_t DIM_INDEX_FOUR = 4;
+const size_t kM0Index = 0;
+const size_t kK0Index = 1;
+const size_t kN0Index = 2;
+const size_t kNzMinDimNum = 2;
+constexpr size_t MOKOCO_CONFIG_SIZE = 3;
+const std::string kPltDtypeMKN = "DtypeMKN";
+const std::string kPltDefault = "Default";
+const std::map<ge::Format, FormatIndex> kFormatIndexMap = {
+    {ge::FORMAT_NCHW, {DIM_INDEX_ZERO, DIM_INDEX_ONE, DIM_INDEX_TWO, DIM_INDEX_THREE, DIM_INDEX_FOUR}},
+    {ge::FORMAT_NHWC, {DIM_INDEX_ZERO, DIM_INDEX_THREE, DIM_INDEX_ONE, DIM_INDEX_TWO, DIM_INDEX_FOUR}},
+    {ge::FORMAT_HWCN, {DIM_INDEX_THREE, DIM_INDEX_TWO, DIM_INDEX_ZERO, DIM_INDEX_ONE, DIM_INDEX_FOUR}},
+    {ge::FORMAT_CHWN, {DIM_INDEX_THREE, DIM_INDEX_ZERO, DIM_INDEX_ONE, DIM_INDEX_TWO, DIM_INDEX_FOUR}},
+    {ge::FORMAT_ND, {DIM_INDEX_ZERO, DIM_INDEX_ONE, DIM_INDEX_TWO, DIM_INDEX_THREE, DIM_INDEX_FOUR}},
+    {ge::FORMAT_NCDHW, {DIM_INDEX_ZERO, DIM_INDEX_ONE, DIM_INDEX_THREE, DIM_INDEX_FOUR, DIM_INDEX_TWO}},
+    {ge::FORMAT_NDHWC, {DIM_INDEX_ZERO, DIM_INDEX_FOUR, DIM_INDEX_TWO, DIM_INDEX_THREE, DIM_INDEX_ONE}},
+    {ge::FORMAT_DHWCN, {DIM_INDEX_FOUR, DIM_INDEX_THREE, DIM_INDEX_ONE, DIM_INDEX_TWO, DIM_INDEX_ZERO}},
+    {ge::FORMAT_DHWNC, {DIM_INDEX_THREE, DIM_INDEX_FOUR, DIM_INDEX_ONE, DIM_INDEX_TWO, DIM_INDEX_ZERO}}};
 
-  const std::set<ge::Format> kOriginFormatVec = {
-          ge::FORMAT_NCHW,  ge::FORMAT_NHWC,  ge::FORMAT_HWCN,
-          ge::FORMAT_CHWN,  ge::FORMAT_NDHWC, ge::FORMAT_NCDHW,
-          ge::FORMAT_DHWCN, ge::FORMAT_DHWNC, ge::FORMAT_ND
-  };
+const std::set<ge::Format> kOriginFormatVec = {ge::FORMAT_NCHW,  ge::FORMAT_NHWC,  ge::FORMAT_HWCN,
+                                               ge::FORMAT_CHWN,  ge::FORMAT_NDHWC, ge::FORMAT_NCDHW,
+                                               ge::FORMAT_DHWCN, ge::FORMAT_DHWNC, ge::FORMAT_ND};
 
-  inline int64_t GetGreatestCommonDivisor(int64_t x, int64_t y) {
-    if (y == 0) {
-      return x;
-    }
-    int64_t z = y;
-    while (x % y != 0) {
-      z = x % y;
-      x = y;
-      y = z;
-    }
-    return z;
+inline int64_t GetGreatestCommonDivisor(int64_t x, int64_t y) {
+  if (y == 0) {
+    return x;
   }
-
-  inline int64_t GetLeastCommonMultiple(int64_t x, int64_t y) {
-    if (x == 0 || y == 0) {
-      return 0;
-    }
-    return (x * y) / GetGreatestCommonDivisor(x, y);
+  int64_t z = y;
+  while (x % y != 0) {
+    z = x % y;
+    x = y;
+    y = z;
   }
-
-  inline int64_t GetAsisEnlargeValue(int64_t cin, int64_t cout, int64_t c0, int64_t group) {
-    if (cin == 0 || cout == 0) {
-      return 0;
-    }
-
-    return std::min(GetLeastCommonMultiple(c0 / GetGreatestCommonDivisor(cin, c0),
-                                           NI / GetGreatestCommonDivisor(cout, NI)), group);
-  }
+  return z;
 }
+
+inline int64_t GetLeastCommonMultiple(int64_t x, int64_t y) {
+  if (x == 0 || y == 0) {
+    return 0;
+  }
+  return (x * y) / GetGreatestCommonDivisor(x, y);
+}
+
+inline int64_t GetAsisEnlargeValue(int64_t cin, int64_t cout, int64_t c0, int64_t group) {
+  if (cin == 0 || cout == 0) {
+    return 0;
+  }
+
+  return std::min(
+      GetLeastCommonMultiple(c0 / GetGreatestCommonDivisor(cin, c0), NI / GetGreatestCommonDivisor(cout, NI)), group);
+}
+}  // namespace
 
 bool TransferShapeUtils::InitM0K0CO(const fe::PlatFormInfos *platform_infos) {
   std::string default_mkn;
@@ -165,14 +162,15 @@ bool TransferShapeUtils::InitPlatformInfo(const fe::PlatFormInfos *platform_info
         return false;
       }
     }
-    return platform_infos_ptr == nullptr ? TransferShapeUtils::InitM0K0CO(&platform_infos) : TransferShapeUtils::InitM0K0CO(platform_infos_ptr);
+    return platform_infos_ptr == nullptr ? TransferShapeUtils::InitM0K0CO(&platform_infos)
+                                         : TransferShapeUtils::InitM0K0CO(platform_infos_ptr);
   });
   return true;
 }
 
 bool TransferShapeUtils::TransferShape(const ge::Format &origin_format, const ge::Format &format,
-                                       const ge::DataType &data_type, const ExtAxisValue &ext_axis,
-                                       gert::Shape &shape, const fe::PlatFormInfos *platform_infos_ptr) {
+                                       const ge::DataType &data_type, const ExtAxisValue &ext_axis, gert::Shape &shape,
+                                       const fe::PlatFormInfos *platform_infos_ptr) {
   if (!InitPlatformInfo(platform_infos_ptr)) {
     GELOGW("Init platform info failed");
   }
@@ -217,7 +215,8 @@ bool TransferShapeUtils::TransferShape(const ge::Format &origin_format, const ge
 
 bool TransferShapeUtils::TransferShape(const ge::Format &origin_format, const ge::Format &format,
                                        const ge::DataType &data_type, const ExtAxisValue &ext_axis,
-                                       const gert::Shape &origin_shape, gert::Shape &shape, const fe::PlatFormInfos *platform_infos_ptr) {
+                                       const gert::Shape &origin_shape, gert::Shape &shape,
+                                       const fe::PlatFormInfos *platform_infos_ptr) {
   if (!InitPlatformInfo(platform_infos_ptr)) {
     GELOGW("Init platform info failed");
   }
@@ -322,8 +321,8 @@ int64_t TransferShapeUtils::GetC0Value(const ge::DataType &data_type, const ge::
 }
 
 bool TransferShapeUtils::IsNeedAxisValue(const ge::Format &format, const size_t &origin_dim_size) {
-  if (kFormatNZSet.count(format) > 0 || format == ge::FORMAT_FRACTAL_ZN_RNN ||
-      format == ge::FORMAT_ND_RNN_BIAS || format == ge::FORMAT_NYUV_A) {
+  if (kFormatNZSet.count(format) > 0 || format == ge::FORMAT_FRACTAL_ZN_RNN || format == ge::FORMAT_ND_RNN_BIAS ||
+      format == ge::FORMAT_NYUV_A) {
     return false;
   }
   if (format == ge::FORMAT_FRACTAL_Z && origin_dim_size == DIM_SIZE_TWO) {
@@ -343,11 +342,11 @@ bool TransferShapeUtils::TransferShapeByFormat(const ge::Format &primary_format,
     case ge::FORMAT_FRACTAL_NZ_C0_8:
     case ge::FORMAT_FRACTAL_NZ_C0_16:
     case ge::FORMAT_FRACTAL_NZ_C0_32:
-      return GetNzShapeByAxisValue(axis_value, shape); // need c0
+      return GetNzShapeByAxisValue(axis_value, shape);  // need c0
     case ge::FORMAT_FRACTAL_ZN_RNN:
-      return GetFznRNNShapeByAxisValue(axis_value, shape); // need c0, input, hidden, state
+      return GetFznRNNShapeByAxisValue(axis_value, shape);  // need c0, input, hidden, state
     case ge::FORMAT_ND_RNN_BIAS:
-      return GetNDRNNShapeByAxisValue(axis_value, shape); // need c0, input, hidden, state
+      return GetNDRNNShapeByAxisValue(axis_value, shape);  // need c0, input, hidden, state
     case ge::FORMAT_NYUV_A:
       return GetNYUVShape(shape);
     default:
@@ -402,8 +401,8 @@ bool TransferShapeUtils::TransferShapeByAxisValue(const ge::Format &primary_form
   }
 }
 
-bool TransferShapeUtils::TransferShapeByOriginShape(const ge::Format &primary_format,
-                                                    const int64_t &c0, const int64_t &m0, const ExtAxisValue &ext_axis,
+bool TransferShapeUtils::TransferShapeByOriginShape(const ge::Format &primary_format, const int64_t &c0,
+                                                    const int64_t &m0, const ExtAxisValue &ext_axis,
                                                     const gert::Shape &origin_shape, gert::Shape &shape) {
   switch (primary_format) {
     case ge::FORMAT_FRACTAL_Z:
@@ -414,11 +413,11 @@ bool TransferShapeUtils::TransferShapeByOriginShape(const ge::Format &primary_fo
     case ge::FORMAT_FRACTAL_NZ_C0_8:
     case ge::FORMAT_FRACTAL_NZ_C0_16:
     case ge::FORMAT_FRACTAL_NZ_C0_32:
-      return GetFractalNzShape(c0, m0, origin_shape, shape); // need c0
+      return GetFractalNzShape(c0, m0, origin_shape, shape);  // need c0
     case ge::FORMAT_FRACTAL_ZN_RNN:
-      return GetFractalZnRnnShape(ext_axis, c0, origin_shape, shape); // need c0, input, hidden, state
+      return GetFractalZnRnnShape(ext_axis, c0, origin_shape, shape);  // need c0, input, hidden, state
     case ge::FORMAT_ND_RNN_BIAS:
-      return GetNdRnnBiasShape(ext_axis, c0, origin_shape, shape); // need c0, input, hidden, state
+      return GetNdRnnBiasShape(ext_axis, c0, origin_shape, shape);  // need c0, input, hidden, state
     default:
       GELOGD("Cannot obtain new shape with format %d.", primary_format);
       return true;
@@ -743,9 +742,8 @@ bool TransferShapeUtils::GetFznRNNShapeByAxisValue(const AxisValue &axis_value, 
 
   if (k_value == hidden_or_state_size + axis_value[AXIS_INPUT_SIZE]) {
     // use input size and hidden size
-    shape.SetDim(origin_shape_size - MINUS_VALUE_TWO,
-                 DivisionCeiling(axis_value[AXIS_INPUT_SIZE], SHAPE_NUMBER_16) +
-                 DivisionCeiling(hidden_or_state_size, SHAPE_NUMBER_16));
+    shape.SetDim(origin_shape_size - MINUS_VALUE_TWO, DivisionCeiling(axis_value[AXIS_INPUT_SIZE], SHAPE_NUMBER_16) +
+                                                          DivisionCeiling(hidden_or_state_size, SHAPE_NUMBER_16));
   } else if (k_value == hidden_or_state_size || k_value == axis_value[AXIS_INPUT_SIZE]) {
     // only use hidden size or input size
     shape.SetDim(origin_shape_size - MINUS_VALUE_TWO, DivisionCeiling(k_value, SHAPE_NUMBER_16));
@@ -774,7 +772,7 @@ bool TransferShapeUtils::GetNDRNNShapeByAxisValue(const AxisValue &axis_value, g
   return true;
 }
 
-bool TransferShapeUtils::GetNCHWShape(const FormatIndex& format_index, const gert::Shape &origin_shape,
+bool TransferShapeUtils::GetNCHWShape(const FormatIndex &format_index, const gert::Shape &origin_shape,
                                       gert::Shape &shape) {
   CHECK(origin_shape.GetDimNum() < DIM_SIZE_FOUR, GELOGD("Dim size is less than 4."), return true);
   shape.SetDimNum(0);
@@ -785,7 +783,7 @@ bool TransferShapeUtils::GetNCHWShape(const FormatIndex& format_index, const ger
   return true;
 }
 
-bool TransferShapeUtils::GetNHWCShape(const FormatIndex& format_index, const gert::Shape &origin_shape,
+bool TransferShapeUtils::GetNHWCShape(const FormatIndex &format_index, const gert::Shape &origin_shape,
                                       gert::Shape &shape) {
   CHECK(origin_shape.GetDimNum() < DIM_SIZE_FOUR, GELOGD("Dim size is less than 4."), return true);
   shape.SetDimNum(0);
@@ -796,7 +794,7 @@ bool TransferShapeUtils::GetNHWCShape(const FormatIndex& format_index, const ger
   return true;
 }
 
-bool TransferShapeUtils::GetHWCNShape(const FormatIndex& format_index, const gert::Shape &origin_shape,
+bool TransferShapeUtils::GetHWCNShape(const FormatIndex &format_index, const gert::Shape &origin_shape,
                                       gert::Shape &shape) {
   CHECK(origin_shape.GetDimNum() < DIM_SIZE_FOUR, GELOGD("Dim size is less than 4."), return true);
   shape.SetDimNum(0);
@@ -807,7 +805,7 @@ bool TransferShapeUtils::GetHWCNShape(const FormatIndex& format_index, const ger
   return true;
 }
 
-bool TransferShapeUtils::GetCHWNShape(const FormatIndex& format_index, const gert::Shape &origin_shape,
+bool TransferShapeUtils::GetCHWNShape(const FormatIndex &format_index, const gert::Shape &origin_shape,
                                       gert::Shape &shape) {
   CHECK(origin_shape.GetDimNum() < DIM_SIZE_FOUR, GELOGD("Dim size is less than 4."), return true);
   shape.SetDimNum(0);
@@ -818,7 +816,7 @@ bool TransferShapeUtils::GetCHWNShape(const FormatIndex& format_index, const ger
   return true;
 }
 
-bool TransferShapeUtils::GetNDHWCShape(const FormatIndex& format_index, const gert::Shape &origin_shape,
+bool TransferShapeUtils::GetNDHWCShape(const FormatIndex &format_index, const gert::Shape &origin_shape,
                                        gert::Shape &shape) {
   CHECK(origin_shape.GetDimNum() < DIM_SIZE_FIVE, GELOGD("Dim size is less than 5."), return true);
   shape.SetDimNum(0);
@@ -830,7 +828,7 @@ bool TransferShapeUtils::GetNDHWCShape(const FormatIndex& format_index, const ge
   return true;
 }
 
-bool TransferShapeUtils::GetNCDHWShape(const FormatIndex& format_index, const gert::Shape &origin_shape,
+bool TransferShapeUtils::GetNCDHWShape(const FormatIndex &format_index, const gert::Shape &origin_shape,
                                        gert::Shape &shape) {
   CHECK(origin_shape.GetDimNum() < DIM_SIZE_FIVE, GELOGD("Dim size is less than 5."), return true);
   shape.SetDimNum(0);
@@ -842,7 +840,7 @@ bool TransferShapeUtils::GetNCDHWShape(const FormatIndex& format_index, const ge
   return true;
 }
 
-bool TransferShapeUtils::GetDHWCNShape(const FormatIndex& format_index, const gert::Shape &origin_shape,
+bool TransferShapeUtils::GetDHWCNShape(const FormatIndex &format_index, const gert::Shape &origin_shape,
                                        gert::Shape &shape) {
   CHECK(origin_shape.GetDimNum() < DIM_SIZE_FIVE, GELOGD("Dim size is less than 5."), return true);
   shape.SetDimNum(0);
@@ -854,7 +852,7 @@ bool TransferShapeUtils::GetDHWCNShape(const FormatIndex& format_index, const ge
   return true;
 }
 
-bool TransferShapeUtils::GetDHWNCShape(const FormatIndex& format_index, const gert::Shape &origin_shape,
+bool TransferShapeUtils::GetDHWNCShape(const FormatIndex &format_index, const gert::Shape &origin_shape,
                                        gert::Shape &shape) {
   CHECK(origin_shape.GetDimNum() < DIM_SIZE_FIVE, GELOGD("Dim size is less than 5."), return true);
   shape.SetDimNum(0);
@@ -866,7 +864,7 @@ bool TransferShapeUtils::GetDHWNCShape(const FormatIndex& format_index, const ge
   return true;
 }
 
-bool TransferShapeUtils::GetNC1HWC0Shape(const FormatIndex& format_index, const int64_t &c0,
+bool TransferShapeUtils::GetNC1HWC0Shape(const FormatIndex &format_index, const int64_t &c0,
                                          const gert::Shape &origin_shape, gert::Shape &shape) {
   CHECK(origin_shape.GetDimNum() < DIM_SIZE_FOUR, GELOGD("Dim size is less than 4."), return true);
   shape.SetDimNum(0);
@@ -889,7 +887,7 @@ bool TransferShapeUtils::GetC1HWC0Shape(const FormatIndex &format_index, const i
   return true;
 }
 
-bool TransferShapeUtils::GetNDC1HWC0Shape(const FormatIndex& format_index, const int64_t &c0,
+bool TransferShapeUtils::GetNDC1HWC0Shape(const FormatIndex &format_index, const int64_t &c0,
                                           const gert::Shape &origin_shape, gert::Shape &shape) {
   CHECK(origin_shape.GetDimNum() < DIM_SIZE_FOUR, GELOGD("Dim size is less than 4."), return true);
   shape.SetDimNum(0);
@@ -906,7 +904,7 @@ bool TransferShapeUtils::GetNDC1HWC0Shape(const FormatIndex& format_index, const
   return true;
 }
 
-bool TransferShapeUtils::GetC1HWNCoC0Shape(const FormatIndex& format_index, const int64_t &c0,
+bool TransferShapeUtils::GetC1HWNCoC0Shape(const FormatIndex &format_index, const int64_t &c0,
                                            const gert::Shape &origin_shape, gert::Shape &shape) {
   CHECK(origin_shape.GetDimNum() < DIM_SIZE_FOUR, GELOGD("Dim size is less than 4."), return true);
   shape.SetDimNum(0);
@@ -918,8 +916,8 @@ bool TransferShapeUtils::GetC1HWNCoC0Shape(const FormatIndex& format_index, cons
   shape.AppendDim(c0);
   return true;
 }
-bool TransferShapeUtils::GetFractalNzShape(const int64_t &c0, const int64_t &m0,
-                                           const gert::Shape &origin_shape, gert::Shape &shape) {
+bool TransferShapeUtils::GetFractalNzShape(const int64_t &c0, const int64_t &m0, const gert::Shape &origin_shape,
+                                           gert::Shape &shape) {
   size_t dim_size = origin_shape.GetDimNum();
   shape.SetDimNum(0);
   if (dim_size > DIM_SIZE_TWO) {
@@ -954,7 +952,7 @@ bool TransferShapeUtils::GetFractalZShape(const int64_t &c0, const gert::Shape &
   return true;
 }
 
-bool TransferShapeUtils::GetFractalZShape(const FormatIndex& format_index, const int64_t &c0, const int64_t &group,
+bool TransferShapeUtils::GetFractalZShape(const FormatIndex &format_index, const int64_t &c0, const int64_t &group,
                                           const gert::Shape &origin_shape, gert::Shape &shape) {
   CHECK(origin_shape.GetDimNum() < DIM_SIZE_FOUR, GELOGD("Dim size is less than 4."), return true);
   int64_t axis_n_val = origin_shape.GetDim(format_index[DIM_INDEX_N]);
@@ -962,8 +960,8 @@ bool TransferShapeUtils::GetFractalZShape(const FormatIndex& format_index, const
   int64_t axis_h_val = origin_shape.GetDim(format_index[DIM_INDEX_H]);
   int64_t axis_w_val = origin_shape.GetDim(format_index[DIM_INDEX_W]);
   int64_t ghwc1 = UNKNOWN_SHAPE_VALUE;
-  bool is_unknown_shape = axis_c_val == UNKNOWN_SHAPE_VALUE || axis_h_val == UNKNOWN_SHAPE_VALUE ||
-                          axis_w_val == UNKNOWN_SHAPE_VALUE;
+  bool is_unknown_shape =
+      axis_c_val == UNKNOWN_SHAPE_VALUE || axis_h_val == UNKNOWN_SHAPE_VALUE || axis_w_val == UNKNOWN_SHAPE_VALUE;
   if (!is_unknown_shape) {
     int64_t axis_g_val = GROUPS_DEFAULT_VALUE;
     int64_t axis_c1_val = 0;
@@ -991,7 +989,7 @@ bool TransferShapeUtils::GetFractalZShape(const FormatIndex& format_index, const
   return true;
 }
 
-bool TransferShapeUtils::GetFractalZWinoShape(const FormatIndex& format_index, const int64_t &c0,
+bool TransferShapeUtils::GetFractalZWinoShape(const FormatIndex &format_index, const int64_t &c0,
                                               const gert::Shape &origin_shape, gert::Shape &shape) {
   CHECK(origin_shape.GetDimNum() < DIM_SIZE_FOUR, GELOGD("Dim size is less than 4."), return true);
   int64_t axis_n_val = origin_shape.GetDim(format_index[DIM_INDEX_N]);
@@ -999,11 +997,11 @@ bool TransferShapeUtils::GetFractalZWinoShape(const FormatIndex& format_index, c
   int64_t axis_h_val = origin_shape.GetDim(format_index[DIM_INDEX_H]);
   int64_t axis_w_val = origin_shape.GetDim(format_index[DIM_INDEX_W]);
   int64_t ghw = axis_h_val;
-  MUL_OVERFLOW(ghw, axis_w_val, ghw); // HW
+  MUL_OVERFLOW(ghw, axis_w_val, ghw);  // HW
 
   shape.SetDimNum(0);
   shape.AppendDim(DivisionCeiling(axis_c_val, c0));
-  shape.AppendDim(DivisionCeiling(axis_n_val, NI)); // n1
+  shape.AppendDim(DivisionCeiling(axis_n_val, NI));  // n1
   shape.AppendDim(NUMBER_2);
   shape.AppendDim(ghw);
   shape.AppendDim(SHAPE_NUMBER_8);
@@ -1011,7 +1009,7 @@ bool TransferShapeUtils::GetFractalZWinoShape(const FormatIndex& format_index, c
   return true;
 }
 
-bool TransferShapeUtils::GetFractalZ3DShape(const FormatIndex& format_index, const int64_t &c0, const int64_t &group,
+bool TransferShapeUtils::GetFractalZ3DShape(const FormatIndex &format_index, const int64_t &c0, const int64_t &group,
                                             const gert::Shape &origin_shape, gert::Shape &shape) {
   CHECK(origin_shape.GetDimNum() < DIM_SIZE_FIVE, GELOGD("Dim size is less than 5."), return true);
   int64_t axis_n_val = origin_shape.GetDim(format_index[DIM_INDEX_N]);
@@ -1049,7 +1047,7 @@ bool TransferShapeUtils::GetFractalZ3DShape(const FormatIndex& format_index, con
   return true;
 }
 
-bool TransferShapeUtils::GetFractalZ3DTransposeShape(const FormatIndex& format_index, const int64_t &c0,
+bool TransferShapeUtils::GetFractalZ3DTransposeShape(const FormatIndex &format_index, const int64_t &c0,
                                                      const gert::Shape &origin_shape, gert::Shape &shape) {
   CHECK(origin_shape.GetDimNum() < DIM_SIZE_FIVE, GELOGD("Dim size is less than 5."), return true);
   int64_t dhwn1 = UNKNOWN_SHAPE_VALUE;
@@ -1076,7 +1074,7 @@ bool TransferShapeUtils::GetFractalZ3DTransposeShape(const FormatIndex& format_i
   return true;
 }
 
-bool TransferShapeUtils::GetFractalZLstmShape(const FormatIndex& format_index, const gert::Shape &origin_shape,
+bool TransferShapeUtils::GetFractalZLstmShape(const FormatIndex &format_index, const gert::Shape &origin_shape,
                                               gert::Shape &shape) {
   CHECK(origin_shape.GetDimNum() < DIM_SIZE_FOUR, GELOGD("Dim size is less than 4."), return true);
   int64_t axis_n_val = origin_shape.GetDim(format_index[DIM_INDEX_N]);
@@ -1098,7 +1096,7 @@ bool TransferShapeUtils::GetFractalZLstmShape(const FormatIndex& format_index, c
   return true;
 }
 
-bool TransferShapeUtils::GetFractalZC04Shape(const FormatIndex& format_index, const int64_t &c0,
+bool TransferShapeUtils::GetFractalZC04Shape(const FormatIndex &format_index, const int64_t &c0,
                                              const gert::Shape &origin_shape, gert::Shape &shape) {
   CHECK(origin_shape.GetDimNum() < DIM_SIZE_FOUR, GELOGD("Dim size is less than 4."), return true);
   int64_t axis_h_val = origin_shape.GetDim(format_index[DIM_INDEX_H]);
@@ -1173,15 +1171,14 @@ bool TransferShapeUtils::GetNYUVShape(gert::Shape &shape) {
   const size_t kSize4 = 4U;
   const size_t kSize3 = 3U;
   size_t shape_size = shape.GetDimNum();
-  CHECK(((shape_size != kSize3) && (shape_size != kSize4)),
-        GELOGD("Dim size is not 3 or 4."), return false);
+  CHECK(((shape_size != kSize3) && (shape_size != kSize4)), GELOGD("Dim size is not 3 or 4."), return false);
   const size_t kWdimOffset = 2U;
   const size_t kHdimOffset = 3U;
   const int64_t kAlaign64 = 64;
   const int64_t kAlaign16 = 16;
-  auto width  = shape.GetDim(shape_size - kWdimOffset);
+  auto width = shape.GetDim(shape_size - kWdimOffset);
   auto height = shape.GetDim(shape_size - kHdimOffset);
-  width  = (width + kAlaign64 - 1) / kAlaign64 * kAlaign64;
+  width = (width + kAlaign64 - 1) / kAlaign64 * kAlaign64;
   height = (height + kAlaign16 - 1) / kAlaign16 * kAlaign16;
   shape.SetDim(shape_size - kWdimOffset, width);
   shape.SetDim(shape_size - kHdimOffset, height);
@@ -1213,8 +1210,8 @@ TransferShapeType TransferShapeUtils::GetTransferShapeType(const ge::Format &src
 }
 
 bool TransferShapeUtils::GetAlignedShape(const AlignShapeInfo &align_shape_info, gert::Shape &aligned_shape) {
-  auto func = get_aligned_shape_func_map.find(GetTransferShapeType(align_shape_info.src_format,
-      align_shape_info.dst_format, align_shape_info.src_shape));
+  auto func = get_aligned_shape_func_map.find(
+      GetTransferShapeType(align_shape_info.src_format, align_shape_info.dst_format, align_shape_info.src_shape));
   if (func == get_aligned_shape_func_map.end()) {
     GELOGW("Do not support src_format %s to src_shape %s.",
            ge::TypeUtils::FormatToSerialString(align_shape_info.src_format).c_str(),
@@ -1226,8 +1223,8 @@ bool TransferShapeUtils::GetAlignedShape(const AlignShapeInfo &align_shape_info,
 
 bool TransferShapeUtils::TransferDims(const TransferDimsInfo &transfer_dims_info,
                                       AxisIndexMapping &axis_index_mapping) {
-  auto func = transfer_dims_func_map.find(GetTransferShapeType(transfer_dims_info.src_format,
-      transfer_dims_info.dst_format, transfer_dims_info.src_shape));
+  auto func = transfer_dims_func_map.find(
+      GetTransferShapeType(transfer_dims_info.src_format, transfer_dims_info.dst_format, transfer_dims_info.src_shape));
   if (func == transfer_dims_func_map.end()) {
     GELOGW("Do not support src_format %s to src_shape %s.",
            ge::TypeUtils::FormatToSerialString(transfer_dims_info.src_format).c_str(),
@@ -1240,7 +1237,7 @@ bool TransferShapeUtils::TransferDims(const TransferDimsInfo &transfer_dims_info
 /**
  * nd-to-nd
  * The aligned value for each axis is set to 1.
-**/
+ **/
 bool TransferShapeUtils::GetNdToNdAlignedShape(const AlignShapeInfo &align_shape_info, gert::Shape &aligned_shape) {
   GELOGD("There are no alignment requirements for the nd-to-nd scenario.");
   (void)aligned_shape.SetDimNum(align_shape_info.src_shape.GetDimNum());
@@ -1258,7 +1255,7 @@ bool TransferShapeUtils::GetNdToNdAlignedShape(const AlignShapeInfo &align_shape
  * The aligned value for the axis before target is set to 1.
  * The aligned value for the target axis is set to m0.
  * The aligned value for the axis behind target is set to c0.
-**/
+ **/
 bool TransferShapeUtils::GetNdToNzAlignedShape(const AlignShapeInfo &align_shape_info, gert::Shape &aligned_shape) {
   size_t src_shape_dim_num = align_shape_info.src_shape.GetDimNum();
   if (src_shape_dim_num < kNzMinDimNum) {
@@ -1290,7 +1287,7 @@ bool TransferShapeUtils::GetNdToNzAlignedShape(const AlignShapeInfo &align_shape
  * NDHWC/DHWCN/DHWNC(a,b,c,d,e) -> NDHWC/DHWCN/DHWNC/NDC1HWC0
  * Traverse each axis, if current axis is "C" and needs to be split, the aligned value is set to c0.
  * Otherwise, set it to 1.
-**/
+ **/
 bool TransferShapeUtils::GetFullSizeAlignedShape(const AlignShapeInfo &align_shape_info, gert::Shape &aligned_shape) {
   std::vector<std::string> src_axis_vec = AxisUtil::GetAxisVecByFormat(align_shape_info.src_format);
   if (src_axis_vec.empty()) {
@@ -1309,7 +1306,7 @@ bool TransferShapeUtils::GetFullSizeAlignedShape(const AlignShapeInfo &align_sha
       } else if (src_axis_vec.at(i) == "C") {
         (void)aligned_shape.SetDim(i, c0);
       } else {
-      (void)aligned_shape.SetDim(i, 1);
+        (void)aligned_shape.SetDim(i, 1);
       }
     } else {
       (void)aligned_shape.SetDim(i, 1);
@@ -1325,7 +1322,7 @@ bool TransferShapeUtils::GetFullSizeAlignedShape(const AlignShapeInfo &align_sha
  * NDHWC/DHWCN/DHWNC(a,b,c) -> NDC1HWC0
  * Traverse each reshape type axis, if current axis is "C", the aligned value is set to c0.
  * Otherwise, set it to 1.
-**/
+ **/
 bool TransferShapeUtils::GetNotFullSizeAlignedShape(const AlignShapeInfo &align_shape_info,
                                                     gert::Shape &aligned_shape) {
   if (align_shape_info.reshape_type_mask <= 0) {
@@ -1362,7 +1359,7 @@ bool TransferShapeUtils::GetNotFullSizeAlignedShape(const AlignShapeInfo &align_
 /**
  * nd-to-nd
  * No change.
-**/
+ **/
 bool TransferShapeUtils::GetNdToNdAxisIndexMapping(const TransferDimsInfo &transfer_dims_info,
                                                    AxisIndexMapping &axis_index_mapping) {
   for (int32_t i = 0; i < static_cast<int32_t>(transfer_dims_info.src_shape.GetDimNum()); ++i) {
@@ -1382,7 +1379,7 @@ bool TransferShapeUtils::GetNdToNdAxisIndexMapping(const TransferDimsInfo &trans
  * The aligned value for the axis before target is set to 1.
  * The aligned value for the target axis is set to m0.
  * The aligned value for the axis behind target is set to c0.
-**/
+ **/
 bool TransferShapeUtils::GetNdToNzAxisIndexMapping(const TransferDimsInfo &transfer_dims_info,
                                                    AxisIndexMapping &axis_index_mapping) {
   size_t src_shape_dim_num = transfer_dims_info.src_shape.GetDimNum();
@@ -1408,9 +1405,10 @@ bool TransferShapeUtils::GetNdToNzAxisIndexMapping(const TransferDimsInfo &trans
   cur_transfer_dims.clear();
   cur_transfer_dims.emplace_back(target_index);
   axis_index_mapping.src_to_dst_transfer_dims.emplace_back(cur_transfer_dims);
-  
+
   axis_index_mapping.dst_to_src_transfer_dims.insert(axis_index_mapping.dst_to_src_transfer_dims.end(),
-      axis_index_mapping.src_to_dst_transfer_dims.begin(), axis_index_mapping.src_to_dst_transfer_dims.end());
+                                                     axis_index_mapping.src_to_dst_transfer_dims.begin(),
+                                                     axis_index_mapping.src_to_dst_transfer_dims.end());
   cur_transfer_dims.clear();
   cur_transfer_dims.emplace_back(-1);
   axis_index_mapping.dst_to_src_transfer_dims.emplace_back(cur_transfer_dims);
@@ -1427,7 +1425,7 @@ bool TransferShapeUtils::GetNdToNzAxisIndexMapping(const TransferDimsInfo &trans
  * If current axis is "C" and needs to be split, get "C0" and "C1" mapping-index in dst_format.
  * Traverse each axis in dst_format, and the get its mapping-index in src_format.
  * If current axis is "C0" or "C1", get "C" mapping-index in src_format.
-**/
+ **/
 bool TransferShapeUtils::GetFullSizeAxisIndexMapping(const TransferDimsInfo &transfer_dims_info,
                                                      AxisIndexMapping &axis_index_mapping) {
   std::vector<std::string> src_axis_vec = AxisUtil::GetAxisVecByFormat(transfer_dims_info.src_format);
@@ -1443,8 +1441,8 @@ bool TransferShapeUtils::GetFullSizeAxisIndexMapping(const TransferDimsInfo &tra
         AxisUtil::GetSplitOrConcatAxisByFormat(transfer_dims_info.dst_format, cur_axis);
     if (!split_or_concat_axis.empty()) {
       for (auto &cur_split_or_concat_axis : split_or_concat_axis) {
-        cur_transfer_dims.emplace_back(AxisUtil::GetAxisIndexByFormat(transfer_dims_info.dst_format,
-                                                                      cur_split_or_concat_axis));
+        cur_transfer_dims.emplace_back(
+            AxisUtil::GetAxisIndexByFormat(transfer_dims_info.dst_format, cur_split_or_concat_axis));
       }
     } else {
       cur_transfer_dims.emplace_back(AxisUtil::GetAxisIndexByFormat(transfer_dims_info.dst_format, cur_axis));
@@ -1465,8 +1463,8 @@ bool TransferShapeUtils::GetFullSizeAxisIndexMapping(const TransferDimsInfo &tra
         AxisUtil::GetSplitOrConcatAxisByFormat(transfer_dims_info.dst_format, cur_axis);
     if (!split_or_concat_axis.empty()) {
       for (auto cur_split_or_concat_axis : split_or_concat_axis) {
-        cur_transfer_dims.emplace_back(AxisUtil::GetAxisIndexByFormat(transfer_dims_info.src_format,
-                                                                      cur_split_or_concat_axis));
+        cur_transfer_dims.emplace_back(
+            AxisUtil::GetAxisIndexByFormat(transfer_dims_info.src_format, cur_split_or_concat_axis));
       }
     } else {
       cur_transfer_dims.emplace_back(AxisUtil::GetAxisIndexByFormat(transfer_dims_info.src_format, cur_axis));
@@ -1484,7 +1482,7 @@ bool TransferShapeUtils::GetFullSizeAxisIndexMapping(const TransferDimsInfo &tra
  * If current axis is "C" and needs to be split, get "C0" and "C1" mapping-index in dst_format.
  * Traverse each axis in dst_format, and the get its mapping-index in src_format.
  * If current axis is "C0" or "C1", get "C" mapping-index in src_format.
-**/
+ **/
 bool TransferShapeUtils::GetNotFullSizeAxisIndexMapping(const TransferDimsInfo &transfer_dims_info,
                                                         AxisIndexMapping &axis_index_mapping) {
   if (transfer_dims_info.reshape_type_mask <= 0) {
@@ -1539,4 +1537,4 @@ bool TransferShapeUtils::GetNotFullSizeAxisIndexMapping(const TransferDimsInfo &
   }
   return true;
 }
-}
+}  // namespace transformer

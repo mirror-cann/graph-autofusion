@@ -1,14 +1,14 @@
 /**
-* Copyright (c) Huawei Technologies Co., Ltd. 2024. All rights reserved.
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
+ * Copyright (c) Huawei Technologies Co., Ltd. 2024. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 /**
@@ -23,7 +23,7 @@
 
 using namespace AscendC;
 
-namespace af{
+namespace af {
 
 template <typename T>
 struct SinInputParam {
@@ -60,7 +60,7 @@ class TestRegbaseApiSinUT : public testing::Test {
     std::mt19937 eng(1);
 
     for (uint32_t i = 0; i < param.size; i++) {
-      std::uniform_real_distribution distr(-6.28f, 6.28f); // -2 pi ~ 2 pi
+      std::uniform_real_distribution distr(-6.28f, 6.28f);  // -2 pi ~ 2 pi
       param.x[i] = distr(eng);
       param.exp[i] = param.exp[i] = static_cast<T>(sin(static_cast<double>(param.x[i])));
     }
@@ -118,7 +118,9 @@ TEST_F(TestRegbaseApiSinUT, Add_TensorTensor_Test) {
   SinTest<float>(MAX_REPEAT_NUM * ONE_REPEAT_BYTE_SIZE / 2 / sizeof(float));
   SinTest<float>((ONE_BLK_SIZE - sizeof(float)) / sizeof(float));
   SinTest<float>((ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) / sizeof(float));
-  SinTest<float>(((MAX_REPEAT_NUM - 1) * ONE_REPEAT_BYTE_SIZE + (ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) + (ONE_BLK_SIZE - sizeof(float))) / 2 /sizeof(float));
+  SinTest<float>(((MAX_REPEAT_NUM - 1) * ONE_REPEAT_BYTE_SIZE + (ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) +
+                  (ONE_BLK_SIZE - sizeof(float))) /
+                 2 / sizeof(float));
 }
 
-}  // namespace ge
+}  // namespace af

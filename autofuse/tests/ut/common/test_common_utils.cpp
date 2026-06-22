@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -13,7 +13,7 @@
 #include <fstream>
 #define private public
 #include "ascir_ops.h"
-//#include "ascir.h"
+// #include "ascir.h"
 #include "ascir_ops_utils.h"
 #include "common_utils.h"
 #include "ascir_register.h"
@@ -23,33 +23,28 @@
 
 using namespace af::ops;
 using namespace af::ascir_op;
-namespace ascgen_utils
-{
+namespace ascgen_utils {
 namespace {
-af::Expression CreateExpr(int64_t value)
-{
+af::Expression CreateExpr(int64_t value) {
   return af::Symbol(value);
 }
 
-af::Expression CreateExpr(const std::string &name)
-{
+af::Expression CreateExpr(const std::string &name) {
   return af::Symbol(name.c_str());
 }
 }  // namespace
 
-class CommonUtilsTest: public testing::Test{
+class CommonUtilsTest : public testing::Test {
  public:
-  void SetUp() override {
-  }
-  void TearDown() override {
-  }
+  void SetUp() override {}
+  void TearDown() override {}
 };
 
 TEST_F(CommonUtilsTest, IsStaticSchedResultTest) {
- ascir::FusedScheduledResult static_result;
- static_result.origin_vars.push_back(af::Symbol(10));
- static_result.origin_vars.push_back(af::Symbol(20));
- EXPECT_EQ(IsStaticSchedResult({static_result}), true);
+  ascir::FusedScheduledResult static_result;
+  static_result.origin_vars.push_back(af::Symbol(10));
+  static_result.origin_vars.push_back(af::Symbol(20));
+  EXPECT_EQ(IsStaticSchedResult({static_result}), true);
 }
 
 TEST_F(CommonUtilsTest, ScalarValuePreProcessTest) {
@@ -97,7 +92,7 @@ TEST_F(CommonUtilsTest, GreateTwoInputsNotSupportBrcInline) {
 
 // 测试2个输入都包含广播轴, 不支持brc inline
 TEST_F(CommonUtilsTest, TwoInputsHasbrcAxisNotSupportBrcInline) {
-af::AscGraph graph("test_graph");
+  af::AscGraph graph("test_graph");
   auto s0 = graph.CreateSizeVar("s0");
   auto s1 = graph.CreateSizeVar("s1");
   auto s2 = graph.CreateSizeVar("s2");
@@ -134,7 +129,7 @@ af::AscGraph graph("test_graph");
   *add_op.y.axis = {z0.id, z1.id, z2.id, z3.id};
   *add_op.y.repeats = {s0, s1, s2, s3};
 
-  //graph.SetInputs({x_op});
+  // graph.SetInputs({x_op});
 
   auto load = graph.FindNode("load");
   load->outputs[0].attr.vectorized_axis = {z2.id, z3.id};
@@ -189,7 +184,7 @@ TEST_F(CommonUtilsTest, InputsHasNotConinueBrcAxisNotSupportBrcInline) {
   *add_op.y.axis = {z0.id, z1.id, z2.id, z3.id};
   *add_op.y.repeats = {s0, s1, s2, s3};
 
-  //graph.SetInputs({x_op});
+  // graph.SetInputs({x_op});
 
   auto load = graph.FindNode("load");
   load->outputs[0].attr.vectorized_axis = {z1.id, z2.id, z3.id};
@@ -246,7 +241,7 @@ TEST_F(CommonUtilsTest, AfterMegerBrcAxisNotFirstAxisNotSupportBrcInline) {
   *add_op.y.axis = {z0.id, z1.id, z2.id, z3.id};
   *add_op.y.repeats = {s0, s1, s2, s3};
 
-  //graph.SetInputs({x_op});
+  // graph.SetInputs({x_op});
 
   auto load = graph.FindNode("load");
   load->outputs[0].attr.vectorized_axis = {z2.id, z3.id};
@@ -389,10 +384,10 @@ TEST_F(CommonUtilsTest, MergeRepeatsWithAlignedStrideToABA) {
   EXPECT_EQ(i1_meger_repeates[2], S(48));
 
   //                  1     A     1     A     1     B     1     B     1     A     1     1     A      1     1 -> ABA
-  input0_repeats = {S(1), S(2),   S(1), S(2),   S(1), S(1),  S(1), S(1),  S(1), S(3),  S(1), S(1), S(11), S(1), S(1)};
-  input0_strides = {S(0), S(96),  S(0), S(48),  S(0), S(0),  S(0), S(0),  S(0), S(16), S(0), S(0), S(1),  S(0), S(0)};
-  input1_repeats = {S(1), S(1),   S(1), S(2),   S(1), S(2),  S(1), S(2),  S(1), S(3),  S(1), S(1), S(1),  S(1), S(1)};
-  input1_strides = {S(0), S(0),   S(0), S(32),  S(0), S(16), S(0), S(8),  S(0), S(1),  S(0), S(0), S(0),  S(0), S(0)};
+  input0_repeats = {S(1), S(2), S(1), S(2), S(1), S(1), S(1), S(1), S(1), S(3), S(1), S(1), S(11), S(1), S(1)};
+  input0_strides = {S(0), S(96), S(0), S(48), S(0), S(0), S(0), S(0), S(0), S(16), S(0), S(0), S(1), S(0), S(0)};
+  input1_repeats = {S(1), S(1), S(1), S(2), S(1), S(2), S(1), S(2), S(1), S(3), S(1), S(1), S(1), S(1), S(1)};
+  input1_strides = {S(0), S(0), S(0), S(32), S(0), S(16), S(0), S(8), S(0), S(1), S(0), S(0), S(0), S(0), S(0)};
 
   MergeBrcAxisParams in0(input0_repeats, input0_strides);
   MergeBrcAxisParams in1(input1_repeats, input1_strides);
@@ -469,7 +464,7 @@ TEST_F(CommonUtilsTest, AfterMegerBrcAxisisFirstAxisSupportBrcInline) {
   *add_op.y.axis = {z0.id, z1.id, z2.id, z3.id};
   *add_op.y.repeats = {s0, s1, s2, s3};
 
-  //graph.SetInputs({x_op});
+  // graph.SetInputs({x_op});
 
   auto load = graph.FindNode("load");
   load->outputs[0].attr.vectorized_axis = {z0.id, z1.id, z2.id, z3.id};
@@ -514,8 +509,10 @@ TEST_F(CommonUtilsTest, MergeRepeatsWithAllInputHasBrcAxis) {
 }
 
 TEST_F(CommonUtilsTest, FormatExpressionTrue) {
-  EXPECT_EQ(FormatExpression("(s0 * s100 * s3)"), "static_cast<int64_t>(tiling_data.get_s0() * tiling_data.get_s100() * tiling_data.get_s3())");
-  EXPECT_EQ(FormatExpression("(Rational(1, 2) * s0 * s3)"), "static_cast<int64_t>(Rational(1, 2) * tiling_data.get_s0() * tiling_data.get_s3())");
+  EXPECT_EQ(FormatExpression("(s0 * s100 * s3)"),
+            "static_cast<int64_t>(tiling_data.get_s0() * tiling_data.get_s100() * tiling_data.get_s3())");
+  EXPECT_EQ(FormatExpression("(Rational(1, 2) * s0 * s3)"),
+            "static_cast<int64_t>(Rational(1, 2) * tiling_data.get_s0() * tiling_data.get_s3())");
   EXPECT_EQ(FormatExpression("size2"), "tiling_data.get_size2()");
   EXPECT_EQ(FormatExpression("block_size"), "tiling_data.get_block_size()");
 }
@@ -622,7 +619,7 @@ TEST_F(CommonUtilsTest, GetAscIrCodegenImplNotNullTest) {
   };
   class StubWorkspaceAscIrAtt : public af::ascir::AscIrAtt {
     virtual void *GetApiPerf() const {
-      return (void*)(0x123456);
+      return (void *)(0x123456);
     }
     virtual void *GetAscendCApiPerfTable() const {
       return nullptr;
@@ -754,4 +751,4 @@ TEST(CodegenApiParamReduceTest, BuildReduceSpecificParamsRejectsInvalidInput) {
   EXPECT_NE(codegen::BuildReduceSpecificParams(input, param), ge::SUCCESS);
   EXPECT_FALSE(param.valid);
 }
-} //namespace
+}  // namespace ascgen_utils

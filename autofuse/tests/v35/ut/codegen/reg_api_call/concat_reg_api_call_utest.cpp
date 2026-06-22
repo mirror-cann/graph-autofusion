@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -27,11 +27,8 @@ class ConcatRegApiCallUTest : public ::testing::Test {
   void SetUp() override {}
   void TearDown() override {}
 
-  static void BuildConcatGraph(const std::vector<af::Expression> &expressions,
-                               af::AscGraph &graph,
-                               codegen::TPipe &tpipe,
-                               codegen::Tiler &tiler,
-                               DataType data_type = af::DT_FLOAT16,
+  static void BuildConcatGraph(const std::vector<af::Expression> &expressions, af::AscGraph &graph,
+                               codegen::TPipe &tpipe, codegen::Tiler &tiler, DataType data_type = af::DT_FLOAT16,
                                uint32_t align_size = 0) {
     auto s0 = expressions[0];
     auto s1 = expressions[1];
@@ -51,7 +48,7 @@ class ConcatRegApiCallUTest : public ::testing::Test {
 
     graph.AddNode(load_op);
     graph.AddNode(load_op2);
-    //graph.AddNode(concat_op);
+    // graph.AddNode(concat_op);
 
     load_op.x = x_op.y;
     load_op.attr.sched.axis = {z0.id, z1.id, z2.id, z3.id};
@@ -135,11 +132,8 @@ class ConcatRegApiCallUTest : public ::testing::Test {
     concat->attr.tmp_buffers.emplace_back(af::TmpBuffer{af::TmpBufDesc{af::Symbol(1024), -1}, {}});
   }
 
-  static void Build1DConcatGraph(const std::vector<af::Expression> &expressions,
-                               af::AscGraph &graph,
-                               codegen::TPipe &tpipe,
-                               codegen::Tiler &tiler,
-                               DataType data_type = af::DT_FLOAT16) {
+  static void Build1DConcatGraph(const std::vector<af::Expression> &expressions, af::AscGraph &graph,
+                                 codegen::TPipe &tpipe, codegen::Tiler &tiler, DataType data_type = af::DT_FLOAT16) {
     auto s0 = One;
     auto s1_1 = expressions[0];
     auto s1_2 = expressions[1];
@@ -232,11 +226,8 @@ class ConcatRegApiCallUTest : public ::testing::Test {
     concat->attr.tmp_buffers.emplace_back(af::TmpBuffer{af::TmpBufDesc{af::Symbol(1024), -1}, {}});
   }
 
-  static void BuildConcat3DGraph(const std::vector<af::Expression> &expressions,
-                                 af::AscGraph &graph,
-                                 codegen::TPipe &tpipe,
-                                 codegen::Tiler &tiler,
-                                 DataType data_type = af::DT_FLOAT16,
+  static void BuildConcat3DGraph(const std::vector<af::Expression> &expressions, af::AscGraph &graph,
+                                 codegen::TPipe &tpipe, codegen::Tiler &tiler, DataType data_type = af::DT_FLOAT16,
                                  uint32_t align_size = 0) {
     auto s0 = expressions[0];
     auto s1 = expressions[1];
@@ -408,8 +399,12 @@ TEST_F(ConcatRegApiCallUTest, Unaligned_B8) {
 
   std::string result;
   EXPECT_EQ(call.Generate(tpipe, vector<af::AxisId>{}, result), SUCCESS);
-  EXPECT_EQ(result,
-            "const concat::ConcatTiling<2> concat_tiling {\n  .num_rows = static_cast<uint32_t>(t->s0),\n  .num_dst_cols = (((16 + t->s2_1) * 3))/(1),\n  .num_srcs_cols = {((3 * t->s2_1))/(1), 48, },\n};\nuint8_t *concat_src_addrs[] { (uint8_t *)local_0.GetPhyAddr(), (uint8_t *)local_2.GetPhyAddr(), };\nconcat::ConcatExtendDyn<uint8_t, 2, true>((uint8_t *)local_3.GetPhyAddr(), concat_src_addrs, tmp_buf_0, concat_tiling);\n");
+  EXPECT_EQ(
+      result,
+      "const concat::ConcatTiling<2> concat_tiling {\n  .num_rows = static_cast<uint32_t>(t->s0),\n  .num_dst_cols = "
+      "(((16 + t->s2_1) * 3))/(1),\n  .num_srcs_cols = {((3 * t->s2_1))/(1), 48, },\n};\nuint8_t *concat_src_addrs[] { "
+      "(uint8_t *)local_0.GetPhyAddr(), (uint8_t *)local_2.GetPhyAddr(), };\nconcat::ConcatExtendDyn<uint8_t, 2, "
+      "true>((uint8_t *)local_3.GetPhyAddr(), concat_src_addrs, tmp_buf_0, concat_tiling);\n");
 }
 
 TEST_F(ConcatRegApiCallUTest, Unaligned_B8ToB16) {
@@ -444,8 +439,12 @@ TEST_F(ConcatRegApiCallUTest, Unaligned_B8ToB16) {
 
   std::string result;
   EXPECT_EQ(call.Generate(tpipe, vector<af::AxisId>{}, result), SUCCESS);
-  EXPECT_EQ(result,
-            "const concat::ConcatTiling<2> concat_tiling {\n  .num_rows = static_cast<uint32_t>(t->s0),\n  .num_dst_cols = ((16 + t->s2_1))/(1),\n  .num_srcs_cols = {(t->s2_1)/(1), 16, },\n};\nuint16_t *concat_src_addrs[] { (uint16_t *)local_0.GetPhyAddr(), (uint16_t *)local_2.GetPhyAddr(), };\nconcat::ConcatExtendDyn<uint16_t, 2, true>((uint16_t *)local_3.GetPhyAddr(), concat_src_addrs, tmp_buf_0, concat_tiling);\n");
+  EXPECT_EQ(
+      result,
+      "const concat::ConcatTiling<2> concat_tiling {\n  .num_rows = static_cast<uint32_t>(t->s0),\n  .num_dst_cols = "
+      "((16 + t->s2_1))/(1),\n  .num_srcs_cols = {(t->s2_1)/(1), 16, },\n};\nuint16_t *concat_src_addrs[] { (uint16_t "
+      "*)local_0.GetPhyAddr(), (uint16_t *)local_2.GetPhyAddr(), };\nconcat::ConcatExtendDyn<uint16_t, 2, "
+      "true>((uint16_t *)local_3.GetPhyAddr(), concat_src_addrs, tmp_buf_0, concat_tiling);\n");
 }
 
 TEST_F(ConcatRegApiCallUTest, Unaligned_B16) {
@@ -480,8 +479,12 @@ TEST_F(ConcatRegApiCallUTest, Unaligned_B16) {
 
   std::string result;
   EXPECT_EQ(call.Generate(tpipe, vector<af::AxisId>{}, result), SUCCESS);
-  EXPECT_EQ(result,
-            "const concat::ConcatTiling<2> concat_tiling {\n  .num_rows = static_cast<uint32_t>(t->s0),\n  .num_dst_cols = (((16 + t->s2_1) * 2))/(1),\n  .num_srcs_cols = {((2 * t->s2_1))/(1), 32, },\n};\nhalf *concat_src_addrs[] { (half *)local_0.GetPhyAddr(), (half *)local_2.GetPhyAddr(), };\nconcat::ConcatExtendDyn<half, 2, true>((half *)local_3.GetPhyAddr(), concat_src_addrs, tmp_buf_0, concat_tiling);\n");
+  EXPECT_EQ(
+      result,
+      "const concat::ConcatTiling<2> concat_tiling {\n  .num_rows = static_cast<uint32_t>(t->s0),\n  .num_dst_cols = "
+      "(((16 + t->s2_1) * 2))/(1),\n  .num_srcs_cols = {((2 * t->s2_1))/(1), 32, },\n};\nhalf *concat_src_addrs[] { "
+      "(half *)local_0.GetPhyAddr(), (half *)local_2.GetPhyAddr(), };\nconcat::ConcatExtendDyn<half, 2, true>((half "
+      "*)local_3.GetPhyAddr(), concat_src_addrs, tmp_buf_0, concat_tiling);\n");
 }
 
 TEST_F(ConcatRegApiCallUTest, Unaligned_B32) {
@@ -516,8 +519,12 @@ TEST_F(ConcatRegApiCallUTest, Unaligned_B32) {
 
   std::string result;
   EXPECT_EQ(call.Generate(tpipe, vector<af::AxisId>{}, result), SUCCESS);
-  EXPECT_EQ(result,
-            "const concat::ConcatTiling<2> concat_tiling {\n  .num_rows = static_cast<uint32_t>(t->s0),\n  .num_dst_cols = (((16 + t->s2_1) * 2))/(1),\n  .num_srcs_cols = {((2 * t->s2_1))/(1), 32, },\n};\nint32_t *concat_src_addrs[] { (int32_t *)local_0.GetPhyAddr(), (int32_t *)local_2.GetPhyAddr(), };\nconcat::ConcatExtendDyn<int32_t, 2, true>((int32_t *)local_3.GetPhyAddr(), concat_src_addrs, tmp_buf_0, concat_tiling);\n");
+  EXPECT_EQ(
+      result,
+      "const concat::ConcatTiling<2> concat_tiling {\n  .num_rows = static_cast<uint32_t>(t->s0),\n  .num_dst_cols = "
+      "(((16 + t->s2_1) * 2))/(1),\n  .num_srcs_cols = {((2 * t->s2_1))/(1), 32, },\n};\nint32_t *concat_src_addrs[] { "
+      "(int32_t *)local_0.GetPhyAddr(), (int32_t *)local_2.GetPhyAddr(), };\nconcat::ConcatExtendDyn<int32_t, 2, "
+      "true>((int32_t *)local_3.GetPhyAddr(), concat_src_addrs, tmp_buf_0, concat_tiling);\n");
 }
 
 TEST_F(ConcatRegApiCallUTest, Unalign_B64) {
@@ -552,8 +559,12 @@ TEST_F(ConcatRegApiCallUTest, Unalign_B64) {
 
   std::string result;
   EXPECT_EQ(call.Generate(tpipe, vector<af::AxisId>{}, result), SUCCESS);
-  EXPECT_EQ(result,
-            "const concat::ConcatTiling<2> concat_tiling {\n  .num_rows = static_cast<uint32_t>(t->s0),\n  .num_dst_cols = (((16 + t->s2_1) * 4))/(1),\n  .num_srcs_cols = {((4 * t->s2_1))/(1), 64, },\n};\nuint32_t *concat_src_addrs[] { (uint32_t *)local_0.GetPhyAddr(), (uint32_t *)local_2.GetPhyAddr(), };\nconcat::ConcatExtendDyn<uint32_t, 2, true>((uint32_t *)local_3.GetPhyAddr(), concat_src_addrs, tmp_buf_0, concat_tiling);\n");
+  EXPECT_EQ(
+      result,
+      "const concat::ConcatTiling<2> concat_tiling {\n  .num_rows = static_cast<uint32_t>(t->s0),\n  .num_dst_cols = "
+      "(((16 + t->s2_1) * 4))/(1),\n  .num_srcs_cols = {((4 * t->s2_1))/(1), 64, },\n};\nuint32_t *concat_src_addrs[] "
+      "{ (uint32_t *)local_0.GetPhyAddr(), (uint32_t *)local_2.GetPhyAddr(), };\nconcat::ConcatExtendDyn<uint32_t, 2, "
+      "true>((uint32_t *)local_3.GetPhyAddr(), concat_src_addrs, tmp_buf_0, concat_tiling);\n");
 }
 
 TEST_F(ConcatRegApiCallUTest, Unaligned_B32_padded) {
@@ -587,9 +598,11 @@ TEST_F(ConcatRegApiCallUTest, Unaligned_B32_padded) {
   std::string result;
   EXPECT_EQ(call.Generate(tpipe, vector<af::AxisId>{}, result), SUCCESS);
   std::cout << result << std::endl;
-  EXPECT_EQ(
-      result,
-      "const ConcatTilingAllAligned<2> concat_tiling {\n  .dst_col_size = (((16 + t->s2_1) * 8))/(1),\n  .src_col_sizes = { ((8 * t->s2_1))/(1), 128, },\n  .dst_offsets = { 0, ((8 * t->s2_1))/(1), },\n};\nLocalTensor<int32_t> concat_src_tensors[] { local_0, local_2, };\nConcatAllAligned<int32_t, 2>(t->s0, concat_tiling, local_3, concat_src_tensors);\n");
+  EXPECT_EQ(result,
+            "const ConcatTilingAllAligned<2> concat_tiling {\n  .dst_col_size = (((16 + t->s2_1) * 8))/(1),\n  "
+            ".src_col_sizes = { ((8 * t->s2_1))/(1), 128, },\n  .dst_offsets = { 0, ((8 * t->s2_1))/(1), "
+            "},\n};\nLocalTensor<int32_t> concat_src_tensors[] { local_0, local_2, };\nConcatAllAligned<int32_t, "
+            "2>(t->s0, concat_tiling, local_3, concat_src_tensors);\n");
 }
 
 TEST_F(ConcatRegApiCallUTest, Unaligned_B32_padded_concat_last_dim) {
@@ -618,12 +631,16 @@ TEST_F(ConcatRegApiCallUTest, Unaligned_B32_padded_concat_last_dim) {
   call.inputs.push_back(&x1);
   call.inputs.push_back(&x2);
 
-
   std::string result;
   EXPECT_EQ(call.Generate(tpipe, vector<af::AxisId>{}, result), SUCCESS);
   EXPECT_EQ(
       result,
-      "const concat::ConcatTilingPadded<2> concat_tiling {\n  .num_rows = static_cast<uint32_t>(t->s0),\n  .num_dst_cols = ((16 + t->s2_1))/(1),\n  .num_srcs_cols = {(t->s2_1)/(1), 16, },\n  .src_row_strides = {((8 * Ceiling((Rational(1 , 8) * t->s2_1))))/(1), 16, },\n  .src_second_last_dim_strides = {((8 * Ceiling((Rational(1 , 8) * t->s2_1))))/(1), 0, },\n  .gather_mask_dim_sizes = {t->s2_1, 0, },\n};\nint32_t *concat_src_addrs[] { (int32_t *)local_0.GetPhyAddr(), (int32_t *)local_2.GetPhyAddr(), };\nconcat::ConcatExtend<int32_t, 2>((int32_t *)local_3.GetPhyAddr(), concat_src_addrs, tmp_buf_0, concat_tiling);\n");
+      "const concat::ConcatTilingPadded<2> concat_tiling {\n  .num_rows = static_cast<uint32_t>(t->s0),\n  "
+      ".num_dst_cols = ((16 + t->s2_1))/(1),\n  .num_srcs_cols = {(t->s2_1)/(1), 16, },\n  .src_row_strides = {((8 * "
+      "Ceiling((Rational(1 , 8) * t->s2_1))))/(1), 16, },\n  .src_second_last_dim_strides = {((8 * Ceiling((Rational(1 "
+      ", 8) * t->s2_1))))/(1), 0, },\n  .gather_mask_dim_sizes = {t->s2_1, 0, },\n};\nint32_t *concat_src_addrs[] { "
+      "(int32_t *)local_0.GetPhyAddr(), (int32_t *)local_2.GetPhyAddr(), };\nconcat::ConcatExtend<int32_t, 2>((int32_t "
+      "*)local_3.GetPhyAddr(), concat_src_addrs, tmp_buf_0, concat_tiling);\n");
 }
 
 TEST_F(ConcatRegApiCallUTest, OneAxis) {

@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -22,21 +22,18 @@
 
 using namespace ascir;
 
-namespace af{
-REG_OP(Data)
-    .INPUT(x, TensorType::ALL())
-    .OUTPUT(y, TensorType::ALL())
-    .OP_END_FACTORY_REG(Data)
+namespace af {
+REG_OP(Data).INPUT(x, TensorType::ALL()).OUTPUT(y, TensorType::ALL()).OP_END_FACTORY_REG(Data)
 }
 
 REG_OPS_WITH_ATTR(Data)
-  OPS_ATTR_NAME_START()
-    OPS_ATTR_NAME(v)
-  OPS_ATTR_NAME_END()
+OPS_ATTR_NAME_START()
+OPS_ATTR_NAME(v)
+OPS_ATTR_NAME_END()
 
-  OPS_ATTR(v, int64_t)
-  OPS_INPUT(0, x)
-  OPS_OUTPUT(0, y)
+OPS_ATTR(v, int64_t)
+OPS_INPUT(0, x)
+OPS_OUTPUT(0, y)
 END_OPS(Data)
 
 TEST(TestAscir, AscirOperator_ShouldHas_Fields) {
@@ -49,8 +46,8 @@ TEST(TestAscir, AscirOperator_ShouldHas_Fields) {
   data.attr.sched.axis = {0, 1, 2};
 
   data.y.axis = {0, 1, 2};
-  data.y.repeats = {s1/s2, s3/s4};
-  data.y.strides = {s5*s6/s7/s8, s9*s10/s11/s12};
+  data.y.repeats = {s1 / s2, s3 / s4};
+  data.y.strides = {s5 * s6 / s7 / s8, s9 * s10 / s11 / s12};
 
   ascir::Graph graph("test_graph");
   graph.SetInputs({data});
@@ -63,8 +60,8 @@ TEST(TestAscir, AscirOperator_ShouldHas_Fields) {
   auto result_y = result_op->GetOutputDesc(0);
   AttrEq(result_y, data.y.AXIS, {0, 1, 2});
   vector<SizeExpr> result_repeats = data.y.repeats;
-  EXPECT_EQ(result_repeats[0], s1/s2);
-  EXPECT_EQ(result_repeats[1], s3/s4);
+  EXPECT_EQ(result_repeats[0], s1 / s2);
+  EXPECT_EQ(result_repeats[1], s3 / s4);
 
   auto result_node = graph.Find("test_op");
 
@@ -159,21 +156,21 @@ TEST(MonomialSizeExpr, ConstructBySizeVar) {
   ASSERT_EQ(expr.var_dens[0], s1.id);
 }
 
-MonomialSizeExpr MExpr(std::initializer_list<Interger>&& const_nums = {},
-                       std::initializer_list<Interger>&& const_dens = {},
-                       std::initializer_list<SizeVarId>&& var_nums = {},
-                       std::initializer_list<SizeVarId>&& var_dens = {}) {
+MonomialSizeExpr MExpr(std::initializer_list<Interger> &&const_nums = {},
+                       std::initializer_list<Interger> &&const_dens = {},
+                       std::initializer_list<SizeVarId> &&var_nums = {},
+                       std::initializer_list<SizeVarId> &&var_dens = {}) {
   MonomialSizeExpr result;
-  for (auto n: const_nums) {
+  for (auto n : const_nums) {
     result.const_nums.emplace_back(n);
   }
-  for (auto d: const_dens) {
+  for (auto d : const_dens) {
     result.const_dens.emplace_back(d);
   }
-  for (auto n: var_nums) {
+  for (auto n : var_nums) {
     result.var_nums.emplace_back(n);
   }
-  for (auto d: var_dens) {
+  for (auto d : var_dens) {
     result.var_dens.emplace_back(d);
   }
   return result;
@@ -182,24 +179,17 @@ MonomialSizeExpr MExpr(std::initializer_list<Interger>&& const_nums = {},
 TEST(MonomialSizeExpr, Simplify) {
   SizeVarId s0 = 0, s1 = 1, s2 = 2, s3 = 3;
 
-  EXPECT_EQ(MExpr({0}, {1}).Simplify(),
-            MExpr())
-      << "Should convert zero to empty const_nums and empty const_dens";
+  EXPECT_EQ(MExpr({0}, {1}).Simplify(), MExpr()) << "Should convert zero to empty const_nums and empty const_dens";
 
-  EXPECT_EQ(MExpr({2}, {4}).Simplify(),
-            MExpr({1}, {2}))
-      << "Should reduce the fraction to its simplest form";
+  EXPECT_EQ(MExpr({2}, {4}).Simplify(), MExpr({1}, {2})) << "Should reduce the fraction to its simplest form";
 
-  EXPECT_EQ(MExpr({1}, {1}, {s0, s1}, {s0, s2}).Simplify(),
-            MExpr({1}, {1}, {s1}, {s2}))
+  EXPECT_EQ(MExpr({1}, {1}, {s0, s1}, {s0, s2}).Simplify(), MExpr({1}, {1}, {s1}, {s2}))
       << "Should remove common items";
 
-  EXPECT_EQ(MExpr({1}, {1}, {s0, s0, s1}, {s0, s2}).Simplify(),
-            MExpr({1}, {1}, {s0, s1}, {s2}))
+  EXPECT_EQ(MExpr({1}, {1}, {s0, s0, s1}, {s0, s2}).Simplify(), MExpr({1}, {1}, {s0, s1}, {s2}))
       << "Should remove common items only one times";
 
-  EXPECT_EQ(MExpr({1}, {1}, {s1, s0}, {s3, s2}).Simplify(),
-            MExpr({1}, {1}, {s0, s1}, {s2, s3}))
+  EXPECT_EQ(MExpr({1}, {1}, {s1, s0}, {s3, s2}).Simplify(), MExpr({1}, {1}, {s0, s1}, {s2, s3}))
       << "Should sort var_nums and var_dens";
 }
 
@@ -214,143 +204,75 @@ TEST(MonomialSizeExpr, Divide) {
   EXPECT_EQ(MExpr({4}, {1}) /= 2, MExpr({2}, {1}));
   EXPECT_EQ(MExpr() /= 2, MExpr());
 
-  EXPECT_EQ(MExpr({1}, {1}) / MExpr({2}, {1}),
-            MExpr({1}, {2}))
-      << "1 / 2 == 1/2";
-  EXPECT_EQ(MExpr({2}, {1}) / MExpr({4}, {1}),
-            MExpr({1}, {2}))
-      << "2 / 4 == 1/2";
-  EXPECT_EQ(MExpr({1}, {1}) / MExpr({1}, {4}),
-            MExpr({4}, {1}))
-      << "1 / 1/4 = 4";
-  EXPECT_EQ(MExpr({2}, {5}) / MExpr({1}, {10}),
-            MExpr({4}, {1}))
-      << "2/5 / 1/10 = 4";
-  EXPECT_EQ(MExpr() / MExpr({1}, {10}),
-            MExpr())
-      << "0 / 1/10 = 0";
+  EXPECT_EQ(MExpr({1}, {1}) / MExpr({2}, {1}), MExpr({1}, {2})) << "1 / 2 == 1/2";
+  EXPECT_EQ(MExpr({2}, {1}) / MExpr({4}, {1}), MExpr({1}, {2})) << "2 / 4 == 1/2";
+  EXPECT_EQ(MExpr({1}, {1}) / MExpr({1}, {4}), MExpr({4}, {1})) << "1 / 1/4 = 4";
+  EXPECT_EQ(MExpr({2}, {5}) / MExpr({1}, {10}), MExpr({4}, {1})) << "2/5 / 1/10 = 4";
+  EXPECT_EQ(MExpr() / MExpr({1}, {10}), MExpr()) << "0 / 1/10 = 0";
 
-  EXPECT_EQ(MExpr({1}, {1}) /= MExpr({2}, {1}),
-            MExpr({1}, {2}))
-      << "1 / 2 == 1/2";
-  EXPECT_EQ(MExpr({2}, {1}) /= MExpr({4}, {1}),
-            MExpr({1}, {2}))
-      << "2 / 4 == 1/2";
-  EXPECT_EQ(MExpr({1}, {1}) /= MExpr({1}, {4}),
-            MExpr({4}, {1}))
-      << "1 / 1/4 = 4";
-  EXPECT_EQ(MExpr({2}, {5}) /= MExpr({1}, {10}),
-            MExpr({4}, {1}))
-      << "2/5 / 1/10 = 4";
-  EXPECT_EQ(MExpr() /= MExpr({1}, {10}),
-            MExpr())
-      << "0 / 1/10 = 0";
+  EXPECT_EQ(MExpr({1}, {1}) /= MExpr({2}, {1}), MExpr({1}, {2})) << "1 / 2 == 1/2";
+  EXPECT_EQ(MExpr({2}, {1}) /= MExpr({4}, {1}), MExpr({1}, {2})) << "2 / 4 == 1/2";
+  EXPECT_EQ(MExpr({1}, {1}) /= MExpr({1}, {4}), MExpr({4}, {1})) << "1 / 1/4 = 4";
+  EXPECT_EQ(MExpr({2}, {5}) /= MExpr({1}, {10}), MExpr({4}, {1})) << "2/5 / 1/10 = 4";
+  EXPECT_EQ(MExpr() /= MExpr({1}, {10}), MExpr()) << "0 / 1/10 = 0";
 
-  EXPECT_EQ(MExpr({1}, {1}, {s0}) / MExpr({1}, {1}, {s1}),
-            MExpr({1}, {1}, {s0}, {s1}))
-      << "s0 / s1 == s0/s1";
-  EXPECT_EQ(MExpr({1}, {1}, {s0}) / MExpr({1}, {1}, {}, {s1}),
-            MExpr({1}, {1}, {s0, s1}))
-      << "s0 / 1/s1 == s0*s1";
+  EXPECT_EQ(MExpr({1}, {1}, {s0}) / MExpr({1}, {1}, {s1}), MExpr({1}, {1}, {s0}, {s1})) << "s0 / s1 == s0/s1";
+  EXPECT_EQ(MExpr({1}, {1}, {s0}) / MExpr({1}, {1}, {}, {s1}), MExpr({1}, {1}, {s0, s1})) << "s0 / 1/s1 == s0*s1";
 
-  EXPECT_EQ(MExpr({1}, {1}, {s0}) /= MExpr({1}, {1}, {s1}),
-            MExpr({1}, {1}, {s0}, {s1}))
-      << "s0 / s1 == s0/s1";
-  EXPECT_EQ(MExpr({1}, {1}, {s0}) /= MExpr({1}, {1}, {}, {s1}),
-            MExpr({1}, {1}, {s0, s1}))
-      << "s0 / 1/s1 == s0*s1";
+  EXPECT_EQ(MExpr({1}, {1}, {s0}) /= MExpr({1}, {1}, {s1}), MExpr({1}, {1}, {s0}, {s1})) << "s0 / s1 == s0/s1";
+  EXPECT_EQ(MExpr({1}, {1}, {s0}) /= MExpr({1}, {1}, {}, {s1}), MExpr({1}, {1}, {s0, s1})) << "s0 / 1/s1 == s0*s1";
 
-  ASSERT_ANY_THROW(MonomialSizeExpr(1) / 0)
-      << "Should assert Divide by zero";
-  ASSERT_ANY_THROW(MonomialSizeExpr(1) /= 0)
-      << "Should assert Divide by zero";
-  ASSERT_ANY_THROW(MonomialSizeExpr(1) / MonomialSizeExpr(0))
-      << "Should assert Divide by zero";
-  ASSERT_ANY_THROW(MonomialSizeExpr(1) /= MonomialSizeExpr(0))
-      << "Should assert Divide by zero";
+  ASSERT_ANY_THROW(MonomialSizeExpr(1) / 0) << "Should assert Divide by zero";
+  ASSERT_ANY_THROW(MonomialSizeExpr(1) /= 0) << "Should assert Divide by zero";
+  ASSERT_ANY_THROW(MonomialSizeExpr(1) / MonomialSizeExpr(0)) << "Should assert Divide by zero";
+  ASSERT_ANY_THROW(MonomialSizeExpr(1) /= MonomialSizeExpr(0)) << "Should assert Divide by zero";
 }
 
 TEST(MonomialSizeExpr, MultiplyBy_MonomialSizeExpr) {
   SizeVarId s0 = 0, s1 = 1;
 
-  EXPECT_EQ(MExpr({1}, {1}) * 2, MExpr({2}, {1}))
-      << "1 * 2 == 2";
-  EXPECT_EQ(MExpr({1}, {1}) * 0, MExpr())
-      << "1 * 0 == 0";
-  EXPECT_EQ(MExpr() * 2, MExpr())
-      << "0 * 2 == 0";
+  EXPECT_EQ(MExpr({1}, {1}) * 2, MExpr({2}, {1})) << "1 * 2 == 2";
+  EXPECT_EQ(MExpr({1}, {1}) * 0, MExpr()) << "1 * 0 == 0";
+  EXPECT_EQ(MExpr() * 2, MExpr()) << "0 * 2 == 0";
 
-  EXPECT_EQ(MExpr({1}, {1}) *= 2, MExpr({2}, {1}))
-      << "1 * 2 == 2";
-  EXPECT_EQ(MExpr({1}, {1}) *= 0, MExpr())
-      << "1 * 0 == 0";
-  EXPECT_EQ(MExpr() *= 2, MExpr())
-      << "0 * 2 == 0";
+  EXPECT_EQ(MExpr({1}, {1}) *= 2, MExpr({2}, {1})) << "1 * 2 == 2";
+  EXPECT_EQ(MExpr({1}, {1}) *= 0, MExpr()) << "1 * 0 == 0";
+  EXPECT_EQ(MExpr() *= 2, MExpr()) << "0 * 2 == 0";
 
-  EXPECT_EQ(MExpr({1}, {1}) * MExpr(), MExpr())
-      << "1 * 0 == 0";
-  EXPECT_EQ(MExpr({1}, {1}) * MExpr({2}, {1}),
-          MExpr({2}, {1}))
-      << "1 * 2 == 2";
-  EXPECT_EQ(MExpr({1}, {1}) * MExpr({1}, {2}),
-          MExpr({1}, {2}))
-      << "1 * 1/2 == 1/2";
-  EXPECT_EQ(MExpr({2}, {1}) * MExpr({1}, {2}),
-          MExpr({1}, {1}))
-      << "2 * 1/2 == 1";
-  EXPECT_EQ(MExpr() * MExpr({2}, {1}),
-          MExpr())
-      << "0 * 2 == 0";
+  EXPECT_EQ(MExpr({1}, {1}) * MExpr(), MExpr()) << "1 * 0 == 0";
+  EXPECT_EQ(MExpr({1}, {1}) * MExpr({2}, {1}), MExpr({2}, {1})) << "1 * 2 == 2";
+  EXPECT_EQ(MExpr({1}, {1}) * MExpr({1}, {2}), MExpr({1}, {2})) << "1 * 1/2 == 1/2";
+  EXPECT_EQ(MExpr({2}, {1}) * MExpr({1}, {2}), MExpr({1}, {1})) << "2 * 1/2 == 1";
+  EXPECT_EQ(MExpr() * MExpr({2}, {1}), MExpr()) << "0 * 2 == 0";
 
-  EXPECT_EQ(MExpr({1}, {1}) *= MExpr(), MExpr())
-      << "1 * 0 == 0";
-  EXPECT_EQ(MExpr({1}, {1}) *= MExpr({2}, {1}),
-          MExpr({2}, {1}))
-      << "1 * 2 == 2";
-  EXPECT_EQ(MExpr({1}, {1}) *= MExpr({1}, {2}),
-          MExpr({1}, {2}))
-      << "1 * 1/2 == 1/2";
-  EXPECT_EQ(MExpr({2}, {1}) *= MExpr({1}, {2}),
-          MExpr({1}, {1}))
-      << "2 * 1/2 == 1";
-  EXPECT_EQ(MExpr() *= MExpr({2}, {1}),
-          MExpr())
-      << "0 * 2 == 0";
+  EXPECT_EQ(MExpr({1}, {1}) *= MExpr(), MExpr()) << "1 * 0 == 0";
+  EXPECT_EQ(MExpr({1}, {1}) *= MExpr({2}, {1}), MExpr({2}, {1})) << "1 * 2 == 2";
+  EXPECT_EQ(MExpr({1}, {1}) *= MExpr({1}, {2}), MExpr({1}, {2})) << "1 * 1/2 == 1/2";
+  EXPECT_EQ(MExpr({2}, {1}) *= MExpr({1}, {2}), MExpr({1}, {1})) << "2 * 1/2 == 1";
+  EXPECT_EQ(MExpr() *= MExpr({2}, {1}), MExpr()) << "0 * 2 == 0";
 
-  EXPECT_EQ(MExpr({1}, {1}) * MExpr({1}, {1}, {s0}),
-          MExpr({1}, {1}, {s0}))
-      << "1 * s0 == s0";
-  EXPECT_EQ(MExpr({1}, {1}) * MExpr({1}, {1}, {}, {s0}),
-          MExpr({1}, {1}, {}, {s0}))
-      << "1 * 1/s0 == 1/s0";
-  EXPECT_EQ(MExpr({1}, {1}, {s0}) * MExpr({1}, {1}, {}, {s0}),
-          MExpr({1}, {1}))
-      << "s0 * 1/s0 == 1";
+  EXPECT_EQ(MExpr({1}, {1}) * MExpr({1}, {1}, {s0}), MExpr({1}, {1}, {s0})) << "1 * s0 == s0";
+  EXPECT_EQ(MExpr({1}, {1}) * MExpr({1}, {1}, {}, {s0}), MExpr({1}, {1}, {}, {s0})) << "1 * 1/s0 == 1/s0";
+  EXPECT_EQ(MExpr({1}, {1}, {s0}) * MExpr({1}, {1}, {}, {s0}), MExpr({1}, {1})) << "s0 * 1/s0 == 1";
 
-  EXPECT_EQ(MExpr({1}, {1}) *= MExpr({1}, {1}, {s0}),
-          MExpr({1}, {1}, {s0}))
-      << "1 * s0 == s0";
-  EXPECT_EQ(MExpr({1}, {1}) *= MExpr({1}, {1}, {}, {s0}),
-          MExpr({1}, {1}, {}, {s0}))
-      << "1 * 1/s0 == 1/s0";
-  EXPECT_EQ(MExpr({1}, {1}, {s0}) *= MExpr({1}, {1}, {}, {s0}),
-          MExpr({1}, {1}))
-      << "s0 * 1/s0 == 1";
+  EXPECT_EQ(MExpr({1}, {1}) *= MExpr({1}, {1}, {s0}), MExpr({1}, {1}, {s0})) << "1 * s0 == s0";
+  EXPECT_EQ(MExpr({1}, {1}) *= MExpr({1}, {1}, {}, {s0}), MExpr({1}, {1}, {}, {s0})) << "1 * 1/s0 == 1/s0";
+  EXPECT_EQ(MExpr({1}, {1}, {s0}) *= MExpr({1}, {1}, {}, {s0}), MExpr({1}, {1})) << "s0 * 1/s0 == 1";
 }
 
 TEST(PolynomialSizeExpr, CombineLikeItems) {
-  SizeVarId s0=0, s1=1;
+  SizeVarId s0 = 0, s1 = 1;
 
-  EXPECT_EQ(PolynomialSizeExpr({MExpr({3},{5}), MExpr({3},{10})}).CombineLikeItems(),
-            PolynomialSizeExpr(MExpr({9},{10})))
+  EXPECT_EQ(PolynomialSizeExpr({MExpr({3}, {5}), MExpr({3}, {10})}).CombineLikeItems(),
+            PolynomialSizeExpr(MExpr({9}, {10})))
       << "3/5 + 3/10 = 9/10";
 
-  EXPECT_EQ(PolynomialSizeExpr({MExpr({1}, {1}, {s0}), MExpr({1},{1},{s0})}).CombineLikeItems(),
-            PolynomialSizeExpr(MExpr({2},{1},{s0})))
+  EXPECT_EQ(PolynomialSizeExpr({MExpr({1}, {1}, {s0}), MExpr({1}, {1}, {s0})}).CombineLikeItems(),
+            PolynomialSizeExpr(MExpr({2}, {1}, {s0})))
       << "s0 + s0 == 2s0";
 
   EXPECT_EQ(PolynomialSizeExpr({MExpr({1}, {4}, {s0}), MExpr({1}, {4}, {s0})}).CombineLikeItems(),
-            PolynomialSizeExpr({MExpr({1},{2},{s0})}))
+            PolynomialSizeExpr({MExpr({1}, {2}, {s0})}))
       << "1/4*s0 +1/4*s0 = 1/2*s0";
 
   EXPECT_EQ(PolynomialSizeExpr({MExpr({1}, {1}, {s1}), MExpr({1}, {1}, {s0})}).CombineLikeItems(),
@@ -370,17 +292,13 @@ TEST(PolynomialSizeExpr, Add) {
   // PolynomialSizeExpr add Interger
   EXPECT_EQ(P(10) + 10, P(20));
   EXPECT_EQ(P(10) + 0, P(10));
-  EXPECT_EQ(P(s0) + 10,
-            P({M(10), M(s0)}));
+  EXPECT_EQ(P(s0) + 10, P({M(10), M(s0)}));
 
   // PolynomialSizeExpr add MonomialSizeExpr
   EXPECT_EQ(P(10) + M(s0), P({M(10), M(s0)}));
 
   // PolynomialSizeExpr add PolynomialSizeExpr
-  EXPECT_EQ((P({M{s0}, M(10)})
-            + P({M(s1), M(20)})),
-            P({M(30), M(s0), M(s1)})
-            );
+  EXPECT_EQ((P({M{s0}, M(10)}) + P({M(s1), M(20)})), P({M(30), M(s0), M(s1)}));
 
   // using operator
   EXPECT_EQ(s0 + 10, P({M(10), M(s0)}));
@@ -394,15 +312,15 @@ TEST(PolynomialSizeExpr, Add) {
 TEST(PolynomialSizeExpr, Divide) {
   SizeVar s0{0}, s1{1}, s2{2}, s3{3};
 
-  EXPECT_EQ((s0 + s1) / 2, PolynomialSizeExpr({s0/2, s1/2}));
-  EXPECT_EQ((s0 + s1) / MonomialSizeExpr(2), PolynomialSizeExpr({s0/2, s1/2}));
-  EXPECT_EQ((s0 + s1) / PolynomialSizeExpr(2), PolynomialSizeExpr({s0/2, s1/2}));
-  EXPECT_EQ((s0 + s1) / MExpr({1},{2}), PolynomialSizeExpr({2*s0, 2*s1}));
-  EXPECT_EQ((s0 + s1) / s1, 1 + s0/s1);
-  EXPECT_EQ((s0 + s1) / (1 / s1), s0*s1 + s1*s1);
+  EXPECT_EQ((s0 + s1) / 2, PolynomialSizeExpr({s0 / 2, s1 / 2}));
+  EXPECT_EQ((s0 + s1) / MonomialSizeExpr(2), PolynomialSizeExpr({s0 / 2, s1 / 2}));
+  EXPECT_EQ((s0 + s1) / PolynomialSizeExpr(2), PolynomialSizeExpr({s0 / 2, s1 / 2}));
+  EXPECT_EQ((s0 + s1) / MExpr({1}, {2}), PolynomialSizeExpr({2 * s0, 2 * s1}));
+  EXPECT_EQ((s0 + s1) / s1, 1 + s0 / s1);
+  EXPECT_EQ((s0 + s1) / (1 / s1), s0 * s1 + s1 * s1);
 
-  EXPECT_EQ((s0 + s1) / (s2 + s3), (s0/s2 + s0/s3 + s1/s2 + s1/s3));
-  EXPECT_EQ((s0 + s1) / (1/s2 + 1/s3), (s0*s2 + s0*s3 + s1*s2 + s1*s3));
+  EXPECT_EQ((s0 + s1) / (s2 + s3), (s0 / s2 + s0 / s3 + s1 / s2 + s1 / s3));
+  EXPECT_EQ((s0 + s1) / (1 / s2 + 1 / s3), (s0 * s2 + s0 * s3 + s1 * s2 + s1 * s3));
 
   EXPECT_EQ(PolynomialSizeExpr() / 2, PolynomialSizeExpr());
   EXPECT_EQ(PolynomialSizeExpr() / s0, PolynomialSizeExpr());
@@ -413,15 +331,15 @@ TEST(PolynomialSizeExpr, Divide) {
   ASSERT_ANY_THROW((s0 + s1) / MonomialSizeExpr());
   ASSERT_ANY_THROW((s0 + s1) / PolynomialSizeExpr());
 
-  EXPECT_EQ((s0 + s1) /= 2, PolynomialSizeExpr({s0/2, s1/2}));
-  EXPECT_EQ((s0 + s1) /= MonomialSizeExpr(2), PolynomialSizeExpr({s0/2, s1/2}));
-  EXPECT_EQ((s0 + s1) /= PolynomialSizeExpr(2), PolynomialSizeExpr({s0/2, s1/2}));
-  EXPECT_EQ((s0 + s1) /= MExpr({1},{2}), PolynomialSizeExpr({2*s0, 2*s1}));
-  EXPECT_EQ((s0 + s1) /= s1, 1 + s0/s1);
-  EXPECT_EQ((s0 + s1) /= (1 / s1), s0*s1 + s1*s1);
+  EXPECT_EQ((s0 + s1) /= 2, PolynomialSizeExpr({s0 / 2, s1 / 2}));
+  EXPECT_EQ((s0 + s1) /= MonomialSizeExpr(2), PolynomialSizeExpr({s0 / 2, s1 / 2}));
+  EXPECT_EQ((s0 + s1) /= PolynomialSizeExpr(2), PolynomialSizeExpr({s0 / 2, s1 / 2}));
+  EXPECT_EQ((s0 + s1) /= MExpr({1}, {2}), PolynomialSizeExpr({2 * s0, 2 * s1}));
+  EXPECT_EQ((s0 + s1) /= s1, 1 + s0 / s1);
+  EXPECT_EQ((s0 + s1) /= (1 / s1), s0 * s1 + s1 * s1);
 
-  EXPECT_EQ((s0 + s1) /= (s2 + s3), (s0/s2 + s0/s3 + s1/s2 + s1/s3));
-  EXPECT_EQ((s0 + s1) /= (1/s2 + 1/s3), (s0*s2 + s0*s3 + s1*s2 + s1*s3));
+  EXPECT_EQ((s0 + s1) /= (s2 + s3), (s0 / s2 + s0 / s3 + s1 / s2 + s1 / s3));
+  EXPECT_EQ((s0 + s1) /= (1 / s2 + 1 / s3), (s0 * s2 + s0 * s3 + s1 * s2 + s1 * s3));
 
   EXPECT_EQ(PolynomialSizeExpr() /= 2, PolynomialSizeExpr());
   EXPECT_EQ(PolynomialSizeExpr() /= s0, 0);
@@ -436,15 +354,15 @@ TEST(PolynomialSizeExpr, Divide) {
 TEST(PolynomialSizeExpr, Multiply) {
   SizeVar s0{0}, s1{1}, s2{2}, s3{3};
 
-  EXPECT_EQ((s0 + s1) * 2, PolynomialSizeExpr({s0*2, s1*2}));
-  EXPECT_EQ((s0 + s1) * MonomialSizeExpr(2), PolynomialSizeExpr({s0*2, s1*2}));
-  EXPECT_EQ((s0 + s1) * PolynomialSizeExpr(2), PolynomialSizeExpr({s0*2, s1*2}));
-  EXPECT_EQ((s0 + s1) * MExpr({1},{2}), PolynomialSizeExpr({s0/2, s1/2}));
-  EXPECT_EQ((s0 + s1) * s1, s0*s1 + s1*s1);
-  EXPECT_EQ((s0 + s1) * (1 / s1), 1 + s0/s1);
+  EXPECT_EQ((s0 + s1) * 2, PolynomialSizeExpr({s0 * 2, s1 * 2}));
+  EXPECT_EQ((s0 + s1) * MonomialSizeExpr(2), PolynomialSizeExpr({s0 * 2, s1 * 2}));
+  EXPECT_EQ((s0 + s1) * PolynomialSizeExpr(2), PolynomialSizeExpr({s0 * 2, s1 * 2}));
+  EXPECT_EQ((s0 + s1) * MExpr({1}, {2}), PolynomialSizeExpr({s0 / 2, s1 / 2}));
+  EXPECT_EQ((s0 + s1) * s1, s0 * s1 + s1 * s1);
+  EXPECT_EQ((s0 + s1) * (1 / s1), 1 + s0 / s1);
 
-  EXPECT_EQ((s0 + s1) * (s2 + s3), (s0*s2 + s0*s3 + s1*s2 + s1*s3));
-  EXPECT_EQ((s0 + s1) * (1/s2 + 1/s3), (s0/s2 + s0/s3 + s1/s2 + s1/s3));
+  EXPECT_EQ((s0 + s1) * (s2 + s3), (s0 * s2 + s0 * s3 + s1 * s2 + s1 * s3));
+  EXPECT_EQ((s0 + s1) * (1 / s2 + 1 / s3), (s0 / s2 + s0 / s3 + s1 / s2 + s1 / s3));
 
   EXPECT_EQ(PolynomialSizeExpr() * 2, PolynomialSizeExpr());
   EXPECT_EQ(PolynomialSizeExpr() * s0, PolynomialSizeExpr());
@@ -455,15 +373,15 @@ TEST(PolynomialSizeExpr, Multiply) {
   EXPECT_EQ((s0 + s1) * MonomialSizeExpr(), PolynomialSizeExpr());
   EXPECT_EQ((s0 + s1) * PolynomialSizeExpr(), PolynomialSizeExpr());
 
-  EXPECT_EQ((s0 + s1) *= 2, PolynomialSizeExpr({s0*2, s1*2}));
-  EXPECT_EQ((s0 + s1) *= MonomialSizeExpr(2), PolynomialSizeExpr({s0*2, s1*2}));
-  EXPECT_EQ((s0 + s1) *= PolynomialSizeExpr(2), PolynomialSizeExpr({s0*2, s1*2}));
-  EXPECT_EQ((s0 + s1) *= MExpr({1},{2}), PolynomialSizeExpr({s0/2, s1/2}));
-  EXPECT_EQ((s0 + s1) *= s1, s0*s1 + s1*s1);
-  EXPECT_EQ((s0 + s1) *= (1 / s1), 1 + s0/s1);
+  EXPECT_EQ((s0 + s1) *= 2, PolynomialSizeExpr({s0 * 2, s1 * 2}));
+  EXPECT_EQ((s0 + s1) *= MonomialSizeExpr(2), PolynomialSizeExpr({s0 * 2, s1 * 2}));
+  EXPECT_EQ((s0 + s1) *= PolynomialSizeExpr(2), PolynomialSizeExpr({s0 * 2, s1 * 2}));
+  EXPECT_EQ((s0 + s1) *= MExpr({1}, {2}), PolynomialSizeExpr({s0 / 2, s1 / 2}));
+  EXPECT_EQ((s0 + s1) *= s1, s0 * s1 + s1 * s1);
+  EXPECT_EQ((s0 + s1) *= (1 / s1), 1 + s0 / s1);
 
-  EXPECT_EQ((s0 + s1) *= (s2 + s3), (s0*s2 + s0*s3 + s1*s2 + s1*s3));
-  EXPECT_EQ((s0 + s1) *= (1/s2 + 1/s3), (s0/s2 + s0/s3 + s1/s2 + s1/s3));
+  EXPECT_EQ((s0 + s1) *= (s2 + s3), (s0 * s2 + s0 * s3 + s1 * s2 + s1 * s3));
+  EXPECT_EQ((s0 + s1) *= (1 / s2 + 1 / s3), (s0 / s2 + s0 / s3 + s1 / s2 + s1 / s3));
 
   EXPECT_EQ(PolynomialSizeExpr() *= 2, PolynomialSizeExpr());
   EXPECT_EQ(PolynomialSizeExpr() *= s0, PolynomialSizeExpr());
@@ -501,13 +419,13 @@ TEST(Ascir, ListPolynomialSizeExpr_SaveToAttr) {
 
   SizeVar s0{0}, s1{1}, s2{2}, s3{3};
   std::vector exprs = {
-    PolynomialSizeExpr(),
-    PolynomialSizeExpr(2),
-    PolynomialSizeExpr(1) / 2,
-    s0 + s1,
-    1 + s0 + s1,
-    s0 * s1 + s2, // 分子分母数量不同
-    s0 * s1 / s2 + s3 / s0 * s1, // 分子分母数量不同
+      PolynomialSizeExpr(),
+      PolynomialSizeExpr(2),
+      PolynomialSizeExpr(1) / 2,
+      s0 + s1,
+      1 + s0 + s1,
+      s0 * s1 + s2,                 // 分子分母数量不同
+      s0 * s1 / s2 + s3 / s0 * s1,  // 分子分母数量不同
   };
 
   attrs.exprs = exprs;
@@ -519,8 +437,8 @@ TEST(Ascir, ListPolynomialSizeExpr_SaveToAttr) {
   EXPECT_EQ(*iter++, PolynomialSizeExpr(1) / 2);
   EXPECT_EQ(*iter++, s0 + s1);
   EXPECT_EQ(*iter++, 1 + s0 + s1);
-  EXPECT_EQ(*iter++, s0 * s1 + s2); // 分子分母数量不同
-  EXPECT_EQ(*iter++, s0 * s1 / s2 + s3 / s0 * s1); // 分子分母数量不同
+  EXPECT_EQ(*iter++, s0 * s1 + s2);                 // 分子分母数量不同
+  EXPECT_EQ(*iter++, s0 * s1 / s2 + s3 / s0 * s1);  // 分子分母数量不同
 }
 
 TEST(Ascir_AxisOperations, CreateSize_WillSetSizeTable_ToGraphAttr) {
@@ -612,7 +530,7 @@ TEST(Ascir_AxisOperations, BlockSplit_WillCreate_BlockOutAndInAxis) {
   EXPECT_EQ(result_z0_out.type, ascir::Axis::Type::kAxisTypeBlockOuter);
   ASSERT_EQ(result_z0_out.from.size(), 1);
   EXPECT_EQ(result_z0_out.from[0], z0.id);
-  EXPECT_EQ(result_z0_out.size, s0/block_size);
+  EXPECT_EQ(result_z0_out.size, s0 / block_size);
   EXPECT_EQ(result_z0_out.split_peer, result_z0_in.id);
 
   EXPECT_EQ(block_size.name, "z0b_size");
@@ -640,7 +558,7 @@ TEST(Ascir_AxisOperations, TileSplit_WillCreate_TileOutAndInAxis) {
   EXPECT_EQ(result_z0_out.type, ascir::Axis::Type::kAxisTypeTileOuter);
   ASSERT_EQ(result_z0_out.from.size(), 1);
   EXPECT_EQ(result_z0_out.from[0], z0.id);
-  EXPECT_EQ(result_z0_out.size, s0/tile_size);
+  EXPECT_EQ(result_z0_out.size, s0 / tile_size);
   EXPECT_EQ(result_z0_out.split_peer, result_z0_in.id);
 
   EXPECT_EQ(tile_size.name, "z0t_size");
@@ -654,8 +572,8 @@ TEST(Ascir_AxisOperations, MergeAxis_WillCreate_MergedAxis) {
   auto s2 = graph.CreateSizeVar("s2");
   auto s3 = graph.CreateSizeVar("s3");
 
-  auto z0 = graph.CreateAxis("z0", s0/s1);
-  auto z1 = graph.CreateAxis("z1", s2/s3);
+  auto z0 = graph.CreateAxis("z0", s0 / s1);
+  auto z1 = graph.CreateAxis("z1", s2 / s3);
 
   auto z3 = graph.MergeAxis({z0.id, z1.id});
 
@@ -665,7 +583,7 @@ TEST(Ascir_AxisOperations, MergeAxis_WillCreate_MergedAxis) {
   EXPECT_EQ(result_z3.from.size(), 2);
   EXPECT_EQ(result_z3.from[0], z0.id);
   EXPECT_EQ(result_z3.from[1], z1.id);
-  EXPECT_EQ(result_z3.size, s0/s1*s2/s3);
+  EXPECT_EQ(result_z3.size, s0 / s1 * s2 / s3);
 }
 
 TEST(Ascir_AxisOperations, ApplySplit_OnNode_WillSplitNodeAxis) {
@@ -798,7 +716,7 @@ TEST(Ascir_AxisOperations, ApplyReorder_OnNode_WillChangeAxisAndStrideOrder) {
   data.attr.sched.axis = {z0.id, z1.id, z2.id};
   data.y.axis = {z0.id, z1.id, z2.id};
   data.y.repeats = {s0, s1, s2};
-  data.y.strides = {s1*s2, s2, 1};
+  data.y.strides = {s1 * s2, s2, 1};
   graph.SetInputs({data});
 
   auto result_op = graph.Find("test_op");
@@ -814,7 +732,7 @@ TEST(Ascir_AxisOperations, ApplyReorder_OnNode_WillChangeAxisAndStrideOrder) {
   EXPECT_EQ(result_op.outputs[0].strides[0], 1);
   EXPECT_EQ(result_op.outputs[0].axis[1], z0.id);
   EXPECT_EQ(result_op.outputs[0].repeats[1], z0.size);
-  EXPECT_EQ(result_op.outputs[0].strides[1], s1*s2);
+  EXPECT_EQ(result_op.outputs[0].strides[1], s1 * s2);
   EXPECT_EQ(result_op.outputs[0].axis[2], z1.id);
   EXPECT_EQ(result_op.outputs[0].repeats[2], z1.size);
   EXPECT_EQ(result_op.outputs[0].strides[2], s2);
@@ -917,7 +835,7 @@ TEST(Ascir_Utils, DebugHintGraphStr_WillShowAxisInfo) {
   auto s1 = graph.CreateSizeVar("s1", 100);
   auto s0_block = graph.CreateSizeVar("s0_block", 100);
 
-  auto z0_out = graph.CreateAxis("z0_out", s0/s0_block);
+  auto z0_out = graph.CreateAxis("z0_out", s0 / s0_block);
   auto z0_in = graph.CreateAxis("z0_in", s0_block);
   auto z1 = graph.CreateAxis("z1", s1);
 
@@ -936,28 +854,29 @@ TEST(Ascir_Utils, DebugHintGraphStr_WillShowAxisInfo) {
   data.y.strides = {s0_block * s1, s1, 1};
 
   auto result_str = ascir::utils::DebugHintGraphStr(graph);
-  EXPECT_EQ(result_str, string{"Graph: test_graph\n"
-                               "Sizes:\n"
-                               "  s0: VAR\n"
-                               "  s1: CONST(100)\n"
-                               "  s0_block: CONST(100)\n"
-                               "Axis:\n"
-                               "  z0_out: s0 / s0_block, ORIGINAL, align: 1, allow_oversize_axis: 0, allow_unaligned_tail: 1\n"
-                               "  z0_in: s0_block, ORIGINAL, align: 1, allow_oversize_axis: 0, allow_unaligned_tail: 1\n"
-                               "  z1: s1, ORIGINAL, align: 1, allow_oversize_axis: 0, allow_unaligned_tail: 1\n"
-                               "Sparse:\n"
-                               "  type: OBLIQUE_BAND, value: {pre: {z0_out, s0}, next: {z0_in, s1}}\n"
-                               "Nodes:\n"
-                               "  test_op: Data (0)\n"
-                               "    .axis = {z0_out, z0_in, z1, }\n"
-                               "    .hint:\n"
-                               "      .compute_type = data\n"
-                               "    .x = nil\n"
-                               "    .y.dtype = float32\n"
-                               "    .y.axis = {z0_out, z0_in, z1, }\n"
-                               "    .y.repeats = {s0 / s0_block, s0_block, s1, }\n"
-                               "    .y.strides = {s1 * s0_block, s1, 1, }\n"
-                               "    .y.vectorized_axis = {}\n"});
+  EXPECT_EQ(result_str,
+            string{"Graph: test_graph\n"
+                   "Sizes:\n"
+                   "  s0: VAR\n"
+                   "  s1: CONST(100)\n"
+                   "  s0_block: CONST(100)\n"
+                   "Axis:\n"
+                   "  z0_out: s0 / s0_block, ORIGINAL, align: 1, allow_oversize_axis: 0, allow_unaligned_tail: 1\n"
+                   "  z0_in: s0_block, ORIGINAL, align: 1, allow_oversize_axis: 0, allow_unaligned_tail: 1\n"
+                   "  z1: s1, ORIGINAL, align: 1, allow_oversize_axis: 0, allow_unaligned_tail: 1\n"
+                   "Sparse:\n"
+                   "  type: OBLIQUE_BAND, value: {pre: {z0_out, s0}, next: {z0_in, s1}}\n"
+                   "Nodes:\n"
+                   "  test_op: Data (0)\n"
+                   "    .axis = {z0_out, z0_in, z1, }\n"
+                   "    .hint:\n"
+                   "      .compute_type = data\n"
+                   "    .x = nil\n"
+                   "    .y.dtype = float32\n"
+                   "    .y.axis = {z0_out, z0_in, z1, }\n"
+                   "    .y.repeats = {s0 / s0_block, s0_block, s1, }\n"
+                   "    .y.strides = {s1 * s0_block, s1, 1, }\n"
+                   "    .y.vectorized_axis = {}\n"});
 }
 
 TEST(Ascir_Utils, DebugImplGraphStr) {
@@ -969,7 +888,7 @@ TEST(Ascir_Utils, DebugImplGraphStr) {
   auto s1 = graph.CreateSizeVar("s1", 100);
   auto s0_block = graph.CreateSizeVar("s0_block", 100);
 
-  auto z0_out = graph.CreateAxis("z0_out", s0/s0_block);
+  auto z0_out = graph.CreateAxis("z0_out", s0 / s0_block);
   auto z0_in = graph.CreateAxis("z0_in", s0_block);
   auto z1 = graph.CreateAxis("z1", s1);
 
@@ -996,44 +915,43 @@ TEST(Ascir_Utils, DebugImplGraphStr) {
 
   auto result_str = ascir::utils::DebugImplGraphStr(graph);
 
-  EXPECT_EQ(result_str, string{
-                            "Graph: test_graph\n"
-                            "Sizes:\n"
-                            "  s0: VAR\n"
-                            "  s1: CONST(100)\n"
-                            "  s0_block: CONST(100)\n"
-                            "Axis:\n"
-                            "  z0_out: s0 / s0_block, ORIGINAL, align: 1, allow_oversize_axis: 0, allow_unaligned_tail: 1\n"
-                            "  z0_in: s0_block, ORIGINAL, align: 1, allow_oversize_axis: 0, allow_unaligned_tail: 1\n"
-                            "  z1: s1, ORIGINAL, align: 1, allow_oversize_axis: 0, allow_unaligned_tail: 1\n"
-                            "Nodes:\n"
-                            "  test_op: Data (0)\n"
-                            "    .axis = {z0_out, z0_in, z1, }\n"
-                            "    .loop_axis = z0_out\n"
-                            "    .hint:\n"
-                            "      .compute_type = data\n"
-                            "    .api:\n"
-                            "      .type = Buffer\n"
-                            "      .unit = None\n"
-                            "    .x = nil\n"
-                            "    .y.dtype = float32\n"
-                            "    .y.axis = {z0_out, z0_in, z1, }\n"
-                            "    .y.repeats = {s0 / s0_block, s0_block, s1, }\n"
-                            "    .y.strides = {s1 * s0_block, s1, 1, }\n"
-                            "    .y.vectorized_axis = {}\n"
-                            "    .y.mem:\n"
-                            "      .tensor_id = 0\n"
-                            "      .alloc_type = Queue\n"
-                            "      .hardware = UB\n"
-                            "      .position = TPosition::VECIN\n"
-                            "      .buf_ids = {}\n"
-                            "    .y.que:\n"
-                            "      .id = 0\n"
-                            "      .depth = 2\n"
-                            "      .buf_num = 2\n"
-                            "    .y.opt:\n"
-                            "      .reuse_id = nil\n"
-                            "      .ref_tensor = nil\n"
-                            "      .merge_scope = nil\n"
-                            });
+  EXPECT_EQ(result_str,
+            string{"Graph: test_graph\n"
+                   "Sizes:\n"
+                   "  s0: VAR\n"
+                   "  s1: CONST(100)\n"
+                   "  s0_block: CONST(100)\n"
+                   "Axis:\n"
+                   "  z0_out: s0 / s0_block, ORIGINAL, align: 1, allow_oversize_axis: 0, allow_unaligned_tail: 1\n"
+                   "  z0_in: s0_block, ORIGINAL, align: 1, allow_oversize_axis: 0, allow_unaligned_tail: 1\n"
+                   "  z1: s1, ORIGINAL, align: 1, allow_oversize_axis: 0, allow_unaligned_tail: 1\n"
+                   "Nodes:\n"
+                   "  test_op: Data (0)\n"
+                   "    .axis = {z0_out, z0_in, z1, }\n"
+                   "    .loop_axis = z0_out\n"
+                   "    .hint:\n"
+                   "      .compute_type = data\n"
+                   "    .api:\n"
+                   "      .type = Buffer\n"
+                   "      .unit = None\n"
+                   "    .x = nil\n"
+                   "    .y.dtype = float32\n"
+                   "    .y.axis = {z0_out, z0_in, z1, }\n"
+                   "    .y.repeats = {s0 / s0_block, s0_block, s1, }\n"
+                   "    .y.strides = {s1 * s0_block, s1, 1, }\n"
+                   "    .y.vectorized_axis = {}\n"
+                   "    .y.mem:\n"
+                   "      .tensor_id = 0\n"
+                   "      .alloc_type = Queue\n"
+                   "      .hardware = UB\n"
+                   "      .position = TPosition::VECIN\n"
+                   "      .buf_ids = {}\n"
+                   "    .y.que:\n"
+                   "      .id = 0\n"
+                   "      .depth = 2\n"
+                   "      .buf_num = 2\n"
+                   "    .y.opt:\n"
+                   "      .reuse_id = nil\n"
+                   "      .ref_tensor = nil\n"
+                   "      .merge_scope = nil\n"});
 }

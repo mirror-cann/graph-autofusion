@@ -32,35 +32,35 @@ void LoadNanOutForStore_BeforeAutofuse(af::AscGraph &graph) {
   x1.y.dtype = af::DT_FLOAT;
   *x1.y.axis = {z0.id, z1.id, z2.id};
   *x1.y.repeats = {s0, s1, s2};
-  *x1.y.strides = {s1*s2, s2, One};
+  *x1.y.strides = {s1 * s2, s2, One};
 
   load1.x = x1.y;
   load1.attr.sched.axis = {z0.id, z1.id, z2.id};
   load1.y.dtype = af::DT_FLOAT;
   *load1.y.axis = {z0.id, z1.id, z2.id};
   *load1.y.repeats = {s0, s1, s2};
-  *load1.y.strides = {s1*s2, s2, One};
+  *load1.y.strides = {s1 * s2, s2, One};
 
   isnan.x = load1.y;
   isnan.attr.sched.axis = {z0.id, z1.id, z2.id};
   isnan.y.dtype = af::DT_UINT8;
   *isnan.y.axis = {z0.id, z1.id, z2.id};
   *isnan.y.repeats = {s0, s1, s2};
-  *isnan.y.strides = {s1*s2, s2, One};
+  *isnan.y.strides = {s1 * s2, s2, One};
 
   store.x = isnan.y;
   store.attr.sched.axis = {z0.id, z1.id, z2.id};
   store.y.dtype = af::DT_UINT8;
   *store.y.axis = {z0.id, z1.id, z2.id};
   *store.y.repeats = {s0, s1, s2};
-  *store.y.strides = {s1*s2, s2, One};
+  *store.y.strides = {s1 * s2, s2, One};
 
   y.x = store.y;
   y.attr.sched.axis = {z0.id, z1.id, z2.id};
   y.y.dtype = af::DT_UINT8;
   *y.y.axis = {z0.id, z1.id, z2.id};
   *y.y.repeats = {s0, s1, s2};
-  *y.y.strides = {s1*s2, s2, One};
+  *y.y.strides = {s1 * s2, s2, One};
 }
 
 void LoadNanOutForStore_AfterInferOutput(af::AscGraph &graph) {

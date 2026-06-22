@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -343,15 +343,13 @@ graphStatus ListValueSerializer::DeserializeListGraphDef(const GeIrAttrDef &def,
 }
 
 graphStatus ListValueSerializer::DeserializeListNamedAttrs(const GeIrAttrDef &def, AnyValue &av) {
-  const auto attr_deserializer = AttrSerializerRegistry::GetInstance().
-                                 GetDeserializer(GeIrAttrDef::ValueCase::kFunc);
+  const auto attr_deserializer = AttrSerializerRegistry::GetInstance().GetDeserializer(GeIrAttrDef::ValueCase::kFunc);
   const auto named_attr_deserializer = dynamic_cast<NamedAttrsSerializer *>(attr_deserializer);
   GE_CHECK_NOTNULL(named_attr_deserializer);
 
   std::vector<af::NamedAttrs> values(static_cast<size_t>(def.list().na_size()));
   for (auto idx = 0; idx < def.list().na_size(); ++idx) {
-    if (named_attr_deserializer->Deserialize(def.list().na(idx), values[static_cast<size_t>(idx)])
-        != GRAPH_SUCCESS) {
+    if (named_attr_deserializer->Deserialize(def.list().na(idx), values[static_cast<size_t>(idx)]) != GRAPH_SUCCESS) {
       GELOGE(GRAPH_FAILED, "NamedAttr [%s] deserialize failed.", def.list().na(idx).name().c_str());
       return GRAPH_FAILED;
     }
@@ -372,13 +370,10 @@ REG_GEIR_SERIALIZER(list_int, ListValueSerializer, GetTypeId<std::vector<int64_t
 REG_GEIR_SERIALIZER(list_str, ListValueSerializer, GetTypeId<std::vector<std::string>>(), GeIrAttrDef::kList);
 REG_GEIR_SERIALIZER(list_float, ListValueSerializer, GetTypeId<std::vector<float>>(), GeIrAttrDef::kList);
 REG_GEIR_SERIALIZER(list_bool, ListValueSerializer, GetTypeId<std::vector<bool>>(), GeIrAttrDef::kList);
-REG_GEIR_SERIALIZER(list_tensor_desc, ListValueSerializer,
-                    GetTypeId<std::vector<GeTensorDesc>>(), GeIrAttrDef::kList);
+REG_GEIR_SERIALIZER(list_tensor_desc, ListValueSerializer, GetTypeId<std::vector<GeTensorDesc>>(), GeIrAttrDef::kList);
 REG_GEIR_SERIALIZER(list_tensor, ListValueSerializer, GetTypeId<std::vector<GeTensor>>(), GeIrAttrDef::kList);
 REG_GEIR_SERIALIZER(list_buffer, ListValueSerializer, GetTypeId<std::vector<Buffer>>(), GeIrAttrDef::kList);
-REG_GEIR_SERIALIZER(list_graph_def, ListValueSerializer,
-                    GetTypeId<std::vector<proto::GraphDef>>(), GeIrAttrDef::kList);
-REG_GEIR_SERIALIZER(list_named_attr, ListValueSerializer,
-                    GetTypeId<std::vector<af::NamedAttrs>>(), GeIrAttrDef::kList);
+REG_GEIR_SERIALIZER(list_graph_def, ListValueSerializer, GetTypeId<std::vector<proto::GraphDef>>(), GeIrAttrDef::kList);
+REG_GEIR_SERIALIZER(list_named_attr, ListValueSerializer, GetTypeId<std::vector<af::NamedAttrs>>(), GeIrAttrDef::kList);
 REG_GEIR_SERIALIZER(list_data_type, ListValueSerializer, GetTypeId<std::vector<ge::DataType>>(), GeIrAttrDef::kList);
-}  // namespace ge
+}  // namespace af

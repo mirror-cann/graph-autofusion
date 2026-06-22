@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -16,8 +16,8 @@ namespace att {
 namespace {
 const int32_t kBaseOfIntegerValue = 10;
 // 辅助函数：解析 int64_t 配置值
-inline bool ParseInt64Config(const std::string &val_str, AutoFuseConfigValue<int64_t> &config_val,
-                             int64_t &result_val, bool &is_set) {
+inline bool ParseInt64Config(const std::string &val_str, AutoFuseConfigValue<int64_t> &config_val, int64_t &result_val,
+                             bool &is_set) {
   static const std::regex int_regex(R"(^[+-]?\d+$)");
   if (!std::regex_match(val_str, int_regex)) {
     return false;
@@ -128,19 +128,16 @@ Status AutofuseEnvParaParse(std::unordered_map<std::string, std::string> &merged
 }
 
 Status AttStrategyConfig::Init() {
-  ge::AutoFuseEnvConfigParser env_config_parser({},
-                                            {kExperimentalAutofusionAttTilingAlgorithm,
-                                             kExperimentalAutofusionAttUbThreshold,
-                                             kExperimentalAutofusionAttCorenumThreshold,
-                                             kExperimentalAutofusionAttEnableSmallShapeStrategy,
-                                             kExperimentalAutofusionAttEnableMulticoreUBTradeoff,
-                                             kExperimentalAutofusionAttSolutionAccuracyLevel,
-                                             kExperimentalAutofusionAttProfiling,
-                                             kExperimentalAutofusionEnableTilingCache,
-                                             kExperimentalAutofusionAttScheduleResult, // 用于强制模板选择，不对外开放
-                                             kExperimentalAutofusionAttTilingCase,     // 用于强制模板选择，不对外开放
-                                             kExperimentalAutofusionAttForceOpName    // 用于强制模板选择，不对外开放
-                                             });
+  ge::AutoFuseEnvConfigParser env_config_parser(
+      {}, {
+              kExperimentalAutofusionAttTilingAlgorithm, kExperimentalAutofusionAttUbThreshold,
+              kExperimentalAutofusionAttCorenumThreshold, kExperimentalAutofusionAttEnableSmallShapeStrategy,
+              kExperimentalAutofusionAttEnableMulticoreUBTradeoff, kExperimentalAutofusionAttSolutionAccuracyLevel,
+              kExperimentalAutofusionAttProfiling, kExperimentalAutofusionEnableTilingCache,
+              kExperimentalAutofusionAttScheduleResult,  // 用于强制模板选择，不对外开放
+              kExperimentalAutofusionAttTilingCase,      // 用于强制模板选择，不对外开放
+              kExperimentalAutofusionAttForceOpName      // 用于强制模板选择，不对外开放
+          });
   if (initialized_) {
     return ge::SUCCESS;
   }
@@ -177,15 +174,15 @@ Status PgoStrategyConfig::SetEnvVal(std::unordered_map<std::string, std::string>
       std::string("false"), std::vector<std::string>({std::string("true"), std::string("false")}));
   AutoFuseConfigValue<std::string> autofuse_pgo_algo_val(
       std::string("core_select"), std::vector<std::string>({std::string("core_select"), std::string("pruning")}));
-  AutoFuseConfigValue<int64_t> autofuse_pgo_algo_step_max_val( 16L, std::vector<int64_t>({1L, kMaxPgoStepVal}));
+  AutoFuseConfigValue<int64_t> autofuse_pgo_algo_step_max_val(16L, std::vector<int64_t>({1L, kMaxPgoStepVal}));
 
   // 解析具体的配置
-  GE_ASSERT_SUCCESS(TrySetVal(merged_configs, kExperimentalAutofusionEnablePGO,
-                    enable_autofuse_pgo_val, enable_autofuse_pgo, set_env_enable_autofuse_pgo));
-  GE_ASSERT_SUCCESS(TrySetVal(merged_configs, kExperimentalAutofusionEnablePgoOptAlgo,
-                    autofuse_pgo_algo_val, autofuse_pgo_algo_select, set_env_autofuse_pgo_algo_select));
-  GE_ASSERT_SUCCESS(TrySetVal(merged_configs, kExperimentalAutofusionEnablePgoStepMax,
-                    autofuse_pgo_algo_step_max_val, autofuse_pgo_algo_step_max, set_env_autofuse_pgo_algo_step_max));
+  GE_ASSERT_SUCCESS(TrySetVal(merged_configs, kExperimentalAutofusionEnablePGO, enable_autofuse_pgo_val,
+                              enable_autofuse_pgo, set_env_enable_autofuse_pgo));
+  GE_ASSERT_SUCCESS(TrySetVal(merged_configs, kExperimentalAutofusionEnablePgoOptAlgo, autofuse_pgo_algo_val,
+                              autofuse_pgo_algo_select, set_env_autofuse_pgo_algo_select));
+  GE_ASSERT_SUCCESS(TrySetVal(merged_configs, kExperimentalAutofusionEnablePgoStepMax, autofuse_pgo_algo_step_max_val,
+                              autofuse_pgo_algo_step_max, set_env_autofuse_pgo_algo_step_max));
 
   return ge::SUCCESS;
 }
@@ -194,9 +191,9 @@ Status PgoStrategyConfig::Init() {
   if (!is_first_init) {
     return ge::SUCCESS;
   }
-  ge::AutoFuseEnvConfigParser env_config_parser({kExperimentalAutofusionEnablePGO},
-                                                {kExperimentalAutofusionEnablePgoOptAlgo,
-                                                 kExperimentalAutofusionEnablePgoStepMax});
+  ge::AutoFuseEnvConfigParser env_config_parser(
+      {kExperimentalAutofusionEnablePGO},
+      {kExperimentalAutofusionEnablePgoOptAlgo, kExperimentalAutofusionEnablePgoStepMax});
   std::unordered_map<std::string, std::string> merged_configs;
   auto env_configs = env_config_parser.Parse();
   if (env_configs.empty()) {
@@ -206,8 +203,7 @@ Status PgoStrategyConfig::Init() {
   // pgo 相关环境变量配置
   GE_ASSERT_SUCCESS(AutofuseEnvParaParse(merged_configs, env_configs));
   GE_ASSERT_SUCCESS(SetEnvVal(merged_configs));
-  GELOGI("Init config [%s=%s] [%s=%s] [%s=%ld]", 
-         kExperimentalAutofusionEnablePGO, enable_autofuse_pgo.c_str(),
+  GELOGI("Init config [%s=%s] [%s=%s] [%s=%ld]", kExperimentalAutofusionEnablePGO, enable_autofuse_pgo.c_str(),
          kExperimentalAutofusionEnablePgoOptAlgo, autofuse_pgo_algo_select.c_str(),
          kExperimentalAutofusionEnablePgoStepMax, autofuse_pgo_algo_step_max);
   is_first_init = false;

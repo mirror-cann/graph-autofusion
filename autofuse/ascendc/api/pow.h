@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -12,8 +12,8 @@
 
 template <typename T>
 inline __aicore__ void Pow(const AscendC::LocalTensor<T> &dst, const AscendC::LocalTensor<T> &src1,
-                           const AscendC::LocalTensor<T> &src2,
-                           AscendC::LocalTensor<uint8_t> &tmp_buf, const uint32_t calCount) {
+                           const AscendC::LocalTensor<T> &src2, AscendC::LocalTensor<uint8_t> &tmp_buf,
+                           const uint32_t calCount) {
   Power(dst, src1, src2, tmp_buf, calCount);
 }
 
@@ -39,7 +39,7 @@ inline __aicore__ void Pow(const AscendC::LocalTensor<T> &dst, const T &src1, co
   LocalTensor<T> dst_buf = tmp_buf[ONE_BLK_SIZE].template ReinterpretCast<T>();
   dst_buf.SetSize(block_cnt);
 
-  LocalTensor<uint8_t> left_tmp_buf = tmp_buf[2*ONE_BLK_SIZE].template ReinterpretCast<uint8_t>();
+  LocalTensor<uint8_t> left_tmp_buf = tmp_buf[2 * ONE_BLK_SIZE].template ReinterpretCast<uint8_t>();
   Duplicate(src1_buf, src1, block_cnt);
   // 调用Power基础API：tensor(block size) + scalar
   Power(dst_buf, src1_buf, src2, left_tmp_buf, block_cnt);

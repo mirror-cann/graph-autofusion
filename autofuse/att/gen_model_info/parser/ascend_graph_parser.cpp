@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -36,14 +36,14 @@ bool HasComputeType(const ascir::ImplGraph &impl_graph, const af::ComputeType co
   }
   return false;
 }
-}
+}  // namespace
 const std::string kInputNamePrefix = "_input_";
 const std::string kOutputNamePrefix = "_output_";
 const Expr kUBAlign = CreateExpr(32);
 
 AxisPosition ConvertAxisType(const af::Axis::Type &type) {
   static const std::map<af::Axis::Type, AxisPosition> kAxisTypeMap = {
-      {af::Axis::kAxisTypeOriginal, AxisPosition::ORIGIN},   {af::Axis::kAxisTypeBlockOuter, AxisPosition::OUTER},
+      {af::Axis::kAxisTypeOriginal, AxisPosition::ORIGIN},  {af::Axis::kAxisTypeBlockOuter, AxisPosition::OUTER},
       {af::Axis::kAxisTypeBlockInner, AxisPosition::INNER}, {af::Axis::kAxisTypeTileOuter, AxisPosition::OUTER},
       {af::Axis::kAxisTypeTileInner, AxisPosition::INNER},  {af::Axis::kAxisTypeMerged, AxisPosition::MERGED},
   };
@@ -122,13 +122,11 @@ af::Status AscendGraphParser::CheckAxisIdValid(std::vector<int64_t> &axis_ids) {
   return ge::SUCCESS;
 }
 
-void AscendGraphParser::SaveTmpBufferInfos(const std::string &node_name,
-                                           std::map<int64_t, Expr> &max_tmp_buffers_map,
+void AscendGraphParser::SaveTmpBufferInfos(const std::string &node_name, std::map<int64_t, Expr> &max_tmp_buffers_map,
                                            std::vector<af::TmpBuffer> &tmp_buffers) const {
   std::map<int64_t, Expr> node_tmp_buffers_map;
   for (const auto &buffer : tmp_buffers) {
-    GELOGD("Save tmp buffer [%ld, %s] for node %s.", buffer.id,
-           buffer.buf_desc.size.Str().get(), node_name.c_str());
+    GELOGD("Save tmp buffer [%ld, %s] for node %s.", buffer.id, buffer.buf_desc.size.Str().get(), node_name.c_str());
     const auto &iter = node_tmp_buffers_map.find(buffer.id);
     if (iter == node_tmp_buffers_map.cend()) {
       node_tmp_buffers_map[buffer.id] = buffer.buf_desc.size;
@@ -329,7 +327,7 @@ af::Status AscendGraphParser::ConstructGlobalContainer(const af::AscTensorAttr &
 }
 
 af::Status AscendGraphParser::ParseTensorMemInfo(const af::AscTensorAttr &ascir_tensor_info, std::string &node_type,
-                                             const TensorPtr &tensor) {
+                                                 const TensorPtr &tensor) {
   ContainerPtr container;
   if (ascir_tensor_info.mem.alloc_type == af::AllocType::kAllocTypeQueue) {
     GE_ASSERT_SUCCESS(ConstructQueueContainer(ascir_tensor_info), "Construct queue failed.");
@@ -373,7 +371,7 @@ af::Status AscendGraphParser::ParseTensorMemInfo(const af::AscTensorAttr &ascir_
     GELOGW("Tensor [%s] container not get.", tensor->name.c_str());
   } else {
     GELOGD("Get tensor [%s] container [%s][%d] success.", tensor->name.c_str(), container->name.c_str(),
-            container->container_id);
+           container->container_id);
   }
   return ge::SUCCESS;
 }
@@ -462,8 +460,9 @@ af::Status AscendGraphParser::ParseTensorDims(TensorPtr &tensor, af::AscTensorAt
   }
   // 处理tensor的strides
   SetContinuesStrides(tensor, tensor_attr);
-  GE_ASSERT_TRUE(tensor->stride.size() == tensor->dim_info.size(), "Tenosr [%s] stride num[%lu] not equal to dim info num[%lu].", tensor->name.c_str(),
-            tensor->stride.size(), tensor->dim_info.size());
+  GE_ASSERT_TRUE(tensor->stride.size() == tensor->dim_info.size(),
+                 "Tenosr [%s] stride num[%lu] not equal to dim info num[%lu].", tensor->name.c_str(),
+                 tensor->stride.size(), tensor->dim_info.size());
   GELOGD("[DFX]parse tensor %s(%s): repeats [%s], gm_stride [%s], stride [%s]", tensor->name.c_str(),
          tensor->node_type.c_str(), GetVecString(tensor->repeat).c_str(), GetVecString(tensor->gm_stride).c_str(),
          GetVecString(tensor->stride).c_str());
@@ -481,7 +480,8 @@ af::Status AscendGraphParser::GetTensorAxes(TensorPtr &tensor, af::AscTensorAttr
   return ge::SUCCESS;
 }
 
-af::Status AscendGraphParser::GetTensorAttrs(const af::AscNodePtr &node, const TensorPtr &tensor, size_t id, bool input) {
+af::Status AscendGraphParser::GetTensorAttrs(const af::AscNodePtr &node, const TensorPtr &tensor, size_t id,
+                                             bool input) {
   std::string node_type = node->GetType();
   if (input) {
     GE_ASSERT_TRUE(id < node->inputs.Size(), "Get tensor [%zu] info failed.", id);
@@ -707,7 +707,8 @@ void AscendGraphParser::UpdateContainer(ContainerPtr &container, const int32_t n
           tensor_list.emplace_back(tensor);
         }
       }
-      // 这里tensor_list只有1个时，在FA场景需要考虑ping/pang，但是在自动融合场景通过buffer_num表达，当前暂去掉该隐式double buffer
+      // 这里tensor_list只有1个时，在FA场景需要考虑ping/pang，但是在自动融合场景通过buffer_num表达，当前暂去掉该隐式double
+      // buffer
       container->coexist_tensors.emplace_back(std::move(tensor_list));
     }
   }
@@ -744,10 +745,10 @@ af::Status AscendGraphParser::GetNodeFromData(const af::AscNodePtr &ge_node, Nod
 af::Status AscendGraphParser::ConvertNodeInfos(const af::AscNodePtr &ge_node, const ScheduleAttr &attrs,
                                                const af::AscGraph &graph, const bool use_cache_flag) {
   static const std::map<af::ComputeUnit, std::string> kUnitMap = {
-    {af::ComputeUnit::kUnitNone, "UnitNone"}, {af::ComputeUnit::kUnitMTE1, "UnitMTE1"},
-    {af::ComputeUnit::kUnitMTE2, "UnitMTE2"}, {af::ComputeUnit::kUnitMTE3, "UnitMTE3"},
-    {af::ComputeUnit::kUnitScalar, "UnitScalar"},  {af::ComputeUnit::kUnitVector, "UnitVector"},
-    {af::ComputeUnit::kUnitCube, "UnitCube"},  {af::ComputeUnit::kUnitInvalid, "UnitInvalid"},
+      {af::ComputeUnit::kUnitNone, "UnitNone"},     {af::ComputeUnit::kUnitMTE1, "UnitMTE1"},
+      {af::ComputeUnit::kUnitMTE2, "UnitMTE2"},     {af::ComputeUnit::kUnitMTE3, "UnitMTE3"},
+      {af::ComputeUnit::kUnitScalar, "UnitScalar"}, {af::ComputeUnit::kUnitVector, "UnitVector"},
+      {af::ComputeUnit::kUnitCube, "UnitCube"},     {af::ComputeUnit::kUnitInvalid, "UnitInvalid"},
   };
   NodeInfo node_info;
   node_info.name = ge_node->GetName();
@@ -906,8 +907,8 @@ af::Status AscendGraphParser::CheckReduceBroadcastSplitStoreConflict() {
 
   // 然后遍历所有节点的 loop_axes 进行标记（不限制 Store 节点）
   for (const auto &node : tuning_space_->node_infos) {
-    GELOGD("[DFX] Check node [%s] type[%s] for Reduce/Broadcast split axis.",
-           node.name.c_str(), node.node_type.c_str());
+    GELOGD("[DFX] Check node [%s] type[%s] for Reduce/Broadcast split axis.", node.name.c_str(),
+           node.node_type.c_str());
 
     // 遍历loop_axes，标记Reduce/Broadcast分核轴
     for (const auto &axis : node.loop_axes) {
@@ -930,8 +931,8 @@ af::Status AscendGraphParser::CheckReduceBroadcastSplitStoreConflict() {
 }
 
 // 检查并标记轴是否为 Reduce 分核轴
-bool AscendGraphParser::CheckAndMarkReduceSplitAxis(
-    SubAxis *axis, const std::set<std::string> &reduce_axis_orig_names) const {
+bool AscendGraphParser::CheckAndMarkReduceSplitAxis(SubAxis *axis,
+                                                    const std::set<std::string> &reduce_axis_orig_names) const {
   for (const auto &orig_name : axis->orig_axis_name) {
     if (reduce_axis_orig_names.find(orig_name) != reduce_axis_orig_names.end()) {
       axis->is_reduce_split_axis = true;
@@ -943,8 +944,8 @@ bool AscendGraphParser::CheckAndMarkReduceSplitAxis(
 }
 
 // 检查并标记轴是否为 Broadcast 分核轴
-bool AscendGraphParser::CheckAndMarkBroadcastSplitAxis(
-    SubAxis *axis, const std::set<std::string> &broadcast_axis_orig_names) const {
+bool AscendGraphParser::CheckAndMarkBroadcastSplitAxis(SubAxis *axis,
+                                                       const std::set<std::string> &broadcast_axis_orig_names) const {
   for (const auto &orig_name : axis->orig_axis_name) {
     if (broadcast_axis_orig_names.find(orig_name) != broadcast_axis_orig_names.end()) {
       axis->is_broadcast_split_axis = true;

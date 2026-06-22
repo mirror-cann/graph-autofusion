@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -80,11 +80,12 @@ static inline int32_t CheckAndMkdir(const char_t *tmp_dir_path, mmMode_t mode) {
       std::vector<char_t> err_buf(kMaxErrorStrLen + 1U, '\0');
       const auto err_msg = mmGetErrorFormatMessage(mmGetErrorCode(), err_buf.data(), kMaxErrorStrLen);
       std::string reason = FormatErrnoReason(mmGetErrorCode(), err_msg);
-      (void) REPORT_PREDEFINED_ERR_MSG("E10001", std::vector<const char_t *>({"parameter", "value", "reason"}),
-                                       std::vector<const char_t *>({"filepath", tmp_dir_path, reason.c_str()}));
-      GELOGW("[Util][mkdir] Create directory %s failed, reason:%s. Make sure the "
-             "directory exists and writable.",
-             tmp_dir_path, strerror(errno));
+      (void)REPORT_PREDEFINED_ERR_MSG("E10001", std::vector<const char_t *>({"parameter", "value", "reason"}),
+                                      std::vector<const char_t *>({"filepath", tmp_dir_path, reason.c_str()}));
+      GELOGW(
+          "[Util][mkdir] Create directory %s failed, reason:%s. Make sure the "
+          "directory exists and writable.",
+          tmp_dir_path, strerror(errno));
       return ret;
     }
   }
@@ -128,9 +129,8 @@ int32_t CreateDir(const std::string &directory_path, uint32_t mode) {
  *  @return 0 success
  */
 int32_t CreateDir(const std::string &directory_path) {
-  constexpr uint32_t mkdir_mode = static_cast<uint32_t>(M_IRUSR) |
-                              static_cast<uint32_t>(M_IWUSR) |
-                              static_cast<uint32_t>(M_IXUSR);
+  constexpr uint32_t mkdir_mode =
+      static_cast<uint32_t>(M_IRUSR) | static_cast<uint32_t>(M_IWUSR) | static_cast<uint32_t>(M_IXUSR);
   return CreateDir(directory_path, mkdir_mode);
 }
 
@@ -151,7 +151,7 @@ std::unique_ptr<char_t[]> GetBinFromFile(std::string &path, uint32_t &data_len) 
 
 std::unique_ptr<char_t[]> GetBinDataFromFile(const std::string &path, uint32_t &data_len) {
   GE_ASSERT_TRUE(!path.empty());
-  const std::string real_path = RealPath(path.c_str());	
+  const std::string real_path = RealPath(path.c_str());
   GE_ASSERT_TRUE(!real_path.empty(), "Path: %s is invalid, file or directory does not exist", path.c_str());
   std::ifstream ifs(real_path, std::ifstream::binary);
   if (!ifs.is_open()) {
@@ -159,16 +159,16 @@ std::unique_ptr<char_t[]> GetBinDataFromFile(const std::string &path, uint32_t &
     return nullptr;
   }
 
-  (void) ifs.seekg(0, std::ifstream::end);
+  (void)ifs.seekg(0, std::ifstream::end);
   const uint32_t len = static_cast<uint32_t>(ifs.tellg());
-  (void) ifs.seekg(0, std::ifstream::beg);
+  (void)ifs.seekg(0, std::ifstream::beg);
   auto bin_data = std::unique_ptr<char_t[]>(new (std::nothrow) char_t[len]);
   if (bin_data == nullptr) {
     GELOGE(FAILED, "[Allocate][Mem]Allocate mem failed");
     ifs.close();
     return nullptr;
   }
-  (void) ifs.read(reinterpret_cast<char_t *>(bin_data.get()), static_cast<std::streamsize>(len));
+  (void)ifs.read(reinterpret_cast<char_t *>(bin_data.get()), static_cast<std::streamsize>(len));
   data_len = len;
   ifs.close();
   return bin_data;
@@ -181,15 +181,15 @@ std::unique_ptr<char[]> GetBinFromFile(const std::string &path, size_t offset, s
   std::ifstream ifs(real_path, std::ifstream::binary);
   GE_ASSERT_TRUE(ifs.is_open(), "Read file %s failed.", real_path.c_str());
   GE_MAKE_GUARD(close_ifs, [&ifs]() { ifs.close(); });
-  (void) ifs.seekg(0, std::ifstream::end);
+  (void)ifs.seekg(0, std::ifstream::end);
   const size_t act_file_len = static_cast<size_t>(ifs.tellg());
   GE_ASSERT_TRUE((offset <= (SIZE_MAX - data_len)) && ((offset + data_len) <= act_file_len),
                  "Offset add length overflow size_t or file length");
   ifs.clear();
-  (void) ifs.seekg(static_cast<int64_t>(offset), std::ifstream::beg);
+  (void)ifs.seekg(static_cast<int64_t>(offset), std::ifstream::beg);
   auto bin_data = std::unique_ptr<char_t[]>(new (std::nothrow) char_t[data_len]);
   GE_ASSERT_NOTNULL(bin_data, "[Allocate][Mem] Allocate mem failed");
-  (void) ifs.read(reinterpret_cast<char_t *>(bin_data.get()), static_cast<int64_t>(data_len));
+  (void)ifs.read(reinterpret_cast<char_t *>(bin_data.get()), static_cast<int64_t>(data_len));
   ifs.close();
   return bin_data;
 }
@@ -205,9 +205,9 @@ graphStatus GetBinFromFile(const std::string &path, char_t *buffer, size_t &data
     return GRAPH_FAILED;
   }
 
-  (void) ifs.seekg(0, std::ifstream::end);
+  (void)ifs.seekg(0, std::ifstream::end);
   const size_t len = static_cast<size_t>(ifs.tellg());
-  (void) ifs.seekg(0, std::ifstream::beg);
+  (void)ifs.seekg(0, std::ifstream::beg);
   if (len != data_len) {
     REPORT_INNER_ERR_MSG("E18888", "Bin length[%zu] is not equal to defined length[%zu], file_path[%s].", len, data_len,
                          path.c_str());
@@ -216,7 +216,7 @@ graphStatus GetBinFromFile(const std::string &path, char_t *buffer, size_t &data
     ifs.close();
     return GRAPH_FAILED;
   }
-  (void) ifs.read(buffer, static_cast<std::streamsize>(len));
+  (void)ifs.read(buffer, static_cast<std::streamsize>(len));
   ifs.close();
   return GRAPH_SUCCESS;
 }
@@ -230,12 +230,12 @@ graphStatus WriteBinToFile(std::string &path, char_t *data, uint32_t &data_len) 
   std::string real_dir_path = RealPath(check_dir.c_str());
   GE_ASSERT_TRUE(!real_dir_path.empty(), "Dir path of %s is invalid or does not exist", path.c_str());
   std::string secure_path = real_dir_path + "/" + file_name;
-  std::ofstream ofs(secure_path, std::ios::out | std::ifstream::binary); 
+  std::ofstream ofs(secure_path, std::ios::out | std::ifstream::binary);
   if (!ofs.is_open()) {
-      GELOGE(GRAPH_FAILED, "Open file failed. Path: %s (Real: %s)", path.c_str(), secure_path.c_str());
-      return GRAPH_FAILED;
+    GELOGE(GRAPH_FAILED, "Open file failed. Path: %s (Real: %s)", path.c_str(), secure_path.c_str());
+    return GRAPH_FAILED;
   }
-  (void) ofs.write(data, static_cast<std::streamsize>(data_len));
+  (void)ofs.write(data, static_cast<std::streamsize>(data_len));
   ofs.close();
   return GRAPH_SUCCESS;
 }
@@ -255,7 +255,7 @@ graphStatus WriteBinToFile(const int32_t fd, const char_t *const data, size_t da
                    "Write data failed, data_len: %llu", data_len);
     seek = ge::PtrAdd<uint8_t>(ge::PtrToPtr<void, uint8_t>(seek), remain_size, static_cast<size_t>(write_count));
     remain_size -= static_cast<size_t>(write_count);
-  }while (remain_size > 0U);
+  } while (remain_size > 0U);
   return GRAPH_SUCCESS;
 }
 
@@ -298,7 +298,7 @@ graphStatus SaveBinToFile(const char *const data, size_t length, const std::stri
   // Open file
   constexpr mmMode_t mode = static_cast<mmMode_t>(static_cast<uint32_t>(M_IRUSR) | static_cast<uint32_t>(M_IWUSR));
   constexpr int32_t open_flag = static_cast<int32_t>(static_cast<uint32_t>(M_RDWR) | static_cast<uint32_t>(M_CREAT) |
-                                                 static_cast<uint32_t>(O_TRUNC));
+                                                     static_cast<uint32_t>(O_TRUNC));
   const int32_t fd = mmOpen2(&real_path[0UL], open_flag, mode);
   GE_ASSERT_TRUE(((fd != EN_INVALID_PARAM) && (fd != EN_ERROR)), "Open file failed, path: %s", real_path.c_str());
   Status ret = GRAPH_SUCCESS;
@@ -321,7 +321,7 @@ Status GetAscendWorkPath(std::string &ascend_work_path) {
       if (CreateDir(work_path) != 0) {
         std::string reason = "The path doesn't exist, create path failed.";
         (void)REPORT_PREDEFINED_ERR_MSG("E10001", std::vector<const char_t *>({"parameter", "value", "reason"}),
-                                         std::vector<const char_t *>({"ASCEND_WORK_PATH", work_path, reason.c_str()}));
+                                        std::vector<const char_t *>({"ASCEND_WORK_PATH", work_path, reason.c_str()}));
         return FAILED;
       }
     }
@@ -354,4 +354,4 @@ int32_t Scandir(const CHAR *path, mmDirent ***entry_list, mmFilter filter_func, 
   }
   return count;
 }
-}  // namespace ge
+}  // namespace af

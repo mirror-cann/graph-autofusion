@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -27,8 +27,9 @@ using namespace af::ascir_op;
 using namespace ascgen_utils;
 
 Status BinaryApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
-  const std::vector<std::reference_wrapper<const Tensor>> &inputs,
-  const std::vector<std::reference_wrapper<const Tensor>> &outputs, std::string &result) const {
+                               const std::vector<std::reference_wrapper<const Tensor>> &inputs,
+                               const std::vector<std::reference_wrapper<const Tensor>> &outputs,
+                               std::string &result) const {
   if (generalized_brc_inline_scene) {
     return BrcInlineGenerate(tpipe, current_axis, inputs, outputs, result);
   }
@@ -51,8 +52,7 @@ Status BinaryApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::Axis
 
   const auto &y = outputs[0].get();
 
-  (void)RegisterBasicDumpParam(this->api_name_, inputs, outputs,
-                               CombinedExprFactory::SymbolVar(x1.actual_size.Str()));
+  (void)RegisterBasicDumpParam(this->api_name_, inputs, outputs, CombinedExprFactory::SymbolVar(x1.actual_size.Str()));
 
   stringstream ss;
   std::string dtype_name;
@@ -67,27 +67,25 @@ Status BinaryApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::Axis
     id = it->second;
   }
 
-  if (x1.IsAnyScalar() && x2.IsAnyScalar()) { // 两个输入都是Scalar
+  if (x1.IsAnyScalar() && x2.IsAnyScalar()) {  // 两个输入都是Scalar
     ss << this->api_name_ << "s(";
     ss << y << "[" << tpipe.tiler.TensorVectorizedOffset(current_axis, y) << "], ";
     ss << "(" << dtype_name << ")" << x1.GetScalarValue() << ", ";
     ss << "(" << dtype_name << ")" << x2.GetScalarValue();
     ss << ");" << std::endl;
-  } else if (x1.IsAnyScalar() || x2.IsAnyScalar()) { // 只有1个输入是Scalar
+  } else if (x1.IsAnyScalar() || x2.IsAnyScalar()) {  // 只有1个输入是Scalar
     if (this->api_name_ == "Div" || this->api_name_ == "Sub") {
       GE_ASSERT_TRUE(id != -1L, "BinaryApiCall cannot find tmp buffer id to use.");
-      ss << this->api_name_ << "s<" << dtype_name << ", " << is_scalar_latter << ">" << "("
-      << y << "[" << tpipe.tiler.TensorVectorizedOffset(current_axis, y) << "], "
-      << x1 << "[" << tpipe.tiler.TensorVectorizedOffset(current_axis, x1) << "], "
-      << "(" << dtype_name << ")" << x2.GetScalarValue() << ", "
-      << tpipe.tmp_buf << "_" << std::to_string(id) << ", "
-      << x1.actual_size << ");" << std::endl;
+      ss << this->api_name_ << "s<" << dtype_name << ", " << is_scalar_latter << ">" << "(" << y << "["
+         << tpipe.tiler.TensorVectorizedOffset(current_axis, y) << "], " << x1 << "["
+         << tpipe.tiler.TensorVectorizedOffset(current_axis, x1) << "], "
+         << "(" << dtype_name << ")" << x2.GetScalarValue() << ", " << tpipe.tmp_buf << "_" << std::to_string(id)
+         << ", " << x1.actual_size << ");" << std::endl;
     } else if (this->api_name_ == "DivExtend" || this->api_name_ == "SubExtend") {
-      ss << this->api_name_ << "s<" << dtype_name << ", " << is_scalar_latter << ">" << "("
-      << y << "[" << tpipe.tiler.TensorVectorizedOffset(current_axis, y) << "], "
-      << x1 << "[" << tpipe.tiler.TensorVectorizedOffset(current_axis, x1) << "], "
-      << "(" << dtype_name << ")" << x2.GetScalarValue() << ", "
-      << x1.actual_size << ");" << std::endl;
+      ss << this->api_name_ << "s<" << dtype_name << ", " << is_scalar_latter << ">" << "(" << y << "["
+         << tpipe.tiler.TensorVectorizedOffset(current_axis, y) << "], " << x1 << "["
+         << tpipe.tiler.TensorVectorizedOffset(current_axis, x1) << "], "
+         << "(" << dtype_name << ")" << x2.GetScalarValue() << ", " << x1.actual_size << ");" << std::endl;
     } else {
       ss << this->api_name_ << "s(";
       ss << y << "[" << tpipe.tiler.TensorVectorizedOffset(current_axis, y) << "], ";
@@ -96,12 +94,10 @@ Status BinaryApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::Axis
       ss << x1.actual_size;
       ss << ");" << std::endl;
     }
-  } else { // 两个输入都不是Scalar
-    ss << this->api_name_ << "("
-    << y << "[" << tpipe.tiler.TensorVectorizedOffset(current_axis, y) << "], "
-    << x1 << "[" << tpipe.tiler.TensorVectorizedOffset(current_axis, x1) << "], "
-    << x2 << "[" << tpipe.tiler.TensorVectorizedOffset(current_axis, x2) << "], "
-    << x1.actual_size << ");" << std::endl;
+  } else {  // 两个输入都不是Scalar
+    ss << this->api_name_ << "(" << y << "[" << tpipe.tiler.TensorVectorizedOffset(current_axis, y) << "], " << x1
+       << "[" << tpipe.tiler.TensorVectorizedOffset(current_axis, x1) << "], " << x2 << "["
+       << tpipe.tiler.TensorVectorizedOffset(current_axis, x2) << "], " << x1.actual_size << ");" << std::endl;
   }
   result = ss.str();
   return ge::SUCCESS;
@@ -113,12 +109,13 @@ std::string BinaryApiCall::GetAscendApiName(const std::string &api_name) {
 }
 
 Status BinaryApiCall::BrcInlineGenerate(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
-  const std::vector<std::reference_wrapper<const Tensor>> &inputs,
-  const std::vector<std::reference_wrapper<const Tensor>> &outputs, std::string &result) const {
-  const auto& x1 = inputs[0].get();
-  const auto& x2 = inputs[1].get();
+                                        const std::vector<std::reference_wrapper<const Tensor>> &inputs,
+                                        const std::vector<std::reference_wrapper<const Tensor>> &outputs,
+                                        std::string &result) const {
+  const auto &x1 = inputs[0].get();
+  const auto &x2 = inputs[1].get();
 
-  const auto& y = outputs[0].get();
+  const auto &y = outputs[0].get();
 
   std::vector<af::Expression> i0_v_repeates;
   std::vector<af::Expression> i1_v_repeates;
@@ -130,7 +127,8 @@ Status BinaryApiCall::BrcInlineGenerate(const TPipe &tpipe, const std::vector<as
     i1_v_repeates.push_back(x2.axis_size[pos2]);
   }
 
-  GELOGD("input0_v_stride: %s, input1_v_stride: %s", VectorToStr(x1.vectorized_strides).c_str(), VectorToStr(x2.vectorized_strides).c_str());
+  GELOGD("input0_v_stride: %s, input1_v_stride: %s", VectorToStr(x1.vectorized_strides).c_str(),
+         VectorToStr(x2.vectorized_strides).c_str());
 
   std::vector<af::Expression> i0_meger_repeates;
   std::vector<af::Expression> i1_meger_repeates;
@@ -141,13 +139,13 @@ Status BinaryApiCall::BrcInlineGenerate(const TPipe &tpipe, const std::vector<as
     MergeBrcAxisRepeats(i1_v_repeates, i0_v_repeates, x1.vectorized_strides, i1_meger_repeates, i0_meger_repeates);
   }
 
-  auto& meger_shape = (input_idx_2_brc_inline[0] != 0) ? i1_meger_repeates : i0_meger_repeates;
+  auto &meger_shape = (input_idx_2_brc_inline[0] != 0) ? i1_meger_repeates : i0_meger_repeates;
 
-  std::string shape = "{" + tpipe.tiler.ActualSize(meger_shape[0]) + ", " +
-                      af::SymbolicUtils::ToString(meger_shape[1]) + "}";
+  std::string shape =
+      "{" + tpipe.tiler.ActualSize(meger_shape[0]) + ", " + af::SymbolicUtils::ToString(meger_shape[1]) + "}";
 
   af::Expression v_strides = af::sym::kSymbolZero;
-  auto& x_in = (input_idx_2_brc_inline[0] != 0) ? x1 : x2;
+  auto &x_in = (input_idx_2_brc_inline[0] != 0) ? x1 : x2;
   for (size_t i = 0UL; i < x_in.vectorized_axis_pos.size(); ++i) {
     const uint32_t axis_ids = x_in.vectorized_axis_pos[i];
     af::Expression cur_axis_strides = y.vectorized_strides[i];
@@ -155,24 +153,25 @@ Status BinaryApiCall::BrcInlineGenerate(const TPipe &tpipe, const std::vector<as
     if (af::SymbolicUtils::StaticCheckEq(cur_axis_repeats, af::sym::kSymbolOne) != af::TriBool::kTrue) {
       break;
     }
-    v_strides = ((af::SymbolicUtils::StaticCheckEq(cur_axis_strides, af::sym::kSymbolZero) != af::TriBool::kTrue) ?
-                 cur_axis_strides : v_strides);
+    v_strides = ((af::SymbolicUtils::StaticCheckEq(cur_axis_strides, af::sym::kSymbolZero) != af::TriBool::kTrue)
+                     ? cur_axis_strides
+                     : v_strides);
   }
 
   int64_t type_size = GetSizeByDataType(y.dtype);
   stringstream ss;
   std::string dtype_name;
   GE_CHK_STATUS_RET(Tensor::DtypeName(x1.dtype, dtype_name), "Codegen get data type:%d failed",
-    static_cast<int32_t>(x1.dtype));
+                    static_cast<int32_t>(x1.dtype));
 
-  ss << "BinaryBrcInlineApiWithTwoVectorizedAxis<" << dtype_name << ">" << "("
-    << y << "[" << tpipe.tiler.TensorVectorizedOffset(current_axis, y) << "], "
-    << x1 << "[" << tpipe.tiler.TensorVectorizedOffset(current_axis, x1) << "], "
-    << x2 << "[" << tpipe.tiler.TensorVectorizedOffset(current_axis, x2) << "], "
-    << tpipe.tiler.ActualSize(meger_shape[0]) << ", " << tpipe.tiler.ActualSize(meger_shape[1])
-    << ", " << static_cast<int>(input_idx_2_brc_inline[0] == 0) << ", " << static_cast<int>(input_idx_2_brc_inline[1]==0)
-    << ", " << tpipe.tiler.ActualSize(v_strides) << ", " << static_cast<int>(type_size) << ", &"
-    << GetAscendApiName(this->api_name_) << ", &" << GetAscendApiName(this->api_name_) << ");" << std::endl;
+  ss << "BinaryBrcInlineApiWithTwoVectorizedAxis<" << dtype_name << ">" << "(" << y << "["
+     << tpipe.tiler.TensorVectorizedOffset(current_axis, y) << "], " << x1 << "["
+     << tpipe.tiler.TensorVectorizedOffset(current_axis, x1) << "], " << x2 << "["
+     << tpipe.tiler.TensorVectorizedOffset(current_axis, x2) << "], " << tpipe.tiler.ActualSize(meger_shape[0]) << ", "
+     << tpipe.tiler.ActualSize(meger_shape[1]) << ", " << static_cast<int>(input_idx_2_brc_inline[0] == 0) << ", "
+     << static_cast<int>(input_idx_2_brc_inline[1] == 0) << ", " << tpipe.tiler.ActualSize(v_strides) << ", "
+     << static_cast<int>(type_size) << ", &" << GetAscendApiName(this->api_name_) << ", &"
+     << GetAscendApiName(this->api_name_) << ");" << std::endl;
   result = ss.str();
   return ge::SUCCESS;
 }

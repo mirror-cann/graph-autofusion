@@ -28,8 +28,7 @@ constexpr size_t kHostFileIndex = 1;
 constexpr size_t kDeviceFileIndex = 2;
 constexpr size_t kExpectedKernelSrcCount = 3;
 
-class TestBackendInductorTopnConcatE2e : public testing::Test {
-};
+class TestBackendInductorTopnConcatE2e : public testing::Test {};
 
 TEST_F(TestBackendInductorTopnConcatE2e, InductorTopnConcatE2eCodegen) {
   af::AscGraph graph("inductor_topn_concat");

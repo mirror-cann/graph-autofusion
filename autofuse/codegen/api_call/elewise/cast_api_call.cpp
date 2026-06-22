@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -29,13 +29,13 @@ using namespace ascgen_utils;
 static bool EnableCastMaskModeOptimize(const std::string &input_dtype, const std::string &output_dtype) {
   std::vector<std::pair<std::string, std::string>> src_cast_dst_lists = {
       // first is input dtype, second is output dtype
-      {"uint8_t", "half"},    {"int64_t", "float"},    {"int64_t", "int32_t"}, {"half", "float"},
-      {"half", "int32_t"},    {"half", "int16_t"},     {"half", "int8_t"},     {"half", "uint8_t"},
-      {"half", "int4b_t"},     {"float", "half"},       {"float", "int64_t"},   {"float", "int32_t"},
-      {"float", "int16_t"},   {"float", "bfloat16_t"},   {"int4b_t", "half"},     {"int16_t", "half"},
-      {"int16_t", "float"},   {"int32_t", "float"},    {"int32_t", "int64_t"}, {"int32_t", "int16_t"},
-      {"int32_t", "half"},    {"bfloat16_t", "float"}, {"bfloat16_t", "int32_t"}, {"uint8_t", "float"}, 
-      {"uint8_t", "int32_t"}, {"uint8_t", "int16_t"}, {"uint8_t", "int8_t"},   {"uint8_t", "int4b_t"}, 
+      {"uint8_t", "half"},    {"int64_t", "float"},    {"int64_t", "int32_t"},    {"half", "float"},
+      {"half", "int32_t"},    {"half", "int16_t"},     {"half", "int8_t"},        {"half", "uint8_t"},
+      {"half", "int4b_t"},    {"float", "half"},       {"float", "int64_t"},      {"float", "int32_t"},
+      {"float", "int16_t"},   {"float", "bfloat16_t"}, {"int4b_t", "half"},       {"int16_t", "half"},
+      {"int16_t", "float"},   {"int32_t", "float"},    {"int32_t", "int64_t"},    {"int32_t", "int16_t"},
+      {"int32_t", "half"},    {"bfloat16_t", "float"}, {"bfloat16_t", "int32_t"}, {"uint8_t", "float"},
+      {"uint8_t", "int32_t"}, {"uint8_t", "int16_t"},  {"uint8_t", "int8_t"},     {"uint8_t", "int4b_t"},
       {"int64_t", "half"},    {"half", "int64_t"}};
   std::pair<std::string, std::string> src_cast_dst = {input_dtype, output_dtype};
   GELOGD("current cast from %s to %s", input_dtype.c_str(), output_dtype.c_str());
@@ -86,12 +86,12 @@ Status CastApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::AxisId
     GELOGD("outer_repeats_size is 0, x_dtype = %s, y_dtype = %s", x_dtype.c_str(), y_dtype.c_str());
     if (x.is_constant) {
       ss << "CastExtend(" << y << "[" << tpipe.tiler.TensorVectorizedOffset(current_axis, y) << "], "
-         << scalar_local_blk_tensor_name << "[0], " << tpipe.tmp_buf
-         << "_" << std::to_string(id) << ", " << y.actual_size << ");" << std::endl;
+         << scalar_local_blk_tensor_name << "[0], " << tpipe.tmp_buf << "_" << std::to_string(id) << ", "
+         << y.actual_size << ");" << std::endl;
     } else {
       ss << "CastExtend(" << y << "[" << tpipe.tiler.TensorVectorizedOffset(current_axis, y) << "], " << x << "["
-         << tpipe.tiler.TensorVectorizedOffset(current_axis, x) << "], " << tpipe.tmp_buf
-         << "_" << std::to_string(id) << ", " << x.actual_size << ");" << std::endl;
+         << tpipe.tiler.TensorVectorizedOffset(current_axis, x) << "], " << tpipe.tmp_buf << "_" << std::to_string(id)
+         << ", " << x.actual_size << ");" << std::endl;
     }
   } else {
     if (EnableCastMaskModeOptimize(x_dtype, y_dtype)) {
@@ -113,10 +113,9 @@ Status CastApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::AxisId
 
       std::stringstream ss1;
       ss1 << "CastExtend(" << y << "[" << output_inner_offset << "], " << x << "[" << input_inner_offset << "], "
-          << tpipe.tmp_buf << "_" << std::to_string(id) << ", "
-          << param.outer_repeats[outer_repeats_size - 1] << ", " << tpipe.tiler.ActualSize(param.cal_count) << ", "
-          << tpipe.tiler.Size(param.input_second_to_last_stride) << ", "
-          << tpipe.tiler.Size(param.output_second_to_last_stride) << ", " << dtype_size << ");" << std::endl;
+          << tpipe.tmp_buf << "_" << std::to_string(id) << ", " << param.outer_repeats[outer_repeats_size - 1] << ", "
+          << tpipe.tiler.ActualSize(param.cal_count) << ", " << tpipe.tiler.Size(param.input_second_to_last_stride)
+          << ", " << tpipe.tiler.Size(param.output_second_to_last_stride) << ", " << dtype_size << ");" << std::endl;
       if (outer_repeats_size == 1U) {
         ss << ss1.str();
       } else {
@@ -130,8 +129,8 @@ Status CastApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::AxisId
       std::string output_inner_offset = CalcInnerOffset(tpipe, param.outputs_strides[0]);
       std::stringstream ss1;
       ss1 << "CastExtend(" << y << "[" << output_inner_offset << "], " << x << "[" << input_inner_offset << "], "
-          << tpipe.tmp_buf << "_" << std::to_string(id) << ", " << tpipe.tiler.ActualSize(param.cal_count)
-          << ");" << std::endl;
+          << tpipe.tmp_buf << "_" << std::to_string(id) << ", " << tpipe.tiler.ActualSize(param.cal_count) << ");"
+          << std::endl;
       CreateComputeNodeOuterFor(param.outer_repeats, ss1, ss, 0);
     }
   }
@@ -141,4 +140,4 @@ Status CastApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::AxisId
 }
 static ApiCallRegister<CastApiCall> register_cast_api_call("CastApiCall");
 
-} // namespace codegen
+}  // namespace codegen

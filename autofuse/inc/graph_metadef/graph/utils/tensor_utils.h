@@ -21,8 +21,7 @@ namespace af {
 class TensorUtils {
  public:
   static GeTensor CreateShareTensor(const GeTensor &other);
-  static GeTensor CreateShareTensor(const GeTensorDesc &tensor_desc,
-                                    std::shared_ptr<AlignedPtr> aligned_ptr,
+  static GeTensor CreateShareTensor(const GeTensorDesc &tensor_desc, std::shared_ptr<AlignedPtr> aligned_ptr,
                                     const size_t size);
   static void ShareTensor(const GeTensor &from, GeTensor &to);
   static TensorData CreateShareTensorData(const TensorData &other);
@@ -56,12 +55,10 @@ class TensorUtils {
   static void SetRC(GeTensorDesc &tensor_desc, const uint32_t rc);
   static bool IsOriginShapeInited(const GeTensorDesc &tensor_desc);
 
-  static ge::graphStatus CalcTensorMemSize(const GeShape &shape, const Format format,
-                                           const DataType data_type, int64_t &mem_size);
-  static ge::graphStatus CalcTensorMemSizeForNoTiling(const GeTensorDesc &tensor,
-                                                      const Format format,
-                                                      const DataType data_type,
-                                                      int64_t &mem_size);
+  static ge::graphStatus CalcTensorMemSize(const GeShape &shape, const Format format, const DataType data_type,
+                                           int64_t &mem_size);
+  static ge::graphStatus CalcTensorMemSizeForNoTiling(const GeTensorDesc &tensor, const Format format,
+                                                      const DataType data_type, int64_t &mem_size);
   // 待废弃接口，为保持兼容暂时保留。后续请使用GetTensorMemorySizeInBytesWithAutoPadding替代GetTensorMemorySizeInBytes.
   static ge::graphStatus GetTensorMemorySizeInBytes(const GeTensorDesc &desc_temp, int64_t &size_temp);
 
@@ -87,15 +84,15 @@ class TensorUtils {
   static bool IsMemorySizeCalcTypeAlwaysEmpty(const GeTensorDesc &tensor_desc);
 
   /**
-    * @brief Get the padding size for memory allocation.
-    *
-    * This function queries the SoC specification to get the actual padding size.
-    * If the query fails, it returns the default padding size (32 bytes).
-    * The result is cached for subsequent calls.
-    *
-    * @return The padding size in bytes.
-    */
+   * @brief Get the padding size for memory allocation.
+   *
+   * This function queries the SoC specification to get the actual padding size.
+   * If the query fails, it returns the default padding size (32 bytes).
+   * The result is cached for subsequent calls.
+   *
+   * @return The padding size in bytes.
+   */
   static int64_t GetPaddingSize();
 };
-}  // namespace ge
+}  // namespace af
 #endif  // INC_GRAPH_UTILS_TENSOR_UTILS_H_

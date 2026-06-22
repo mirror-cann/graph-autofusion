@@ -63,7 +63,7 @@ using AscendString = af::AscendString;
 }  // namespace ge
 
 namespace std {
-template<>
+template <>
 struct hash<af::AscendString> {
   size_t operator()(const af::AscendString &name) const {
     return name.Hash();

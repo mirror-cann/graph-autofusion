@@ -1,25 +1,25 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
- #include "gtest/gtest.h"
+#include "gtest/gtest.h"
 
- #include "graph/operator_reg.h"
- #include "graph_utils_ex.h"
- #include "node_utils.h"
- #include "op_desc_utils.h"
- 
- #include "ascir.h"
- #include "ascir_ops.h"
- #include "ascir_utils.h"
- 
- #include "../test_util.h"
-namespace af{
+#include "graph/operator_reg.h"
+#include "graph_utils_ex.h"
+#include "node_utils.h"
+#include "op_desc_utils.h"
+
+#include "ascir.h"
+#include "ascir_ops.h"
+#include "ascir_utils.h"
+
+#include "../test_util.h"
+namespace af {
 namespace ascir {
 extern std::vector<std::unique_ptr<af::TmpBufDesc>> CalcConcatTmpSize(const af::AscNode &node);
 extern std::vector<std::unique_ptr<af::TmpBufDesc>> CalcConcatTmpSizeV2(const af::AscNode &node);
@@ -319,10 +319,11 @@ TEST_F(CalcConcatTmpSizeTest, CalcConcatTmpSize_ShouldReturnCorrectSize_WhenNode
   std::shared_ptr<af::AscNode> node = graph.FindNode("concat");
   std::vector<std::unique_ptr<af::TmpBufDesc>> result = CalcConcatTmpSize(*node);
   ASSERT_EQ(result.size(), 1);
-  Expression minTempSize = sym::Min(af::Symbol(65536), sym::Max(af::Symbol(16384), 
-      (sym::Align(af::Symbol(2) * sym::Max(af::Symbol(0), s2), 8) + af::Symbol(29)) *
-      af::Symbol(16) * af::Symbol(2) * af::Symbol(4)));
-  ASSERT_EQ(result[0]->size, minTempSize); 
+  Expression minTempSize = sym::Min(
+      af::Symbol(65536),
+      sym::Max(af::Symbol(16384), (sym::Align(af::Symbol(2) * sym::Max(af::Symbol(0), s2), 8) + af::Symbol(29)) *
+                                      af::Symbol(16) * af::Symbol(2) * af::Symbol(4)));
+  ASSERT_EQ(result[0]->size, minTempSize);
   ASSERT_EQ(result[0]->life_time_axis_id, -1);
 }
 
@@ -334,9 +335,11 @@ TEST_F(CalcConcatTmpSizeTest, CalcConcatTmpSize_ShouldReturnCorrectSize_WhenNode
   std::shared_ptr<af::AscNode> node = graph.FindNode("concat");
   std::vector<std::unique_ptr<af::TmpBufDesc>> result = CalcConcatTmpSize(*node);
   ASSERT_EQ(result.size(), 1);
-  Expression minTempSize = sym::Min(af::Symbol(65536), sym::Max(af::Symbol(16384),
-      (sym::Align(af::Symbol(2) * sym::Max(af::Symbol(0), sym::Mul(s2, s1)), 8) + af::Symbol(29)) *
-      af::Symbol(16) * af::Symbol(2) * af::Symbol(4)));
+  Expression minTempSize =
+      sym::Min(af::Symbol(65536),
+               sym::Max(af::Symbol(16384),
+                        (sym::Align(af::Symbol(2) * sym::Max(af::Symbol(0), sym::Mul(s2, s1)), 8) + af::Symbol(29)) *
+                            af::Symbol(16) * af::Symbol(2) * af::Symbol(4)));
   ASSERT_EQ(result[0]->size, minTempSize);
   ASSERT_EQ(result[0]->life_time_axis_id, -1);
 }
@@ -349,9 +352,10 @@ TEST_F(CalcConcatTmpSizeTest, CalcConcatTmpSize_ShouldReturnCorrectSize_WhenNode
   std::shared_ptr<af::AscNode> node = graph.FindNode("concat");
   std::vector<std::unique_ptr<af::TmpBufDesc>> result = CalcConcatTmpSize(*node);
   ASSERT_EQ(result.size(), 1);
-  Expression minTempSize = sym::Min(af::Symbol(65536),sym::Max(af::Symbol(16384),
-      (sym::Align(af::Symbol(2) * sym::Max(af::Symbol(0), s2), 16) + af::Symbol(45)) *
-      af::Symbol(16) * af::Symbol(2) * af::Symbol(2)));
+  Expression minTempSize = sym::Min(
+      af::Symbol(65536),
+      sym::Max(af::Symbol(16384), (sym::Align(af::Symbol(2) * sym::Max(af::Symbol(0), s2), 16) + af::Symbol(45)) *
+                                      af::Symbol(16) * af::Symbol(2) * af::Symbol(2)));
   ASSERT_EQ(result[0]->size, minTempSize);
   ASSERT_EQ(result[0]->life_time_axis_id, -1);
 }
@@ -364,9 +368,11 @@ TEST_F(CalcConcatTmpSizeTest, CalcConcatTmpSize_ShouldReturnCorrectSize_WhenNode
   std::shared_ptr<af::AscNode> node = graph.FindNode("concat");
   std::vector<std::unique_ptr<af::TmpBufDesc>> result = CalcConcatTmpSize(*node);
   ASSERT_EQ(result.size(), 1);
-  Expression minTempSize = sym::Min(af::Symbol(65536), sym::Max(af::Symbol(16384),
-      (sym::Align(af::Symbol(2) * sym::Max(af::Symbol(0), sym::Mul(s2, s1)), 16) + af::Symbol(45)) *
-      af::Symbol(16) * af::Symbol(2) * af::Symbol(2)));
+  Expression minTempSize =
+      sym::Min(af::Symbol(65536),
+               sym::Max(af::Symbol(16384),
+                        (sym::Align(af::Symbol(2) * sym::Max(af::Symbol(0), sym::Mul(s2, s1)), 16) + af::Symbol(45)) *
+                            af::Symbol(16) * af::Symbol(2) * af::Symbol(2)));
   ASSERT_EQ(result[0]->size, minTempSize);
   ASSERT_EQ(result[0]->life_time_axis_id, -1);
 }
@@ -379,9 +385,10 @@ TEST_F(CalcConcatTmpSizeTest, CalcConcatTmpSize_ShouldReturnCorrectSize_WhenNode
   std::shared_ptr<af::AscNode> node = graph.FindNode("concat");
   std::vector<std::unique_ptr<af::TmpBufDesc>> result = CalcConcatTmpSize(*node);
   ASSERT_EQ(result.size(), 1);
-  Expression minTempSize = sym::Min(af::Symbol(65536), sym::Max(af::Symbol(16384),
-      (sym::Align(af::Symbol(2) * sym::Max(af::Symbol(0), s2), 32) + af::Symbol(93)) *
-      af::Symbol(16) * af::Symbol(3) * af::Symbol(1)));
+  Expression minTempSize = sym::Min(
+      af::Symbol(65536),
+      sym::Max(af::Symbol(16384), (sym::Align(af::Symbol(2) * sym::Max(af::Symbol(0), s2), 32) + af::Symbol(93)) *
+                                      af::Symbol(16) * af::Symbol(3) * af::Symbol(1)));
   ASSERT_EQ(result[0]->size, minTempSize);
   ASSERT_EQ(result[0]->life_time_axis_id, -1);
 }
@@ -394,9 +401,11 @@ TEST_F(CalcConcatTmpSizeTest, CalcConcatTmpSize_ShouldReturnCorrectSize_WhenNode
   std::shared_ptr<af::AscNode> node = graph.FindNode("concat");
   std::vector<std::unique_ptr<af::TmpBufDesc>> result = CalcConcatTmpSize(*node);
   ASSERT_EQ(result.size(), 1);
-  Expression minTempSize = sym::Min(af::Symbol(65536), sym::Max(af::Symbol(16384),
-      (sym::Align(af::Symbol(2) * sym::Max(af::Symbol(0), sym::Mul(s2, s1)), 32) + af::Symbol(93)) *
-      af::Symbol(16) * af::Symbol(3) * af::Symbol(1)));
+  Expression minTempSize =
+      sym::Min(af::Symbol(65536),
+               sym::Max(af::Symbol(16384),
+                        (sym::Align(af::Symbol(2) * sym::Max(af::Symbol(0), sym::Mul(s2, s1)), 32) + af::Symbol(93)) *
+                            af::Symbol(16) * af::Symbol(3) * af::Symbol(1)));
   ASSERT_EQ(result[0]->size, minTempSize);
   ASSERT_EQ(result[0]->life_time_axis_id, -1);
 }
@@ -409,9 +418,10 @@ TEST_F(CalcConcatTmpSizeTest, CalcConcatTmpSize_ShouldReturnCorrectSize_WhenNode
   std::shared_ptr<af::AscNode> node = graph.FindNode("concat");
   std::vector<std::unique_ptr<af::TmpBufDesc>> result = CalcConcatTmpSize(*node);
   ASSERT_EQ(result.size(), 1);
-  Expression minTempSize = sym::Min(af::Symbol(65536), sym::Max(af::Symbol(16384),
-      (sym::Align(af::Symbol(4) * sym::Max(af::Symbol(0), s2), 8) + af::Symbol(29)) *
-      af::Symbol(16) * af::Symbol(2) * af::Symbol(4)));
+  Expression minTempSize = sym::Min(
+      af::Symbol(65536),
+      sym::Max(af::Symbol(16384), (sym::Align(af::Symbol(4) * sym::Max(af::Symbol(0), s2), 8) + af::Symbol(29)) *
+                                      af::Symbol(16) * af::Symbol(2) * af::Symbol(4)));
   ASSERT_EQ(result[0]->size, minTempSize);
   ASSERT_EQ(result[0]->life_time_axis_id, -1);
 }
@@ -424,9 +434,11 @@ TEST_F(CalcConcatTmpSizeTest, CalcConcatTmpSize_ShouldReturnCorrectSize_WhenNode
   std::shared_ptr<af::AscNode> node = graph.FindNode("concat");
   std::vector<std::unique_ptr<af::TmpBufDesc>> result = CalcConcatTmpSize(*node);
   ASSERT_EQ(result.size(), 1);
-  Expression minTempSize = sym::Min(af::Symbol(65536), sym::Max(af::Symbol(16384),
-      (sym::Align(af::Symbol(4) * sym::Max(af::Symbol(0), sym::Mul(s2, s1)), 8) + af::Symbol(29)) *
-      af::Symbol(16) * af::Symbol(2) * af::Symbol(4)));
+  Expression minTempSize =
+      sym::Min(af::Symbol(65536),
+               sym::Max(af::Symbol(16384),
+                        (sym::Align(af::Symbol(4) * sym::Max(af::Symbol(0), sym::Mul(s2, s1)), 8) + af::Symbol(29)) *
+                            af::Symbol(16) * af::Symbol(2) * af::Symbol(4)));
   ASSERT_EQ(result[0]->size, minTempSize);
   ASSERT_EQ(result[0]->life_time_axis_id, -1);
 }
@@ -706,4 +718,4 @@ TEST_F(CalcConcatTmpSizeTest, CalcConcatTmpSizeV2_NotAllAligned) {
 }
 
 }  // namespace ascir
-}  // namespace ge
+}  // namespace af

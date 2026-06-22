@@ -12,11 +12,12 @@
 #include "tikicpulib.h"
 
 #include "autofuse_tiling_data.h"
-extern "C" __global__ __aicore__ void atan2_bf16_test(GM_ADDR x1, GM_ADDR x2, GM_ADDR y, GM_ADDR workspace, GM_ADDR tiling);
-extern "C" int64_t AutofuseTiling(uint32_t s0, uint32_t s1, uint32_t s2, AutofuseTilingData* tiling, uint32_t* workspaceSize, uint64_t *blockDim, uint32_t aiv_num, uint32_t ub_size);
+extern "C" __global__ __aicore__ void atan2_bf16_test(GM_ADDR x1, GM_ADDR x2, GM_ADDR y, GM_ADDR workspace,
+                                                      GM_ADDR tiling);
+extern "C" int64_t AutofuseTiling(uint32_t s0, uint32_t s1, uint32_t s2, AutofuseTilingData *tiling,
+                                  uint32_t *workspaceSize, uint64_t *blockDim, uint32_t aiv_num, uint32_t ub_size);
 
-class E2E_BackendAtan2Bf16_Code : public testing::Test, public testing::WithParamInterface<std::vector<int>> {
-};
+class E2E_BackendAtan2Bf16_Code : public testing::Test, public testing::WithParamInterface<std::vector<int>> {};
 
 TEST_P(E2E_BackendAtan2Bf16_Code, CalculateCorrect) {
   auto test_shape = GetParam();
@@ -26,9 +27,9 @@ TEST_P(E2E_BackendAtan2Bf16_Code, CalculateCorrect) {
   int test_size = test_shape[0] * test_shape[1] * test_shape[2];
 
   AutofuseTilingData tiling_data;
-  bfloat16_t* input1 = (bfloat16_t *)AscendC::GmAlloc(test_size * sizeof(bfloat16_t) + 32);
-  bfloat16_t* input2 = (bfloat16_t *)AscendC::GmAlloc(test_size * sizeof(bfloat16_t) + 32);
-  bfloat16_t* y = (bfloat16_t *)AscendC::GmAlloc(test_size * sizeof(bfloat16_t) + 32);
+  bfloat16_t *input1 = (bfloat16_t *)AscendC::GmAlloc(test_size * sizeof(bfloat16_t) + 32);
+  bfloat16_t *input2 = (bfloat16_t *)AscendC::GmAlloc(test_size * sizeof(bfloat16_t) + 32);
+  bfloat16_t *y = (bfloat16_t *)AscendC::GmAlloc(test_size * sizeof(bfloat16_t) + 32);
   float *expect = (float *)AscendC::GmAlloc(test_size * sizeof(float) + 32);
 
   // Prepare test and expect data
@@ -45,11 +46,12 @@ TEST_P(E2E_BackendAtan2Bf16_Code, CalculateCorrect) {
 
   // Launch
   uint32_t ws_size = 0;
-  AutofuseTiling(test_shape[0], test_shape[1], test_shape[2], &tiling_data, &ws_size, &block_dim, 48, 192*1024);
+  AutofuseTiling(test_shape[0], test_shape[1], test_shape[2], &tiling_data, &ws_size, &block_dim, 48, 192 * 1024);
   printf("tiling key: %d, core_num: %d\n", tiling_data.tiling_key, tiling_data.block_dim);
 
   AscendC::SetKernelMode(KernelMode::AIV_MODE);
-  ICPU_RUN_KF(atan2_bf16_test, tiling_data.block_dim, (uint8_t *)input1, (uint8_t *)input2, (uint8_t *)y, nullptr, (uint8_t*)&tiling_data);
+  ICPU_RUN_KF(atan2_bf16_test, tiling_data.block_dim, (uint8_t *)input1, (uint8_t *)input2, (uint8_t *)y, nullptr,
+              (uint8_t *)&tiling_data);
 
   // Count difference
   uint32_t diff_count = 0;
@@ -70,5 +72,4 @@ TEST_P(E2E_BackendAtan2Bf16_Code, CalculateCorrect) {
 }
 
 INSTANTIATE_TEST_SUITE_P(CalcWithDifferentShape, E2E_BackendAtan2Bf16_Code,
-    ::testing::Values(std::vector<int>{2, 4, 8}
-                      ));
+                         ::testing::Values(std::vector<int>{2, 4, 8}));

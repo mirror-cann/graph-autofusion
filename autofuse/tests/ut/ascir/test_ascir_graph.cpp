@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -45,16 +45,14 @@ TEST(Ascir_Graph_Bg, AddStartNode_Ok) {
 static std::string SizeExprStr(const ascir::Graph &graph, const ascir::SizeExpr &size_expr) {
   std::stringstream ss;
 
-  auto var_to_name = [&graph](ascir::SizeVarId id, void*) -> string{
-    return graph.size_var[id].name;
-  };
+  auto var_to_name = [&graph](ascir::SizeVarId id, void *) -> string { return graph.size_var[id].name; };
 
   return size_expr.String(var_to_name);
 }
 
 static std::stringstream &SizeExprListStr(std::stringstream &ss, const ascir::Graph &graph,
                                           const std::vector<ascir::SizeExpr> &size_expr_list) {
-  for (auto& size_expr: size_expr_list) {
+  for (auto &size_expr : size_expr_list) {
     ss << SizeExprStr(graph, size_expr) << ", ";
   }
   return ss;

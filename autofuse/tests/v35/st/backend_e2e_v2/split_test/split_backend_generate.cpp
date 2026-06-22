@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -34,9 +34,8 @@ class TestBackendSplitE2e : public testing::Test {
     ge::RuntimeStub::Reset();
   }
 
-  static void CreateSplitAscGraph(af::AscGraph &graph,
-                                   const std::vector<std::string> &dim_sizes,
-                                   af::DataType dtype = af::DT_INT32) {
+  static void CreateSplitAscGraph(af::AscGraph &graph, const std::vector<std::string> &dim_sizes,
+                                  af::DataType dtype = af::DT_INT32) {
     af::ascir_op::Data x0("split_data0", graph);
     x0.ir_attr.SetIndex(0);
     x0.y.dtype = dtype;
@@ -68,7 +67,7 @@ class TestBackendSplitE2e : public testing::Test {
     af::ascir_op::Output y2("output1");
     y2.x = x_out2.y;
     y2.ir_attr.SetIndex(1);
-    y2.y.dtype = dtype;    
+    y2.y.dtype = dtype;
 
     ConstructVVAscGraphAxisInfo(graph, dim_sizes);
     auto split_node = graph.FindNode("split");
@@ -130,21 +129,17 @@ class TestBackendSplitE2e : public testing::Test {
   }
 };
 
-
-
 TEST_F(TestBackendSplitE2e, SplitAllAligned) {
   bool gen_success = true;
   af::AscGraph graph("split_v2_test");
   CreateSplitAscGraph(graph, {"s0", "32"}, af::DT_INT8);
-  std::map<std::string, std::string> shape_info(
-      {{"s0", "stub_s0"}}
-  );
+  std::map<std::string, std::string> shape_info({{"s0", "stub_s0"}});
   std::cout << "KERNEL_SRC_LIST=" << KERNEL_SRC_LIST << std::endl;
   std::vector<std::string> parts = splitString(KERNEL_SRC_LIST, ':');
   // dlog_setlevel(0, 0, 1);
-    // setenv("DUMP_GE_GRAPH", "1", 1);
-    // setenv("DUMP_GRAPH_LEVEL", "1", 1);
-    // setenv("DUMP_GRAPH_PATH", "./", 1);
+  // setenv("DUMP_GE_GRAPH", "1", 1);
+  // setenv("DUMP_GRAPH_LEVEL", "1", 1);
+  // setenv("DUMP_GRAPH_PATH", "./", 1);
 
   try {
     optimize::Optimizer optimizer(optimize::OptimizerOptions{});
@@ -157,16 +152,16 @@ TEST_F(TestBackendSplitE2e, SplitAllAligned) {
     codegen::CodegenResult result;
     EXPECT_EQ(codegen.Generate(shape_info, fused_schedule_result, result), 0);
     const auto &kernel = RemoveSubDirInclude(result.kernel);
-    std::string expected = "constexpr SplitTilingAllAligned<2> split_tiling {\n"
-                           "  .src_col_size = 64,\n"
-                           "  .dst_col_sizes = { 32, 32, },\n"
-                           "  .src_offsets = { 0, 32, },\n"
-                           "};\n";
+    std::string expected =
+        "constexpr SplitTilingAllAligned<2> split_tiling {\n"
+        "  .src_col_size = 64,\n"
+        "  .dst_col_sizes = { 32, 32, },\n"
+        "  .src_offsets = { 0, 32, },\n"
+        "};\n";
     EXPECT_TRUE(kernel.find(expected) != std::string::npos);
     expected = "SplitAllAligned<int8_t, 2>(";
     EXPECT_TRUE(kernel.find(expected) != std::string::npos);
-  }
-  catch (...) {
+  } catch (...) {
     gen_success = false;
   }
 
@@ -174,16 +169,14 @@ TEST_F(TestBackendSplitE2e, SplitAllAligned) {
 }
 
 TEST_F(TestBackendSplitE2e, SplitNotAllAligned_B64) {
-//   dlog_setlevel(0, 0, 1);
-//   setenv("DUMP_GE_GRAPH", "1", 1);
-//   setenv("DUMP_GRAPH_LEVEL", "1", 1);
-//   setenv("DUMP_GRAPH_PATH", "./", 1);
+  //   dlog_setlevel(0, 0, 1);
+  //   setenv("DUMP_GE_GRAPH", "1", 1);
+  //   setenv("DUMP_GRAPH_LEVEL", "1", 1);
+  //   setenv("DUMP_GRAPH_PATH", "./", 1);
   bool gen_success = true;
   af::AscGraph graph("split_v2_test");
   CreateSplitAscGraph(graph, {"s0", "s1"}, af::DT_INT64);
-  std::map<std::string, std::string> shape_info(
-      {{"s0", "stub_s0"}, {"s1", "stub_s1"}}
-  );
+  std::map<std::string, std::string> shape_info({{"s0", "stub_s0"}, {"s1", "stub_s1"}});
   std::cout << "KERNEL_SRC_LIST=" << KERNEL_SRC_LIST << std::endl;
   std::vector<std::string> parts = splitString(KERNEL_SRC_LIST, ':');
 
@@ -203,8 +196,7 @@ TEST_F(TestBackendSplitE2e, SplitNotAllAligned_B64) {
     EXPECT_TRUE(kernel.find(expected) != std::string::npos);
     expected = "split::SplitExtend<uint32_t, 2>((uint32_t *)";
     EXPECT_TRUE(kernel.find(expected) != std::string::npos);
-  }
-  catch (...) {
+  } catch (...) {
     gen_success = false;
   }
 
@@ -215,9 +207,7 @@ TEST_F(TestBackendSplitE2e, SplitNotAllAligned_B8) {
   bool gen_success = true;
   af::AscGraph graph("split_v2_test");
   CreateSplitAscGraph(graph, {"s0", "s1"}, af::DT_INT8);
-  std::map<std::string, std::string> shape_info(
-      {{"s0", "stub_s0"}, {"s1", "stub_s1"}}
-  );
+  std::map<std::string, std::string> shape_info({{"s0", "stub_s0"}, {"s1", "stub_s1"}});
   std::cout << "KERNEL_SRC_LIST=" << KERNEL_SRC_LIST << std::endl;
   std::vector<std::string> parts = splitString(KERNEL_SRC_LIST, ':');
 
@@ -236,8 +226,7 @@ TEST_F(TestBackendSplitE2e, SplitNotAllAligned_B8) {
     EXPECT_TRUE(kernel.find(expected) != std::string::npos);
     expected = "split::SplitExtend<int8_t, 2>((int8_t *)";
     EXPECT_TRUE(kernel.find(expected) != std::string::npos);
-  }
-  catch (...) {
+  } catch (...) {
     gen_success = false;
   }
 
@@ -248,9 +237,7 @@ TEST_F(TestBackendSplitE2e, SplitNotAllAligned_B8ToB16) {
   bool gen_success = true;
   af::AscGraph graph("split_v2_test");
   CreateSplitAscGraph(graph, {"s0", "14"}, af::DT_INT8);
-  std::map<std::string, std::string> shape_info(
-      {{"s0", "stub_s0"}}
-  );
+  std::map<std::string, std::string> shape_info({{"s0", "stub_s0"}});
   std::cout << "KERNEL_SRC_LIST=" << KERNEL_SRC_LIST << std::endl;
   std::vector<std::string> parts = splitString(KERNEL_SRC_LIST, ':');
 
@@ -266,61 +253,58 @@ TEST_F(TestBackendSplitE2e, SplitNotAllAligned_B8ToB16) {
     EXPECT_EQ(codegen.Generate(shape_info, fused_schedule_result, result), 0);
     const auto &kernel = RemoveSubDirInclude(result.kernel);
 
-    std::string expected = "const split::SplitTiling<2> split_tiling {\n"
-                           "  .num_rows = static_cast<uint32_t>(z0t_actual_size), \n"
-                           "  .num_src_cols = 14, \n"
-                           "  .num_dsts_cols = {7, 7, }\n"
-                           "};\n";
+    std::string expected =
+        "const split::SplitTiling<2> split_tiling {\n"
+        "  .num_rows = static_cast<uint32_t>(z0t_actual_size), \n"
+        "  .num_src_cols = 14, \n"
+        "  .num_dsts_cols = {7, 7, }\n"
+        "};\n";
     EXPECT_TRUE(kernel.find(expected) != std::string::npos);
     expected = "split::SplitExtend<uint16_t, 2>((uint16_t *)";
     EXPECT_TRUE(kernel.find(expected) != std::string::npos);
-  }
-  catch (...) {
+  } catch (...) {
     gen_success = false;
   }
 
   EXPECT_EQ(gen_success, true);
 }
 
- TEST_F(TestBackendSplitE2e, SplitNotAllAligned) {
-   bool gen_success = true;
-   std::string tilig_stub = R"(
+TEST_F(TestBackendSplitE2e, SplitNotAllAligned) {
+  bool gen_success = true;
+  std::string tilig_stub = R"(
  #define REGISTER_TILING_DEFAULT(tiling)
  #define GET_TILING_DATA(t, tiling)  AutofuseTilingData t = *(AutofuseTilingData*)tiling;
  )";
 
-   af::AscGraph graph("split_v2_test");
-   CreateSplitAscGraph(graph, {"s0", "s1"});
-   std::map<std::string, std::string> shape_info(
-       {{"s0", "stub_s0"}, {"s1", "stub_s1"}}
-   );
-   std::cout << "KERNEL_SRC_LIST=" << KERNEL_SRC_LIST << std::endl;
-   std::vector<std::string> parts = splitString(KERNEL_SRC_LIST, ':');
-   std::string kernel_src_file_name = parts[0];      // add_abs_test_tiling.cpp
-   std::string tiling_src_file_name = parts[1];      // add_abs_test_kernel.cpp
-   std::string tiling_data_src_file_name = parts[2]; // autofuse_tiling_data.h
+  af::AscGraph graph("split_v2_test");
+  CreateSplitAscGraph(graph, {"s0", "s1"});
+  std::map<std::string, std::string> shape_info({{"s0", "stub_s0"}, {"s1", "stub_s1"}});
+  std::cout << "KERNEL_SRC_LIST=" << KERNEL_SRC_LIST << std::endl;
+  std::vector<std::string> parts = splitString(KERNEL_SRC_LIST, ':');
+  std::string kernel_src_file_name = parts[0];       // add_abs_test_tiling.cpp
+  std::string tiling_src_file_name = parts[1];       // add_abs_test_kernel.cpp
+  std::string tiling_data_src_file_name = parts[2];  // autofuse_tiling_data.h
 
-   try {
-     optimize::Optimizer optimizer(optimize::OptimizerOptions{});
-     codegen::Codegen codegen(codegen::CodegenOptions{});
+  try {
+    optimize::Optimizer optimizer(optimize::OptimizerOptions{});
+    codegen::Codegen codegen(codegen::CodegenOptions{});
 
-     std::fstream kernel_file(kernel_src_file_name, std::ios::out);
-     std::fstream tiling_file(tiling_src_file_name, std::ios::out);
-     std::fstream tiling_data_file(tiling_data_src_file_name, std::ios::out);
+    std::fstream kernel_file(kernel_src_file_name, std::ios::out);
+    std::fstream tiling_file(tiling_src_file_name, std::ios::out);
+    std::fstream tiling_data_file(tiling_data_src_file_name, std::ios::out);
 
-     std::vector<::ascir::ScheduledResult> schedule_results;
-     ascir::FusedScheduledResult fused_schedule_result;
-     fused_schedule_result.node_idx_to_scheduled_results.push_back(schedule_results);
-     EXPECT_EQ(optimizer.Optimize(graph, fused_schedule_result), 0);
-     codegen::CodegenResult result;
-     EXPECT_EQ(codegen.Generate(shape_info, fused_schedule_result, result), 0);
-     kernel_file << tilig_stub << RemoveSubDirInclude(result.kernel);
-     tiling_file << result.tiling;
-     tiling_data_file << result.tiling_data;
-   }
-   catch (...) {
-     gen_success = false;
-   }
+    std::vector<::ascir::ScheduledResult> schedule_results;
+    ascir::FusedScheduledResult fused_schedule_result;
+    fused_schedule_result.node_idx_to_scheduled_results.push_back(schedule_results);
+    EXPECT_EQ(optimizer.Optimize(graph, fused_schedule_result), 0);
+    codegen::CodegenResult result;
+    EXPECT_EQ(codegen.Generate(shape_info, fused_schedule_result, result), 0);
+    kernel_file << tilig_stub << RemoveSubDirInclude(result.kernel);
+    tiling_file << result.tiling;
+    tiling_data_file << result.tiling_data;
+  } catch (...) {
+    gen_success = false;
+  }
 
-   EXPECT_EQ(gen_success, true);
- }
+  EXPECT_EQ(gen_success, true);
+}

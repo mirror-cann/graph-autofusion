@@ -85,23 +85,25 @@ ge::Status RegVfPerf(const std::string &vf_instruct_type, const NodeDetail &node
 */
 namespace {
 ge::Status CompareB64SpecificPerf(const std::string &compare_mode, const Expr &cal_count, const Expr &repeat_elm,
-                                   Expr &max_latency, Expr &all_vf_instruct_cost) {
+                                  Expr &max_latency, Expr &all_vf_instruct_cost) {
   Expr repeat_time = af::sym::Ceiling(cal_count / (repeat_elm * kSymTwo));
-  GELOGD("cal_count is [%s], repeat_elm is [%s], repeat_time is [%s].",
-         af::SymbolicUtils::ToString(cal_count).c_str(), af::SymbolicUtils::ToString(repeat_elm).c_str(),
-         af::SymbolicUtils::ToString(repeat_time).c_str());
+  GELOGD("cal_count is [%s], repeat_elm is [%s], repeat_time is [%s].", af::SymbolicUtils::ToString(cal_count).c_str(),
+         af::SymbolicUtils::ToString(repeat_elm).c_str(), af::SymbolicUtils::ToString(repeat_time).c_str());
   if (compare_mode == kEq) {
-    GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kEq, kFloat32, max_latency, all_vf_instruct_cost, repeat_time * kSymTwo));
+    GE_ASSERT_SUCCESS(
+        VfPerfUtils::AddVfInstructPerf(kEq, kFloat32, max_latency, all_vf_instruct_cost, repeat_time * kSymTwo));
     GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kMaskAnd, kUInt8, max_latency, all_vf_instruct_cost, repeat_time));
     return ge::SUCCESS;
   }
   if (compare_mode == kNe) {
-    GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kNe, kFloat32, max_latency, all_vf_instruct_cost, repeat_time * kSymTwo));
+    GE_ASSERT_SUCCESS(
+        VfPerfUtils::AddVfInstructPerf(kNe, kFloat32, max_latency, all_vf_instruct_cost, repeat_time * kSymTwo));
     GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kMaskOr, kUInt8, max_latency, all_vf_instruct_cost, repeat_time));
     return ge::SUCCESS;
   }
   GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kEq, kFloat32, max_latency, all_vf_instruct_cost, repeat_time));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(compare_mode, kFloat32, max_latency, all_vf_instruct_cost, repeat_time * kSymTwo));
+  GE_ASSERT_SUCCESS(
+      VfPerfUtils::AddVfInstructPerf(compare_mode, kFloat32, max_latency, all_vf_instruct_cost, repeat_time * kSymTwo));
   GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kMaskSel, kUInt8, max_latency, all_vf_instruct_cost, repeat_time));
   return ge::SUCCESS;
 }
@@ -127,7 +129,7 @@ ge::Status CompareSpecificPerf(const std::string compare_mode, const NodeDetail 
            af::SymbolicUtils::ToString(cal_count).c_str(), af::SymbolicUtils::ToString(repeat_elm).c_str(),
            af::SymbolicUtils::ToString(repeat_time).c_str());
     GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(compare_mode, node_info.input_dtype[0], max_latency,
-                                                      all_vf_instruct_cost, repeat_time));
+                                                     all_vf_instruct_cost, repeat_time));
   }
   Expr res = VfPerfUtils::GetVFHeadCost() + max_latency + all_vf_instruct_cost;
   res.Simplify();
@@ -179,7 +181,8 @@ ge::Status AbsPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr all_vf_instruct_cost = CreateExpr(0);
   GELOGD("cal_count is [%s], repeat_elm is [%s], repeat_time is [%s].", af::SymbolicUtils::ToString(cal_count).c_str(),
          af::SymbolicUtils::ToString(repeat_elm).c_str(), af::SymbolicUtils::ToString(repeat_time).c_str());
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kAbs, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
+  GE_ASSERT_SUCCESS(
+      VfPerfUtils::AddVfInstructPerf(kAbs, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
   Expr res = VfPerfUtils::GetVFHeadCost() + max_latency + all_vf_instruct_cost;
   res.Simplify();
   perf.pipe_res[PipeType::AIV_VEC] = res;
@@ -206,7 +209,8 @@ ge::Status ExpPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr all_vf_instruct_cost = CreateExpr(0);
   GELOGD("cal_count is [%s], repeat_elm is [%s], repeat_time is [%s].", af::SymbolicUtils::ToString(cal_count).c_str(),
          af::SymbolicUtils::ToString(repeat_elm).c_str(), af::SymbolicUtils::ToString(repeat_time).c_str());
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kExp, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
+  GE_ASSERT_SUCCESS(
+      VfPerfUtils::AddVfInstructPerf(kExp, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
   Expr res = VfPerfUtils::GetVFHeadCost() + max_latency + all_vf_instruct_cost;
   res.Simplify();
   perf.pipe_res[PipeType::AIV_VEC] = res;
@@ -233,7 +237,8 @@ ge::Status LnPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr all_vf_instruct_cost = CreateExpr(0);
   GELOGD("cal_count is [%s], repeat_elm is [%s], repeat_time is [%s].", af::SymbolicUtils::ToString(cal_count).c_str(),
          af::SymbolicUtils::ToString(repeat_elm).c_str(), af::SymbolicUtils::ToString(repeat_time).c_str());
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kLn, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
+  GE_ASSERT_SUCCESS(
+      VfPerfUtils::AddVfInstructPerf(kLn, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
   Expr res = VfPerfUtils::GetVFHeadCost() + max_latency + all_vf_instruct_cost;
   res.Simplify();
   perf.pipe_res[PipeType::AIV_VEC] = res;
@@ -260,7 +265,8 @@ ge::Status SqrtPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr all_vf_instruct_cost = CreateExpr(0);
   GELOGD("cal_count is [%s], repeat_elm is [%s], repeat_time is [%s].", af::SymbolicUtils::ToString(cal_count).c_str(),
          af::SymbolicUtils::ToString(repeat_elm).c_str(), af::SymbolicUtils::ToString(repeat_time).c_str());
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kSqrt, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
+  GE_ASSERT_SUCCESS(
+      VfPerfUtils::AddVfInstructPerf(kSqrt, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
   Expr res = VfPerfUtils::GetVFHeadCost() + max_latency + all_vf_instruct_cost;
   res.Simplify();
   perf.pipe_res[PipeType::AIV_VEC] = res;
@@ -289,9 +295,12 @@ ge::Status RsqrtPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr all_vf_instruct_cost = CreateExpr(0);
   GELOGD("cal_count is [%s], repeat_elm is [%s], repeat_time is [%s].", af::SymbolicUtils::ToString(cal_count).c_str(),
          af::SymbolicUtils::ToString(repeat_elm).c_str(), af::SymbolicUtils::ToString(repeat_time).c_str());
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kSqrt, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kDiv, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kSelect, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
+  GE_ASSERT_SUCCESS(
+      VfPerfUtils::AddVfInstructPerf(kSqrt, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
+  GE_ASSERT_SUCCESS(
+      VfPerfUtils::AddVfInstructPerf(kDiv, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
+  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kSelect, node_info.input_dtype[0], max_latency, all_vf_instruct_cost,
+                                                   repeat_time));
   Expr res = VfPerfUtils::GetVFHeadCost() + max_latency + all_vf_instruct_cost;
   res.Simplify();
   perf.pipe_res[PipeType::AIV_VEC] = res;
@@ -318,7 +327,8 @@ ge::Status DivPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr all_vf_instruct_cost = CreateExpr(0);
   GELOGD("cal_count is [%s], repeat_elm is [%s], repeat_time is [%s].", af::SymbolicUtils::ToString(cal_count).c_str(),
          af::SymbolicUtils::ToString(repeat_elm).c_str(), af::SymbolicUtils::ToString(repeat_time).c_str());
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kDiv, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
+  GE_ASSERT_SUCCESS(
+      VfPerfUtils::AddVfInstructPerf(kDiv, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
   Expr res = VfPerfUtils::GetVFHeadCost() + max_latency + all_vf_instruct_cost;
   res.Simplify();
   perf.pipe_res[PipeType::AIV_VEC] = res;
@@ -346,8 +356,10 @@ ge::Status ReciprocalPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr all_vf_instruct_cost = CreateExpr(0);
   GELOGD("cal_count is [%s], repeat_elm is [%s], repeat_time is [%s].", af::SymbolicUtils::ToString(cal_count).c_str(),
          af::SymbolicUtils::ToString(repeat_elm).c_str(), af::SymbolicUtils::ToString(repeat_time).c_str());
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kDuplicate, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kDiv, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
+  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kDuplicate, node_info.input_dtype[0], max_latency,
+                                                   all_vf_instruct_cost, repeat_time));
+  GE_ASSERT_SUCCESS(
+      VfPerfUtils::AddVfInstructPerf(kDiv, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
   Expr res = VfPerfUtils::GetVFHeadCost() + max_latency + all_vf_instruct_cost;
   res.Simplify();
   perf.pipe_res[PipeType::AIV_VEC] = res;
@@ -374,7 +386,8 @@ ge::Status ReluPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr all_vf_instruct_cost = CreateExpr(0);
   GELOGD("cal_count is [%s], repeat_elm is [%s], repeat_time is [%s].", af::SymbolicUtils::ToString(cal_count).c_str(),
          af::SymbolicUtils::ToString(repeat_elm).c_str(), af::SymbolicUtils::ToString(repeat_time).c_str());
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kRelu, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
+  GE_ASSERT_SUCCESS(
+      VfPerfUtils::AddVfInstructPerf(kRelu, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
   Expr res = VfPerfUtils::GetVFHeadCost() + max_latency + all_vf_instruct_cost;
   res.Simplify();
   perf.pipe_res[PipeType::AIV_VEC] = res;
@@ -401,7 +414,8 @@ ge::Status MaxPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr all_vf_instruct_cost = CreateExpr(0);
   GELOGD("cal_count is [%s], repeat_elm is [%s], repeat_time is [%s].", af::SymbolicUtils::ToString(cal_count).c_str(),
          af::SymbolicUtils::ToString(repeat_elm).c_str(), af::SymbolicUtils::ToString(repeat_time).c_str());
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kMax, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
+  GE_ASSERT_SUCCESS(
+      VfPerfUtils::AddVfInstructPerf(kMax, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
   Expr res = VfPerfUtils::GetVFHeadCost() + max_latency + all_vf_instruct_cost;
   res.Simplify();
   perf.pipe_res[PipeType::AIV_VEC] = res;
@@ -428,7 +442,8 @@ ge::Status MinPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr all_vf_instruct_cost = CreateExpr(0);
   GELOGD("cal_count is [%s], repeat_elm is [%s], repeat_time is [%s].", af::SymbolicUtils::ToString(cal_count).c_str(),
          af::SymbolicUtils::ToString(repeat_elm).c_str(), af::SymbolicUtils::ToString(repeat_time).c_str());
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kMin, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
+  GE_ASSERT_SUCCESS(
+      VfPerfUtils::AddVfInstructPerf(kMin, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
   Expr res = VfPerfUtils::GetVFHeadCost() + max_latency + all_vf_instruct_cost;
   res.Simplify();
   perf.pipe_res[PipeType::AIV_VEC] = res;
@@ -463,7 +478,8 @@ ge::Status NegPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr all_vf_instruct_cost = CreateExpr(0);
   GELOGD("cal_count is [%s], repeat_elm is [%s], repeat_time is [%s].", af::SymbolicUtils::ToString(cal_count).c_str(),
          af::SymbolicUtils::ToString(repeat_elm).c_str(), af::SymbolicUtils::ToString(repeat_time).c_str());
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kMuls, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
+  GE_ASSERT_SUCCESS(
+      VfPerfUtils::AddVfInstructPerf(kMuls, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
   Expr res = VfPerfUtils::GetVFHeadCost() + max_latency + all_vf_instruct_cost;
   res.Simplify();
   perf.pipe_res[PipeType::AIV_VEC] = res;
@@ -490,7 +506,8 @@ ge::Status MeanPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr max_latency = CreateExpr(0);
   GELOGD("cal_count is [%s], repeat_elm is [%s], repeat_time is [%s].", af::SymbolicUtils::ToString(cal_count).c_str(),
          af::SymbolicUtils::ToString(repeat_elm).c_str(), af::SymbolicUtils::ToString(repeat_time).c_str());
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kMuls, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
+  GE_ASSERT_SUCCESS(
+      VfPerfUtils::AddVfInstructPerf(kMuls, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
   Expr res = VfPerfUtils::GetVFHeadCost() + max_latency + all_vf_instruct_cost;
   res.Simplify();
   perf.pipe_res[PipeType::AIV_VEC] = res;
@@ -517,7 +534,8 @@ ge::Status AddPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr all_vf_instruct_cost = CreateExpr(0);
   GELOGD("cal_count is [%s], repeat_elm is [%s], repeat_time is [%s].", af::SymbolicUtils::ToString(cal_count).c_str(),
          af::SymbolicUtils::ToString(repeat_elm).c_str(), af::SymbolicUtils::ToString(repeat_time).c_str());
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kAdd, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
+  GE_ASSERT_SUCCESS(
+      VfPerfUtils::AddVfInstructPerf(kAdd, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
   Expr res = VfPerfUtils::GetVFHeadCost() + max_latency + all_vf_instruct_cost;
   res.Simplify();
   perf.pipe_res[PipeType::AIV_VEC] = res;
@@ -544,7 +562,8 @@ ge::Status SubPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr all_vf_instruct_cost = CreateExpr(0);
   GELOGD("cal_count is [%s], repeat_elm is [%s], repeat_time is [%s].", af::SymbolicUtils::ToString(cal_count).c_str(),
          af::SymbolicUtils::ToString(repeat_elm).c_str(), af::SymbolicUtils::ToString(repeat_time).c_str());
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kSub, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
+  GE_ASSERT_SUCCESS(
+      VfPerfUtils::AddVfInstructPerf(kSub, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
   Expr res = VfPerfUtils::GetVFHeadCost() + max_latency + all_vf_instruct_cost;
   res.Simplify();
   perf.pipe_res[PipeType::AIV_VEC] = res;
@@ -571,7 +590,8 @@ ge::Status MulPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr all_vf_instruct_cost = CreateExpr(0);
   GELOGD("cal_count is [%s], repeat_elm is [%s], repeat_time is [%s].", af::SymbolicUtils::ToString(cal_count).c_str(),
          af::SymbolicUtils::ToString(repeat_elm).c_str(), af::SymbolicUtils::ToString(repeat_time).c_str());
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kMul, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
+  GE_ASSERT_SUCCESS(
+      VfPerfUtils::AddVfInstructPerf(kMul, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
   Expr res = VfPerfUtils::GetVFHeadCost() + max_latency + all_vf_instruct_cost;
   res.Simplify();
   perf.pipe_res[PipeType::AIV_VEC] = res;
@@ -598,7 +618,8 @@ ge::Status LeakyReluPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr all_vf_instruct_cost = CreateExpr(0);
   GELOGD("cal_count is [%s], repeat_elm is [%s], repeat_time is [%s].", af::SymbolicUtils::ToString(cal_count).c_str(),
          af::SymbolicUtils::ToString(repeat_elm).c_str(), af::SymbolicUtils::ToString(repeat_time).c_str());
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kLeakyRelu, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
+  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kLeakyRelu, node_info.input_dtype[0], max_latency,
+                                                   all_vf_instruct_cost, repeat_time));
   Expr res = VfPerfUtils::GetVFHeadCost() + max_latency + all_vf_instruct_cost;
   res.Simplify();
   perf.pipe_res[PipeType::AIV_VEC] = res;
@@ -631,17 +652,20 @@ ge::Status CastPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   if (it != kRptEleMap.end()) {
     oneRepSize = af::sym::Min(oneRepSize, it->second);
   }
-  GE_ASSERT_TRUE(oneRepSize != af::sym::kSymbolZero, "oneRepSize is [%s].", af::SymbolicUtils::ToString(oneRepSize).c_str());
+  GE_ASSERT_TRUE(oneRepSize != af::sym::kSymbolZero, "oneRepSize is [%s].",
+                 af::SymbolicUtils::ToString(oneRepSize).c_str());
   Expr repeat_time = af::sym::Ceiling(cal_count / oneRepSize);
   Expr max_latency = CreateExpr(0);
   Expr all_vf_instruct_cost = CreateExpr(0);
   GELOGD("cal_count is [%s], oneRepSize is [%s], repeat_time is [%s].", af::SymbolicUtils::ToString(cal_count).c_str(),
          af::SymbolicUtils::ToString(oneRepSize).c_str(), af::SymbolicUtils::ToString(repeat_time).c_str());
   if (node_info.input_dtype[0] == kInt32 && node_info.output_dtype[0] == kFloat16) {
-    GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kCast, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
+    GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kCast, node_info.input_dtype[0], max_latency, all_vf_instruct_cost,
+                                                     repeat_time));
     GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kCast, kFloat32, max_latency, all_vf_instruct_cost, repeat_time));
   } else {
-    GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kCast, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
+    GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kCast, node_info.input_dtype[0], max_latency, all_vf_instruct_cost,
+                                                     repeat_time));
   }
   Expr res = VfPerfUtils::GetVFHeadCost() + max_latency + all_vf_instruct_cost;
   res.Simplify();
@@ -681,7 +705,8 @@ ge::Status SumPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   if (it != kRptEleMap.end()) {
     oneRepSize = it->second;
   }
-  GE_ASSERT_TRUE(oneRepSize != af::sym::kSymbolZero, "oneRepSize is [%s].", af::SymbolicUtils::ToString(oneRepSize).c_str());
+  GE_ASSERT_TRUE(oneRepSize != af::sym::kSymbolZero, "oneRepSize is [%s].",
+                 af::SymbolicUtils::ToString(oneRepSize).c_str());
   Expr max_latency = CreateExpr(0);
   Expr all_vf_instruct_cost = CreateExpr(0);
   Expr repeat = CreateExpr("reduce_sum_node");
@@ -689,8 +714,8 @@ ge::Status SumPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   GELOGD("small_repeat is [%s].", af::SymbolicUtils::ToString(small_repeat).c_str());
   Expr mid_repeat = af::sym::Ceiling(cal_count / oneRepSize) + CreateExpr(1U);
   GELOGD("mid_repeat is [%s].", af::SymbolicUtils::ToString(mid_repeat).c_str());
-  Expr large_repeat = af::sym::Ceiling(af::sym::Ceiling(cal_count / oneRepSize) / oneRepSize)
-                      + af::sym::Ceiling(cal_count / oneRepSize) + CreateExpr(1U);
+  Expr large_repeat = af::sym::Ceiling(af::sym::Ceiling(cal_count / oneRepSize) / oneRepSize) +
+                      af::sym::Ceiling(cal_count / oneRepSize) + CreateExpr(1U);
   GELOGD("large_repeat is [%s].", af::SymbolicUtils::ToString(large_repeat).c_str());
   std::shared_ptr<IfCase> branch_small = std::make_shared<IfCase>(small_repeat);
   GE_ASSERT_NOTNULL(branch_small);
@@ -698,15 +723,17 @@ ge::Status SumPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   std::shared_ptr<IfCase> branch_large = std::make_shared<IfCase>(large_repeat);
   GE_ASSERT_NOTNULL(branch_mid);
   GE_ASSERT_NOTNULL(branch_large);
-  std::shared_ptr<IfCase> branch_not_small = std::make_shared<IfCase>
-      (CondType::K_LE, cal_count, oneRepSize * oneRepSize, std::move(branch_mid), std::move(branch_large));
+  std::shared_ptr<IfCase> branch_not_small = std::make_shared<IfCase>(
+      CondType::K_LE, cal_count, oneRepSize * oneRepSize, std::move(branch_mid), std::move(branch_large));
   GE_ASSERT_NOTNULL(branch_not_small);
-  TernaryOp ternary_op = TernaryOp(CondType::K_LE, cal_count, oneRepSize, std::move(branch_small), std::move(branch_not_small));
+  TernaryOp ternary_op =
+      TernaryOp(CondType::K_LE, cal_count, oneRepSize, std::move(branch_small), std::move(branch_not_small));
   ternary_op.SetVariable(repeat);
   perf.ternary_ops[repeat] = ternary_op;
   GELOGD("cal_count is [%s], oneRepSize is [%s], repeat is [%s].", af::SymbolicUtils::ToString(cal_count).c_str(),
          af::SymbolicUtils::ToString(oneRepSize).c_str(), af::SymbolicUtils::ToString(repeat).c_str());
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kVcadd, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat));
+  GE_ASSERT_SUCCESS(
+      VfPerfUtils::AddVfInstructPerf(kVcadd, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat));
   Expr res = VfPerfUtils::GetVFHeadCost() + max_latency + all_vf_instruct_cost;
   res.Simplify();
   perf.pipe_res[PipeType::AIV_VEC] = res;
@@ -733,7 +760,8 @@ ge::Status RemovePadPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr all_vf_instruct_cost = CreateExpr(0);
   GELOGD("cal_count is [%s], repeat_elm is [%s], repeat_time is [%s].", af::SymbolicUtils::ToString(cal_count).c_str(),
          af::SymbolicUtils::ToString(repeat_elm).c_str(), af::SymbolicUtils::ToString(repeat_time).c_str());
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kVsqz, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
+  GE_ASSERT_SUCCESS(
+      VfPerfUtils::AddVfInstructPerf(kVsqz, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
   Expr res = VfPerfUtils::GetVFHeadCost() + max_latency + all_vf_instruct_cost;
   res.Simplify();
   perf.pipe_res[PipeType::AIV_VEC] = res;
@@ -762,77 +790,115 @@ ge::Status WherePerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr all_vf_instruct_cost = CreateExpr(0);
   GELOGD("cal_count is [%s], repeat_elm is [%s], repeat_time is [%s].", af::SymbolicUtils::ToString(cal_count).c_str(),
          af::SymbolicUtils::ToString(repeat_elm).c_str(), af::SymbolicUtils::ToString(repeat_time).c_str());
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kDuplicate, node_info.input_dtype[0], max_latency, all_vf_instruct_cost,
-                                                   CreateExpr(node_info.input_dtype.size())));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kCompareScalarNE, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kSelect, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
+  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kDuplicate, node_info.input_dtype[0], max_latency,
+                                                   all_vf_instruct_cost, CreateExpr(node_info.input_dtype.size())));
+  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kCompareScalarNE, node_info.input_dtype[0], max_latency,
+                                                   all_vf_instruct_cost, repeat_time));
+  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kSelect, node_info.input_dtype[0], max_latency, all_vf_instruct_cost,
+                                                   repeat_time));
   Expr res = VfPerfUtils::GetVFHeadCost() + max_latency + all_vf_instruct_cost;
   res.Simplify();
   perf.pipe_res[PipeType::AIV_VEC] = res;
   return ge::SUCCESS;
 }
 
-inline ge::Status ProcessFloatPow(const NodeDetail &node_info, Expr &cal_count, Expr &max_latency, Expr &all_vf_instruct_cost) {
+inline ge::Status ProcessFloatPow(const NodeDetail &node_info, Expr &cal_count, Expr &max_latency,
+                                  Expr &all_vf_instruct_cost) {
   Expr eleCountPerVL = kRptSizeFloat;
   Expr repeatTimes = af::sym::Ceiling(cal_count / eleCountPerVL);
   GELOGD("cal_count is [%s], repeat_elm is [%s], repeat_time is [%s].", af::SymbolicUtils::ToString(cal_count).c_str(),
          af::SymbolicUtils::ToString(eleCountPerVL).c_str(), af::SymbolicUtils::ToString(repeatTimes).c_str());
   if (node_info.input_dtype[0] != kFloat32) {
-    GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kCast, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, CreateExpr(kNumTwo)));
+    GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kCast, node_info.input_dtype[0], max_latency, all_vf_instruct_cost,
+                                                     CreateExpr(kNumTwo)));
   }
-  
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kUpdateMask, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeatTimes * CreateExpr(kNumFour)));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kAbs, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeatTimes));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kCompareScalarLT, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeatTimes * CreateExpr(kNumThree)));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kSelect, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeatTimes * CreateExpr(kNumTwo)));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kSub, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeatTimes * CreateExpr(kNumFour)));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kAnd, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeatTimes));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kCast, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeatTimes));
+
+  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kUpdateMask, node_info.input_dtype[0], max_latency,
+                                                   all_vf_instruct_cost, repeatTimes * CreateExpr(kNumFour)));
+  GE_ASSERT_SUCCESS(
+      VfPerfUtils::AddVfInstructPerf(kAbs, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeatTimes));
+  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kCompareScalarLT, node_info.input_dtype[0], max_latency,
+                                                   all_vf_instruct_cost, repeatTimes * CreateExpr(kNumThree)));
+  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kSelect, node_info.input_dtype[0], max_latency, all_vf_instruct_cost,
+                                                   repeatTimes * CreateExpr(kNumTwo)));
+  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kSub, node_info.input_dtype[0], max_latency, all_vf_instruct_cost,
+                                                   repeatTimes * CreateExpr(kNumFour)));
+  GE_ASSERT_SUCCESS(
+      VfPerfUtils::AddVfInstructPerf(kAnd, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeatTimes));
+  GE_ASSERT_SUCCESS(
+      VfPerfUtils::AddVfInstructPerf(kCast, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeatTimes));
   // Axpy
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kPlaceholder, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeatTimes * CreateExpr(kNumFour)));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kAdds, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeatTimes * CreateExpr(kNumTwo)));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kDiv, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeatTimes));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kStore, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeatTimes * CreateExpr(kNumEight)));
+  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kPlaceholder, node_info.input_dtype[0], max_latency,
+                                                   all_vf_instruct_cost, repeatTimes * CreateExpr(kNumFour)));
+  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kAdds, node_info.input_dtype[0], max_latency, all_vf_instruct_cost,
+                                                   repeatTimes * CreateExpr(kNumTwo)));
+  GE_ASSERT_SUCCESS(
+      VfPerfUtils::AddVfInstructPerf(kDiv, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeatTimes));
+  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kStore, node_info.input_dtype[0], max_latency, all_vf_instruct_cost,
+                                                   repeatTimes * CreateExpr(kNumEight)));
 
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kMul, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeatTimes * CreateExpr(kNumFive)));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kMuls, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeatTimes * CreateExpr(kNumFour)));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kAdd, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeatTimes * CreateExpr(kNumSeven)));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kNeg, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeatTimes * CreateExpr(kNumTwo)));
+  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kMul, node_info.input_dtype[0], max_latency, all_vf_instruct_cost,
+                                                   repeatTimes * CreateExpr(kNumFive)));
+  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kMuls, node_info.input_dtype[0], max_latency, all_vf_instruct_cost,
+                                                   repeatTimes * CreateExpr(kNumFour)));
+  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kAdd, node_info.input_dtype[0], max_latency, all_vf_instruct_cost,
+                                                   repeatTimes * CreateExpr(kNumSeven)));
+  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kNeg, node_info.input_dtype[0], max_latency, all_vf_instruct_cost,
+                                                   repeatTimes * CreateExpr(kNumTwo)));
   // FusedMulDstAdd
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kVmAdd, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeatTimes * CreateExpr(kNumFour)));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kMulAddDst, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeatTimes * CreateExpr(kNumFour)));
+  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kVmAdd, node_info.input_dtype[0], max_latency, all_vf_instruct_cost,
+                                                   repeatTimes * CreateExpr(kNumFour)));
+  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kMulAddDst, node_info.input_dtype[0], max_latency,
+                                                   all_vf_instruct_cost, repeatTimes * CreateExpr(kNumFour)));
 
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kExp, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeatTimes));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kCompareScalarGE, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeatTimes * CreateExpr(kNumTwo)));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kDuplicate, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeatTimes));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kMaskOr, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeatTimes));
+  GE_ASSERT_SUCCESS(
+      VfPerfUtils::AddVfInstructPerf(kExp, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeatTimes));
+  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kCompareScalarGE, node_info.input_dtype[0], max_latency,
+                                                   all_vf_instruct_cost, repeatTimes * CreateExpr(kNumTwo)));
+  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kDuplicate, node_info.input_dtype[0], max_latency,
+                                                   all_vf_instruct_cost, repeatTimes));
+  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kMaskOr, node_info.input_dtype[0], max_latency, all_vf_instruct_cost,
+                                                   repeatTimes));
 
   // ProcessSpecialCase
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kCompareScalarEQ, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeatTimes * CreateExpr(kNumSeven)));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kCompareNE, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeatTimes * CreateExpr(kNumThree)));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kAnd, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeatTimes));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kOr, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeatTimes * CreateExpr(kNumThree)));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kNeg, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeatTimes));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kMaskOr, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeatTimes * CreateExpr(kNumThree)));
+  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kCompareScalarEQ, node_info.input_dtype[0], max_latency,
+                                                   all_vf_instruct_cost, repeatTimes * CreateExpr(kNumSeven)));
+  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kCompareNE, node_info.input_dtype[0], max_latency,
+                                                   all_vf_instruct_cost, repeatTimes * CreateExpr(kNumThree)));
+  GE_ASSERT_SUCCESS(
+      VfPerfUtils::AddVfInstructPerf(kAnd, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeatTimes));
+  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kOr, node_info.input_dtype[0], max_latency, all_vf_instruct_cost,
+                                                   repeatTimes * CreateExpr(kNumThree)));
+  GE_ASSERT_SUCCESS(
+      VfPerfUtils::AddVfInstructPerf(kNeg, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeatTimes));
+  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kMaskOr, node_info.input_dtype[0], max_latency, all_vf_instruct_cost,
+                                                   repeatTimes * CreateExpr(kNumThree)));
   // MaskNot
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kPlaceholder, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeatTimes));
+  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kPlaceholder, node_info.input_dtype[0], max_latency,
+                                                   all_vf_instruct_cost, repeatTimes));
   // MaskXor
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kPlaceholder, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeatTimes * CreateExpr(kNumTwo)));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kSelect, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeatTimes));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kTruncate, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeatTimes));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kDuplicate, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeatTimes));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kCompareScalarLT, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeatTimes));
+  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kPlaceholder, node_info.input_dtype[0], max_latency,
+                                                   all_vf_instruct_cost, repeatTimes * CreateExpr(kNumTwo)));
+  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kSelect, node_info.input_dtype[0], max_latency, all_vf_instruct_cost,
+                                                   repeatTimes));
+  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kTruncate, node_info.input_dtype[0], max_latency,
+                                                   all_vf_instruct_cost, repeatTimes));
+  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kDuplicate, node_info.input_dtype[0], max_latency,
+                                                   all_vf_instruct_cost, repeatTimes));
+  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kCompareScalarLT, node_info.input_dtype[0], max_latency,
+                                                   all_vf_instruct_cost, repeatTimes));
   return ge::SUCCESS;
 }
 
-inline ge::Status ProcessIntegerPow(const NodeDetail &node_info, Expr &cal_count, Expr &max_latency, Expr &all_vf_instruct_cost) {
+inline ge::Status ProcessIntegerPow(const NodeDetail &node_info, Expr &cal_count, Expr &max_latency,
+                                    Expr &all_vf_instruct_cost) {
   Expr dataSize = af::sym::kSymbolZero;
   auto it = kDataTypeSizeMap.find(node_info.input_dtype[0]);
   if (it != kDataTypeSizeMap.end()) {
     dataSize = it->second;
   }
   GE_ASSERT_TRUE(dataSize != af::sym::kSymbolZero, "dataSize is [%s].", af::SymbolicUtils::ToString(dataSize).c_str());
-  
+
   /**
    * 指数为Int8类型时，位数为8
    * 指数为非Int8类型时，需要ReduceMax取最大值，maxLoop为最大值占用的位数，不含前导0
@@ -844,28 +910,44 @@ inline ge::Status ProcessIntegerPow(const NodeDetail &node_info, Expr &cal_count
   Expr repeat_times = params.repeat_time;
   GELOGD("cal_count is [%s], repeat_elm is [%s], repeat_time is [%s].", af::SymbolicUtils::ToString(cal_count).c_str(),
          af::SymbolicUtils::ToString(eleCountPerVL).c_str(), af::SymbolicUtils::ToString(repeat_times).c_str());
-  
+
   // CreateMask
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kPlaceholder, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, CreateExpr(kNumOne)));   
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kDuplicate, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, CreateExpr(kNumOne)));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kUpdateMask, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_times)); 
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kMul, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_times * maxLoop * CreateExpr(kNumTwo)));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kDuplicate, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_times * maxLoop));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kAnd, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_times * maxLoop));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kCompareScalarEQ, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_times * maxLoop));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kSelect, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_times * maxLoop));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kVshrs, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_times * maxLoop));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kStore, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_times));
-  
+  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kPlaceholder, node_info.input_dtype[0], max_latency,
+                                                   all_vf_instruct_cost, CreateExpr(kNumOne)));
+  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kDuplicate, node_info.input_dtype[0], max_latency,
+                                                   all_vf_instruct_cost, CreateExpr(kNumOne)));
+  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kUpdateMask, node_info.input_dtype[0], max_latency,
+                                                   all_vf_instruct_cost, repeat_times));
+  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kMul, node_info.input_dtype[0], max_latency, all_vf_instruct_cost,
+                                                   repeat_times * maxLoop * CreateExpr(kNumTwo)));
+  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kDuplicate, node_info.input_dtype[0], max_latency,
+                                                   all_vf_instruct_cost, repeat_times * maxLoop));
+  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kAnd, node_info.input_dtype[0], max_latency, all_vf_instruct_cost,
+                                                   repeat_times * maxLoop));
+  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kCompareScalarEQ, node_info.input_dtype[0], max_latency,
+                                                   all_vf_instruct_cost, repeat_times * maxLoop));
+  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kSelect, node_info.input_dtype[0], max_latency, all_vf_instruct_cost,
+                                                   repeat_times * maxLoop));
+  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kVshrs, node_info.input_dtype[0], max_latency, all_vf_instruct_cost,
+                                                   repeat_times * maxLoop));
+  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kStore, node_info.input_dtype[0], max_latency, all_vf_instruct_cost,
+                                                   repeat_times));
+
   // ProcessSpecialCase
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kCompareScalarEQ, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_times * CreateExpr(kNumTwo)));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kMaskOr, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_times));
+  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kCompareScalarEQ, node_info.input_dtype[0], max_latency,
+                                                   all_vf_instruct_cost, repeat_times * CreateExpr(kNumTwo)));
+  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kMaskOr, node_info.input_dtype[0], max_latency, all_vf_instruct_cost,
+                                                   repeat_times));
   // MaskXor
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kPlaceholder, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_times));
+  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kPlaceholder, node_info.input_dtype[0], max_latency,
+                                                   all_vf_instruct_cost, repeat_times));
   if (node_info.input_dtype[0] == kInt8 || node_info.input_dtype[0] == kInt16 || node_info.input_dtype[0] == kInt32) {
-    GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kCompareScalarNE, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_times));
-    GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kCompareScalarLT, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_times));
-    GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kMaskAnd, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_times));
+    GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kCompareScalarNE, node_info.input_dtype[0], max_latency,
+                                                     all_vf_instruct_cost, repeat_times));
+    GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kCompareScalarLT, node_info.input_dtype[0], max_latency,
+                                                     all_vf_instruct_cost, repeat_times));
+    GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kMaskAnd, node_info.input_dtype[0], max_latency,
+                                                     all_vf_instruct_cost, repeat_times));
   }
   return ge::SUCCESS;
 }
@@ -919,7 +1001,8 @@ ge::Status PowPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
                               [](const Expr &a, const Expr &b) { return a * b; });
   Expr max_latency = CreateExpr(0);
   Expr all_vf_instruct_cost = CreateExpr(0);
-  if (node_info.input_dtype[0] == kFloat16 || node_info.input_dtype[0] == kFloat32 || node_info.input_dtype[0] == kBfloat16) {
+  if (node_info.input_dtype[0] == kFloat16 || node_info.input_dtype[0] == kFloat32 ||
+      node_info.input_dtype[0] == kBfloat16) {
     GE_ASSERT_SUCCESS(ProcessFloatPow(node_info, cal_count, max_latency, all_vf_instruct_cost));
   } else {
     GE_ASSERT_SUCCESS(ProcessIntegerPow(node_info, cal_count, max_latency, all_vf_instruct_cost));
@@ -968,18 +1051,26 @@ ge::Status ErfPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   GE_ASSERT_SUCCESS(
       VfPerfUtils::AddVfInstructPerf(kLoad, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
   if (node_info.input_dtype[0] == kFloat16) {
-    GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kCast, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
+    GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kCast, node_info.input_dtype[0], max_latency, all_vf_instruct_cost,
+                                                     repeat_time));
   }
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kMins, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kMaxs, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kMul, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time * kSymEleven));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kMuls, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kAdds, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time * kSymTen));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kDiv, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
+  GE_ASSERT_SUCCESS(
+      VfPerfUtils::AddVfInstructPerf(kMins, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
+  GE_ASSERT_SUCCESS(
+      VfPerfUtils::AddVfInstructPerf(kMaxs, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
+  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kMul, node_info.input_dtype[0], max_latency, all_vf_instruct_cost,
+                                                   repeat_time * kSymEleven));
+  GE_ASSERT_SUCCESS(
+      VfPerfUtils::AddVfInstructPerf(kMuls, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
+  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kAdds, node_info.input_dtype[0], max_latency, all_vf_instruct_cost,
+                                                   repeat_time * kSymTen));
+  GE_ASSERT_SUCCESS(
+      VfPerfUtils::AddVfInstructPerf(kDiv, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
   if (node_info.input_dtype[0] == kFloat16) {
     GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kCast, kFloat32, max_latency, all_vf_instruct_cost, repeat_time));
   }
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kStore, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
+  GE_ASSERT_SUCCESS(
+      VfPerfUtils::AddVfInstructPerf(kStore, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
   Expr res = VfPerfUtils::GetVFHeadCost() + max_latency + all_vf_instruct_cost;
   res.Simplify();
   perf.pipe_res[PipeType::AIV_VEC] = res;
@@ -1020,21 +1111,31 @@ ge::Status TanhPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
          node_info.ToString().c_str(), af::SymbolicUtils::ToString(cal_count).c_str(),
          af::SymbolicUtils::ToString(repeat_elm).c_str(), af::SymbolicUtils::ToString(repeat_time).c_str(),
          af::SymbolicUtils::ToString(max_latency).c_str());
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kUpdateMask, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kLoad, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
+  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kUpdateMask, node_info.input_dtype[0], max_latency,
+                                                   all_vf_instruct_cost, repeat_time));
+  GE_ASSERT_SUCCESS(
+      VfPerfUtils::AddVfInstructPerf(kLoad, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
   if (node_info.input_dtype[0] == kFloat16) {
-    GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kCast, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
+    GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kCast, node_info.input_dtype[0], max_latency, all_vf_instruct_cost,
+                                                     repeat_time));
   }
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kMins, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kMaxs, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kMuls, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kExp, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kAdds, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time * kSymTwo));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kDiv, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
+  GE_ASSERT_SUCCESS(
+      VfPerfUtils::AddVfInstructPerf(kMins, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
+  GE_ASSERT_SUCCESS(
+      VfPerfUtils::AddVfInstructPerf(kMaxs, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
+  GE_ASSERT_SUCCESS(
+      VfPerfUtils::AddVfInstructPerf(kMuls, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
+  GE_ASSERT_SUCCESS(
+      VfPerfUtils::AddVfInstructPerf(kExp, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
+  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kAdds, node_info.input_dtype[0], max_latency, all_vf_instruct_cost,
+                                                   repeat_time * kSymTwo));
+  GE_ASSERT_SUCCESS(
+      VfPerfUtils::AddVfInstructPerf(kDiv, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
   if (node_info.input_dtype[0] == kFloat16) {
     GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kCast, kFloat32, max_latency, all_vf_instruct_cost, repeat_time));
   }
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kStore, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
+  GE_ASSERT_SUCCESS(
+      VfPerfUtils::AddVfInstructPerf(kStore, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
   Expr res = VfPerfUtils::GetVFHeadCost() + max_latency + all_vf_instruct_cost;
   res.Simplify();
   perf.pipe_res[PipeType::AIV_VEC] = res;
@@ -1074,20 +1175,29 @@ ge::Status SigmoidPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
          node_info.ToString().c_str(), af::SymbolicUtils::ToString(cal_count).c_str(),
          af::SymbolicUtils::ToString(repeat_elm).c_str(), af::SymbolicUtils::ToString(repeat_time).c_str(),
          af::SymbolicUtils::ToString(max_latency).c_str());
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kUpdateMask, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kLoad, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
+  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kUpdateMask, node_info.input_dtype[0], max_latency,
+                                                   all_vf_instruct_cost, repeat_time));
+  GE_ASSERT_SUCCESS(
+      VfPerfUtils::AddVfInstructPerf(kLoad, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
   if (node_info.input_dtype[0] == kFloat16) {
-    GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kCast, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
+    GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kCast, node_info.input_dtype[0], max_latency, all_vf_instruct_cost,
+                                                     repeat_time));
   }
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kMuls, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kExp, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kAdds, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kDuplicate, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kDiv, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
+  GE_ASSERT_SUCCESS(
+      VfPerfUtils::AddVfInstructPerf(kMuls, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
+  GE_ASSERT_SUCCESS(
+      VfPerfUtils::AddVfInstructPerf(kExp, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
+  GE_ASSERT_SUCCESS(
+      VfPerfUtils::AddVfInstructPerf(kAdds, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
+  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kDuplicate, node_info.input_dtype[0], max_latency,
+                                                   all_vf_instruct_cost, repeat_time));
+  GE_ASSERT_SUCCESS(
+      VfPerfUtils::AddVfInstructPerf(kDiv, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
   if (node_info.input_dtype[0] == kFloat16) {
     GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kCast, kFloat32, max_latency, all_vf_instruct_cost, repeat_time));
   }
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kStore, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
+  GE_ASSERT_SUCCESS(
+      VfPerfUtils::AddVfInstructPerf(kStore, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
   Expr res = VfPerfUtils::GetVFHeadCost() + max_latency + all_vf_instruct_cost;
   res.Simplify();
   perf.pipe_res[PipeType::AIV_VEC] = res;
@@ -1126,17 +1236,28 @@ ge::Status GeluPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
          node_info.ToString().c_str(), af::SymbolicUtils::ToString(cal_count).c_str(),
          af::SymbolicUtils::ToString(repeat_elm).c_str(), af::SymbolicUtils::ToString(repeat_time).c_str(),
          af::SymbolicUtils::ToString(max_latency).c_str());
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kUpdateMask, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kLoad, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kMul, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time * kSymThree));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kMuls, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time * kSymThree));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kAdd, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kMins, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kExp, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time * kSymTwo));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kAbs, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kAdds, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kDiv, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kStore, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
+  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kUpdateMask, node_info.input_dtype[0], max_latency,
+                                                   all_vf_instruct_cost, repeat_time));
+  GE_ASSERT_SUCCESS(
+      VfPerfUtils::AddVfInstructPerf(kLoad, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
+  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kMul, node_info.input_dtype[0], max_latency, all_vf_instruct_cost,
+                                                   repeat_time * kSymThree));
+  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kMuls, node_info.input_dtype[0], max_latency, all_vf_instruct_cost,
+                                                   repeat_time * kSymThree));
+  GE_ASSERT_SUCCESS(
+      VfPerfUtils::AddVfInstructPerf(kAdd, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
+  GE_ASSERT_SUCCESS(
+      VfPerfUtils::AddVfInstructPerf(kMins, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
+  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kExp, node_info.input_dtype[0], max_latency, all_vf_instruct_cost,
+                                                   repeat_time * kSymTwo));
+  GE_ASSERT_SUCCESS(
+      VfPerfUtils::AddVfInstructPerf(kAbs, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
+  GE_ASSERT_SUCCESS(
+      VfPerfUtils::AddVfInstructPerf(kAdds, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
+  GE_ASSERT_SUCCESS(
+      VfPerfUtils::AddVfInstructPerf(kDiv, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
+  GE_ASSERT_SUCCESS(
+      VfPerfUtils::AddVfInstructPerf(kStore, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
   Expr res = VfPerfUtils::GetVFHeadCost() + max_latency + all_vf_instruct_cost;
   res.Simplify();
   perf.pipe_res[PipeType::AIV_VEC] = res;
@@ -1171,13 +1292,20 @@ ge::Status SignPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
          node_info.ToString().c_str(), af::SymbolicUtils::ToString(cal_count).c_str(),
          af::SymbolicUtils::ToString(repeat_elm).c_str(), af::SymbolicUtils::ToString(repeat_time).c_str(),
          af::SymbolicUtils::ToString(max_latency).c_str());
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kDuplicate, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, kSymThree));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kUpdateMask, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kLoad, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kCompareScalarLT, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kCompareScalarGT, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kSelect, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time * kSymTwo));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kStore, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
+  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kDuplicate, node_info.input_dtype[0], max_latency,
+                                                   all_vf_instruct_cost, kSymThree));
+  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kUpdateMask, node_info.input_dtype[0], max_latency,
+                                                   all_vf_instruct_cost, repeat_time));
+  GE_ASSERT_SUCCESS(
+      VfPerfUtils::AddVfInstructPerf(kLoad, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
+  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kCompareScalarLT, node_info.input_dtype[0], max_latency,
+                                                   all_vf_instruct_cost, repeat_time));
+  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kCompareScalarGT, node_info.input_dtype[0], max_latency,
+                                                   all_vf_instruct_cost, repeat_time));
+  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kSelect, node_info.input_dtype[0], max_latency, all_vf_instruct_cost,
+                                                   repeat_time * kSymTwo));
+  GE_ASSERT_SUCCESS(
+      VfPerfUtils::AddVfInstructPerf(kStore, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
   Expr res = VfPerfUtils::GetVFHeadCost() + max_latency + all_vf_instruct_cost;
   res.Simplify();
   perf.pipe_res[PipeType::AIV_VEC] = res;
@@ -1216,18 +1344,26 @@ ge::Status LogicalNotPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
          node_info.ToString().c_str(), af::SymbolicUtils::ToString(cal_count).c_str(),
          af::SymbolicUtils::ToString(repeat_elm).c_str(), af::SymbolicUtils::ToString(repeat_time).c_str(),
          af::SymbolicUtils::ToString(max_latency).c_str());
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kDuplicate, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, kSymTwo));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kUpdateMask, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kLoad, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kCompareScalarEQ, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
-  if (node_info.input_dtype[0] == kFloat16 || node_info.input_dtype[0] == kBfloat16 || node_info.input_dtype[0] == kUInt16
-  || node_info.input_dtype[0] == kInt16) {
-    GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kMaskPack, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time * kSymTwo));
+  GE_ASSERT_SUCCESS(
+      VfPerfUtils::AddVfInstructPerf(kDuplicate, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, kSymTwo));
+  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kUpdateMask, node_info.input_dtype[0], max_latency,
+                                                   all_vf_instruct_cost, repeat_time));
+  GE_ASSERT_SUCCESS(
+      VfPerfUtils::AddVfInstructPerf(kLoad, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
+  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kCompareScalarEQ, node_info.input_dtype[0], max_latency,
+                                                   all_vf_instruct_cost, repeat_time));
+  if (node_info.input_dtype[0] == kFloat16 || node_info.input_dtype[0] == kBfloat16 ||
+      node_info.input_dtype[0] == kUInt16 || node_info.input_dtype[0] == kInt16) {
+    GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kMaskPack, node_info.input_dtype[0], max_latency,
+                                                     all_vf_instruct_cost, repeat_time * kSymTwo));
   } else {
-    GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kMaskPack, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time * kSymFour));
+    GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kMaskPack, node_info.input_dtype[0], max_latency,
+                                                     all_vf_instruct_cost, repeat_time * kSymFour));
   }
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kSelect, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kStore, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
+  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kSelect, node_info.input_dtype[0], max_latency, all_vf_instruct_cost,
+                                                   repeat_time));
+  GE_ASSERT_SUCCESS(
+      VfPerfUtils::AddVfInstructPerf(kStore, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
   Expr res = VfPerfUtils::GetVFHeadCost() + max_latency + all_vf_instruct_cost;
   res.Simplify();
   perf.pipe_res[PipeType::AIV_VEC] = res;
@@ -1266,20 +1402,28 @@ inline ge::Status LogicalAndOrImpl(const std::string &type, const NodeDetail &no
          node_info.ToString().c_str(), af::SymbolicUtils::ToString(cal_count).c_str(),
          af::SymbolicUtils::ToString(repeat_elm).c_str(), af::SymbolicUtils::ToString(repeat_time).c_str(),
          af::SymbolicUtils::ToString(max_latency).c_str());
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kDuplicate, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, kSymTwo));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kUpdateMask, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kLoad, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time * kSymTwo));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kCompareScalarNE, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time * kSymTwo));
+  GE_ASSERT_SUCCESS(
+      VfPerfUtils::AddVfInstructPerf(kDuplicate, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, kSymTwo));
+  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kUpdateMask, node_info.input_dtype[0], max_latency,
+                                                   all_vf_instruct_cost, repeat_time));
+  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kLoad, node_info.input_dtype[0], max_latency, all_vf_instruct_cost,
+                                                   repeat_time * kSymTwo));
+  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kCompareScalarNE, node_info.input_dtype[0], max_latency,
+                                                   all_vf_instruct_cost, repeat_time * kSymTwo));
   if (type == kMaskAnd) {
-    GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kMaskAnd, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
+    GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kMaskAnd, node_info.input_dtype[0], max_latency,
+                                                     all_vf_instruct_cost, repeat_time));
   } else {
-    GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kMaskOr, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
+    GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kMaskOr, node_info.input_dtype[0], max_latency,
+                                                     all_vf_instruct_cost, repeat_time));
   }
   if (node_info.input_dtype[0] == kFloat16 || node_info.input_dtype[0] == kBfloat16 ||
       node_info.input_dtype[0] == kUInt16 || node_info.input_dtype[0] == kInt16) {
-    GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kMaskPack, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time * kSymTwo));
+    GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kMaskPack, node_info.input_dtype[0], max_latency,
+                                                     all_vf_instruct_cost, repeat_time * kSymTwo));
   } else {
-    GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kMaskPack, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time * kSymFour));
+    GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kMaskPack, node_info.input_dtype[0], max_latency,
+                                                     all_vf_instruct_cost, repeat_time * kSymFour));
   }
   GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kSelect, node_info.input_dtype[0], max_latency, all_vf_instruct_cost,
                                                    repeat_time));
@@ -1325,11 +1469,16 @@ ge::Status ClipByValuePerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
          node_info.ToString().c_str(), af::SymbolicUtils::ToString(cal_count).c_str(),
          af::SymbolicUtils::ToString(repeat_elm).c_str(), af::SymbolicUtils::ToString(repeat_time).c_str(),
          af::SymbolicUtils::ToString(max_latency).c_str());
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kUpdateMask, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kLoad, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time * kSymThree));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kMax, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kMin, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kStore, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
+  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kUpdateMask, node_info.input_dtype[0], max_latency,
+                                                   all_vf_instruct_cost, repeat_time));
+  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kLoad, node_info.input_dtype[0], max_latency, all_vf_instruct_cost,
+                                                   repeat_time * kSymThree));
+  GE_ASSERT_SUCCESS(
+      VfPerfUtils::AddVfInstructPerf(kMax, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
+  GE_ASSERT_SUCCESS(
+      VfPerfUtils::AddVfInstructPerf(kMin, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
+  GE_ASSERT_SUCCESS(
+      VfPerfUtils::AddVfInstructPerf(kStore, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
   Expr res = VfPerfUtils::GetVFHeadCost() + max_latency + all_vf_instruct_cost;
   res.Simplify();
   perf.pipe_res[PipeType::AIV_VEC] = res;
@@ -1365,14 +1514,22 @@ ge::Status BitwiseAndPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr all_vf_instruct_cost = CreateExpr(0);
   GELOGD("cal_count is [%s], repeat_elm is [%s], repeat_time is [%s].", af::SymbolicUtils::ToString(cal_count).c_str(),
          af::SymbolicUtils::ToString(repeat_elm).c_str(), af::SymbolicUtils::ToString(repeat_time).c_str());
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kUpdateMask, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time * kSymTwo));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kLoad, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time * kSymFour));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kAnd, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time * kSymTwo));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kStore, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time * kSymTwo));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kUpdateMask, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, kSymOne));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kLoad, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, kSymTwo));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kAnd, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, kSymOne));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kStore, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, kSymOne));
+  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kUpdateMask, node_info.input_dtype[0], max_latency,
+                                                   all_vf_instruct_cost, repeat_time * kSymTwo));
+  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kLoad, node_info.input_dtype[0], max_latency, all_vf_instruct_cost,
+                                                   repeat_time * kSymFour));
+  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kAnd, node_info.input_dtype[0], max_latency, all_vf_instruct_cost,
+                                                   repeat_time * kSymTwo));
+  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kStore, node_info.input_dtype[0], max_latency, all_vf_instruct_cost,
+                                                   repeat_time * kSymTwo));
+  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kUpdateMask, node_info.input_dtype[0], max_latency,
+                                                   all_vf_instruct_cost, kSymOne));
+  GE_ASSERT_SUCCESS(
+      VfPerfUtils::AddVfInstructPerf(kLoad, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, kSymTwo));
+  GE_ASSERT_SUCCESS(
+      VfPerfUtils::AddVfInstructPerf(kAnd, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, kSymOne));
+  GE_ASSERT_SUCCESS(
+      VfPerfUtils::AddVfInstructPerf(kStore, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, kSymOne));
   Expr res = VfPerfUtils::GetVFHeadCost() + max_latency + all_vf_instruct_cost;
   res.Simplify();
   perf.pipe_res[PipeType::AIV_VEC] = res;
@@ -1411,18 +1568,30 @@ ge::Status FloorDivPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr all_vf_instruct_cost = CreateExpr(0);
   GELOGD("size is [%s], repeat_elm is [%s], repeat_time is [%s].", af::SymbolicUtils::ToString(size).c_str(),
          af::SymbolicUtils::ToString(repeat_elm).c_str(), af::SymbolicUtils::ToString(repeat_time).c_str());
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kUpdateMask, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, kSymTwo));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kDuplicate, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, kSymTwo));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kLoad, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time * kSymTwo));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kDiv, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kTruncate, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kEq, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kMul, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kMulAddDst, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kGt, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kAdd, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kSelect, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time * kSymTwo));
-  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kStore, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
+  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kUpdateMask, node_info.input_dtype[0], max_latency,
+                                                   all_vf_instruct_cost, kSymTwo));
+  GE_ASSERT_SUCCESS(
+      VfPerfUtils::AddVfInstructPerf(kDuplicate, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, kSymTwo));
+  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kLoad, node_info.input_dtype[0], max_latency, all_vf_instruct_cost,
+                                                   repeat_time * kSymTwo));
+  GE_ASSERT_SUCCESS(
+      VfPerfUtils::AddVfInstructPerf(kDiv, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
+  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kTruncate, node_info.input_dtype[0], max_latency,
+                                                   all_vf_instruct_cost, repeat_time));
+  GE_ASSERT_SUCCESS(
+      VfPerfUtils::AddVfInstructPerf(kEq, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
+  GE_ASSERT_SUCCESS(
+      VfPerfUtils::AddVfInstructPerf(kMul, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
+  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kMulAddDst, node_info.input_dtype[0], max_latency,
+                                                   all_vf_instruct_cost, repeat_time));
+  GE_ASSERT_SUCCESS(
+      VfPerfUtils::AddVfInstructPerf(kGt, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
+  GE_ASSERT_SUCCESS(
+      VfPerfUtils::AddVfInstructPerf(kAdd, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
+  GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kSelect, node_info.input_dtype[0], max_latency, all_vf_instruct_cost,
+                                                   repeat_time * kSymTwo));
+  GE_ASSERT_SUCCESS(
+      VfPerfUtils::AddVfInstructPerf(kStore, node_info.input_dtype[0], max_latency, all_vf_instruct_cost, repeat_time));
   Expr res = VfPerfUtils::GetVFHeadCost() + max_latency + all_vf_instruct_cost;
   res.Simplify();
   perf.pipe_res[PipeType::AIV_VEC] = res;

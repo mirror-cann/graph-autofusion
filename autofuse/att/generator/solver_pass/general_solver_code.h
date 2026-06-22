@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -263,7 +263,9 @@ inline std::string GenVarVal() {
 
 inline std::string SetResult() {
   std::string general_solver = "";
-  general_solver += "    void SetResult(int32_t top_num, int32_t var_num, VarVal *var_space, char *temp_space, char *solution_space)\n";
+  general_solver +=
+      "    void SetResult(int32_t top_num, int32_t var_num, VarVal *var_space, char *temp_space, char "
+      "*solution_space)\n";
   general_solver += "    {\n";
   general_solver += "        solution_num_ = 0;\n";
   general_solver += "        top_n_ = top_num;\n";
@@ -382,7 +384,8 @@ inline std::string GenConsInfo() {
 
 inline std::string ConstructMomentum() {
   std::string general_solver = "";
-  general_solver += "    void SetMomentum(int32_t var_num, int32_t leq_num, double *double_space, bool *bool_space) {\n";
+  general_solver +=
+      "    void SetMomentum(int32_t var_num, int32_t leq_num, double *double_space, bool *bool_space) {\n";
   general_solver += "        momentum = double_space + 2 * leq_num;\n";
   general_solver += "        cur_value = double_space + 2 * leq_num + var_num;\n";
   general_solver += "        is_valid = bool_space + var_num;\n";
@@ -433,26 +436,30 @@ inline std::string GenPrivateFunc() {
   general_solver += "    bool GetFineLoc(const UpdateInfo &update_info, uint64_t &step, Locality &cur_locality);\n";
   general_solver += "    bool GetPeerLoc(const UpdateInfo &update_info, Locality &cur_locality);\n";
   general_solver +=
-      "    bool LocateLoc(const UpdateInfo &update_info, uint64_t &step, Locality &cur_locality, Locality &best_locality);\n";
+      "    bool LocateLoc(const UpdateInfo &update_info, uint64_t &step, Locality &cur_locality, Locality "
+      "&best_locality);\n";
   general_solver += "    bool TryLocate(int32_t idx, double init_obj, Locality &best_locality);\n";
   general_solver += "\n";
   general_solver += "    TunePriority GetTunePriority(int32_t idx, double rec_obj, double &cur_obj);\n";
   general_solver +=
-      "    bool SearchLoc(const UpdateInfo &update_info, uint64_t &step, double &cur_obj, TunePriority &cur_priority);\n";
+      "    bool SearchLoc(const UpdateInfo &update_info, uint64_t &step, double &cur_obj, TunePriority "
+      "&cur_priority);\n";
   general_solver += "    bool GetHarmlessLoc(const UpdateInfo &update_info, uint64_t &step, double &cur_obj);\n";
   general_solver += "    bool GetDilatedLoc(const UpdateInfo &update_info, uint64_t &step);\n";
   general_solver +=
       "    bool TuneLoc(const UpdateInfo &update_info, double cur_obj, uint64_t &step, TunePriority &cur_priority, "
       "TunePriority &best_priority);\n";
   general_solver +=
-      "    bool TryTune(int32_t idx, UpdateDirection update_direction, double init_obj, double init_cons, TunePriority &best_priority);\n";
+      "    bool TryTune(int32_t idx, UpdateDirection update_direction, double init_obj, double init_cons, TunePriority "
+      "&best_priority);\n";
   general_solver += "\n";
   general_solver += "    bool CheckValid() const;\n";
   general_solver += "    void ResetMomentum();\n";
   general_solver +=
       "    void UpdateMomentum(int32_t idx, double update_value, Locality cur_locality, Locality &best_locality);\n";
   general_solver +=
-      "    void UpdateMomentum(int32_t idx, double update_value, TunePriority cur_priority, TunePriority &best_priority);\n";
+      "    void UpdateMomentum(int32_t idx, double update_value, TunePriority cur_priority, TunePriority "
+      "&best_priority);\n";
   general_solver += "    bool GetBestChoice();\n";
   general_solver += "    bool UpdateBestVar();\n";
   general_solver += "\n";
@@ -654,7 +661,6 @@ inline std::string GenGetVarPointer() {
   return general_solver;
 }
 
-
 inline std::string GenResultFunc() {
   std::string general_solver = "";
   general_solver += GenAddVarVal();
@@ -693,10 +699,13 @@ inline std::string GenGetDescent() {
   strs += "  func_info:用于指明计算下降方向的函数(FuncInfo::BUFFER/FuncInfo::LEQ)\n";
   general_solver += AddAnotationBlock(strs);
   general_solver += "template <typename SpecificCase>\n";
-  general_solver += "inline UpdateDirection GeneralSolver<SpecificCase>::GetDescent(uint64_t *vars, int32_t idx, FuncInfo func_info)\n";
+  general_solver +=
+      "inline UpdateDirection GeneralSolver<SpecificCase>::GetDescent(uint64_t *vars, int32_t idx, FuncInfo "
+      "func_info)\n";
   general_solver += "{\n";
   general_solver += "    if ((idx < 0) || (idx >= var_info_->var_num)) {\n";
-  general_solver += "        OP_LOGW(OP_NAME, \"idx = %d, var_info_->var_num = %d, idx illegal.\", idx, var_info_->var_num);\n";
+  general_solver +=
+      "        OP_LOGW(OP_NAME, \"idx = %d, var_info_->var_num = %d, idx illegal.\", idx, var_info_->var_num);\n";
   general_solver += "        return UpdateDirection::NONE;\n";
   general_solver += "    }\n";
   general_solver += "    static_cast<SpecificCase*>(this)->UpdateLeqs(vars, -1, cons_info_->weight);\n";
@@ -887,7 +896,8 @@ inline std::string GenGetLocality() {
   strs += "  Locality类型的优先级指标\n";
   general_solver += AddAnotationBlock(strs);
   general_solver += "template <typename SpecificCase>\n";
-  general_solver += "inline Locality GeneralSolver<SpecificCase>::GetLocality(int32_t idx, UpdateDirection update_direction)\n";
+  general_solver +=
+      "inline Locality GeneralSolver<SpecificCase>::GetLocality(int32_t idx, UpdateDirection update_direction)\n";
   general_solver += "{\n";
   general_solver += "    if (CheckValid()) {\n";
   general_solver += "        return Locality::GLOBALVALID;\n";
@@ -922,13 +932,15 @@ inline std::string GenGetCoarseLoc() {
   general_solver += AddAnotationBlock(strs);
   general_solver += "template <typename SpecificCase>\n";
   general_solver +=
-      "inline bool GeneralSolver<SpecificCase>::GetCoarseLoc(const UpdateInfo &update_info, uint64_t &step, Locality &cur_locality)\n";
+      "inline bool GeneralSolver<SpecificCase>::GetCoarseLoc(const UpdateInfo &update_info, uint64_t &step, Locality "
+      "&cur_locality)\n";
   general_solver += "{\n";
   general_solver += "    uint64_t update_value;\n";
   general_solver += "\n";
   general_solver += "    int32_t idx = update_info.idx;\n";
   general_solver += "    if ((idx < 0) || (idx >= var_info_->var_num)) {\n";
-  general_solver += "        OP_LOGW(OP_NAME, \"idx = %d, var_info_->var_num = %d, idx illegal.\", idx, var_info_->var_num);\n";
+  general_solver +=
+      "        OP_LOGW(OP_NAME, \"idx = %d, var_info_->var_num = %d, idx illegal.\", idx, var_info_->var_num);\n";
   general_solver += "        return false;\n";
   general_solver += "    }\n";
   general_solver += "    uint64_t thres = update_info.thres;\n";
@@ -970,14 +982,16 @@ inline std::string GenGetFineLoc() {
   general_solver += AddAnotationBlock(strs);
   general_solver += "template <typename SpecificCase>\n";
   general_solver +=
-      "inline bool GeneralSolver<SpecificCase>::GetFineLoc(const UpdateInfo &update_info, uint64_t &step, Locality &cur_locality)\n";
+      "inline bool GeneralSolver<SpecificCase>::GetFineLoc(const UpdateInfo &update_info, uint64_t &step, Locality "
+      "&cur_locality)\n";
   general_solver += "{\n";
   general_solver += "    uint64_t update_value;\n";
   general_solver += "    Locality rec_locality;\n";
   general_solver += "\n";
   general_solver += "    int32_t idx = update_info.idx;\n";
   general_solver += "    if ((idx < 0) || (idx >= var_info_->var_num)) {\n";
-  general_solver += "        OP_LOGW(OP_NAME, \"idx = %d, var_info_->var_num = %d, idx illegal.\", idx, var_info_->var_num);\n";
+  general_solver +=
+      "        OP_LOGW(OP_NAME, \"idx = %d, var_info_->var_num = %d, idx illegal.\", idx, var_info_->var_num);\n";
   general_solver += "        return false;\n";
   general_solver += "    }\n";
   general_solver += "    UpdateDirection update_direction = update_info.update_direction;\n";
@@ -1041,7 +1055,8 @@ inline std::string GenGetPeerLoc() {
   std::string general_solver = "";
   general_solver += PeerLocAnotation();
   general_solver += "template <typename SpecificCase>\n";
-  general_solver += "inline bool GeneralSolver<SpecificCase>::GetPeerLoc(const UpdateInfo &update_info, Locality &cur_locality)\n";
+  general_solver +=
+      "inline bool GeneralSolver<SpecificCase>::GetPeerLoc(const UpdateInfo &update_info, Locality &cur_locality)\n";
   general_solver += "{\n";
   general_solver += "    uint64_t left_value;\n";
   general_solver += "    uint64_t right_value;\n";
@@ -1049,7 +1064,8 @@ inline std::string GenGetPeerLoc() {
   general_solver += "    Locality rec_locality;\n";
   general_solver += "    int32_t idx = update_info.idx;\n";
   general_solver += "    if ((idx < 0) || (idx >= var_info_->var_num)) {\n";
-  general_solver += "        OP_LOGW(OP_NAME, \"idx = %d, var_info_->var_num = %d, idx illegal.\", idx, var_info_->var_num);\n";
+  general_solver +=
+      "        OP_LOGW(OP_NAME, \"idx = %d, var_info_->var_num = %d, idx illegal.\", idx, var_info_->var_num);\n";
   general_solver += "        return false;\n";
   general_solver += "    }\n";
   general_solver += "    uint64_t rec_value = var_info_->cur_vars[idx];\n";
@@ -1087,9 +1103,11 @@ inline std::string GenUpdateLocalityMomentum() {
   general_solver += AddAnotationBlock(strs);
   general_solver += "template <typename SpecificCase>\n";
   general_solver +=
-      "inline void GeneralSolver<SpecificCase>::UpdateMomentum(int32_t idx, double update_value, Locality cur_locality, Locality &best_locality)\n";
+      "inline void GeneralSolver<SpecificCase>::UpdateMomentum(int32_t idx, double update_value, Locality "
+      "cur_locality, Locality &best_locality)\n";
   general_solver += "{\n";
-  general_solver += "    if (cur_locality != Locality::GLOBALVALID || !visited_node_->SearchVars(var_info_->cur_vars, false))\n";
+  general_solver +=
+      "    if (cur_locality != Locality::GLOBALVALID || !visited_node_->SearchVars(var_info_->cur_vars, false))\n";
   general_solver += "    {\n";
   general_solver += "        if (cur_locality < best_locality) {\n";
   general_solver += "            ResetMomentum();\n";
@@ -1190,18 +1208,21 @@ inline std::string GenLocateLoc() {
   general_solver += AddAnotationBlock(strs);
   general_solver += "template <typename SpecificCase>\n";
   general_solver +=
-      "inline bool GeneralSolver<SpecificCase>::LocateLoc(const UpdateInfo &update_info, uint64_t &step, Locality &cur_locality, Locality &best_locality)\n";
+      "inline bool GeneralSolver<SpecificCase>::LocateLoc(const UpdateInfo &update_info, uint64_t &step, Locality "
+      "&cur_locality, Locality &best_locality)\n";
   general_solver += "{\n";
   general_solver += "    int32_t idx = update_info.idx;\n";
   general_solver += "    double init_obj = update_info.init_obj;\n";
   general_solver += "    if (cur_locality <= best_locality)\n";
   general_solver += "    {\n";
   general_solver += "        GetFineLoc(update_info, step, cur_locality);\n";
-  general_solver += "        if (!solver_config_.simple_ver && visited_node_->SearchVars(var_info_->cur_vars, false))\n";
+  general_solver +=
+      "        if (!solver_config_.simple_ver && visited_node_->SearchVars(var_info_->cur_vars, false))\n";
   general_solver += "        {\n";
   general_solver += "            GetPeerLoc(update_info, cur_locality);\n";
   general_solver += "        }\n";
-  general_solver += "        double update_value = init_obj - static_cast<SpecificCase*>(this)->GetSmoothObj(var_info_->cur_vars);\n";
+  general_solver +=
+      "        double update_value = init_obj - static_cast<SpecificCase*>(this)->GetSmoothObj(var_info_->cur_vars);\n";
   general_solver += "        UpdateMomentum(idx, update_value, cur_locality, best_locality);\n";
   general_solver += "        return true;\n";
   general_solver += "    }\n";
@@ -1225,7 +1246,8 @@ inline std::string GenTryLocate() {
   strs += "  best_locality:当前找到的最好的LOCALITY信息\n";
   general_solver += AddAnotationBlock(strs);
   general_solver += "template <typename SpecificCase>\n";
-  general_solver += "inline bool GeneralSolver<SpecificCase>::TryLocate(int32_t idx, double init_obj, Locality &best_locality)\n";
+  general_solver +=
+      "inline bool GeneralSolver<SpecificCase>::TryLocate(int32_t idx, double init_obj, Locality &best_locality)\n";
   general_solver += "{\n";
   general_solver += "    Locality cur_locality;\n";
   general_solver += "    uint64_t step = 0;\n";
@@ -1236,8 +1258,7 @@ inline std::string GenTryLocate() {
   general_solver += "        uint64_t pos_thres = var_info_->upper_bound[idx] - var_info_->cur_vars[idx];\n";
   general_solver +=
       "        uint64_t thres = (update_direction == UpdateDirection::POSITIVE) ? pos_thres : neg_thres;\n";
-  general_solver +=
-      "        UpdateInfo update_info = UpdateInfo(idx, thres, update_direction, init_obj);\n";
+  general_solver += "        UpdateInfo update_info = UpdateInfo(idx, thres, update_direction, init_obj);\n";
   general_solver += "        if (GetCoarseLoc(update_info, step, cur_locality))\n";
   general_solver += "        {\n";
   general_solver += "            if (!LocateLoc(update_info, step, cur_locality, best_locality))\n";
@@ -1330,7 +1351,9 @@ inline std::string GenGetTunePriority() {
   strs += "  cur_obj:微调后变量的目标函数值\n";
   general_solver += AddAnotationBlock(strs);
   general_solver += "template <typename SpecificCase>\n";
-  general_solver += "inline TunePriority GeneralSolver<SpecificCase>::GetTunePriority(int32_t idx, double rec_obj, double &cur_obj)\n";
+  general_solver +=
+      "inline TunePriority GeneralSolver<SpecificCase>::GetTunePriority(int32_t idx, double rec_obj, double "
+      "&cur_obj)\n";
   general_solver += "{\n";
   general_solver += "    cur_obj = static_cast<SpecificCase*>(this)->GetSmoothObj(var_info_->cur_vars);\n";
   general_solver += "    int64_t last_update = var_info_->rec_vars[idx] - var_info_->history_vars[idx];\n";
@@ -1374,12 +1397,14 @@ inline std::string GenSearchLoc() {
   general_solver += AddAnotationBlock(strs);
   general_solver += "template <typename SpecificCase>\n";
   general_solver +=
-      "inline bool GeneralSolver<SpecificCase>::SearchLoc(const UpdateInfo &update_info, uint64_t &step, double &cur_obj, TunePriority &cur_priority)\n";
+      "inline bool GeneralSolver<SpecificCase>::SearchLoc(const UpdateInfo &update_info, uint64_t &step, double "
+      "&cur_obj, TunePriority &cur_priority)\n";
   general_solver += "{\n";
   general_solver += "    TunePriority rec_priority{TunePriority::REFUSE};\n";
   general_solver += "    int32_t idx = update_info.idx;\n";
   general_solver += "    if ((idx < 0) || (idx >= var_info_->var_num)) {\n";
-  general_solver += "        OP_LOGW(OP_NAME, \"idx = %d, var_info_->var_num = %d, idx illegal.\", idx, var_info_->var_num);\n";
+  general_solver +=
+      "        OP_LOGW(OP_NAME, \"idx = %d, var_info_->var_num = %d, idx illegal.\", idx, var_info_->var_num);\n";
   general_solver += "        return false;\n";
   general_solver += "    }\n";
   general_solver += "    uint64_t thres = update_info.thres;\n";
@@ -1418,14 +1443,16 @@ inline std::string GenGetHarmlessLoc() {
   general_solver += AddAnotationBlock(strs);
   general_solver += "template <typename SpecificCase>\n";
   general_solver +=
-      "inline bool GeneralSolver<SpecificCase>::GetHarmlessLoc(const UpdateInfo &update_info, uint64_t &step, double &cur_obj)\n";
+      "inline bool GeneralSolver<SpecificCase>::GetHarmlessLoc(const UpdateInfo &update_info, uint64_t &step, double "
+      "&cur_obj)\n";
   general_solver += "{\n";
   general_solver += "    double rec_obj;\n";
   general_solver += "    int32_t update_value;\n";
   general_solver += "    TunePriority rec_priority;\n";
   general_solver += "    int32_t idx = update_info.idx;\n";
   general_solver += "    if ((idx < 0) || (idx >= var_info_->var_num)) {\n";
-  general_solver += "        OP_LOGW(OP_NAME, \"idx = %d, var_info_->var_num = %d, idx illegal.\", idx, var_info_->var_num);\n";
+  general_solver +=
+      "        OP_LOGW(OP_NAME, \"idx = %d, var_info_->var_num = %d, idx illegal.\", idx, var_info_->var_num);\n";
   general_solver += "        return false;\n";
   general_solver += "    }\n";
   general_solver += "    uint64_t thres = update_info.thres;\n";
@@ -1465,11 +1492,13 @@ inline std::string GenGetDilatedLoc() {
   strs += "  step:取得更优可行解时的步长\n";
   general_solver += AddAnotationBlock(strs);
   general_solver += "template <typename SpecificCase>\n";
-  general_solver += "inline bool GeneralSolver<SpecificCase>::GetDilatedLoc(const UpdateInfo &update_info, uint64_t &step)\n";
+  general_solver +=
+      "inline bool GeneralSolver<SpecificCase>::GetDilatedLoc(const UpdateInfo &update_info, uint64_t &step)\n";
   general_solver += "{\n";
   general_solver += "    int32_t idx = update_info.idx;\n";
   general_solver += "    if ((idx < 0) || (idx >= var_info_->var_num)) {\n";
-  general_solver += "        OP_LOGW(OP_NAME, \"idx = %d, var_info_->var_num = %d, idx illegal.\", idx, var_info_->var_num);\n";
+  general_solver +=
+      "        OP_LOGW(OP_NAME, \"idx = %d, var_info_->var_num = %d, idx illegal.\", idx, var_info_->var_num);\n";
   general_solver += "        return false;\n";
   general_solver += "    }\n";
   general_solver += "    uint64_t update_value;\n";
@@ -1490,7 +1519,8 @@ inline std::string GenGetDilatedLoc() {
   general_solver += "        cur_obj = static_cast<SpecificCase*>(this)->GetSmoothObj(var_info_->cur_vars);\n";
   general_solver += "        cur_cons = static_cast<SpecificCase*>(this)->GetBuffCost(var_info_->cur_vars);\n";
   general_solver +=
-      "        if (!static_cast<SpecificCase*>(this)->CheckLocalValid(cons_info_->leqs, idx) || (!IsEqual(init_obj, cur_obj)) || (cur_cons > "
+      "        if (!static_cast<SpecificCase*>(this)->CheckLocalValid(cons_info_->leqs, idx) || (!IsEqual(init_obj, "
+      "cur_obj)) || (cur_cons > "
       "pre_cons))\n";
   general_solver += "        {\n";
   general_solver += "            step = solver_config_.simple_ver ? (step >> 1) : (step - 1);\n";
@@ -1515,7 +1545,8 @@ inline std::string GenUpdatePriorityMomentum() {
   general_solver += AddAnotationBlock(strs);
   general_solver += "template <typename SpecificCase>\n";
   general_solver +=
-      "inline void GeneralSolver<SpecificCase>::UpdateMomentum(int32_t idx, double update_value, TunePriority cur_priority, TunePriority &best_priority)\n";
+      "inline void GeneralSolver<SpecificCase>::UpdateMomentum(int32_t idx, double update_value, TunePriority "
+      "cur_priority, TunePriority &best_priority)\n";
   general_solver += "{\n";
   general_solver += "    if (!visited_node_->SearchVars(var_info_->cur_vars, false))\n";
   general_solver += "    {\n";
@@ -1556,7 +1587,8 @@ inline std::string GenTuneLoc() {
   general_solver += AddAnotationBlock(GenTuneLocAnnotation());
   general_solver += "template <typename SpecificCase>\n";
   general_solver +=
-      "inline bool GeneralSolver<SpecificCase>::TuneLoc(const UpdateInfo &update_info, double cur_obj, uint64_t &step, TunePriority &cur_priority, "
+      "inline bool GeneralSolver<SpecificCase>::TuneLoc(const UpdateInfo &update_info, double cur_obj, uint64_t &step, "
+      "TunePriority &cur_priority, "
       "TunePriority &best_priority)\n";
   general_solver += "{\n";
   general_solver += "    if (cur_priority <= best_priority)\n";
@@ -1564,7 +1596,8 @@ inline std::string GenTuneLoc() {
   general_solver += "        uint64_t update_value;\n";
   general_solver += "        int32_t idx = update_info.idx;\n";
   general_solver += "        if ((idx < 0) || (idx >= var_info_->var_num)) {\n";
-  general_solver += "            OP_LOGW(OP_NAME, \"idx = %d, var_info_->var_num = %d, idx illegal.\", idx, var_info_->var_num);\n";
+  general_solver +=
+      "            OP_LOGW(OP_NAME, \"idx = %d, var_info_->var_num = %d, idx illegal.\", idx, var_info_->var_num);\n";
   general_solver += "            return false;\n";
   general_solver += "        }\n";
   general_solver += "        UpdateDirection update_direction = update_info.update_direction;\n";
@@ -1611,7 +1644,8 @@ inline std::string GenTryTune() {
   general_solver += AddAnotationBlock(strs);
   general_solver += "template <typename SpecificCase>\n";
   general_solver +=
-      "inline bool GeneralSolver<SpecificCase>::TryTune(int32_t idx, UpdateDirection update_direction, double init_obj, double init_cons, "
+      "inline bool GeneralSolver<SpecificCase>::TryTune(int32_t idx, UpdateDirection update_direction, double "
+      "init_obj, double init_cons, "
       "TunePriority &best_priority)\n";
   general_solver += "{\n";
   general_solver += "    uint64_t step = 0;\n";
@@ -1729,11 +1763,11 @@ inline std::string RunAnotation() {
 inline std::string GenDTStrategy() {
   std::string str = "";
   str += "              RecordBestVarVal();\n";
-  str += "              break;\n";\
+  str += "              break;\n";
   return str;
 }
 
-inline std::string GenRun(bool open_dt=false) {
+inline std::string GenRun(bool open_dt = false) {
   std::string general_solver;
   general_solver += RunAnotation();
   general_solver += "template <typename SpecificCase>\n";
@@ -1750,7 +1784,9 @@ inline std::string GenRun(bool open_dt=false) {
   general_solver += "        {\n";
   general_solver += "            if (!LocateRegion())\n";
   general_solver += "            {\n";
-  general_solver += "                OP_LOGW(OP_NAME, \"The locating process cannot find more valuable updates, triggering an early stop.\");\n";
+  general_solver +=
+      "                OP_LOGW(OP_NAME, \"The locating process cannot find more valuable updates, triggering an early "
+      "stop.\");\n";
   general_solver += "                break;\n";
   general_solver += "            }\n";
   general_solver += "        }\n";
@@ -1761,7 +1797,8 @@ inline std::string GenRun(bool open_dt=false) {
   } else {
     general_solver += "            if (visited_node_->SearchVars(var_info_->cur_vars, true))\n";
     general_solver += "            {\n";
-    general_solver += "                OP_LOGW(OP_NAME, \"Searched a feasible solution again, triggering an early stop.\");\n";
+    general_solver +=
+        "                OP_LOGW(OP_NAME, \"Searched a feasible solution again, triggering an early stop.\");\n";
     general_solver += "                break;\n";
     general_solver += "            }\n";
     general_solver += "            if (!FineTune())\n";
@@ -1789,7 +1826,7 @@ inline std::string GenGetVarNum() {
   return general_solver;
 }
 
-inline std::string GetGeneralSolver(bool open_dt=false) {
+inline std::string GetGeneralSolver(bool open_dt = false) {
   std::string general_solver = "";
   general_solver += GenConstVars();
   general_solver += GenDef();

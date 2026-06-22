@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2026 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -26,9 +26,9 @@ using namespace af::ascir_op;
 using namespace ascgen_utils;
 
 Status TrueDivApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
-                                  const std::vector<std::reference_wrapper<const Tensor>> &inputs,
-                                  const std::vector<std::reference_wrapper<const Tensor>> &outputs,
-                                  std::string &result) const {
+                                const std::vector<std::reference_wrapper<const Tensor>> &inputs,
+                                const std::vector<std::reference_wrapper<const Tensor>> &outputs,
+                                std::string &result) const {
   size_t x1_idx = 0;
   size_t x2_idx = 1;
   bool switch_scalar = false;
@@ -55,7 +55,8 @@ Status TrueDivApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::Axi
   GE_ASSERT_TRUE(it != this->tmp_buf_id.end(), "TrueDivApiCall cannot find tmp buffer id to use.");
   id = it->second;
 
-  (void)RegisterBasicDumpParam(this->api_name_, inputs, outputs, CombinedExprFactory::SymbolVar(x1.actual_size.Str()), tpipe.tmp_buf.name + "_" + std::to_string(id));
+  (void)RegisterBasicDumpParam(this->api_name_, inputs, outputs, CombinedExprFactory::SymbolVar(x1.actual_size.Str()),
+                               tpipe.tmp_buf.name + "_" + std::to_string(id));
 
   std::string x1_dtype_name;
   std::string x2_dtype_name;
@@ -70,27 +71,25 @@ Status TrueDivApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::Axi
                  x2_dtype_name.c_str());
   const std::string is_scalar_latter = switch_scalar ? "false" : "true";
 
-  if (x1.IsAnyScalar() && x2.IsAnyScalar()) { // 两个输入都是Scalar
-    ss << this->api_name_ << "s<" << x1_dtype_name << ", " << y_dtype_name << ">("
-       << y << "[" << tpipe.tiler.TensorVectorizedOffset(current_axis, y) << "], "
+  if (x1.IsAnyScalar() && x2.IsAnyScalar()) {  // 两个输入都是Scalar
+    ss << this->api_name_ << "s<" << x1_dtype_name << ", " << y_dtype_name << ">(" << y << "["
+       << tpipe.tiler.TensorVectorizedOffset(current_axis, y) << "], "
        << "(" << x1_dtype_name << ")" << x1.GetScalarValue() << ", "
-       << "(" << x1_dtype_name << ")" << x2.GetScalarValue()
-       << ");" << std::endl;
-  } else if (x1.IsAnyScalar() || x2.IsAnyScalar()) { // 只有1个输入是Scalar
+       << "(" << x1_dtype_name << ")" << x2.GetScalarValue() << ");" << std::endl;
+  } else if (x1.IsAnyScalar() || x2.IsAnyScalar()) {  // 只有1个输入是Scalar
     GE_ASSERT_TRUE(id != -1L, "TrueDivApiCall cannot find tmp buffer id to use.");
-    ss << this->api_name_ << "s<" << x1_dtype_name << ", " << y_dtype_name << ", " << is_scalar_latter << ">("
-       << y << "[" << tpipe.tiler.TensorVectorizedOffset(current_axis, y) << "], "
-       << x1 << "[" << tpipe.tiler.TensorVectorizedOffset(current_axis, x1) << "], "
-       << "(" << x1_dtype_name << ")" << x2.GetScalarValue() << ", "
-       << tpipe.tmp_buf << "_" << std::to_string(id) << ", "
-       << x1.actual_size << ");" << std::endl;
+    ss << this->api_name_ << "s<" << x1_dtype_name << ", " << y_dtype_name << ", " << is_scalar_latter << ">(" << y
+       << "[" << tpipe.tiler.TensorVectorizedOffset(current_axis, y) << "], " << x1 << "["
+       << tpipe.tiler.TensorVectorizedOffset(current_axis, x1) << "], "
+       << "(" << x1_dtype_name << ")" << x2.GetScalarValue() << ", " << tpipe.tmp_buf << "_" << std::to_string(id)
+       << ", " << x1.actual_size << ");" << std::endl;
   } else {
     GE_ASSERT_TRUE(id != -1L, "TrueDivApiCall cannot find tmp buffer id to use.");
-    ss << this->api_name_ << "<" << x1_dtype_name << ", " << y_dtype_name << ">("
-       << y << "[" << tpipe.tiler.TensorVectorizedOffset(current_axis, y) << "], "
-       << x1 << "[" << tpipe.tiler.TensorVectorizedOffset(current_axis, x1) << "], "
-       << x2 << "[" << tpipe.tiler.TensorVectorizedOffset(current_axis, x2) << "], "
-       << tpipe.tmp_buf << "_" << std::to_string(id) << ", " << x1.actual_size << ");" << std::endl;
+    ss << this->api_name_ << "<" << x1_dtype_name << ", " << y_dtype_name << ">(" << y << "["
+       << tpipe.tiler.TensorVectorizedOffset(current_axis, y) << "], " << x1 << "["
+       << tpipe.tiler.TensorVectorizedOffset(current_axis, x1) << "], " << x2 << "["
+       << tpipe.tiler.TensorVectorizedOffset(current_axis, x2) << "], " << tpipe.tmp_buf << "_" << std::to_string(id)
+       << ", " << x1.actual_size << ");" << std::endl;
   }
 
   result = ss.str();

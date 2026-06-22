@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -19,7 +19,7 @@ constexpr size_t AlignBitSize(size_t bit_size) {
 }
 
 constexpr size_t AlignArraySize(size_t bit_size) {
-  return AlignBitSize(bit_size) >> 6; // shifting right by 6 bits
+  return AlignBitSize(bit_size) >> 6;  // shifting right by 6 bits
 }
 
 void LargeBitmap::ResizeBits(size_t new_size) {
@@ -46,8 +46,7 @@ void LargeBitmap::ClearBit(size_t bit_idx) {
   bits_[bit_idx >> 6] &= ~(1UL << (bit_idx % kBitsEachValue));
 }
 
-LargeBitmap::LargeBitmap(const size_t &size)
-    : size_(size), bits_(AlignArraySize(size), 0UL) {}
+LargeBitmap::LargeBitmap(const size_t &size) : size_(size), bits_(AlignArraySize(size), 0UL) {}
 
 bool LargeBitmap::operator==(const LargeBitmap &another_bm) const {
   return bits_ == another_bm.bits_;
@@ -102,4 +101,4 @@ void LargeBitmap::And(const LargeBitmap &another_bm) {
     ++index;
   }
 }
-}
+}  // namespace af

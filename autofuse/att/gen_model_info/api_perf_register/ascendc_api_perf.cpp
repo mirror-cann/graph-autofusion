@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -56,7 +56,8 @@ ge::Status RptElementwisePerf(const NodeDetail &node_info, const Expr &aligned_r
     std::shared_ptr<IfCase> branch_b = std::make_shared<IfCase>(unaligned_res);
     GE_ASSERT_NOTNULL(branch_a);
     GE_ASSERT_NOTNULL(branch_b);
-    TernaryOp ternary_op = TernaryOp(CondType::K_EQ, aligned_case, CreateExpr(0), std::move(branch_a), std::move(branch_b));
+    TernaryOp ternary_op =
+        TernaryOp(CondType::K_EQ, aligned_case, CreateExpr(0), std::move(branch_a), std::move(branch_b));
     ternary_op.SetVariable(res);
     perf.ternary_ops[res] = ternary_op;
     perf.pipe_res[PipeType::AIV_VEC] = res;
@@ -125,7 +126,8 @@ Andapi的性能公式：
 */
 ge::Status AndPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res;
-  GE_ASSERT_SUCCESS(GetPerf({kAnd, node_info.input_dtype[0], node_info.output_dtype[0], node_info.output_dims, node_info.gm_stride}, res));
+  GE_ASSERT_SUCCESS(GetPerf(
+      {kAnd, node_info.input_dtype[0], node_info.output_dtype[0], node_info.output_dims, node_info.gm_stride}, res));
   perf.pipe_res[PipeType::AIV_VEC] = res;
   return ge::SUCCESS;
 }
@@ -137,8 +139,9 @@ BlockReduceMaxapi的性能公式：
 */
 ge::Status BlockReduceMaxPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res;
-  GE_ASSERT_SUCCESS(
-      GetPerf({kBlockReduceMax, node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride}, res));
+  GE_ASSERT_SUCCESS(GetPerf(
+      {kBlockReduceMax, node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride},
+      res));
   perf.pipe_res[PipeType::AIV_VEC] = res;
   return ge::SUCCESS;
 }
@@ -150,8 +153,9 @@ BlockReduceMinapi的性能公式：
 */
 ge::Status BlockReduceMinPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res;
-  GE_ASSERT_SUCCESS(
-      GetPerf({kBlockReduceMin, node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride}, res));
+  GE_ASSERT_SUCCESS(GetPerf(
+      {kBlockReduceMin, node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride},
+      res));
   perf.pipe_res[PipeType::AIV_VEC] = res;
   return ge::SUCCESS;
 }
@@ -163,7 +167,8 @@ Brcbapi的性能公式：
 */
 ge::Status BrcbPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res;
-  GE_ASSERT_SUCCESS(GetPerf({kBrcb, node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride}, res));
+  GE_ASSERT_SUCCESS(GetPerf(
+      {kBrcb, node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride}, res));
   perf.pipe_res[PipeType::AIV_VEC] = res;
   return ge::SUCCESS;
 }
@@ -176,7 +181,8 @@ Castapi的性能公式：
 */
 ge::Status CastPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res;
-  GE_ASSERT_SUCCESS(GetPerf({kCast, node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride}, res));
+  GE_ASSERT_SUCCESS(GetPerf(
+      {kCast, node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride}, res));
   perf.pipe_res[PipeType::AIV_VEC] = res;
   return ge::SUCCESS;
 }
@@ -188,7 +194,8 @@ CopyUbtoUbapi的性能公式：
 */
 ge::Status CopyUbtoUbPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res;
-  GE_ASSERT_SUCCESS(GetPerf({kUb2ub, node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride}, res));
+  GE_ASSERT_SUCCESS(GetPerf(
+      {kUb2ub, node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride}, res));
   perf.pipe_res[PipeType::AIV_VEC] = res;
   return ge::SUCCESS;
 }
@@ -198,9 +205,10 @@ CopyUbapi的性能公式：
   fp16: (0.0078 * data_size + 13.0049) * 调用次数 + 37.37(PIPE头开销)
   fp32: (0.0157 * data_size + 12.9966) * 调用次数 + 37.37(PIPE头开销)
 */
-ge::Status CopyPerf(const NodeDetail &node_info,  PerfOutputInfo &perf) {
+ge::Status CopyPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res;
-  GE_ASSERT_SUCCESS(GetPerf({kCopy, node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride}, res));
+  GE_ASSERT_SUCCESS(GetPerf(
+      {kCopy, node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride}, res));
   perf.pipe_res[PipeType::AIV_VEC] = res;
   return ge::SUCCESS;
 }
@@ -212,8 +220,9 @@ CompareScalarEQapi的性能公式：
 */
 ge::Status CompareScalarEQPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res;
-  GE_ASSERT_SUCCESS(
-      GetPerf({kCompareScalarEQ, node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride}, res));
+  GE_ASSERT_SUCCESS(GetPerf({kCompareScalarEQ, node_info.input_dtype[0], node_info.output_dtype[0],
+                             node_info.input_dims, node_info.gm_stride},
+                            res));
   perf.pipe_res[PipeType::AIV_VEC] = res;
   return ge::SUCCESS;
 }
@@ -228,8 +237,12 @@ CompareEQapi的性能公式：
 ge::Status CompareEQPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr aligned_res;
   Expr unaligned_res;
-  GE_ASSERT_SUCCESS(GetPerf({kCompareEQ + "Aligned", node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride}, aligned_res));
-  GE_ASSERT_SUCCESS(GetPerf({kCompareEQ + "Unaligned", node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride}, unaligned_res));
+  GE_ASSERT_SUCCESS(GetPerf({kCompareEQ + "Aligned", node_info.input_dtype[0], node_info.output_dtype[0],
+                             node_info.input_dims, node_info.gm_stride},
+                            aligned_res));
+  GE_ASSERT_SUCCESS(GetPerf({kCompareEQ + "Unaligned", node_info.input_dtype[0], node_info.output_dtype[0],
+                             node_info.input_dims, node_info.gm_stride},
+                            unaligned_res));
   GE_ASSERT_SUCCESS(RptElementwisePerf(node_info, aligned_res, unaligned_res, perf));
   return ge::SUCCESS;
 }
@@ -241,8 +254,9 @@ CompareScalarGEapi的性能公式：
 */
 ge::Status CompareScalarGEPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res;
-  GE_ASSERT_SUCCESS(
-      GetPerf({kCompareScalarGE, node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride}, res));
+  GE_ASSERT_SUCCESS(GetPerf({kCompareScalarGE, node_info.input_dtype[0], node_info.output_dtype[0],
+                             node_info.input_dims, node_info.gm_stride},
+                            res));
   perf.pipe_res[PipeType::AIV_VEC] = res;
   return ge::SUCCESS;
 }
@@ -257,12 +271,15 @@ CompareGEapi的性能公式：
 ge::Status CompareGEPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr aligned_res;
   Expr unaligned_res;
-  GE_ASSERT_SUCCESS(GetPerf({kCompareGE + "Aligned", node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride}, aligned_res));
-  GE_ASSERT_SUCCESS(GetPerf({kCompareGE + "Unaligned", node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride}, unaligned_res));
+  GE_ASSERT_SUCCESS(GetPerf({kCompareGE + "Aligned", node_info.input_dtype[0], node_info.output_dtype[0],
+                             node_info.input_dims, node_info.gm_stride},
+                            aligned_res));
+  GE_ASSERT_SUCCESS(GetPerf({kCompareGE + "Unaligned", node_info.input_dtype[0], node_info.output_dtype[0],
+                             node_info.input_dims, node_info.gm_stride},
+                            unaligned_res));
   GE_ASSERT_SUCCESS(RptElementwisePerf(node_info, aligned_res, unaligned_res, perf));
   return ge::SUCCESS;
 }
-
 
 /*
 CompareScalarGTapi的性能公式：
@@ -271,8 +288,9 @@ CompareScalarGTapi的性能公式：
 */
 ge::Status CompareScalarGTPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res;
-  GE_ASSERT_SUCCESS(
-      GetPerf({kCompareScalarGT, node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride}, res));
+  GE_ASSERT_SUCCESS(GetPerf({kCompareScalarGT, node_info.input_dtype[0], node_info.output_dtype[0],
+                             node_info.input_dims, node_info.gm_stride},
+                            res));
   perf.pipe_res[PipeType::AIV_VEC] = res;
   return ge::SUCCESS;
 }
@@ -287,8 +305,12 @@ CompareGTapi的性能公式：
 ge::Status CompareGTPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr aligned_res;
   Expr unaligned_res;
-  GE_ASSERT_SUCCESS(GetPerf({kCompareGT + "Aligned", node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride}, aligned_res));
-  GE_ASSERT_SUCCESS(GetPerf({kCompareGT + "Unaligned", node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride}, unaligned_res));
+  GE_ASSERT_SUCCESS(GetPerf({kCompareGT + "Aligned", node_info.input_dtype[0], node_info.output_dtype[0],
+                             node_info.input_dims, node_info.gm_stride},
+                            aligned_res));
+  GE_ASSERT_SUCCESS(GetPerf({kCompareGT + "Unaligned", node_info.input_dtype[0], node_info.output_dtype[0],
+                             node_info.input_dims, node_info.gm_stride},
+                            unaligned_res));
   GE_ASSERT_SUCCESS(RptElementwisePerf(node_info, aligned_res, unaligned_res, perf));
   return ge::SUCCESS;
 }
@@ -300,7 +322,9 @@ CompareScalarLEapi的性能公式：
 */
 ge::Status CompareScalarLEPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res;
-  GE_ASSERT_SUCCESS(GetPerf({kCompareScalarLE, node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride}, res));
+  GE_ASSERT_SUCCESS(GetPerf({kCompareScalarLE, node_info.input_dtype[0], node_info.output_dtype[0],
+                             node_info.input_dims, node_info.gm_stride},
+                            res));
   perf.pipe_res[PipeType::AIV_VEC] = res;
   return ge::SUCCESS;
 }
@@ -315,8 +339,12 @@ CompareLEapi的性能公式：
 ge::Status CompareLEPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr aligned_res;
   Expr unaligned_res;
-  GE_ASSERT_SUCCESS(GetPerf({kCompareLE + "Aligned", node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride}, aligned_res));
-  GE_ASSERT_SUCCESS(GetPerf({kCompareLE + "Unaligned", node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride}, unaligned_res));
+  GE_ASSERT_SUCCESS(GetPerf({kCompareLE + "Aligned", node_info.input_dtype[0], node_info.output_dtype[0],
+                             node_info.input_dims, node_info.gm_stride},
+                            aligned_res));
+  GE_ASSERT_SUCCESS(GetPerf({kCompareLE + "Unaligned", node_info.input_dtype[0], node_info.output_dtype[0],
+                             node_info.input_dims, node_info.gm_stride},
+                            unaligned_res));
   GE_ASSERT_SUCCESS(RptElementwisePerf(node_info, aligned_res, unaligned_res, perf));
   return ge::SUCCESS;
 }
@@ -328,7 +356,9 @@ CompareScalarLTapi的性能公式：
 */
 ge::Status CompareScalarLTPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res;
-  GE_ASSERT_SUCCESS(GetPerf({kCompareScalarLT, node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride}, res));
+  GE_ASSERT_SUCCESS(GetPerf({kCompareScalarLT, node_info.input_dtype[0], node_info.output_dtype[0],
+                             node_info.input_dims, node_info.gm_stride},
+                            res));
   perf.pipe_res[PipeType::AIV_VEC] = res;
   return ge::SUCCESS;
 }
@@ -343,8 +373,12 @@ CompareLTapi的性能公式：
 ge::Status CompareLTPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr aligned_res;
   Expr unaligned_res;
-  GE_ASSERT_SUCCESS(GetPerf({kCompareLT + "Aligned", node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride}, aligned_res));
-  GE_ASSERT_SUCCESS(GetPerf({kCompareLT + "Unaligned", node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride}, unaligned_res));
+  GE_ASSERT_SUCCESS(GetPerf({kCompareLT + "Aligned", node_info.input_dtype[0], node_info.output_dtype[0],
+                             node_info.input_dims, node_info.gm_stride},
+                            aligned_res));
+  GE_ASSERT_SUCCESS(GetPerf({kCompareLT + "Unaligned", node_info.input_dtype[0], node_info.output_dtype[0],
+                             node_info.input_dims, node_info.gm_stride},
+                            unaligned_res));
   GE_ASSERT_SUCCESS(RptElementwisePerf(node_info, aligned_res, unaligned_res, perf));
   return ge::SUCCESS;
 }
@@ -356,7 +390,9 @@ CompareScalarNEapi的性能公式：
 */
 ge::Status CompareScalarNEPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res;
-  GE_ASSERT_SUCCESS(GetPerf({kCompareScalarNE, node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride}, res));
+  GE_ASSERT_SUCCESS(GetPerf({kCompareScalarNE, node_info.input_dtype[0], node_info.output_dtype[0],
+                             node_info.input_dims, node_info.gm_stride},
+                            res));
   perf.pipe_res[PipeType::AIV_VEC] = res;
   return ge::SUCCESS;
 }
@@ -371,8 +407,12 @@ CompareNEapi的性能公式：
 ge::Status CompareNEPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr aligned_res;
   Expr unaligned_res;
-  GE_ASSERT_SUCCESS(GetPerf({kCompareNE + "Aligned", node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride}, aligned_res));
-  GE_ASSERT_SUCCESS(GetPerf({kCompareNE + "Unaligned", node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride}, unaligned_res));
+  GE_ASSERT_SUCCESS(GetPerf({kCompareNE + "Aligned", node_info.input_dtype[0], node_info.output_dtype[0],
+                             node_info.input_dims, node_info.gm_stride},
+                            aligned_res));
+  GE_ASSERT_SUCCESS(GetPerf({kCompareNE + "Unaligned", node_info.input_dtype[0], node_info.output_dtype[0],
+                             node_info.input_dims, node_info.gm_stride},
+                            unaligned_res));
   GE_ASSERT_SUCCESS(RptElementwisePerf(node_info, aligned_res, unaligned_res, perf));
   return ge::SUCCESS;
 }
@@ -390,9 +430,13 @@ Powerapi的性能公式：
 ge::Status PowerPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res;
   if (node_info.input_dtype.size() == kNumTwo) {
-    GE_ASSERT_SUCCESS(GetPerf({kPower + "AllTensor", node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride}, res));
+    GE_ASSERT_SUCCESS(GetPerf({kPower + "AllTensor", node_info.input_dtype[0], node_info.output_dtype[0],
+                               node_info.input_dims, node_info.gm_stride},
+                              res));
   } else {
-    GE_ASSERT_SUCCESS(GetPerf({kPower + "WithScalar", node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride}, res));
+    GE_ASSERT_SUCCESS(GetPerf({kPower + "WithScalar", node_info.input_dtype[0], node_info.output_dtype[0],
+                               node_info.input_dims, node_info.gm_stride},
+                              res));
   }
   perf.pipe_res[PipeType::AIV_VEC] = res;
   return ge::SUCCESS;
@@ -405,7 +449,8 @@ Divapi的性能公式：
 */
 ge::Status DivPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res;
-  GE_ASSERT_SUCCESS(GetPerf({kDiv, node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride}, res));
+  GE_ASSERT_SUCCESS(GetPerf(
+      {kDiv, node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride}, res));
   perf.pipe_res[PipeType::AIV_VEC] = res;
   return ge::SUCCESS;
 }
@@ -417,7 +462,9 @@ Duplicateapi的性能公式：
 */
 ge::Status DuplicatePerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res;
-  GE_ASSERT_SUCCESS(GetPerf({kDuplicate, node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride}, res));
+  GE_ASSERT_SUCCESS(GetPerf(
+      {kDuplicate, node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride},
+      res));
   perf.pipe_res[PipeType::AIV_VEC] = res;
   return ge::SUCCESS;
 }
@@ -430,7 +477,8 @@ Erfapi的性能公式：
 */
 ge::Status ErfPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res;
-  GE_ASSERT_SUCCESS(GetPerf({kErf, node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride}, res));
+  GE_ASSERT_SUCCESS(GetPerf(
+      {kErf, node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride}, res));
   perf.pipe_res[PipeType::AIV_VEC] = res;
   return ge::SUCCESS;
 }
@@ -442,7 +490,8 @@ Expapi的性能公式：
 */
 ge::Status ExpPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res;
-  GE_ASSERT_SUCCESS(GetPerf({kExp, node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride}, res));
+  GE_ASSERT_SUCCESS(GetPerf(
+      {kExp, node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride}, res));
   perf.pipe_res[PipeType::AIV_VEC] = res;
   return ge::SUCCESS;
 }
@@ -454,7 +503,8 @@ Gatherapi的性能公式：
 */
 ge::Status GatherPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res;
-  GE_ASSERT_SUCCESS(GetPerf({kGather, node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride}, res));
+  GE_ASSERT_SUCCESS(GetPerf(
+      {kGather, node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride}, res));
   perf.pipe_res[PipeType::AIV_VEC] = res;
   return ge::SUCCESS;
 }
@@ -466,7 +516,9 @@ Gathermaskapi的性能公式：
 */
 ge::Status GatherMaskPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res;
-  GE_ASSERT_SUCCESS(GetPerf({kGatherMask, node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride}, res));
+  GE_ASSERT_SUCCESS(GetPerf(
+      {kGatherMask, node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride},
+      res));
   perf.pipe_res[PipeType::AIV_VEC] = res;
   return ge::SUCCESS;
 }
@@ -478,7 +530,8 @@ Maxsapi的性能公式：
 */
 ge::Status MaxsPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res;
-  GE_ASSERT_SUCCESS(GetPerf({kMaxs, node_info.input_dtype[0], node_info.output_dtype[0], node_info.output_dims, node_info.gm_stride}, res));
+  GE_ASSERT_SUCCESS(GetPerf(
+      {kMaxs, node_info.input_dtype[0], node_info.output_dtype[0], node_info.output_dims, node_info.gm_stride}, res));
   perf.pipe_res[PipeType::AIV_VEC] = res;
   return ge::SUCCESS;
 }
@@ -490,7 +543,8 @@ Maxapi的性能公式：
 */
 ge::Status MaxPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res;
-  GE_ASSERT_SUCCESS(GetPerf({kMax, node_info.input_dtype[0], node_info.output_dtype[0], node_info.output_dims, node_info.gm_stride}, res));
+  GE_ASSERT_SUCCESS(GetPerf(
+      {kMax, node_info.input_dtype[0], node_info.output_dtype[0], node_info.output_dims, node_info.gm_stride}, res));
   perf.pipe_res[PipeType::AIV_VEC] = res;
   return ge::SUCCESS;
 }
@@ -502,7 +556,8 @@ Minsapi的性能公式：
 */
 ge::Status MinsPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res;
-  GE_ASSERT_SUCCESS(GetPerf({kMins, node_info.input_dtype[0], node_info.output_dtype[0], node_info.output_dims, node_info.gm_stride}, res));
+  GE_ASSERT_SUCCESS(GetPerf(
+      {kMins, node_info.input_dtype[0], node_info.output_dtype[0], node_info.output_dims, node_info.gm_stride}, res));
   perf.pipe_res[PipeType::AIV_VEC] = res;
   return ge::SUCCESS;
 }
@@ -514,7 +569,8 @@ Minapi的性能公式：
 */
 ge::Status MinPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res;
-  GE_ASSERT_SUCCESS(GetPerf({kMin, node_info.input_dtype[0], node_info.output_dtype[0], node_info.output_dims, node_info.gm_stride}, res));
+  GE_ASSERT_SUCCESS(GetPerf(
+      {kMin, node_info.input_dtype[0], node_info.output_dtype[0], node_info.output_dims, node_info.gm_stride}, res));
   perf.pipe_res[PipeType::AIV_VEC] = res;
   return ge::SUCCESS;
 }
@@ -526,7 +582,8 @@ Mulsapi的性能公式：
 */
 ge::Status MulsPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res;
-  GE_ASSERT_SUCCESS(GetPerf({kMuls, node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride}, res));
+  GE_ASSERT_SUCCESS(GetPerf(
+      {kMuls, node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride}, res));
   perf.pipe_res[PipeType::AIV_VEC] = res;
   return ge::SUCCESS;
 }
@@ -538,7 +595,8 @@ Mulapi的性能公式：
 */
 ge::Status MulPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res;
-  GE_ASSERT_SUCCESS(GetPerf({kMul, node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride}, res));
+  GE_ASSERT_SUCCESS(GetPerf(
+      {kMul, node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride}, res));
   perf.pipe_res[PipeType::AIV_VEC] = res;
   return ge::SUCCESS;
 }
@@ -549,7 +607,8 @@ Orapi的性能公式：
 */
 ge::Status OrPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res;
-  GE_ASSERT_SUCCESS(GetPerf({kOr, node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride}, res));
+  GE_ASSERT_SUCCESS(GetPerf(
+      {kOr, node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride}, res));
   perf.pipe_res[PipeType::AIV_VEC] = res;
   return ge::SUCCESS;
 }
@@ -561,7 +620,9 @@ PairReduceSumapi的性能公式：
 */
 ge::Status PairReduceSumPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res;
-  GE_ASSERT_SUCCESS(GetPerf({kPairReduceSum, node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride}, res));
+  GE_ASSERT_SUCCESS(GetPerf(
+      {kPairReduceSum, node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride},
+      res));
   perf.pipe_res[PipeType::AIV_VEC] = res;
   return ge::SUCCESS;
 }
@@ -573,7 +634,9 @@ Reciprocalapi的性能公式：
 */
 ge::Status ReciprocalPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res;
-  GE_ASSERT_SUCCESS(GetPerf({kReciprocal, node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride}, res));
+  GE_ASSERT_SUCCESS(GetPerf(
+      {kReciprocal, node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride},
+      res));
   perf.pipe_res[PipeType::AIV_VEC] = res;
   return ge::SUCCESS;
 }
@@ -585,7 +648,8 @@ Reluapi的性能公式：
 */
 ge::Status ReluPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res;
-  GE_ASSERT_SUCCESS(GetPerf({kRelu, node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride}, res));
+  GE_ASSERT_SUCCESS(GetPerf(
+      {kRelu, node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride}, res));
   perf.pipe_res[PipeType::AIV_VEC] = res;
   return ge::SUCCESS;
 }
@@ -597,7 +661,8 @@ Rsqrtapi的性能公式：
 */
 ge::Status RsqrtPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res;
-  GE_ASSERT_SUCCESS(GetPerf({kRsqrt, node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride}, res));
+  GE_ASSERT_SUCCESS(GetPerf(
+      {kRsqrt, node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride}, res));
   perf.pipe_res[PipeType::AIV_VEC] = res;
   return ge::SUCCESS;
 }
@@ -609,7 +674,8 @@ Selectapi的性能公式：
 */
 ge::Status SelectPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res;
-  GE_ASSERT_SUCCESS(GetPerf({kSelect, node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride}, res));
+  GE_ASSERT_SUCCESS(GetPerf(
+      {kSelect, node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride}, res));
   perf.pipe_res[PipeType::AIV_VEC] = res;
   return ge::SUCCESS;
 }
@@ -622,8 +688,8 @@ Sigmoidapi的性能公式：
 */
 ge::Status SigmoidPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res;
-  GE_ASSERT_SUCCESS(
-      GetPerf({kSigmoid, node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride}, res));
+  GE_ASSERT_SUCCESS(GetPerf(
+      {kSigmoid, node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride}, res));
   perf.pipe_res[PipeType::AIV_VEC] = res;
   return ge::SUCCESS;
 }
@@ -636,7 +702,8 @@ Signapi的性能公式：
 */
 ge::Status SignPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res;
-  GE_ASSERT_SUCCESS(GetPerf({kSign, node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride}, res));
+  GE_ASSERT_SUCCESS(GetPerf(
+      {kSign, node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride}, res));
   perf.pipe_res[PipeType::AIV_VEC] = res;
   return ge::SUCCESS;
 }
@@ -648,7 +715,8 @@ Sqrtapi的性能公式：
 */
 ge::Status SqrtPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res;
-  GE_ASSERT_SUCCESS(GetPerf({kSqrt, node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride}, res));
+  GE_ASSERT_SUCCESS(GetPerf(
+      {kSqrt, node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride}, res));
   perf.pipe_res[PipeType::AIV_VEC] = res;
   return ge::SUCCESS;
 }
@@ -660,7 +728,8 @@ Subapi的性能公式：
 */
 ge::Status SubPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res;
-  GE_ASSERT_SUCCESS(GetPerf({kSub, node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride}, res));
+  GE_ASSERT_SUCCESS(GetPerf(
+      {kSub, node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride}, res));
   perf.pipe_res[PipeType::AIV_VEC] = res;
   return ge::SUCCESS;
 }
@@ -673,7 +742,8 @@ Tanhapi的性能公式：
 */
 ge::Status TanhPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res;
-  GE_ASSERT_SUCCESS(GetPerf({kTanh, node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride}, res));
+  GE_ASSERT_SUCCESS(GetPerf(
+      {kTanh, node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride}, res));
   perf.pipe_res[PipeType::AIV_VEC] = res;
   return ge::SUCCESS;
 }
@@ -685,8 +755,9 @@ WholeReduceSumapi的性能公式：
 */
 ge::Status WholeReduceSumPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res;
-  GE_ASSERT_SUCCESS(
-      GetPerf({kWholeReduceSum, node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride}, res));
+  GE_ASSERT_SUCCESS(GetPerf(
+      {kWholeReduceSum, node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride},
+      res));
   perf.pipe_res[PipeType::AIV_VEC] = res;
   return ge::SUCCESS;
 }
@@ -698,8 +769,9 @@ WholeReduceMaxapi的性能公式：
 */
 ge::Status WholeReduceMaxPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res;
-  GE_ASSERT_SUCCESS(
-      GetPerf({kWholeReduceMax, node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride}, res));
+  GE_ASSERT_SUCCESS(GetPerf(
+      {kWholeReduceMax, node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride},
+      res));
   perf.pipe_res[PipeType::AIV_VEC] = res;
   return ge::SUCCESS;
 }
@@ -711,8 +783,9 @@ WholeReduceMinapi的性能公式：
 */
 ge::Status WholeReduceMinPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res;
-  GE_ASSERT_SUCCESS(
-      GetPerf({kWholeReduceMin, node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride}, res));
+  GE_ASSERT_SUCCESS(GetPerf(
+      {kWholeReduceMin, node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride},
+      res));
   perf.pipe_res[PipeType::AIV_VEC] = res;
   return ge::SUCCESS;
 }
@@ -886,8 +959,8 @@ ge::Status CompareScalarLTApi([[maybe_unused]] const std::vector<TensorShapeInfo
 }
 
 ge::Status PowerApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
-                              [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
-                              [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
+                    [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
+                    [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
   NodeDetail node_info;
   GE_ASSERT_SUCCESS(SetNodeDetail(input_shapes, output_shapes, node_info));
   GE_ASSERT_SUCCESS(ascendcperf::PowerPerf(node_info, perf_res));
@@ -895,8 +968,8 @@ ge::Status PowerApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_s
 }
 
 ge::Status PairReduceSumApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
-                    [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
-                    [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
+                            [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
+                            [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
   NodeDetail node_info;
   GE_ASSERT_SUCCESS(SetNodeDetail(input_shapes, output_shapes, node_info));
   GE_ASSERT_SUCCESS(ascendcperf::PairReduceSumPerf(node_info, perf_res));
@@ -1091,7 +1164,7 @@ ge::Status SigmoidApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input
   GE_ASSERT_SUCCESS(ascendcperf::SigmoidPerf(node_info, perf_res));
   return ge::SUCCESS;
 }
-}
+}  // namespace ascendcperf
 
 Perf GetPerfFunc(const std::string &op_type) {
   return EvalCosts::Instance().GetFunc(op_type);
@@ -1124,16 +1197,19 @@ REGISTER_EVAL_FUNC(kPairReduceSum, ascendcperf::PairReduceSumApi);
 REGISTER_EVAL_FUNC(kDuplicate, ascendcperf::DuplicateApi);
 REGISTER_EVAL_FUNC(kGatherMask, ascendcperf::GatherMaskApi);
 REGISTER_EVAL_FUNC(kMaxs, ascendcperf::MaxsApi);
-REGISTER_EVAL_FUNC(kMax, ascendcperf::WholeReduceMaxApi); // 这里临时注册，需要把注册放在ascir中，并且替换reduce sum/min/max
+REGISTER_EVAL_FUNC(kMax,
+                   ascendcperf::WholeReduceMaxApi);  // 这里临时注册，需要把注册放在ascir中，并且替换reduce sum/min/max
 REGISTER_EVAL_FUNC(kMins, ascendcperf::MinsApi);
-REGISTER_EVAL_FUNC(kMin, ascendcperf::WholeReduceMinApi); // 这里临时注册，需要把注册放在ascir中，并且替换reduce sum/min/max
+REGISTER_EVAL_FUNC(kMin,
+                   ascendcperf::WholeReduceMinApi);  // 这里临时注册，需要把注册放在ascir中，并且替换reduce sum/min/max
 REGISTER_EVAL_FUNC(kMuls, ascendcperf::MulsApi);
 REGISTER_EVAL_FUNC(kMul, ascendcperf::MulApi);
 REGISTER_EVAL_FUNC(kNeg, ascendcperf::MulsApi);
 REGISTER_EVAL_FUNC(kOr, ascendcperf::OrApi);
 REGISTER_EVAL_FUNC(kSetVectorMask, ascendcperf::SetVectorMaskApi);
 REGISTER_EVAL_FUNC(kSigmoid, ascendcperf::SigmoidApi);
-REGISTER_EVAL_FUNC(kSum, ascendcperf::WholeReduceSumApi); // 这里临时注册，需要把注册放在ascir中，并且替换reduce sum/min/max
+REGISTER_EVAL_FUNC(kSum,
+                   ascendcperf::WholeReduceSumApi);  // 这里临时注册，需要把注册放在ascir中，并且替换reduce sum/min/max
 REGISTER_EVAL_FUNC(kWholeReduceMax, ascendcperf::WholeReduceMaxApi);
 REGISTER_EVAL_FUNC(kWholeReduceMin, ascendcperf::WholeReduceMinApi);
 REGISTER_EVAL_FUNC(kWholeReduceSum, ascendcperf::WholeReduceSumApi);
@@ -1148,4 +1224,4 @@ REGISTER_EVAL_FUNC(kUnitMTE3, ascendcperf::DefaultMTE3Api);
 REGISTER_EVAL_FUNC(kUnitVector, ascendcperf::DefaultVECApi);
 REGISTER_EVAL_FUNC(kUnitCube, ascendcperf::DefaultCUBEApi);
 
-} // namespace att
+}  // namespace att

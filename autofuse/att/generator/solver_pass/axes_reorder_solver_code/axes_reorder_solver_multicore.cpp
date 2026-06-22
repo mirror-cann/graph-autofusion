@@ -1,11 +1,11 @@
 /**
-* Copyright (c) 2026 Huawei Technologies Co., Ltd.
-* This program is free software, you can redistribute it and/or modify it under the terms and conditions of
-* CANN Open Software License Agreement Version 2.0 (the "License").
-* Please refer to the License for details. You may not use this file except in compliance with the License.
-* THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
-* INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
-* See LICENSE in the root of the software repository for the full text of the License.
+ * Copyright (c) 2026 Huawei Technologies Co., Ltd.
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
+ * CANN Open Software License Agreement Version 2.0 (the "License").
+ * Please refer to the License for details. You may not use this file except in compliance with the License.
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+ * See LICENSE in the root of the software repository for the full text of the License.
  */
 
 #include "axes_reorder_solver_code_common.h"
@@ -42,7 +42,7 @@ inline std::string GenFindOptimalMcVal() {
     }
 )";
 }
-}
+}  // namespace
 
 std::string GenMutiCoreTilingCore() {
   std::string codes = R"(
@@ -68,13 +68,15 @@ bool AxesReorderSolver::MulticoreTilingCore(bool block_loop_auto_tune) {
   std::string optimize_mc_variable = GenOptimizeMCVariable();
   codes += optimize_mc_variable;
 
-  codes.append("  }\n"
-                 "  if (!SatisfyCons(ConstraintType::MC_MIXED)) {\n"
-                 "    OP_LOGW(OP_NAME, \"Multicore Tiling Calculation failed in the final check, input: %s\", input_.DebugString().c_str());\n"
-                 "    return false;\n"
-                 "  }\n"
-                 "  return true;\n"
-                 "}\n");
+  codes.append(
+      "  }\n"
+      "  if (!SatisfyCons(ConstraintType::MC_MIXED)) {\n"
+      "    OP_LOGW(OP_NAME, \"Multicore Tiling Calculation failed in the final check, input: %s\", "
+      "input_.DebugString().c_str());\n"
+      "    return false;\n"
+      "  }\n"
+      "  return true;\n"
+      "}\n");
   return codes;
 }
 
@@ -110,4 +112,4 @@ bool AxesReorderSolver::MulticoreTiling(bool block_loop_auto_tune, bool enable_w
   return codes + GenWorkLoadBalance() + "  return true;\n}\n";
 }
 
-} // namespace att
+}  // namespace att

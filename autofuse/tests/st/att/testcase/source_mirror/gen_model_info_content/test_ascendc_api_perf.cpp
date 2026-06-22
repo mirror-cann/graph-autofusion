@@ -29,8 +29,7 @@ class TestAscendcApiPerf : public ::testing::Test {
 };
 
 namespace {
-void CheckComparePerfContains(const std::string &op_type,
-                              const std::vector<att::TensorShapeInfo> &input_shapes,
+void CheckComparePerfContains(const std::string &op_type, const std::vector<att::TensorShapeInfo> &input_shapes,
                               const std::vector<att::TensorShapeInfo> &output_shapes, NodeInfo &node) {
   PerfOutputInfo perf_res;
   auto perf = GetPerfFunc(op_type);
@@ -40,8 +39,7 @@ void CheckComparePerfContains(const std::string &op_type,
               std::string::npos);
 }
 
-void CheckComparePerfValue(const std::string &op_type,
-                           const std::vector<att::TensorShapeInfo> &input_shapes,
+void CheckComparePerfValue(const std::string &op_type, const std::vector<att::TensorShapeInfo> &input_shapes,
                            const std::vector<att::TensorShapeInfo> &output_shapes, NodeInfo &node,
                            const std::string &expected) {
   PerfOutputInfo perf_res;
@@ -6677,17 +6675,18 @@ TEST_F(TestAscendcApiPerf, TestLoadApiForTypev2) {
   // 外抛for循环
   auto ternary_ops = perf_res.ternary_ops;
   auto ret = ConcursiveReplaceVars(ternary_ops);
-  EXPECT_EQ(Str(res.Replace(ret)),
-            "TernaryOp(34 < (7 * z0z1t_size), (34 * TernaryOp((392 * z0z1t_size * z4t_size) < 25000, "
-            "TernaryOp(IsEqual(False, 0), ((0.490000002086163 * Mod(Abs((7 - (7 * z4t_size))), 256) * z0z1t_size) + (392 * "
-            "z0z1t_size * z4t_size / (((7.30999994277954 / (block_dim)) + 7.90520000457764))) + 27.0100002288818), "
-            "((3584 * z0z1t_size / (((7.30999994277954 / (block_dim)) + 7.90520000457764))) + 27.0100002288818)), "
-            "((0.490000002086163 * Mod(Abs((7 - (7 * z4t_size))), 256) * z0z1t_size) + (392 * z0z1t_size * z4t_size / "
-            "(((15.8959999084473 / (block_dim)) + 9.90740013122559))) + 27.0100002288818))), (7 * TernaryOp((1904 * "
-            "z4t_size) < 25000, TernaryOp(IsEqual(False, 0), ((1904 * z4t_size / (((7.30999994277954 / (block_dim)) + "
-            "7.90520000457764))) + 27.0100002288818), ((17408 / (((7.30999994277954 / (block_dim)) + "
-            "7.90520000457764))) + 27.0100002288818)), ((1904 * z4t_size / (((15.8959999084473 / (block_dim)) + "
-            "9.90740013122559))) + 27.0100002288818)) * z0z1t_size))");
+  EXPECT_EQ(
+      Str(res.Replace(ret)),
+      "TernaryOp(34 < (7 * z0z1t_size), (34 * TernaryOp((392 * z0z1t_size * z4t_size) < 25000, "
+      "TernaryOp(IsEqual(False, 0), ((0.490000002086163 * Mod(Abs((7 - (7 * z4t_size))), 256) * z0z1t_size) + (392 * "
+      "z0z1t_size * z4t_size / (((7.30999994277954 / (block_dim)) + 7.90520000457764))) + 27.0100002288818), "
+      "((3584 * z0z1t_size / (((7.30999994277954 / (block_dim)) + 7.90520000457764))) + 27.0100002288818)), "
+      "((0.490000002086163 * Mod(Abs((7 - (7 * z4t_size))), 256) * z0z1t_size) + (392 * z0z1t_size * z4t_size / "
+      "(((15.8959999084473 / (block_dim)) + 9.90740013122559))) + 27.0100002288818))), (7 * TernaryOp((1904 * "
+      "z4t_size) < 25000, TernaryOp(IsEqual(False, 0), ((1904 * z4t_size / (((7.30999994277954 / (block_dim)) + "
+      "7.90520000457764))) + 27.0100002288818), ((17408 / (((7.30999994277954 / (block_dim)) + "
+      "7.90520000457764))) + 27.0100002288818)), ((1904 * z4t_size / (((15.8959999084473 / (block_dim)) + "
+      "9.90740013122559))) + 27.0100002288818)) * z0z1t_size))");
 }
 
 TEST_F(TestAscendcApiPerf, TestStoreApiForType) {
@@ -8651,7 +8650,8 @@ TEST_F(TestAscendcApiPerf, TestArgMax) {
   auto perf = GetPerfFunc(op_type);
   NodeInfo node;
   node.node_ptr = node_ptr;
-  auto result = perf(input_shapes, output_shapes, node, perf_res);;
+  auto result = perf(input_shapes, output_shapes, node, perf_res);
+  ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
   EXPECT_EQ(result, ge::SUCCESS);
 }
@@ -8686,7 +8686,8 @@ TEST_F(TestAscendcApiPerf, TestArgMaxMultiRPhase1) {
   auto perf = GetPerfFunc(op_type);
   NodeInfo node;
   node.node_ptr = node_ptr;
-  auto result = perf(input_shapes, output_shapes, node, perf_res);;
+  auto result = perf(input_shapes, output_shapes, node, perf_res);
+  ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
   EXPECT_EQ(result, ge::SUCCESS);
 }
@@ -8721,7 +8722,8 @@ TEST_F(TestAscendcApiPerf, TestArgMaxMultiRPhase2) {
   auto perf = GetPerfFunc(op_type);
   NodeInfo node;
   node.node_ptr = node_ptr;
-  auto result = perf(input_shapes, output_shapes, node, perf_res);;
+  auto result = perf(input_shapes, output_shapes, node, perf_res);
+  ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
   EXPECT_EQ(result, ge::SUCCESS);
 }

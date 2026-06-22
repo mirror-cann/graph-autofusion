@@ -1,11 +1,11 @@
 /* Copyright (c) 2025 Huawei Technologies Co., Ltd.
-* This file is a part of the CANN Open Software.
-* Licensed under CANN Open Software License Agreement Version 1.0 (the "License").
-* Please refer to the License for details. You may not use this file except in compliance with the License.
-* THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
-* INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
-* See LICENSE in the root of the software repository for the full text of the License.
-* ===================================================================================================================*/
+ * This file is a part of the CANN Open Software.
+ * Licensed under CANN Open Software License Agreement Version 1.0 (the "License").
+ * Please refer to the License for details. You may not use this file except in compliance with the License.
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+ * See LICENSE in the root of the software repository for the full text of the License.
+ * ===================================================================================================================*/
 
 #include "gtest/gtest.h"
 #include "ascir_ops.h"
@@ -22,7 +22,7 @@ using namespace af::ascir_op;
 using namespace testing;
 
 class NeCompareV2ApiCallTest : public ::testing::Test {
-protected:
+ protected:
   void SetUp() override {
     ge::PlatformContext::GetInstance().Reset();
     auto stub_v2 = std::make_shared<ge::RuntimeStubV2Common>();
@@ -59,19 +59,19 @@ TEST(NeCompareV2ApiCallTest, Ne_INT8) {
   load_op1.attr.sched.axis = {z0.id, z1.id, z2.id};
   *load_op1.y.axis = {z0.id, z1.id, z2.id};
   *load_op1.y.repeats = {s0, s1, s2};
-  *load_op1.y.strides = {s1*s2, s2, One};
+  *load_op1.y.strides = {s1 * s2, s2, One};
 
   load_op2.x = x_op2.y;
   load_op2.attr.sched.axis = {z0.id, z1.id, z2.id};
   *load_op2.y.axis = {z0.id, z1.id, z2.id};
   *load_op2.y.repeats = {s0, s1, s2};
-  *load_op2.y.strides = {s1*s2, s2, One};
+  *load_op2.y.strides = {s1 * s2, s2, One};
 
   ne_op.x1 = load_op1.y;
   ne_op.x2 = load_op2.y;
   *ne_op.y.axis = {z0.id, z1.id, z2.id};
   *ne_op.y.repeats = {s0, s1, s2};
-  *ne_op.y.strides = {s1*s2, s2, One};
+  *ne_op.y.strides = {s1 * s2, s2, One};
 
   auto load1 = graph.FindNode("load1");
   load1->attr.api.compute_type = af::ComputeType::kComputeLoad;
@@ -94,7 +94,7 @@ TEST(NeCompareV2ApiCallTest, Ne_INT8) {
   load2->attr.api.unit = af::ComputeUnit::kUnitMTE2;
   load2->attr.sched.loop_axis = z0.id;
   load2->outputs[0].attr.vectorized_axis = {z1.id, z2.id};
-  load2->outputs[0].attr.vectorized_strides = {s2+s2, One};
+  load2->outputs[0].attr.vectorized_strides = {s2 + s2, One};
   load2->outputs[0].attr.dtype = af::DT_INT8;
   load2->outputs[0].attr.mem.position = af::Position::kPositionVecIn;
   load2->outputs[0].attr.mem.tensor_id = 1;
@@ -144,11 +144,12 @@ TEST(NeCompareV2ApiCallTest, Ne_INT8) {
   std::string result;
   EXPECT_EQ(call.Generate(tpipe, current_axis, result), 0);
   std::cout << result << std::endl;
-  EXPECT_EQ(result, std::string{
-    "CompareExtend<int8_t, 2, CMPMODE::ne>(local_3[0], local_0[0], local_1[0], {static_cast<uint16_t>(t->s1), "
-    "static_cast<uint16_t>(t->s2)}, {static_cast<uint16_t>(t->s2), static_cast<uint16_t>(1)}, "
-    "{static_cast<uint16_t>(t->s2), static_cast<uint16_t>(1)});\n"
-  });
+  EXPECT_EQ(
+      result,
+      std::string{
+          "CompareExtend<int8_t, 2, CMPMODE::ne>(local_3[0], local_0[0], local_1[0], {static_cast<uint16_t>(t->s1), "
+          "static_cast<uint16_t>(t->s2)}, {static_cast<uint16_t>(t->s2), static_cast<uint16_t>(1)}, "
+          "{static_cast<uint16_t>(t->s2), static_cast<uint16_t>(1)});\n"});
 }
 
 // Test Ne with INT16 type
@@ -175,19 +176,19 @@ TEST(NeCompareV2ApiCallTest, Ne_INT16) {
   load_op1.attr.sched.axis = {z0.id, z1.id, z2.id};
   *load_op1.y.axis = {z0.id, z1.id, z2.id};
   *load_op1.y.repeats = {s0, s1, s2};
-  *load_op1.y.strides = {s1*s2, s2, One};
+  *load_op1.y.strides = {s1 * s2, s2, One};
 
   load_op2.x = x_op2.y;
   load_op2.attr.sched.axis = {z0.id, z1.id, z2.id};
   *load_op2.y.axis = {z0.id, z1.id, z2.id};
   *load_op2.y.repeats = {s0, s1, s2};
-  *load_op2.y.strides = {s1*s2, s2, One};
+  *load_op2.y.strides = {s1 * s2, s2, One};
 
   ne_op.x1 = load_op1.y;
   ne_op.x2 = load_op2.y;
   *ne_op.y.axis = {z0.id, z1.id, z2.id};
   *ne_op.y.repeats = {s0, s1, s2};
-  *ne_op.y.strides = {s1*s2, s2, One};
+  *ne_op.y.strides = {s1 * s2, s2, One};
 
   auto load1 = graph.FindNode("load1");
   load1->attr.api.compute_type = af::ComputeType::kComputeLoad;
@@ -210,7 +211,7 @@ TEST(NeCompareV2ApiCallTest, Ne_INT16) {
   load2->attr.api.unit = af::ComputeUnit::kUnitMTE2;
   load2->attr.sched.loop_axis = z0.id;
   load2->outputs[0].attr.vectorized_axis = {z1.id, z2.id};
-  load2->outputs[0].attr.vectorized_strides = {s2+s2, One};
+  load2->outputs[0].attr.vectorized_strides = {s2 + s2, One};
   load2->outputs[0].attr.dtype = af::DT_INT16;
   load2->outputs[0].attr.mem.position = af::Position::kPositionVecIn;
   load2->outputs[0].attr.mem.tensor_id = 1;
@@ -260,11 +261,12 @@ TEST(NeCompareV2ApiCallTest, Ne_INT16) {
   std::string result;
   EXPECT_EQ(call.Generate(tpipe, current_axis, result), 0);
   std::cout << result << std::endl;
-  EXPECT_EQ(result, std::string{
-    "CompareExtend<int16_t, 2, CMPMODE::ne>(local_3[0], local_0[0], local_1[0], {static_cast<uint16_t>(t->s1), "
-    "static_cast<uint16_t>(t->s2)}, {static_cast<uint16_t>(t->s2), static_cast<uint16_t>(1)}, "
-    "{static_cast<uint16_t>(t->s2), static_cast<uint16_t>(1)});\n"
-  });
+  EXPECT_EQ(
+      result,
+      std::string{
+          "CompareExtend<int16_t, 2, CMPMODE::ne>(local_3[0], local_0[0], local_1[0], {static_cast<uint16_t>(t->s1), "
+          "static_cast<uint16_t>(t->s2)}, {static_cast<uint16_t>(t->s2), static_cast<uint16_t>(1)}, "
+          "{static_cast<uint16_t>(t->s2), static_cast<uint16_t>(1)});\n"});
 }
 
 // Test Ne with BF16 type
@@ -291,19 +293,19 @@ TEST(NeCompareV2ApiCallTest, Ne_BF16) {
   load_op1.attr.sched.axis = {z0.id, z1.id, z2.id};
   *load_op1.y.axis = {z0.id, z1.id, z2.id};
   *load_op1.y.repeats = {s0, s1, s2};
-  *load_op1.y.strides = {s1*s2, s2, One};
+  *load_op1.y.strides = {s1 * s2, s2, One};
 
   load_op2.x = x_op2.y;
   load_op2.attr.sched.axis = {z0.id, z1.id, z2.id};
   *load_op2.y.axis = {z0.id, z1.id, z2.id};
   *load_op2.y.repeats = {s0, s1, s2};
-  *load_op2.y.strides = {s1*s2, s2, One};
+  *load_op2.y.strides = {s1 * s2, s2, One};
 
   ne_op.x1 = load_op1.y;
   ne_op.x2 = load_op2.y;
   *ne_op.y.axis = {z0.id, z1.id, z2.id};
   *ne_op.y.repeats = {s0, s1, s2};
-  *ne_op.y.strides = {s1*s2, s2, One};
+  *ne_op.y.strides = {s1 * s2, s2, One};
 
   auto load1 = graph.FindNode("load1");
   load1->attr.api.compute_type = af::ComputeType::kComputeLoad;
@@ -326,7 +328,7 @@ TEST(NeCompareV2ApiCallTest, Ne_BF16) {
   load2->attr.api.unit = af::ComputeUnit::kUnitMTE2;
   load2->attr.sched.loop_axis = z0.id;
   load2->outputs[0].attr.vectorized_axis = {z1.id, z2.id};
-  load2->outputs[0].attr.vectorized_strides = {s2+s2, One};
+  load2->outputs[0].attr.vectorized_strides = {s2 + s2, One};
   load2->outputs[0].attr.dtype = af::DT_BF16;
   load2->outputs[0].attr.mem.position = af::Position::kPositionVecIn;
   load2->outputs[0].attr.mem.tensor_id = 1;
@@ -376,9 +378,9 @@ TEST(NeCompareV2ApiCallTest, Ne_BF16) {
   std::string result;
   EXPECT_EQ(call.Generate(tpipe, current_axis, result), 0);
   std::cout << result << std::endl;
-  EXPECT_EQ(result, std::string{
-    "CompareExtend<bfloat16_t, 2, CMPMODE::ne>(local_3[0], local_0[0], local_1[0], {static_cast<uint16_t>(t->s1), " \
-    "static_cast<uint16_t>(t->s2)}, {static_cast<uint16_t>(t->s2), static_cast<uint16_t>(1)}, " \
-    "{static_cast<uint16_t>(t->s2), static_cast<uint16_t>(1)});\n"
-  });
+  EXPECT_EQ(result,
+            std::string{"CompareExtend<bfloat16_t, 2, CMPMODE::ne>(local_3[0], local_0[0], local_1[0], "
+                        "{static_cast<uint16_t>(t->s1), "
+                        "static_cast<uint16_t>(t->s2)}, {static_cast<uint16_t>(t->s2), static_cast<uint16_t>(1)}, "
+                        "{static_cast<uint16_t>(t->s2), static_cast<uint16_t>(1)});\n"});
 }

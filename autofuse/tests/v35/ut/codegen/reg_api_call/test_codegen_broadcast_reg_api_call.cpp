@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -97,11 +97,12 @@ TEST(CodegenKernel, BroadcastRegApiCallAllCommonAxis) {
 
   std::string result;
   call.Generate(tpipe, vector<af::AxisId>{}, result);
-  EXPECT_EQ(result,
-            std::string{
-                "const uint32_t dst_shape_0_brc_to_1[2] = {static_cast<uint32_t>(t->s0), static_cast<uint32_t>(t->s1)};\n"
-                "const uint32_t src_shape_0_brc_to_1[2] = {static_cast<uint32_t>(t->s0), static_cast<uint32_t>(t->s1)};\n"
-                "BroadcastExtend<float,2>(local_1[0], local_0[0], dst_shape_0_brc_to_1, src_shape_0_brc_to_1);\n"});
+  EXPECT_EQ(
+      result,
+      std::string{
+          "const uint32_t dst_shape_0_brc_to_1[2] = {static_cast<uint32_t>(t->s0), static_cast<uint32_t>(t->s1)};\n"
+          "const uint32_t src_shape_0_brc_to_1[2] = {static_cast<uint32_t>(t->s0), static_cast<uint32_t>(t->s1)};\n"
+          "BroadcastExtend<float,2>(local_1[0], local_0[0], dst_shape_0_brc_to_1, src_shape_0_brc_to_1);\n"});
 }
 
 TEST(CodegenKernel, BroadcastRegApiCallUBScalar) {
@@ -525,8 +526,8 @@ TEST(CodegenKernel, BroadcastRegApiCall_BrcAlign_ABA) {
   load_op.x = x_op.y;
   load_op.attr.sched.axis = {z0.id, z1.id, z2.id};
   *load_op.y.axis = {z0.id, z1.id, z2.id};
-  *load_op.y.repeats = {s0, One, s2}; // (2, 1, 7)
-  *load_op.y.strides = {af::Symbol(8), Zero, One}; // (8, 0, 1)
+  *load_op.y.repeats = {s0, One, s2};               // (2, 1, 7)
+  *load_op.y.strides = {af::Symbol(8), Zero, One};  // (8, 0, 1)
   broadcast_op.x = load_op.y;
   *broadcast_op.y.axis = {z0.id, z1.id, z2.id};
   *broadcast_op.y.repeats = {s0, s1, s2};
@@ -538,7 +539,7 @@ TEST(CodegenKernel, BroadcastRegApiCall_BrcAlign_ABA) {
   load->attr.api.unit = af::ComputeUnit::kUnitMTE2;
   load->attr.sched.loop_axis = z0.id;
   load->outputs[0].attr.vectorized_axis = {z0.id, z1.id, z2.id};
-  load->outputs[0].attr.vectorized_strides = {af::Symbol(8), Zero, One}; // (8, 0, 1)
+  load->outputs[0].attr.vectorized_strides = {af::Symbol(8), Zero, One};  // (8, 0, 1)
   load->outputs[0].attr.dtype = af::DT_INT64;
   load->outputs[0].attr.mem.position = af::Position::kPositionVecIn;
   load->outputs[0].attr.mem.tensor_id = 0;
@@ -553,7 +554,7 @@ TEST(CodegenKernel, BroadcastRegApiCall_BrcAlign_ABA) {
   broadcast->attr.api.unit = af::ComputeUnit::kUnitVector;
   broadcast->attr.sched.loop_axis = z0.id;
   broadcast->outputs[0].attr.vectorized_axis = {z0.id, z1.id, z2.id};
-  broadcast->outputs[0].attr.vectorized_strides = {s1 * af::Symbol(8), af::Symbol(8), One}; // (2 * 8, 8, 1)
+  broadcast->outputs[0].attr.vectorized_strides = {s1 * af::Symbol(8), af::Symbol(8), One};  // (2 * 8, 8, 1)
   ;
   broadcast->outputs[0].attr.dtype = af::DT_INT64;
   broadcast->outputs[0].attr.mem.position = af::Position::kPositionVecOut;

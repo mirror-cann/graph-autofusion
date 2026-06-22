@@ -39,8 +39,8 @@ std::string FindTilingDataFile() {
   return tiling_data_filename;
 }
 
-void ProcessTilingDefField(const std::smatch &match, std::string &content,
-                           std::vector<std::string> &pass_data, std::string &print_data) {
+void ProcessTilingDefField(const std::smatch &match, std::string &content, std::vector<std::string> &pass_data,
+                           std::string &print_data) {
   content += "  " + match[1].str() + " " + match[2].str() + " = 0;\n";
   pass_data.emplace_back("(tilingData)." + match[2].str() + " = tilingDataPointer->" + match[2].str() + ";");
   print_data += "  std::cout << \" " + match[2].str() + ": \" << tilingData." + match[2].str() + " << std::endl;\n";
@@ -50,13 +50,13 @@ void ProcessArrayField(const std::smatch &match, std::string &content, std::vect
   content += "  " + match[1].str() + " " + match[3].str() + "[" + match[2].str() + "] = 0;";
   for (uint16_t i = 0; i < std::stoul(match[2].str()); ++i) {
     std::string idx = std::to_string(i);
-    pass_data.emplace_back("(tilingData)." + match[2].str() + "[" + idx + "] = tilingDataPointer->" +
-                           match[2].str() + "[" + idx + "];");
+    pass_data.emplace_back("(tilingData)." + match[2].str() + "[" + idx + "] = tilingDataPointer->" + match[2].str() +
+                           "[" + idx + "];");
   }
 }
 
-void ProcessEndTilingDef(const std::string &struct_name, std::string &content,
-                         std::vector<std::string> &pass_data, const std::string &print_data) {
+void ProcessEndTilingDef(const std::string &struct_name, std::string &content, std::vector<std::string> &pass_data,
+                         const std::string &print_data) {
   content += "};\n#pragma pack()\n\n";
   content += "#define CONVERT_TILING_DATA(tilingStruct, tilingDataPointer, tilingPointer) \\\n";
   content += "  tilingStruct *tilingDataPointer = reinterpret_cast<tilingStruct *>((uint8_t *)(tilingPointer));\n\n";

@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -27,7 +27,7 @@ struct TensorFloorDivInputParam {
   uint32_t out_size{0};
 };
 
-class TestApiFloorDiv :public testing::Test {
+class TestApiFloorDiv : public testing::Test {
  protected:
   template <typename T>
   static void InvokeKernelWithTwoTensorInput(TensorFloorDivInputParam<T> &param) {
@@ -42,7 +42,6 @@ class TestApiFloorDiv :public testing::Test {
     LocalTensor<T> l_x1 = x1buf.Get<T>();
     LocalTensor<T> l_x2 = x2buf.Get<T>();
 
-
     LocalTensor<T> l_y = ybuf.Get<T>();
     LocalTensor<uint8_t> l_tmp = tmp.Get<uint8_t>();
 
@@ -51,7 +50,6 @@ class TestApiFloorDiv :public testing::Test {
     FloorDivExtend(l_y, l_x1, l_x2, l_tmp, param.size);
     UbToGm(param.y, l_y, param.size);
   }
-
 
   template <typename T>
   static void CreateTensorInput(TensorFloorDivInputParam<T> &param) {
@@ -124,5 +122,7 @@ TEST_F(TestApiFloorDiv, FloorDiv_Test) {
   FloorDivTest<float>(MAX_REPEAT_NUM * ONE_REPEAT_BYTE_SIZE / 2 / sizeof(float));
   FloorDivTest<float>((ONE_BLK_SIZE - sizeof(float)) / sizeof(float));
   FloorDivTest<float>((ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) / sizeof(float));
-  FloorDivTest<float>(((MAX_REPEAT_NUM - 1) * ONE_REPEAT_BYTE_SIZE + (ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) + (ONE_BLK_SIZE - sizeof(float))) / 2 /sizeof(float));
+  FloorDivTest<float>(((MAX_REPEAT_NUM - 1) * ONE_REPEAT_BYTE_SIZE + (ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) +
+                       (ONE_BLK_SIZE - sizeof(float))) /
+                      2 / sizeof(float));
 }

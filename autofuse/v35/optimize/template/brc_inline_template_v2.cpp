@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -139,8 +139,7 @@ ge::Status BrcInlineTemplateV2::AlignAssociateNodes(const af::AscGraph &graph, c
  * 3. 最后，若计数>0，返回成功；否则返回失败。
  */
 ge::Status BrcInlineTemplateV2::Generate([[maybe_unused]] const af::AscGraph &origin_graph,
-                                         [[maybe_unused]] const af::AscGraph &based_case,
-                                         af::AscGraph &new_case) {
+                                         [[maybe_unused]] const af::AscGraph &based_case, af::AscGraph &new_case) {
   int32_t brc_inlined_count = 0;
   for (const auto &node : new_case.GetAllNodes()) {
     GE_WARN_ASSERT(!ScheduleUtils::IsReduce(node), "Brc inline not support Reduce[%s] now.", node->GetNamePtr());

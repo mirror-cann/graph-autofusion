@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -43,15 +43,17 @@ class TestBackendMatmulEqScalar : public testing::Test {
 };
 
 TEST_F(TestBackendMatmulEqScalar, MatmulEqScalarCodegen) {
-  bool gen_success= true;
+  bool gen_success = true;
   const std::map<std::string, std::string> shape_info;
   auto graph = ascir::ShareGraph::LoadMatmulCompareScalarFusedGraph();
 
-  std::cout<<"KERNEL_SRC_LIST="<<KERNEL_SRC_LIST<<std::endl;
+  std::cout << "KERNEL_SRC_LIST=" << KERNEL_SRC_LIST << std::endl;
   std::vector<std::string> parts = splitString(KERNEL_SRC_LIST, ':');
-  std::string kernel_src_file_name = "matmul_compare_scalar_test_kernel_ub.cpp";   // matmul_compare_scalar_test_kernel_ub.cpp
-  std::string tiling_src_file_name = "matmul_compare_scalar_test_tiling_ub.cpp";   // matmul_compare_scalar_test_tiling_ub.cpp
-  std::string tiling_data_src_file_name = parts[2]; // autofuse_tiling_data.h
+  std::string kernel_src_file_name =
+      "matmul_compare_scalar_test_kernel_ub.cpp";  // matmul_compare_scalar_test_kernel_ub.cpp
+  std::string tiling_src_file_name =
+      "matmul_compare_scalar_test_tiling_ub.cpp";    // matmul_compare_scalar_test_tiling_ub.cpp
+  std::string tiling_data_src_file_name = parts[2];  // autofuse_tiling_data.h
 
   try {
     optimize::Optimizer optimizer(optimize::OptimizerOptions{});
@@ -81,19 +83,21 @@ TEST_F(TestBackendMatmulEqScalar, MatmulEqScalarCodegen) {
     }
 
     // 分别生成ub和common模板的kernel和tiling
-    EXPECT_EQ(codegen.Generate(shape_info, ub_schedule_result, result),0);
+    EXPECT_EQ(codegen.Generate(shape_info, ub_schedule_result, result), 0);
     kernel_file << RemoveSubDirInclude(result.kernel);
     tiling_file << result.tiling;
     tiling_data_file << result.tiling_data;
 
-    kernel_src_file_name = "matmul_compare_scalar_test_kernel_common.cpp";   // matmul_compare_scalar_test_kernel_common.cpp
-    tiling_src_file_name = "matmul_compare_scalar_test_tiling_common.cpp";   // matmul_compare_scalar_test_tiling_common.cpp
-    tiling_data_src_file_name = parts[2]; // autofuse_tiling_data.h
+    kernel_src_file_name =
+        "matmul_compare_scalar_test_kernel_common.cpp";  // matmul_compare_scalar_test_kernel_common.cpp
+    tiling_src_file_name =
+        "matmul_compare_scalar_test_tiling_common.cpp";  // matmul_compare_scalar_test_tiling_common.cpp
+    tiling_data_src_file_name = parts[2];                // autofuse_tiling_data.h
     std::fstream kernel_file_common(kernel_src_file_name, std::ios::out);
     std::fstream tiling_file_common(tiling_src_file_name, std::ios::out);
     std::fstream tiling_data_file_common(tiling_data_src_file_name, std::ios::out);
     codegen::CodegenResult result_common;
-    EXPECT_EQ(codegen.Generate(shape_info, common_schedule_result, result_common),0);
+    EXPECT_EQ(codegen.Generate(shape_info, common_schedule_result, result_common), 0);
     kernel_file_common << RemoveSubDirInclude(result_common.kernel);
     tiling_file_common << result_common.tiling;
     tiling_data_file_common << result_common.tiling_data;

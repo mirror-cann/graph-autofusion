@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -16,7 +16,7 @@ void to_json(nlohmann::json &j, const Expression &arg) {
       {expr},
   };
 }
-}
+}  // namespace af
 namespace att {
 namespace {
 void AddDenominatorSymbol(const Expr &symbol, const ExprExprMap &container_expr,
@@ -75,14 +75,16 @@ const std::string AddAnotationLine(std::string strs, std::string indent) {
   return str;
 }
 
-void ScanContainer(const Expr &container, const Expr &container_expr, std::set<std::string> &arg_names, ExprExprMap &param_map) {
+void ScanContainer(const Expr &container, const Expr &container_expr, std::set<std::string> &arg_names,
+                   ExprExprMap &param_map) {
   for (const auto &arg : container_expr.FreeSymbols()) {
     arg_names.insert(Str(arg));
   }
   param_map[container] = container_expr;
 }
 
-void AnalysisArg(const Expr &arg, const ExprExprMap &container_expr, std::set<std::string> &arg_names, ExprExprMap &param_map) {
+void AnalysisArg(const Expr &arg, const ExprExprMap &container_expr, std::set<std::string> &arg_names,
+                 ExprExprMap &param_map) {
   if (arg.GetExprType() == af::ExprType::kExprVariable) {
     auto iter1 = container_expr.find(arg);
     if (iter1 != container_expr.end()) {
@@ -114,8 +116,8 @@ const std::string GenWorkspaceRelatedVars(const std::map<int64_t, Expr> &workspa
     auto tensor_id = std::to_string(workspace_size.first);
     ret += "\n    auto it" + tensor_id + " = workspace_map.find(" + tensor_id + ");\n";
     ret += "    if (it" + tensor_id + " != workspace_map.end()) {\n";
-    ret += "        it" + tensor_id + "->second = Max(it"+ tensor_id + "->second, static_cast<uint64_t>(" +
-        Str(workspace_size.second) + "));\n";
+    ret += "        it" + tensor_id + "->second = Max(it" + tensor_id + "->second, static_cast<uint64_t>(" +
+           Str(workspace_size.second) + "));\n";
     ret += "    } else {\n";
     ret += "        workspace_map[" + tensor_id + "] = static_cast<uint64_t>(" + Str(workspace_size.second) + ");\n";
     ret += "    }";
@@ -123,7 +125,8 @@ const std::string GenWorkspaceRelatedVars(const std::map<int64_t, Expr> &workspa
   return ret;
 }
 
-const std::string GenRelatedVars(const std::vector<Expr> &funcs, const ExprExprMap &container_expr, const std::map<Expr, std::vector<Expr>, ExprCmp> &args) {
+const std::string GenRelatedVars(const std::vector<Expr> &funcs, const ExprExprMap &container_expr,
+                                 const std::map<Expr, std::vector<Expr>, ExprCmp> &args) {
   std::string ret;
   std::set<std::string> arg_names;
   ExprExprMap params_map;
@@ -161,11 +164,11 @@ const std::string GenBufRelatedVars(const Expr &func, const ExprExprMap &contain
   for (const auto &arg_name : arg_names) {
     ret += "    double " + arg_name + " = tiling_data.get_" + arg_name + "();\n";
   }
-  
+
   std::map<std::string, ASTNode> ast_expr_map;
   Optimizer ast_optimizer;
   for (const auto &pair : params_map) {
-    Parser parser(Str(pair.second)); 
+    Parser parser(Str(pair.second));
     ASTPtr ast = parser.Parse();
     ast_optimizer.Optimize(ast);
     ast_expr_map.emplace(Str(pair.first), *ast.get());

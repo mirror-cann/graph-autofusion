@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -18,24 +18,17 @@
 namespace att {
 class TestArgListManager : public ::testing::Test {
  public:
-  static void TearDownTestCase()
-  {
+  static void TearDownTestCase() {
     std::cout << "Test end." << std::endl;
   }
-  static void SetUpTestCase()
-  {
+  static void SetUpTestCase() {
     std::cout << "Test begin." << std::endl;
   }
-  void SetUp() override
-  {
-  }
-  void TearDown() override
-  {
-  }
+  void SetUp() override {}
+  void TearDown() override {}
 };
 
-TEST_F(TestArgListManager, case0)
-{
+TEST_F(TestArgListManager, case0) {
   af::AscGraph graph("graph");
   att::FaBeforeAutoFuse(graph);
   att::FaAfterScheduler(graph);
@@ -49,4 +42,4 @@ TEST_F(TestArgListManager, case0)
   EXPECT_EQ(ArgListManager::GetInstance().LoadArgList(tuning_space), af::SUCCESS);
 }
 
-}
+}  // namespace att

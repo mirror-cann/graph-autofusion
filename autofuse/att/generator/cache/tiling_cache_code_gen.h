@@ -25,7 +25,7 @@ namespace cache {
  * 负责生成FixedSizeHashMap模板类和通用缓存函数
  */
 class TilingCacheCodeGen {
-public:
+ public:
   TilingCacheCodeGen() = default;
   virtual ~TilingCacheCodeGen() = default;
 
@@ -34,16 +34,16 @@ public:
    * @param code_printer 代码打印器
    * @return ge::Status
    */
-  virtual ge::Status GenFixedSizeHashMapDef(ge::CodePrinter& code_printer) = 0;
+  virtual ge::Status GenFixedSizeHashMapDef(ge::CodePrinter &code_printer) = 0;
 
   /**
    * @brief 生成常量定义代码
    * @param code_printer 代码打印器
    * @param input_vars_size 输入变量大小
    */
-  static void GenConstantDefs(ge::CodePrinter& code_printer, size_t input_vars_size);
+  static void GenConstantDefs(ge::CodePrinter &code_printer, size_t input_vars_size);
 
-protected:
+ protected:
   /**
    * @brief 生成HashMap模板代码
    * @return std::string 生成的代码字符串
@@ -105,7 +105,7 @@ protected:
   static std::string GenFindIndexFunction();
 };
 
-} // namespace cache
-} // namespace att
+}  // namespace cache
+}  // namespace att
 
-#endif // ATT_TILING_CACHE_CODE_GEN_H_
+#endif  // ATT_TILING_CACHE_CODE_GEN_H_

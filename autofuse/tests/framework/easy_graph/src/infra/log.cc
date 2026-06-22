@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -29,14 +29,13 @@ struct ConsoleState {
 };
 
 ////////////////////////////////////////////////////////
-#define DEF_COLOR_STATE(STATE, COLOR)                                                                                  \
-  struct STATE : ConsoleState {                                                                                        \
-    STATE(bool colorful) : ConsoleState(colorful) {}                                                                   \
-  };                                                                                                                   \
-  std::ostream &operator<<(std::ostream &os, const STATE &state) {                                                     \
-    if (state.isColorful())                                                                                            \
-      os << COLOR;                                                                                                     \
-    return os;                                                                                                         \
+#define DEF_COLOR_STATE(STATE, COLOR)                              \
+  struct STATE : ConsoleState {                                    \
+    STATE(bool colorful) : ConsoleState(colorful) {}               \
+  };                                                               \
+  std::ostream &operator<<(std::ostream &os, const STATE &state) { \
+    if (state.isColorful()) os << COLOR;                           \
+    return os;                                                     \
   }
 
 ////////////////////////////////////////////////////////
@@ -69,9 +68,9 @@ struct StdoutListener {
   }
 
   void println(const uint8_t level, const char *msg) {
-#define ON_LEVEL(level, state)                                                                                         \
-  case level:                                                                                                          \
-    doPrint(state, msg);                                                                                               \
+#define ON_LEVEL(level, state) \
+  case level:                  \
+    doPrint(state, msg);       \
     break;
 
     switch (level) {
@@ -90,7 +89,7 @@ struct StdoutListener {
   StdoutListener(bool colorful)
       : succ(colorful), fail(colorful), normal(colorful), info(colorful), warn(colorful), debug(colorful) {}
 
-  template<typename STATE>
+  template <typename STATE>
   void doPrint(const STATE &state, const char *msg) {
     std::cout << state << msg << normal << std::endl;
   }
@@ -105,8 +104,7 @@ struct StdoutListener {
 };
 
 const char *getBaseName(const char *absPath) {
-  if (absPath == 0)
-    return "";
+  if (absPath == 0) return "";
   const char *p = absPath + strlen(absPath);
   while ((p != absPath) && (*(p - 1) != '/')) {
     p--;

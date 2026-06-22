@@ -27,8 +27,7 @@ constexpr size_t kHostFileIndex = 1;
 constexpr size_t kDeviceFileIndex = 2;
 constexpr size_t kExpectedKernelSrcCount = 3;
 
-class TestBackendInductorTopnE2e : public testing::Test {
-};
+class TestBackendInductorTopnE2e : public testing::Test {};
 
 TEST_F(TestBackendInductorTopnE2e, InductorTopnE2eCodegen) {
   auto graph = ascir::ShareGraph::BrcInlineFusedGraph(2);

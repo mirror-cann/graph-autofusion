@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -33,34 +33,35 @@ class GraphOptimizer {
   // close graphOptimizer
   virtual Status Finalize() = 0;
 
-  virtual Status FinalizeSessionInfo(ComputeGraph& graph) {
+  virtual Status FinalizeSessionInfo(ComputeGraph &graph) {
     (void)graph;
     return SUCCESS;
   }
 
   // init process for optimize graph every time because options may different in different build process
   // 当前引擎获取编译option是在OptimizeGraphPrepare接口中获取，该接口默认会过滤vector engine。
-  // 当前出现问题场景是子图优化阶段因为算子融合直接选择了vector engine的场景，出现了vector engine获取不到编译option导致问题。
-  // 当前决策新增OptimizeGraphInit接口，该接口不会过滤引擎，全部调用.这样获取到build option操作就从OptimizeGraphPrepare剥离。
-  virtual Status OptimizeGraphInit(ComputeGraph& graph) {
+  // 当前出现问题场景是子图优化阶段因为算子融合直接选择了vector engine的场景，出现了vector
+  // engine获取不到编译option导致问题。 当前决策新增OptimizeGraphInit接口，该接口不会过滤引擎，全部调用.这样获取到build
+  // option操作就从OptimizeGraphPrepare剥离。
+  virtual Status OptimizeGraphInit(ComputeGraph &graph) {
     (void)graph;
     return SUCCESS;
   }
 
   // optimize original graph for FE quant optimize
-  virtual Status OptimizeGraphPrepare(ComputeGraph& graph) {
+  virtual Status OptimizeGraphPrepare(ComputeGraph &graph) {
     (void)graph;
     return SUCCESS;
   }
 
   // optimize graph after normalization, include multi dims and pre/post process
-  virtual Status OptimizeAfterGraphNormalization(const ComputeGraphPtr& graph) {
+  virtual Status OptimizeAfterGraphNormalization(const ComputeGraphPtr &graph) {
     (void)graph;
     return SUCCESS;
   }
 
   // optimize graph before build for RTS
-  virtual Status OptimizeGraphBeforeBuild(ComputeGraph& graph) {
+  virtual Status OptimizeGraphBeforeBuild(ComputeGraph &graph) {
     (void)graph;
     return SUCCESS;
   }
@@ -131,6 +132,6 @@ class GraphOptimizer {
     return SUCCESS;
   }
 };
-}  // namespace ge
+}  // namespace af
 /*lint +e148*/
 #endif  // INC_COMMON_OPTIMIZER_GRAPH_OPTIMIZER_H_

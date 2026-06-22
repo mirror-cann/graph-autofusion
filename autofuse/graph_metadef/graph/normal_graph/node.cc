@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -83,8 +83,10 @@ graphStatus Node::NodeImpl::Init(const NodePtr &node) {
   in_control_anchor_ = ComGraphMakeShared<InControlAnchor>(node, -1);
   out_control_anchor_ = ComGraphMakeShared<OutControlAnchor>(node, -1);
   if ((in_control_anchor_ == nullptr) || (out_control_anchor_ == nullptr)) {
-    REPORT_INNER_ERR_MSG("E18888", "Current in_control_anchor or out_control_anchor is null, malloc shared_ptr failed.");
-    GELOGE(GRAPH_FAILED, "[Create][ControlAnchor] Current in_control_anchor or out_control_anchor is null, "
+    REPORT_INNER_ERR_MSG("E18888",
+                         "Current in_control_anchor or out_control_anchor is null, malloc shared_ptr failed.");
+    GELOGE(GRAPH_FAILED,
+           "[Create][ControlAnchor] Current in_control_anchor or out_control_anchor is null, "
            "malloc shared_ptr failed.");
     return GRAPH_FAILED;
   }
@@ -125,8 +127,7 @@ bool Node::NodeImpl::NodeMembersAreEqual(const NodeImpl &r_node) const {
           IsEqual(this->recv_event_id_list_, r_node.recv_event_id_list_, "node.recv_event_id_list_"));
 }
 
-bool Node::NodeImpl::NodeAnchorIsEqual(const AnchorPtr &left_anchor,
-                                       const AnchorPtr &right_anchor,
+bool Node::NodeImpl::NodeAnchorIsEqual(const AnchorPtr &left_anchor, const AnchorPtr &right_anchor,
                                        const size_t i) const {
   GE_IF_BOOL_EXEC(left_anchor == nullptr, REPORT_INNER_ERR_MSG("E18888", "left_anchor is nullptr, check invalid.");
                   GELOGE(GRAPH_FAILED, "[Check][Param] left_anchor is null."); return false);
@@ -140,7 +141,8 @@ bool Node::NodeImpl::NodeAnchorIsEqual(const AnchorPtr &left_anchor,
                          "Size of anchor's peer anchors verify failed, node name: %s "
                          "anchor_peer_size [%zu]  is different form [%zu] at index [%zu].",
                          this->GetName().c_str(), anchor_peer_size, right_anchor_peer_size, i);
-    GELOGE(GRAPH_FAILED, "[Check][Param] Size of anchor's peer anchors verify failed, node name: %s "
+    GELOGE(GRAPH_FAILED,
+           "[Check][Param] Size of anchor's peer anchors verify failed, node name: %s "
            "anchor_peer_size [%zu]  is different form [%zu] at index [%zu].",
            this->GetName().c_str(), anchor_peer_size, right_anchor_peer_size, i);
     return false;
@@ -152,8 +154,10 @@ bool Node::NodeImpl::NodeAnchorIsEqual(const AnchorPtr &left_anchor,
     if ((peer_node == nullptr) || (r_peer_node == nullptr)) {
       REPORT_INNER_ERR_MSG("E18888", "anchor's peer node is null, node name: %s index[%zu] peer node index[%zu].",
                            this->GetName().c_str(), i, j);
-      GELOGE(GRAPH_FAILED, "[Get][OwnerNode] anchor's peer node is null, node name: %s index[%zu] "
-             "peer node index[%zu].", this->GetName().c_str(), i, j);
+      GELOGE(GRAPH_FAILED,
+             "[Get][OwnerNode] anchor's peer node is null, node name: %s index[%zu] "
+             "peer node index[%zu].",
+             this->GetName().c_str(), i, j);
       return false;
     }
     // Determine the connection relationship by linking the node's name
@@ -162,7 +166,8 @@ bool Node::NodeImpl::NodeAnchorIsEqual(const AnchorPtr &left_anchor,
                            "anchor's peer node name verify failed, node name: %s index[%zu]"
                            "peer node name %s is different from %s at index [%zu].",
                            this->GetName().c_str(), i, peer_node->GetName().c_str(), r_peer_node->GetName().c_str(), j);
-      GELOGE(GRAPH_FAILED, "[Check][Param] anchor's peer node name verify failed, node name: %s index[%zu]"
+      GELOGE(GRAPH_FAILED,
+             "[Check][Param] anchor's peer node name verify failed, node name: %s index[%zu]"
              "peer node name %s is different from %s at index [%zu].",
              this->GetName().c_str(), i, peer_node->GetName().c_str(), r_peer_node->GetName().c_str(), j);
       return false;
@@ -200,25 +205,25 @@ graphStatus Node::NodeImpl::AddLinkFrom(const NodePtr &input_node, const NodePtr
     return GRAPH_FAILED;
   }
   in_data_anchors_.push_back(anchor);
-  (void) out_anchors.at(0U)->LinkTo(in_data_anchors_.back());
+  (void)out_anchors.at(0U)->LinkTo(in_data_anchors_.back());
 
   return GRAPH_SUCCESS;
 }
 
-graphStatus Node::NodeImpl::AddLinkFrom(const uint32_t &index,
-                                        const NodePtr &input_node,
-                                        const NodePtr &owner_node) {
+graphStatus Node::NodeImpl::AddLinkFrom(const uint32_t &index, const NodePtr &input_node, const NodePtr &owner_node) {
   return AddLinkFrom(index, input_node, 0U, owner_node);
 }
 
-graphStatus Node::NodeImpl::AddLinkFrom(const uint32_t &index, const af::Node::NodePtr &input_node, const uint32_t &input_node_index, const af::Node::NodePtr &owner_node) {
+graphStatus Node::NodeImpl::AddLinkFrom(const uint32_t &index, const af::Node::NodePtr &input_node,
+                                        const uint32_t &input_node_index, const af::Node::NodePtr &owner_node) {
   GE_CHECK_NOTNULL(input_node);
   // Input_node ---> this
   auto out_anchors = input_node->GetAllOutDataAnchors();
   if (input_node_index >= out_anchors.size()) {
     REPORT_INNER_ERR_MSG("E18888", "node:%s out_anchor size is:%zu, but index is %u", input_node->GetName().c_str(),
                          out_anchors.size(), input_node_index);
-    GELOGE(GRAPH_FAILED, "[Check][Param] out_anchor size is:%zu, but index is %u", out_anchors.size(), input_node_index);
+    GELOGE(GRAPH_FAILED, "[Check][Param] out_anchor size is:%zu, but index is %u", out_anchors.size(),
+           input_node_index);
     return GRAPH_PARAM_INVALID;
   }
 
@@ -233,10 +238,9 @@ graphStatus Node::NodeImpl::AddLinkFrom(const uint32_t &index, const af::Node::N
   }
 
   if (index < GetAllInDataAnchors(owner_node).size()) {
-    (void) out_anchors.at(input_node_index)->LinkTo(in_data_anchors_[static_cast<size_t>(index)]);
+    (void)out_anchors.at(input_node_index)->LinkTo(in_data_anchors_[static_cast<size_t>(index)]);
   } else if (index == GetAllInDataAnchors(owner_node).size()) {
-    const std::shared_ptr<InDataAnchor>
-        anchor = ComGraphMakeShared<InDataAnchor>(owner_node, in_data_anchors_.size());
+    const std::shared_ptr<InDataAnchor> anchor = ComGraphMakeShared<InDataAnchor>(owner_node, in_data_anchors_.size());
     if (anchor == nullptr) {
       REPORT_INNER_ERR_MSG("E18888", "out_anchor size is:%zu, malloc shared_ptr failed.", out_anchors.size());
       GELOGE(GRAPH_FAILED, "[Create][InDataAnchor] out_anchor size is:%zu, malloc shared_ptr failed.",
@@ -244,7 +248,7 @@ graphStatus Node::NodeImpl::AddLinkFrom(const uint32_t &index, const af::Node::N
       return GRAPH_FAILED;
     }
     in_data_anchors_.push_back(anchor);
-    (void) out_anchors.at(input_node_index)->LinkTo(in_data_anchors_.back());
+    (void)out_anchors.at(input_node_index)->LinkTo(in_data_anchors_.back());
   } else {
     REPORT_INNER_ERR_MSG("E18888", "index %u is over than in data anchors size %zu.", index, in_data_anchors_.size());
     GELOGE(GRAPH_FAILED, "index %u is over than in data anchors size %zu.", index, in_data_anchors_.size());
@@ -298,17 +302,16 @@ graphStatus Node::NodeImpl::AddLinkFrom(const std::string &name, const NodePtr &
       REPORT_INNER_ERR_MSG("E18888",
                            "op %s get input name %s 's index %d is illegal as which >= indataanchors size:%zu.",
                            op_->GetName().c_str(), name.c_str(), index, in_data_anchors_.size());
-      GELOGE(GRAPH_FAILED, "[Check][Param] op %s get input name %s 's index %d is illegal.",
-             op_->GetName().c_str(), name.c_str(), index);
+      GELOGE(GRAPH_FAILED, "[Check][Param] op %s get input name %s 's index %d is illegal.", op_->GetName().c_str(),
+             name.c_str(), index);
       return GRAPH_FAILED;
     }
-    (void) out_anchors.at(0U)->LinkTo(in_data_anchors_[static_cast<size_t>(index)]);
+    (void)out_anchors.at(0U)->LinkTo(in_data_anchors_[static_cast<size_t>(index)]);
   } else {
-    const std::shared_ptr<InDataAnchor>
-        anchor = ComGraphMakeShared<InDataAnchor>(owner_node, in_data_anchors_.size());
+    const std::shared_ptr<InDataAnchor> anchor = ComGraphMakeShared<InDataAnchor>(owner_node, in_data_anchors_.size());
     GE_CHECK_NOTNULL(anchor);
     in_data_anchors_.push_back(anchor);
-    (void) out_anchors.at(0U)->LinkTo(in_data_anchors_.back());
+    (void)out_anchors.at(0U)->LinkTo(in_data_anchors_.back());
   }
   if (op_->AddInputDesc(name, input_op_desc->GetOutputDesc(0U)) != GRAPH_SUCCESS) {
     REPORT_INNER_ERR_MSG("E18888", "add input desc failed, name:%s, op:%s", name.c_str(), op_->GetName().c_str());
@@ -334,8 +337,8 @@ graphStatus Node::NodeImpl::SetOwnerComputeGraph(const ComputeGraphPtr &graph) {
   owner_graph_ = graph;
   owner_graph_ptr_ = graph.get();
 
-  TRACE_GEN_RECORD(TraceManager::GetTraceHeader(), "modify", TraceManager::GetOutGraphName(),
-                   this->GetName(), "owner_graph", "", "", graph->GetName());
+  TRACE_GEN_RECORD(TraceManager::GetTraceHeader(), "modify", TraceManager::GetOutGraphName(), this->GetName(),
+                   "owner_graph", "", "", graph->GetName());
   return GRAPH_SUCCESS;
 }
 
@@ -343,8 +346,8 @@ graphStatus Node::NodeImpl::ClearOwnerGraph(const ComputeGraphPtr &graph) {
   owner_graph_ = graph;
   owner_graph_ptr_ = graph.get();
 
-  TRACE_GEN_RECORD(TraceManager::GetTraceHeader(), "delete", TraceManager::GetOutGraphName(),
-                   this->GetName(), "owner_graph", "", "", ((graph == nullptr) ? std::string("") : graph->GetName()));
+  TRACE_GEN_RECORD(TraceManager::GetTraceHeader(), "delete", TraceManager::GetOutGraphName(), this->GetName(),
+                   "owner_graph", "", "", ((graph == nullptr) ? std::string("") : graph->GetName()));
   return GRAPH_SUCCESS;
 }
 
@@ -540,8 +543,8 @@ std::vector<Node *> Node::NodeImpl::GetInNodesPtr() const {
 
 bool Node::NodeImpl::IsAllInNodesSeen(const std::unordered_set<Node *> &nodes_seen) const {
   for (const auto &in_anchor : in_data_anchors_) {
-    GE_CHK_BOOL_EXEC((in_anchor != nullptr),
-                     continue, "[Check][Param] in_data_anchor is nullptr, node:%s", GetName().c_str());
+    GE_CHK_BOOL_EXEC((in_anchor != nullptr), continue, "[Check][Param] in_data_anchor is nullptr, node:%s",
+                     GetName().c_str());
     const auto out_anchor = in_anchor->GetPeerOutAnchor();
     if (out_anchor == nullptr) {
       continue;
@@ -697,29 +700,29 @@ OpDesc *Node::NodeImpl::GetOpDescBarePtr() const {
 
 graphStatus Node::NodeImpl::UpdateOpDesc(const OpDescPtr &op_desc) {
   GE_CHK_BOOL_EXEC(op_ != nullptr, REPORT_INNER_ERR_MSG("E18888", "original OpDesc is nullptr");
-          return GRAPH_FAILED, "[Check][Param] original OpDesc is nullptr");
+                   return GRAPH_FAILED, "[Check][Param] original OpDesc is nullptr");
   GE_CHK_BOOL_EXEC(op_desc != nullptr, REPORT_INNER_ERR_MSG("E18888", "param op_desc is nullptr, check invalid.");
-          return GRAPH_PARAM_INVALID, "[Check][Param] Param OpDesc is nullptr");
+                   return GRAPH_PARAM_INVALID, "[Check][Param] Param OpDesc is nullptr");
   GE_CHK_BOOL_EXEC(op_->GetInputsSize() == op_desc->GetInputsSize(),
                    REPORT_INNER_ERR_MSG("E18888",
                                         "inputs count(%zu) of param op_desc not equal to "
                                         "inputs count(%zu) of original opdesc:%s, check invalid",
                                         op_desc->GetInputsSize(), op_->GetInputsSize(), op_->GetName().c_str());
-                           return GRAPH_PARAM_INVALID,
-                   "[Check][Param] Inputs count expected to be same, original OpDesc %zu, Param OpDesc %zu",
-                   op_->GetInputsSize(), op_desc->GetInputsSize());
+                   return GRAPH_PARAM_INVALID,
+                          "[Check][Param] Inputs count expected to be same, original OpDesc %zu, Param OpDesc %zu",
+                          op_->GetInputsSize(), op_desc->GetInputsSize());
 
   GE_CHK_BOOL_EXEC(op_->GetOutputsSize() == op_desc->GetOutputsSize(),
                    REPORT_INNER_ERR_MSG("E18888",
                                         "outputs count(%zu) of param op_desc not equal to "
                                         "outputs count(%zu) of original opdesc:%s, check invalid",
                                         op_desc->GetOutputsSize(), op_->GetOutputsSize(), op_->GetName().c_str());
-                           return GRAPH_PARAM_INVALID,
-                   "[Check][Param] Outputs count expected to be same, original OpDesc %zu, Param OpDesc %zu",
-                   op_->GetOutputsSize(), op_desc->GetOutputsSize());
+                   return GRAPH_PARAM_INVALID,
+                          "[Check][Param] Outputs count expected to be same, original OpDesc %zu, Param OpDesc %zu",
+                          op_->GetOutputsSize(), op_desc->GetOutputsSize());
 
-  TRACE_GEN_RECORD(TraceManager::GetTraceHeader(), "modify", TraceManager::GetOutGraphName(),
-                   this->GetName(), "op_desc", "", "", op_desc->GetName());
+  TRACE_GEN_RECORD(TraceManager::GetTraceHeader(), "modify", TraceManager::GetOutGraphName(), this->GetName(),
+                   "op_desc", "", "", op_desc->GetName());
   op_ = op_desc;
   return GRAPH_SUCCESS;
 }
@@ -978,8 +981,8 @@ GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY graphStatus Node::AddLinkFromForP
   return impl_->AddLinkFromForParse(input_node, shared_from_this());
 }
 
-GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY
-graphStatus Node::AddLinkFrom(const std::string &name, const NodePtr input_node) {
+GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY graphStatus Node::AddLinkFrom(const std::string &name,
+                                                                             const NodePtr input_node) {
   return impl_->AddLinkFrom(name, input_node, shared_from_this());
 }
 
@@ -1121,7 +1124,7 @@ GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY graphStatus Node::UpdateOpDesc(co
 }
 
 GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY Node::Vistor<std::pair<NodePtr, OutDataAnchorPtr>>
-    Node::GetInDataNodesAndAnchors() const {
+Node::GetInDataNodesAndAnchors() const {
   return impl_->GetInDataNodesAndAnchors(shared_from_this());
 }
 
@@ -1145,7 +1148,7 @@ GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY const std::vector<uint32_t> &Node
 GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY const std::vector<uint32_t> &Node::GetRecvEventIdList() const {
   return impl_->GetRecvEventIdList();
 }
-GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY  void Node::GetFusionInputFlowList(
+GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY void Node::GetFusionInputFlowList(
     kFusionDataFlowVec_t &fusion_input_list) {
   impl_->GetFusionInputFlowList(fusion_input_list);
 }
@@ -1208,4 +1211,4 @@ GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY std::vector<OutDataAnchor *> Node
   return impl_->GetAllOutDataAnchorsPtr();
 }
 
-}  // namespace ge
+}  // namespace af

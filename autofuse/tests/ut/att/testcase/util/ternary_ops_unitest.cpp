@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -17,10 +17,8 @@ class TernaryOpsUtilsUnitTest : public testing::Test {
   void SetUp() override {}
   void TearDown() override {}
 
-  void SetupCommonTernaryOps(std::map<Expr, TernaryOp, ExprCmp> &ternary_ops,
-                              Expr &res1, Expr &res2, Expr &res3,
-                              Expr &expr1, Expr &expr2, Expr &expr3,
-                              Expr &expr4, Expr &expr5) const {
+  void SetupCommonTernaryOps(std::map<Expr, TernaryOp, ExprCmp> &ternary_ops, Expr &res1, Expr &res2, Expr &res3,
+                             Expr &expr1, Expr &expr2, Expr &expr3, Expr &expr4, Expr &expr5) const {
     res1 = CreateExpr("res1");
     res2 = CreateExpr("res2");
     res3 = CreateExpr("res3");
@@ -75,7 +73,9 @@ TEST_F(TernaryOpsUtilsUnitTest, TestConcursiveReplaceVars2) {
   ternary_ops[res4] = ternary_op4;
   auto res = ConcursiveReplaceVars(ternary_ops);
   EXPECT_TRUE(!res.empty());
-  EXPECT_EQ(Str(res1.Replace(res)), "(TernaryOp(IsEqual(expr2, TernaryOp(expr4 <= expr5, expr1, expr3)), expr4, expr3) + TernaryOp(expr4 <= expr5, expr1, expr3))");
+  EXPECT_EQ(Str(res1.Replace(res)),
+            "(TernaryOp(IsEqual(expr2, TernaryOp(expr4 <= expr5, expr1, expr3)), expr4, expr3) + TernaryOp(expr4 <= "
+            "expr5, expr1, expr3))");
   EXPECT_EQ(Str(res2.Replace(res)), "TernaryOp(IsEqual(expr2, TernaryOp(expr4 <= expr5, expr1, expr3)), expr4, expr3)");
   EXPECT_EQ(Str(res3.Replace(res)), "TernaryOp(expr4 <= expr5, expr1, expr3)");
   EXPECT_EQ(Str(res4.Replace(res)), "TernaryOp(expr4 >= expr5, expr1, expr3)");
@@ -106,4 +106,4 @@ TEST_F(TernaryOpsUtilsUnitTest, TestUpdateReplaceVars) {
   auto related_maps = ternary_ops[res1].GetRelatedVars();
   EXPECT_TRUE(find(related_maps.begin(), related_maps.end(), rec) != related_maps.end());
 }
-} //namespace
+}  // namespace att

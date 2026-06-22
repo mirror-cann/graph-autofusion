@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -325,8 +325,8 @@ graphStatus SymDtype::Eval(const OpDesc &op, DataType &dtype) const {
     REPORT_INNER_ERR_MSG("EZ9999", "Sym %s of op %s %s infered dtype %s not in range %s", id_.c_str(),
                          op.GetName().c_str(), op.GetType().c_str(), TypeUtils::DataTypeToSerialString(dtype).c_str(),
                          ToString(tensor_type_).c_str());
-    GELOGW("Sym %s infered dtype %s not in range %s",
-           id_.c_str(), TypeUtils::DataTypeToSerialString(dtype).c_str(), ToString(tensor_type_).c_str());
+    GELOGW("Sym %s infered dtype %s not in range %s", id_.c_str(), TypeUtils::DataTypeToSerialString(dtype).c_str(),
+           ToString(tensor_type_).c_str());
     return ge::PARAM_INVALID;
   }
   return GRAPH_SUCCESS;
@@ -726,4 +726,4 @@ graphStatus GetIrOutputDescRange(const OpDescPtr &op, std::map<size_t, std::pair
 
   return GetIrDescRange(ir_specs, name2idx, desc_env, true, ir_output_2_range);
 }
-}  // namespace ge
+}  // namespace af

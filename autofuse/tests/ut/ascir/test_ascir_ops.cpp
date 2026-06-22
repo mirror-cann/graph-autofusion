@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -17,7 +17,7 @@
 #include "ascir_utils.h"
 #include "test_util.h"
 
-namespace af{
+namespace af {
 REG_OP(TestOp).INPUT(x, BasicType()).OP_END_FACTORY_REG(TestOp);
 };
 
@@ -34,7 +34,6 @@ TEST(AscirCast, DataType_Ok) {
   auto data = ascir::cg::ContiguousData("test_op1", graph, af::DT_FLOAT, {});
   auto cast = ascir::cg::Cast("cast", data.y, af::DT_FLOAT16);
   graph.SetInputs({data});
-
 
   auto cast_node = af::GraphUtilsEx::GetComputeGraph(graph)->FindNode("cast");
   ASSERT_NE(cast_node, nullptr);
@@ -59,10 +58,7 @@ TEST(AscirOps_StartNode, Ok) {
   auto b = graph.CreateAxis("b", B);
   auto c = graph.CreateAxis("c", C);
 
-  auto data = ascir::cg::Data("test_op", graph, af::DT_FLOAT16,
-                              {a.id, b.id, c.id},
-                              {A, B, C},
-                              {B*C, C, 1});
+  auto data = ascir::cg::Data("test_op", graph, af::DT_FLOAT16, {a.id, b.id, c.id}, {A, B, C}, {B * C, C, 1});
 
   auto data_ret = graph.Find("test_op");
 
@@ -73,7 +69,7 @@ TEST(AscirOps_StartNode, Ok) {
   EXPECT_EQ(data_ret.outputs[0].repeats[0], A);
   EXPECT_EQ(data_ret.outputs[0].repeats[1], B);
   EXPECT_EQ(data_ret.outputs[0].repeats[2], C);
-  EXPECT_EQ(data_ret.outputs[0].strides[0], B*C);
+  EXPECT_EQ(data_ret.outputs[0].strides[0], B * C);
   EXPECT_EQ(data_ret.outputs[0].strides[1], C);
   EXPECT_EQ(data_ret.outputs[0].strides[2], 1);
 }
@@ -190,7 +186,7 @@ TEST(AscirOps_ContiguousStartNode, Ok) {
   EXPECT_EQ(data_ret.outputs[0].repeats[0], A);
   EXPECT_EQ(data_ret.outputs[0].repeats[1], B);
   EXPECT_EQ(data_ret.outputs[0].repeats[2], C);
-  EXPECT_EQ(data_ret.outputs[0].strides[0], B*C);
+  EXPECT_EQ(data_ret.outputs[0].strides[0], B * C);
   EXPECT_EQ(data_ret.outputs[0].strides[1], C);
   EXPECT_EQ(data_ret.outputs[0].strides[2], 1);
 }
@@ -253,6 +249,6 @@ TEST(AscirOps_LoadInferView, Ok) {
   ASSERT_EQ(load.outputs.GetAll().size(), 1);
   EXPECT_EQ(load.outputs[0].axis(), std::vector<int64_t>({a.id, b.id, c.id}));
   EXPECT_EQ(load.outputs[0].repeats(), std::vector<ascir::SizeExpr>({A, B, C}));
-  EXPECT_EQ(load.outputs[0].strides(), std::vector<ascir::SizeExpr>({B*C, C, 1}));
+  EXPECT_EQ(load.outputs[0].strides(), std::vector<ascir::SizeExpr>({B * C, C, 1}));
   EXPECT_EQ(load.outputs[0].dtype, af::DT_FLOAT16);
 }

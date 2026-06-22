@@ -24,9 +24,8 @@ using namespace ge::ascir_op;
 
 namespace {
 template <typename NodeT>
-void InitNode(NodeT &node, int32_t &exec_order, std::initializer_list<int64_t> axis,
-              ge::DataType dtype, std::initializer_list<ge::Expression> repeats,
-              std::initializer_list<ge::Expression> strides) {
+void InitNode(NodeT &node, int32_t &exec_order, std::initializer_list<int64_t> axis, ge::DataType dtype,
+              std::initializer_list<ge::Expression> repeats, std::initializer_list<ge::Expression> strides) {
   node.attr.sched.exec_order = exec_order++;
   node.attr.sched.axis = axis;
   node.y.dtype = dtype;
@@ -36,17 +35,15 @@ void InitNode(NodeT &node, int32_t &exec_order, std::initializer_list<int64_t> a
 }
 
 template <typename NodeT, typename InputT>
-void InitInputNode(NodeT &node, const InputT &input, int32_t &exec_order,
-                   std::initializer_list<int64_t> axis, ge::DataType dtype,
-                   std::initializer_list<ge::Expression> repeats,
+void InitInputNode(NodeT &node, const InputT &input, int32_t &exec_order, std::initializer_list<int64_t> axis,
+                   ge::DataType dtype, std::initializer_list<ge::Expression> repeats,
                    std::initializer_list<ge::Expression> strides) {
   node.x = input;
   InitNode(node, exec_order, axis, dtype, repeats, strides);
 }
 
-void ApplySchedulerTransform(ge::AscGraph &graph, const char *name, int64_t z1T, int64_t z1t,
-                              int64_t z2T, int64_t z2t, int64_t z0z2T, int64_t z0z2TB,
-                              int64_t z0z2Tb, const std::vector<int64_t> &vec_axis) {
+void ApplySchedulerTransform(ge::AscGraph &graph, const char *name, int64_t z1T, int64_t z1t, int64_t z2T, int64_t z2t,
+                             int64_t z0z2T, int64_t z0z2TB, int64_t z0z2Tb, const std::vector<int64_t> &vec_axis) {
   auto node = graph.FindNode(name);
   graph.ApplySplit(node, z1T, z1t);
   graph.ApplySplit(node, z2T, z2t);
@@ -63,8 +60,8 @@ void SetGmNode(ge::AscGraph &graph, const char *name) {
   node->outputs[0].attr.mem.position = ge::Position::kPositionGM;
 }
 
-void SetQueueNode(ge::AscGraph &graph, const char *name, int32_t &tensor_id, int32_t que_id,
-                  ge::Position position, int32_t depth = 1, int32_t reuse_id = ge::kIdNone) {
+void SetQueueNode(ge::AscGraph &graph, const char *name, int32_t &tensor_id, int32_t que_id, ge::Position position,
+                  int32_t depth = 1, int32_t reuse_id = ge::kIdNone) {
   auto node = graph.FindNode(name);
   node->outputs[0].attr.mem.tensor_id = tensor_id++;
   node->outputs[0].attr.mem.alloc_type = ge::AllocType::kAllocTypeQueue;
@@ -163,8 +160,8 @@ void BrcBufAfterScheduler1(ge::AscGraph &graph) {
 
   vector<int64_t> VectorizedAxis{z1t.id, z2t.id};
   for (const auto *name : {"load", "cast0", "broadcast", "sum", "cast1", "store"}) {
-    ApplySchedulerTransform(graph, name, z1T.id, z1t.id, z2T.id, z2t.id,
-                            z0z2T.id, z0z2TB.id, z0z2Tb.id, VectorizedAxis);
+    ApplySchedulerTransform(graph, name, z1T.id, z1t.id, z2T.id, z2t.id, z0z2T.id, z0z2TB.id, z0z2Tb.id,
+                            VectorizedAxis);
   }
 }
 
@@ -247,8 +244,8 @@ void BrcBufAfterScheduler2(ge::AscGraph &graph) {
 
   vector<int64_t> VectorizedAxis{z1t.id, z2t.id};
   for (const auto *name : {"load", "cast0", "broadcast", "sum", "cast1", "store"}) {
-    ApplySchedulerTransform(graph, name, z1T.id, z1t.id, z2T.id, z2t.id,
-                            z0z2T.id, z0z2TB.id, z0z2Tb.id, VectorizedAxis);
+    ApplySchedulerTransform(graph, name, z1T.id, z1t.id, z2T.id, z2t.id, z0z2T.id, z0z2TB.id, z0z2Tb.id,
+                            VectorizedAxis);
   }
 }
 

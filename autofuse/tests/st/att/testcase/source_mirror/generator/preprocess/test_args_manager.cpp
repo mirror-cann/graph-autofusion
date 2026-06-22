@@ -182,8 +182,8 @@ TEST_F(TestArgManager, process_do_replace) {
   EXPECT_TRUE(args_manager.Process(true));
   EXPECT_EQ(args_manager.GetTilingCaseId(), 0);
   VerifyBasicArgs(args_manager,
-                  {"tilem_size_div_align", "stepm_size_div_align", "basem_size_base",
-                   "tilen_size_div_align", "stepn_size_div_align", "basen_size_base"},
+                  {"tilem_size_div_align", "stepm_size_div_align", "basem_size_base", "tilen_size_div_align",
+                   "stepn_size_div_align", "basen_size_base"},
                   {"m_size", "n_size"});
   VerifyConstArgs(args_manager, {{"k_size", 128}});
 

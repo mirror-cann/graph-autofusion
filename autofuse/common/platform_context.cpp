@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -31,7 +31,7 @@ bool ParseInt64(const char *value, const char *key_name, int64_t &result) {
   }
   return true;
 }
-}
+}  // namespace
 namespace ge {
 PlatformContext &PlatformContext::GetInstance() {
   static PlatformContext instance;
@@ -53,8 +53,8 @@ void PlatformContext::SetPlatformInfo(const PlatformInfo &platform_info) {
   if (!platform_info.soc_ver.empty()) {
     platform_info_ = platform_info;
     initialized_ = true;
-    GELOGI("Set platform info: soc_ver=%s, aiv_num=%lld, ub_size=%lld",
-           platform_info_.soc_ver.c_str(), platform_info_.aiv_num, platform_info_.ub_size);
+    GELOGI("Set platform info: soc_ver=%s, aiv_num=%lld, ub_size=%lld", platform_info_.soc_ver.c_str(),
+           platform_info_.aiv_num, platform_info_.ub_size);
   }
 }
 
@@ -91,11 +91,10 @@ ge::Status PlatformContext::InitPlatformInfo() {
   char ub_size_str[kMaxValueLen] = {};
   res = rtGetSocSpec(kAICoreSpec, kUbSize, ub_size_str, kMaxValueLen);
   GE_ASSERT_TRUE(res == RT_ERROR_NONE, "Failed to get ub_size.");
-  GE_ASSERT_TRUE(ParseInt64(ub_size_str, "ub_size", platform_info_.ub_size),
-                 "Failed to parse ub_size.");
+  GE_ASSERT_TRUE(ParseInt64(ub_size_str, "ub_size", platform_info_.ub_size), "Failed to parse ub_size.");
   initialized_ = true;
-  GELOGI("Platform info: soc_ver=%s, aiv_num=%lld, ub_size=%lld",
-         platform_info_.soc_ver.c_str(), platform_info_.aiv_num, platform_info_.ub_size);
+  GELOGI("Platform info: soc_ver=%s, aiv_num=%lld, ub_size=%lld", platform_info_.soc_ver.c_str(),
+         platform_info_.aiv_num, platform_info_.ub_size);
 
   return ge::SUCCESS;
 }

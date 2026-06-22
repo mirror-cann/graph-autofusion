@@ -28,8 +28,8 @@ using namespace af;
 using namespace af::ascir_op;
 using af::ops::IsOps;
 using af::ops::One;
-using af::testing::Sym;
 using af::testing::AscGraphBuilder;
+using af::testing::Sym;
 using namespace af::pre_process;
 
 namespace {
@@ -37,7 +37,7 @@ namespace {
 
 size_t CountNodesByType(AscGraph &graph, const std::string &type) {
   size_t count = 0U;
-  for (const auto &node: AscGraphUtils::GetComputeGraph(graph)->GetAllNodes()) {
+  for (const auto &node : AscGraphUtils::GetComputeGraph(graph)->GetAllNodes()) {
     if (node->GetType() == type) {
       ++count;
     }
@@ -46,7 +46,7 @@ size_t CountNodesByType(AscGraph &graph, const std::string &type) {
 }
 
 bool CheckNodeOutputDtype(AscGraph &graph, const std::string &node_name, ge::DataType expected_dtype) {
-  for (const auto &node: AscGraphUtils::GetComputeGraph(graph)->GetAllNodes()) {
+  for (const auto &node : AscGraphUtils::GetComputeGraph(graph)->GetAllNodes()) {
     if (node->GetName() == node_name) {
       auto desc = node->GetOpDesc();
       if (desc != nullptr && desc->GetOutputDesc(0).GetDataType() == expected_dtype) {
@@ -58,7 +58,7 @@ bool CheckNodeOutputDtype(AscGraph &graph, const std::string &node_name, ge::Dat
 }
 
 class TestImprovePrecisionST : public ::testing::Test {
-protected:
+ protected:
   void SetUp() override {
     ge::PlatformContext::GetInstance().Reset();
     PreProcessConfig::Instance().Reset();
@@ -74,21 +74,20 @@ protected:
     dlog_setlevel(ASCGEN_MODULE_NAME, DLOG_ERROR, 0);
   }
 };
-} // namespace
+}  // namespace
 
 TEST_F(TestImprovePrecisionST, ComplexFp16Chain_AllPromotedToFp32) {
   auto graph = AscGraphBuilder("st_complex_fp16_chain")
-      .Loops({Sym("s0")})
-      .Data("data0", 0, ge::DT_FLOAT16)
-      .Load("load0", "data0")
-      .Abs("abs0", "load0")
-      .Add("add0", "abs0", "abs0")
-      .Mul("mul0", "add0", "add0")
-      .Sub("sub0", "mul0", "mul0")
-      .Store("store0", "sub0")
-      .Output("output0", "store0", 0, ge::DT_FLOAT16)
-      .Build();
-
+                   .Loops({Sym("s0")})
+                   .Data("data0", 0, ge::DT_FLOAT16)
+                   .Load("load0", "data0")
+                   .Abs("abs0", "load0")
+                   .Add("add0", "abs0", "abs0")
+                   .Mul("mul0", "add0", "add0")
+                   .Sub("sub0", "mul0", "mul0")
+                   .Store("store0", "sub0")
+                   .Output("output0", "store0", 0, ge::DT_FLOAT16)
+                   .Build();
 
   ASSERT_EQ(ImprovePrecisionForAscGraph(graph), ge::SUCCESS);
 
@@ -105,16 +104,15 @@ TEST_F(TestImprovePrecisionST, ComplexFp16Chain_AllPromotedToFp32) {
 
 TEST_F(TestImprovePrecisionST, TwoInputsBothFp16_BothPromoted) {
   auto graph = AscGraphBuilder("st_two_inputs_fp16")
-      .Loops({Sym("s0")})
-      .Data("data1", 0, ge::DT_FLOAT16)
-      .Data("data2", 1, ge::DT_FLOAT16)
-      .Load("load1", "data1")
-      .Load("load2", "data2")
-      .Add("add0", "load1", "load2")
-      .Store("store0", "add0")
-      .Output("output0", "store0", 0, ge::DT_FLOAT16)
-      .Build();
-
+                   .Loops({Sym("s0")})
+                   .Data("data1", 0, ge::DT_FLOAT16)
+                   .Data("data2", 1, ge::DT_FLOAT16)
+                   .Load("load1", "data1")
+                   .Load("load2", "data2")
+                   .Add("add0", "load1", "load2")
+                   .Store("store0", "add0")
+                   .Output("output0", "store0", 0, ge::DT_FLOAT16)
+                   .Build();
 
   ASSERT_EQ(ImprovePrecisionForAscGraph(graph), ge::SUCCESS);
 
@@ -127,16 +125,15 @@ TEST_F(TestImprovePrecisionST, TwoInputsBothFp16_BothPromoted) {
 
 TEST_F(TestImprovePrecisionST, MixedFp16Bf16Inputs_BothPromotedToFp32) {
   auto graph = AscGraphBuilder("st_mixed_fp16_bf16")
-      .Loops({Sym("s0")})
-      .Data("data1", 0, ge::DT_FLOAT16)
-      .Data("data2", 1, ge::DT_BF16)
-      .Load("load1", "data1")
-      .Load("load2", "data2")
-      .Add("add0", "load1", "load2")
-      .Store("store0", "add0")
-      .Output("output0", "store0", 0, ge::DT_FLOAT16)
-      .Build();
-
+                   .Loops({Sym("s0")})
+                   .Data("data1", 0, ge::DT_FLOAT16)
+                   .Data("data2", 1, ge::DT_BF16)
+                   .Load("load1", "data1")
+                   .Load("load2", "data2")
+                   .Add("add0", "load1", "load2")
+                   .Store("store0", "add0")
+                   .Output("output0", "store0", 0, ge::DT_FLOAT16)
+                   .Build();
 
   ASSERT_EQ(ImprovePrecisionForAscGraph(graph), ge::SUCCESS);
 
@@ -146,15 +143,14 @@ TEST_F(TestImprovePrecisionST, MixedFp16Bf16Inputs_BothPromotedToFp32) {
 
 TEST_F(TestImprovePrecisionST, IdentityFp16Cast_RemovedAndPromoted) {
   auto graph = AscGraphBuilder("st_identity_cast")
-      .Loops({Sym("s0")})
-      .Data("data0", 0, ge::DT_FLOAT16)
-      .Load("load0", "data0")
-      .Cast("cast0", "load0", ge::DT_FLOAT16)
-      .Abs("abs0", "cast0")
-      .Store("store0", "abs0")
-      .Output("output0", "store0", 0, ge::DT_FLOAT16)
-      .Build();
-
+                   .Loops({Sym("s0")})
+                   .Data("data0", 0, ge::DT_FLOAT16)
+                   .Load("load0", "data0")
+                   .Cast("cast0", "load0", ge::DT_FLOAT16)
+                   .Abs("abs0", "cast0")
+                   .Store("store0", "abs0")
+                   .Output("output0", "store0", 0, ge::DT_FLOAT16)
+                   .Build();
 
   ASSERT_EQ(ImprovePrecisionForAscGraph(graph), ge::SUCCESS);
 
@@ -163,15 +159,14 @@ TEST_F(TestImprovePrecisionST, IdentityFp16Cast_RemovedAndPromoted) {
 
 TEST_F(TestImprovePrecisionST, Fp32ToFp16CastBeforeStore_RemovedAndAbsPromoted) {
   auto graph = AscGraphBuilder("st_fp32_to_fp16_before_store")
-      .Loops({Sym("s0")})
-      .Data("data0", 0, ge::DT_FLOAT16)
-      .Load("load0", "data0")
-      .Abs("abs0", "load0")
-      .Cast("cast0", "abs0", ge::DT_FLOAT16)
-      .Store("store0", "cast0")
-      .Output("output0", "store0", 0, ge::DT_FLOAT16)
-      .Build();
-
+                   .Loops({Sym("s0")})
+                   .Data("data0", 0, ge::DT_FLOAT16)
+                   .Load("load0", "data0")
+                   .Abs("abs0", "load0")
+                   .Cast("cast0", "abs0", ge::DT_FLOAT16)
+                   .Store("store0", "cast0")
+                   .Output("output0", "store0", 0, ge::DT_FLOAT16)
+                   .Build();
 
   ASSERT_EQ(ImprovePrecisionForAscGraph(graph), ge::SUCCESS);
 
@@ -181,16 +176,15 @@ TEST_F(TestImprovePrecisionST, Fp32ToFp16CastBeforeStore_RemovedAndAbsPromoted) 
 
 TEST_F(TestImprovePrecisionST, ScalarFp16Promoted_DownstreamAllFp32) {
   auto graph = AscGraphBuilder("st_scalar_fp16_downstream")
-      .Loops({Sym("s0")})
-      .Scalar("scalar0", "2.0", ge::DT_FLOAT16)
-      .Data("data0", 0, ge::DT_FLOAT16)
-      .Load("load0", "data0")
-      .Mul("mul0", "scalar0", "load0")
-      .Add("add0", "mul0", "mul0")
-      .Store("store0", "add0")
-      .Output("output0", "store0", 0, ge::DT_FLOAT16)
-      .Build();
-
+                   .Loops({Sym("s0")})
+                   .Scalar("scalar0", "2.0", ge::DT_FLOAT16)
+                   .Data("data0", 0, ge::DT_FLOAT16)
+                   .Load("load0", "data0")
+                   .Mul("mul0", "scalar0", "load0")
+                   .Add("add0", "mul0", "mul0")
+                   .Store("store0", "add0")
+                   .Output("output0", "store0", 0, ge::DT_FLOAT16)
+                   .Build();
 
   ASSERT_EQ(ImprovePrecisionForAscGraph(graph), ge::SUCCESS);
 
@@ -201,15 +195,14 @@ TEST_F(TestImprovePrecisionST, ScalarFp16Promoted_DownstreamAllFp32) {
 
 TEST_F(TestImprovePrecisionST, AllFp32Graph_NoModification) {
   auto graph = AscGraphBuilder("st_all_fp32")
-      .Loops({Sym("s0")})
-      .Data("data0", 0, ge::DT_FLOAT)
-      .Load("load0", "data0")
-      .Abs("abs0", "load0")
-      .Mul("mul0", "abs0", "abs0")
-      .Store("store0", "mul0")
-      .Output("output0", "store0", 0, ge::DT_FLOAT)
-      .Build();
-
+                   .Loops({Sym("s0")})
+                   .Data("data0", 0, ge::DT_FLOAT)
+                   .Load("load0", "data0")
+                   .Abs("abs0", "load0")
+                   .Mul("mul0", "abs0", "abs0")
+                   .Store("store0", "mul0")
+                   .Output("output0", "store0", 0, ge::DT_FLOAT)
+                   .Build();
 
   ASSERT_EQ(ImprovePrecisionForAscGraph(graph), ge::SUCCESS);
 
@@ -220,17 +213,16 @@ TEST_F(TestImprovePrecisionST, AllFp32Graph_NoModification) {
 
 TEST_F(TestImprovePrecisionST, DeepOtherChain_AllPromotedToFp32) {
   auto graph = AscGraphBuilder("st_deep_other_chain")
-      .Loops({Sym("s0")})
-      .Data("data0", 0, ge::DT_FLOAT16)
-      .Load("load0", "data0")
-      .Abs("abs0", "load0")
-      .Neg("neg0", "abs0")
-      .Exp("exp0", "neg0")
-      .Sqrt("sqrt0", "exp0")
-      .Store("store0", "sqrt0")
-      .Output("output0", "store0", 0, ge::DT_FLOAT16)
-      .Build();
-
+                   .Loops({Sym("s0")})
+                   .Data("data0", 0, ge::DT_FLOAT16)
+                   .Load("load0", "data0")
+                   .Abs("abs0", "load0")
+                   .Neg("neg0", "abs0")
+                   .Exp("exp0", "neg0")
+                   .Sqrt("sqrt0", "exp0")
+                   .Store("store0", "sqrt0")
+                   .Output("output0", "store0", 0, ge::DT_FLOAT16)
+                   .Build();
 
   ASSERT_EQ(ImprovePrecisionForAscGraph(graph), ge::SUCCESS);
 
@@ -243,15 +235,14 @@ TEST_F(TestImprovePrecisionST, DeepOtherChain_AllPromotedToFp32) {
 
 TEST_F(TestImprovePrecisionST, Bf16FullPipeline_AllPromotedToFp32) {
   auto graph = AscGraphBuilder("st_bf16_full")
-      .Loops({Sym("s0")})
-      .Data("data0", 0, ge::DT_BF16)
-      .Load("load0", "data0")
-      .Abs("abs0", "load0")
-      .Mul("mul0", "abs0", "abs0")
-      .Store("store0", "mul0")
-      .Output("output0", "store0", 0, ge::DT_BF16)
-      .Build();
-
+                   .Loops({Sym("s0")})
+                   .Data("data0", 0, ge::DT_BF16)
+                   .Load("load0", "data0")
+                   .Abs("abs0", "load0")
+                   .Mul("mul0", "abs0", "abs0")
+                   .Store("store0", "mul0")
+                   .Output("output0", "store0", 0, ge::DT_BF16)
+                   .Build();
 
   ASSERT_EQ(ImprovePrecisionForAscGraph(graph), ge::SUCCESS);
 
@@ -266,13 +257,12 @@ TEST_F(TestImprovePrecisionST, AllBlacklist_AllNodesSupportFp16_Skip) {
 
   // Load→Store: Load and Store in BlackList1, all blacklisted → skip
   auto graph = AscGraphBuilder("st_blacklist_all_skip")
-      .Loops({Sym("s0")})
-      .Data("data0", 0, ge::DT_FLOAT16)
-      .Load("load0", "data0")
-      .Store("store0", "load0")
-      .Output("output0", "store0", 0, ge::DT_FLOAT16)
-      .Build();
-
+                   .Loops({Sym("s0")})
+                   .Data("data0", 0, ge::DT_FLOAT16)
+                   .Load("load0", "data0")
+                   .Store("store0", "load0")
+                   .Output("output0", "store0", 0, ge::DT_FLOAT16)
+                   .Build();
 
   ASSERT_EQ(ImprovePrecisionForAscGraph(graph), ge::SUCCESS);
 
@@ -284,15 +274,14 @@ TEST_F(TestImprovePrecisionST, PartialBlacklist_SpecificOpSkipped) {
   PreProcessConfig::Instance().Reset();
 
   auto graph = AscGraphBuilder("st_partial_blacklist")
-      .Loops({Sym("s0")})
-      .Data("data0", 0, ge::DT_FLOAT16)
-      .Load("load0", "data0")
-      .Abs("abs0", "load0")
-      .Mul("mul0", "abs0", "abs0")
-      .Store("store0", "mul0")
-      .Output("output0", "store0", 0, ge::DT_FLOAT16)
-      .Build();
-
+                   .Loops({Sym("s0")})
+                   .Data("data0", 0, ge::DT_FLOAT16)
+                   .Load("load0", "data0")
+                   .Abs("abs0", "load0")
+                   .Mul("mul0", "abs0", "abs0")
+                   .Store("store0", "mul0")
+                   .Output("output0", "store0", 0, ge::DT_FLOAT16)
+                   .Build();
 
   ASSERT_EQ(ImprovePrecisionForAscGraph(graph), ge::SUCCESS);
 
@@ -302,13 +291,12 @@ TEST_F(TestImprovePrecisionST, PartialBlacklist_SpecificOpSkipped) {
 
 TEST_F(TestImprovePrecisionST, LoadDirectToStore_NoImprovement) {
   auto graph = AscGraphBuilder("st_load_direct_store")
-      .Loops({Sym("s0")})
-      .Data("data0", 0, ge::DT_FLOAT16)
-      .Load("load0", "data0")
-      .Store("store0", "load0")
-      .Output("output0", "store0", 0, ge::DT_FLOAT16)
-      .Build();
-
+                   .Loops({Sym("s0")})
+                   .Data("data0", 0, ge::DT_FLOAT16)
+                   .Load("load0", "data0")
+                   .Store("store0", "load0")
+                   .Output("output0", "store0", 0, ge::DT_FLOAT16)
+                   .Build();
 
   ASSERT_EQ(ImprovePrecisionForAscGraph(graph), ge::SUCCESS);
 
@@ -318,15 +306,14 @@ TEST_F(TestImprovePrecisionST, LoadDirectToStore_NoImprovement) {
 
 TEST_F(TestImprovePrecisionST, LoadWithExistingCastPeer_NoDuplicateCast) {
   auto graph = AscGraphBuilder("st_load_with_cast_peer")
-      .Loops({Sym("s0")})
-      .Data("data0", 0, ge::DT_FLOAT16)
-      .Load("load0", "data0")
-      .Cast("cast0", "load0", ge::DT_FLOAT16)
-      .Abs("abs0", "cast0")
-      .Store("store0", "abs0")
-      .Output("output0", "store0", 0, ge::DT_FLOAT16)
-      .Build();
-
+                   .Loops({Sym("s0")})
+                   .Data("data0", 0, ge::DT_FLOAT16)
+                   .Load("load0", "data0")
+                   .Cast("cast0", "load0", ge::DT_FLOAT16)
+                   .Abs("abs0", "cast0")
+                   .Store("store0", "abs0")
+                   .Output("output0", "store0", 0, ge::DT_FLOAT16)
+                   .Build();
 
   ASSERT_EQ(ImprovePrecisionForAscGraph(graph), ge::SUCCESS);
 
@@ -336,14 +323,13 @@ TEST_F(TestImprovePrecisionST, LoadWithExistingCastPeer_NoDuplicateCast) {
 
 TEST_F(TestImprovePrecisionST, PreProcessEntryPoint_Succeeds) {
   auto graph = AscGraphBuilder("st_preprocess_entry")
-      .Loops({Sym("s0")})
-      .Data("data0", 0, ge::DT_FLOAT16)
-      .Load("load0", "data0")
-      .Abs("abs0", "load0")
-      .Store("store0", "abs0")
-      .Output("output0", "store0", 0, ge::DT_FLOAT16)
-      .Build();
-
+                   .Loops({Sym("s0")})
+                   .Data("data0", 0, ge::DT_FLOAT16)
+                   .Load("load0", "data0")
+                   .Abs("abs0", "load0")
+                   .Store("store0", "abs0")
+                   .Output("output0", "store0", 0, ge::DT_FLOAT16)
+                   .Build();
 
   ASSERT_EQ(PreProcess::Run(graph), ge::SUCCESS);
 
@@ -370,14 +356,13 @@ TEST_F(TestImprovePrecisionST, PreProcessConfig_MultipleFlagsWithSemicolon) {
 
 TEST_F(TestImprovePrecisionST, StoreDtypeMismatch_CastInsertedBeforeStore) {
   auto graph = AscGraphBuilder("st_store_dtype_mismatch")
-      .Loops({Sym("s0")})
-      .Data("data0", 0, ge::DT_FLOAT16)
-      .Load("load0", "data0")
-      .Abs("abs0", "load0")
-      .Store("store0", "abs0")
-      .Output("output0", "store0", 0, ge::DT_FLOAT16)
-      .Build();
-
+                   .Loops({Sym("s0")})
+                   .Data("data0", 0, ge::DT_FLOAT16)
+                   .Load("load0", "data0")
+                   .Abs("abs0", "load0")
+                   .Store("store0", "abs0")
+                   .Output("output0", "store0", 0, ge::DT_FLOAT16)
+                   .Build();
 
   ASSERT_EQ(ImprovePrecisionForAscGraph(graph), ge::SUCCESS);
 
@@ -387,14 +372,13 @@ TEST_F(TestImprovePrecisionST, StoreDtypeMismatch_CastInsertedBeforeStore) {
 
 TEST_F(TestImprovePrecisionST, CastBeforeStorePeer_DtypeNotChanged) {
   auto graph = AscGraphBuilder("st_cast_store_peer")
-      .Loops({Sym("s0")})
-      .Data("data0", 0, ge::DT_FLOAT16)
-      .Load("load0", "data0")
-      .Cast("cast0", "load0", ge::DT_FLOAT16)
-      .Store("store0", "cast0")
-      .Output("output0", "store0", 0, ge::DT_FLOAT16)
-      .Build();
-
+                   .Loops({Sym("s0")})
+                   .Data("data0", 0, ge::DT_FLOAT16)
+                   .Load("load0", "data0")
+                   .Cast("cast0", "load0", ge::DT_FLOAT16)
+                   .Store("store0", "cast0")
+                   .Output("output0", "store0", 0, ge::DT_FLOAT16)
+                   .Build();
 
   ASSERT_EQ(ImprovePrecisionForAscGraph(graph), ge::SUCCESS);
 
@@ -404,13 +388,12 @@ TEST_F(TestImprovePrecisionST, CastBeforeStorePeer_DtypeNotChanged) {
 
 TEST_F(TestImprovePrecisionST, ScalarBf16PromotedToFp32) {
   auto graph = AscGraphBuilder("st_scalar_bf16")
-      .Loops({Sym("s0")})
-      .Scalar("scalar0", "1.5", ge::DT_BF16)
-      .Mul("mul0", "scalar0", "scalar0")
-      .Store("store0", "mul0")
-      .Output("output0", "store0", 0, ge::DT_BF16)
-      .Build();
-
+                   .Loops({Sym("s0")})
+                   .Scalar("scalar0", "1.5", ge::DT_BF16)
+                   .Mul("mul0", "scalar0", "scalar0")
+                   .Store("store0", "mul0")
+                   .Output("output0", "store0", 0, ge::DT_BF16)
+                   .Build();
 
   ASSERT_EQ(ImprovePrecisionForAscGraph(graph), ge::SUCCESS);
 
@@ -420,16 +403,15 @@ TEST_F(TestImprovePrecisionST, ScalarBf16PromotedToFp32) {
 
 TEST_F(TestImprovePrecisionST, MultiOutputLoad_CastOnOneBranch) {
   auto graph = AscGraphBuilder("st_multi_output_load")
-      .Loops({Sym("s0")})
-      .Data("data0", 0, ge::DT_FLOAT16)
-      .Load("load0", "data0")
-      .Cast("cast0", "load0", ge::DT_FLOAT16)
-      .Abs("abs0", "cast0")
-      .Mul("mul0", "load0", "load0")
-      .Store("store0", "abs0")
-      .Output("output0", "store0", 0, ge::DT_FLOAT16)
-      .Build();
-
+                   .Loops({Sym("s0")})
+                   .Data("data0", 0, ge::DT_FLOAT16)
+                   .Load("load0", "data0")
+                   .Cast("cast0", "load0", ge::DT_FLOAT16)
+                   .Abs("abs0", "cast0")
+                   .Mul("mul0", "load0", "load0")
+                   .Store("store0", "abs0")
+                   .Output("output0", "store0", 0, ge::DT_FLOAT16)
+                   .Build();
 
   ASSERT_EQ(ImprovePrecisionForAscGraph(graph), ge::SUCCESS);
 
@@ -440,13 +422,12 @@ TEST_F(TestImprovePrecisionST, MultiOutputLoad_CastOnOneBranch) {
 
 TEST_F(TestImprovePrecisionST, OnlyLoadAndStore_NoChange) {
   auto graph = AscGraphBuilder("st_only_load_store")
-      .Loops({Sym("s0")})
-      .Data("data0", 0, ge::DT_FLOAT16)
-      .Load("load0", "data0")
-      .Store("store0", "load0")
-      .Output("output0", "store0", 0, ge::DT_FLOAT16)
-      .Build();
-
+                   .Loops({Sym("s0")})
+                   .Data("data0", 0, ge::DT_FLOAT16)
+                   .Load("load0", "data0")
+                   .Store("store0", "load0")
+                   .Output("output0", "store0", 0, ge::DT_FLOAT16)
+                   .Build();
 
   ASSERT_EQ(ImprovePrecisionForAscGraph(graph), ge::SUCCESS);
 
@@ -456,14 +437,13 @@ TEST_F(TestImprovePrecisionST, OnlyLoadAndStore_NoChange) {
 
 TEST_F(TestImprovePrecisionST, SingleOtherNode_CastInsertedBeforeOther) {
   auto graph = AscGraphBuilder("st_single_other")
-      .Loops({Sym("s0")})
-      .Data("data0", 0, ge::DT_FLOAT16)
-      .Load("load0", "data0")
-      .Relu("relu0", "load0")
-      .Store("store0", "relu0")
-      .Output("output0", "store0", 0, ge::DT_FLOAT16)
-      .Build();
-
+                   .Loops({Sym("s0")})
+                   .Data("data0", 0, ge::DT_FLOAT16)
+                   .Load("load0", "data0")
+                   .Relu("relu0", "load0")
+                   .Store("store0", "relu0")
+                   .Output("output0", "store0", 0, ge::DT_FLOAT16)
+                   .Build();
 
   ASSERT_EQ(ImprovePrecisionForAscGraph(graph), ge::SUCCESS);
 

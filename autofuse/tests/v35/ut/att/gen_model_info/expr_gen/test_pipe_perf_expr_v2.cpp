@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -24,11 +24,11 @@
 #include "../../../../../ut/att/testcase/gen_model_info/expr_gen/runtime_stub.h"
 #include "common/platform_context.h"
 
-namespace af{
+namespace af {
 namespace ascir {
 namespace cg {}
-}
-}
+}  // namespace ascir
+}  // namespace af
 namespace att {
 class TestPipePerfExprV2 : public ::testing::Test {
  public:
@@ -157,7 +157,6 @@ TEST_F(TestPipePerfExprV2, TestUpdatePipeHeadTernaryOp) {
   EXPECT_TRUE(iter != pipe_costs.end());
   auto iter2 = ternary_ops.find(iter->second);
   EXPECT_TRUE(iter2 != ternary_ops.end());
-  EXPECT_EQ(iter2->second.GetTernaryOpStr(),
-        "TernaryOp((2 * z0t_size) < 256, 775.0, 1174.30004882812)");
+  EXPECT_EQ(iter2->second.GetTernaryOpStr(), "TernaryOp((2 * z0t_size) < 256, 775.0, 1174.30004882812)");
 }
-}
+}  // namespace att

@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -26,9 +26,9 @@ using namespace af::ascir_op;
 using namespace ascgen_utils;
 
 Status AxpyApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
-                                  const std::vector<std::reference_wrapper<const Tensor>> &inputs,
-                                  const std::vector<std::reference_wrapper<const Tensor>> &outputs,
-                                  std::string &result) const {
+                             const std::vector<std::reference_wrapper<const Tensor>> &inputs,
+                             const std::vector<std::reference_wrapper<const Tensor>> &outputs,
+                             std::string &result) const {
   auto x1 = inputs[0].get();
   auto x2 = inputs[1].get();
   auto y = outputs[0].get();
@@ -40,13 +40,14 @@ Status AxpyApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::AxisId
   GE_ASSERT_TRUE(it != this->tmp_buf_id.end(), "AxpyApiCall cannot find tmp buffer id to use.");
   id = it->second;
 
-  (void)RegisterBasicDumpParam(this->api_name_, inputs, outputs, CombinedExprFactory::SymbolVar(x1.actual_size.Str()), tpipe.tmp_buf.name + "_" + std::to_string(id));
+  (void)RegisterBasicDumpParam(this->api_name_, inputs, outputs, CombinedExprFactory::SymbolVar(x1.actual_size.Str()),
+                               tpipe.tmp_buf.name + "_" + std::to_string(id));
 
-  ss << this->api_name_ << "(" << y << "[" << tpipe.tiler.TensorVectorizedOffset(current_axis, y) << "], "
-     << x1 << "[" << tpipe.tiler.TensorVectorizedOffset(current_axis, x1) << "], "
-     << x2 << "[" << tpipe.tiler.TensorVectorizedOffset(current_axis, x2) << "], "
-     << "(float)" << std::to_string(this->alpha) << ", "
-     << tpipe.tmp_buf << "_" << std::to_string(id) << ", " << x1.actual_size << ");" << std::endl;
+  ss << this->api_name_ << "(" << y << "[" << tpipe.tiler.TensorVectorizedOffset(current_axis, y) << "], " << x1 << "["
+     << tpipe.tiler.TensorVectorizedOffset(current_axis, x1) << "], " << x2 << "["
+     << tpipe.tiler.TensorVectorizedOffset(current_axis, x2) << "], "
+     << "(float)" << std::to_string(this->alpha) << ", " << tpipe.tmp_buf << "_" << std::to_string(id) << ", "
+     << x1.actual_size << ");" << std::endl;
   result = ss.str();
 
   return ge::SUCCESS;

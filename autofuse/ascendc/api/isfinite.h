@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -30,14 +30,14 @@ struct InferCalcType<float> {
   using Type = int32_t;
 };
 
-template<typename T1, typename T2>
-inline __aicore__ void IsFiniteCompute(
-  const AscendC::LocalTensor<uint8_t> &dst, const AscendC::LocalTensor<int16_t> &src,
-  const LocalTensor<T2> &calc_buf, const AscendC::LocalTensor<int16_t> &sign_mask,
-  const BinaryRepeatParams &rpt_params, const int32_t calc_cnt, const int32_t mask, const int32_t rpt_times)
-{
+template <typename T1, typename T2>
+inline __aicore__ void IsFiniteCompute(const AscendC::LocalTensor<uint8_t> &dst,
+                                       const AscendC::LocalTensor<int16_t> &src, const LocalTensor<T2> &calc_buf,
+                                       const AscendC::LocalTensor<int16_t> &sign_mask,
+                                       const BinaryRepeatParams &rpt_params, const int32_t calc_cnt, const int32_t mask,
+                                       const int32_t rpt_times) {
   if constexpr (SupportType<T1, int8_t, uint8_t, uint16_t, int16_t, bool, uint32_t, int32_t, uint64_t, int64_t>()) {
-    AscendC::Duplicate(dst.ReinterpretCast<uint16_t>(), (uint16_t)257, calc_cnt / 2);  
+    AscendC::Duplicate(dst.ReinterpretCast<uint16_t>(), (uint16_t)257, calc_cnt / 2);
   } else {
     AscendC::LocalTensor<int16_t> calc_buf_int16 = calc_buf.template ReinterpretCast<int16_t>();
     AscendC::And(calc_buf_int16, src, sign_mask, mask, rpt_times, rpt_params);
@@ -58,9 +58,9 @@ inline __aicore__ void IsFiniteCompute(
   }
 }
 
-template<typename T>
+template <typename T>
 inline __aicore__ void IsFiniteExtend(const AscendC::LocalTensor<uint8_t> &dst, const AscendC::LocalTensor<T> &src,
-  LocalTensor<uint8_t> &tmp_buf, const uint32_t size) {
+                                      LocalTensor<uint8_t> &tmp_buf, const uint32_t size) {
   // Init local tensor from tmp_buf
   using T2 = typename InferCalcType<T>::Type;
   LocalTensor<T2> sign_mask = tmp_buf.ReinterpretCast<T2>();
@@ -71,7 +71,7 @@ inline __aicore__ void IsFiniteExtend(const AscendC::LocalTensor<uint8_t> &dst, 
   LocalTensor<T2> calc_buf = tmp_buf[ONE_BLK_SIZE].ReinterpretCast<T2>();
   calc_buf.SetSize((tmp_buf.GetSize() - ONE_BLK_SIZE) / sizeof(T2));
   // Prepare binary repeat params for and operation
-  BinaryRepeatParams and_repeat (1, 1, 0, 8, 8, 0);
+  BinaryRepeatParams and_repeat(1, 1, 0, 8, 8, 0);
   int32_t calc_size = 0;
 
   // Calc when size > max_repeat
@@ -82,8 +82,8 @@ inline __aicore__ void IsFiniteExtend(const AscendC::LocalTensor<uint8_t> &dst, 
   constexpr uint32_t RATIO = sizeof(T2) / sizeof(int16_t);
   LocalTensor<int16_t> src_int16 = src.template ReinterpretCast<int16_t>();
   for (; calc_size + max_repeat_calc_size < size; calc_size += max_repeat_calc_size) {
-    IsFiniteCompute<T, T2>(dst[calc_size], src_int16[calc_size * RATIO], calc_buf, sign_mask_int16,
-      and_repeat, max_repeat_calc_size, ONE_REPEAT_BYTE_SIZE / sizeof(int16_t), max_repeat);
+    IsFiniteCompute<T, T2>(dst[calc_size], src_int16[calc_size * RATIO], calc_buf, sign_mask_int16, and_repeat,
+                           max_repeat_calc_size, ONE_REPEAT_BYTE_SIZE / sizeof(int16_t), max_repeat);
   }
 
   constexpr int one_repeat_calc_size = ONE_REPEAT_BYTE_SIZE / sizeof(T);
@@ -91,14 +91,14 @@ inline __aicore__ void IsFiniteExtend(const AscendC::LocalTensor<uint8_t> &dst, 
   if (calc_size + one_repeat_calc_size <= size) {
     int repeat = (size - calc_size) / one_repeat_calc_size;
     IsFiniteCompute<T, T2>(dst[calc_size], src_int16[calc_size * RATIO], calc_buf, sign_mask_int16, and_repeat,
-      repeat * one_repeat_calc_size, ONE_REPEAT_BYTE_SIZE / sizeof(int16_t), repeat);
+                           repeat * one_repeat_calc_size, ONE_REPEAT_BYTE_SIZE / sizeof(int16_t), repeat);
     calc_size += repeat * one_repeat_calc_size;
   }
 
   // Calc when one_repeat > size
   if (calc_size < size) {
     IsFiniteCompute<T, T2>(dst[calc_size], src_int16[calc_size * RATIO], calc_buf, sign_mask_int16, and_repeat,
-      size - calc_size, (size - calc_size) * RATIO, 1);
+                           size - calc_size, (size - calc_size) * RATIO, 1);
   }
 }
-#endif // __ASCENDC_API_ISFINITE_H__
+#endif  // __ASCENDC_API_ISFINITE_H__

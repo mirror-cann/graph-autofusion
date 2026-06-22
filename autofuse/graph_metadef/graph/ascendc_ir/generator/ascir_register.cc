@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -141,45 +141,45 @@ size_t AscirRegister::GetSocImplSize() const {
   return ir_def_.GetSocImplSize();
 }
 
-template<>
+template <>
 AscirRegister &AscirRegister::Attr<float>(ge::AscendString &&name) {
   return Attr(name.GetString(), "float", "Float");
 }
 
-template<>
+template <>
 AscirRegister &AscirRegister::Attr<bool>(ge::AscendString &&name) {
   return Attr(name.GetString(), "bool", "Bool");
 }
 
-template<>
+template <>
 AscirRegister &AscirRegister::Attr<ge::DataType>(ge::AscendString &&name) {
   return Attr(name.GetString(), "ge::DataType", "Int");
 }
-template<>
+template <>
 AscirRegister &AscirRegister::Attr<Tensor>(ge::AscendString &&name) {
   return Attr(name.GetString(), "Tensor", "Tensor");
 }
-template<>
+template <>
 AscirRegister &AscirRegister::Attr<std::string>(ge::AscendString &&name) {
   return Attr(name.GetString(), "std::string", "String");
 }
-template<>
+template <>
 AscirRegister &AscirRegister::Attr<int64_t>(ge::AscendString &&name) {
   return Attr(name.GetString(), "int64_t", "Int");
 }
-template<>
+template <>
 AscirRegister &AscirRegister::Attr<std::vector<int64_t>>(ge::AscendString &&name) {
   return Attr(name.GetString(), "std::vector<int64_t>", "ListInt");
 }
-template<>
+template <>
 AscirRegister &AscirRegister::Attr<std::vector<std::vector<int64_t>>>(ge::AscendString &&name) {
   return Attr(name.GetString(), "std::vector<std::vector<int64_t>>", "ListListInt");
 }
-template<>
+template <>
 AscirRegister &AscirRegister::Attr<ge::Format>(ge::AscendString &&name) {
   return Attr(name.GetString(), "ge::Format", "Int");
 }
-template<>
+template <>
 AscirRegister &AscirRegister::Attr<Expression>(ge::AscendString &&name) {
   return Attr(name.GetString(), "Expression", "Expression");
 }
@@ -194,4 +194,4 @@ AscirRegister &AscirRegister::Comment(const string &comment) {
   return *this;
 }
 }  // namespace ascir
-}  // namespace ge
+}  // namespace af

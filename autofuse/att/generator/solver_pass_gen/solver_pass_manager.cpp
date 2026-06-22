@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -131,12 +131,12 @@ auto SolverPassManager::GenerateSolverGen() -> SolverGenType {
   ExprExprMap init_value;
   std::vector<Expr> search_args = args_manager_.GetSearchableVars();
 
-  for (const auto& arg : search_args) {
+  for (const auto &arg : search_args) {
     min_value[arg] = args_manager_.GetMinValue(arg);
     max_value[arg] = args_manager_.GetMaxValue(arg);
   }
 
-  for (const auto& arg : search_args) {
+  for (const auto &arg : search_args) {
     init_value[arg] = args_manager_.GetDefaultInitValue(arg);
   }
 
@@ -193,7 +193,7 @@ std::pair<std::string, std::string> SolverPassManager::L2SolverPassFuncGen() {
   return codes;
 }
 
-template<typename SpecificSolverGen>
+template <typename SpecificSolverGen>
 std::pair<std::string, std::string> SolverPassManager::GenerateSolverPassFunc(SpecificSolverGen solver_gen) {
   std::string impl_codes;
   std::string invoke_codes;
@@ -515,7 +515,8 @@ AxesReorderSolverGen SolverPassManager::GenAxesReorderGen() {
   }
   for (const auto &pair : args_manager_.GetConstVars()) {
     const_vars_map[pair.first] = pair.second;
-    arg_prompt_align_map[pair.first] = args_manager_.GetVarPromptAlignValue(pair.first);;
+    arg_prompt_align_map[pair.first] = args_manager_.GetVarPromptAlignValue(pair.first);
+    ;
     AddConcatInnerDims(pair.first, concat_inner_dims);
     arg_data_type_size_map[pair.first] = args_manager_.GetDataTypeSizeVar(pair.first);
   }

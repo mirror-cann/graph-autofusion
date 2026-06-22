@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -16,12 +16,10 @@
 #include "common/scope_tracing_recorder.h"
 #undef private
 using namespace ge;
-namespace att
-{
-class TracingRecordManagerTest: public testing::Test {
+namespace att {
+class TracingRecordManagerTest : public testing::Test {
  public:
-  void SetUp() override {
-  }
+  void SetUp() override {}
   void TearDown() override {
     for (int32_t i = 0; i < (static_cast<int32_t>(TracingModule::kTracingModuleEnd) - 1); ++i) {
       TracingRecorderManager::Instance().Report(static_cast<TracingModule>(i));
@@ -61,4 +59,4 @@ TEST_F(TracingRecordManagerTest, InitTracingRecordAndRecordDurationInvalid) {
   ASSERT_NE(compile_recorder, nullptr);
   EXPECT_EQ(compile_recorder->records_.size(), 0);
 }
-} //namespace
+}  // namespace att

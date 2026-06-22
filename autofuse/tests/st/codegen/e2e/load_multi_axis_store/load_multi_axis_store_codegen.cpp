@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -18,23 +18,21 @@
 
 using namespace ascir;
 
-std::vector<std::string> splitString(const std::string& input, char delimiter) {
+std::vector<std::string> splitString(const std::string &input, char delimiter) {
   std::vector<std::string> result;
   std::stringstream ss(input);
   std::string token;
 
   while (std::getline(ss, token, delimiter)) {
-      result.push_back(token);
+    result.push_back(token);
   }
 
   return result;
 }
 
-class LoadMultiAxisStoreTest : public testing::Test {
-};
+class LoadMultiAxisStoreTest : public testing::Test {};
 
 TEST_F(LoadMultiAxisStoreTest, LoadMultiAxisStoreCodegen) {
-
   bool gen_success = true;
   af::AscGraph graph("load_multi_axis_store");
   std::string tilig_stub = R"(
@@ -51,9 +49,9 @@ TEST_F(LoadMultiAxisStoreTest, LoadMultiAxisStoreCodegen) {
   std::cout << utils::DebugImplGraphStr(impl_graph[0]) << std::endl;
 
   std::vector<std::string> parts = splitString(KERNEL_SRC_LIST, ':');
-  std::string kernel_src_file_name = parts[0];      // load_multi_axis_store_kernel.cpp
-  std::string tiling_src_file_name = parts[1];      // load_multi_axis_store_tiling.cpp
-  std::string tiling_data_src_file_name = parts[2]; // autofuse_tiling_data.h
+  std::string kernel_src_file_name = parts[0];       // load_multi_axis_store_kernel.cpp
+  std::string tiling_src_file_name = parts[1];       // load_multi_axis_store_tiling.cpp
+  std::string tiling_data_src_file_name = parts[2];  // autofuse_tiling_data.h
 
   try {
     codegen::Codegen c(codegen::CodegenOptions{
@@ -77,8 +75,7 @@ TEST_F(LoadMultiAxisStoreTest, LoadMultiAxisStoreCodegen) {
     kernel_file << tilig_stub << RemoveSubDirInclude(result.kernel);
     tiling_file << result.tiling;
     tiling_data_file << result.tiling_data;
-  }
-  catch (...) {
+  } catch (...) {
     gen_success = false;
   }
 

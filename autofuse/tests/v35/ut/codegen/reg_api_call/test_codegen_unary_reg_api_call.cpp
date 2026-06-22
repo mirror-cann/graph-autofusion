@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -95,10 +95,8 @@ TEST(CodegenKernel, UnaryApicallIsNan) {
 
   std::string result;
   call_0.Generate(tpipe, vector<af::AxisId>{}, result);
-  EXPECT_EQ(result,
-            std::string{
-                "LocalTensor<bool> local_1_cast = local_1.template ReinterpretCast<bool>();\n"
-                "IsNan(local_1_cast[0], local_0[0], local_0_actual_size);\n"});
+  EXPECT_EQ(result, std::string{"LocalTensor<bool> local_1_cast = local_1.template ReinterpretCast<bool>();\n"
+                                "IsNan(local_1_cast[0], local_0[0], local_0_actual_size);\n"});
   delete call;
 }
 
@@ -112,7 +110,6 @@ TEST(CodegenKernel, UnaryApicallIsNanThrowingFor) {
   auto z1 = graph.CreateAxis("z1", s1);
   auto z2 = graph.CreateAxis("z2", s2);
 
-
   Data x_op("x", graph);
   Load load_op("load");
   af::ascir_op::Isnan isnan("isnan");
@@ -123,12 +120,12 @@ TEST(CodegenKernel, UnaryApicallIsNanThrowingFor) {
   load_op.attr.sched.axis = {z0.id, z1.id, z2.id};
   *load_op.y.axis = {z0.id, z1.id, z2.id};
   *load_op.y.repeats = {s0, s1, s2};
-  *load_op.y.strides = {s1*s2, s2, One};
+  *load_op.y.strides = {s1 * s2, s2, One};
 
   isnan.x = load_op.y;
   *isnan.y.axis = {z0.id, z1.id, z2.id};
   *isnan.y.repeats = {s0, s1, s2};
-  *isnan.y.strides = {s1*s2, s2, One};
+  *isnan.y.strides = {s1 * s2, s2, One};
 
   auto load = graph.FindNode("load");
   load->attr.api.compute_type = af::ComputeType::kComputeLoad;
@@ -146,7 +143,6 @@ TEST(CodegenKernel, UnaryApicallIsNanThrowingFor) {
   load->outputs[0].attr.mem.alloc_type = af::AllocType::kAllocTypeQueue;
   load->outputs[0].attr.que.id = 1;
   load->outputs[0].attr.opt.merge_scope = af::kIdNone;
-
 
   auto isnan_node = graph.FindNode("isnan");
   isnan_node->attr.api.compute_type = af::ComputeType::kComputeElewise;
@@ -187,11 +183,11 @@ TEST(CodegenKernel, UnaryApicallIsNanThrowingFor) {
   std::string result;
   call.Generate(tpipe, current_axis, result);
   std::cout << result << std::endl;
-  EXPECT_EQ(result, std::string{
-    "LocalTensor<bool> local_3_cast = local_3.template ReinterpretCast<bool>();\n"
-    "for(int outer_for_0 = 0; outer_for_0 < t->s1; outer_for_0++) {\n"
-    "IsNan(local_3_cast[outer_for_0 * ((16 * Ceiling((Rational(1 , 16) * t->s2))))/(1)], local_0[outer_for_0 * ((16 * Ceiling((Rational(1 , 16) * t->s2))))/(1)], t->s2);\n\n}\n"
-  });
+  EXPECT_EQ(result,
+            std::string{"LocalTensor<bool> local_3_cast = local_3.template ReinterpretCast<bool>();\n"
+                        "for(int outer_for_0 = 0; outer_for_0 < t->s1; outer_for_0++) {\n"
+                        "IsNan(local_3_cast[outer_for_0 * ((16 * Ceiling((Rational(1 , 16) * t->s2))))/(1)], "
+                        "local_0[outer_for_0 * ((16 * Ceiling((Rational(1 , 16) * t->s2))))/(1)], t->s2);\n\n}\n"});
 }
 
 TEST(CodegenKernel, UnaryApicallIsFinite) {
@@ -266,11 +262,8 @@ TEST(CodegenKernel, UnaryApicallIsFinite) {
 
   std::string result;
   call_0.Generate(tpipe, vector<af::AxisId>{}, result);
-  EXPECT_EQ(result,
-            std::string{
-                "LocalTensor<bool> local_1_cast = local_1.template ReinterpretCast<bool>();\n"
-                "IsFinite(local_1_cast[0], local_0[0], local_0_actual_size);\n"});
+  EXPECT_EQ(result, std::string{"LocalTensor<bool> local_1_cast = local_1.template ReinterpretCast<bool>();\n"
+                                "IsFinite(local_1_cast[0], local_0[0], local_0_actual_size);\n"});
   delete call;
 }
 }  // namespace codegen
-

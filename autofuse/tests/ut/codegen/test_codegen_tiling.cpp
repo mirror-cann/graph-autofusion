@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -26,7 +26,7 @@
 #include <filesystem>
 
 namespace {
-std::pair<int, std::string> execute_command(const std::string& command) {
+std::pair<int, std::string> execute_command(const std::string &command) {
   std::array<char, 128> buffer;
   std::string output;
   std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(command.c_str(), "r"), pclose);
@@ -42,7 +42,7 @@ std::pair<int, std::string> execute_command(const std::string& command) {
   return {WEXITSTATUS(pclose(pipe.release())), output};
 }
 
-bool CompileCode(const std::string &code){
+bool CompileCode(const std::string &code) {
   std::string cmake_dir = CMAKE_BINARY_DIR;
   // 临时目录
   std::string temp_dir = cmake_dir + "/tests/ut/temp_compile_codegen_tiling";
@@ -69,7 +69,7 @@ bool CompileCode(const std::string &code){
   std::filesystem::remove_all(temp_dir);
   return compile_exit_code == 0;
 }
-}
+}  // namespace
 
 namespace {
 
@@ -78,7 +78,7 @@ static void CreateElemwiseGraphWithRelu(af::AscGraph &graph) {
   auto c = graph.CreateSizeVar(64);
   auto h = graph.CreateSizeVar(56);
   auto w = graph.CreateSizeVar(56);
-  
+
   auto z_n = graph.CreateAxis("z_n", n);
   auto z_c = graph.CreateAxis("z_c", c);
   auto z_h = graph.CreateAxis("z_h", h);
@@ -89,7 +89,7 @@ static void CreateElemwiseGraphWithRelu(af::AscGraph &graph) {
   data0.y.dtype = ge::DT_FLOAT;
   *data0.y.axis = {z_n.id, z_c.id, z_h.id, z_w.id};
   data0.attr.api.compute_type = af::ComputeType::kComputeInvalid;
-  *data0.y.strides = {c*h*w, h*w, w, af::ops::One};
+  *data0.y.strides = {c * h * w, h * w, w, af::ops::One};
   *data0.y.repeats = {n, c, h, w};
   data0.ir_attr.SetIndex(0);
 
@@ -98,7 +98,7 @@ static void CreateElemwiseGraphWithRelu(af::AscGraph &graph) {
   load0.x = data0.y;
   *load0.y.axis = {z_n.id, z_c.id, z_h.id, z_w.id};
   load0.y.dtype = ge::DT_FLOAT;
-  *load0.y.strides = {c*h*w, h*w, w, af::ops::One};
+  *load0.y.strides = {c * h * w, h * w, w, af::ops::One};
   *load0.y.repeats = {n, c, h, w};
 
   af::ascir_op::Relu relu("relu");
@@ -108,7 +108,7 @@ static void CreateElemwiseGraphWithRelu(af::AscGraph &graph) {
   relu.y.dtype = ge::DT_FLOAT;
   *relu.y.axis = {z_n.id, z_c.id, z_h.id, z_w.id};
   *relu.y.repeats = {n, c, h, w};
-  *relu.y.strides = {c*h*w, h*w, w, af::ops::One};
+  *relu.y.strides = {c * h * w, h * w, w, af::ops::One};
   relu.attr.api.compute_type = af::ComputeType::kComputeElewise;
 
   af::ascir_op::Store store_op("store");
@@ -116,7 +116,7 @@ static void CreateElemwiseGraphWithRelu(af::AscGraph &graph) {
   store_op.x = relu.y;
   *store_op.y.axis = {z_n.id, z_c.id, z_h.id, z_w.id};
   store_op.y.dtype = ge::DT_FLOAT;
-  *store_op.y.strides = {c*h*w, h*w, w, af::ops::One};
+  *store_op.y.strides = {c * h * w, h * w, w, af::ops::One};
   *store_op.y.repeats = {n, c, h, w};
 
   af::ascir_op::Output output_op("output");
@@ -134,7 +134,8 @@ static void CreateElemwiseGraphWithRelu(af::AscGraph &graph) {
 static void VerifyTilingCodeBasic(const std::map<std::string, std::string> &res) {
   auto pos = res.at("tiling_def_and_tiling_const").find("extern \"C\" int64_t FindBestTilingKey");
   ASSERT_NE(pos, std::string::npos);
-  auto static_shape_pos = res.at("tiling_def_and_tiling_const").find("extern \"C\" bool AutofuseIsStaticShape() {\n  return true;");
+  auto static_shape_pos =
+      res.at("tiling_def_and_tiling_const").find("extern \"C\" bool AutofuseIsStaticShape() {\n  return true;");
   ASSERT_NE(static_shape_pos, std::string::npos);
   auto tiling_func_pos = res.at("tiling_def_and_tiling_const").find("extern \"C\" ge::graphStatus TilingFunc");
   ASSERT_NE(tiling_func_pos, std::string::npos);
@@ -149,7 +150,7 @@ static void CreateConv2DOffsetBiasGraph(af::AscGraph &conv2d_offset_bias_graph) 
   auto c_ob = conv2d_offset_bias_graph.CreateSizeVar(64);
   auto h_ob = conv2d_offset_bias_graph.CreateSizeVar(56);
   auto w_ob = conv2d_offset_bias_graph.CreateSizeVar(56);
-  
+
   auto z_n_ob = conv2d_offset_bias_graph.CreateAxis("z_n", n_ob);
   auto z_c_ob = conv2d_offset_bias_graph.CreateAxis("z_c", c_ob);
   auto z_h_ob = conv2d_offset_bias_graph.CreateAxis("z_h", h_ob);
@@ -160,7 +161,7 @@ static void CreateConv2DOffsetBiasGraph(af::AscGraph &conv2d_offset_bias_graph) 
   data0_ob.y.dtype = ge::DT_FLOAT16;
   *data0_ob.y.axis = {z_n_ob.id, z_c_ob.id, z_h_ob.id, z_w_ob.id};
   data0_ob.attr.api.compute_type = af::ComputeType::kComputeInvalid;
-  *data0_ob.y.strides = {c_ob*h_ob*w_ob, h_ob*w_ob, w_ob, af::ops::One};
+  *data0_ob.y.strides = {c_ob * h_ob * w_ob, h_ob * w_ob, w_ob, af::ops::One};
   *data0_ob.y.repeats = {n_ob, c_ob, h_ob, w_ob};
   data0_ob.ir_attr.SetIndex(0);
 
@@ -169,7 +170,7 @@ static void CreateConv2DOffsetBiasGraph(af::AscGraph &conv2d_offset_bias_graph) 
   load0_ob.x = data0_ob.y;
   *load0_ob.y.axis = {z_n_ob.id, z_c_ob.id, z_h_ob.id, z_w_ob.id};
   load0_ob.y.dtype = ge::DT_FLOAT16;
-  *load0_ob.y.strides = {c_ob*h_ob*w_ob, h_ob*w_ob, w_ob, af::ops::One};
+  *load0_ob.y.strides = {c_ob * h_ob * w_ob, h_ob * w_ob, w_ob, af::ops::One};
   *load0_ob.y.repeats = {n_ob, c_ob, h_ob, w_ob};
 
   af::ascir_op::Data data1_ob("data1", conv2d_offset_bias_graph);
@@ -232,7 +233,7 @@ static void CreateConv2DOffsetBiasGraph(af::AscGraph &conv2d_offset_bias_graph) 
   conv2d_offset_bias.y.dtype = ge::DT_FLOAT;
   *conv2d_offset_bias.y.axis = {z_n_ob.id, z_c_ob.id, z_h_ob.id, z_w_ob.id};
   *conv2d_offset_bias.y.repeats = {n_ob, c_ob, h_ob, w_ob};
-  *conv2d_offset_bias.y.strides = {c_ob*h_ob*w_ob, h_ob*w_ob, w_ob, af::ops::One};
+  *conv2d_offset_bias.y.strides = {c_ob * h_ob * w_ob, h_ob * w_ob, w_ob, af::ops::One};
   conv2d_offset_bias.attr.api.compute_type = af::ComputeType::kComputeCube;
   conv2d_offset_bias.ir_attr.SetStrides({1, 1});
   conv2d_offset_bias.ir_attr.SetPads({1, 1, 1, 1});
@@ -247,7 +248,7 @@ static void CreateConv2DOffsetBiasGraph(af::AscGraph &conv2d_offset_bias_graph) 
   store_ob.x = conv2d_offset_bias.y;
   *store_ob.y.axis = {z_n_ob.id, z_c_ob.id, z_h_ob.id, z_w_ob.id};
   store_ob.y.dtype = ge::DT_FLOAT;
-  *store_ob.y.strides = {c_ob*h_ob*w_ob, h_ob*w_ob, w_ob, af::ops::One};
+  *store_ob.y.strides = {c_ob * h_ob * w_ob, h_ob * w_ob, w_ob, af::ops::One};
   *store_ob.y.repeats = {n_ob, c_ob, h_ob, w_ob};
 
   af::ascir_op::Output output_ob("output");
@@ -262,7 +263,7 @@ static void CreateElemwiseGraphWithReluDynamic(af::AscGraph &graph) {
   auto c = graph.CreateSizeVar("c");
   auto h = graph.CreateSizeVar("h");
   auto w = graph.CreateSizeVar("w");
-  
+
   auto z_n = graph.CreateAxis("z_n", n);
   auto z_c = graph.CreateAxis("z_c", c);
   auto z_h = graph.CreateAxis("z_h", h);
@@ -273,7 +274,7 @@ static void CreateElemwiseGraphWithReluDynamic(af::AscGraph &graph) {
   data0.y.dtype = ge::DT_FLOAT;
   *data0.y.axis = {z_n.id, z_c.id, z_h.id, z_w.id};
   data0.attr.api.compute_type = af::ComputeType::kComputeInvalid;
-  *data0.y.strides = {c*h*w, h*w, w, af::ops::One};
+  *data0.y.strides = {c * h * w, h * w, w, af::ops::One};
   *data0.y.repeats = {n, c, h, w};
   data0.ir_attr.SetIndex(0);
 
@@ -282,7 +283,7 @@ static void CreateElemwiseGraphWithReluDynamic(af::AscGraph &graph) {
   load0.x = data0.y;
   *load0.y.axis = {z_n.id, z_c.id, z_h.id, z_w.id};
   load0.y.dtype = ge::DT_FLOAT;
-  *load0.y.strides = {c*h*w, h*w, w, af::ops::One};
+  *load0.y.strides = {c * h * w, h * w, w, af::ops::One};
   *load0.y.repeats = {n, c, h, w};
 
   af::ascir_op::Relu relu("relu");
@@ -292,7 +293,7 @@ static void CreateElemwiseGraphWithReluDynamic(af::AscGraph &graph) {
   relu.y.dtype = ge::DT_FLOAT;
   *relu.y.axis = {z_n.id, z_c.id, z_h.id, z_w.id};
   *relu.y.repeats = {n, c, h, w};
-  *relu.y.strides = {c*h*w, h*w, w, af::ops::One};
+  *relu.y.strides = {c * h * w, h * w, w, af::ops::One};
   relu.attr.api.compute_type = af::ComputeType::kComputeElewise;
 
   af::ascir_op::Store store_op("store");
@@ -300,7 +301,7 @@ static void CreateElemwiseGraphWithReluDynamic(af::AscGraph &graph) {
   store_op.x = relu.y;
   *store_op.y.axis = {z_n.id, z_c.id, z_h.id, z_w.id};
   store_op.y.dtype = ge::DT_FLOAT;
-  *store_op.y.strides = {c*h*w, h*w, w, af::ops::One};
+  *store_op.y.strides = {c * h * w, h * w, w, af::ops::One};
   *store_op.y.repeats = {n, c, h, w};
 
   af::ascir_op::Output output_op("output");
@@ -326,7 +327,7 @@ static void CreateMatmulElemwiseDynamicGraph(af::AscGraph &graph) {
   data0.y.dtype = ge::DT_FLOAT;
   *data0.y.axis = {z0.id, z1.id};
   data0.attr.api.compute_type = af::ComputeType::kComputeInvalid;
-  *data0.y.strides = {s1 ,af::ops::One};
+  *data0.y.strides = {s1, af::ops::One};
   *data0.y.repeats = {s0, s1};
   data0.ir_attr.SetIndex(0);
 
@@ -335,7 +336,7 @@ static void CreateMatmulElemwiseDynamicGraph(af::AscGraph &graph) {
   load0.x = data0.y;
   *load0.y.axis = {z0.id, z1.id};
   load0.y.dtype = ge::DT_FLOAT;
-  *load0.y.strides = {s1 ,af::ops::One};
+  *load0.y.strides = {s1, af::ops::One};
   *load0.y.repeats = {s0, s1};
 
   af::ascir_op::Abs abs("abs");
@@ -428,7 +429,7 @@ static void CreateMatmulElemwiseDynamicGraph(af::AscGraph &graph) {
   store_op.x = mul.y;
   *store_op.y.axis = {z0.id, z1.id};
   store_op.y.dtype = ge::DT_FLOAT;
-  *store_op.y.strides = {s1 ,af::ops::One};
+  *store_op.y.strides = {s1, af::ops::One};
   *store_op.y.repeats = {s0, s1};
 
   af::ascir_op::Output output_op("output");
@@ -448,7 +449,7 @@ static void CreateElemwiseGraphWithMulDynamic(af::AscGraph &graph) {
   auto c = graph.CreateSizeVar("c");
   auto h = graph.CreateSizeVar("h");
   auto w = graph.CreateSizeVar("w");
-  
+
   auto z_n = graph.CreateAxis("z_n", n);
   auto z_c = graph.CreateAxis("z_c", c);
   auto z_h = graph.CreateAxis("z_h", h);
@@ -459,7 +460,7 @@ static void CreateElemwiseGraphWithMulDynamic(af::AscGraph &graph) {
   data0.y.dtype = ge::DT_FLOAT;
   *data0.y.axis = {z_n.id, z_c.id, z_h.id, z_w.id};
   data0.attr.api.compute_type = af::ComputeType::kComputeInvalid;
-  *data0.y.strides = {c*h*w, h*w, w, af::ops::One};
+  *data0.y.strides = {c * h * w, h * w, w, af::ops::One};
   *data0.y.repeats = {n, c, h, w};
   data0.ir_attr.SetIndex(0);
 
@@ -468,7 +469,7 @@ static void CreateElemwiseGraphWithMulDynamic(af::AscGraph &graph) {
   load0.x = data0.y;
   *load0.y.axis = {z_n.id, z_c.id, z_h.id, z_w.id};
   load0.y.dtype = ge::DT_FLOAT;
-  *load0.y.strides = {c*h*w, h*w, w, af::ops::One};
+  *load0.y.strides = {c * h * w, h * w, w, af::ops::One};
   *load0.y.repeats = {n, c, h, w};
 
   af::ascir_op::Scalar scalar("scalar", graph);
@@ -477,14 +478,14 @@ static void CreateElemwiseGraphWithMulDynamic(af::AscGraph &graph) {
   *scalar.y.axis = {z_n.id, z_c.id, z_h.id, z_w.id};
   *scalar.y.repeats = {af::ops::One, af::ops::One, af::ops::One, af::ops::One};
   *scalar.y.strides = {af::ops::Zero, af::ops::Zero, af::ops::Zero, af::ops::Zero};
-  
+
   af::ascir_op::Broadcast broadcast("broadcast");
   broadcast.x = scalar.y;
   broadcast.attr.sched.axis = {z_n.id, z_c.id, z_h.id, z_w.id};
   *broadcast.y.axis = {z_n.id, z_c.id, z_h.id, z_w.id};
   broadcast.y.dtype = ge::DT_FLOAT;
   *broadcast.y.repeats = {n, c, h, w};
-  *broadcast.y.strides = {c*h*w, h*w, w, af::ops::One};
+  *broadcast.y.strides = {c * h * w, h * w, w, af::ops::One};
 
   af::ascir_op::Mul mul("mul");
   mul.attr.sched.axis = {z_n.id, z_c.id, z_h.id, z_w.id};
@@ -493,7 +494,7 @@ static void CreateElemwiseGraphWithMulDynamic(af::AscGraph &graph) {
   mul.y.dtype = ge::DT_FLOAT;
   *mul.y.axis = {z_n.id, z_c.id, z_h.id, z_w.id};
   *mul.y.repeats = {n, c, h, w};
-  *mul.y.strides = {c*h*w, h*w, w, af::ops::One};
+  *mul.y.strides = {c * h * w, h * w, w, af::ops::One};
   mul.attr.api.compute_type = af::ComputeType::kComputeElewise;
 
   af::ascir_op::Store store_op("store");
@@ -501,7 +502,7 @@ static void CreateElemwiseGraphWithMulDynamic(af::AscGraph &graph) {
   store_op.x = mul.y;
   *store_op.y.axis = {z_n.id, z_c.id, z_h.id, z_w.id};
   store_op.y.dtype = ge::DT_FLOAT;
-  *store_op.y.strides = {c*h*w, h*w, w, af::ops::One};
+  *store_op.y.strides = {c * h * w, h * w, w, af::ops::One};
   *store_op.y.repeats = {n, c, h, w};
 
   af::ascir_op::Output output_op("output");
@@ -521,7 +522,7 @@ static void CreateElemwiseGraphWithAbsAndAddStatic(af::AscGraph &graph) {
   auto c = graph.CreateSizeVar(64);
   auto h = graph.CreateSizeVar(56);
   auto w = graph.CreateSizeVar(56);
-  
+
   auto z_n = graph.CreateAxis("z_n", n);
   auto z_c = graph.CreateAxis("z_c", c);
   auto z_h = graph.CreateAxis("z_h", h);
@@ -532,7 +533,7 @@ static void CreateElemwiseGraphWithAbsAndAddStatic(af::AscGraph &graph) {
   data0.y.dtype = ge::DT_FLOAT;
   *data0.y.axis = {z_n.id, z_c.id, z_h.id, z_w.id};
   data0.attr.api.compute_type = af::ComputeType::kComputeInvalid;
-  *data0.y.strides = {c*h*w, h*w, w, af::ops::One};
+  *data0.y.strides = {c * h * w, h * w, w, af::ops::One};
   *data0.y.repeats = {n, c, h, w};
   data0.ir_attr.SetIndex(0);
 
@@ -541,7 +542,7 @@ static void CreateElemwiseGraphWithAbsAndAddStatic(af::AscGraph &graph) {
   load0.x = data0.y;
   *load0.y.axis = {z_n.id, z_c.id, z_h.id, z_w.id};
   load0.y.dtype = ge::DT_FLOAT;
-  *load0.y.strides = {c*h*w, h*w, w, af::ops::One};
+  *load0.y.strides = {c * h * w, h * w, w, af::ops::One};
   *load0.y.repeats = {n, c, h, w};
 
   af::ascir_op::Abs abs("abs");
@@ -551,7 +552,7 @@ static void CreateElemwiseGraphWithAbsAndAddStatic(af::AscGraph &graph) {
   abs.y.dtype = ge::DT_FLOAT;
   *abs.y.axis = {z_n.id, z_c.id, z_h.id, z_w.id};
   *abs.y.repeats = {n, c, h, w};
-  *abs.y.strides = {c*h*w, h*w, w, af::ops::One};
+  *abs.y.strides = {c * h * w, h * w, w, af::ops::One};
   abs.attr.api.compute_type = af::ComputeType::kComputeElewise;
 
   af::ascir_op::Scalar scalar0("scalar0", graph);
@@ -568,7 +569,7 @@ static void CreateElemwiseGraphWithAbsAndAddStatic(af::AscGraph &graph) {
   *broadcast0.y.axis = {z_n.id, z_c.id, z_h.id, z_w.id};
   broadcast0.y.dtype = ge::DT_FLOAT;
   *broadcast0.y.repeats = {n, c, h, w};
-  *broadcast0.y.strides = {c*h*w, h*w, w, af::ops::One};
+  *broadcast0.y.strides = {c * h * w, h * w, w, af::ops::One};
 
   af::ascir_op::Add add_op("add");
   add_op.attr.sched.axis = {z_n.id, z_c.id, z_h.id, z_w.id};
@@ -577,14 +578,14 @@ static void CreateElemwiseGraphWithAbsAndAddStatic(af::AscGraph &graph) {
   add_op.y.dtype = ge::DT_FLOAT;
   *add_op.y.axis = {z_n.id, z_c.id, z_h.id, z_w.id};
   *add_op.y.repeats = {n, c, h, w};
-  *add_op.y.strides = {c*h*w, h*w, w, af::ops::One};
+  *add_op.y.strides = {c * h * w, h * w, w, af::ops::One};
 
   af::ascir_op::Store store_op("store");
   store_op.attr.sched.axis = {z_n.id, z_c.id, z_h.id, z_w.id};
   store_op.x = add_op.y;
   *store_op.y.axis = {z_n.id, z_c.id, z_h.id, z_w.id};
   store_op.y.dtype = ge::DT_FLOAT;
-  *store_op.y.strides = {c*h*w, h*w, w, af::ops::One};
+  *store_op.y.strides = {c * h * w, h * w, w, af::ops::One};
   *store_op.y.repeats = {n, c, h, w};
 
   af::ascir_op::Output output_op("output");
@@ -604,7 +605,7 @@ static void CreateConv2DOffsetGraph(af::AscGraph &conv2d_offset_graph) {
   auto c_o = conv2d_offset_graph.CreateSizeVar(64);
   auto h_o = conv2d_offset_graph.CreateSizeVar(56);
   auto w_o = conv2d_offset_graph.CreateSizeVar(56);
-  
+
   auto z_n_o = conv2d_offset_graph.CreateAxis("z_n", n_o);
   auto z_c_o = conv2d_offset_graph.CreateAxis("z_c", c_o);
   auto z_h_o = conv2d_offset_graph.CreateAxis("z_h", h_o);
@@ -615,7 +616,7 @@ static void CreateConv2DOffsetGraph(af::AscGraph &conv2d_offset_graph) {
   data0_o.y.dtype = ge::DT_FLOAT16;
   *data0_o.y.axis = {z_n_o.id, z_c_o.id, z_h_o.id, z_w_o.id};
   data0_o.attr.api.compute_type = af::ComputeType::kComputeInvalid;
-  *data0_o.y.strides = {c_o*h_o*w_o, h_o*w_o, w_o, af::ops::One};
+  *data0_o.y.strides = {c_o * h_o * w_o, h_o * w_o, w_o, af::ops::One};
   *data0_o.y.repeats = {n_o, c_o, h_o, w_o};
   data0_o.ir_attr.SetIndex(0);
 
@@ -624,7 +625,7 @@ static void CreateConv2DOffsetGraph(af::AscGraph &conv2d_offset_graph) {
   load0_o.x = data0_o.y;
   *load0_o.y.axis = {z_n_o.id, z_c_o.id, z_h_o.id, z_w_o.id};
   load0_o.y.dtype = ge::DT_FLOAT16;
-  *load0_o.y.strides = {c_o*h_o*w_o, h_o*w_o, w_o, af::ops::One};
+  *load0_o.y.strides = {c_o * h_o * w_o, h_o * w_o, w_o, af::ops::One};
   *load0_o.y.repeats = {n_o, c_o, h_o, w_o};
 
   af::ascir_op::Data data1_o("data1", conv2d_offset_graph);
@@ -669,7 +670,7 @@ static void CreateConv2DOffsetGraph(af::AscGraph &conv2d_offset_graph) {
   conv2d_offset.y.dtype = ge::DT_FLOAT;
   *conv2d_offset.y.axis = {z_n_o.id, z_c_o.id, z_h_o.id, z_w_o.id};
   *conv2d_offset.y.repeats = {n_o, c_o, h_o, w_o};
-  *conv2d_offset.y.strides = {c_o*h_o*w_o, h_o*w_o, w_o, af::ops::One};
+  *conv2d_offset.y.strides = {c_o * h_o * w_o, h_o * w_o, w_o, af::ops::One};
   conv2d_offset.attr.api.compute_type = af::ComputeType::kComputeCube;
   conv2d_offset.ir_attr.SetStrides({1, 1});
   conv2d_offset.ir_attr.SetPads({1, 1, 1, 1});
@@ -684,7 +685,7 @@ static void CreateConv2DOffsetGraph(af::AscGraph &conv2d_offset_graph) {
   store_o.x = conv2d_offset.y;
   *store_o.y.axis = {z_n_o.id, z_c_o.id, z_h_o.id, z_w_o.id};
   store_o.y.dtype = ge::DT_FLOAT;
-  *store_o.y.strides = {c_o*h_o*w_o, h_o*w_o, w_o, af::ops::One};
+  *store_o.y.strides = {c_o * h_o * w_o, h_o * w_o, w_o, af::ops::One};
   *store_o.y.repeats = {n_o, c_o, h_o, w_o};
 
   af::ascir_op::Output output_o("output");
@@ -699,7 +700,7 @@ static void CreateConv2DGraphWithGroups(af::AscGraph &conv2d_graph) {
   auto c_g = conv2d_graph.CreateSizeVar(64);
   auto h_g = conv2d_graph.CreateSizeVar(56);
   auto w_g = conv2d_graph.CreateSizeVar(56);
-  
+
   auto z_n_g = conv2d_graph.CreateAxis("z_n", n_g);
   auto z_c_g = conv2d_graph.CreateAxis("z_c", c_g);
   auto z_h_g = conv2d_graph.CreateAxis("z_h", h_g);
@@ -710,7 +711,7 @@ static void CreateConv2DGraphWithGroups(af::AscGraph &conv2d_graph) {
   data0_g.y.dtype = ge::DT_FLOAT16;
   *data0_g.y.axis = {z_n_g.id, z_c_g.id, z_h_g.id, z_w_g.id};
   data0_g.attr.api.compute_type = af::ComputeType::kComputeInvalid;
-  *data0_g.y.strides = {c_g*h_g*w_g, h_g*w_g, w_g, af::ops::One};
+  *data0_g.y.strides = {c_g * h_g * w_g, h_g * w_g, w_g, af::ops::One};
   *data0_g.y.repeats = {n_g, c_g, h_g, w_g};
   data0_g.ir_attr.SetIndex(0);
 
@@ -719,7 +720,7 @@ static void CreateConv2DGraphWithGroups(af::AscGraph &conv2d_graph) {
   load0_g.x = data0_g.y;
   *load0_g.y.axis = {z_n_g.id, z_c_g.id, z_h_g.id, z_w_g.id};
   load0_g.y.dtype = ge::DT_FLOAT16;
-  *load0_g.y.strides = {c_g*h_g*w_g, h_g*w_g, w_g, af::ops::One};
+  *load0_g.y.strides = {c_g * h_g * w_g, h_g * w_g, w_g, af::ops::One};
   *load0_g.y.repeats = {n_g, c_g, h_g, w_g};
 
   af::ascir_op::Data data1_g("data1", conv2d_graph);
@@ -746,7 +747,7 @@ static void CreateConv2DGraphWithGroups(af::AscGraph &conv2d_graph) {
   conv2d_g.y.dtype = ge::DT_FLOAT;
   *conv2d_g.y.axis = {z_n_g.id, z_c_g.id, z_h_g.id, z_w_g.id};
   *conv2d_g.y.repeats = {n_g, c_g, h_g, w_g};
-  *conv2d_g.y.strides = {c_g*h_g*w_g, h_g*w_g, w_g, af::ops::One};
+  *conv2d_g.y.strides = {c_g * h_g * w_g, h_g * w_g, w_g, af::ops::One};
   conv2d_g.attr.api.compute_type = af::ComputeType::kComputeCube;
   conv2d_g.ir_attr.SetStrides({2, 2});
   conv2d_g.ir_attr.SetPads({1, 1, 1, 1});
@@ -761,7 +762,7 @@ static void CreateConv2DGraphWithGroups(af::AscGraph &conv2d_graph) {
   store_g.x = conv2d_g.y;
   *store_g.y.axis = {z_n_g.id, z_c_g.id, z_h_g.id, z_w_g.id};
   store_g.y.dtype = ge::DT_FLOAT;
-  *store_g.y.strides = {c_g*h_g*w_g, h_g*w_g, w_g, af::ops::One};
+  *store_g.y.strides = {c_g * h_g * w_g, h_g * w_g, w_g, af::ops::One};
   *store_g.y.repeats = {n_g, c_g, h_g, w_g};
 
   af::ascir_op::Output output_g("output");
@@ -776,7 +777,7 @@ static void CreateConv2DGraphWithDilation(af::AscGraph &conv2d_graph) {
   auto c_d = conv2d_graph.CreateSizeVar(64);
   auto h_d = conv2d_graph.CreateSizeVar(56);
   auto w_d = conv2d_graph.CreateSizeVar(56);
-  
+
   auto z_n_d = conv2d_graph.CreateAxis("z_n", n_d);
   auto z_c_d = conv2d_graph.CreateAxis("z_c", c_d);
   auto z_h_d = conv2d_graph.CreateAxis("z_h", h_d);
@@ -787,7 +788,7 @@ static void CreateConv2DGraphWithDilation(af::AscGraph &conv2d_graph) {
   data0_d.y.dtype = ge::DT_FLOAT16;
   *data0_d.y.axis = {z_n_d.id, z_c_d.id, z_h_d.id, z_w_d.id};
   data0_d.attr.api.compute_type = af::ComputeType::kComputeInvalid;
-  *data0_d.y.strides = {c_d*h_d*w_d, h_d*w_d, w_d, af::ops::One};
+  *data0_d.y.strides = {c_d * h_d * w_d, h_d * w_d, w_d, af::ops::One};
   *data0_d.y.repeats = {n_d, c_d, h_d, w_d};
   data0_d.ir_attr.SetIndex(0);
 
@@ -796,7 +797,7 @@ static void CreateConv2DGraphWithDilation(af::AscGraph &conv2d_graph) {
   load0_d.x = data0_d.y;
   *load0_d.y.axis = {z_n_d.id, z_c_d.id, z_h_d.id, z_w_d.id};
   load0_d.y.dtype = ge::DT_FLOAT16;
-  *load0_d.y.strides = {c_d*h_d*w_d, h_d*w_d, w_d, af::ops::One};
+  *load0_d.y.strides = {c_d * h_d * w_d, h_d * w_d, w_d, af::ops::One};
   *load0_d.y.repeats = {n_d, c_d, h_d, w_d};
 
   af::ascir_op::Data data1_d("data1", conv2d_graph);
@@ -823,7 +824,7 @@ static void CreateConv2DGraphWithDilation(af::AscGraph &conv2d_graph) {
   conv2d_d.y.dtype = ge::DT_FLOAT;
   *conv2d_d.y.axis = {z_n_d.id, z_c_d.id, z_h_d.id, z_w_d.id};
   *conv2d_d.y.repeats = {n_d, c_d, h_d, w_d};
-  *conv2d_d.y.strides = {c_d*h_d*w_d, h_d*w_d, w_d, af::ops::One};
+  *conv2d_d.y.strides = {c_d * h_d * w_d, h_d * w_d, w_d, af::ops::One};
   conv2d_d.attr.api.compute_type = af::ComputeType::kComputeCube;
   conv2d_d.ir_attr.SetStrides({1, 1});
   conv2d_d.ir_attr.SetPads({2, 2, 2, 2});
@@ -838,7 +839,7 @@ static void CreateConv2DGraphWithDilation(af::AscGraph &conv2d_graph) {
   store_d.x = conv2d_d.y;
   *store_d.y.axis = {z_n_d.id, z_c_d.id, z_h_d.id, z_w_d.id};
   store_d.y.dtype = ge::DT_FLOAT;
-  *store_d.y.strides = {c_d*h_d*w_d, h_d*w_d, w_d, af::ops::One};
+  *store_d.y.strides = {c_d * h_d * w_d, h_d * w_d, w_d, af::ops::One};
   *store_d.y.repeats = {n_d, c_d, h_d, w_d};
 
   af::ascir_op::Output output_d("output");
@@ -852,7 +853,7 @@ static void CreateBatchMatmulElemwiseDynamicGraph(af::AscGraph &graph) {
   auto batch = graph.CreateSizeVar("batch");
   auto m = graph.CreateSizeVar("m");
   auto n = graph.CreateSizeVar("n");
-  
+
   auto z_batch = graph.CreateAxis("z_batch", batch);
   auto z_m = graph.CreateAxis("z_m", m);
   auto z_n = graph.CreateAxis("z_n", n);
@@ -862,7 +863,7 @@ static void CreateBatchMatmulElemwiseDynamicGraph(af::AscGraph &graph) {
   data0.y.dtype = ge::DT_FLOAT;
   *data0.y.axis = {z_batch.id, z_m.id, z_n.id};
   data0.attr.api.compute_type = af::ComputeType::kComputeInvalid;
-  *data0.y.strides = {m*n, n, af::ops::One};
+  *data0.y.strides = {m * n, n, af::ops::One};
   *data0.y.repeats = {batch, m, n};
   data0.ir_attr.SetIndex(0);
 
@@ -871,7 +872,7 @@ static void CreateBatchMatmulElemwiseDynamicGraph(af::AscGraph &graph) {
   load0.x = data0.y;
   *load0.y.axis = {z_batch.id, z_m.id, z_n.id};
   load0.y.dtype = ge::DT_FLOAT;
-  *load0.y.strides = {m*n, n, af::ops::One};
+  *load0.y.strides = {m * n, n, af::ops::One};
   *load0.y.repeats = {batch, m, n};
 
   af::ascir_op::Relu relu("relu");
@@ -881,7 +882,7 @@ static void CreateBatchMatmulElemwiseDynamicGraph(af::AscGraph &graph) {
   relu.y.dtype = ge::DT_FLOAT;
   *relu.y.axis = {z_batch.id, z_m.id, z_n.id};
   *relu.y.repeats = {batch, m, n};
-  *relu.y.strides = {m*n, n, af::ops::One};
+  *relu.y.strides = {m * n, n, af::ops::One};
   relu.attr.api.compute_type = af::ComputeType::kComputeElewise;
 
   af::ascir_op::Store store_op("store");
@@ -889,7 +890,7 @@ static void CreateBatchMatmulElemwiseDynamicGraph(af::AscGraph &graph) {
   store_op.x = relu.y;
   *store_op.y.axis = {z_batch.id, z_m.id, z_n.id};
   store_op.y.dtype = ge::DT_FLOAT;
-  *store_op.y.strides = {m*n, n, af::ops::One};
+  *store_op.y.strides = {m * n, n, af::ops::One};
   *store_op.y.repeats = {batch, m, n};
 
   af::ascir_op::Output output_op("output");
@@ -907,13 +908,16 @@ static void CreateBatchMatmulElemwiseDynamicGraph(af::AscGraph &graph) {
 static void VerifyDynamicShapeTiling(const std::map<std::string, std::string> &res) {
   auto pos = res.at("tiling_def_and_tiling_const").find("extern \"C\" int64_t FindBestTilingKey");
   ASSERT_NE(pos, std::string::npos);
-  auto dynamic_shape_pos = res.at("tiling_def_and_tiling_const").find("extern \"C\" bool AutofuseIsStaticShape() {\n  return false;");
+  auto dynamic_shape_pos =
+      res.at("tiling_def_and_tiling_const").find("extern \"C\" bool AutofuseIsStaticShape() {\n  return false;");
   ASSERT_NE(dynamic_shape_pos, std::string::npos);
-  auto tiling_func_pos = res.at("tiling_def_and_tiling_const").find("extern \"C\" ge::graphStatus TilingFunc(gert::TilingSymbolEvalContext *context)");
+  auto tiling_func_pos = res.at("tiling_def_and_tiling_const")
+                             .find("extern \"C\" ge::graphStatus TilingFunc(gert::TilingSymbolEvalContext *context)");
   ASSERT_NE(tiling_func_pos, std::string::npos);
   auto tiling_call_pos = res.at("tiling_def_and_tiling_const").find("AutofuseTilingWithConfig");
   ASSERT_NE(tiling_call_pos, std::string::npos);
-  auto cache_key_pos = res.at("tiling_def_and_tiling_const").find("extern \"C\" ge::graphStatus GetSymbolTilingCacheKey");
+  auto cache_key_pos =
+      res.at("tiling_def_and_tiling_const").find("extern \"C\" ge::graphStatus GetSymbolTilingCacheKey");
   ASSERT_NE(cache_key_pos, std::string::npos);
   auto tiling_data_pos = res.at("tiling_def_and_tiling_const").find("AutofuseTilingData");
   ASSERT_NE(tiling_data_pos, std::string::npos);
@@ -922,7 +926,8 @@ static void VerifyDynamicShapeTiling(const std::map<std::string, std::string> &r
 static void VerifyConv2dElemwiseTiling(const std::map<std::string, std::string> &res) {
   auto pos = res.at("tiling_def_and_tiling_const").find("extern \"C\" int64_t FindBestTilingKey");
   ASSERT_NE(pos, std::string::npos);
-  auto static_shape_pos = res.at("tiling_def_and_tiling_const").find("extern \"C\" bool AutofuseIsStaticShape() {\n  return true;");
+  auto static_shape_pos =
+      res.at("tiling_def_and_tiling_const").find("extern \"C\" bool AutofuseIsStaticShape() {\n  return true;");
   ASSERT_NE(static_shape_pos, std::string::npos);
   auto tiling_func_pos = res.at("tiling_def_and_tiling_const").find("extern \"C\" ge::graphStatus TilingFunc");
   ASSERT_NE(tiling_func_pos, std::string::npos);
@@ -941,7 +946,8 @@ static void VerifyConv2dElemwiseTiling(const std::map<std::string, std::string> 
 static void VerifyConv2DBiasElemwiseTiling(const std::map<std::string, std::string> &res) {
   auto pos = res.at("tiling_def_and_tiling_const").find("extern \"C\" int64_t FindBestTilingKey");
   ASSERT_NE(pos, std::string::npos);
-  auto static_shape_pos = res.at("tiling_def_and_tiling_const").find("extern \"C\" bool AutofuseIsStaticShape() {\n  return true;");
+  auto static_shape_pos =
+      res.at("tiling_def_and_tiling_const").find("extern \"C\" bool AutofuseIsStaticShape() {\n  return true;");
   ASSERT_NE(static_shape_pos, std::string::npos);
   auto tiling_func_pos = res.at("tiling_def_and_tiling_const").find("extern \"C\" ge::graphStatus TilingFunc");
   ASSERT_NE(tiling_func_pos, std::string::npos);
@@ -956,7 +962,8 @@ static void VerifyConv2DBiasElemwiseTiling(const std::map<std::string, std::stri
 static void VerifyConv2DOffsetTiling(const std::map<std::string, std::string> &res) {
   auto pos = res.at("tiling_def_and_tiling_const").find("extern \"C\" int64_t FindBestTilingKey");
   ASSERT_NE(pos, std::string::npos);
-  auto static_shape_pos = res.at("tiling_def_and_tiling_const").find("extern \"C\" bool AutofuseIsStaticShape() {\n  return true;");
+  auto static_shape_pos =
+      res.at("tiling_def_and_tiling_const").find("extern \"C\" bool AutofuseIsStaticShape() {\n  return true;");
   ASSERT_NE(static_shape_pos, std::string::npos);
   auto tiling_func_pos = res.at("tiling_def_and_tiling_const").find("extern \"C\" ge::graphStatus TilingFunc");
   ASSERT_NE(tiling_func_pos, std::string::npos);
@@ -966,10 +973,10 @@ static void VerifyConv2DOffsetTiling(const std::map<std::string, std::string> &r
   ASSERT_NE(tiling_data_pos, std::string::npos);
 }
 
-} // namespace
+}  // namespace
 
 class TestCodegenTiling : public testing::Test, public codegen::TilingLib {
-  public:
+ public:
   void SetUp() override {
     dlog_setlevel(ASCGEN_MODULE_NAME, DLOG_DEBUG, 0);
     ge::PlatformContext::GetInstance().Reset();
@@ -1069,7 +1076,7 @@ class TestCodegenTiling : public testing::Test, public codegen::TilingLib {
     return this->GenerateForInductor(fused_schedule_result);
   }
 
-  protected:
+ protected:
   TestCodegenTiling() : codegen::TilingLib("test", "test") {}
 };
 
@@ -1090,17 +1097,17 @@ TEST_F(TestCodegenTiling, NoWorkspaceTest) {
   ascir::FusedScheduledResult fused_schedule_result;
   fused_schedule_result.node_idx_to_scheduled_results.push_back(schedule_results);
 
-  EXPECT_EQ(this->GenGetWorkspaceSizeFunc("AutofuseTilingData", fused_schedule_result), std::string{
-    "uint32_t GetWorkspaceSize(const AutofuseTilingData &t) {\n"
-    "  using namespace optiling;\n"
-    "  uint32_t ws_size = 0;\n"
-    "    if (t.tiling_key == 0) {\n"
-    "      ws_size += 0;\n"
-    "    }\n"
-    "\n"
-    "  ws_size = (ws_size + 512 - 1) / 512 * 512;\n"
-    "  return ws_size;\n"
-    "}\n"});
+  EXPECT_EQ(this->GenGetWorkspaceSizeFunc("AutofuseTilingData", fused_schedule_result),
+            std::string{"uint32_t GetWorkspaceSize(const AutofuseTilingData &t) {\n"
+                        "  using namespace optiling;\n"
+                        "  uint32_t ws_size = 0;\n"
+                        "    if (t.tiling_key == 0) {\n"
+                        "      ws_size += 0;\n"
+                        "    }\n"
+                        "\n"
+                        "  ws_size = (ws_size + 512 - 1) / 512 * 512;\n"
+                        "  return ws_size;\n"
+                        "}\n"});
 }
 
 TEST_F(TestCodegenTiling, SingleGroupWorkspaceSymbolTest) {
@@ -1145,18 +1152,17 @@ TEST_F(TestCodegenTiling, SingleGroupWorkspaceSymbolTest) {
   ascir::FusedScheduledResult fused_schedule_result;
   fused_schedule_result.workspace_nodes.push_back(workspace_node);
   fused_schedule_result.node_idx_to_scheduled_results.push_back(schedule_results);
-  EXPECT_EQ(this->GenGetWorkspaceSizeFunc("AutofuseTilingData", fused_schedule_result), std::string{
-    "uint32_t GetWorkspaceSize(const AutofuseTilingData &t) {\n"
-    "  using namespace optiling;\n"
-    "  uint32_t ws_size = 0;\n"
-    "    if (t.tiling_key == 0) {\n"
-    "      ws_size += Max(0, (2 * Max(Max(1, t.s1), (t.s0 * t.s1))));\n"
-    "    }\n"
-    "\n"
-    "  ws_size = (ws_size + 512 - 1) / 512 * 512;\n"
-    "  return ws_size;\n"
-    "}\n"
-  });
+  EXPECT_EQ(this->GenGetWorkspaceSizeFunc("AutofuseTilingData", fused_schedule_result),
+            std::string{"uint32_t GetWorkspaceSize(const AutofuseTilingData &t) {\n"
+                        "  using namespace optiling;\n"
+                        "  uint32_t ws_size = 0;\n"
+                        "    if (t.tiling_key == 0) {\n"
+                        "      ws_size += Max(0, (2 * Max(Max(1, t.s1), (t.s0 * t.s1))));\n"
+                        "    }\n"
+                        "\n"
+                        "  ws_size = (ws_size + 512 - 1) / 512 * 512;\n"
+                        "  return ws_size;\n"
+                        "}\n"});
 }
 
 TEST_F(TestCodegenTiling, SingleGroupWorkspaceValueTest) {
@@ -1201,17 +1207,17 @@ TEST_F(TestCodegenTiling, SingleGroupWorkspaceValueTest) {
   ascir::FusedScheduledResult fused_schedule_result;
   fused_schedule_result.workspace_nodes.push_back(workspace_node);
   fused_schedule_result.node_idx_to_scheduled_results.push_back(schedule_results);
-  EXPECT_EQ(this->GenGetWorkspaceSizeFunc("AutofuseTilingData", fused_schedule_result), std::string{
-    "uint32_t GetWorkspaceSize(const AutofuseTilingData &t) {\n"
-    "  using namespace optiling;\n"
-    "  uint32_t ws_size = 0;\n"
-    "    if (t.tiling_key == 0) {\n"
-    "      ws_size += 600;\n"
-    "    }\n"
-    "\n"
-    "  ws_size = (ws_size + 512 - 1) / 512 * 512;\n"
-    "  return ws_size;\n"
-    "}\n"});
+  EXPECT_EQ(this->GenGetWorkspaceSizeFunc("AutofuseTilingData", fused_schedule_result),
+            std::string{"uint32_t GetWorkspaceSize(const AutofuseTilingData &t) {\n"
+                        "  using namespace optiling;\n"
+                        "  uint32_t ws_size = 0;\n"
+                        "    if (t.tiling_key == 0) {\n"
+                        "      ws_size += 600;\n"
+                        "    }\n"
+                        "\n"
+                        "  ws_size = (ws_size + 512 - 1) / 512 * 512;\n"
+                        "  return ws_size;\n"
+                        "}\n"});
 }
 
 TEST_F(TestCodegenTiling, GetWorkspaceSizeGuardsDynamicDenominator) {
@@ -1324,22 +1330,23 @@ TEST_F(TestCodegenTiling, MultiGroupWorkspaceSymbolTest) {
   fused_schedule_result.workspace_nodes.push_back(workspace_node);
   fused_schedule_result.workspace_nodes.push_back(workspace1_node);
   fused_schedule_result.node_idx_to_scheduled_results.push_back(schedule_results);
-  EXPECT_EQ(this->GenGetWorkspaceSizeFunc("AutofuseTilingData", fused_schedule_result), std::string{
-    "uint32_t GetWorkspaceSize(const AutofuseTilingData &t) {\n"
-    "  using namespace optiling;\n"
-    "  uint32_t ws_size = 0;\n"
-    "  if (t.graph0_tiling_key == 0) {\n"
-    "    if (t.graph0_result0_g0_tiling_data.tiling_key == 0) {\n"
-    "      ws_size += Max(0, (2 * Max(Max(1, t.graph0_result0_g0_tiling_data.s1), (t.graph0_result0_g0_tiling_data.s0 * t.graph0_result0_g0_tiling_data.s1))));\n"
-    "    }\n"
-    "    if (t.graph0_result0_g1_tiling_data.tiling_key == 0) {\n"
-    "      ws_size += Max(0, (2 * Max(Max(1, t.graph0_result0_g1_tiling_data.s1), (t.graph0_result0_g1_tiling_data.s0 * t.graph0_result0_g1_tiling_data.s1))));\n"
-    "    }\n"
-    "  }\n"
-    "  ws_size = (ws_size + 512 - 1) / 512 * 512;\n"
-    "  return ws_size;\n"
-    "}\n"
-  });
+  EXPECT_EQ(this->GenGetWorkspaceSizeFunc("AutofuseTilingData", fused_schedule_result),
+            std::string{"uint32_t GetWorkspaceSize(const AutofuseTilingData &t) {\n"
+                        "  using namespace optiling;\n"
+                        "  uint32_t ws_size = 0;\n"
+                        "  if (t.graph0_tiling_key == 0) {\n"
+                        "    if (t.graph0_result0_g0_tiling_data.tiling_key == 0) {\n"
+                        "      ws_size += Max(0, (2 * Max(Max(1, t.graph0_result0_g0_tiling_data.s1), "
+                        "(t.graph0_result0_g0_tiling_data.s0 * t.graph0_result0_g0_tiling_data.s1))));\n"
+                        "    }\n"
+                        "    if (t.graph0_result0_g1_tiling_data.tiling_key == 0) {\n"
+                        "      ws_size += Max(0, (2 * Max(Max(1, t.graph0_result0_g1_tiling_data.s1), "
+                        "(t.graph0_result0_g1_tiling_data.s0 * t.graph0_result0_g1_tiling_data.s1))));\n"
+                        "    }\n"
+                        "  }\n"
+                        "  ws_size = (ws_size + 512 - 1) / 512 * 512;\n"
+                        "  return ws_size;\n"
+                        "}\n"});
 }
 
 TEST_F(TestCodegenTiling, MultiGroupWorkspaceValueTest) {
@@ -1413,21 +1420,21 @@ TEST_F(TestCodegenTiling, MultiGroupWorkspaceValueTest) {
   fused_schedule_result.workspace_nodes.push_back(workspace_node);
   fused_schedule_result.workspace_nodes.push_back(workspace1_node);
   fused_schedule_result.node_idx_to_scheduled_results.push_back(schedule_results);
-  EXPECT_EQ(this->GenGetWorkspaceSizeFunc("AutofuseTilingData", fused_schedule_result), std::string{
-    "uint32_t GetWorkspaceSize(const AutofuseTilingData &t) {\n"
-    "  using namespace optiling;\n"
-    "  uint32_t ws_size = 0;\n"
-    "  if (t.graph0_tiling_key == 0) {\n"
-    "    if (t.graph0_result0_g0_tiling_data.tiling_key == 0) {\n"
-    "      ws_size += 1024;\n"
-    "    }\n"
-    "    if (t.graph0_result0_g1_tiling_data.tiling_key == 0) {\n"
-    "      ws_size += 1000;\n"
-    "    }\n"
-    "  }\n"
-    "  ws_size = (ws_size + 512 - 1) / 512 * 512;\n"
-    "  return ws_size;\n"
-    "}\n"});
+  EXPECT_EQ(this->GenGetWorkspaceSizeFunc("AutofuseTilingData", fused_schedule_result),
+            std::string{"uint32_t GetWorkspaceSize(const AutofuseTilingData &t) {\n"
+                        "  using namespace optiling;\n"
+                        "  uint32_t ws_size = 0;\n"
+                        "  if (t.graph0_tiling_key == 0) {\n"
+                        "    if (t.graph0_result0_g0_tiling_data.tiling_key == 0) {\n"
+                        "      ws_size += 1024;\n"
+                        "    }\n"
+                        "    if (t.graph0_result0_g1_tiling_data.tiling_key == 0) {\n"
+                        "      ws_size += 1000;\n"
+                        "    }\n"
+                        "  }\n"
+                        "  ws_size = (ws_size + 512 - 1) / 512 * 512;\n"
+                        "  return ws_size;\n"
+                        "}\n"});
 }
 
 TEST_F(TestCodegenTiling, EmptyTensorKernel) {
@@ -1498,9 +1505,10 @@ TEST_F(TestCodegenTiling, EmptyTensorKernel) {
   fused_schedule_result.node_idx_to_scheduled_results.push_back(schedule_results);
   const std::map<std::string, std::string> shape_info;
   auto res = this->Generate(fused_schedule_result, shape_info, "", "0");
-  std::string tiling_func_declare {"TilingFunc(gert::TilingSymbolEvalContext *context)\n{\n"};
+  std::string tiling_func_declare{"TilingFunc(gert::TilingSymbolEvalContext *context)\n{\n"};
   auto pos = res["tiling_def_and_tiling_const"].find(tiling_func_declare) + tiling_func_declare.size();
-  std::string expect_str {"  context->SetBlockDim(1);\n  *context->GetWorkspaceSizes(1) = 0;\n  return ge::GRAPH_SUCCESS;\n"};
+  std::string expect_str{
+      "  context->SetBlockDim(1);\n  *context->GetWorkspaceSizes(1) = 0;\n  return ge::GRAPH_SUCCESS;\n"};
   std::string tiling_func_content = res["tiling_def_and_tiling_const"].substr(pos, expect_str.size());
   EXPECT_EQ(expect_str, tiling_func_content);
 }
@@ -1533,7 +1541,8 @@ TEST_F(TestCodegenTiling, TestGenDfxInputSymbolInfo) {
   std::vector<af::Expression> origin_vars{af::Symbol("s0"), af::Symbol("s1"), af::Symbol("s2")};
   fused_schedule_result.origin_vars = origin_vars;
   auto gen_func = this->GenDfxInputSymbolInfo(fused_schedule_result, shape_info);
-  auto expect_func = R"(extern "C" ge::graphStatus DfxInputSymbolInfo(gert::TilingSymbolEvalContext *context, char *out_symbol_info, size_t size)
+  auto expect_func =
+      R"(extern "C" ge::graphStatus DfxInputSymbolInfo(gert::TilingSymbolEvalContext *context, char *out_symbol_info, size_t size)
 {
   if (out_symbol_info == nullptr || size == 0) {
     return ge::GRAPH_SUCCESS;
@@ -1710,7 +1719,6 @@ TEST_F(TestCodegenTiling, TestGenFindBestTilingKeyFuncForMultiResult) {
   schedule_group2.impl_graphs.push_back(graph1);
   schedule_group2.impl_graphs.push_back(graph2);
 
-
   // 单group，单graph
   ascir::ScheduledResult schedule_result1;
   schedule_result1.schedule_groups.push_back(schedule_group1);
@@ -1771,7 +1779,6 @@ TEST_F(TestCodegenTiling, TestGenFindBestTilingKeyFuncForEnableParallel) {
   schedule_group2.impl_graphs.push_back(graph1);
   schedule_group2.impl_graphs.push_back(graph2);
 
-
   // 单group，单graph
   ascir::ScheduledResult schedule_result1;
   schedule_result1.schedule_groups.push_back(schedule_group1);
@@ -1812,7 +1819,6 @@ TEST_F(TestCodegenTiling, TestGenExternTilingFunc) {
   ascir::ScheduleGroup schedule_group2;
   schedule_group2.impl_graphs.push_back(graph1);
   schedule_group2.impl_graphs.push_back(graph2);
-
 
   // 单group，单graph
   ascir::ScheduledResult schedule_result1;
@@ -2018,7 +2024,7 @@ void CreateMatmulGraph(af::AscGraph &graph, bool is_dynamic = false) {
   data0.y.dtype = ge::DT_FLOAT16;
   *data0.y.axis = {z0.id, z1.id};
   data0.attr.api.compute_type = af::ComputeType::kComputeInvalid;
-  *data0.y.strides = {s1 ,af::ops::One};
+  *data0.y.strides = {s1, af::ops::One};
   *data0.y.repeats = {s0, s1};
   data0.ir_attr.SetIndex(0);
 
@@ -2027,7 +2033,7 @@ void CreateMatmulGraph(af::AscGraph &graph, bool is_dynamic = false) {
   load0.x = data0.y;
   *load0.y.axis = {z0.id, z1.id};
   load0.y.dtype = ge::DT_FLOAT16;
-  *load0.y.strides = {s1 ,af::ops::One};
+  *load0.y.strides = {s1, af::ops::One};
   *load0.y.repeats = {s0, s1};
 
   af::ascir_op::Data data1("data1", graph);
@@ -2067,7 +2073,7 @@ void CreateMatmulGraph(af::AscGraph &graph, bool is_dynamic = false) {
   store_op.x = matmul.y;
   *store_op.y.axis = {z0.id, z1.id};
   store_op.y.dtype = ge::DT_FLOAT;
-  *store_op.y.strides = {s1 ,af::ops::One};
+  *store_op.y.strides = {s1, af::ops::One};
   *store_op.y.repeats = {s0, s1};
   store_op.ir_attr.SetOffset(af::ops::One);
 
@@ -2091,7 +2097,7 @@ TEST_F(TestCodegenTiling, TestMatmulElemwiseFuse) {
   data0.y.dtype = ge::DT_FLOAT;
   *data0.y.axis = {z0.id, z1.id};
   data0.attr.api.compute_type = af::ComputeType::kComputeInvalid;
-  *data0.y.strides = {s1 ,af::ops::One};
+  *data0.y.strides = {s1, af::ops::One};
   *data0.y.repeats = {s0, s1};
   data0.ir_attr.SetIndex(0);
 
@@ -2100,7 +2106,7 @@ TEST_F(TestCodegenTiling, TestMatmulElemwiseFuse) {
   load0.x = data0.y;
   *load0.y.axis = {z0.id, z1.id};
   load0.y.dtype = ge::DT_FLOAT;
-  *load0.y.strides = {s1 ,af::ops::One};
+  *load0.y.strides = {s1, af::ops::One};
   *load0.y.repeats = {s0, s1};
 
   af::ascir_op::Abs abs("abs");
@@ -2193,7 +2199,7 @@ TEST_F(TestCodegenTiling, TestMatmulElemwiseFuse) {
   store_op.x = mul.y;
   *store_op.y.axis = {z0.id, z1.id};
   store_op.y.dtype = ge::DT_FLOAT;
-  *store_op.y.strides = {s1 ,af::ops::One};
+  *store_op.y.strides = {s1, af::ops::One};
   *store_op.y.repeats = {s0, s1};
 
   af::ascir_op::Output output_op("output");
@@ -2216,12 +2222,13 @@ TEST_F(TestCodegenTiling, TestMatmulElemwiseFuse) {
   ascir::ScheduleGroup schedule_group2;
   schedule_group2.impl_graphs.push_back(mm_graph);
   fused_schedule_result.node_idx_to_scheduled_results[0][0].schedule_groups.push_back(schedule_group2);
-  fused_schedule_result.node_idx_to_scheduled_results[0][0].cube_type = ascir::CubeTemplateType::kUBFuse;;
+  fused_schedule_result.node_idx_to_scheduled_results[0][0].cube_type = ascir::CubeTemplateType::kUBFuse;
+  ;
   const std::map<std::string, std::string> shape_info;
   auto res = this->Generate(fused_schedule_result, shape_info, "", "0");
 
   std::fstream tiling_func("Mutmul_fuse_tiling_func.cpp", std::ios::out);
-tiling_func << res["tiling_def_and_tiling_const"];
+  tiling_func << res["tiling_def_and_tiling_const"];
 
   auto pos = res["tiling_def_and_tiling_const"].find("extern \"C\" int64_t FindBestTilingKey");
   ASSERT_NE(pos, std::string::npos);
@@ -2232,7 +2239,7 @@ tiling_func << res["tiling_def_and_tiling_const"];
 TEST_F(TestCodegenTiling, TestConv2DOffsetFuse) {
   af::AscGraph graph("conv2d_offset_elemwise_pro");
   CreateElemwiseGraphWithRelu(graph);
-  
+
   af::AscGraph conv2d_offset_graph("conv2d_offset");
   CreateConv2DOffsetGraph(conv2d_offset_graph);
 
@@ -2244,7 +2251,7 @@ TEST_F(TestCodegenTiling, TestConv2DOffsetFuse) {
   schedule_group2.impl_graphs.push_back(conv2d_offset_graph);
   fused_schedule_result.node_idx_to_scheduled_results[0][0].schedule_groups.push_back(schedule_group2);
   fused_schedule_result.node_idx_to_scheduled_results[0][0].cube_type = ascir::CubeTemplateType::kUBFuse;
-  
+
   const std::map<std::string, std::string> shape_info;
   auto res = this->Generate(fused_schedule_result, shape_info, "", "0");
 
@@ -2259,7 +2266,7 @@ TEST_F(TestCodegenTiling, TestConv2DOffsetFuse) {
 TEST_F(TestCodegenTiling, TestConv2DOffsetBiasFuse) {
   af::AscGraph graph("conv2d_offset_bias_elemwise_pro");
   CreateElemwiseGraphWithRelu(graph);
-  
+
   af::AscGraph conv2d_offset_bias_graph("conv2d_offset_bias");
   CreateConv2DOffsetBiasGraph(conv2d_offset_bias_graph);
 
@@ -2271,7 +2278,7 @@ TEST_F(TestCodegenTiling, TestConv2DOffsetBiasFuse) {
   schedule_group2.impl_graphs.push_back(conv2d_offset_bias_graph);
   fused_schedule_result.node_idx_to_scheduled_results[0][0].schedule_groups.push_back(schedule_group2);
   fused_schedule_result.node_idx_to_scheduled_results[0][0].cube_type = ascir::CubeTemplateType::kUBFuse;
-  
+
   const std::map<std::string, std::string> shape_info;
   auto res = this->Generate(fused_schedule_result, shape_info, "", "0");
 
@@ -2333,8 +2340,7 @@ TEST_F(TestCodegenTiling, GenerateForInductorGetTilingDataReprShouldContainStabl
   auto tiling_files = this->GenerateForInductor(fused_schedule_result);
   ASSERT_TRUE(tiling_files.find(codegen::kTilingDefAndConstIdentify) != tiling_files.end());
   const auto &tiling_impl = tiling_files.at(codegen::kTilingDefAndConstIdentify);
-  EXPECT_NE(tiling_impl.find("GetTilingDataRepr returns a valid C++ designated initializer string"),
-            std::string::npos);
+  EXPECT_NE(tiling_impl.find("GetTilingDataRepr returns a valid C++ designated initializer string"), std::string::npos);
   EXPECT_NE(tiling_impl.find("emit_field(\"block_dim\", tiling_data->get_block_dim()"), std::string::npos);
   EXPECT_NE(tiling_impl.find("emit_field(\"corenum\", tiling_data->get_corenum()"), std::string::npos);
   EXPECT_NE(tiling_impl.find("emit_field(\"ub_size\", tiling_data->get_ub_size()"), std::string::npos);
@@ -2368,8 +2374,7 @@ TEST_F(TestCodegenTiling, GenerateForInductorGetTilingDataReprShouldUseGraphLeve
   auto tiling_files = this->GenerateForInductor(fused_schedule_result);
   ASSERT_TRUE(tiling_files.find(codegen::kTilingDefAndConstIdentify) != tiling_files.end());
   const auto &tiling_impl = tiling_files.at(codegen::kTilingDefAndConstIdentify);
-  EXPECT_NE(tiling_impl.find("emit_field(\"graph0_tiling_key\""),
-            std::string::npos);
+  EXPECT_NE(tiling_impl.find("emit_field(\"graph0_tiling_key\""), std::string::npos);
   EXPECT_EQ(tiling_impl.find("emit_field(\"tiling_key\""), std::string::npos);
 }
 
@@ -2446,7 +2451,8 @@ TEST_F(TestCodegenTiling, MultiGroupInductorShouldContainTopnMainOutputAbi) {
   ASSERT_TRUE(res.find(codegen::kTilingDefAndConstIdentify) != res.end());
   const auto &tiling_impl = res.at(codegen::kTilingDefAndConstIdentify);
   EXPECT_NE(tiling_impl.find("extern \"C\" int64_t GenerateTopnSolutions("), std::string::npos);
-  EXPECT_NE(tiling_impl.find("const std::vector<std::map<std::string, std::string>> &input_configs"), std::string::npos);
+  EXPECT_NE(tiling_impl.find("const std::vector<std::map<std::string, std::string>> &input_configs"),
+            std::string::npos);
   EXPECT_NE(tiling_impl.find("std::vector<AutofuseTilingData> &tiling_datas"), std::string::npos);
   EXPECT_NE(tiling_impl.find("std::vector<int64_t> &workspaces"), std::string::npos);
   EXPECT_NE(tiling_impl.find("std::vector<int64_t> &block_dims"), std::string::npos);
@@ -2467,13 +2473,14 @@ TEST_F(TestCodegenTiling, MultiGroupInductorShouldContainReprAbi) {
   auto res = this->GenerateForInductor(fused_schedule_result);
   ASSERT_TRUE(res.find(codegen::kTilingDefAndConstIdentify) != res.end());
   const auto &tiling_impl = res.at(codegen::kTilingDefAndConstIdentify);
-  EXPECT_NE(tiling_impl.find("std::string GetTilingDataRepr(const AutofuseTilingData *tiling_data)"), std::string::npos);
+  EXPECT_NE(tiling_impl.find("std::string GetTilingDataRepr(const AutofuseTilingData *tiling_data)"),
+            std::string::npos);
 }
 
 TEST_F(TestCodegenTiling, TestMatmulElemwiseDynamicShapeFuse) {
   af::AscGraph graph("matmul_elemwise_pro");
   CreateMatmulElemwiseDynamicGraph(graph);
-  
+
   af::AscGraph mm_graph("mutmul");
   CreateMatmulGraph(mm_graph, true);
   optimize::Optimizer optimizer(optimize::OptimizerOptions{});
@@ -2484,7 +2491,7 @@ TEST_F(TestCodegenTiling, TestMatmulElemwiseDynamicShapeFuse) {
   schedule_group2.impl_graphs.push_back(mm_graph);
   fused_schedule_result.node_idx_to_scheduled_results[0][0].schedule_groups.push_back(schedule_group2);
   fused_schedule_result.node_idx_to_scheduled_results[0][0].cube_type = ascir::CubeTemplateType::kUBFuse;
-  
+
   std::map<std::string, std::string> shape_info;
   shape_info["s0"] = "64";
   shape_info["s1"] = "64";
@@ -2512,7 +2519,7 @@ void CreateConv2dGraph(af::AscGraph &graph, bool is_dynamic = false) {
     h = graph.CreateSizeVar(56);
     w = graph.CreateSizeVar(56);
   }
-  
+
   auto z_n = graph.CreateAxis("z_n", n);
   auto z_c = graph.CreateAxis("z_c", c);
   auto z_h = graph.CreateAxis("z_h", h);
@@ -2523,7 +2530,7 @@ void CreateConv2dGraph(af::AscGraph &graph, bool is_dynamic = false) {
   data0.y.dtype = ge::DT_FLOAT16;
   *data0.y.axis = {z_n.id, z_c.id, z_h.id, z_w.id};
   data0.attr.api.compute_type = af::ComputeType::kComputeInvalid;
-  *data0.y.strides = {c*h*w, h*w, w, af::ops::One};
+  *data0.y.strides = {c * h * w, h * w, w, af::ops::One};
   *data0.y.repeats = {n, c, h, w};
   data0.ir_attr.SetIndex(0);
 
@@ -2532,7 +2539,7 @@ void CreateConv2dGraph(af::AscGraph &graph, bool is_dynamic = false) {
   load0.x = data0.y;
   *load0.y.axis = {z_n.id, z_c.id, z_h.id, z_w.id};
   load0.y.dtype = ge::DT_FLOAT16;
-  *load0.y.strides = {c*h*w, h*w, w, af::ops::One};
+  *load0.y.strides = {c * h * w, h * w, w, af::ops::One};
   *load0.y.repeats = {n, c, h, w};
 
   af::ascir_op::Data data1("data1", graph);
@@ -2559,7 +2566,7 @@ void CreateConv2dGraph(af::AscGraph &graph, bool is_dynamic = false) {
   conv2d.y.dtype = ge::DT_FLOAT;
   *conv2d.y.axis = {z_n.id, z_c.id, z_h.id, z_w.id};
   *conv2d.y.repeats = {n, c, h, w};
-  *conv2d.y.strides = {c*h*w, h*w, w, af::ops::One};
+  *conv2d.y.strides = {c * h * w, h * w, w, af::ops::One};
   conv2d.attr.api.compute_type = af::ComputeType::kComputeCube;
   conv2d.ir_attr.SetStrides({1, 1});
   conv2d.ir_attr.SetPads({1, 1, 1, 1});
@@ -2574,7 +2581,7 @@ void CreateConv2dGraph(af::AscGraph &graph, bool is_dynamic = false) {
   store_op.x = conv2d.y;
   *store_op.y.axis = {z_n.id, z_c.id, z_h.id, z_w.id};
   store_op.y.dtype = ge::DT_FLOAT;
-  *store_op.y.strides = {c*h*w, h*w, w, af::ops::One};
+  *store_op.y.strides = {c * h * w, h * w, w, af::ops::One};
   *store_op.y.repeats = {n, c, h, w};
 
   af::ascir_op::Output output_op("output");
@@ -2600,7 +2607,7 @@ TEST_F(TestCodegenTiling, TestConv2dElemwiseFuse) {
   schedule_group2.impl_graphs.push_back(conv2d_graph);
   fused_schedule_result.node_idx_to_scheduled_results[0][0].schedule_groups.push_back(schedule_group2);
   fused_schedule_result.node_idx_to_scheduled_results[0][0].cube_type = ascir::CubeTemplateType::kUBFuse;
-  
+
   const std::map<std::string, std::string> shape_info;
   auto res = this->Generate(fused_schedule_result, shape_info, "", "0");
 
@@ -2626,7 +2633,7 @@ TEST_F(TestCodegenTiling, TestConv2dElemwiseDynamicShapeFuse) {
   schedule_group2.impl_graphs.push_back(conv2d_graph);
   fused_schedule_result.node_idx_to_scheduled_results[0][0].schedule_groups.push_back(schedule_group2);
   fused_schedule_result.node_idx_to_scheduled_results[0][0].cube_type = ascir::CubeTemplateType::kUBFuse;
-  
+
   std::map<std::string, std::string> shape_info;
   shape_info["n"] = "1";
   shape_info["c"] = "64";
@@ -2638,19 +2645,19 @@ TEST_F(TestCodegenTiling, TestConv2dElemwiseDynamicShapeFuse) {
   tiling_func << res["tiling_def_and_tiling_const"];
 
   VerifyDynamicShapeTiling(res);
-  
+
   auto n_val_pos = res["tiling_def_and_tiling_const"].find("auto n = 1;");
   ASSERT_NE(n_val_pos, std::string::npos);
-  
+
   auto c_val_pos = res["tiling_def_and_tiling_const"].find("auto c = 64;");
   ASSERT_NE(c_val_pos, std::string::npos);
-  
+
   auto h_val_pos = res["tiling_def_and_tiling_const"].find("auto h = 56;");
   ASSERT_NE(h_val_pos, std::string::npos);
-  
+
   auto w_val_pos = res["tiling_def_and_tiling_const"].find("auto w = 56;");
   ASSERT_NE(w_val_pos, std::string::npos);
-  
+
   auto dfx_pos = res["tiling_def_and_tiling_const"].find("extern \"C\" ge::graphStatus DfxInputSymbolInfo");
   ASSERT_NE(dfx_pos, std::string::npos);
 }
@@ -2670,7 +2677,7 @@ void CreateConv2dBiasGraph(af::AscGraph &graph, bool is_dynamic = false) {
     h = graph.CreateSizeVar(56);
     w = graph.CreateSizeVar(56);
   }
-  
+
   auto z_n = graph.CreateAxis("z_n", n);
   auto z_c = graph.CreateAxis("z_c", c);
   auto z_h = graph.CreateAxis("z_h", h);
@@ -2681,7 +2688,7 @@ void CreateConv2dBiasGraph(af::AscGraph &graph, bool is_dynamic = false) {
   data0.y.dtype = ge::DT_FLOAT16;
   *data0.y.axis = {z_n.id, z_c.id, z_h.id, z_w.id};
   data0.attr.api.compute_type = af::ComputeType::kComputeInvalid;
-  *data0.y.strides = {c*h*w, h*w, w, af::ops::One};
+  *data0.y.strides = {c * h * w, h * w, w, af::ops::One};
   *data0.y.repeats = {n, c, h, w};
   data0.ir_attr.SetIndex(0);
 
@@ -2690,7 +2697,7 @@ void CreateConv2dBiasGraph(af::AscGraph &graph, bool is_dynamic = false) {
   load0.x = data0.y;
   *load0.y.axis = {z_n.id, z_c.id, z_h.id, z_w.id};
   load0.y.dtype = ge::DT_FLOAT16;
-  *load0.y.strides = {c*h*w, h*w, w, af::ops::One};
+  *load0.y.strides = {c * h * w, h * w, w, af::ops::One};
   *load0.y.repeats = {n, c, h, w};
 
   af::ascir_op::Data data1("data1", graph);
@@ -2735,7 +2742,7 @@ void CreateConv2dBiasGraph(af::AscGraph &graph, bool is_dynamic = false) {
   conv2d_bias.y.dtype = ge::DT_FLOAT;
   *conv2d_bias.y.axis = {z_n.id, z_c.id, z_h.id, z_w.id};
   *conv2d_bias.y.repeats = {n, c, h, w};
-  *conv2d_bias.y.strides = {c*h*w, h*w, w, af::ops::One};
+  *conv2d_bias.y.strides = {c * h * w, h * w, w, af::ops::One};
   conv2d_bias.attr.api.compute_type = af::ComputeType::kComputeCube;
   conv2d_bias.ir_attr.SetStrides({1, 1});
   conv2d_bias.ir_attr.SetPads({1, 1, 1, 1});
@@ -2750,7 +2757,7 @@ void CreateConv2dBiasGraph(af::AscGraph &graph, bool is_dynamic = false) {
   store_op.x = conv2d_bias.y;
   *store_op.y.axis = {z_n.id, z_c.id, z_h.id, z_w.id};
   store_op.y.dtype = ge::DT_FLOAT;
-  *store_op.y.strides = {c*h*w, h*w, w, af::ops::One};
+  *store_op.y.strides = {c * h * w, h * w, w, af::ops::One};
   *store_op.y.repeats = {n, c, h, w};
 
   af::ascir_op::Output output_op("output");
@@ -2776,7 +2783,7 @@ TEST_F(TestCodegenTiling, TestConv2dBiasElemwiseFuse) {
   schedule_group2.impl_graphs.push_back(conv2d_bias_graph);
   fused_schedule_result.node_idx_to_scheduled_results[0][0].schedule_groups.push_back(schedule_group2);
   fused_schedule_result.node_idx_to_scheduled_results[0][0].cube_type = ascir::CubeTemplateType::kUBFuse;
-  
+
   const std::map<std::string, std::string> shape_info;
   auto res = this->Generate(fused_schedule_result, shape_info, "", "0");
 
@@ -2802,7 +2809,7 @@ TEST_F(TestCodegenTiling, TestConv2dBiasElemwiseDynamicShapeFuse) {
   schedule_group2.impl_graphs.push_back(conv2d_bias_graph);
   fused_schedule_result.node_idx_to_scheduled_results[0][0].schedule_groups.push_back(schedule_group2);
   fused_schedule_result.node_idx_to_scheduled_results[0][0].cube_type = ascir::CubeTemplateType::kUBFuse;
-  
+
   std::map<std::string, std::string> shape_info;
   shape_info["n"] = "1";
   shape_info["c"] = "64";
@@ -2814,16 +2821,16 @@ TEST_F(TestCodegenTiling, TestConv2dBiasElemwiseDynamicShapeFuse) {
   tiling_func << res["tiling_def_and_tiling_const"];
 
   VerifyDynamicShapeTiling(res);
-  
+
   auto n_val_pos = res["tiling_def_and_tiling_const"].find("auto n = 1;");
   ASSERT_NE(n_val_pos, std::string::npos);
-  
+
   auto c_val_pos = res["tiling_def_and_tiling_const"].find("auto c = 64;");
   ASSERT_NE(c_val_pos, std::string::npos);
-  
+
   auto h_val_pos = res["tiling_def_and_tiling_const"].find("auto h = 56;");
   ASSERT_NE(h_val_pos, std::string::npos);
-  
+
   auto w_val_pos = res["tiling_def_and_tiling_const"].find("auto w = 56;");
   ASSERT_NE(w_val_pos, std::string::npos);
 }
@@ -2835,7 +2842,7 @@ void CreateBatchMatmulDynamicGraph(af::AscGraph &graph) {
   auto m = graph.CreateSizeVar("m");
   auto n = graph.CreateSizeVar("n");
   auto k = graph.CreateSizeVar("k");
-  
+
   auto z_batch = graph.CreateAxis("z_batch", batch);
   auto z_m = graph.CreateAxis("z_m", m);
   auto z_n = graph.CreateAxis("z_n", n);
@@ -2846,7 +2853,7 @@ void CreateBatchMatmulDynamicGraph(af::AscGraph &graph) {
   data0.y.dtype = ge::DT_FLOAT16;
   *data0.y.axis = {z_batch.id, z_m.id, z_k.id};
   data0.attr.api.compute_type = af::ComputeType::kComputeInvalid;
-  *data0.y.strides = {m*k, k, af::ops::One};
+  *data0.y.strides = {m * k, k, af::ops::One};
   *data0.y.repeats = {batch, m, k};
   data0.ir_attr.SetIndex(0);
 
@@ -2855,7 +2862,7 @@ void CreateBatchMatmulDynamicGraph(af::AscGraph &graph) {
   load0.x = data0.y;
   *load0.y.axis = {z_batch.id, z_m.id, z_k.id};
   load0.y.dtype = ge::DT_FLOAT16;
-  *load0.y.strides = {m*k, k, af::ops::One};
+  *load0.y.strides = {m * k, k, af::ops::One};
   *load0.y.repeats = {batch, m, k};
 
   af::ascir_op::Data data1("data1", graph);
@@ -2864,7 +2871,7 @@ void CreateBatchMatmulDynamicGraph(af::AscGraph &graph) {
   *data1.y.axis = {z_batch.id, z_k.id, z_n.id};
   data1.attr.api.compute_type = af::ComputeType::kComputeInvalid;
   *data1.y.repeats = {batch, k, n};
-  *data1.y.strides = {k*n, n, af::ops::One};
+  *data1.y.strides = {k * n, n, af::ops::One};
   data1.ir_attr.SetIndex(1);
 
   af::ascir_op::Load load1("load1");
@@ -2872,7 +2879,7 @@ void CreateBatchMatmulDynamicGraph(af::AscGraph &graph) {
   load1.attr.sched.axis = {z_batch.id, z_k.id, z_n.id};
   load1.y.dtype = ge::DT_FLOAT16;
   *load1.y.axis = {z_batch.id, z_k.id, z_n.id};
-  *load1.y.strides = {k*n, n, af::ops::One};
+  *load1.y.strides = {k * n, n, af::ops::One};
   *load1.y.repeats = {batch, k, n};
 
   af::ascir_op::BatchMatMul batch_matmul("batch_matmul");
@@ -2882,7 +2889,7 @@ void CreateBatchMatmulDynamicGraph(af::AscGraph &graph) {
   batch_matmul.y.dtype = ge::DT_FLOAT;
   *batch_matmul.y.axis = {z_batch.id, z_m.id, z_n.id};
   *batch_matmul.y.repeats = {batch, m, n};
-  *batch_matmul.y.strides = {m*n, n, af::ops::One};
+  *batch_matmul.y.strides = {m * n, n, af::ops::One};
   batch_matmul.attr.api.compute_type = af::ComputeType::kComputeCube;
   batch_matmul.ir_attr.SetAdj_x1(0);
   batch_matmul.ir_attr.SetAdj_x2(0);
@@ -2895,7 +2902,7 @@ void CreateBatchMatmulDynamicGraph(af::AscGraph &graph) {
   store_op.x = batch_matmul.y;
   *store_op.y.axis = {z_batch.id, z_m.id, z_n.id};
   store_op.y.dtype = ge::DT_FLOAT;
-  *store_op.y.strides = {m*n, n, af::ops::One};
+  *store_op.y.strides = {m * n, n, af::ops::One};
   *store_op.y.repeats = {batch, m, n};
 
   af::ascir_op::Output output_op("output");
@@ -2919,7 +2926,7 @@ TEST_F(TestCodegenTiling, TestBatchMatmulDynamicShapeFuse) {
   schedule_group2.impl_graphs.push_back(mm_graph);
   fused_schedule_result.node_idx_to_scheduled_results[0][0].schedule_groups.push_back(schedule_group2);
   fused_schedule_result.node_idx_to_scheduled_results[0][0].cube_type = ascir::CubeTemplateType::kUBFuse;
-  
+
   std::map<std::string, std::string> shape_info;
   shape_info["batch"] = "16";
   shape_info["m"] = "64";
@@ -2932,7 +2939,7 @@ TEST_F(TestCodegenTiling, TestBatchMatmulDynamicShapeFuse) {
 
   auto pos = res["tiling_def_and_tiling_const"].find("TilingResult result = wrapper.DoMatMulTiling(");
   ASSERT_NE(pos, std::string::npos);
-  
+
   auto dynamic_pos = res["tiling_def_and_tiling_const"].find("AutofuseIsStaticShape() {\n  return false;");
   ASSERT_NE(dynamic_pos, std::string::npos);
 }
@@ -2953,7 +2960,7 @@ TEST_F(TestCodegenTiling, TestConv2dWithGroups) {
   schedule_group2.impl_graphs.push_back(conv2d_graph);
   fused_schedule_result.node_idx_to_scheduled_results[0][0].schedule_groups.push_back(schedule_group2);
   fused_schedule_result.node_idx_to_scheduled_results[0][0].cube_type = ascir::CubeTemplateType::kUBFuse;
-  
+
   const std::map<std::string, std::string> shape_info;
   auto res = this->Generate(fused_schedule_result, shape_info, "", "0");
 
@@ -2979,7 +2986,7 @@ TEST_F(TestCodegenTiling, TestConv2dWithDilation) {
   schedule_group2.impl_graphs.push_back(conv2d_graph);
   fused_schedule_result.node_idx_to_scheduled_results[0][0].schedule_groups.push_back(schedule_group2);
   fused_schedule_result.node_idx_to_scheduled_results[0][0].cube_type = ascir::CubeTemplateType::kUBFuse;
-  
+
   const std::map<std::string, std::string> shape_info;
   auto res = this->Generate(fused_schedule_result, shape_info, "", "0");
 
@@ -3037,7 +3044,8 @@ TEST_F(TestCodegenTiling, GetTilingShouldEnterMainSearchNotForKey) {
   auto tiling_files = this->GenerateForInductor(fused_schedule_result);
   ASSERT_TRUE(tiling_files.find(codegen::kTilingDefAndConstIdentify) != tiling_files.end());
   const auto &tiling_impl = tiling_files.at(codegen::kTilingDefAndConstIdentify);
-  EXPECT_NE(tiling_impl.find("int64_t GetTopnCandidateSolutions(const GetTilingRequest &request, GetTilingResponse &response)"),
+  EXPECT_NE(tiling_impl.find(
+                "int64_t GetTopnCandidateSolutions(const GetTilingRequest &request, GetTilingResponse &response)"),
             std::string::npos);
   // GetTiling must enter ATT main search skeleton via PGOSearchTilingKey (which internally calls
   // SearchAllTilingbyCaseId / ExecutePGOSolver). In codegen UT (no ATT callback), verify PGOSearchTilingKey
@@ -3278,8 +3286,7 @@ TEST_F(TestCodegenTiling, ExplicitConfigsPassSearchConfigPointerToTopnSearch) {
   auto tiling_files = this->GenerateForInductor(fused_schedule_result);
   ASSERT_TRUE(tiling_files.find(codegen::kTilingDefAndConstIdentify) != tiling_files.end());
   const auto &tiling_impl = tiling_files.at(codegen::kTilingDefAndConstIdentify);
-  EXPECT_NE(tiling_impl.find("for (const auto &cfg : configs) { config_ptrs.push_back(&cfg); }"),
-            std::string::npos);
+  EXPECT_NE(tiling_impl.find("for (const auto &cfg : configs) { config_ptrs.push_back(&cfg); }"), std::string::npos);
   EXPECT_NE(tiling_impl.find("cfg->ub_threshold"), std::string::npos);
   const auto search_call_pos =
       tiling_impl.find("PGOSearchTilingKey(raw_candidates, cur_search_tiling, -1, &cur_search_tiling, ");

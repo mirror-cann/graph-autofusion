@@ -70,7 +70,8 @@ class Expression {
   std::unique_ptr<char[]> Serialize() const;
 
   /**
-   * @brief 反序列化，与Serialize接口匹配，将字符串转换成表达式，同时会校验字符串格式是否为序列化接口序列化出的字符串，如果不是则会报错
+   * @brief
+   * 反序列化，与Serialize接口匹配，将字符串转换成表达式，同时会校验字符串格式是否为序列化接口序列化出的字符串，如果不是则会报错
    */
   static Expression Deserialize(const char *str);
 
@@ -105,8 +106,8 @@ class Expression {
   Expression Replace(const std::vector<std::pair<Expression, Expression>> &replace_vars) const;
 
   /**
-   * @brief 对当前表达式中的符号进行替换，如对于表达式expr = x + y，expr.subs({x:2, y:z+1}) -> y + z + 1。于repalce比较功能较单一，
-   *        只能替换单一符号，无法处理复杂的表达式
+   * @brief 对当前表达式中的符号进行替换，如对于表达式expr = x + y，expr.subs({x:2, y:z+1}) -> y + z +
+   * 1。于repalce比较功能较单一， 只能替换单一符号，无法处理复杂的表达式
    * @param subs_vars 待替换的符号列表，pair中first为被替换的表达式，second为替换的表达式
    * @return 替换后表达式
    */
@@ -123,8 +124,8 @@ class Expression {
   bool ContainVar(const Expression &e) const;
 
   /**
-  * @brief 获取表达式的分子和分母，例如表达式Rational(2, 3) * s1，分子numer=2*s1，分母denom=3
-  */
+   * @brief 获取表达式的分子和分母，例如表达式Rational(2, 3) * s1，分子numer=2*s1，分母denom=3
+   */
   void AsNumerDenom(Expression &numer, Expression &denom) const;
 
   /**
@@ -134,9 +135,9 @@ class Expression {
   /**
    * @brief 判断一个expr与常量是否相等
    */
-  template<typename T>
-  typename std::enable_if<std::is_integral<T>::value || std::is_floating_point<T>::value, bool>::type
-  operator==(const T &e) const;
+  template <typename T>
+  typename std::enable_if<std::is_integral<T>::value || std::is_floating_point<T>::value, bool>::type operator==(
+      const T &e) const;
 
   /**
    * @brief 判断两个Expr是否不相等
@@ -146,9 +147,9 @@ class Expression {
   /**
    * @brief 判断一个expr与常量是否不相等
    */
-  template<typename T>
-  typename std::enable_if<std::is_integral<T>::value || std::is_floating_point<T>::value, bool>::type
-  operator!=(const T &e) const;
+  template <typename T>
+  typename std::enable_if<std::is_integral<T>::value || std::is_floating_point<T>::value, bool>::type operator!=(
+      const T &e) const;
 
   /**
    * @brief 获取表达式最基础的元素。例如x - (y * z)，返回{x, y, z}, 注意该接口没有依据字符去重
@@ -171,8 +172,8 @@ class Expression {
   uint64_t Hash() const;
 
   /**
-  * @brief 分别返回 -1, 0, 1 当 `this < e, this == e, this > e`.
-  */
+   * @brief 分别返回 -1, 0, 1 当 `this < e, this == e, this > e`.
+   */
   int64_t Compare(const Expression &e) const;
 
   /**
@@ -180,18 +181,18 @@ class Expression {
    * @param value 常量的值
    * @return 成功返回true，失败返回false，失败时value的值无效
    */
-  template<typename T>
-  typename std::enable_if<std::is_integral<T>::value || std::is_floating_point<T>::value, bool>::type
-  GetConstValue(T &value) const;
+  template <typename T>
+  typename std::enable_if<std::is_integral<T>::value || std::is_floating_point<T>::value, bool>::type GetConstValue(
+      T &value) const;
 
   /**
    * @brief 获取表达式hint值
    * @param hint 获取表达式的hint值
    * @return 成功返回true，失败返回false，失败时value的值无效
-  */
-  template<typename T>
-  typename std::enable_if<std::is_integral<T>::value || std::is_floating_point<T>::value, bool>::type
-  GetHint(T &hint) const {
+   */
+  template <typename T>
+  typename std::enable_if<std::is_integral<T>::value || std::is_floating_point<T>::value, bool>::type GetHint(
+      T &hint) const {
     return ComputeHint(hint);
   }
 
@@ -218,22 +219,23 @@ class Expression {
   friend Expression sym::Align(const Expression &arg, uint32_t alignment);
   friend Expression sym::AlignWithPositiveInteger(const Expression &arg, uint32_t alignment);
   friend std::ostream &operator<<(std::ostream &os, const Expression &e);
-  friend Expression sym::Eq(const Expression &a, const Expression &b); // ==
-  friend Expression sym::Ne(const Expression &a, const Expression &b); // !=
-  friend Expression sym::Ge(const Expression &a, const Expression &b); // >=
-  friend Expression sym::Gt(const Expression &a, const Expression &b); // >
-  friend Expression sym::Le(const Expression &a, const Expression &b); // <=
-  friend Expression sym::Lt(const Expression &a, const Expression &b); // <
-  friend Expression sym::Not(const Expression &a); // !
-  friend Expression sym::Neg(const Expression &a); // 负号
+  friend Expression sym::Eq(const Expression &a, const Expression &b);  // ==
+  friend Expression sym::Ne(const Expression &a, const Expression &b);  // !=
+  friend Expression sym::Ge(const Expression &a, const Expression &b);  // >=
+  friend Expression sym::Gt(const Expression &a, const Expression &b);  // >
+  friend Expression sym::Le(const Expression &a, const Expression &b);  // <=
+  friend Expression sym::Lt(const Expression &a, const Expression &b);  // <
+  friend Expression sym::Not(const Expression &a);                      // !
+  friend Expression sym::Neg(const Expression &a);                      // 负号
   friend Expression sym::LogicalAnd(const std::vector<Expression> &a);
   friend Expression sym::LogicalOr(const std::vector<Expression> &a);
   friend class ShapeEnvAttr;
+
  protected:
   explicit Expression(ExpressionImplPtr &&e);
-  template<typename T>
-  typename std::enable_if<std::is_integral<T>::value || std::is_floating_point<T>::value, bool>::type
-  ComputeHint(T &hint) const;
+  template <typename T>
+  typename std::enable_if<std::is_integral<T>::value || std::is_floating_point<T>::value, bool>::type ComputeHint(
+      T &hint) const;
   ExpressionImplPtr impl_;
 
  private:
@@ -265,18 +267,19 @@ class Symbol : public Expression {
    */
   std::unique_ptr<char[]> GetName() const;
   friend class ShapeEnvAttr;
+
  private:
   explicit Symbol(ExpressionImplPtr &&e);
 };
 
-template<typename T>
+template <typename T>
 typename std::enable_if<std::is_integral<T>::value || std::is_floating_point<T>::value, bool>::type
 Expression::operator==(const T &e) const {
   Symbol symbol(e);
   return (*this == symbol);
 }
 
-template<typename T>
+template <typename T>
 typename std::enable_if<std::is_integral<T>::value || std::is_floating_point<T>::value, bool>::type
 Expression::operator!=(const T &e) const {
   Symbol symbol(e);
@@ -306,10 +309,8 @@ struct ExpressionKeyLess {
   bool operator()(const Expression &x, const Expression &y) const {
     int64_t xh = x.Hash();
     int64_t yh = y.Hash();
-    if (xh != yh)
-      return xh < yh;
-    if (x == y)
-      return false;
+    if (xh != yh) return xh < yh;
+    if (x == y) return false;
     return x.Compare(y) == -1;
   }
 };

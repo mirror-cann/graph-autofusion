@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -21,7 +21,7 @@
 #include <string>
 #include <sstream>
 
-std::vector<std::string> splitString(const std::string& input, char delimiter) {
+std::vector<std::string> splitString(const std::string &input, char delimiter) {
   std::vector<std::string> result;
   std::stringstream ss(input);
   std::string token;
@@ -65,24 +65,24 @@ ascir::FusedScheduledResult GenTestCase(int32_t num_groups) {
   return fused_schedule_result;
 }
 
-class DynamicInputsAndOutputsST : public testing::Test {
-};
+class DynamicInputsAndOutputsST : public testing::Test {};
 
 TEST_F(DynamicInputsAndOutputsST, DynamicInputsAndOutputsCodegen) {
-  bool gen_success= true;
+  bool gen_success = true;
   af::AscGraph test_graph("dynamic_inputs_and_outputs");
   std::string tiling_stub = R"(
 #define REGISTER_TILING_DEFAULT(tiling)
 #define GET_TILING_DATA(t, tiling)  AutofuseTilingData t = *(AutofuseTilingData*)tiling;
 )";
   std::vector<std::string> parts = splitString(KERNEL_SRC_LIST, ':');
-  std::string kernel_src_file_name = parts[0];      // load_cast_store_kernel.cpp
-  std::string tiling_src_file_name = parts[1];      // load_cast_store_tiling.cpp
-  std::string tiling_data_src_file_name = parts[2]; // autofuse_tiling_data.h
+  std::string kernel_src_file_name = parts[0];       // load_cast_store_kernel.cpp
+  std::string tiling_src_file_name = parts[1];       // load_cast_store_tiling.cpp
+  std::string tiling_data_src_file_name = parts[2];  // autofuse_tiling_data.h
 
   try {
-    auto codegen = codegen::Codegen(codegen::CodegenOptions{
-        .tiling_lib_path = ATT_SO_NAME, .tiling_lib_codegen_symbol = "CodegenTiling", .using_att_calc_qbt_size = false});
+    auto codegen = codegen::Codegen(codegen::CodegenOptions{.tiling_lib_path = ATT_SO_NAME,
+                                                            .tiling_lib_codegen_symbol = "CodegenTiling",
+                                                            .using_att_calc_qbt_size = false});
 
     std::fstream kernel_file(kernel_src_file_name, std::ios::out);
     std::fstream tiling_file(tiling_src_file_name, std::ios::out);
@@ -113,8 +113,7 @@ TEST_F(DynamicInputsAndOutputsST, DynamicInputsAndOutputsCodegen) {
     auto fused_schedule_result_64_inputs = GenTestCase(64);
     EXPECT_EQ(codegen.Generate(fused_schedule_result_64_inputs, result), 0);
     EXPECT_TRUE(RemoveSubDirInclude(result.kernel).find("kernel_operator_list_tensor_intf.h") != std::string::npos);
-  }
-  catch (...) {
+  } catch (...) {
     gen_success = false;
   }
 

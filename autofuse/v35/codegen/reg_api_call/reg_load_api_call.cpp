@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -26,7 +26,7 @@ using namespace af::ascir_op;
 namespace {
 constexpr size_t kDmaMaxLen = 2U;
 constexpr size_t kFourAxisNum = 4U;
-}
+}  // namespace
 namespace codegen {
 Status LoadRegApiCall::ParseAttr(const ascir::NodeView &node) {
   (void)node->attr.ir_attr->GetAttrValue("offset", offset_);
@@ -58,7 +58,8 @@ Status LoadRegApiCall::BuildApiParam(const TPipe &tpipe, const std::vector<ascir
   return af::SUCCESS;
 }
 
-Status LoadRegApiCall::GenDimensionParam(const CodegenApiParam &api_param, const Tiler &tiler, std::stringstream &ss) const {
+Status LoadRegApiCall::GenDimensionParam(const CodegenApiParam &api_param, const Tiler &tiler,
+                                         std::stringstream &ss) const {
   return GenDataCopyDimParam(api_param, tiler, graph_name, node_name, ss);
 }
 static ApiCallRegister<LoadRegApiCall> register_load_reg_api_call("LoadRegApiCall");

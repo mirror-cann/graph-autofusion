@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -22,12 +22,7 @@ namespace profiling {
 constexpr size_t kMaxStrLen = 256UL;
 constexpr int64_t kMaxStrIndex = 1024 * 1024;
 constexpr size_t kMaxRecordNum = 10UL * 1024UL * 1024UL;
-enum class EventType {
-  kEventStart,
-  kEventEnd,
-  kEventTimestamp,
-  kEventTypeEnd
-};
+enum class EventType { kEventStart, kEventEnd, kEventTimestamp, kEventTypeEnd };
 struct ProfilingRecord {
   int64_t element;
   int64_t thread;
@@ -37,8 +32,8 @@ struct ProfilingRecord {
 };
 
 struct StrHash {
-    char_t str[kMaxStrLen];
-    uint64_t hash;
+  char_t str[kMaxStrLen];
+  uint64_t hash;
 };
 
 class Profiler {
@@ -60,9 +55,9 @@ class Profiler {
   const ProfilingRecord *GetRecords() const;
 
   using ConstStringHashesPointer = StrHash const(*);
-  using StringHashesPointer = StrHash (*);
+  using StringHashesPointer = StrHash(*);
   ConstStringHashesPointer GetStringHashes() const;
-  StringHashesPointer GetStringHashes() ;
+  StringHashesPointer GetStringHashes();
 
   ~Profiler();
   Profiler();
@@ -75,6 +70,6 @@ class Profiler {
   std::array<ProfilingRecord, kMaxRecordNum> records_;
   StrHash indexes_to_str_hashes_[kMaxStrIndex];
 };
-}
-}
+}  // namespace profiling
+}  // namespace af
 #endif  // METADEF_CXX_PROFILER_H

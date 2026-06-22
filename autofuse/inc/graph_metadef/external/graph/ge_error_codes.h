@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -14,12 +14,12 @@
 #include <cstdint>
 
 namespace af {
-#if(defined(HOST_VISIBILITY)) && (defined(__GNUC__))
+#if (defined(HOST_VISIBILITY)) && (defined(__GNUC__))
 #define GE_FUNC_HOST_VISIBILITY __attribute__((visibility("default")))
 #else
 #define GE_FUNC_HOST_VISIBILITY
 #endif
-#if(defined(DEV_VISIBILITY)) && (defined(__GNUC__))
+#if (defined(DEV_VISIBILITY)) && (defined(__GNUC__))
 #define GE_FUNC_DEV_VISIBILITY __attribute__((visibility("default")))
 #else
 #define GE_FUNC_DEV_VISIBILITY
@@ -67,23 +67,23 @@ const graphStatus GRAPH_RoundUp_Overflow = 50331426;
 
 namespace ge {
 using graphStatus = af::graphStatus;
+using af::GRAPH_ADD_OVERFLOW;
 using af::GRAPH_FAILED;
-using af::GRAPH_SUCCESS;
-using af::GRAPH_NOT_CHANGED;
-using af::GRAPH_PARAM_INVALID;
-using af::GRAPH_NODE_WITHOUT_CONST_INPUT;
-using af::GRAPH_NODE_NEED_REPASS;
 using af::GRAPH_INVALID_IR_DEF;
-using af::OP_WITHOUT_IR_DATATYPE_INFER_RULE;
-using af::GRAPH_PARAM_OUT_OF_RANGE;
+using af::GRAPH_MATH_CAL_FAILED;
 using af::GRAPH_MEM_OPERATE_FAILED;
-using af::GRAPH_NULL_PTR;
 using af::GRAPH_MEMCPY_FAILED;
 using af::GRAPH_MEMSET_FAILED;
-using af::GRAPH_MATH_CAL_FAILED;
-using af::GRAPH_ADD_OVERFLOW;
 using af::GRAPH_MUL_OVERFLOW;
+using af::GRAPH_NODE_NEED_REPASS;
+using af::GRAPH_NODE_WITHOUT_CONST_INPUT;
+using af::GRAPH_NOT_CHANGED;
+using af::GRAPH_NULL_PTR;
+using af::GRAPH_PARAM_INVALID;
+using af::GRAPH_PARAM_OUT_OF_RANGE;
 using af::GRAPH_RoundUp_Overflow;
+using af::GRAPH_SUCCESS;
+using af::OP_WITHOUT_IR_DATATYPE_INFER_RULE;
 const graphStatus PARAM_INVALID = GRAPH_PARAM_INVALID;
 }  // namespace ge
 

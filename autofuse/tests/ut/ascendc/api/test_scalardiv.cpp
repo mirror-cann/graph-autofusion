@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -17,15 +17,15 @@ using namespace AscendC;
 #include "utils.h"
 #include "scalar_div.h"
 
-template<class T>
-void GmToUb(LocalTensor<T>& local, T* gm, int size) {
+template <class T>
+void GmToUb(LocalTensor<T> &local, T *gm, int size) {
   for (int i = 0; i < size; i++) {
     local.SetValue(i, gm[i]);
   }
 }
 
-template<class T>
-void UbToGm(T* gm, LocalTensor<T>& local, int size) {
+template <class T>
+void UbToGm(T *gm, LocalTensor<T> &local, int size) {
   for (int i = 0; i < size; i++) {
     gm[i] = local.GetValue(i);
   }
@@ -34,8 +34,8 @@ void UbToGm(T* gm, LocalTensor<T>& local, int size) {
 TEST(TestApiScalarDiv, Test_a1_to_ab) {
   // 构造测试输入和预期结果
   int a = 2, b = 4;
-  auto *x = (half*)AscendC::GmAlloc(sizeof(half) * a * b);
-  auto *y = (half*)AscendC::GmAlloc(sizeof(half) * a * b);
+  auto *x = (half *)AscendC::GmAlloc(sizeof(half) * a * b);
+  auto *y = (half *)AscendC::GmAlloc(sizeof(half) * a * b);
 
   half expect[a][b];
 
@@ -77,7 +77,7 @@ TEST(TestApiScalarDiv, Test_a1_to_ab) {
   int diff_count = 0;
   for (int i = 0; i < a; i++) {
     for (int j = 0; j < b; j++) {
-      auto diff = (double)(y[i*b + j] - expect[i][j]);
+      auto diff = (double)(y[i * b + j] - expect[i][j]);
       if (diff < -1e-5 || diff > 1e-5) {
         diff_count++;
       }
@@ -90,15 +90,15 @@ TEST(TestApiScalarDiv, Test_a1_to_ab) {
 TEST(TestApiScalarDiv, Test_scalar_latter) {
   // 构造测试输入和预期结果
   int a = 2, b = 4;
-  auto *x = (half*)AscendC::GmAlloc(sizeof(half) * a * b);
-  auto *y = (half*)AscendC::GmAlloc(sizeof(half) * a * b);
+  auto *x = (half *)AscendC::GmAlloc(sizeof(half) * a * b);
+  auto *y = (half *)AscendC::GmAlloc(sizeof(half) * a * b);
 
   half expect[a][b];
 
   for (int i = 0; i < a; i++) {
     for (int j = 0; j < b; j++) {
       x[i * b + j] = (double)(i + 1);
-      expect[i][j] = (double)((i + 1)/ 1.0);
+      expect[i][j] = (double)((i + 1) / 1.0);
     }
   }
 
@@ -133,7 +133,7 @@ TEST(TestApiScalarDiv, Test_scalar_latter) {
   int diff_count = 0;
   for (int i = 0; i < a; i++) {
     for (int j = 0; j < b; j++) {
-      auto diff = (double)(y[i*b + j] - expect[i][j]);
+      auto diff = (double)(y[i * b + j] - expect[i][j]);
       if (diff < -1e-5 || diff > 1e-5) {
         diff_count++;
       }
@@ -146,8 +146,8 @@ TEST(TestApiScalarDiv, Test_scalar_latter) {
 TEST(TestApiScalarDiv, Test_scalar_front_float) {
   // 构造测试输入和预期结果
   int calc_size = 3840;
-  auto *x = (float*)AscendC::GmAlloc(sizeof(float) * calc_size);
-  auto *y = (float*)AscendC::GmAlloc(sizeof(float) * calc_size);
+  auto *x = (float *)AscendC::GmAlloc(sizeof(float) * calc_size);
+  auto *y = (float *)AscendC::GmAlloc(sizeof(float) * calc_size);
 
   float expect[calc_size];
 
@@ -198,7 +198,7 @@ TEST(TestApiScalarDiv, Test_scalar_front_float) {
 TEST(TestApiScalarDiv, Test_scalar_both) {
   // 构造测试输入和预期结果
   int calc_size = 8;
-  auto *y = (float*)AscendC::GmAlloc(sizeof(float) * calc_size);
+  auto *y = (float *)AscendC::GmAlloc(sizeof(float) * calc_size);
 
   float expect[calc_size];
 

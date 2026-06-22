@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -28,7 +28,9 @@ class E2E_LoadAbsStore : public ::testing::Test {
   optimize::Optimizer optimizer;
   codegen::Codegen codegen;
 
-  E2E_LoadAbsStore() : optimizer(optimize::OptimizerOptions{}), codegen(codegen::CodegenOptions{.tiling_lib_path="asdf",.tiling_lib_codegen_symbol="as"}) {}
+  E2E_LoadAbsStore()
+      : optimizer(optimize::OptimizerOptions{}),
+        codegen(codegen::CodegenOptions{.tiling_lib_path = "asdf", .tiling_lib_codegen_symbol = "as"}) {}
 
   void SetUp() override {
     ge::PlatformContext::GetInstance().Reset();
@@ -52,8 +54,8 @@ std::string RemoveAutoFuseTilingHeadGuards(const std::string &input) {
 }
 
 void CombineTilings(const std::map<std::string, std::string> &tilings, std::string &result) {
-  const std::string tiling_head = "TilingHead";  // TilingHead作为开头拼接其他文件
-  const std::string tiling_data = "TilingData";  // 要排除的 TilingData 子串
+  const std::string tiling_head = "TilingHead";                       // TilingHead作为开头拼接其他文件
+  const std::string tiling_data = "TilingData";                       // 要排除的 TilingData 子串
   result += RemoveAutoFuseTilingHeadGuards(tilings.at(tiling_head));  // 删除头文件的宏保护，cpp文件不需要
   const std::string include_str = "#include \"autofuse_tiling_func_common.h\"";
 
@@ -1765,7 +1767,6 @@ extern "C" const char* GetTilingKeyKernelTypeForStatic()
 )rawliteral";
 }
 
-
 TEST_F(E2E_LoadAbsStore, ConstructGraphWithAscir) {
   af::AscGraph test_graph("test_load_abs_store");
   LoadAbsStore_BeforeAutofuse(test_graph);
@@ -1790,8 +1791,7 @@ TEST_F(E2E_LoadAbsStore, GetApiInfo) {
   EXPECT_EQ(utils::DebugHintGraphStr(test_graph), utils::DebugHintGraphStr(expect_graph));
 }
 
-TEST_F(E2E_LoadAbsStore, Codegen_TilingData)
-{
+TEST_F(E2E_LoadAbsStore, Codegen_TilingData) {
   af::AscGraph test_graph("test_graph");
   LoadAbsStore_BeforeAutofuse(test_graph);
   LoadAbsStore_AfterInferOutput(test_graph);
@@ -1836,8 +1836,7 @@ struct AutofuseTilingDataPerf {
   EXPECT_EQ(tiling_data_code, test_res);
 }
 
-TEST_F(E2E_LoadAbsStore, Codegen_Tiling_With_Lambda)
-{
+TEST_F(E2E_LoadAbsStore, Codegen_Tiling_With_Lambda) {
   af::AscGraph test_graph("test_graph");
   LoadAbsStore_BeforeAutofuse(test_graph);
   LoadAbsStore_AfterInferOutput(test_graph);
@@ -1853,9 +1852,9 @@ TEST_F(E2E_LoadAbsStore, Codegen_Tiling_With_Lambda)
   std::vector<ScheduledResult> schedule_results;
   fused_schedule_result.node_idx_to_scheduled_results.push_back(schedule_results);
   auto tiling_codes = codegen.GenerateTiling(fused_schedule_result, shape_info, "", "0");
-  for (const auto&[key,value] : tiling_codes) {
-    std::cout << key <<std::endl;
-    std::cout << value <<std::endl;
+  for (const auto &[key, value] : tiling_codes) {
+    std::cout << key << std::endl;
+    std::cout << value << std::endl;
   }
   std::string tiling_code;
   CombineTilings(tiling_codes, tiling_code);
@@ -1866,8 +1865,7 @@ TEST_F(E2E_LoadAbsStore, Codegen_Tiling_With_Lambda)
   EXPECT_EQ(tiling_code.find("AscirCompileAndLaunch"), std::string::npos);
 }
 
-TEST_F(E2E_LoadAbsStore, Codegen_Tiling_With_Set_Vector_Core_Num)
-{
+TEST_F(E2E_LoadAbsStore, Codegen_Tiling_With_Set_Vector_Core_Num) {
   af::AscGraph test_graph("test_graph");
   LoadAbsStore_BeforeAutofuse(test_graph);
   LoadAbsStore_AfterInferOutput(test_graph);
@@ -1900,9 +1898,7 @@ TEST_F(E2E_LoadAbsStore, Codegen_Tiling_With_Set_Vector_Core_Num)
     return tensor->GetOriginShape().GetDim(1);
   }())";
 
-  std::map<std::string, std::string> shape_info = {{"s0", s0_source},
-                                                   {"s1", s1_source},
-                                                   {"s2", s2_source}};
+  std::map<std::string, std::string> shape_info = {{"s0", s0_source}, {"s1", s1_source}, {"s2", s2_source}};
   FusedScheduledResult fused_schedule_result;
   fused_schedule_result.fused_graph_name = af::AscendString(test_graph.GetName().c_str());
   std::vector<ScheduledResult> schedule_results;
@@ -1910,8 +1906,7 @@ TEST_F(E2E_LoadAbsStore, Codegen_Tiling_With_Set_Vector_Core_Num)
   auto tiling_codes = codegen.GenerateTiling(fused_schedule_result, shape_info, "", "20");
 }
 
-TEST_F(E2E_LoadAbsStore, Codegen_PGO_Code)
-{
+TEST_F(E2E_LoadAbsStore, Codegen_PGO_Code) {
   af::AscGraph test_graph("test_graph");
   LoadAbsStore_BeforeAutofuse(test_graph);
   LoadAbsStore_AfterInferOutput(test_graph);
@@ -1926,7 +1921,7 @@ TEST_F(E2E_LoadAbsStore, Codegen_PGO_Code)
   fused_schedule_result.node_idx_to_scheduled_results.push_back(schedule_results);
   setenv("AUTOFUSE_FLAGS", "--autofuse_enable_pgo=true", 1);
   att::AutoFuseConfig::MutablePgoStrategyConfig().is_first_init = true;
-  codegen::Codegen codegen(codegen::CodegenOptions{.tiling_lib_path="asdf",.tiling_lib_codegen_symbol="as"});
+  codegen::Codegen codegen(codegen::CodegenOptions{.tiling_lib_path = "asdf", .tiling_lib_codegen_symbol = "as"});
   std::string pgo_codes = codegen.GeneratorPgo(fused_schedule_result, "");
   setenv("AUTOFUSE_FLAGS", "--autofuse_enable_pgo=false", 1);
   att::AutoFuseConfig::MutablePgoStrategyConfig().is_first_init = true;
@@ -1934,8 +1929,7 @@ TEST_F(E2E_LoadAbsStore, Codegen_PGO_Code)
   EXPECT_EQ(expect_code, pgo_codes);
 }
 
-TEST_F(E2E_LoadAbsStore, Codegen_Tiling_With_LambdaWithPGO)
-{
+TEST_F(E2E_LoadAbsStore, Codegen_Tiling_With_LambdaWithPGO) {
   af::AscGraph test_graph("test_graph");
   LoadAbsStore_BeforeAutofuse(test_graph);
   LoadAbsStore_AfterInferOutput(test_graph);
@@ -1953,15 +1947,15 @@ TEST_F(E2E_LoadAbsStore, Codegen_Tiling_With_LambdaWithPGO)
   setenv("AUTOFUSE_FLAGS", "--autofuse_enable_pgo=true", 1);
   setenv("AUTOFUSE_DFX_FLAGS", "--autofuse_pgo_algo=pgo_algo_invalid;--autofuse_pgo_step_max=32", 1);
   att::AutoFuseConfig::MutablePgoStrategyConfig().is_first_init = true;
-  codegen::Codegen codegen(codegen::CodegenOptions{.tiling_lib_path="asdf",.tiling_lib_codegen_symbol="as"});
+  codegen::Codegen codegen(codegen::CodegenOptions{.tiling_lib_path = "asdf", .tiling_lib_codegen_symbol = "as"});
   auto tiling_codes = codegen.GenerateTiling(fused_schedule_result, shape_info, "", "1");
   EXPECT_EQ(att::AutoFuseConfig::GetPgoStrategyConfig().enable_autofuse_pgo, "true");
   EXPECT_EQ(att::AutoFuseConfig::GetPgoStrategyConfig().autofuse_pgo_algo_select, "core_select");
   EXPECT_EQ(att::AutoFuseConfig::GetPgoStrategyConfig().autofuse_pgo_algo_step_max, 32);
 
-  for (const auto&[key,value] : tiling_codes) {
-    std::cout << key <<std::endl;
-    std::cout << value <<std::endl;
+  for (const auto &[key, value] : tiling_codes) {
+    std::cout << key << std::endl;
+    std::cout << value << std::endl;
   }
   std::string tiling_code;
   CombineTilings(tiling_codes, tiling_code);

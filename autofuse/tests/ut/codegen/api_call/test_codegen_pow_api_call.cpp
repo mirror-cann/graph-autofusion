@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -134,9 +134,8 @@ TEST(CodegenKernel, PowWithSecondInputIsUbScalar) {
 
   std::string result;
   EXPECT_EQ(call.Generate(tpipe, vector<af::AxisId>{}, result), 0);
-  EXPECT_EQ(result, std::string{
-      "Pow(local_3[0], local_0[0], (half)local_2_ub_scalar, tmp_buf_0, local_0_actual_size);\n"
-  });
+  EXPECT_EQ(result,
+            std::string{"Pow(local_3[0], local_0[0], (half)local_2_ub_scalar, tmp_buf_0, local_0_actual_size);\n"});
 }
 
 TEST(CodegenKernel, PowWithFirstInputIsUbScalar) {
@@ -246,9 +245,8 @@ TEST(CodegenKernel, PowWithFirstInputIsUbScalar) {
 
   std::string result;
   EXPECT_EQ(call.Generate(tpipe, vector<af::AxisId>{}, result), 0);
-  EXPECT_EQ(result, std::string{
-      "Pow(local_3[0], (half)local_0_ub_scalar, local_2[0], tmp_buf_0, local_2_actual_size);\n"
-  });
+  EXPECT_EQ(result,
+            std::string{"Pow(local_3[0], (half)local_0_ub_scalar, local_2[0], tmp_buf_0, local_2_actual_size);\n"});
 }
 
 TEST(CodegenKernel, PowWithFirstInputIsScalar) {
@@ -291,13 +289,11 @@ TEST(CodegenKernel, PowWithFirstInputIsScalar) {
   load->outputs[0].attr.que.id = 1;
   load->outputs[0].attr.opt.merge_scope = af::kIdNone;
 
-
   auto constant_node = graph.FindNode("constant");
   constant_node->outputs[0].attr.mem.alloc_type = af::AllocType::kAllocTypeInvalid;
   constant_node->outputs[0].attr.mem.tensor_id = 1;
   constant_node->outputs[0].attr.mem.position = af::Position::kPositionInvalid;
   constant_node->outputs[0].attr.dtype = ge::DT_FLOAT16;
-
 
   auto pow = graph.FindNode("pow");
   pow->attr.api.unit = af::ComputeUnit::kUnitVector;
@@ -332,9 +328,7 @@ TEST(CodegenKernel, PowWithFirstInputIsScalar) {
 
   std::string result;
   call.Generate(tpipe, vector<af::AxisId>{}, result);
-  EXPECT_EQ(result, std::string{
-      "Pow(local_2[0], scalar_1, local_0[0], tmp_buf_0, local_0_actual_size);\n"
-  });
+  EXPECT_EQ(result, std::string{"Pow(local_2[0], scalar_1, local_0[0], tmp_buf_0, local_0_actual_size);\n"});
 }
 
 TEST(CodegenKernel, PowWithAllInputIsTensor) {
@@ -424,7 +418,6 @@ TEST(CodegenKernel, PowWithAllInputIsTensor) {
   x1.id = load->outputs[0].attr.mem.tensor_id;
   x2.id = load2->outputs[0].attr.mem.tensor_id;
 
-
   codegen::PowApiCall call("Pow");
   EXPECT_EQ(call.Init(pow), 0);
   call.inputs.push_back(&x1);
@@ -432,9 +425,7 @@ TEST(CodegenKernel, PowWithAllInputIsTensor) {
 
   std::string result;
   call.Generate(tpipe, vector<af::AxisId>{}, result);
-  EXPECT_EQ(result, std::string{
-      "Pow(local_2[0], local_0[0], local_0[0], tmp_buf_0, local_0_actual_size);\n"
-  });
+  EXPECT_EQ(result, std::string{"Pow(local_2[0], local_0[0], local_0[0], tmp_buf_0, local_0_actual_size);\n"});
 }
 
 TEST(CodegenKernel, PowWithAllInputIsScalar) {
@@ -503,9 +494,7 @@ TEST(CodegenKernel, PowWithAllInputIsScalar) {
 
   std::string result;
   EXPECT_EQ(call.Generate(tpipe, vector<af::AxisId>{}, result), 0);
-  EXPECT_EQ(result, std::string{
-    "Pow(local_2[0], scalar_0, scalar_1, tmp_buf_0, local_2_actual_size);\n"
-  });
+  EXPECT_EQ(result, std::string{"Pow(local_2[0], scalar_0, scalar_1, tmp_buf_0, local_2_actual_size);\n"});
 }
 
 TEST(CodegenKernel, PowWitAllInputIsUbScalar) {
@@ -615,9 +604,10 @@ TEST(CodegenKernel, PowWitAllInputIsUbScalar) {
 
   std::string result;
   EXPECT_EQ(call.Generate(tpipe, vector<af::AxisId>{}, result), 0);
-  EXPECT_EQ(result, std::string{
-      "Pow(local_2[0], (half)local_0_ub_scalar, (half)local_1_ub_scalar, tmp_buf_0, local_2_actual_size);\n"
-  });
+  EXPECT_EQ(
+      result,
+      std::string{
+          "Pow(local_2[0], (half)local_0_ub_scalar, (half)local_1_ub_scalar, tmp_buf_0, local_2_actual_size);\n"});
 }
 
 TEST(CodegenKernel, PowWithInputIsScalarAndUbScalar) {
@@ -706,7 +696,6 @@ TEST(CodegenKernel, PowWithInputIsScalarAndUbScalar) {
 
   std::string result;
   EXPECT_EQ(call.Generate(tpipe, vector<af::AxisId>{}, result), 0);
-  EXPECT_EQ(result, std::string{
-    "Pow(local_2[0], scalar_0, (half)local_1_ub_scalar, tmp_buf_0, local_2_actual_size);\n"
-  });
+  EXPECT_EQ(result,
+            std::string{"Pow(local_2[0], scalar_0, (half)local_1_ub_scalar, tmp_buf_0, local_2_actual_size);\n"});
 }

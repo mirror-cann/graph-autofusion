@@ -20,20 +20,17 @@ using namespace af::ascir_op;
 
 namespace {
 bool IsSignedIntegerType(af::DataType dtype) {
-  return (dtype == ge::DT_INT8) || (dtype == ge::DT_INT16) ||
-         (dtype == ge::DT_INT32) || (dtype == ge::DT_INT64) ||
+  return (dtype == ge::DT_INT8) || (dtype == ge::DT_INT16) || (dtype == ge::DT_INT32) || (dtype == ge::DT_INT64) ||
          (dtype == ge::DT_INT4) || (dtype == ge::DT_INT2);
 }
 
 bool IsUnsignedIntegerType(af::DataType dtype) {
-  return (dtype == ge::DT_UINT8) || (dtype == ge::DT_UINT16) ||
-         (dtype == ge::DT_UINT32) || (dtype == ge::DT_UINT64) ||
+  return (dtype == ge::DT_UINT8) || (dtype == ge::DT_UINT16) || (dtype == ge::DT_UINT32) || (dtype == ge::DT_UINT64) ||
          (dtype == ge::DT_UINT1) || (dtype == ge::DT_UINT2);
 }
 
 bool IsFloatingType(af::DataType dtype) {
-  return (dtype == ge::DT_FLOAT16) || (dtype == ge::DT_FLOAT) ||
-         (dtype == ge::DT_DOUBLE) || (dtype == ge::DT_BF16);
+  return (dtype == ge::DT_FLOAT16) || (dtype == ge::DT_FLOAT) || (dtype == ge::DT_DOUBLE) || (dtype == ge::DT_BF16);
 }
 
 int32_t GetDTypeSize(af::DataType dtype) {
@@ -208,8 +205,8 @@ bool DtypeConsistency::TryMergeWithUpstreamCast(af::AscGraph &graph, const af::A
   // 合并条件（满足其一即可）：
   // 1. 同一类型类别内位宽递增（A->B 和 A->C 都满足 IsCastPreservesValues）
   // 2. 位宽始终递增
-  bool same_category_widening = IsCastPreservesValues(orig_src_dtype, intermediate_dtype) &&
-                                IsCastPreservesValues(orig_src_dtype, target_dtype);
+  bool same_category_widening =
+      IsCastPreservesValues(orig_src_dtype, intermediate_dtype) && IsCastPreservesValues(orig_src_dtype, target_dtype);
   bool bitwidth_chain_increasing = IsDTypeSizeChainIncreasing(orig_src_dtype, intermediate_dtype, target_dtype);
   if (!same_category_widening && !bitwidth_chain_increasing) {
     return false;
@@ -218,9 +215,8 @@ bool DtypeConsistency::TryMergeWithUpstreamCast(af::AscGraph &graph, const af::A
   // 额外检查：合并后的 A->C 必须是合法的 Cast
   std::vector<af::DataType> merge_input_dtypes = {orig_src_dtype};
   std::vector<af::DataType> merge_output_dtypes = {target_dtype};
-  if ((orig_src_dtype != target_dtype) &&
-      ScheduleUtils::CallAscirInferDataType<af::ascir_op::Cast>(merge_input_dtypes, merge_output_dtypes) !=
-      ge::SUCCESS) {
+  if ((orig_src_dtype != target_dtype) && ScheduleUtils::CallAscirInferDataType<af::ascir_op::Cast>(
+                                              merge_input_dtypes, merge_output_dtypes) != ge::SUCCESS) {
     return false;
   }
 
@@ -239,8 +235,8 @@ bool DtypeConsistency::MergeCastWithSingleConsumer(const af::AscNodePtr &upstrea
                                                    const af::AscNodePtr &downstream_node, size_t input_idx,
                                                    af::DataType target_dtype) {
   auto orig_src_dtype = upstream_cast->inputs[0].attr.dtype;
-  GELOGD("Merge cast (single consumer) for node [%s] input [%zu]: [%s] -> [%s]",
-         downstream_node->GetNamePtr(), input_idx, ge::TypeUtils::DataTypeToSerialString(orig_src_dtype).c_str(),
+  GELOGD("Merge cast (single consumer) for node [%s] input [%zu]: [%s] -> [%s]", downstream_node->GetNamePtr(),
+         input_idx, ge::TypeUtils::DataTypeToSerialString(orig_src_dtype).c_str(),
          ge::TypeUtils::DataTypeToSerialString(target_dtype).c_str());
   upstream_cast->outputs[0].attr.dtype = target_dtype;
   downstream_node->inputs[input_idx].attr.dtype = target_dtype;
@@ -251,8 +247,8 @@ bool DtypeConsistency::MergeCastWithMultipleConsumers(af::AscGraph &graph, const
                                                       const af::AscNodePtr &downstream_node, size_t input_idx,
                                                       af::DataType target_dtype) {
   auto orig_src_dtype = upstream_cast->inputs[0].attr.dtype;
-  GELOGD("Merge cast (multiple consumers) for node [%s] input [%zu]: [%s] -> [%s]",
-         downstream_node->GetNamePtr(), input_idx, ge::TypeUtils::DataTypeToSerialString(orig_src_dtype).c_str(),
+  GELOGD("Merge cast (multiple consumers) for node [%s] input [%zu]: [%s] -> [%s]", downstream_node->GetNamePtr(),
+         input_idx, ge::TypeUtils::DataTypeToSerialString(orig_src_dtype).c_str(),
          ge::TypeUtils::DataTypeToSerialString(target_dtype).c_str());
 
   auto orig_cast_in_anchor = upstream_cast->GetInDataAnchor(0);

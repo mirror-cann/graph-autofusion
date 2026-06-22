@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -74,8 +74,8 @@ class LoweringGlobalData {
 
   bg::ValueHolderPtr GetOrCreateUniqueValueHolder(const std::string &name,
                                                   const std::function<bg::ValueHolderPtr()> &builder);
-  std::vector<bg::ValueHolderPtr> GetOrCreateUniqueValueHolder(const std::string &name,
-      const std::function<std::vector<bg::ValueHolderPtr>()> &builder);
+  std::vector<bg::ValueHolderPtr> GetOrCreateUniqueValueHolder(
+      const std::string &name, const std::function<std::vector<bg::ValueHolderPtr>()> &builder);
   bg::ValueHolderPtr GetUniqueValueHolder(const std::string &name) const;
   void SetUniqueValueHolder(const std::string &name, const bg::ValueHolderPtr &holder);
   void SetValueHolders(const string &name, const bg::ValueHolderPtr &holder);
@@ -110,7 +110,7 @@ class LoweringGlobalData {
     return static_model_ws_size;
   }
 
-  void SetFixedFeatureMemoryBase(const void * const memory, const size_t size) {
+  void SetFixedFeatureMemoryBase(const void *const memory, const size_t size) {
     fixed_feature_mem_[kRtMemoryTypeHbm] = std::make_pair(memory, size);
   }
 
@@ -123,7 +123,7 @@ class LoweringGlobalData {
     return dummy_result;
   }
 
-  void SetFixedFeatureMemoryBase(const int64_t type, const void * const memory, const size_t size) {
+  void SetFixedFeatureMemoryBase(const int64_t type, const void *const memory, const size_t size) {
     fixed_feature_mem_[type] = std::make_pair(memory, size);
   }
 
@@ -181,6 +181,7 @@ class LoweringGlobalData {
   bg::ValueHolderPtr GetOrCreateInitL2Allocator(const AllocatorDesc desc);
   bg::ValueHolderPtr GetExternalAllocator(const bool from_init, const string &key, const AllocatorDesc &desc);
   bool CanUseExternalAllocator(const ExecuteGraphType &graph_type, const TensorPlacement placement) const;
+
  private:
   std::unordered_map<std::string, NodeCompileResult> node_name_to_compile_result_holders_;
   std::map<std::string, void *> graph_to_static_models_;

@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -652,7 +652,7 @@ class GertContextWrapper final : public ShapeInferenceRule::Ctx {
   std::stringstream error_message_;
 };
 
-template<typename T>
+template <typename T>
 class Cache {
  public:
   std::shared_ptr<T> Get(const std::string &key) {
@@ -748,7 +748,7 @@ std::shared_ptr<ShapeInferenceRule> ShapeInferenceRule::FromOpDesc(const af::OpD
   if (rule_json == nullptr) {
     // Skip log error if op does not with rule
     return nullptr;
-  } 
+  }
   return FromJsonString(*rule_json);
 }
 
@@ -792,12 +792,12 @@ ShapeInferenceRule ShapeInferenceRule::FromCompiledBinary(const uint8_t *binary,
   }
 
   infer_handle.handle_ = handle;
-  infer_handle.infer_shape_ = (InferShapeFunc) dlsym(handle, "infer_shape");
+  infer_handle.infer_shape_ = (InferShapeFunc)dlsym(handle, "infer_shape");
   if (!infer_handle.infer_shape_) {
     infer_handle << "dlsym infer_shape failed: " << dlerror();
     return infer_handle;
   }
-  infer_handle.infer_shape_on_compile_ = (InferShapeFunc) dlsym(handle, "infer_shape_on_compile");
+  infer_handle.infer_shape_on_compile_ = (InferShapeFunc)dlsym(handle, "infer_shape_on_compile");
   if (!infer_handle.infer_shape_on_compile_) {
     infer_handle << "dlsym infer_shape_on_compile failed: " << dlerror();
     return infer_handle;

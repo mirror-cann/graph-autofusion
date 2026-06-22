@@ -1,11 +1,11 @@
 /**
-* Copyright (c) 2025 Huawei Technologies Co., Ltd.
-* This program is free software, you can redistribute it and/or modify it under the terms and conditions of
-* CANN Open Software License Agreement Version 2.0 (the "License").
-* Please refer to the License for details. You may not use this file except in compliance with the License.
-* THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
-* INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
-* See LICENSE in the root of the software repository for the full text of the License.
+ * Copyright (c) 2025 Huawei Technologies Co., Ltd.
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
+ * CANN Open Software License Agreement Version 2.0 (the "License").
+ * Please refer to the License for details. You may not use this file except in compliance with the License.
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+ * See LICENSE in the root of the software repository for the full text of the License.
  */
 #include "att_utils.h"
 #include "att_const_values.h"
@@ -25,7 +25,7 @@ void CollectOrigAxisNames(const SubAxis *dim, std::set<std::string> &orig_names)
 
 // 辅助函数：检查单个维度是否为Reduce轴
 bool IsReduceAxis(const SubAxis *dim, const Expr &repeat, const Expr &stride,
-                         const std::vector<TensorPtr> &output_tensors) {
+                  const std::vector<TensorPtr> &output_tensors) {
   for (const auto &output_tensor : output_tensors) {
     for (size_t j = 0; j < output_tensor->dim_info.size(); j++) {
       if (output_tensor->dim_info[j]->name != dim->name) {
@@ -43,7 +43,7 @@ bool IsReduceAxis(const SubAxis *dim, const Expr &repeat, const Expr &stride,
   }
   return false;
 }
-}
+}  // namespace
 bool AttUtils::IsLoadNode(af::AscNode *node) {
   GE_ASSERT_NOTNULL(node);
   if (IsOps(node, kData) || IsOps(node, kWorkspace)) {
@@ -102,11 +102,10 @@ bool AttUtils::GetLastTileSplitAxisName(af::AscNode &node, const af::AscGraph &g
 
 // 收集Reduce轴的原始轴名称
 // 参考 arg_list_reorder.cpp 的 CheckAxisProperty 逻辑
-void AttUtils::CollectReduceAxisNames(const NodeInfo &node_info,
-                                      std::set<std::string> &reduce_axis_orig_names) {
+void AttUtils::CollectReduceAxisNames(const NodeInfo &node_info, std::set<std::string> &reduce_axis_orig_names) {
   std::set<std::string> reduce_axis_names;
-  GELOGD("[DFX] CollectReduceAxisNames: node_name=%s, node_type=%s",
-         node_info.name.c_str(), node_info.node_type.c_str());
+  GELOGD("[DFX] CollectReduceAxisNames: node_name=%s, node_type=%s", node_info.name.c_str(),
+         node_info.node_type.c_str());
 
   for (const auto &tensor : node_info.inputs) {
     // 校验各个成员的数量是否一致
@@ -162,17 +161,15 @@ static bool IsBroadcastAxis(const SubAxis *dim, const Expr &repeat, const Expr &
 
 // 收集Broadcast轴的原始轴名称
 // 参考 arg_list_reorder.cpp 的 CheckAxisProperty 逻辑
-void AttUtils::CollectBroadcastAxisNames(const NodeInfo &node_info,
-                                         std::set<std::string> &broadcast_axis_orig_names) {
+void AttUtils::CollectBroadcastAxisNames(const NodeInfo &node_info, std::set<std::string> &broadcast_axis_orig_names) {
   std::set<std::string> broadcast_axis_names;
-  GELOGD("[DFX] CollectBroadcastAxisNames: node_name=%s, node_type=%s",
-         node_info.name.c_str(), node_info.node_type.c_str());
+  GELOGD("[DFX] CollectBroadcastAxisNames: node_name=%s, node_type=%s", node_info.name.c_str(),
+         node_info.node_type.c_str());
 
   for (const auto &tensor : node_info.inputs) {
     // 校验各个成员的数量是否一致
     size_t dim_size = tensor->dim_info.size();
-    if (tensor->repeat.size() != dim_size ||
-        tensor->stride.size() != dim_size ||
+    if (tensor->repeat.size() != dim_size || tensor->stride.size() != dim_size ||
         tensor->gm_stride.size() != dim_size) {
       GELOGW("[DFX] CollectBroadcastAxisNames: tensor=%s has inconsistent sizes", tensor->ToString().c_str());
       continue;

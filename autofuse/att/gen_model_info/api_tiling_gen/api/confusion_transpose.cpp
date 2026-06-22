@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -38,7 +38,7 @@ void GetConfusionTransposeOnlyTilingInfo(const ge::Shape &srcShape, const uint32
   uint32_t secondAxisAlign = ALIGN_UP(width, 16); // float32和float16的尾轴都对齐到16
   uint32_t secondAxisRem = width % blockSize;
   uint32_t stride = firstAxisAlign;
-  
+
   tiling.param0 = height;
   tiling.param1 = width;
   tiling.param2 = highBlock;
@@ -54,13 +54,12 @@ void GetConfusionTransposeOnlyTilingInfo(const ge::Shape &srcShape, const uint32
 }
 
 std::string AlignUpFunc() {
-    return R"(
+  return R"(
 inline uint32_t ALIGN_UP(uint32_t origin_size, uint32_t align_num) {
   return (0 == (origin_size & (align_num - 1))) ? origin_size  :  (origin_size + align_num - (origin_size & (align_num - 1)));
 }
 )";
 }
-
 
 std::string GetConfusionTranspose102TilingFunc() {
   return R"(
@@ -212,10 +211,9 @@ std::string GetConfusionTranspose021TilingFunc() {
   uint32_t firstAxisRem = height % BLOCK_CUBE;
   uint32_t secondAxisAlign = ALIGN_UP(width, 16); // float32和float16的尾轴都对齐到16
   uint32_t secondAxisRem = width % blockSize;
-  
+
   uint32_t stride = firstAxisAlign;
-)" +
-         GetTranspose3DCommonSuffix();
+)" + GetTranspose3DCommonSuffix();
 }
 
 // 210转置函数
@@ -227,8 +225,7 @@ std::string GetConfusionTranspose210TilingFunc() {
   uint32_t secondAxisAlign = ALIGN_UP(width, 16); // float32和float16的尾轴都对齐到16
   uint32_t secondAxisRem = width % blockSize;
   uint32_t stride = firstAxisAlign * height;
-)" +
-         GetTranspose3DCommonSuffix();
+)" + GetTranspose3DCommonSuffix();
 }
 
 std::string GetConfusionTranspose0321TilingFunc() {
@@ -293,24 +290,21 @@ void GetConfusionTransposeTilingInfo(const ge::Shape &srcShape, const uint32_t s
 }
 
 af::Status GetConfusionTransposeTilingDefine([[maybe_unused]] const std::string &tiling_data_type,
-                                              [[maybe_unused]] const af::AscGraph &graph,
-                                              [[maybe_unused]] const af::AscNodePtr &node,
-                                              std::string &code_string,
-                                              [[maybe_unused]] uint32_t tiling_case_id) {
-  static constexpr auto kTilingFuncs = {
-    AlignUpFunc,
-    GetConfusionTransposeOnlyTilingFunc,
-    GetConfusionTranspose102TilingFunc,
-    GetConfusionTranspose0213TilingFunc,
-    GetConfusionTranspose2103TilingFunc,
-    GetConfusionTranspose021TilingFunc,
-    GetConfusionTranspose210TilingFunc,
-    GetConfusionTranspose0321TilingFunc,
-    GetConfusionTransposeTilingMainFunc
-  };
+                                             [[maybe_unused]] const af::AscGraph &graph,
+                                             [[maybe_unused]] const af::AscNodePtr &node, std::string &code_string,
+                                             [[maybe_unused]] uint32_t tiling_case_id) {
+  static constexpr auto kTilingFuncs = {AlignUpFunc,
+                                        GetConfusionTransposeOnlyTilingFunc,
+                                        GetConfusionTranspose102TilingFunc,
+                                        GetConfusionTranspose0213TilingFunc,
+                                        GetConfusionTranspose2103TilingFunc,
+                                        GetConfusionTranspose021TilingFunc,
+                                        GetConfusionTranspose210TilingFunc,
+                                        GetConfusionTranspose0321TilingFunc,
+                                        GetConfusionTransposeTilingMainFunc};
 
   std::ostringstream oss;
-  for (const auto& func : kTilingFuncs) {
+  for (const auto &func : kTilingFuncs) {
     oss << func();
   }
   code_string = oss.str();
@@ -343,17 +337,18 @@ AutoFuseTransposeType ConvertPermuteToTransposeType(af::AscTensorAttr &input_ten
     if (i != 0) oss << ", ";
     oss << output_vectorized_axis[i];
   }
-  GELOGE(ge::FAILED, "Unsupported transpose pattern. Axes count: %zu, pattern: [%s]",
-         output_vectorized_axis.size(), oss.str().c_str());
+  GELOGE(ge::FAILED, "Unsupported transpose pattern. Axes count: %zu, pattern: [%s]", output_vectorized_axis.size(),
+         oss.str().c_str());
   return AutoFuseTransposeType::TRANSPOSE_INVALID;
 }
 
-std::vector<string> CreateShapeString(af::AscTensorAttr &input_tensor_attr, const af::AscGraph &graph, std::vector<size_t> indices) {
+std::vector<string> CreateShapeString(af::AscTensorAttr &input_tensor_attr, const af::AscGraph &graph,
+                                      std::vector<size_t> indices) {
   std::map<af::AxisId, af::AxisPtr> axis_id_to_axis;
   std::vector<af::AxisPtr> asis_ptrs;
   std::vector<string> shapeString;
   asis_ptrs = graph.GetAllAxis();
-  for (const auto &axis_ptr: asis_ptrs) {
+  for (const auto &axis_ptr : asis_ptrs) {
     axis_id_to_axis[axis_ptr->id] = axis_ptr;
   }
   for (size_t index : indices) {
@@ -370,14 +365,15 @@ std::vector<string> CreateShapeString(af::AscTensorAttr &input_tensor_attr, cons
   return shapeString;
 }
 
-af::Status GenSrcShapeCode(af::AscTensorAttr &input_tensor_attr, const af::AscGraph &graph, std::string &shape_code, Permutation &permutation) {
+af::Status GenSrcShapeCode(af::AscTensorAttr &input_tensor_attr, const af::AscGraph &graph, std::string &shape_code,
+                           Permutation &permutation) {
   std::vector<size_t> indices;
   std::vector<int32_t> merge_flags;
   size_t axis_num = input_tensor_attr.vectorized_axis.size();
   indices.reserve(axis_num);
   merge_flags.reserve(axis_num);
   for (size_t i = 0; i < axis_num; i++) {
-    merge_flags.push_back(-1); // 初始化merge_flags = -1, -1表示该axis未参与合轴
+    merge_flags.push_back(-1);  // 初始化merge_flags = -1, -1表示该axis未参与合轴
   }
   auto it = kPermutationTable.find(permutation);
   GE_ASSERT_TRUE(it != kPermutationTable.end(), "Permutation not found in Permutation Table");
@@ -404,7 +400,7 @@ af::Status GenSrcShapeCode(af::AscTensorAttr &input_tensor_attr, const af::AscGr
       dims_str += shapeString[i];
       continue;
     }
-    if(merge_flags[i] != -1 && merge_flags[i] == merge_flags[i - 1]) {
+    if (merge_flags[i] != -1 && merge_flags[i] == merge_flags[i - 1]) {
       dims_str += " * ";
     } else {
       dims_str += ", ";
@@ -417,10 +413,8 @@ af::Status GenSrcShapeCode(af::AscTensorAttr &input_tensor_attr, const af::AscGr
 }
 
 af::Status GetConfusionTransposeTilingCall([[maybe_unused]] const std::string &tiling_data_type,
-                                            [[maybe_unused]] const af::AscGraph &graph,
-                                            const af::AscNodePtr &node,
-                                            std::string &code_string,
-                                            uint32_t tiling_case_id) {
+                                           [[maybe_unused]] const af::AscGraph &graph, const af::AscNodePtr &node,
+                                           std::string &code_string, uint32_t tiling_case_id) {
   /* 计算TransposeType */
   af::AscTensorAttr input_tensor_attr = node->inputs[0].attr;
   af::AscTensorAttr output_tensor_attr = node->outputs[0].attr;
@@ -434,38 +428,36 @@ af::Status GetConfusionTransposeTilingCall([[maybe_unused]] const std::string &t
       "AutoFuseTransposeType::TRANSPOSE_ND2ND_ONLY", "AutoFuseTransposeType::TRANSPOSE_ND2ND_102",
       "AutoFuseTransposeType::TRANSPOSE_ND2ND_0213", "AutoFuseTransposeType::TRANSPOSE_ND2ND_2103",
       "AutoFuseTransposeType::TRANSPOSE_ND2ND_021",  "AutoFuseTransposeType::TRANSPOSE_ND2ND_210",
-      "AutoFuseTransposeType::TRANSPOSE_ND2ND_0321", "AutoFuseTransposeType::TRANSPOSE_INVALID"
-  };
+      "AutoFuseTransposeType::TRANSPOSE_ND2ND_0321", "AutoFuseTransposeType::TRANSPOSE_INVALID"};
   std::ostringstream oss;
   oss << "AutoFuseTransposeType transpose_type = " << kTransTypeValue[static_cast<uint8_t>(transpose_type)] << ";\n";
 
   std::string shape_code;
   GE_ASSERT_SUCCESS(GenSrcShapeCode(input_tensor_attr, graph, shape_code, permutation),
-                    "GenSrcShapeCode failed, graph[%s], node[%s] tiling data type[%s]",
-                    graph.GetName().c_str(), node->GetName().c_str(), tiling_data_type.c_str());
+                    "GenSrcShapeCode failed, graph[%s], node[%s] tiling data type[%s]", graph.GetName().c_str(),
+                    node->GetName().c_str(), tiling_data_type.c_str());
   oss << shape_code;
 
   // 生成字段名
-  const std::string field_name = ascgen_utils::GenValidName(node->GetName()) +
-                                 "_tilingData_" + std::to_string(tiling_case_id);
+  const std::string field_name =
+      ascgen_utils::GenValidName(node->GetName()) + "_tilingData_" + std::to_string(tiling_case_id);
 
   /* 增加ConfusionTransposeTiling函数调用 */
   oss << "ConfusionTransposeTiling &apiConfusionTransposeTiling = tiling_data." << field_name << ";" << std::endl;
 
   // 添加函数调用
   oss << "uint32_t stackBufferSize = 0;" << std::endl;
-  oss << "GetConfusionTransposeTilingInfo(srcShape, stackBufferSize, "
-      << GetSizeByDataType(input_tensor_attr.dtype) << ", static_cast<uint32_t>(transpose_type), apiConfusionTransposeTiling);\n";
+  oss << "GetConfusionTransposeTilingInfo(srcShape, stackBufferSize, " << GetSizeByDataType(input_tensor_attr.dtype)
+      << ", static_cast<uint32_t>(transpose_type), apiConfusionTransposeTiling);\n";
 
   code_string = oss.str();
   return ge::SUCCESS;
 }
 
-  af::Status GetConfusionTransposeTilingHeadFiles([[maybe_unused]] const std::string &tiling_data_type,
-                                                   [[maybe_unused]] const af::AscGraph &graph,
-                                                   [[maybe_unused]] const af::AscNodePtr &node,
-                                                   std::string &code_string,
-                                                   [[maybe_unused]] uint32_t tiling_case_id) {
+af::Status GetConfusionTransposeTilingHeadFiles([[maybe_unused]] const std::string &tiling_data_type,
+                                                [[maybe_unused]] const af::AscGraph &graph,
+                                                [[maybe_unused]] const af::AscNodePtr &node, std::string &code_string,
+                                                [[maybe_unused]] uint32_t tiling_case_id) {
   static constexpr char kHeaderContent[] = R"(
 #include <vector>
 #include <array>

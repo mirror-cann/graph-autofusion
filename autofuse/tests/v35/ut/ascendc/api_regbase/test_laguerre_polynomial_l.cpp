@@ -176,4 +176,4 @@ TEST_F(TestRegbaseApiLaguerrePolynomialLUT, LaguerrePolynomialLOrder4_TensorTens
   LaguerrePolynomialLTensorNTest<float>(65U, 4);
 }
 
-}  // namespace ge
+}  // namespace af

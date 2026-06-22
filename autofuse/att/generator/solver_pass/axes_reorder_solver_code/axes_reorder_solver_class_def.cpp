@@ -1,11 +1,11 @@
 /**
-* Copyright (c) 2026 Huawei Technologies Co., Ltd.
-* This program is free software, you can redistribute it and/or modify it under the terms and conditions of
-* CANN Open Software License Agreement Version 2.0 (the "License").
-* Please refer to the License for details. You may not use this file except in compliance with the License.
-* THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
-* INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
-* See LICENSE in the root of the software repository for the full text of the License.
+ * Copyright (c) 2026 Huawei Technologies Co., Ltd.
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
+ * CANN Open Software License Agreement Version 2.0 (the "License").
+ * Please refer to the License for details. You may not use this file except in compliance with the License.
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+ * See LICENSE in the root of the software repository for the full text of the License.
  */
 
 #include "axes_reorder_solver_code_common.h"
@@ -69,8 +69,10 @@ private:
 std::string GenEqualOrderBasicFuncDeclarations(bool enable_equal_order_tiling) {
   std::string codes;
   std::string equal_order_param = enable_equal_order_tiling ? ", const bool enable_equal_order" : "";
-  codes += "  inline bool GetTiling(const bool is_tuning, const bool block_loop_auto_tune, const bool "
-           "enable_workload_balance" + equal_order_param + ");\n";
+  codes +=
+      "  inline bool GetTiling(const bool is_tuning, const bool block_loop_auto_tune, const bool "
+      "enable_workload_balance" +
+      equal_order_param + ");\n";
   codes += "  inline bool GetMaxBlockDimTiling(const uint32_t block_dim" + equal_order_param + ");\n";
   codes += "  inline bool AutoTuning(const bool is_trade_off" + equal_order_param + ");\n";
   codes += "  inline void FindBetterSolutionByUpperBlockDim(double next_upper_perf, uint32_t next_upper_block_dim" +
@@ -96,8 +98,9 @@ std::string GenLocalBufTilingFuncDeclarations(bool enable_equal_order_tiling) {
 // Helper function: Generate utility function declarations
 std::string GenUtilityFuncDeclarations() {
   std::string codes;
-  codes += "  bool DecreaseUntilSatisfied(TilingVariable *var, ConstraintType cons_type, "
-           "    std::function<bool(TilingVariable *)> tune_func);\n";
+  codes +=
+      "  bool DecreaseUntilSatisfied(TilingVariable *var, ConstraintType cons_type, "
+      "    std::function<bool(TilingVariable *)> tune_func);\n";
   codes += "  bool ShrinkBoundaryUntilSatisfied(TilingVariable *var, int64_t boundary, ConstraintType cons_type);\n";
   return codes;
 }
@@ -109,14 +112,18 @@ std::string GenEqualPriorityAxesFuncDeclarations(bool enable_equal_order_tiling)
   }
   std::string codes;
   codes += "  // Equal priority axes support functions\n";
-  codes += "  bool IdentifyEqualPriorityAxes(const uint32_t axes_num, uint32_t *axis_idx, int64_t &min_upper_bound, "
-           "    int64_t &max_aligned);\n";
-  codes += "  bool BinarySearchEqualPriorityAxes(uint32_t axis_num, uint32_t *axis_idx, int64_t lower_bound, "
-           "    int64_t upper_bound);\n";
-  codes += "  bool IterativeSolveEqualPriorityAxes(const uint32_t axis_num, uint32_t *axis_idx, int64_t lower_bound, "
-           "    int64_t upper_bound);\n";
-  codes += "  bool BinarySearchWithAlignment(TilingVariable **vars, uint32_t var_num, int64_t lower_bound, "
-           "    int64_t upper_bound, int64_t align, const char *log_prefix);\n";
+  codes +=
+      "  bool IdentifyEqualPriorityAxes(const uint32_t axes_num, uint32_t *axis_idx, int64_t &min_upper_bound, "
+      "    int64_t &max_aligned);\n";
+  codes +=
+      "  bool BinarySearchEqualPriorityAxes(uint32_t axis_num, uint32_t *axis_idx, int64_t lower_bound, "
+      "    int64_t upper_bound);\n";
+  codes +=
+      "  bool IterativeSolveEqualPriorityAxes(const uint32_t axis_num, uint32_t *axis_idx, int64_t lower_bound, "
+      "    int64_t upper_bound);\n";
+  codes +=
+      "  bool BinarySearchWithAlignment(TilingVariable **vars, uint32_t var_num, int64_t lower_bound, "
+      "    int64_t upper_bound, int64_t align, const char *log_prefix);\n";
   codes += "  bool TuneNoTail(TilingVariable **vars, uint32_t id);\n";
   return codes;
 }
@@ -128,13 +135,16 @@ std::string GenDualThresholdFuncDeclarations(bool enable_equal_order_tiling) {
   }
   std::string codes;
   codes += "  // NaiveLocalBufTiling dual threshold support functions\n";
-  codes += "  bool SolveEqualPriorityAxesWithDualThreshold(uint32_t *axis_idx, int64_t low_bound, "
-           "    int64_t upper_bound, std::vector<bool> &solved_axes);\n";
-  codes += "  bool BinarySearchEqualPriorityAxesWithDualThreshold(TilingVariable **vars, int64_t lower_bound, "
-           "    int64_t upper_bound, int64_t &upper_ub_a, int64_t &upper_ub_b);\n";
+  codes +=
+      "  bool SolveEqualPriorityAxesWithDualThreshold(uint32_t *axis_idx, int64_t low_bound, "
+      "    int64_t upper_bound, std::vector<bool> &solved_axes);\n";
+  codes +=
+      "  bool BinarySearchEqualPriorityAxesWithDualThreshold(TilingVariable **vars, int64_t lower_bound, "
+      "    int64_t upper_bound, int64_t &upper_ub_a, int64_t &upper_ub_b);\n";
   codes += "  bool ProcessNonMCAxes(TilingVariable **vars, uint32_t *axis_idx, std::vector<bool> &solved_axes);\n";
-  codes += "  bool ProcessSingleMCAxis(TilingVariable **vars, bool first_is_mc, uint32_t *axis_idx, "
-           "    std::vector<bool> &solved_axes);\n";
+  codes +=
+      "  bool ProcessSingleMCAxis(TilingVariable **vars, bool first_is_mc, uint32_t *axis_idx, "
+      "    std::vector<bool> &solved_axes);\n";
   codes += "  bool ProcessDualMCAxes(TilingVariable **vars, uint32_t *axis_idx, std::vector<bool> &solved_axes);\n";
   codes += "  bool FinalizeEqualPriorityAxes(uint32_t *axis_idx, std::vector<bool> &solved_axes) const;\n";
   return codes;
@@ -159,12 +169,15 @@ std::string GenThreePhaseFrameworkDeclarations(bool enable_equal_order_tiling) {
   codes += "  };\n";
   codes += "  // Three-phase algorithm framework\n";
   codes += "  DualAxesInfo InitializeDualAxesInfo(TilingVariable **vars, uint32_t *axis_idx) const;\n";
-  codes += "  bool ExecuteStep1_FindUBLimit(const DualAxesInfo &info, int64_t &low_bound_both_ub, \n"
-           "    int64_t &low_bound_b_ub, int64_t &range_a_high, int64_t &range_b_high);\n";
-  codes += "  bool ExecuteStep2_FindUBThreshold(const DualAxesInfo &info, int64_t range_a_low, \n"
-           "    int64_t range_a_high, int64_t &range_a_low_out, int64_t &range_b_low_out);\n";
-  codes += "  bool ExecuteStep3_FindCoreNumTileSize(const DualAxesInfo &info, int64_t range_a_low, \n"
-           "    int64_t range_a_high, int64_t range_b_high, TilingVariable **vars_final);\n";
+  codes +=
+      "  bool ExecuteStep1_FindUBLimit(const DualAxesInfo &info, int64_t &low_bound_both_ub, \n"
+      "    int64_t &low_bound_b_ub, int64_t &range_a_high, int64_t &range_b_high);\n";
+  codes +=
+      "  bool ExecuteStep2_FindUBThreshold(const DualAxesInfo &info, int64_t range_a_low, \n"
+      "    int64_t range_a_high, int64_t &range_a_low_out, int64_t &range_b_low_out);\n";
+  codes +=
+      "  bool ExecuteStep3_FindCoreNumTileSize(const DualAxesInfo &info, int64_t range_a_low, \n"
+      "    int64_t range_a_high, int64_t range_b_high, TilingVariable **vars_final);\n";
   return codes;
 }
 
@@ -215,4 +228,4 @@ std::string GenAxesReorderSolver(bool enable_equal_order_tiling) {
   return codes;
 }
 
-} // namespace att
+}  // namespace att

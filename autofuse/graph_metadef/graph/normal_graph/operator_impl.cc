@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -62,7 +62,8 @@ void OperatorImpl::SetInputImpl(const std::string &dst_name, const Operator &src
 }
 
 void OperatorImpl::SetInputImpl(const std::string &dst_name, const OutHandler &out_handler) {
-  GE_CHK_BOOL_EXEC(out_handler != nullptr, REPORT_INNER_ERR_MSG("E18888", "param out_handler is nullptr, check invalid.");
+  GE_CHK_BOOL_EXEC(out_handler != nullptr,
+                   REPORT_INNER_ERR_MSG("E18888", "param out_handler is nullptr, check invalid.");
                    return, "[Check][Param] SetInputImpl faild, as out_handler is nullptr.");
   GE_CHK_BOOL_EXEC(!dst_name.empty(), REPORT_INNER_ERR_MSG("E18888", "param dst_name is empty, check invalid.");
                    return, "[Check][Param] dst name is empty");
@@ -109,16 +110,16 @@ void OperatorImpl::SetInputImpl(const std::string &dst_name, const OutHandler &o
   }
   // clear src tensor attr
   for (const auto &attr : src_output_desc.GetAllAttrs()) {
-    (void) src_output_desc.DelAttr(attr.first);
+    (void)src_output_desc.DelAttr(attr.first);
   }
   // add dst tensor attr
   for (const auto &attr : dst_input_desc.GetAllAttrs()) {
-    (void) src_output_desc.SetAttr(attr.first, attr.second);
+    (void)src_output_desc.SetAttr(attr.first, attr.second);
   }
 
   GE_CHK_BOOL_EXEC(op_desc_->UpdateInputDesc(dst_name, src_output_desc) == GRAPH_SUCCESS,
                    REPORT_INNER_ERR_MSG("E18888", "UpdateInputDesc failed, dst name is %s, src name is %s",
-                                     dst_name.c_str(), src_name.c_str());
+                                        dst_name.c_str(), src_name.c_str());
                    return, "[Update][InputDesc] failed, dst name is %s, src name is %s", dst_name.c_str(),
                          src_name.c_str());  // fix for linking opdesc
 }
@@ -168,9 +169,7 @@ graphStatus GetFromInputDesc(const OpDescPtr &op_desc, const int32_t index, Cons
 }
 }  // namespace
 
-
-graphStatus OperatorImpl::GetFromPeerNode(NodePtr &peer_node,
-                                          const OutDataAnchorPtr &out_data_anchor,
+graphStatus OperatorImpl::GetFromPeerNode(NodePtr &peer_node, const OutDataAnchorPtr &out_data_anchor,
                                           ConstGeTensorPtr &ge_tensor) const {
   auto peer_node_2_out_anchor = std::make_pair(peer_node, out_data_anchor);
   if ((peer_node->GetType() == ENTER) || (peer_node->GetType() == REFENTER)) {
@@ -187,7 +186,9 @@ graphStatus OperatorImpl::GetFromPeerNode(NodePtr &peer_node,
   const auto peer_op_type = peer_op_desc->GetType();
   if (ConstantUtils::IsConstant(peer_op_desc)) {
     return ConstantUtils::GetWeight(peer_op_desc, static_cast<uint32_t>(peer_node_2_out_anchor.second->GetIdx()),
-                                    ge_tensor) ? GRAPH_SUCCESS : ge::GRAPH_FAILED;
+                                    ge_tensor)
+               ? GRAPH_SUCCESS
+               : ge::GRAPH_FAILED;
   }
   if (peer_op_type == FILECONSTANT) {
     return ConstantUtils::GetWeightFromFile(peer_op_desc, ge_tensor) ? GRAPH_SUCCESS : ge::GRAPH_FAILED;
@@ -344,13 +345,13 @@ GeTensorDesc OperatorImpl::GetInputDesc(const uint32_t index) const {
 
 GeTensorDescPtr OperatorImpl::MutableInputDesc(const std::string &name) {
   GE_CHK_BOOL_EXEC(op_desc_ != nullptr, REPORT_INNER_ERR_MSG("E18888", "op_desc_ is nullptr, check invalid.");
-      return nullptr, "[Check][Param] op_desc_ is nullptr.");
+                   return nullptr, "[Check][Param] op_desc_ is nullptr.");
   return op_desc_->MutableInputDesc(name);
 }
 
 GeTensorDescPtr OperatorImpl::MutableInputDesc(const uint32_t index) {
   GE_CHK_BOOL_EXEC(op_desc_ != nullptr, REPORT_INNER_ERR_MSG("E18888", "op_desc_ is nullptr, check invalid.");
-      return nullptr, "[Check][Param] op_desc_ is nullptr.");
+                   return nullptr, "[Check][Param] op_desc_ is nullptr.");
   return op_desc_->MutableInputDesc(index);
 }
 
@@ -412,13 +413,13 @@ GeTensorDesc OperatorImpl::GetOutputDesc(const uint32_t index) const {
 
 GeTensorDescPtr OperatorImpl::MutableOutputDesc(const std::string &name) {
   GE_CHK_BOOL_EXEC(op_desc_ != nullptr, REPORT_INNER_ERR_MSG("E18888", "op_desc_ is nullptr, check invalid.");
-      return nullptr, "[Check][Param] op_desc_ is nullptr.");
+                   return nullptr, "[Check][Param] op_desc_ is nullptr.");
   return op_desc_->MutableOutputDesc(name);
 }
 
 GeTensorDescPtr OperatorImpl::MutableOutputDesc(const uint32_t index) {
   GE_CHK_BOOL_EXEC(op_desc_ != nullptr, REPORT_INNER_ERR_MSG("E18888", "op_desc_ is nullptr, check invalid.");
-      return nullptr, "[Check][Param] op_desc_ is nullptr.");
+                   return nullptr, "[Check][Param] op_desc_ is nullptr.");
   return op_desc_->MutableOutputDesc(index);
 }
 
@@ -574,9 +575,7 @@ std::vector<std::string> OperatorImpl::GetSubgraphNames() const {
   auto &ir_names = op_desc_->GetSubgraphIrNames();
   std::vector<std::string> names(ir_names.size());
   (void)std::transform(ir_names.begin(), ir_names.end(), names.begin(),
-                       [](const std::pair<std::string, SubgraphType> &name_to_type) {
-                         return name_to_type.first;
-                       });
+                       [](const std::pair<std::string, SubgraphType> &name_to_type) { return name_to_type.first; });
   return names;
 }
 
@@ -593,4 +592,4 @@ graphStatus OperatorImpl::UpdateOutputDesc(const uint32_t index, const GeTensorD
   GE_CHECK_NOTNULL(op_desc_);
   return op_desc_->UpdateOutputDesc(index, tensor_desc);
 }
-}  // namespace ge
+}  // namespace af

@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -24,19 +24,14 @@
 #include "graph/ir/ir_meta.h"
 
 namespace af {
-enum class DataTypeInferStrategy {
-  kInferFromAttr,
-  kInferFromInput,
-  kInferFromOutput,
-  kInvalidStrategy
-};
+enum class DataTypeInferStrategy { kInferFromAttr, kInferFromInput, kInferFromOutput, kInvalidStrategy };
 
 class OpDescImpl {
  public:
   OpDescImpl();
   OpDescImpl(const std::string &name, const std::string &type);
   OpDescImpl(const OpDescImpl &op_desc_impl);
-  OpDescImpl& operator=(const OpDescImpl &op_desc_impl) &;
+  OpDescImpl &operator=(const OpDescImpl &op_desc_impl) &;
   explicit OpDescImpl(const af::proto::OpDef &op_def);
 
   ~OpDescImpl() = default;
@@ -114,8 +109,8 @@ class OpDescImpl {
   std::map<std::string, uint32_t> GetAllInputName() const;
   std::map<std::string, uint32_t> GetAllOutputName();
   std::map<uint32_t, std::string> GetAllOutputIndexToName();
-  std::map<std::string, uint32_t>& MutableAllInputName();
-  std::map<std::string, uint32_t>& MutableAllOutputName();
+  std::map<std::string, uint32_t> &MutableAllInputName();
+  std::map<std::string, uint32_t> &MutableAllOutputName();
   bool UpdateInputName(std::map<std::string, uint32_t> input_name_idx);
   bool UpdateOutputName(std::map<std::string, uint32_t> output_name_idx);
 
@@ -201,7 +196,7 @@ class OpDescImpl {
 
  private:
   void DeSerializeOpDefToMetaData(const proto::OpDef &op_def);
-  void SerializeMetaDataToOpDef(proto::OpDef * const op_def);
+  void SerializeMetaDataToOpDef(proto::OpDef *const op_def);
 
   friend class AttrUtils;
   friend class OpDescUtils;
@@ -237,5 +232,5 @@ class OpDescImpl {
   void *tiling_func_info_ = nullptr;
   void *atomic_tiling_func_info_ = nullptr;
 };
-}  // namespace ge
+}  // namespace af
 #endif  // GRAPH_OP_DESC_IMPL_H_

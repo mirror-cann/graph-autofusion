@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -156,7 +156,7 @@ bool IsCubeFixpip(const af::AscNodePtr &cube_node) {
 
 Status GetPrioritySequence(const af::AscGraph &graph, std::unordered_set<af::Node *> &priority_sequences,
                            std::unordered_set<af::Node *> &store_sequences) {
-  std::unordered_set<const af::Node*> visited;
+  std::unordered_set<const af::Node *> visited;
   std::queue<af::NodePtr> node_queue;
   for (const auto &node : graph.GetAllNodes()) {
     if (node->GetName().find("Cube_Load_") == std::string::npos) {
@@ -201,7 +201,8 @@ Status TopoSortByCubePriority(af::AscGraph &graph) {
   GE_ASSERT_NOTNULL(vec_node);
   GE_ASSERT_NOTNULL(vec_node->GetOpDesc());
   auto vec_node_id = vec_node->GetOpDesc()->GetId();
-  int64_t store_id_min = std::numeric_limits<int64_t>::max();;
+  int64_t store_id_min = std::numeric_limits<int64_t>::max();
+  ;
   af::Node *store_node_id_min = nullptr;
   for (auto store_node : store_sequences) {
     GE_ASSERT_NOTNULL(store_node);
@@ -237,8 +238,7 @@ Status TopoSortByCubePriority(af::AscGraph &graph) {
 }
 bool HasBroadCastNode(const ascir::ImplGraph &impl_graph) {
   for (const auto &node : impl_graph.GetAllNodes()) {
-    if (node->attr.api.compute_type == af::ComputeType::kComputeBroadcast &&
-        !ScheduleUtils::IsScalarBrc(node)) {
+    if (node->attr.api.compute_type == af::ComputeType::kComputeBroadcast && !ScheduleUtils::IsScalarBrc(node)) {
       return true;
     }
   }
@@ -269,7 +269,7 @@ Status CubeFusionCaseGenerator::GenerateGeneralCase(ascir::HintGraph &graph, std
     af::AscNodePtr workspace_post_node;
     af::AscNodePtr load_node;
     af::AscNodePtr store_node;
-    af::ascir_op::Workspace workspace_pre(GetNewNodeName(node,  "Workspace").c_str());
+    af::ascir_op::Workspace workspace_pre(GetNewNodeName(node, "Workspace").c_str());
     af::ascir_op::Workspace workspace_post(GetNewNodeName(node, "Workspace").c_str());
     af::ascir_op::Load load(("Cube_Load_" + GetNewNodeName(node, "Load")).c_str());
     af::ascir_op::Store store(GetNewNodeName(node, "Store").c_str());
@@ -308,19 +308,16 @@ Status CubeFusionCaseGenerator::GenerateGeneralCase(ascir::HintGraph &graph, std
             // load->dst
             GE_CHK_STATUS_RET(af::GraphUtils::AddEdge(load_node->GetOutAnchor(out_anchor->GetIdx()),
                                                       cube_node->GetInAnchor(peer_in_anchor->GetIdx())));
-            break; // 这里加的break可能会导致add两个输入都来自cube时切图只切了一半
+            break;  // 这里加的break可能会导致add两个输入都来自cube时切图只切了一半
           }
         }
       }
       if (first) {
         // add src->store->workspace_pre_node
-        GE_CHK_STATUS_RET(
-            af::GraphUtils::AddEdge(node->GetOutAnchor(0UL), store_node->GetInAnchor(0UL)));
-        GE_CHK_STATUS_RET(
-            af::GraphUtils::AddEdge(store_node->GetOutAnchor(0UL), workspace_pre_node->GetInAnchor(0UL)));
+        GE_CHK_STATUS_RET(af::GraphUtils::AddEdge(node->GetOutAnchor(0UL), store_node->GetInAnchor(0UL)));
+        GE_CHK_STATUS_RET(af::GraphUtils::AddEdge(store_node->GetOutAnchor(0UL), workspace_pre_node->GetInAnchor(0UL)));
         // add workspace_post_node->load
-        GE_CHK_STATUS_RET(
-            af::GraphUtils::AddEdge(workspace_post_node->GetOutAnchor(0UL), load_node->GetInAnchor(0UL)));
+        GE_CHK_STATUS_RET(af::GraphUtils::AddEdge(workspace_post_node->GetOutAnchor(0UL), load_node->GetInAnchor(0UL)));
       }
       first = false;
     }
@@ -417,12 +414,11 @@ Status CubeFusionCaseGenerator::GeneratorUbTask(const std::vector<::ascir::ImplG
       const auto &out_node = std::dynamic_pointer_cast<af::AscNode>(peer_in_anchor->GetOwnerNode());
       GE_CHECK_NOTNULL(out_node);
       if (af::ops::IsOps<af::ascir_op::Broadcast>(out_node)) {
-        GE_ASSERT_SUCCESS(GenNddmaNode(node, std::dynamic_pointer_cast<af::AscNode>(out_node),
-                                       optimize_graph), "Generator nddma node failed.");
+        GE_ASSERT_SUCCESS(GenNddmaNode(node, std::dynamic_pointer_cast<af::AscNode>(out_node), optimize_graph),
+                          "Generator nddma node failed.");
       }
-      if (af::ops::IsOps<af::ascir_op::Cast>(out_node)){
-        auto ret = SwapCastBrcAndGenNddma(std::dynamic_pointer_cast<af::AscNode>(out_node), node,
-                                                 optimize_graph);
+      if (af::ops::IsOps<af::ascir_op::Cast>(out_node)) {
+        auto ret = SwapCastBrcAndGenNddma(std::dynamic_pointer_cast<af::AscNode>(out_node), node, optimize_graph);
         if (ret == af::UNSUPPORTED) {
           if (HasCastBrc(optimize_graph)) {
             GELOGW("The graph %s not support generating ub task.", grouped_graph.GetName().c_str());
@@ -451,14 +447,10 @@ Status CubeFusionCaseGenerator::GeneratorUbTask(const std::vector<::ascir::ImplG
 }
 
 void MoveCubeGraphsToEnd(std::vector<::ascir::ImplGraph> &grouped_graphs) {
-  (void)std::stable_partition(
-    grouped_graphs.begin(),
-    grouped_graphs.end(),
-    [](const ::ascir::ImplGraph& graph) {
-        // 返回true表示保留在前面，false表示移动到后面
-        return !ScheduleUtils::HasComputeType(graph, af::ComputeType::kComputeCube);
-    }
-  );
+  (void)std::stable_partition(grouped_graphs.begin(), grouped_graphs.end(), [](const ::ascir::ImplGraph &graph) {
+    // 返回true表示保留在前面，false表示移动到后面
+    return !ScheduleUtils::HasComputeType(graph, af::ComputeType::kComputeCube);
+  });
   // it现在指向第一个Cube类型元素的位置
 }
 
@@ -481,10 +473,9 @@ Status CubeFusionCaseGenerator::GeneratorTask(ascir::HintGraph &optimize_graph, 
   }
   for (size_t i = 0U; i < optimize_graphs.size(); ++i) {
     const auto &graph = optimize_graphs[i];
-    ScheduleTask task{graph, {}, score_funcs[i], {},
-                      ReduceTemplateType::kDefault, ascir::CubeTemplateType::kFixpip};
-    GE_CHK_STATUS_RET(ScheduleGroupGraphPartitioner::PartitionByConnectivity(graph, task.grouped_graphs,
-                      node_order_), "Failed to partition graph");
+    ScheduleTask task{graph, {}, score_funcs[i], {}, ReduceTemplateType::kDefault, ascir::CubeTemplateType::kFixpip};
+    GE_CHK_STATUS_RET(ScheduleGroupGraphPartitioner::PartitionByConnectivity(graph, task.grouped_graphs, node_order_),
+                      "Failed to partition graph");
     if (task.grouped_graphs.size() > 1U) {
       task.cube_type = ascir::CubeTemplateType::kCommon;
       MoveCubeGraphsToEnd(task.grouped_graphs);
@@ -495,8 +486,8 @@ Status CubeFusionCaseGenerator::GeneratorTask(ascir::HintGraph &optimize_graph, 
           GE_ASSERT_GRAPH_SUCCESS(TopoSortByCubePriority(grouped_graph), "Failed to topo sort by cube priority.");
         }
       }
-      ScheduleTask ub_task{graph, {}, score_funcs[i], {},
-                           ReduceTemplateType::kDefault, ascir::CubeTemplateType::kUBFuse};
+      ScheduleTask ub_task{
+          graph, {}, score_funcs[i], {}, ReduceTemplateType::kDefault, ascir::CubeTemplateType::kUBFuse};
       GE_ASSERT_SUCCESS(GeneratorUbTask(task.grouped_graphs, ub_task, tasks), "Generator ub task failed.");
     }
     tasks.emplace_back(std::move(task));

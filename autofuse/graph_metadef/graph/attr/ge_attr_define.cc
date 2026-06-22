@@ -205,7 +205,6 @@ const std::string REFINEDET_MBOX_FUSION_BOX_TYPE_NUM = "ssd_mbox_fusion_box_type
 const std::string REFINEDET_RESHAPE_SLICE_CONCAT_FUSION = "reshape_slice_concat_fusion";
 const std::string SSD_PRIORBOX_CONCAT = "ssd_mbox_conf_priorbox_concat_flag";
 
-
 // _Arg
 const std::string ATTR_NAME_INDEX = "index";
 // _RetVal
@@ -652,7 +651,6 @@ const std::string MUTI_RNN = "multi_rnn";
 const std::string CNN_RNN = "cnn_rnn";
 const std::string RNN_MODE_ = "rnn_";
 
-
 const std::string CELL_MODE = "mode";
 const std::string LSTM_CELL = "lstm_cell";
 const std::string GRU_CELL = "gru_cell";
@@ -761,7 +759,7 @@ const std::string ATTR_MODEL_ZERO_COPY_MEMORY_SIZE = "zero_copy_memory_size";
 
 const std::string ATTR_MODEL_P2P_MEMORY_SIZE = "p2p_memory_size";
 
-const std::string ATTR_MODEL_OUT_NODES_NAME  = "attr_model_out_nodes_name";
+const std::string ATTR_MODEL_OUT_NODES_NAME = "attr_model_out_nodes_name";
 
 const std::string ATTR_MODEL_WEIGHT_SIZE = "weight_size";
 
@@ -1574,4 +1572,4 @@ const std::string ATTR_NAME_SUPER_KERNEL_OPTIONS = "_super_kernel_options";
 
 // inference rule for torch or other framework with symbols
 const std::string ATTR_NAME_INFER_RULE = "_inference_rule";
-}  // namespace ge
+}  // namespace af

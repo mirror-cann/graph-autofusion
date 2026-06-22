@@ -16,9 +16,9 @@
 #include "graph/ascend_string.h"
 
 namespace af {
+using ge::AscendString;
 using ge::DataType;
 using ge::Format;
-using ge::AscendString;
 class TypeUtils {
  public:
   static std::string DataTypeToSerialString(const DataType data_type);

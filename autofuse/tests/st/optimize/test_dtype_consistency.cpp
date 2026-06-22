@@ -24,8 +24,8 @@ using namespace af;
 using namespace af::ascir_op;
 using af::ops::IsOps;
 using af::ops::One;
-using af::testing::Sym;
 using af::testing::AscGraphBuilder;
+using af::testing::Sym;
 
 namespace {
 
@@ -38,14 +38,14 @@ class TestDtypeConsistencyST : public ::testing::Test {
 TEST_F(TestDtypeConsistencyST, ComplexFp16ToFp32Chain) {
   // Create nodes: Data -> Load -> Add -> Mul -> Store -> Output
   auto graph = AscGraphBuilder("test_complex_fp16_fp32_chain")
-    .Loops({Sym("s0")})
-    .Data("x1", 0, {Sym("s0")}, {One}, af::DT_FLOAT16)
-    .Load("load", "x1")
-    .Add("add", "load", "load")
-    .Mul("mul", "add", "add")
-    .Store("store", "mul")
-    .Output("y", "store", 0, af::DT_FLOAT16)
-    .Build();
+                   .Loops({Sym("s0")})
+                   .Data("x1", 0, {Sym("s0")}, {One}, af::DT_FLOAT16)
+                   .Load("load", "x1")
+                   .Add("add", "load", "load")
+                   .Mul("mul", "add", "add")
+                   .Store("store", "mul")
+                   .Output("y", "store", 0, af::DT_FLOAT16)
+                   .Build();
 
   // Mock requirements: Add and Mul need FP32 for computation
   std::vector<optimize::NodeDtypeRequirement> mock_requirements;
@@ -91,14 +91,14 @@ TEST_F(TestDtypeConsistencyST, ComplexFp16ToFp32Chain) {
 TEST_F(TestDtypeConsistencyST, MultiInputDifferentDtypes) {
   // Create two data inputs: one FP16, one FP32
   auto graph = AscGraphBuilder("test_multi_input_diff_dtypes")
-    .Loops({Sym("s0")})
-    .Data("data1", 0, {Sym("s0")}, {One}, af::DT_FLOAT16)
-    .Data("data2", 1, {Sym("s0")}, {One}, af::DT_FLOAT16)
-    .Load("load1", "data1")
-    .Load("load2", "data2")
-    .Add("add", "load1", "load2")
-    .Store("store", "add")
-    .Build();
+                   .Loops({Sym("s0")})
+                   .Data("data1", 0, {Sym("s0")}, {One}, af::DT_FLOAT16)
+                   .Data("data2", 1, {Sym("s0")}, {One}, af::DT_FLOAT16)
+                   .Load("load1", "data1")
+                   .Load("load2", "data2")
+                   .Add("add", "load1", "load2")
+                   .Store("store", "add")
+                   .Build();
 
   std::vector<optimize::NodeDtypeRequirement> mock_requirements;
   mock_requirements.push_back({graph.FindNode("load1"), {af::DT_FLOAT16}, {af::DT_FLOAT16}});
@@ -134,13 +134,13 @@ TEST_F(TestDtypeConsistencyST, MultiInputDifferentDtypes) {
 // ST Test 3: Merge with upstream cast optimization
 TEST_F(TestDtypeConsistencyST, MergeWithUpstreamCast) {
   auto graph = AscGraphBuilder("test_merge_upstream_cast")
-    .Loops({Sym("s0")})
-    .Data("data1", 0, {Sym("s0")}, {One}, af::DT_FLOAT16)
-    .Load("load", "data1")
-    .Cast("existing_cast", "load", af::DT_FLOAT)
-    .Add("add", "existing_cast", "existing_cast")
-    .Store("store", "add")
-    .Build();
+                   .Loops({Sym("s0")})
+                   .Data("data1", 0, {Sym("s0")}, {One}, af::DT_FLOAT16)
+                   .Load("load", "data1")
+                   .Cast("existing_cast", "load", af::DT_FLOAT)
+                   .Add("add", "existing_cast", "existing_cast")
+                   .Store("store", "add")
+                   .Build();
 
   std::vector<optimize::NodeDtypeRequirement> mock_requirements;
   mock_requirements.push_back({graph.FindNode("load"), {af::DT_FLOAT16}, {af::DT_FLOAT16}});
@@ -176,13 +176,13 @@ TEST_F(TestDtypeConsistencyST, MergeWithUpstreamCast) {
 TEST_F(TestDtypeConsistencyST, CastCSEComplex) {
   // Multiple operators need FP32 from same FP16 source
   auto graph = AscGraphBuilder("test_cast_cse_complex")
-    .Loops({Sym("s0")})
-    .Data("data1", 0, {Sym("s0")}, {One}, af::DT_FLOAT16)
-    .Load("load", "data1")
-    .Add("add", "load", "load")
-    .Mul("mul", "load", "load")
-    .Sub("sub", "load", "load")
-    .Build();
+                   .Loops({Sym("s0")})
+                   .Data("data1", 0, {Sym("s0")}, {One}, af::DT_FLOAT16)
+                   .Load("load", "data1")
+                   .Add("add", "load", "load")
+                   .Mul("mul", "load", "load")
+                   .Sub("sub", "load", "load")
+                   .Build();
 
   std::vector<optimize::NodeDtypeRequirement> mock_requirements;
   mock_requirements.push_back({graph.FindNode("load"), {af::DT_FLOAT16}, {af::DT_FLOAT16}});
@@ -218,13 +218,13 @@ TEST_F(TestDtypeConsistencyST, CastCSEComplex) {
 TEST_F(TestDtypeConsistencyST, CancelIdentityCastComplex) {
   // Add identity cast (FP32 -> FP32)
   auto graph = AscGraphBuilder("test_identity_cast_complex")
-    .Loops({Sym("s0")})
-    .Data("data1", 0, {Sym("s0")}, {One}, af::DT_FLOAT)
-    .Load("load", "data1")
-    .Cast("identity_cast", "load", af::DT_FLOAT)
-    .Add("add", "identity_cast", "identity_cast")
-    .Store("store", "add")
-    .Build();
+                   .Loops({Sym("s0")})
+                   .Data("data1", 0, {Sym("s0")}, {One}, af::DT_FLOAT)
+                   .Load("load", "data1")
+                   .Cast("identity_cast", "load", af::DT_FLOAT)
+                   .Add("add", "identity_cast", "identity_cast")
+                   .Store("store", "add")
+                   .Build();
 
   std::vector<optimize::NodeDtypeRequirement> mock_requirements;
   mock_requirements.push_back({graph.FindNode("load"), {af::DT_FLOAT}, {af::DT_FLOAT}});
@@ -257,15 +257,15 @@ TEST_F(TestDtypeConsistencyST, CancelIdentityCastComplex) {
 TEST_F(TestDtypeConsistencyST, DeepChainWithMultipleConversions) {
   // Chain: Add -> Mul -> Add -> Mul, all need FP32
   auto graph = AscGraphBuilder("test_deep_chain")
-    .Loops({Sym("s0")})
-    .Data("data1", 0, {Sym("s0")}, {One}, af::DT_FLOAT16)
-    .Load("load", "data1")
-    .Add("add1", "load", "load")
-    .Mul("mul1", "add1", "add1")
-    .Add("add2", "mul1", "mul1")
-    .Mul("mul2", "add2", "add2")
-    .Store("store", "mul2")
-    .Build();
+                   .Loops({Sym("s0")})
+                   .Data("data1", 0, {Sym("s0")}, {One}, af::DT_FLOAT16)
+                   .Load("load", "data1")
+                   .Add("add1", "load", "load")
+                   .Mul("mul1", "add1", "add1")
+                   .Add("add2", "mul1", "mul1")
+                   .Mul("mul2", "add2", "add2")
+                   .Store("store", "mul2")
+                   .Build();
 
   std::vector<optimize::NodeDtypeRequirement> mock_requirements;
   mock_requirements.push_back({graph.FindNode("load"), {af::DT_FLOAT16}, {af::DT_FLOAT16}});
@@ -298,15 +298,15 @@ TEST_F(TestDtypeConsistencyST, DeepChainWithMultipleConversions) {
 TEST_F(TestDtypeConsistencyST, MergeUpstreamCastMultipleConsumers) {
   // Upstream cast: FP16 -> FP32 (safe widening)
   auto graph = AscGraphBuilder("test_merge_multiple_consumers")
-    .Loops({Sym("s0")})
-    .Data("data1", 0, {Sym("s0")}, {One}, af::DT_FLOAT16)
-    .Load("load", "data1")
-    .Cast("cast", "load", af::DT_FLOAT)
-    .Mul("mul1", "cast", "cast")
-    .Abs("abs", "cast")
-    .Add("add", "abs", "mul1")
-    .Store("store1", "add")
-    .Build();
+                   .Loops({Sym("s0")})
+                   .Data("data1", 0, {Sym("s0")}, {One}, af::DT_FLOAT16)
+                   .Load("load", "data1")
+                   .Cast("cast", "load", af::DT_FLOAT)
+                   .Mul("mul1", "cast", "cast")
+                   .Abs("abs", "cast")
+                   .Add("add", "abs", "mul1")
+                   .Store("store1", "add")
+                   .Build();
 
   std::vector<optimize::NodeDtypeRequirement> mock_requirements;
   mock_requirements.push_back({graph.FindNode("load"), {af::DT_FLOAT16}, {af::DT_FLOAT16}});
@@ -362,12 +362,12 @@ TEST_F(TestDtypeConsistencyST, MergeUpstreamCastMultipleConsumers) {
 TEST_F(TestDtypeConsistencyST, TryMergeWithUpstreamCast) {
   // Upstream cast: FP16 -> FP32 (safe widening)
   auto graph = AscGraphBuilder("test_merge_upstream_multiple")
-    .Loops({Sym("s0")})
-    .Data("data0", 0, {Sym("s0")}, {One}, af::DT_FLOAT16)
-    .Load("load", "data0")
-    .Cast("cast0", "load", af::DT_FLOAT)
-    .Add("add", "cast0", "cast0")
-    .Build();
+                   .Loops({Sym("s0")})
+                   .Data("data0", 0, {Sym("s0")}, {One}, af::DT_FLOAT16)
+                   .Load("load", "data0")
+                   .Cast("cast0", "load", af::DT_FLOAT)
+                   .Add("add", "cast0", "cast0")
+                   .Build();
 
   auto upstream_cast = graph.FindNode("cast0");
   auto downstream_node = graph.FindNode("add");

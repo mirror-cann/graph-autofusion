@@ -26,8 +26,8 @@ class TestGenerateTilingExprPenalty : public testing::Test {
   void TearDown() override {}
 
   // 辅助函数：创建一个 SubAxis
-  SubAxisPtr CreateSubAxis(const std::string& name, AxisPosition axis_type,
-                           bool is_reduce_split = false, bool is_broadcast_split = false) {
+  SubAxisPtr CreateSubAxis(const std::string &name, AxisPosition axis_type, bool is_reduce_split = false,
+                           bool is_broadcast_split = false) {
     auto sub_axis = std::make_unique<SubAxis>();
     sub_axis->name = name;
     sub_axis->axis_type = axis_type;
@@ -39,7 +39,7 @@ class TestGenerateTilingExprPenalty : public testing::Test {
   }
 
   // 辅助函数：创建一个 Tensor
-  TensorPtr CreateTensor(const std::string& name, const std::vector<SubAxis*>& dim_info) {
+  TensorPtr CreateTensor(const std::string &name, const std::vector<SubAxis *> &dim_info) {
     auto tensor = std::make_shared<Tensor>();
     tensor->name = name;
     tensor->data_type_size = 4;
@@ -49,17 +49,17 @@ class TestGenerateTilingExprPenalty : public testing::Test {
     // 补充完整的 repeat、stride、ori_repeat、ori_stride、gm_stride
     // 根据 dim_info 的数量填充对应数量的值
     size_t dim_size = dim_info.size();
-    tensor->repeat.resize(dim_size, af::Symbol(32));       // 默认 repeat 为 32
-    tensor->stride.resize(dim_size, af::Symbol(1));        // 默认 stride 为 1
-    tensor->ori_repeat.resize(dim_size, af::Symbol(32));   // 默认 ori_repeat 为 32
-    tensor->ori_stride.resize(dim_size, af::Symbol(1));    // 默认 ori_stride 为 1
-    tensor->gm_stride.resize(dim_size, af::Symbol(1));     // 默认 gm_stride 为 1
+    tensor->repeat.resize(dim_size, af::Symbol(32));      // 默认 repeat 为 32
+    tensor->stride.resize(dim_size, af::Symbol(1));       // 默认 stride 为 1
+    tensor->ori_repeat.resize(dim_size, af::Symbol(32));  // 默认 ori_repeat 为 32
+    tensor->ori_stride.resize(dim_size, af::Symbol(1));   // 默认 ori_stride 为 1
+    tensor->gm_stride.resize(dim_size, af::Symbol(1));    // 默认 gm_stride 为 1
 
     return tensor;
   }
 
   // 辅助函数：创建一个 Store NodeInfo
-  NodeInfo CreateStoreNodeInfo(const std::string& name, const std::vector<TensorPtr>& inputs) {
+  NodeInfo CreateStoreNodeInfo(const std::string &name, const std::vector<TensorPtr> &inputs) {
     NodeInfo node_info;
     node_info.name = name;
     node_info.node_type = "Store";
@@ -75,8 +75,12 @@ class TestGenerateTilingExprPenalty : public testing::Test {
 
   class MockTilingScheduleConfigTable : public TilingScheduleConfigTable {
    public:
-    bool IsEnableBlockLoopAutoTune() const override { return true; }
-    bool IsEnableCacheLineCheck() const override { return false; }
+    bool IsEnableBlockLoopAutoTune() const override {
+      return true;
+    }
+    bool IsEnableCacheLineCheck() const override {
+      return false;
+    }
     TradeOffConfig GetTradeOffConfig() const override {
       TradeOffConfig config;
       config.is_enable = false;
@@ -84,7 +88,9 @@ class TestGenerateTilingExprPenalty : public testing::Test {
       config.core_num_ratio = af::Symbol(0.8);
       return config;
     }
-    double GetUbThresholdPerfValEffect() const override { return 0.5; }
+    double GetUbThresholdPerfValEffect() const override {
+      return 0.5;
+    }
     TilingScheduleConfig GetModelTilingScheduleConfig() const override {
       TilingScheduleConfig config;
       config.trade_off_config.is_enable = false;
@@ -92,8 +98,12 @@ class TestGenerateTilingExprPenalty : public testing::Test {
       config.is_penalty_config = false;
       return config;
     }
-    uint32_t GetCacheLineSize() const override { return 128; }
-    bool IsCoreNumThresholdPenaltyEnable() const override { return true; }
+    uint32_t GetCacheLineSize() const override {
+      return 128;
+    }
+    bool IsCoreNumThresholdPenaltyEnable() const override {
+      return true;
+    }
   };
 
   TuningSpacePtr tuning_space;
@@ -131,8 +141,8 @@ TEST_F(TestGenerateTilingExprPenalty, FindAAxis_MultipleAAxes_WithNodeInfo) {
   tuning_space->sub_axes.push_back(std::move(r_sub));
 
   // 获取 SubAxis 原始指针用于构造 Tensor
-  std::vector<SubAxis*> sub_axes_ptrs;
-  for (const auto& sub : tuning_space->sub_axes) {
+  std::vector<SubAxis *> sub_axes_ptrs;
+  for (const auto &sub : tuning_space->sub_axes) {
     sub_axes_ptrs.push_back(sub.get());
   }
 
@@ -181,8 +191,8 @@ TEST_F(TestGenerateTilingExprPenalty, FindAAxis_SkipBroadcastSplitAxis_WithNodeI
   tuning_space->sub_axes.push_back(std::move(b_sub));
 
   // 获取 SubAxis 原始指针
-  std::vector<SubAxis*> sub_axes_ptrs;
-  for (const auto& sub : tuning_space->sub_axes) {
+  std::vector<SubAxis *> sub_axes_ptrs;
+  for (const auto &sub : tuning_space->sub_axes) {
     sub_axes_ptrs.push_back(sub.get());
   }
 
@@ -225,8 +235,8 @@ TEST_F(TestGenerateTilingExprPenalty, FindAAxis_NoA_Axes_WithNodeInfo) {
   tuning_space->sub_axes.push_back(std::move(r2_sub));
   tuning_space->sub_axes.push_back(std::move(b_sub));
 
-  std::vector<SubAxis*> sub_axes_ptrs;
-  for (const auto& sub : tuning_space->sub_axes) {
+  std::vector<SubAxis *> sub_axes_ptrs;
+  for (const auto &sub : tuning_space->sub_axes) {
     sub_axes_ptrs.push_back(sub.get());
   }
 
@@ -293,7 +303,7 @@ TEST_F(TestGenerateTilingExprPenalty, CalcPenaltyCoreNumRatio_NullSplitAxis) {
   size_info->symbol_expr = af::Symbol(32);
   a_axis->size = size_info;
 
-  std::vector<const AttAxis*> a_axes = {a_axis.get()};
+  std::vector<const AttAxis *> a_axes = {a_axis.get()};
 
   Expr result = generator.CalcPenaltyCoreNumRatio(nullptr, a_axes);
 
@@ -326,7 +336,7 @@ TEST_F(TestGenerateTilingExprPenalty, CalcPenaltyCoreNumRatio_OnlyInnerAxes) {
   a2_size->symbol_expr = af::Symbol(16);
   a_axis2->size = a2_size;
 
-  std::vector<const AttAxis*> a_axes = {a_axis1.get(), a_axis2.get()};
+  std::vector<const AttAxis *> a_axes = {a_axis1.get(), a_axis2.get()};
 
   Expr result = generator.CalcPenaltyCoreNumRatio(split_axis.get(), a_axes);
 
@@ -360,7 +370,7 @@ TEST_F(TestGenerateTilingExprPenalty, CalcPenaltyCoreNumRatio_OnlyOuterAxes) {
   a2_size->symbol_expr = af::Symbol(16);
   a_axis2->size = a2_size;
 
-  std::vector<const AttAxis*> a_axes = {a_axis1.get(), a_axis2.get()};
+  std::vector<const AttAxis *> a_axes = {a_axis1.get(), a_axis2.get()};
 
   Expr result = generator.CalcPenaltyCoreNumRatio(split_axis.get(), a_axes);
 
@@ -394,7 +404,7 @@ TEST_F(TestGenerateTilingExprPenalty, CalcPenaltyCoreNumRatio_MixedAxes) {
   outer_size->symbol_expr = af::Symbol(16);
   a_axis_outer->size = outer_size;
 
-  std::vector<const AttAxis*> a_axes = {a_axis_inner.get(), a_axis_outer.get()};
+  std::vector<const AttAxis *> a_axes = {a_axis_inner.get(), a_axis_outer.get()};
 
   Expr result = generator.CalcPenaltyCoreNumRatio(split_axis.get(), a_axes);
 
@@ -420,7 +430,7 @@ TEST_F(TestGenerateTilingExprPenalty, CalcPenaltyCoreNumRatio_VerifyFormula) {
   a_size->symbol_expr = af::Symbol(32);
   a_axis->size = a_size;
 
-  std::vector<const AttAxis*> a_axes = {a_axis.get()};
+  std::vector<const AttAxis *> a_axes = {a_axis.get()};
 
   Expr result = generator.CalcPenaltyCoreNumRatio(split_axis.get(), a_axes);
 
@@ -503,22 +513,32 @@ TEST_F(TestGenerateTilingExprPenalty, ApplyPenaltyConfig_DisabledByConfig) {
   // Create a config table that returns false for IsCoreNumThresholdPenaltyEnable
   class DisabledConfigTable : public TilingScheduleConfigTable {
    public:
-    bool IsEnableBlockLoopAutoTune() const override { return true; }
-    bool IsEnableCacheLineCheck() const override { return false; }
+    bool IsEnableBlockLoopAutoTune() const override {
+      return true;
+    }
+    bool IsEnableCacheLineCheck() const override {
+      return false;
+    }
     TradeOffConfig GetTradeOffConfig() const override {
       TradeOffConfig config;
       config.is_enable = false;
       return config;
     }
-    double GetUbThresholdPerfValEffect() const override { return 0.5; }
+    double GetUbThresholdPerfValEffect() const override {
+      return 0.5;
+    }
     TilingScheduleConfig GetModelTilingScheduleConfig() const override {
       TilingScheduleConfig config;
       config.trade_off_config.is_enable = false;
       return config;
     }
-    uint32_t GetCacheLineSize() const override { return 128; }
+    uint32_t GetCacheLineSize() const override {
+      return 128;
+    }
     // Return false to disable penalty
-    bool IsCoreNumThresholdPenaltyEnable() const override { return false; }
+    bool IsCoreNumThresholdPenaltyEnable() const override {
+      return false;
+    }
   };
 
   auto disabled_config = std::make_shared<DisabledConfigTable>();
@@ -658,7 +678,7 @@ TEST_F(TestGenerateTilingExprPenalty, CalcPenaltyCoreNumRatio_SkipNullSize) {
   valid_size->symbol_expr = af::Symbol(32);
   a_axis_valid->size = valid_size;
 
-  std::vector<const AttAxis*> a_axes = {a_axis_null.get(), a_axis_valid.get()};
+  std::vector<const AttAxis *> a_axes = {a_axis_null.get(), a_axis_valid.get()};
 
   // Should skip null size and only use valid size
   Expr result = generator.CalcPenaltyCoreNumRatio(split_axis.get(), a_axes);
@@ -680,8 +700,7 @@ TEST_F(TestGenerateTilingExprPenalty, ApplyUpperBoundTransform_NonConstSymbols) 
   // The non-const symbol should be wrapped with .upper_bound()
   std::string result_str = Str(result);
   // Verify it contains upper_bound transformation
-  EXPECT_TRUE(result_str.find("upper_bound") != std::string::npos ||
-              result_str.find("s1t_size") != std::string::npos);
+  EXPECT_TRUE(result_str.find("upper_bound") != std::string::npos || result_str.find("s1t_size") != std::string::npos);
 }
 
 // Test FindAAxis - With node_ptr (calls IsStoreNode)
@@ -766,7 +785,7 @@ TEST_F(TestGenerateTilingExprPenalty, CalcPenaltyCoreNumRatio_MixedValidity) {
   s3->data_type_size = 2;
   a3->size = s3;
 
-  std::vector<const AttAxis*> a_axes = {a1.get(), a2.get(), a3.get()};
+  std::vector<const AttAxis *> a_axes = {a1.get(), a2.get(), a3.get()};
 
   // Should skip a2 (null) and use a1 and a3
   // a1: 16 (INNER with upper_bound), a3: 8 (OUTER without upper_bound)

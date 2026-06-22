@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -21,8 +21,7 @@
 namespace att {
 const std::string kPadType = "Pad";
 
-af::Status GetPadHeightAndWidth(const af::AscTensor &node_input, af::Expression &height, af::Expression &width)
-{
+af::Status GetPadHeightAndWidth(const af::AscTensor &node_input, af::Expression &height, af::Expression &width) {
   for (size_t i = 0; i < node_input.attr.vectorized_axis.size(); i++) {
     auto vectorized_axis_id = node_input.attr.vectorized_axis[i];
     auto pos = std::find(node_input.attr.axis.begin(), node_input.attr.axis.end(), vectorized_axis_id);
@@ -40,15 +39,13 @@ af::Status GetPadHeightAndWidth(const af::AscTensor &node_input, af::Expression 
 }
 
 af::Status GetPadTilingCall([[maybe_unused]] const std::string &tiling_data_type,
-                            [[maybe_unused]] const af::AscGraph &graph,
-                            const af::AscNodePtr &node,
-                            std::string &code_string,
-                            uint32_t tiling_case_id) {
+                            [[maybe_unused]] const af::AscGraph &graph, const af::AscNodePtr &node,
+                            std::string &code_string, uint32_t tiling_case_id) {
   af::AscTensorAttr input_tensor_attr = node->inputs[0].attr;
 
   // 生成字段名
-  const std::string field_name = ascgen_utils::GenValidName(node->GetName()) +
-                                 "_tilingData_" + std::to_string(tiling_case_id);
+  const std::string field_name =
+      ascgen_utils::GenValidName(node->GetName()) + "_tilingData_" + std::to_string(tiling_case_id);
 
   /* 增加optiling:: PadTiling函数调用 */
   std::ostringstream oss;
@@ -74,8 +71,7 @@ af::Status GetPadTilingCall([[maybe_unused]] const std::string &tiling_data_type
 }
 
 af::Status GetPadTilingDefine([[maybe_unused]] const std::string &tiling_data_type,
-                              [[maybe_unused]] const af::AscGraph &graph,
-                              [[maybe_unused]] const af::AscNodePtr &node,
+                              [[maybe_unused]] const af::AscGraph &graph, [[maybe_unused]] const af::AscNodePtr &node,
                               [[maybe_unused]] const std::string &code_string,
                               [[maybe_unused]] uint32_t tiling_case_id) {
   return ge::SUCCESS;
@@ -83,8 +79,7 @@ af::Status GetPadTilingDefine([[maybe_unused]] const std::string &tiling_data_ty
 
 af::Status GetPadTilingHeadFiles([[maybe_unused]] const std::string &tiling_data_type,
                                  [[maybe_unused]] const af::AscGraph &graph,
-                                 [[maybe_unused]] const af::AscNodePtr &node,
-                                 std::string &code_string,
+                                 [[maybe_unused]] const af::AscNodePtr &node, std::string &code_string,
                                  [[maybe_unused]] uint32_t tiling_case_id) {
   static constexpr char kHeaderContent[] = R"(
 #include <vector>

@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -64,7 +64,7 @@ std::vector<CacheItemId> CacheState::DelCache(const DelCacheFunc &func) {
 }
 
 std::vector<CacheItemId> CacheState::DelCache(const std::vector<CacheItemId> &delete_item) {
-  const DelCacheFunc lamb = [&delete_item] (const CacheInfo &info) -> bool {
+  const DelCacheFunc lamb = [&delete_item](const CacheInfo &info) -> bool {
     const auto iter = std::find(delete_item.begin(), delete_item.end(), info.GetItemId());
     return iter != delete_item.end();
   };
@@ -72,7 +72,7 @@ std::vector<CacheItemId> CacheState::DelCache(const std::vector<CacheItemId> &de
 }
 
 void CacheInfoQueue::Insert(const CacheHashKey main_hash_key, std::vector<CacheInfo> &cache_info) {
-  (void) cc_state_.insert({main_hash_key, std::move(cache_info)});
+  (void)cc_state_.insert({main_hash_key, std::move(cache_info)});
   ++cache_info_num_;
 }
 void CacheInfoQueue::EmplaceBack(const CacheHashKey main_hash_key, CacheInfo &cache_info) {
@@ -93,4 +93,4 @@ void CacheInfoQueue::Erase(std::vector<CacheItemId> &delete_ids, const DelCacheF
     }
   }
 }
-}  // namespace ge
+}  // namespace af

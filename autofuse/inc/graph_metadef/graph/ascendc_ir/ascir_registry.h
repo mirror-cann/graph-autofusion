@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -116,7 +116,7 @@ class AscIrCodegen {
  public:
   virtual ~AscIrCodegen() = default;
   virtual std::vector<std::unique_ptr<TmpBufDesc>> CalcTmpBufSize(const AscNode &node) {
-    (void) node;
+    (void)node;
     return std::vector<std::unique_ptr<TmpBufDesc>>();
   }
   virtual std::string GetApiTilingTypeName() const {
@@ -208,7 +208,7 @@ class AscIrAtt {
   virtual void *GetAscendCApiPerfTable() const = 0;
 };
 
-template<typename T>
+template <typename T>
 std::function<std::unique_ptr<T>()> AscIrImplCreator() {
   return []() { return std::unique_ptr<T>(new T()); };
 }
@@ -284,7 +284,7 @@ class AscIrDef {
 inline std::string UpdateViewIfCrossLoop(const std::string &trans_infos, const std::string &input_api_sched_axis,
                                          const std::string &op_attr_sched_axis, const std::string &tie_expression) {
   return "AxisUtils::UpdateViewIfCrossLoop(" + trans_infos + ", " + input_api_sched_axis + ", " + op_attr_sched_axis +
-      ", " + "std::move(" + tie_expression + "))";
+         ", " + "std::move(" + tie_expression + "))";
 }
 
 inline void GenChosenInputView(const AscIrDef &def, const uint32_t chosen_input_index, std::stringstream &ss) {
@@ -293,7 +293,7 @@ inline void GenChosenInputView(const AscIrDef &def, const uint32_t chosen_input_
      << "_in.axis, *" << input_defs[chosen_input_index].first << "_in.repeats, *"
      << input_defs[chosen_input_index].first << "_in.strides};" << std::endl;
 }
-template<class Policy>
+template <class Policy>
 void GenErrorIfPolicyInvalid(Policy policy, size_t range, std::stringstream &ss) {
   if (policy.use_input_index < range) {
     return;
@@ -359,7 +359,7 @@ inline void GenerateViewUpdateCode(const AscIrDef &def, const std::pair<size_t, 
 
 inline ApplyOutputView GenApplyOutputViewFunc(const AscIrDef &def, const size_t output_index,
                                               uint32_t &chosen_input_index, std::stringstream &ss) {
-  (void) chosen_input_index;
+  (void)chosen_input_index;
   const auto &output_views_policy = def.GetViewPolicy();
   const auto &policy = output_views_policy[output_index];
   ApplyOutputView apply_output_view;
@@ -483,5 +483,5 @@ class AscirRegistry {
   std::unordered_map<std::string, AscIrDef> types_to_ascir_;
 };
 }  // namespace ascir
-}  // namespace ge
+}  // namespace af
 #endif  // AUTOFUSE_ASCIR_REGISTRY_H

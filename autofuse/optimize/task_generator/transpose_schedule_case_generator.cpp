@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -19,7 +19,6 @@
 #include "ascir_ops.h"
 #include "schedule_utils.h"
 #include "graph_properties_cache.h"
-
 
 namespace optimize {
 namespace {
@@ -89,7 +88,8 @@ Status TransposeFusionCaseGenerator::TransposeConvertProcess(ascir::HintGraph &g
   return ge::SUCCESS;
 }
 
-Status TransposeFusionCaseGenerator::Generate(ascir::HintGraph &graph, std::vector<ascir::ImplGraph> &graphs, std::vector<std::string> &score_functions) {
+Status TransposeFusionCaseGenerator::Generate(ascir::HintGraph &graph, std::vector<ascir::ImplGraph> &graphs,
+                                              std::vector<std::string> &score_functions) {
   /*
   单个Transpose场景：
     场景1： 尾轴转置， 需要UB重排，Transpose节点保留；
@@ -149,14 +149,14 @@ Status TransposeFusionCaseGenerator::Generate(ascir::HintGraph &graph, std::vect
 }
 
 Status TransposeFusionCaseGenerator::GenerateScoreFuncForUbReorder(const ascir::HintGraph &graph,
-                                                                  const af::AscNodePtr &transpose_node,
-                                                                  std::string &score_func) {
+                                                                   const af::AscNodePtr &transpose_node,
+                                                                   std::string &score_func) {
   return TransposeScoreFunctionGenerator(graph, transpose_node).Generate(score_func);
 }
 
 TransposeScoreFunctionGenerator::TransposeScoreFunctionGenerator(const ascir::HintGraph &graph,
                                                                  af::AscNodePtr transpose_node)
-  : graph_(&graph), transpose_node_(std::move(transpose_node)){}
+    : graph_(&graph), transpose_node_(std::move(transpose_node)) {}
 
 Status TransposeScoreFunctionGenerator::ParseRepeat() {
   const auto last_idx = transpose_node_->inputs[0].attr.axis.size() - 1;
@@ -192,7 +192,8 @@ Status TransposeScoreFunctionGenerator::GetScoreByExpr(int32_t &score) const {
   }
   // 非尾轴转置需要根据尾轴大小确定分数
   int32_t dim = -1;
-  GE_ASSERT_TRUE(repeat_.GetHint(dim), "Failed to get int value, expr = %s", af::SymbolicUtils::ToString(repeat_).c_str());
+  GE_ASSERT_TRUE(repeat_.GetHint(dim), "Failed to get int value, expr = %s",
+                 af::SymbolicUtils::ToString(repeat_).c_str());
   const auto limited_size = transposeNoNeedUBConvertSize / GetSizeByDataType(transpose_node_->inputs[0].attr.dtype);
   score = dim < limited_size ? 1 : -1;
   return ge::SUCCESS;

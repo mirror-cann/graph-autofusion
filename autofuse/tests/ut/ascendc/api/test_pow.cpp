@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -23,7 +23,7 @@
 
 using namespace AscendC;
 
-namespace af{
+namespace af {
 template <typename T>
 struct PowCase1InputParam {
   T *y{};
@@ -74,7 +74,7 @@ class TestApiPowUT : public testing::Test {
     param.src1 = static_cast<T *>(AscendC::GmAlloc(sizeof(T) * param.size));
 
     int input_range = 3;
-    std::mt19937 eng(1);                                         // Seed the generator
+    std::mt19937 eng(1);                                  // Seed the generator
     std::uniform_int_distribution distr(0, input_range);  // Define the range
 
     auto src0 = distr(eng);  // Use the secure random number generator
@@ -144,7 +144,7 @@ class TestApiPowUT : public testing::Test {
     param.src0 = static_cast<T *>(AscendC::GmAlloc(sizeof(T) * param.size));
 
     int input_range = 3;
-    std::mt19937 eng(1);                                         // Seed the generator
+    std::mt19937 eng(1);                                  // Seed the generator
     std::uniform_int_distribution distr(0, input_range);  // Define the range
 
     auto src1 = distr(eng);  // Use the secure random number generator
@@ -215,7 +215,7 @@ class TestApiPowUT : public testing::Test {
     param.src1 = static_cast<T *>(AscendC::GmAlloc(sizeof(T) * param.size));
 
     int input_range = 3;
-    std::mt19937 eng(1);                                         // Seed the generator
+    std::mt19937 eng(1);                                  // Seed the generator
     std::uniform_int_distribution distr(0, input_range);  // Define the range
 
     for (int i = 0; i < param.size; i++) {
@@ -269,7 +269,6 @@ class TestApiPowUT : public testing::Test {
     AscendC::GmFree(param.src0);
     AscendC::GmFree(param.src1);
   }
-
 };
 
 TEST_F(TestApiPowUT, PowCase1) {
@@ -294,4 +293,4 @@ TEST_F(TestApiPowUT, PowCase3) {
   PowCase1Test<int32_t>(2056);
 }
 
-}  // namespace ge
+}  // namespace af

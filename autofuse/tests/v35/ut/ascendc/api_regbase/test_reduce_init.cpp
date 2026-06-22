@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -29,7 +29,7 @@ struct TensorReduceInitInputParam {
   uint32_t inner_r{0};
 };
 
-class TestApiReduceInit :public testing::Test {
+class TestApiReduceInit : public testing::Test {
  protected:
   template <typename T, int32_t ReduceType, int32_t isTailLast>
   static void InvokeKernelWithTwoTensorInput(TensorReduceInitInputParam<T> &param) {
@@ -46,7 +46,6 @@ class TestApiReduceInit :public testing::Test {
     ReduceInit<T, ReduceType, isTailLast>(l_x1, param.dim_a, param.dim_r, param.dim_r_current, param.inner_r);
     UbToGm(param.y, l_x1, param.size);
   }
-
 
   template <typename T, int32_t ReduceType, int32_t isTailLast>
   static void CreateTensorInput(TensorReduceInitInputParam<T> &param) {
@@ -70,8 +69,8 @@ class TestApiReduceInit :public testing::Test {
 
     T pad_value = GetPaddingValue<T, ReduceType>();
 
-    int repeatStride = ((param.inner_r * itemsize + 31) / 32) * 32; // inner_r up to 32B
-    int strideElement = repeatStride / itemsize; // inner_r_up
+    int repeatStride = ((param.inner_r * itemsize + 31) / 32) * 32;  // inner_r up to 32B
+    int strideElement = repeatStride / itemsize;                     // inner_r_up
     int pad_len = strideElement - param.inner_r;
     int repeat_times = param.dim_r_current / strideElement;
 

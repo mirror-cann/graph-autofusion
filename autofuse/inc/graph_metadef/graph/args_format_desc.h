@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -79,23 +79,26 @@ class ArgsFormatDesc {
   static std::string Serialize(const std::vector<ArgDesc> &arg_descs);
 
   using const_iterator = std::vector<ArgDesc>::const_iterator;
-  const_iterator begin() const { return arg_descs_.begin(); }
-  const_iterator end() const { return arg_descs_.end(); }
+  const_iterator begin() const {
+    return arg_descs_.begin();
+  }
+  const_iterator end() const {
+    return arg_descs_.end();
+  }
 
-  static graphStatus FromString(ArgsFormatDesc &format,
-                                const OpDescPtr &op_desc, const std::string &str, const bool easy_mode = false) {
+  static graphStatus FromString(ArgsFormatDesc &format, const OpDescPtr &op_desc, const std::string &str,
+                                const bool easy_mode = false) {
     return Parse(op_desc, str, format.arg_descs_, easy_mode);
   }
 
   static graphStatus ConvertArgDescSkToNormal(const ArgDesc &sk_arg_desc, ArgDesc &arg_desc, int32_t &sub_op_id);
 
-  static graphStatus ConvertToSuperKernelArgFormat(const NodePtr &sk_node,
-                                                   const NodePtr &sub_node, const std::string &sub_node_arg_format,
-                                                   std::string &sk_arg_format);
+  static graphStatus ConvertToSuperKernelArgFormat(const NodePtr &sk_node, const NodePtr &sub_node,
+                                                   const std::string &sub_node_arg_format, std::string &sk_arg_format);
 
  private:
   std::vector<ArgDesc> arg_descs_;
 };
-}  // namespace ge
+}  // namespace af
 
 #endif  // METADEF_CXX_ARGS_FORMAT_H

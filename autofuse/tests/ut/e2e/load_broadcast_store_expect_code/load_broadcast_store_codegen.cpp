@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -44,7 +44,7 @@ int main(int argc, char *argv[]) {
   InitScheduleResultsByImplGraphs({impl_graph}, fused_schedule_result);
   codegen::CodegenResult result;
   if (c.Generate(fused_schedule_result, result) != ge::SUCCESS) {
-    std::cout<<"graph generate failed"<<std::endl;
+    std::cout << "graph generate failed" << std::endl;
   }
 
   std::cout << "***************************************20250822***0*****" << std::endl;
@@ -87,7 +87,7 @@ int main(int argc, char *argv[]) {
   fused_schedule_result_int64.node_idx_to_scheduled_results.push_back(schedule_results_int64);
   InitScheduleResultsByImplGraphs({impl_graph_int64}, fused_schedule_result_int64);
   if (c_int64.Generate(fused_schedule_result_int64, result) != ge::SUCCESS) {
-    std::cout<<"graph_uint8 generate failed"<<std::endl;
+    std::cout << "graph_uint8 generate failed" << std::endl;
   }
 
   std::fstream kernel_file_int64("load_broadcast_store_int64_kernel.cpp", std::ios::out);
@@ -122,9 +122,9 @@ int main(int argc, char *argv[]) {
   fused_schedule_result_uint8.node_idx_to_scheduled_results.push_back(schedule_results_uint8);
   InitScheduleResultsByImplGraphs({impl_graph_uint8}, fused_schedule_result_uint8);
   if (c_uint8.Generate(fused_schedule_result_uint8, result) != ge::SUCCESS) {
-    std::cout<<"graph_uint8 generate failed"<<std::endl;
+    std::cout << "graph_uint8 generate failed" << std::endl;
   }
-  
+
   std::fstream kernel_file_uint8("load_broadcast_store_uint8_kernel.cpp", std::ios::out);
   std::fstream tiling_data_file_uint8("autofuse_tiling_data.h", std::ios::out);
 

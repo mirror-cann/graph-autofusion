@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -39,9 +39,9 @@
 
 namespace af {
 using ge::AscendString;
-using ge::Promote;
-using ge::float32_t;
 using ge::char_t;
+using ge::float32_t;
+using ge::Promote;
 
 class Operator;
 class OperatorImpl;
@@ -509,11 +509,9 @@ class GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY Operator {
   Operator &SetOutputAttr(const char_t *dst_name, const char_t *name, const std::vector<float32_t> &attr_value);
   graphStatus GetOutputAttr(const char_t *dst_name, const char_t *name, std::vector<float32_t> &attr_value) const;
 
-  Operator &SetInput(const char_t *dst_name, uint32_t dst_index, const Operator &src_oprt,
-                     const char_t *name);
+  Operator &SetInput(const char_t *dst_name, uint32_t dst_index, const Operator &src_oprt, const char_t *name);
 
-  Operator &SetInput(const char_t *dst_name, uint32_t dst_index,
-                     const Operator &src_oprt);
+  Operator &SetInput(const char_t *dst_name, uint32_t dst_index, const Operator &src_oprt);
 
   void DynamicInputRegister(const char_t *name, const uint32_t num, bool is_push_back = true);
   void DynamicInputRegister(const char_t *name, const uint32_t num, const char_t *datatype_symbol,
@@ -535,6 +533,7 @@ class GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY Operator {
 
   void AttrRegister(const char_t *name, const AttrValue &attr_value);
   graphStatus SetSubgraphInstanceName(const uint32_t index, const char_t *name);
+
  protected:
   ATTRIBUTED_DEPRECATED(void AttrRegister(const char_t *, float32_t))
   void AttrRegister(const std::string &name, float32_t attr_value);
@@ -636,8 +635,7 @@ class GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY Operator {
 
   // Only has one output index = 0
   ATTRIBUTED_DEPRECATED(Operator &SetInput(const char_t *, uint32_t, const Operator &))
-  Operator &SetInput(const std::string &dst_name, uint32_t dst_index,
-                     const Operator &src_oprt);
+  Operator &SetInput(const std::string &dst_name, uint32_t dst_index, const Operator &src_oprt);
 
   ATTRIBUTED_DEPRECATED(Operator &SetInput(const char_t *, uint32_t, const Operator &, const char_t *))
   Operator &SetInput(const std::string &dst_name, uint32_t dst_index, const Operator &src_oprt,

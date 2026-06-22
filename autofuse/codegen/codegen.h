@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -15,7 +15,7 @@
 #include "codegen_tiling.h"
 #include "ascgen_log.h"
 #include "schedule_result.h"
-std::string RemoveSubDirInclude(const std::string& kernel_str);
+std::string RemoveSubDirInclude(const std::string &kernel_str);
 namespace codegen {
 struct CodegenResult {
   std::string proto = "";
@@ -33,29 +33,30 @@ struct CodegenOptions {
 
 class Codegen {
  public:
-  explicit Codegen(const CodegenOptions& options);
-  Status Generate(const ::ascir::FusedScheduledResult& fused_schedule_result, CodegenResult &result) const;
+  explicit Codegen(const CodegenOptions &options);
+  Status Generate(const ::ascir::FusedScheduledResult &fused_schedule_result, CodegenResult &result) const;
   Status Generate(const std::map<std::string, std::string> &shape_info,
-                  const ::ascir::FusedScheduledResult& fused_schedule_result, CodegenResult &result) const;
-  Status GenerateForInductor(const ::ascir::FusedScheduledResult& fused_schedule_result, CodegenResult &result) const;
+                  const ::ascir::FusedScheduledResult &fused_schedule_result, CodegenResult &result) const;
+  Status GenerateForInductor(const ::ascir::FusedScheduledResult &fused_schedule_result, CodegenResult &result) const;
 
-  std::string GenerateTilingData(const ::ascir::FusedScheduledResult& fused_schedule_result, bool is_inductor = false) const;
+  std::string GenerateTilingData(const ::ascir::FusedScheduledResult &fused_schedule_result,
+                                 bool is_inductor = false) const;
 
   Status GenerateTiling(const ::ascir::FusedScheduledResult &fused_schedule_result,
-                        const std::map<std::string, std::string> &shape_info, const std::string& pgo_dir,
+                        const std::map<std::string, std::string> &shape_info, const std::string &pgo_dir,
                         const std::string &core_num,
                         std::map<std::string, std::string> &tiling_file_name_to_content) const;
   std::map<std::string, std::string> GenerateTiling(const ::ascir::FusedScheduledResult &fused_schedule_result,
                                                     const std::map<std::string, std::string> &shape_info,
-                                                    const std::string& pgo_dir, const std::string &core_num) const;
+                                                    const std::string &pgo_dir, const std::string &core_num) const;
   Status GenerateTilingForInductor(const ::ascir::FusedScheduledResult &fused_schedule_result,
                                    std::map<std::string, std::string> &tiling_file_name_to_content) const;
   std::map<std::string, std::string> GenerateTilingForInductor(
       const ::ascir::FusedScheduledResult &fused_schedule_result) const;
 
-  Status GenerateKernel(const ::ascir::FusedScheduledResult& fused_schedule_result, std::string &result,
+  Status GenerateKernel(const ::ascir::FusedScheduledResult &fused_schedule_result, std::string &result,
                         bool is_inductor = false) const;
-  std::string GenGetKernelAndJson(const std::string& kernel_path, const std::string& json_path) const;
+  std::string GenGetKernelAndJson(const std::string &kernel_path, const std::string &json_path) const;
   std::string GenerateInferShape(const std::vector<std::vector<std::string>> &symbol_shape_str,
                                  const std::map<std::string, std::string> &shape_info) const;
 
@@ -66,7 +67,6 @@ class Codegen {
   TilingLib tiling_lib_;
   bool using_att_calc_qbt_size_;
 };
-} // namespace codegen
+}  // namespace codegen
 
 #endif
-

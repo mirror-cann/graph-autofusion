@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -22,12 +22,12 @@ struct NodeDetail {
   std::string optype;
   std::vector<std::string> input_dtype{};
   std::vector<std::string> output_dtype{};
-  std::vector<Expr> repeats{}; // 合轴前
-  std::vector<Expr> input_dims{}; // 合轴后
-  std::vector<Expr> output_dims{}; // 合轴后
+  std::vector<Expr> repeats{};      // 合轴前
+  std::vector<Expr> input_dims{};   // 合轴后
+  std::vector<Expr> output_dims{};  // 合轴后
   Expr gm_stride{CreateExpr(0)};
   Expr ub_stride{CreateExpr(0)};
-  int32_t block_count_idx{0};  // 用于 LoadStoreStrideV2Func，表示发生非连续的轴索引
+  int32_t block_count_idx{0};                      // 用于 LoadStoreStrideV2Func，表示发生非连续的轴索引
   std::map<Expr, TernaryOp, ExprCmp> ternary_ops;  // 动态shape表达式
 
   std::string ToString() const {
@@ -75,7 +75,7 @@ class ApiPerf {
         micro_perf_func_(micro_perf_func),
         perf_param_(perf_param),
         tiling_schedule_config_table_(tiling_schedule_config_table),
-        api_name_(api_name){}
+        api_name_(api_name) {}
   virtual ~ApiPerf() = default;
   const std::string &GetApiName() const {
     return api_name_;
@@ -103,9 +103,8 @@ class ApiPerf {
 
 inline ge::Status DefaultGetPerf([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
                                  [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
-                                 [[maybe_unused]] const NodeInfo &node,
-                                 [[maybe_unused]] PerfOutputInfo &res) {
-  (void) res;
+                                 [[maybe_unused]] const NodeInfo &node, [[maybe_unused]] PerfOutputInfo &res) {
+  (void)res;
   return ge::SUCCESS;
 }
 }  // namespace att

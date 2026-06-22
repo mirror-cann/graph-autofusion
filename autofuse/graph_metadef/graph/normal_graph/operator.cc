@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -38,263 +38,263 @@
 #include "graph/utils/op_desc_utils_ex.h"
 #include "graph/utils/op_type_utils.h"
 
-#define OP_ATTR_SET_IMP(ArgType, AttrUtilsFun)                                                                         \
-  Operator &Operator::SetAttr(const std::string &name, ArgType attr_value) {                                       \
-    if ((operator_impl_ == nullptr) || (operator_impl_->GetOpDescImpl() == nullptr)) {                                 \
-      REPORT_INNER_ERR_MSG("E18888", "operator_impl_ is nullptr or opdesc is nullptr, check invalid");                   \
-      GELOGE(ge::GRAPH_FAILED, "[Check][Param] operator impl is nullptr, name %s.", name.c_str());                         \
-      return *this;                                                                                                    \
-    }                                                                                                                  \
-    if (!AttrUtils::Set##AttrUtilsFun(operator_impl_->GetOpDescImpl(), name, attr_value)) {                        \
-      GELOGW("[Set][Attr] Set attr name %s unsuccessful", name.c_str());                                                     \
-    }                                                                                                                  \
-    return *this;                                                                                                      \
-  }                                                                                                                    \
-  Operator &Operator::SetAttr(const char_t *name, ArgType attr_value) {                                            \
-    if (name == nullptr) {                                                                                             \
-      REPORT_INNER_ERR_MSG("E18888", "param name is nullptr, check invalid.");                                           \
-      GELOGE(ge::GRAPH_FAILED, "[Check][Param] operator attr name is nullptr.");                                           \
-      return *this;                                                                                                    \
-    }                                                                                                                  \
-    const std::string op_name = name;                                                                                  \
-    if ((operator_impl_ == nullptr) || (operator_impl_->GetOpDescImpl() == nullptr)) {                                 \
-      REPORT_INNER_ERR_MSG("E18888", "operator_impl_ is nullptr or opdesc is nullptr, check invalid.");                  \
-      GELOGE(ge::GRAPH_FAILED, "[Check][Param] operator impl is nullptr, name %s.", op_name.c_str());                      \
-      return *this;                                                                                                    \
-    }                                                                                                                  \
-    if (!AttrUtils::Set##AttrUtilsFun(operator_impl_->GetOpDescImpl(), op_name, attr_value)) {                     \
-      GELOGW("[Set][Attr] Set attr name %s unsuccessful", op_name.c_str());                                                  \
-    }                                                                                                                  \
-    return *this;                                                                                                      \
+#define OP_ATTR_SET_IMP(ArgType, AttrUtilsFun)                                                          \
+  Operator &Operator::SetAttr(const std::string &name, ArgType attr_value) {                            \
+    if ((operator_impl_ == nullptr) || (operator_impl_->GetOpDescImpl() == nullptr)) {                  \
+      REPORT_INNER_ERR_MSG("E18888", "operator_impl_ is nullptr or opdesc is nullptr, check invalid");  \
+      GELOGE(ge::GRAPH_FAILED, "[Check][Param] operator impl is nullptr, name %s.", name.c_str());      \
+      return *this;                                                                                     \
+    }                                                                                                   \
+    if (!AttrUtils::Set##AttrUtilsFun(operator_impl_->GetOpDescImpl(), name, attr_value)) {             \
+      GELOGW("[Set][Attr] Set attr name %s unsuccessful", name.c_str());                                \
+    }                                                                                                   \
+    return *this;                                                                                       \
+  }                                                                                                     \
+  Operator &Operator::SetAttr(const char_t *name, ArgType attr_value) {                                 \
+    if (name == nullptr) {                                                                              \
+      REPORT_INNER_ERR_MSG("E18888", "param name is nullptr, check invalid.");                          \
+      GELOGE(ge::GRAPH_FAILED, "[Check][Param] operator attr name is nullptr.");                        \
+      return *this;                                                                                     \
+    }                                                                                                   \
+    const std::string op_name = name;                                                                   \
+    if ((operator_impl_ == nullptr) || (operator_impl_->GetOpDescImpl() == nullptr)) {                  \
+      REPORT_INNER_ERR_MSG("E18888", "operator_impl_ is nullptr or opdesc is nullptr, check invalid."); \
+      GELOGE(ge::GRAPH_FAILED, "[Check][Param] operator impl is nullptr, name %s.", op_name.c_str());   \
+      return *this;                                                                                     \
+    }                                                                                                   \
+    if (!AttrUtils::Set##AttrUtilsFun(operator_impl_->GetOpDescImpl(), op_name, attr_value)) {          \
+      GELOGW("[Set][Attr] Set attr name %s unsuccessful", op_name.c_str());                             \
+    }                                                                                                   \
+    return *this;                                                                                       \
   }
 
-#define OP_ATTR_GET_IMP(ArgType, AttrUtilsFun)                                                                         \
-  graphStatus Operator::GetAttr(const std::string &name, ArgType attr_value) const {                               \
-    if ((operator_impl_ == nullptr) || (operator_impl_->GetOpDescImpl() == nullptr)) {                                 \
-      REPORT_INNER_ERR_MSG("E18888", "operator_impl_ is nullptr or opdesc is nullptr, check invalid");                   \
-      GELOGE(ge::GRAPH_FAILED, "[Check][Param] operator impl is nullptr, name %s.", name.c_str());                         \
-      return ge::GRAPH_FAILED;                                                                                             \
-    }                                                                                                                  \
-    if (!AttrUtils::Get##AttrUtilsFun(operator_impl_->GetOpDescImpl(), name, attr_value)) {                        \
-      GELOGW("[Get][Attr] Get attr name %s unsuccessful", name.c_str());                                                     \
-      return ge::GRAPH_FAILED;                                                                                             \
-    }                                                                                                                  \
-    return GRAPH_SUCCESS;                                                                                              \
-  }                                                                                                                    \
-  graphStatus Operator::GetAttr(const char_t *name, ArgType attr_value) const {                                    \
-    if (name == nullptr) {                                                                                             \
-      REPORT_INNER_ERR_MSG("E18888", "param name is nullptr, check invalid");                                            \
-      GELOGE(ge::GRAPH_FAILED, "[Check][Param] operator attr name is nullptr.");                                           \
-      return ge::GRAPH_FAILED;                                                                                             \
-    }                                                                                                                  \
-    if ((operator_impl_ == nullptr) || (operator_impl_->GetOpDescImpl() == nullptr)) {                                 \
-      REPORT_INNER_ERR_MSG("E18888", "operator_impl_ is nullptr or opdesc is nullptr, check invalid");                   \
-      GELOGE(ge::GRAPH_FAILED, "[Check][Param] operator impl is nullptr, name %s.", name);                                 \
-      return ge::GRAPH_FAILED;                                                                                             \
-    }                                                                                                                  \
-    const std::string op_name = name;                                                                                  \
-    if (!AttrUtils::Get##AttrUtilsFun(operator_impl_->GetOpDescImpl(), op_name, attr_value)) {                     \
-      GELOGW("[Get][Attr] Get attr name %s unsuccessful", op_name.c_str());                                                  \
-      return ge::GRAPH_FAILED;                                                                                             \
-    }                                                                                                                  \
-    return GRAPH_SUCCESS;                                                                                              \
+#define OP_ATTR_GET_IMP(ArgType, AttrUtilsFun)                                                         \
+  graphStatus Operator::GetAttr(const std::string &name, ArgType attr_value) const {                   \
+    if ((operator_impl_ == nullptr) || (operator_impl_->GetOpDescImpl() == nullptr)) {                 \
+      REPORT_INNER_ERR_MSG("E18888", "operator_impl_ is nullptr or opdesc is nullptr, check invalid"); \
+      GELOGE(ge::GRAPH_FAILED, "[Check][Param] operator impl is nullptr, name %s.", name.c_str());     \
+      return ge::GRAPH_FAILED;                                                                         \
+    }                                                                                                  \
+    if (!AttrUtils::Get##AttrUtilsFun(operator_impl_->GetOpDescImpl(), name, attr_value)) {            \
+      GELOGW("[Get][Attr] Get attr name %s unsuccessful", name.c_str());                               \
+      return ge::GRAPH_FAILED;                                                                         \
+    }                                                                                                  \
+    return GRAPH_SUCCESS;                                                                              \
+  }                                                                                                    \
+  graphStatus Operator::GetAttr(const char_t *name, ArgType attr_value) const {                        \
+    if (name == nullptr) {                                                                             \
+      REPORT_INNER_ERR_MSG("E18888", "param name is nullptr, check invalid");                          \
+      GELOGE(ge::GRAPH_FAILED, "[Check][Param] operator attr name is nullptr.");                       \
+      return ge::GRAPH_FAILED;                                                                         \
+    }                                                                                                  \
+    if ((operator_impl_ == nullptr) || (operator_impl_->GetOpDescImpl() == nullptr)) {                 \
+      REPORT_INNER_ERR_MSG("E18888", "operator_impl_ is nullptr or opdesc is nullptr, check invalid"); \
+      GELOGE(ge::GRAPH_FAILED, "[Check][Param] operator impl is nullptr, name %s.", name);             \
+      return ge::GRAPH_FAILED;                                                                         \
+    }                                                                                                  \
+    const std::string op_name = name;                                                                  \
+    if (!AttrUtils::Get##AttrUtilsFun(operator_impl_->GetOpDescImpl(), op_name, attr_value)) {         \
+      GELOGW("[Get][Attr] Get attr name %s unsuccessful", op_name.c_str());                            \
+      return ge::GRAPH_FAILED;                                                                         \
+    }                                                                                                  \
+    return GRAPH_SUCCESS;                                                                              \
   }
 
-#define OP_ATTR_REG_IMP(ArgType, AttrUtilsFun)                                                                         \
-  void Operator::AttrRegister(const char_t *name, ArgType attr_value) {                                            \
-    GE_CHECK_NOTNULL_JUST_RETURN(name);                                                                                \
-    if ((operator_impl_ == nullptr) || (operator_impl_->GetOpDescImpl() == nullptr)) {                                 \
-      REPORT_INNER_ERR_MSG("E18888", "operator_impl_ is nullptr or opdesc is nullptr, check invalid");                   \
-      GELOGE(ge::GRAPH_FAILED, "[Check][Param] operator impl is nullptr, name %s.", name);                         \
-      return;                                                                                                          \
-    }                                                                                                                  \
-    if (!AttrUtils::Set##AttrUtilsFun(operator_impl_->GetOpDescImpl(), name, attr_value)) {                        \
-      GELOGW("[Register][Attr] Reg attr name %s unsuccessful", name);                                                \
-    }                                                                                                                  \
-    operator_impl_->GetOpDescImpl()->AppendIrAttrName(name);                                                           \
+#define OP_ATTR_REG_IMP(ArgType, AttrUtilsFun)                                                         \
+  void Operator::AttrRegister(const char_t *name, ArgType attr_value) {                                \
+    GE_CHECK_NOTNULL_JUST_RETURN(name);                                                                \
+    if ((operator_impl_ == nullptr) || (operator_impl_->GetOpDescImpl() == nullptr)) {                 \
+      REPORT_INNER_ERR_MSG("E18888", "operator_impl_ is nullptr or opdesc is nullptr, check invalid"); \
+      GELOGE(ge::GRAPH_FAILED, "[Check][Param] operator impl is nullptr, name %s.", name);             \
+      return;                                                                                          \
+    }                                                                                                  \
+    if (!AttrUtils::Set##AttrUtilsFun(operator_impl_->GetOpDescImpl(), name, attr_value)) {            \
+      GELOGW("[Register][Attr] Reg attr name %s unsuccessful", name);                                  \
+    }                                                                                                  \
+    operator_impl_->GetOpDescImpl()->AppendIrAttrName(name);                                           \
   }
 
-#define EDGE_ATTR_SET_BY_IDX_IMP(ArgType, AttrUtilsFun)                                                               \
-  Operator &Operator::SetInputAttr(const int32_t index, const char_t *name, ArgType attr_value) {                     \
-    if (name == nullptr) {                                                                                            \
-      REPORT_INNER_ERR_MSG("E18888", "param name is nullptr, check invalid.");                                          \
-      GELOGE(ge::GRAPH_FAILED, "[Check][Param] operator attr name is nullptr.");                                          \
-      return *this;                                                                                                   \
-    }                                                                                                                 \
-    if ((operator_impl_ == nullptr) || (operator_impl_->GetOpDescImpl() == nullptr)) {                                \
-      REPORT_INNER_ERR_MSG("E18888", "operator_impl_ is nullptr or opdesc is nullptr, check invalid");                  \
-      GELOGE(ge::GRAPH_FAILED, "[Check][Param] operator impl is nullptr, name %s.", name);                                \
-      return *this;                                                                                                   \
-    }                                                                                                                 \
-    const std::string op_name = name;                                                                                 \
-    auto tensor = operator_impl_->MutableInputDesc(index);                                                            \
-    if (!AttrUtils::Set##AttrUtilsFun(tensor, op_name, attr_value)) {                                             \
-      GELOGW("[Set][Attr] Set attr name %s to op %s of index[%d] unsuccessful", name,                                       \
-             operator_impl_->GetOpDescImpl()->GetName().c_str(), index);                                              \
-    }                                                                                                                 \
-    return *this;                                                                                                     \
-  }                                                                                                                   \
-  Operator &Operator::SetOutputAttr(const int32_t index, const char_t *name, ArgType attr_value) {                    \
-    if (name == nullptr) {                                                                                            \
-      REPORT_INNER_ERR_MSG("E18888", "param name is nullptr, check invalid.");                                          \
-      GELOGE(ge::GRAPH_FAILED, "[Check][Param] operator attr name is nullptr.");                                          \
-      return *this;                                                                                                   \
-    }                                                                                                                 \
-    if ((operator_impl_ == nullptr) || (operator_impl_->GetOpDescImpl() == nullptr)) {                                \
-      REPORT_INNER_ERR_MSG("E18888", "operator_impl_ is nullptr or opdesc is nullptr, check invalid");                  \
-      GELOGE(ge::GRAPH_FAILED, "[Check][Param] operator impl is nullptr, name %s.", name);                                \
-      return *this;                                                                                                   \
-    }                                                                                                                 \
-    const std::string op_name = name;                                                                                 \
-    auto tensor = operator_impl_->MutableOutputDesc(index);                                                           \
-    if (!AttrUtils::Set##AttrUtilsFun(tensor, op_name, attr_value)) {                                             \
-      GELOGW("[Set][Attr] Set attr name %s to op %s of index[%d] unsuccessful", name,                                       \
-             operator_impl_->GetOpDescImpl()->GetName().c_str(), index);                                              \
-    }                                                                                                                 \
-    return *this;                                                                                                     \
+#define EDGE_ATTR_SET_BY_IDX_IMP(ArgType, AttrUtilsFun)                                                \
+  Operator &Operator::SetInputAttr(const int32_t index, const char_t *name, ArgType attr_value) {      \
+    if (name == nullptr) {                                                                             \
+      REPORT_INNER_ERR_MSG("E18888", "param name is nullptr, check invalid.");                         \
+      GELOGE(ge::GRAPH_FAILED, "[Check][Param] operator attr name is nullptr.");                       \
+      return *this;                                                                                    \
+    }                                                                                                  \
+    if ((operator_impl_ == nullptr) || (operator_impl_->GetOpDescImpl() == nullptr)) {                 \
+      REPORT_INNER_ERR_MSG("E18888", "operator_impl_ is nullptr or opdesc is nullptr, check invalid"); \
+      GELOGE(ge::GRAPH_FAILED, "[Check][Param] operator impl is nullptr, name %s.", name);             \
+      return *this;                                                                                    \
+    }                                                                                                  \
+    const std::string op_name = name;                                                                  \
+    auto tensor = operator_impl_->MutableInputDesc(index);                                             \
+    if (!AttrUtils::Set##AttrUtilsFun(tensor, op_name, attr_value)) {                                  \
+      GELOGW("[Set][Attr] Set attr name %s to op %s of index[%d] unsuccessful", name,                  \
+             operator_impl_->GetOpDescImpl()->GetName().c_str(), index);                               \
+    }                                                                                                  \
+    return *this;                                                                                      \
+  }                                                                                                    \
+  Operator &Operator::SetOutputAttr(const int32_t index, const char_t *name, ArgType attr_value) {     \
+    if (name == nullptr) {                                                                             \
+      REPORT_INNER_ERR_MSG("E18888", "param name is nullptr, check invalid.");                         \
+      GELOGE(ge::GRAPH_FAILED, "[Check][Param] operator attr name is nullptr.");                       \
+      return *this;                                                                                    \
+    }                                                                                                  \
+    if ((operator_impl_ == nullptr) || (operator_impl_->GetOpDescImpl() == nullptr)) {                 \
+      REPORT_INNER_ERR_MSG("E18888", "operator_impl_ is nullptr or opdesc is nullptr, check invalid"); \
+      GELOGE(ge::GRAPH_FAILED, "[Check][Param] operator impl is nullptr, name %s.", name);             \
+      return *this;                                                                                    \
+    }                                                                                                  \
+    const std::string op_name = name;                                                                  \
+    auto tensor = operator_impl_->MutableOutputDesc(index);                                            \
+    if (!AttrUtils::Set##AttrUtilsFun(tensor, op_name, attr_value)) {                                  \
+      GELOGW("[Set][Attr] Set attr name %s to op %s of index[%d] unsuccessful", name,                  \
+             operator_impl_->GetOpDescImpl()->GetName().c_str(), index);                               \
+    }                                                                                                  \
+    return *this;                                                                                      \
   }
-#define EDGE_ATTR_SET_BY_NAME_IMP(ArgType, AttrUtilsFun)                                                              \
-  Operator &Operator::SetInputAttr(const char_t *dst_name, const char_t *name, ArgType attr_value) {                  \
-    if ((dst_name == nullptr) || (name == nullptr)) {                                                                 \
-      REPORT_INNER_ERR_MSG("E18888", "dst_name or attr name is nullptr, check invalid.");                               \
-      GELOGE(ge::GRAPH_FAILED, "[Check][Param] operator input name or attr name is nullptr.");                            \
-      return *this;                                                                                                   \
-    }                                                                                                                 \
-    if ((operator_impl_ == nullptr) || (operator_impl_->GetOpDescImpl() == nullptr)) {                                \
-      REPORT_INNER_ERR_MSG("E18888", "operator_impl_ is nullptr or opdesc is nullptr, check invalid");                  \
-      GELOGE(ge::GRAPH_FAILED, "[Check][Param] operator impl is nullptr, name %s.", name);                                \
-      return *this;                                                                                                   \
-    }                                                                                                                 \
-    const std::string op_name = name;                                                                                 \
-    const std::string dst_names = dst_name;                                                                           \
-    auto tensor = operator_impl_->MutableInputDesc(dst_names);                                                        \
-    if (!AttrUtils::Set##AttrUtilsFun(tensor, op_name, attr_value)) {                                             \
-      GELOGW("[Set][Attr] Set attr name %s to op %s of input_name[%s] unsuccessful", name,                                  \
-             operator_impl_->GetOpDescImpl()->GetName().c_str(), dst_name);                                           \
-    }                                                                                                                 \
-    return *this;                                                                                                     \
-  }                                                                                                                   \
-  Operator &Operator::SetOutputAttr(const char_t *dst_name, const char_t *name, ArgType attr_value) {                 \
-    if ((dst_name == nullptr) || (name == nullptr)) {                                                                 \
-      REPORT_INNER_ERR_MSG("E18888", "dst_name or attr name is nullptr, check invalid.");                               \
-      GELOGE(ge::GRAPH_FAILED, "[Check][Param] operator output name or attr name is nullptr.");                           \
-      return *this;                                                                                                   \
-    }                                                                                                                 \
-    if ((operator_impl_ == nullptr) || (operator_impl_->GetOpDescImpl() == nullptr)) {                                \
-      REPORT_INNER_ERR_MSG("E18888", "operator_impl_ is nullptr or opdesc is nullptr, check invalid");                  \
-      GELOGE(ge::GRAPH_FAILED, "[Check][Param] operator impl is nullptr, name %s.", name);                                \
-      return *this;                                                                                                   \
-    }                                                                                                                 \
-    const std::string op_name = name;                                                                                 \
-    const std::string dst_names = dst_name;                                                                           \
-    auto tensor = operator_impl_->MutableOutputDesc(dst_names);                                                       \
-    if (!AttrUtils::Set##AttrUtilsFun(tensor, op_name, attr_value)) {                                             \
-      GELOGW("[Set][Attr] Set attr name %s to op %s of output_name[%s] unsuccessful", name,                                 \
-             operator_impl_->GetOpDescImpl()->GetName().c_str(), dst_name);                                           \
-    }                                                                                                                 \
-    return *this;                                                                                                     \
+#define EDGE_ATTR_SET_BY_NAME_IMP(ArgType, AttrUtilsFun)                                               \
+  Operator &Operator::SetInputAttr(const char_t *dst_name, const char_t *name, ArgType attr_value) {   \
+    if ((dst_name == nullptr) || (name == nullptr)) {                                                  \
+      REPORT_INNER_ERR_MSG("E18888", "dst_name or attr name is nullptr, check invalid.");              \
+      GELOGE(ge::GRAPH_FAILED, "[Check][Param] operator input name or attr name is nullptr.");         \
+      return *this;                                                                                    \
+    }                                                                                                  \
+    if ((operator_impl_ == nullptr) || (operator_impl_->GetOpDescImpl() == nullptr)) {                 \
+      REPORT_INNER_ERR_MSG("E18888", "operator_impl_ is nullptr or opdesc is nullptr, check invalid"); \
+      GELOGE(ge::GRAPH_FAILED, "[Check][Param] operator impl is nullptr, name %s.", name);             \
+      return *this;                                                                                    \
+    }                                                                                                  \
+    const std::string op_name = name;                                                                  \
+    const std::string dst_names = dst_name;                                                            \
+    auto tensor = operator_impl_->MutableInputDesc(dst_names);                                         \
+    if (!AttrUtils::Set##AttrUtilsFun(tensor, op_name, attr_value)) {                                  \
+      GELOGW("[Set][Attr] Set attr name %s to op %s of input_name[%s] unsuccessful", name,             \
+             operator_impl_->GetOpDescImpl()->GetName().c_str(), dst_name);                            \
+    }                                                                                                  \
+    return *this;                                                                                      \
+  }                                                                                                    \
+  Operator &Operator::SetOutputAttr(const char_t *dst_name, const char_t *name, ArgType attr_value) {  \
+    if ((dst_name == nullptr) || (name == nullptr)) {                                                  \
+      REPORT_INNER_ERR_MSG("E18888", "dst_name or attr name is nullptr, check invalid.");              \
+      GELOGE(ge::GRAPH_FAILED, "[Check][Param] operator output name or attr name is nullptr.");        \
+      return *this;                                                                                    \
+    }                                                                                                  \
+    if ((operator_impl_ == nullptr) || (operator_impl_->GetOpDescImpl() == nullptr)) {                 \
+      REPORT_INNER_ERR_MSG("E18888", "operator_impl_ is nullptr or opdesc is nullptr, check invalid"); \
+      GELOGE(ge::GRAPH_FAILED, "[Check][Param] operator impl is nullptr, name %s.", name);             \
+      return *this;                                                                                    \
+    }                                                                                                  \
+    const std::string op_name = name;                                                                  \
+    const std::string dst_names = dst_name;                                                            \
+    auto tensor = operator_impl_->MutableOutputDesc(dst_names);                                        \
+    if (!AttrUtils::Set##AttrUtilsFun(tensor, op_name, attr_value)) {                                  \
+      GELOGW("[Set][Attr] Set attr name %s to op %s of output_name[%s] unsuccessful", name,            \
+             operator_impl_->GetOpDescImpl()->GetName().c_str(), dst_name);                            \
+    }                                                                                                  \
+    return *this;                                                                                      \
   }
 
-#define EDGE_ATTR_GET_BY_IDX_IMP(ArgType, AttrUtilsFun)                                                               \
-  graphStatus Operator::GetInputAttr(const int32_t index, const char_t *name, ArgType attr_value) const {             \
-    if (name == nullptr) {                                                                                            \
-      REPORT_INNER_ERR_MSG("E18888", "param name is nullptr, check invalid.");                                          \
-      GELOGE(ge::GRAPH_FAILED, "[Check][Param] operator attr name is nullptr.");                                          \
-      return ge::GRAPH_FAILED;                                                                                            \
-    }                                                                                                                 \
-    if ((operator_impl_ == nullptr) || (operator_impl_->GetOpDescImpl() == nullptr)) {                                \
-      REPORT_INNER_ERR_MSG("E18888", "operator_impl_ is nullptr or opdesc is nullptr, check invalid");                  \
-      GELOGE(ge::GRAPH_FAILED, "[Check][Param] operator impl is nullptr, name %s.", name);                                \
-      return ge::GRAPH_FAILED;                                                                                            \
-    }                                                                                                                 \
-    const std::string op_name = name;                                                                                 \
-    const auto &tensor = operator_impl_->GetInputDesc(index);                                                         \
-    if (!AttrUtils::Get##AttrUtilsFun(tensor, op_name, attr_value)) {                                             \
-      GELOGW("[Get][Attr] Get attr name %s to op %s of index[%d] unsuccessful", name,                                       \
-             operator_impl_->GetOpDescImpl()->GetName().c_str(), index);                                              \
-    }                                                                                                                 \
-    return GRAPH_SUCCESS;                                                                                             \
-  }                                                                                                                   \
-  graphStatus Operator::GetOutputAttr(const int32_t index, const char_t *name, ArgType attr_value) const {            \
-    if (name == nullptr) {                                                                                            \
-      REPORT_INNER_ERR_MSG("E18888", "param name is nullptr, check invalid.");                                          \
-      GELOGE(ge::GRAPH_FAILED, "[Check][Param] operator attr name is nullptr.");                                          \
-      return ge::GRAPH_FAILED;                                                                                            \
-    }                                                                                                                 \
-    if ((operator_impl_ == nullptr) || (operator_impl_->GetOpDescImpl() == nullptr)) {                                \
-      REPORT_INNER_ERR_MSG("E18888", "operator_impl_ is nullptr or opdesc is nullptr, check invalid");                  \
-      GELOGE(ge::GRAPH_FAILED, "[Check][Param] operator impl is nullptr, name %s.", name);                                \
-      return ge::GRAPH_FAILED;                                                                                            \
-    }                                                                                                                 \
-    const std::string op_name = name;                                                                                 \
-    const auto &tensor = operator_impl_->GetOutputDesc(index);                                                        \
-    if (!AttrUtils::Get##AttrUtilsFun(tensor, op_name, attr_value)) {                                             \
-      GELOGW("[Get][Attr] Get attr name %s to op %s of index[%d] unsuccessful", name,                                       \
-             operator_impl_->GetOpDescImpl()->GetName().c_str(), index);                                              \
-    }                                                                                                                 \
-    return GRAPH_SUCCESS;                                                                                             \
+#define EDGE_ATTR_GET_BY_IDX_IMP(ArgType, AttrUtilsFun)                                                    \
+  graphStatus Operator::GetInputAttr(const int32_t index, const char_t *name, ArgType attr_value) const {  \
+    if (name == nullptr) {                                                                                 \
+      REPORT_INNER_ERR_MSG("E18888", "param name is nullptr, check invalid.");                             \
+      GELOGE(ge::GRAPH_FAILED, "[Check][Param] operator attr name is nullptr.");                           \
+      return ge::GRAPH_FAILED;                                                                             \
+    }                                                                                                      \
+    if ((operator_impl_ == nullptr) || (operator_impl_->GetOpDescImpl() == nullptr)) {                     \
+      REPORT_INNER_ERR_MSG("E18888", "operator_impl_ is nullptr or opdesc is nullptr, check invalid");     \
+      GELOGE(ge::GRAPH_FAILED, "[Check][Param] operator impl is nullptr, name %s.", name);                 \
+      return ge::GRAPH_FAILED;                                                                             \
+    }                                                                                                      \
+    const std::string op_name = name;                                                                      \
+    const auto &tensor = operator_impl_->GetInputDesc(index);                                              \
+    if (!AttrUtils::Get##AttrUtilsFun(tensor, op_name, attr_value)) {                                      \
+      GELOGW("[Get][Attr] Get attr name %s to op %s of index[%d] unsuccessful", name,                      \
+             operator_impl_->GetOpDescImpl()->GetName().c_str(), index);                                   \
+    }                                                                                                      \
+    return GRAPH_SUCCESS;                                                                                  \
+  }                                                                                                        \
+  graphStatus Operator::GetOutputAttr(const int32_t index, const char_t *name, ArgType attr_value) const { \
+    if (name == nullptr) {                                                                                 \
+      REPORT_INNER_ERR_MSG("E18888", "param name is nullptr, check invalid.");                             \
+      GELOGE(ge::GRAPH_FAILED, "[Check][Param] operator attr name is nullptr.");                           \
+      return ge::GRAPH_FAILED;                                                                             \
+    }                                                                                                      \
+    if ((operator_impl_ == nullptr) || (operator_impl_->GetOpDescImpl() == nullptr)) {                     \
+      REPORT_INNER_ERR_MSG("E18888", "operator_impl_ is nullptr or opdesc is nullptr, check invalid");     \
+      GELOGE(ge::GRAPH_FAILED, "[Check][Param] operator impl is nullptr, name %s.", name);                 \
+      return ge::GRAPH_FAILED;                                                                             \
+    }                                                                                                      \
+    const std::string op_name = name;                                                                      \
+    const auto &tensor = operator_impl_->GetOutputDesc(index);                                             \
+    if (!AttrUtils::Get##AttrUtilsFun(tensor, op_name, attr_value)) {                                      \
+      GELOGW("[Get][Attr] Get attr name %s to op %s of index[%d] unsuccessful", name,                      \
+             operator_impl_->GetOpDescImpl()->GetName().c_str(), index);                                   \
+    }                                                                                                      \
+    return GRAPH_SUCCESS;                                                                                  \
   }
-#define EDGE_ATTR_GET_BY_NAME_IMP(ArgType, AttrUtilsFun)                                                              \
-  graphStatus Operator::GetInputAttr(const char_t *dst_name, const char_t *name, ArgType attr_value) const {          \
-    if ((dst_name == nullptr) || (name == nullptr)) {                                                                 \
-      REPORT_INNER_ERR_MSG("E18888", "dst_name or attr name is nullptr, check invalid.");                               \
-      GELOGE(ge::GRAPH_FAILED, "[Check][Param] operator input name or attr name is nullptr.");                            \
-      return ge::GRAPH_FAILED;                                                                                            \
-    }                                                                                                                 \
-    if ((operator_impl_ == nullptr) || (operator_impl_->GetOpDescImpl() == nullptr)) {                                \
-      REPORT_INNER_ERR_MSG("E18888", "operator_impl_ is nullptr or opdesc is nullptr, check invalid");                  \
-      GELOGE(ge::GRAPH_FAILED, "[Check][Param] operator impl is nullptr, name %s.", name);                                \
-      return ge::GRAPH_FAILED;                                                                                            \
-    }                                                                                                                 \
-    const std::string op_name = name;                                                                                 \
-    const std::string dst_names = dst_name;                                                                           \
-    const auto &tensor = operator_impl_->GetInputDesc(dst_names);                                                     \
-    if (!AttrUtils::Get##AttrUtilsFun(tensor, op_name, attr_value)) {                                             \
-      GELOGW("[Get][Attr] Get attr name %s to op %s of input_name[%s] unsuccessful", name,                                  \
-             operator_impl_->GetOpDescImpl()->GetName().c_str(), dst_name);                                           \
-    }                                                                                                                 \
-    return GRAPH_SUCCESS;                                                                                             \
-  }                                                                                                                   \
-  graphStatus Operator::GetOutputAttr(const char_t *dst_name, const char_t *name, ArgType attr_value) const {         \
-    if ((dst_name == nullptr) || (name == nullptr)) {                                                                 \
-      REPORT_INNER_ERR_MSG("E18888", "dst_name or attr name is nullptr, check invalid.");                               \
-      GELOGE(ge::GRAPH_FAILED, "[Check][Param] operator output name or attr name is nullptr.");                           \
-      return ge::GRAPH_FAILED;                                                                                            \
-    }                                                                                                                 \
-    if ((operator_impl_ == nullptr) || (operator_impl_->GetOpDescImpl() == nullptr)) {                                \
-      REPORT_INNER_ERR_MSG("E18888", "operator_impl_ is nullptr or opdesc is nullptr, check invalid");                  \
-      GELOGE(ge::GRAPH_FAILED, "[Check][Param] operator impl is nullptr, name %s.", name);                                \
-      return ge::GRAPH_FAILED;                                                                                            \
-    }                                                                                                                 \
-    const std::string op_name = name;                                                                                 \
-    const std::string dst_names = dst_name;                                                                           \
-    const auto &tensor = operator_impl_->GetOutputDesc(dst_names);                                                    \
-    if (!AttrUtils::Get##AttrUtilsFun(tensor, op_name, attr_value)) {                                             \
-      GELOGW("[Get][Attr] Get attr name %s to op %s of output_name[%s] unsuccessful", name,                                 \
-             operator_impl_->GetOpDescImpl()->GetName().c_str(), dst_name);                                           \
-    }                                                                                                                 \
-    return GRAPH_SUCCESS;                                                                                             \
+#define EDGE_ATTR_GET_BY_NAME_IMP(ArgType, AttrUtilsFun)                                                      \
+  graphStatus Operator::GetInputAttr(const char_t *dst_name, const char_t *name, ArgType attr_value) const {  \
+    if ((dst_name == nullptr) || (name == nullptr)) {                                                         \
+      REPORT_INNER_ERR_MSG("E18888", "dst_name or attr name is nullptr, check invalid.");                     \
+      GELOGE(ge::GRAPH_FAILED, "[Check][Param] operator input name or attr name is nullptr.");                \
+      return ge::GRAPH_FAILED;                                                                                \
+    }                                                                                                         \
+    if ((operator_impl_ == nullptr) || (operator_impl_->GetOpDescImpl() == nullptr)) {                        \
+      REPORT_INNER_ERR_MSG("E18888", "operator_impl_ is nullptr or opdesc is nullptr, check invalid");        \
+      GELOGE(ge::GRAPH_FAILED, "[Check][Param] operator impl is nullptr, name %s.", name);                    \
+      return ge::GRAPH_FAILED;                                                                                \
+    }                                                                                                         \
+    const std::string op_name = name;                                                                         \
+    const std::string dst_names = dst_name;                                                                   \
+    const auto &tensor = operator_impl_->GetInputDesc(dst_names);                                             \
+    if (!AttrUtils::Get##AttrUtilsFun(tensor, op_name, attr_value)) {                                         \
+      GELOGW("[Get][Attr] Get attr name %s to op %s of input_name[%s] unsuccessful", name,                    \
+             operator_impl_->GetOpDescImpl()->GetName().c_str(), dst_name);                                   \
+    }                                                                                                         \
+    return GRAPH_SUCCESS;                                                                                     \
+  }                                                                                                           \
+  graphStatus Operator::GetOutputAttr(const char_t *dst_name, const char_t *name, ArgType attr_value) const { \
+    if ((dst_name == nullptr) || (name == nullptr)) {                                                         \
+      REPORT_INNER_ERR_MSG("E18888", "dst_name or attr name is nullptr, check invalid.");                     \
+      GELOGE(ge::GRAPH_FAILED, "[Check][Param] operator output name or attr name is nullptr.");               \
+      return ge::GRAPH_FAILED;                                                                                \
+    }                                                                                                         \
+    if ((operator_impl_ == nullptr) || (operator_impl_->GetOpDescImpl() == nullptr)) {                        \
+      REPORT_INNER_ERR_MSG("E18888", "operator_impl_ is nullptr or opdesc is nullptr, check invalid");        \
+      GELOGE(ge::GRAPH_FAILED, "[Check][Param] operator impl is nullptr, name %s.", name);                    \
+      return ge::GRAPH_FAILED;                                                                                \
+    }                                                                                                         \
+    const std::string op_name = name;                                                                         \
+    const std::string dst_names = dst_name;                                                                   \
+    const auto &tensor = operator_impl_->GetOutputDesc(dst_names);                                            \
+    if (!AttrUtils::Get##AttrUtilsFun(tensor, op_name, attr_value)) {                                         \
+      GELOGW("[Get][Attr] Get attr name %s to op %s of output_name[%s] unsuccessful", name,                   \
+             operator_impl_->GetOpDescImpl()->GetName().c_str(), dst_name);                                   \
+    }                                                                                                         \
+    return GRAPH_SUCCESS;                                                                                     \
   }
 
 // 此宏因兼容问题需要保留，只在operator类内使用
-#define GE_RETURN_IF_NULL(v, ...)                                                                                      \
-  do {                                                                                                                 \
-    if ((v) == nullptr) {                                                                                              \
-      auto msg = CreateErrorMsg(__VA_ARGS__);                                                                          \
-      if (msg.empty()) {                                                                                               \
-        REPORT_INNER_ERR_MSG("E19999", "Assert %s not null failed", #v);                                                 \
-        GELOGE(ge::FAILED, "Assert %s not null failed", #v);                                                           \
-      } else {                                                                                                         \
-        REPORT_INNER_ERR_MSG("E19999", "%s", msg.data());                                                                \
-        GELOGE(ge::FAILED, "%s", msg.data());                                                                          \
-      }                                                                                                                \
-      return;                                                                                                          \
-    }                                                                                                                  \
+#define GE_RETURN_IF_NULL(v, ...)                                        \
+  do {                                                                   \
+    if ((v) == nullptr) {                                                \
+      auto msg = CreateErrorMsg(__VA_ARGS__);                            \
+      if (msg.empty()) {                                                 \
+        REPORT_INNER_ERR_MSG("E19999", "Assert %s not null failed", #v); \
+        GELOGE(ge::FAILED, "Assert %s not null failed", #v);             \
+      } else {                                                           \
+        REPORT_INNER_ERR_MSG("E19999", "%s", msg.data());                \
+        GELOGE(ge::FAILED, "%s", msg.data());                            \
+      }                                                                  \
+      return;                                                            \
+    }                                                                    \
   } while (false)
-#define EDGE_ATTR_SET_IMP(ArgType, AttrUtilsFunc) \
+#define EDGE_ATTR_SET_IMP(ArgType, AttrUtilsFunc)  \
   EDGE_ATTR_SET_BY_IDX_IMP(ArgType, AttrUtilsFunc) \
   EDGE_ATTR_SET_BY_NAME_IMP(ArgType, AttrUtilsFunc)
-#define EDGE_ATTR_GET_IMP(ArgType, AttrUtilsFunc) \
+#define EDGE_ATTR_GET_IMP(ArgType, AttrUtilsFunc)  \
   EDGE_ATTR_GET_BY_IDX_IMP(ArgType, AttrUtilsFunc) \
   EDGE_ATTR_GET_BY_NAME_IMP(ArgType, AttrUtilsFunc)
 namespace af {
@@ -323,14 +323,14 @@ graphStatus GetTensorAttr(const GeTensorDesc &tensor, const char_t *name, std::v
     return ge::GRAPH_PARAM_INVALID;
   }
   std::vector<std::string> op_attr_value;
-  GE_ASSERT_TRUE(AttrUtils::GetListStr(tensor, name, op_attr_value),
-                 "[Get][Attr] GetListStr name %s on tensor failed.", name);
+  GE_ASSERT_TRUE(AttrUtils::GetListStr(tensor, name, op_attr_value), "[Get][Attr] GetListStr name %s on tensor failed.",
+                 name);
   for (const auto &value : op_attr_value) {
     attr_value.emplace_back(AscendString(value.c_str()));
   }
   return GRAPH_SUCCESS;
 }
-}
+}  // namespace
 const int32_t kMaxDepth = 20;
 OperatorKeeper &OperatorKeeper::GetInstance() {
   static OperatorKeeper instance;
@@ -347,12 +347,10 @@ GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY Operator OpDescUtils::CreateOpera
   return operator_impl_ptr->ToOperator();
 }
 
-GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY graphStatus
-OpDescUtils::CopyOperators(const ComputeGraphPtr &dst_compute_graph,
-                           const std::map<ConstNodePtr, NodePtr> &node_old_2_new,
-                           const std::map<ConstOpDescPtr, OpDescPtr> &op_desc_old_2_new,
-                           const std::map<std::string, Operator> &src_op_list,
-                           std::map<std::string, Operator> &dst_op_list) {
+GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY graphStatus OpDescUtils::CopyOperators(
+    const ComputeGraphPtr &dst_compute_graph, const std::map<ConstNodePtr, NodePtr> &node_old_2_new,
+    const std::map<ConstOpDescPtr, OpDescPtr> &op_desc_old_2_new, const std::map<std::string, Operator> &src_op_list,
+    std::map<std::string, Operator> &dst_op_list) {
   GE_CHECK_NOTNULL(dst_compute_graph);
 
   std::map<OperatorImplPtr, NodePtr> all_node_info;
@@ -419,9 +417,8 @@ OpDescUtils::CopyOperators(const ComputeGraphPtr &dst_compute_graph,
   return GRAPH_SUCCESS;
 }
 
-GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY graphStatus
-OpDescUtils::CopyOperatorLinks(const std::map<std::string, Operator> &src_op_list,
-                               std::map<std::string, Operator> &dst_op_list) {
+GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY graphStatus OpDescUtils::CopyOperatorLinks(
+    const std::map<std::string, Operator> &src_op_list, std::map<std::string, Operator> &dst_op_list) {
   for (const auto &it : src_op_list) {
     auto &src_op = it.second;
     const auto op_name = it.first;
@@ -449,7 +446,8 @@ OpDescUtils::CopyOperatorLinks(const std::map<std::string, Operator> &src_op_lis
       const auto iter = dst_op_list.find(input_ctrl_impl_ptr->GetName());
       if (iter == dst_op_list.end()) {
         REPORT_INNER_ERR_MSG("E18888", "Find dst ctrl operator:%s failed", input_ctrl_impl_ptr->GetName().c_str());
-        GELOGE(ge::GRAPH_FAILED, "[Check][Param] Find dst ctrl operator:%s failed", input_ctrl_impl_ptr->GetName().c_str());
+        GELOGE(ge::GRAPH_FAILED, "[Check][Param] Find dst ctrl operator:%s failed",
+               input_ctrl_impl_ptr->GetName().c_str());
         return ge::GRAPH_FAILED;
       }
       auto &ctrl_input_op = iter->second;
@@ -504,8 +502,8 @@ GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY ConstNodePtr NodeUtilsEx::GetNode
   return op.GetNode();
 }
 
-GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY  graphStatus NodeUtilsEx::SetNodeToOperator(Operator &op,
-                                                                                           const ConstNodePtr &node) {
+GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY graphStatus NodeUtilsEx::SetNodeToOperator(Operator &op,
+                                                                                          const ConstNodePtr &node) {
   return op.operator_impl_->SetNode(node);
 }
 
@@ -551,7 +549,9 @@ GE_FUNC_HOST_VISIBILITY Operator::Operator(const char_t *name, const char_t *typ
   }
 }
 
-Operator::Operator(OperatorImplPtr &&op_impl) { operator_impl_ = std::move(op_impl); }
+Operator::Operator(OperatorImplPtr &&op_impl) {
+  operator_impl_ = std::move(op_impl);
+}
 
 bool Operator::IsEmpty() const {
   if (operator_impl_ == nullptr) {
@@ -710,14 +710,16 @@ graphStatus Operator::GetInputConstDataOut(const char_t *dst_name, Tensor &data)
   return GRAPH_SUCCESS;
 }
 
-std::shared_ptr<const Node>  Operator::GetNode() const {
-  GE_CHK_BOOL_EXEC(operator_impl_ != nullptr, REPORT_INNER_ERR_MSG("E18888", "operator_impl_ is nullptr, check invalid");
+std::shared_ptr<const Node> Operator::GetNode() const {
+  GE_CHK_BOOL_EXEC(operator_impl_ != nullptr,
+                   REPORT_INNER_ERR_MSG("E18888", "operator_impl_ is nullptr, check invalid");
                    return nullptr, "[Check][Param] operator impl is nullptr.");
   return operator_impl_->GetNode();
 }
 
 TensorDesc Operator::GetInputDesc(const std::string &name) const {
-  GE_CHK_BOOL_EXEC(operator_impl_ != nullptr, REPORT_INNER_ERR_MSG("E18888", "operator_impl_ is nullptr, check invalid");
+  GE_CHK_BOOL_EXEC(operator_impl_ != nullptr,
+                   REPORT_INNER_ERR_MSG("E18888", "operator_impl_ is nullptr, check invalid");
                    return TensorDesc(), "[Check][Param] operator impl is nullptr.");
   return TensorAdapter::GeTensorDesc2TensorDesc(operator_impl_->GetInputDesc(name));
 }
@@ -725,14 +727,16 @@ TensorDesc Operator::GetInputDesc(const std::string &name) const {
 TensorDesc Operator::GetInputDescByName(const char_t *name) const {
   GE_CHK_BOOL_EXEC(name != nullptr, REPORT_INNER_ERR_MSG("E18888", "param name is nullptr, check invalid");
                    return TensorDesc(), "[Check][Param] Operator name is nullptr.");
-  GE_CHK_BOOL_EXEC(operator_impl_ != nullptr, REPORT_INNER_ERR_MSG("E18888", "operator_impl_ is nullptr, check invalid");
+  GE_CHK_BOOL_EXEC(operator_impl_ != nullptr,
+                   REPORT_INNER_ERR_MSG("E18888", "operator_impl_ is nullptr, check invalid");
                    return TensorDesc(), "[Check][Param] Operator impl is nullptr.");
   const std::string op_name = name;
   return TensorAdapter::GeTensorDesc2TensorDesc(operator_impl_->GetInputDesc(op_name));
 }
 
 void Operator::SetInferenceContext(const InferenceContextPtr &inference_context) {
-  GE_CHK_BOOL_EXEC(operator_impl_ != nullptr, REPORT_INNER_ERR_MSG("E18888", "operator_impl_ is nullptr, check invalid");
+  GE_CHK_BOOL_EXEC(operator_impl_ != nullptr,
+                   REPORT_INNER_ERR_MSG("E18888", "operator_impl_ is nullptr, check invalid");
                    return, "[Check][Param] operator impl is nullptr.");
   operator_impl_->SetInferenceContext(inference_context);
 }
@@ -986,7 +990,7 @@ const std::map<std::string, std::string> kIrAttrTypesMap = {
     {"Type", "VT_DATA_TYPE"},
     {"ListType", "VT_LIST_DATA_TYPE"},
 };
-} // namespace
+}  // namespace
 const std::map<std::string, std::string> Operator::GetAllAttrNamesAndTypes() const {
   std::map<std::string, std::string> attr_types;
 
@@ -1096,8 +1100,8 @@ void Operator::OptionalInputRegister(const char_t *name) {
                    REPORT_INNER_ERR_MSG("E18888", "GetOpDescImpl failed, as return nullptr.");
                    return, "[Get][OpDescImpl] is nullptr.");
   // [No need to verify return value]
-  (void)operator_impl_->GetOpDescImpl()->AddOptionalInputDesc(name,
-                                                              GeTensorDesc(GeShape(), ge::FORMAT_RESERVED, ge::DT_UNDEFINED));
+  (void)operator_impl_->GetOpDescImpl()->AddOptionalInputDesc(
+      name, GeTensorDesc(GeShape(), ge::FORMAT_RESERVED, ge::DT_UNDEFINED));
   operator_impl_->GetOpDescImpl()->AppendIrInput(name, kIrInputOptional);
 }
 
@@ -1236,7 +1240,7 @@ int32_t Operator::GetDynamicInputNum(const char_t *name) const {
   int32_t num = 0;
   GE_CHK_BOOL_EXEC(AttrUtils::GetInt(operator_impl_->GetOpDescImpl(), DYNAMIC_INPUT_TD_NUM(op_name), num),
                    REPORT_INNER_ERR_MSG("E18888", "get attr %s failed, op:%s.", op_name.c_str(),
-                                      operator_impl_->GetOpDescImpl()->GetName().c_str());
+                                        operator_impl_->GetOpDescImpl()->GetName().c_str());
                    return num, "[Get][Int] %s failed", op_name.c_str());
   return num;
 }
@@ -1260,9 +1264,8 @@ void Operator::DynamicOutputRegister(const char_t *name, const uint32_t num, boo
   GE_CHK_BOOL_EXEC(AttrUtils::SetInt(operator_impl_->GetOpDescImpl(), DYNAMIC_OUTPUT_TD_NUM(std::string(name)),
                                      static_cast<int64_t>(num)),
                    REPORT_INNER_ERR_MSG("E18888", "set attr %s to op:%s failed.", name,
-                                      operator_impl_->GetOpDescImpl()->GetName().c_str());
-                   return, "[Set][Int] %s to op:%s failed", name,
-                         operator_impl_->GetOpDescImpl()->GetName().c_str());
+                                        operator_impl_->GetOpDescImpl()->GetName().c_str());
+                   return, "[Set][Int] %s to op:%s failed", name, operator_impl_->GetOpDescImpl()->GetName().c_str());
   (void)operator_impl_->GetOpDescImpl()->AddDynamicOutputDesc(name, num, is_push_back);
   if (num == 0U) {
     operator_impl_->GetOpDescImpl()->AppendIrOutput(name, kIrOutputDynamic);
@@ -1324,7 +1327,7 @@ void Operator::RequiredAttrWithTypeRegister(const char_t *name, const char_t *ty
   } else {
     GELOGW("[Check][Param] unsupport attr type %s from ir.", type);
   }
-  (void) (operator_impl_->GetOpDescImpl()->AddRequiredAttrWithType(name, ir_attr_type));
+  (void)(operator_impl_->GetOpDescImpl()->AddRequiredAttrWithType(name, ir_attr_type));
   GELOGD("Save required attr name %s with type %s to op %s %s", name, ir_attr_type.c_str(),
          operator_impl_->GetOpDescImpl()->GetNamePtr(), operator_impl_->GetOpDescImpl()->GetTypePtr());
   operator_impl_->GetOpDescImpl()->AppendIrAttrName(name);
@@ -1363,7 +1366,7 @@ graphStatus Operator::VerifyAll() {
   for (const std::string &iname : operator_impl_->GetOpDescImpl()->GetAllInputNames()) {
     GE_CHK_BOOL_RET_STATUS(operator_impl_->GetOpDescImpl()->IsOptionalInput(iname) || operator_impl_->InputIsSet(iname),
                            ge::GRAPH_FAILED, "[Check][Param] operator input %s is not linked.", iname.c_str());
-    const std::vector<int64_t>& ishape = operator_impl_->GetOpDescImpl()->GetInputDesc(iname).GetShape().GetDims();
+    const std::vector<int64_t> &ishape = operator_impl_->GetOpDescImpl()->GetInputDesc(iname).GetShape().GetDims();
     for (const int64_t &dim : ishape) {
       GE_CHK_BOOL_RET_STATUS(dim > 0, ge::GRAPH_FAILED,
                              "[Check][Param] operator input %s shape contains negative or zero dimension, "
@@ -1383,13 +1386,15 @@ graphStatus Operator::VerifyAll() {
 }
 
 std::string Operator::GetOpType() const {
-  GE_CHK_BOOL_EXEC(operator_impl_ != nullptr, REPORT_INNER_ERR_MSG("E18888", "operator_impl_ is nullptr, check invalid");
+  GE_CHK_BOOL_EXEC(operator_impl_ != nullptr,
+                   REPORT_INNER_ERR_MSG("E18888", "operator_impl_ is nullptr, check invalid");
                    return "Data", "[Check][Param] operator impl is nullptr.");
   return OperatorImpl::GetOpDesc(*this)->GetType();
 }
 
 graphStatus Operator::GetOpType(AscendString &type) const {
-  GE_CHK_BOOL_EXEC(operator_impl_ != nullptr, REPORT_INNER_ERR_MSG("E18888", "operator_impl_ is nullptr, check invalid");
+  GE_CHK_BOOL_EXEC(operator_impl_ != nullptr,
+                   REPORT_INNER_ERR_MSG("E18888", "operator_impl_ is nullptr, check invalid");
                    return ge::GRAPH_FAILED, "[Check][Param] Operator impl is nullptr.");
   const std::string op_type = OperatorImpl::GetOpDesc(*this)->GetType();
   type = op_type.c_str();
@@ -1415,8 +1420,7 @@ Operator &Operator::SetInput(const std::string &dst_name, uint32_t dst_index, co
   return SetInput(dst_name.c_str(), dst_index, src_oprt, name.c_str());
 }
 
-Operator &Operator::SetInput(const char_t *dst_name, uint32_t dst_index, const Operator &src_oprt,
-                             const char_t *name) {
+Operator &Operator::SetInput(const char_t *dst_name, uint32_t dst_index, const Operator &src_oprt, const char_t *name) {
   if (dst_name == nullptr) {
     REPORT_INNER_ERR_MSG("E18888", "param dst_name is nullptr, check invalid");
     GELOGE(ge::GRAPH_FAILED, "[Check][Param] Operator dst_name is nullptr.");
@@ -1431,7 +1435,9 @@ Operator &Operator::SetInput(const char_t *dst_name, uint32_t dst_index, const O
   return SetInput(dynamic_dst_name.c_str(), src_oprt, name);
 }
 
-OperatorImplPtr Operator::GetOperatorImplPtr() const { return operator_impl_; }
+OperatorImplPtr Operator::GetOperatorImplPtr() const {
+  return operator_impl_;
+}
 
 void Operator::BreakConnect() const {
   if (operator_impl_ == nullptr) {
@@ -1512,9 +1518,7 @@ void Operator::AttrRegister(const std::string &name, const std::string &attr_val
 void Operator::AttrRegister(const std::string &name, const std::vector<std::string> &attr_value) {
   std::vector<AscendString> attr_values;
   (void)std::transform(attr_value.begin(), attr_value.end(), attr_values.begin(),
-                       [](const std::string &val) {
-                        return AscendString(val.c_str());
-                       });
+                       [](const std::string &val) { return AscendString(val.c_str()); });
   AttrRegister(name.c_str(), attr_values);
 }
 
@@ -1641,33 +1645,33 @@ void Operator::AttrRegister(const char_t *name, const AttrValue &attr_value) {
     GELOGE(ge::GRAPH_FAILED, "[Check][Param] Operator impl is nullptr, name %s.", name);
     return;
   }
-  (void) SetAttr(name, attr_value);
+  (void)SetAttr(name, attr_value);
   operator_impl_->GetOpDescImpl()->AppendIrAttrName(name);
 }
 
 Operator &Operator::SetAttr(const std::string &name, const std::string &attr_value) {
   if ((operator_impl_ == nullptr) || (operator_impl_->GetOpDescImpl() == nullptr)) {
-      REPORT_INNER_ERR_MSG("E18888", "operator_impl_ is nullptr or opdesc is nullptr, check invalid");
-      GELOGE(ge::GRAPH_FAILED, "[Check][Param] Operator impl is nullptr, name %s.", name.c_str());
-      return *this;
-    }
-    if (!AttrUtils::SetStr(operator_impl_->GetOpDescImpl(), name, attr_value)) {
-      GELOGW("[Set][Attr] Set attr name %s unsuccessful", name.c_str());
-    }
+    REPORT_INNER_ERR_MSG("E18888", "operator_impl_ is nullptr or opdesc is nullptr, check invalid");
+    GELOGE(ge::GRAPH_FAILED, "[Check][Param] Operator impl is nullptr, name %s.", name.c_str());
     return *this;
+  }
+  if (!AttrUtils::SetStr(operator_impl_->GetOpDescImpl(), name, attr_value)) {
+    GELOGW("[Set][Attr] Set attr name %s unsuccessful", name.c_str());
+  }
+  return *this;
 }
 
 graphStatus Operator::GetAttr(const std::string &name, std::string &attr_value) const {
   if ((operator_impl_ == nullptr) || (operator_impl_->GetOpDescImpl() == nullptr)) {
-      REPORT_INNER_ERR_MSG("E18888", "operator_impl_ is nullptr or opdesc is nullptr, check invalid");
-      GELOGE(ge::GRAPH_FAILED, "[Check][Param] Operator impl is nullptr, name %s.", name.c_str());
-      return ge::GRAPH_FAILED;
-    }
-    if (!AttrUtils::GetStr(operator_impl_->GetOpDescImpl(), name, attr_value)) {
-      GELOGW("[Get][Attr] Get attr name %s unsuccessful", name.c_str());
-      return ge::GRAPH_FAILED;
-    }
-    return GRAPH_SUCCESS;
+    REPORT_INNER_ERR_MSG("E18888", "operator_impl_ is nullptr or opdesc is nullptr, check invalid");
+    GELOGE(ge::GRAPH_FAILED, "[Check][Param] Operator impl is nullptr, name %s.", name.c_str());
+    return ge::GRAPH_FAILED;
+  }
+  if (!AttrUtils::GetStr(operator_impl_->GetOpDescImpl(), name, attr_value)) {
+    GELOGW("[Get][Attr] Get attr name %s unsuccessful", name.c_str());
+    return ge::GRAPH_FAILED;
+  }
+  return GRAPH_SUCCESS;
 }
 
 Operator &Operator::SetAttr(const std::string &name, const std::vector<std::string> &attr_value) {
@@ -1806,7 +1810,8 @@ Operator &Operator::SetOutputAttr(const char_t *dst_name, const char_t *name, co
   auto tensor = operator_impl_->MutableOutputDesc(dst_name);
   if (tensor == nullptr) {
     REPORT_INNER_ERR_MSG("E18888", "Get output[%s] of op[%s] failed, check invalid", dst_name, op_name.c_str());
-    GELOGE(ge::GRAPH_FAILED, "[Check][Param] Get output[%s] of op[%s] failed, check invalid", dst_name, op_name.c_str());
+    GELOGE(ge::GRAPH_FAILED, "[Check][Param] Get output[%s] of op[%s] failed, check invalid", dst_name,
+           op_name.c_str());
     return *this;
   }
   if (!AttrUtils::SetStr(tensor, op_name, op_attr_value)) {
@@ -2037,7 +2042,8 @@ graphStatus Operator::GetOutputAttr(const char_t *dst_name, const char_t *name, 
   auto tensor = operator_impl_->MutableOutputDesc(dst_name);
   if (tensor == nullptr) {
     REPORT_INNER_ERR_MSG("E18888", "Get output[%s] of op[%s] failed, check invalid", dst_name, op_name.c_str());
-    GELOGE(ge::GRAPH_FAILED, "[Check][Param] Get output[%s] of op[%s] failed, check invalid", dst_name, op_name.c_str());
+    GELOGE(ge::GRAPH_FAILED, "[Check][Param] Get output[%s] of op[%s] failed, check invalid", dst_name,
+           op_name.c_str());
     return ge::GRAPH_FAILED;
   }
   const std::string *op_attr_value_ptr = AttrUtils::GetStr(tensor, op_name);
@@ -2174,14 +2180,14 @@ Operator &Operator::SetAttr(const char_t *name, const std::vector<AscendString> 
   if (name == nullptr) {
     REPORT_INNER_ERR_MSG("E18888", "Operator input parameters name is nullptr, check invalid");
     GELOGE(ge::GRAPH_FAILED, "[Check][Param] Operator name is nullptr.");
-    return  *this;
+    return *this;
   }
   std::vector<std::string> op_attr_values;
   for (auto &attr_value : attr_values) {
     if (attr_value.GetString() == nullptr) {
       REPORT_INNER_ERR_MSG("E18888", "Operator ascend std::string name is nullptr, check invalid");
       GELOGE(ge::GRAPH_FAILED, "[Check][Param] Operator ascend std::string name is nullptr.");
-      return  *this;
+      return *this;
     }
     op_attr_values.emplace_back(attr_value.GetString());
   }
@@ -2451,7 +2457,8 @@ graphStatus Operator::GetAttr(const char_t *name, OpBytes &attr_value) const {
 }
 
 Operator &Operator::SetAttr(const std::string &name, af::AttrValue &&attr_value) {
-  GE_CHK_BOOL_EXEC(operator_impl_ != nullptr, REPORT_INNER_ERR_MSG("E18888", "operator_impl_ is nullptr, check invalid.");
+  GE_CHK_BOOL_EXEC(operator_impl_ != nullptr,
+                   REPORT_INNER_ERR_MSG("E18888", "operator_impl_ is nullptr, check invalid.");
                    return *this, "[Check][Param] Operator impl is nullptr.");
   (void)operator_impl_->SetAttr(name, std::move(attr_value.impl->geAttrValue_));
   return *this;
@@ -2876,7 +2883,7 @@ graphStatus Operator::UpdateOutputDesc(const uint32_t index, const TensorDesc &t
 }
 
 class GraphBuilderImpl {
-public:
+ public:
   explicit GraphBuilderImpl(const std::string &name) : graph_(ComGraphMakeShared<ComputeGraph>(name)) {
     if (graph_ == nullptr) {
       REPORT_INNER_ERR_MSG("E18888", "ComputeGraph make shared failed");
@@ -2907,8 +2914,9 @@ public:
           OpTypeUtils::IsDataNode(type) || (type == VARIABLE) || (type == INITDATA) || (type == GETNEXT)) {
         vec_inputs.push_back(it.operator_impl_);
       } else {
-        GELOGW("[BuildGraph][CheckInput] Input operator should be Data, Variable operator or operator that has output "
-               "but no input.");
+        GELOGW(
+            "[BuildGraph][CheckInput] Input operator should be Data, Variable operator or operator that has output "
+            "but no input.");
       }
     }
     GE_CHK_BOOL_EXEC(!vec_inputs.empty(),
@@ -2944,9 +2952,11 @@ public:
     return graph_;
   }
 
-  const std::map<OperatorImplPtr, NodePtr> &GetAllNodesInfo() const { return all_nodes_info_; }
+  const std::map<OperatorImplPtr, NodePtr> &GetAllNodesInfo() const {
+    return all_nodes_info_;
+  }
 
-private:
+ private:
   graphStatus GenerateNodeFromOperator(const Operator &op) {
     GE_ASSERT_NOTNULL(graph_);
     const auto op_impl = op.operator_impl_;
@@ -2960,8 +2970,7 @@ private:
   }
 
   graphStatus WalkAllOperators(const std::vector<OperatorImplPtr> &vec_ops) {
-    GE_CHK_BOOL_EXEC(graph_ != nullptr,
-                     REPORT_INNER_ERR_MSG("E18888", "graph_ is nullptr, check invalid.");
+    GE_CHK_BOOL_EXEC(graph_ != nullptr, REPORT_INNER_ERR_MSG("E18888", "graph_ is nullptr, check invalid.");
                      return ge::GRAPH_FAILED, "[Check][Param] graph_ is null.");
     std::queue<std::vector<OperatorImplPtr>> que;
     que.push(vec_ops);
@@ -2969,16 +2978,14 @@ private:
       const auto vec_tem = que.front();
       que.pop();
       for (const auto &op_impl : vec_tem) {
-        GE_CHK_BOOL_EXEC(op_impl != nullptr,
-                         REPORT_INNER_ERR_MSG("E18888", "op_impl is nullptr, check invalid.");
+        GE_CHK_BOOL_EXEC(op_impl != nullptr, REPORT_INNER_ERR_MSG("E18888", "op_impl is nullptr, check invalid.");
                          return ge::GRAPH_FAILED, "[Check][Param] Operator Impl is null.");
         if (all_nodes_info_.find(op_impl) != all_nodes_info_.cend()) {
           GELOGI("This node %s has created.", op_impl->GetName().c_str());
           continue;
         }
         auto node_ptr = graph_->AddNode(op_impl->op_desc_);
-        GE_CHK_BOOL_EXEC(node_ptr != nullptr,
-                         REPORT_INNER_ERR_MSG("E18888", "add node failed.");
+        GE_CHK_BOOL_EXEC(node_ptr != nullptr, REPORT_INNER_ERR_MSG("E18888", "add node failed.");
                          return ge::GRAPH_FAILED, "[Add][Node] failed.");
         (void)(all_nodes_info_.insert(std::make_pair(op_impl, node_ptr)));
         (void)(stable_all_nodes_info_.insert(std::make_pair(op_impl, node_ptr)));
@@ -3039,7 +3046,8 @@ private:
       }
 
       if (op_impl->op_desc_->SetSubgraphInstanceName(name_idx.second, subgraph->GetName()) != GRAPH_SUCCESS) {
-        REPORT_INNER_ERR_MSG("E18888", "Failed to set subgraph %s index %u", subgraph->GetName().c_str(), name_idx.second);
+        REPORT_INNER_ERR_MSG("E18888", "Failed to set subgraph %s index %u", subgraph->GetName().c_str(),
+                             name_idx.second);
         GELOGE(ge::GRAPH_FAILED, "[Set][SubGraph] %s index %u failed", subgraph->GetName().c_str(), name_idx.second);
         return ge::GRAPH_FAILED;
       }
@@ -3067,7 +3075,7 @@ private:
 
       for (auto &subgraph : subgraphs) {
         if (MoveSubgraphToRoot(recursion_depth + 1, subgraph) != GRAPH_SUCCESS) {
-            return ge::GRAPH_FAILED;
+          return ge::GRAPH_FAILED;
         }
       }
     } else {
@@ -3078,7 +3086,7 @@ private:
         }
         graph->RemoveSubgraph(subgraph->GetName());
         if (MoveSubgraphToRoot(recursion_depth + 1, subgraph) != GRAPH_SUCCESS) {
-            return ge::GRAPH_FAILED;
+          return ge::GRAPH_FAILED;
         }
       }
     }
@@ -3100,10 +3108,10 @@ private:
       GE_IF_BOOL_EXEC(op_desc == nullptr, continue);
       for (const auto &out : out_links) {
         const auto src_idx = op_desc->GetOutputIndexByName(out.first);
-        GE_CHK_BOOL_EXEC(src_idx >= 0,
-                         REPORT_INNER_ERR_MSG("E18888", "Find output index by name:%s in op:%s failed",
-                                              out.first.c_str(), op_desc->GetName().c_str());
-                         return ge::GRAPH_FAILED, "[Get][Index] Find output index by name:%s failed", out.first.c_str());
+        GE_CHK_BOOL_EXEC(src_idx >= 0, REPORT_INNER_ERR_MSG("E18888", "Find output index by name:%s in op:%s failed",
+                                                            out.first.c_str(), op_desc->GetName().c_str());
+                         return ge::GRAPH_FAILED, "[Get][Index] Find output index by name:%s failed",
+                                out.first.c_str());
 
         const auto src_anchor = src_node_ptr->GetOutDataAnchor(src_idx);
         GE_CHK_BOOL_EXEC(src_anchor != nullptr,
@@ -3176,9 +3184,7 @@ private:
   std::map<OperatorImplPtr, NodePtr, OperatorCompareKey> stable_all_nodes_info_{};
 };
 
-void Operator::DynamicInputRegister(const char_t *name,
-                                    const uint32_t num,
-                                    const char_t *datatype_symbol,
+void Operator::DynamicInputRegister(const char_t *name, const uint32_t num, const char_t *datatype_symbol,
                                     bool is_push_back) {
   GE_RETURN_IF_NULL(name, "[Check][Param] Operator name is nullptr.");
   GE_RETURN_IF_NULL(datatype_symbol, "[Check][Param] Operator datatype_symbol is nullptr.");
@@ -3188,9 +3194,7 @@ void Operator::DynamicInputRegister(const char_t *name,
   operator_impl_->GetOpDescImpl()->SetInputDtypeSymbol(name, kIrInputDynamic, datatype_symbol);
 }
 
-void Operator::DynamicOutputRegister(const char_t *name,
-                                     const uint32_t num,
-                                     const char_t *datatype_symbol,
+void Operator::DynamicOutputRegister(const char_t *name, const uint32_t num, const char_t *datatype_symbol,
                                      bool is_push_back) {
   GE_RETURN_IF_NULL(name, "[Check][Param] Operator name is nullptr.");
   GE_RETURN_IF_NULL(datatype_symbol, "[Check][Param] Operator datatype_symbol is nullptr.");
@@ -3234,12 +3238,10 @@ static inline bool HasSameNameNode(const ComputeGraphPtr &compute_graph) {
   return false;
 }
 
-ComputeGraphPtr GraphUtilsEx::CreateGraphFromOperator(const std::string &name,
-                                                      const std::vector<Operator> &inputs) {
+ComputeGraphPtr GraphUtilsEx::CreateGraphFromOperator(const std::string &name, const std::vector<Operator> &inputs) {
   auto graph_builder_impl = GraphBuilderImpl(name);
   ComputeGraphPtr compute_graph = graph_builder_impl.BuildGraph(inputs);
-  GE_CHK_BOOL_EXEC(compute_graph != nullptr,
-                   REPORT_INNER_ERR_MSG("E18888", "BuildGraph failed, as return nullptr.");
+  GE_CHK_BOOL_EXEC(compute_graph != nullptr, REPORT_INNER_ERR_MSG("E18888", "BuildGraph failed, as return nullptr.");
                    return compute_graph, "[Build][Graph] Computer graph is nullptr");
   compute_graph->SetAllNodesInfo(graph_builder_impl.GetAllNodesInfo());
   if (HasSameNameNode(compute_graph)) {
@@ -3252,14 +3254,14 @@ ComputeGraphPtr GraphUtilsEx::CreateGraphFromOperator(const std::string &name,
 }
 
 ComputeGraphPtr GraphUtilsEx::CreateComputeGraphFromOperatorWithStableTopo(const std::string &name,
-    const std::vector<Operator> &ops) {
+                                                                           const std::vector<Operator> &ops) {
   auto graph_builder_impl = GraphBuilderImpl(name);
   ComputeGraphPtr compute_graph = graph_builder_impl.BuildGraphWithStableSort(ops);
   GE_ASSERT_NOTNULL(compute_graph);
   compute_graph->SetAllNodesInfo(graph_builder_impl.GetAllNodesInfo());
   GE_ASSERT_TRUE(!HasSameNameNode(compute_graph),
-      "[CreateGraph][Check] Nodes with same name exist in one compute graph is not allowed, graph_name: %s",
-      name.c_str());
+                 "[CreateGraph][Check] Nodes with same name exist in one compute graph is not allowed, graph_name: %s",
+                 name.c_str());
   return compute_graph;
 }
 
@@ -3275,4 +3277,4 @@ void GraphUtilsEx::BreakConnect(const std::map<OperatorImplPtr, NodePtr> &all_no
     OperatorKeeper::GetInstance().CheckOutOperator(op_impl);
   }
 }
-} // namespace ge
+}  // namespace af

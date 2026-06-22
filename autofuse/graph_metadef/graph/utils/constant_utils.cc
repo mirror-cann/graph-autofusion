@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -85,8 +85,7 @@ bool ConstantUtils::MutableWeight(const OpDescPtr &op_desc, const uint32_t index
   return false;
 }
 bool ConstantUtils::SetWeight(const OpDescPtr &op_desc, const uint32_t index, const GeTensorPtr weight) {
-  if (IsRealConst(op_desc) &&
-      AttrUtils::SetTensor(op_desc, ATTR_NAME_WEIGHTS, weight)) {
+  if (IsRealConst(op_desc) && AttrUtils::SetTensor(op_desc, ATTR_NAME_WEIGHTS, weight)) {
     return true;
   }
   if (!IsPotentialConst(op_desc)) {
@@ -106,8 +105,7 @@ bool ConstantUtils::SetWeight(const OpDescPtr &op_desc, const uint32_t index, co
   }
   return false;
 }
-bool ConstantUtils::GetPotentialWeight(const OpDescPtr &op_desc,
-                                       std::vector<uint32_t> &weight_indices,
+bool ConstantUtils::GetPotentialWeight(const OpDescPtr &op_desc, std::vector<uint32_t> &weight_indices,
                                        std::vector<ConstGeTensorPtr> &weights) {
   // check potential const attrs
   if (!AttrUtils::GetListInt(op_desc, ATTR_NAME_POTENTIAL_WEIGHT_INDICES, weight_indices)) {
@@ -142,19 +140,17 @@ bool ConstantUtils::MutablePotentialWeight(const OpDescPtr &op_desc, std::vector
   }
   return true;
 }
-bool ConstantUtils::MarkPotentialConst(const OpDescPtr &op_desc,
-                                       const std::vector<int> indices,
+bool ConstantUtils::MarkPotentialConst(const OpDescPtr &op_desc, const std::vector<int> indices,
                                        const std::vector<GeTensorPtr> weights) {
   if (indices.size() != weights.size()) {
     return false;
   }
   return (AttrUtils::SetBool(op_desc, ATTR_NAME_POTENTIAL_CONST, true) &&
-      AttrUtils::SetListInt(op_desc, ATTR_NAME_POTENTIAL_WEIGHT_INDICES, indices) &&
-      AttrUtils::SetListTensor(op_desc, ATTR_NAME_POTENTIAL_WEIGHT, weights));
+          AttrUtils::SetListInt(op_desc, ATTR_NAME_POTENTIAL_WEIGHT_INDICES, indices) &&
+          AttrUtils::SetListTensor(op_desc, ATTR_NAME_POTENTIAL_WEIGHT, weights));
 }
 bool ConstantUtils::UnMarkPotentialConst(const OpDescPtr &op_desc) {
-  if (op_desc->HasAttr(ATTR_NAME_POTENTIAL_CONST) &&
-      op_desc->HasAttr(ATTR_NAME_POTENTIAL_WEIGHT_INDICES) &&
+  if (op_desc->HasAttr(ATTR_NAME_POTENTIAL_CONST) && op_desc->HasAttr(ATTR_NAME_POTENTIAL_WEIGHT_INDICES) &&
       op_desc->HasAttr(ATTR_NAME_POTENTIAL_WEIGHT)) {
     (void)op_desc->DelAttr(ATTR_NAME_POTENTIAL_CONST);
     (void)op_desc->DelAttr(ATTR_NAME_POTENTIAL_WEIGHT_INDICES);
@@ -205,4 +201,4 @@ bool ConstantUtils::GetWeightFromFile(const OpDescPtr &op_desc, ConstGeTensorPtr
   weight = tensor;
   return true;
 }
-} // namespace ge
+}  // namespace af

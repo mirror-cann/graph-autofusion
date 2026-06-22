@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -71,7 +71,7 @@ ConnectionMatrixImpl::~ConnectionMatrixImpl() {
 uint64_t ConnectionMatrixImpl::AddNode(const std::string &op_name) {
   if (used_ + 1 >= size_) {
     size_t new_size = size_ + expand_step_;
-    for (auto &m: bit_maps_) {
+    for (auto &m : bit_maps_) {
       m.ResizeBits(new_size);
     }
 
@@ -133,7 +133,7 @@ void ConnectionMatrixImpl::Update(const ComputeGraphPtr &graph, const vector<Nod
   }
   if (graph != shared_graph) {
     GELOGW("Input graph %s is not the same one %s when contribute connection matrix.", graph->GetName().c_str(),
-            shared_graph->GetName().c_str());
+           shared_graph->GetName().c_str());
     return;
   }
   LargeBitmap new_bit_vector(graph->GetDirectNode().size());
@@ -198,4 +198,4 @@ LargeBitmap &ConnectionMatrixImpl::GetBitMap(const NodePtr &node) {
 LargeBitmap &ConnectionMatrixImpl::GetBitMap(uint64_t index) {
   return bit_maps_[index];
 }
-} // namespace ge
+}  // namespace af

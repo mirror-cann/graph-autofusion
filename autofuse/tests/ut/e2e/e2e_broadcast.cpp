@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -28,7 +28,6 @@ void LoadBroadcastStore_BeforeAutofuse(af::AscGraph &graph, int broad_axis, ge::
 
   auto z0 = graph.CreateAxis("z0", s0);
   auto z1 = graph.CreateAxis("z1", s1);
-
 
   Data x("x");
   graph.AddNode(x);
@@ -72,11 +71,11 @@ void LoadBroadcastStore_BeforeAutofuse(af::AscGraph &graph, int broad_axis, ge::
   y.y.dtype = data_type;
   y.ir_attr.SetIndex(0);
 
-  //graph.SetInputs({x});
-  //graph.SetOutputs({y});
+  // graph.SetInputs({x});
+  // graph.SetOutputs({y});
 }
 
-void LoadBroadcastStore_AfterAutofuse(af::AscGraph& graph, int broad_axis, ge::DataType data_type) {
+void LoadBroadcastStore_AfterAutofuse(af::AscGraph &graph, int broad_axis, ge::DataType data_type) {
   auto x = graph.FindNode("x");
   x->attr.api.compute_type = af::ComputeType::kComputeInvalid;
   x->attr.api.type = af::ApiType::kAPITypeBuffer;
@@ -203,7 +202,7 @@ void LoadBroadcastStore_AfterAutofuse(af::AscGraph& graph, int broad_axis, ge::D
 
   store->outputs[0].attr.mem.tensor_id = 3;
   store->outputs[0].attr.mem.alloc_type = af::AllocType::kAllocTypeGlobal;
-  store->outputs[0].attr.mem.hardware =  af::MemHardware::kMemHardwareGM;
+  store->outputs[0].attr.mem.hardware = af::MemHardware::kMemHardwareGM;
   store->outputs[0].attr.mem.position = af::Position::kPositionGM;
   store->outputs[0].attr.buf.id = af::kIdNone;
   store->outputs[0].attr.que.id = af::kIdNone;
@@ -211,7 +210,7 @@ void LoadBroadcastStore_AfterAutofuse(af::AscGraph& graph, int broad_axis, ge::D
   store->outputs[0].attr.opt.merge_scope = af::kIdNone;
 }
 
-void ConstructGraph(af::AscGraph& graph, std::vector<af::AscGraph> &impl_graphs) {
+void ConstructGraph(af::AscGraph &graph, std::vector<af::AscGraph> &impl_graphs) {
   auto s0 = graph.CreateSizeVar("s0");
   auto s1 = graph.CreateSizeVar("s1");
   auto s2 = graph.CreateSizeVar("s2");
@@ -240,7 +239,7 @@ void ConstructGraph(af::AscGraph& graph, std::vector<af::AscGraph> &impl_graphs)
   broadcast_op.attr.sched.axis = {z0, z1, z2};
   *broadcast_op.y.axis = {z0, z1, z2};
   *broadcast_op.y.repeats = {s0, s1, s2};
-  *broadcast_op.y.strides = {s1*s2, s2, One};
+  *broadcast_op.y.strides = {s1 * s2, s2, One};
 
   Store store_op("store");
   graph.AddNode(store_op);
@@ -248,15 +247,15 @@ void ConstructGraph(af::AscGraph& graph, std::vector<af::AscGraph> &impl_graphs)
   store_op.attr.sched.axis = {z0, z1, z2};
   *store_op.y.axis = {z0, z1, z2};
   *store_op.y.repeats = {s0, s1, s2};
-  *store_op.y.strides = {s1*s2, s2, One};
+  *store_op.y.strides = {s1 * s2, s2, One};
 
   Output y_op("y");
   graph.AddNode(y_op);
   y_op.x = store_op.y;
   y_op.y.dtype = ge::DT_FLOAT16;
 
-  //graph.SetInputs({x});
-  //graph.SetOutputs({y});
+  // graph.SetInputs({x});
+  // graph.SetOutputs({y});
   AssignDefaultIoIndex(graph);
   optimize::Optimizer optimizer(optimize::OptimizerOptions{.graph_type = optimize::GraphType::kAscGraph});
   optimize::AscGraphInfoComplete::CompleteApiInfo(graph);
@@ -271,7 +270,6 @@ void ConstructGraph(af::AscGraph& graph, std::vector<af::AscGraph> &impl_graphs)
 
   auto all_axis = impl_graphs[0].GetAllAxis();
   auto m_axis = all_axis[z0z1->id];
-
 
   auto data = impl_graphs[0].FindNode("x");
   data->attr.api.unit = af::ComputeUnit::kUnitNone;
@@ -313,8 +311,8 @@ void ConstructGraph(af::AscGraph& graph, std::vector<af::AscGraph> &impl_graphs)
   broadcast->outputs[0].attr.mem.reuse_id = 1;
 }
 
-void ConstructMultiAxisGraph(af::AscGraph& graph, std::vector<af::AscGraph> &impl_graphs, std::vector<bool> is_broadcast_axis,
-                            std::string kernel_name) {
+void ConstructMultiAxisGraph(af::AscGraph &graph, std::vector<af::AscGraph> &impl_graphs,
+                             std::vector<bool> is_broadcast_axis, std::string kernel_name) {
   auto s0 = graph.CreateSizeVar("s0");
   auto s1 = graph.CreateSizeVar("s1");
   auto s2 = graph.CreateSizeVar("s2");
@@ -340,17 +338,17 @@ void ConstructMultiAxisGraph(af::AscGraph& graph, std::vector<af::AscGraph> &imp
   load_op.attr.sched.axis = {z0, z1, z2, z3, z4};
   *load_op.y.axis = {z0, z1, z2, z3, z4};
   /*
-  *根据is_broadcast_axis生成广播前load的轴信息
-  * 如 [z0 z1 z2 z4] broadcast to [z0 z1 z2 z3 z4] (s0*s1*s2*s4 -> s0*s1*s2*s3*s4)
-  *load_op.y.repeats ={s0, s1, s2, One, s4};
-  *load_op.y.strides = {s1*s2*s4, s2*s4, s4, Zero, One};
-  * 如 [z0 z3 z4] broadcast to [z0 z1 z2 z3 z4] (s0*s3*s4 -> s0*s1*s2*s3*s4)
-  *load_op.y.repeats ={s0, One, One, s3, s4};
-  *load_op.y.strides = {s3*s4, Zero, Zero, s4, One};
-  * 如 [z0 z1 z2] broadcast to [z0 z1 z2 z3 z4] (s0*s1*s2 -> s0*s1*s2*s3*s4)
-  *load_op.y.repeats ={s0, s1, s2, One, One};
-  *load_op.y.strides = {s1*s2, s2, One, Zero, Zero};
-  */
+   *根据is_broadcast_axis生成广播前load的轴信息
+   * 如 [z0 z1 z2 z4] broadcast to [z0 z1 z2 z3 z4] (s0*s1*s2*s4 -> s0*s1*s2*s3*s4)
+   *load_op.y.repeats ={s0, s1, s2, One, s4};
+   *load_op.y.strides = {s1*s2*s4, s2*s4, s4, Zero, One};
+   * 如 [z0 z3 z4] broadcast to [z0 z1 z2 z3 z4] (s0*s3*s4 -> s0*s1*s2*s3*s4)
+   *load_op.y.repeats ={s0, One, One, s3, s4};
+   *load_op.y.strides = {s3*s4, Zero, Zero, s4, One};
+   * 如 [z0 z1 z2] broadcast to [z0 z1 z2 z3 z4] (s0*s1*s2 -> s0*s1*s2*s3*s4)
+   *load_op.y.repeats ={s0, s1, s2, One, One};
+   *load_op.y.strides = {s1*s2, s2, One, Zero, Zero};
+   */
   af::Expression load_stride = One;
   for (int i = is_broadcast_axis.size() - 1; i >= 0; --i) {
     if (is_broadcast_axis[i]) {
@@ -370,7 +368,7 @@ void ConstructMultiAxisGraph(af::AscGraph& graph, std::vector<af::AscGraph> &imp
   broadcast_op.attr.sched.axis = {z0, z1, z2, z3, z4};
   *broadcast_op.y.axis = {z0, z1, z2, z3, z4};
   *broadcast_op.y.repeats = {s0, s1, s2, s3, s4};
-  *broadcast_op.y.strides = {s1*s2*s3*s4, s2*s3*s4, s3*s4, s4, One};
+  *broadcast_op.y.strides = {s1 * s2 * s3 * s4, s2 * s3 * s4, s3 * s4, s4, One};
 
   Store store_op("store");
   graph.AddNode(store_op);
@@ -378,7 +376,7 @@ void ConstructMultiAxisGraph(af::AscGraph& graph, std::vector<af::AscGraph> &imp
   store_op.attr.sched.axis = {z0, z1, z2, z3, z4};
   *store_op.y.axis = {z0, z1, z2, z3, z4};
   *store_op.y.repeats = {s0, s1, s2, s3, s4};
-  *store_op.y.strides = {s1*s2*s3*s4, s2*s3*s4, s3*s4, s4, One};
+  *store_op.y.strides = {s1 * s2 * s3 * s4, s2 * s3 * s4, s3 * s4, s4, One};
 
   Output y_op("y");
   graph.AddNode(y_op);
@@ -391,19 +389,19 @@ void ConstructMultiAxisGraph(af::AscGraph& graph, std::vector<af::AscGraph> &imp
   impl_graphs[0].CopyFrom(graph);
   optimize::AscGraphInfoComplete::CompleteApiInfo(impl_graphs[0]);
 
-  af::Expression align_s4 = af::sym::Align(s4, (32/sizeof(float32_t)));
+  af::Expression align_s4 = af::sym::Align(s4, (32 / sizeof(float32_t)));
 
   // broadcast的vectorized_strides
-  vector<af::Expression> not_align_vectorized_strides{s2*s3*s4, s3*s4, s4, One};
-  vector<af::Expression> vectorized_strides{s2*s3*align_s4, s3*align_s4, align_s4, One};
+  vector<af::Expression> not_align_vectorized_strides{s2 * s3 * s4, s3 * s4, s4, One};
+  vector<af::Expression> vectorized_strides{s2 * s3 * align_s4, s3 * align_s4, align_s4, One};
 
   /*
-  * 向量化后四根轴
-  * 对应上述load示例分别为
-  * load_vectorized_strides{s2*s4, s4, Zero, One};
-  * load_vectorized_strides{Zero, Zero, s4, One};
-  * load_vectorized_strides{s2, One, Zero, Zero};
-  */
+   * 向量化后四根轴
+   * 对应上述load示例分别为
+   * load_vectorized_strides{s2*s4, s4, Zero, One};
+   * load_vectorized_strides{Zero, Zero, s4, One};
+   * load_vectorized_strides{s2, One, Zero, Zero};
+   */
   vector<af::Expression> load_vectorized_strides;
   load_stride = One;
   bool first = true;
@@ -416,7 +414,7 @@ void ConstructMultiAxisGraph(af::AscGraph& graph, std::vector<af::AscGraph> &imp
       if (first && (i == (is_broadcast_axis.size() - 1))) {
         first = false;
         load_vectorized_strides.insert(load_vectorized_strides.begin(), load_stride);
-        af::Expression align_size = af::sym::Align(all_size_var[i], (32/sizeof(float32_t)));
+        af::Expression align_size = af::sym::Align(all_size_var[i], (32 / sizeof(float32_t)));
         load_stride = load_stride * align_size;
       } else {
         load_vectorized_strides.insert(load_vectorized_strides.begin(), load_stride);
@@ -436,7 +434,7 @@ void ConstructMultiAxisGraph(af::AscGraph& graph, std::vector<af::AscGraph> &imp
       node->outputs[0].attr.vectorized_strides = load_vectorized_strides;
     } else {
       node->outputs[0].attr.vectorized_strides = vectorized_strides;
-    } 
+    }
   }
   optimizer.BufQueAlloc(graph, impl_graphs);
 

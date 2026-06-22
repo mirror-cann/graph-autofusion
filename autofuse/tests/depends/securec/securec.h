@@ -30,82 +30,75 @@ typedef int errno_t;
 #define EOK 0
 #define SECUREC_MEM_MAX_LEN ((size_t)(-1) >> 1)
 
-SECUREC_INLINE errno_t memcpy_s(void *dest, size_t destMax, const void *src, size_t count)
-{
-    if (dest == NULL || src == NULL || destMax < count) {
-        return -1;
-    }
-    memcpy(dest, src, count);
-    return EOK;
+SECUREC_INLINE errno_t memcpy_s(void *dest, size_t destMax, const void *src, size_t count) {
+  if (dest == NULL || src == NULL || destMax < count) {
+    return -1;
+  }
+  memcpy(dest, src, count);
+  return EOK;
 }
 
-SECUREC_INLINE errno_t memset_s(void *dest, size_t destMax, int c, size_t count)
-{
-    if (dest == NULL || destMax < count) {
-        return -1;
-    }
-    memset(dest, c, count);
-    return EOK;
+SECUREC_INLINE errno_t memset_s(void *dest, size_t destMax, int c, size_t count) {
+  if (dest == NULL || destMax < count) {
+    return -1;
+  }
+  memset(dest, c, count);
+  return EOK;
 }
 
-SECUREC_INLINE errno_t strcpy_s(char *strDest, size_t destMax, const char *strSrc)
-{
-    if (strDest == NULL || strSrc == NULL || destMax == 0) {
-        return -1;
-    }
-    size_t srcLen = strlen(strSrc);
-    if (srcLen + 1 > destMax) {
-        return -1;
-    }
-    memcpy(strDest, strSrc, srcLen + 1);
-    return EOK;
+SECUREC_INLINE errno_t strcpy_s(char *strDest, size_t destMax, const char *strSrc) {
+  if (strDest == NULL || strSrc == NULL || destMax == 0) {
+    return -1;
+  }
+  size_t srcLen = strlen(strSrc);
+  if (srcLen + 1 > destMax) {
+    return -1;
+  }
+  memcpy(strDest, strSrc, srcLen + 1);
+  return EOK;
 }
 
-SECUREC_INLINE errno_t strncpy_s(char *strDest, size_t destMax, const char *strSrc, size_t count)
-{
-    if (strDest == NULL || strSrc == NULL || destMax == 0) {
-        return -1;
-    }
-    size_t copyLen = count < destMax - 1 ? count : destMax - 1;
-    strncpy(strDest, strSrc, copyLen);
-    strDest[copyLen] = '\0';
-    return EOK;
+SECUREC_INLINE errno_t strncpy_s(char *strDest, size_t destMax, const char *strSrc, size_t count) {
+  if (strDest == NULL || strSrc == NULL || destMax == 0) {
+    return -1;
+  }
+  size_t copyLen = count < destMax - 1 ? count : destMax - 1;
+  strncpy(strDest, strSrc, copyLen);
+  strDest[copyLen] = '\0';
+  return EOK;
 }
 
-SECUREC_INLINE errno_t strcat_s(char *strDest, size_t destMax, const char *strSrc)
-{
-    if (strDest == NULL || strSrc == NULL || destMax == 0) {
-        return -1;
-    }
-    size_t destLen = strlen(strDest);
-    size_t srcLen = strlen(strSrc);
-    if (destLen + srcLen + 1 > destMax) {
-        return -1;
-    }
-    memcpy(strDest + destLen, strSrc, srcLen + 1);
-    return EOK;
+SECUREC_INLINE errno_t strcat_s(char *strDest, size_t destMax, const char *strSrc) {
+  if (strDest == NULL || strSrc == NULL || destMax == 0) {
+    return -1;
+  }
+  size_t destLen = strlen(strDest);
+  size_t srcLen = strlen(strSrc);
+  if (destLen + srcLen + 1 > destMax) {
+    return -1;
+  }
+  memcpy(strDest + destLen, strSrc, srcLen + 1);
+  return EOK;
 }
 
-SECUREC_INLINE int vsnprintf_s(char *dest, size_t destMax, size_t count, const char *fmt, va_list arglist)
-{
-    if (dest == NULL || fmt == NULL || destMax == 0) {
-        return -1;
-    }
-    (void)count;
-    return vsnprintf(dest, destMax, fmt, arglist);
+SECUREC_INLINE int vsnprintf_s(char *dest, size_t destMax, size_t count, const char *fmt, va_list arglist) {
+  if (dest == NULL || fmt == NULL || destMax == 0) {
+    return -1;
+  }
+  (void)count;
+  return vsnprintf(dest, destMax, fmt, arglist);
 }
 
-SECUREC_INLINE int snprintf_s(char *dest, size_t destMax, size_t count, const char *fmt, ...)
-{
-    if (dest == NULL || fmt == NULL || destMax == 0) {
-        return -1;
-    }
-    (void)count;
-    va_list arglist;
-    va_start(arglist, fmt);
-    int ret = vsnprintf(dest, destMax, fmt, arglist);
-    va_end(arglist);
-    return ret;
+SECUREC_INLINE int snprintf_s(char *dest, size_t destMax, size_t count, const char *fmt, ...) {
+  if (dest == NULL || fmt == NULL || destMax == 0) {
+    return -1;
+  }
+  (void)count;
+  va_list arglist;
+  va_start(arglist, fmt);
+  int ret = vsnprintf(dest, destMax, fmt, arglist);
+  va_end(arglist);
+  return ret;
 }
 
 #ifdef __cplusplus
@@ -113,20 +106,18 @@ SECUREC_INLINE int snprintf_s(char *dest, size_t destMax, size_t count, const ch
 
 // C++ variadic template version of sscanf_s (stub - delegates to sscanf)
 #include <cstdio>
-template<typename... Args>
-SECUREC_INLINE int sscanf_s(const char *str, const char *format, Args... args)
-{
-    return sscanf(str, format, args...);
+template <typename... Args>
+SECUREC_INLINE int sscanf_s(const char *str, const char *format, Args... args) {
+  return sscanf(str, format, args...);
 }
 
 #else
 // C version of sscanf_s
-SECUREC_INLINE int sscanf_s(const char *str, const char *format, ...)
-{
-    va_list args;
-    va_start(args, format);
-    int ret = vsscanf(str, format, args);
-    va_end(args);
-    return ret;
+SECUREC_INLINE int sscanf_s(const char *str, const char *format, ...) {
+  va_list args;
+  va_start(args, format);
+  int ret = vsscanf(str, format, args);
+  va_end(args);
+  return ret;
 }
 #endif

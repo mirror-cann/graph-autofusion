@@ -66,4 +66,5 @@ TEST_P(E2E_BackendBf16Sigmoid_Code, CalculateCorrect) {
   AscendC::GmFree(expect);
 }
 
-INSTANTIATE_TEST_SUITE_P(CalcWithDifferentShape, E2E_BackendBf16Sigmoid_Code, ::testing::Values(std::vector<int>{32, 16}));
+INSTANTIATE_TEST_SUITE_P(CalcWithDifferentShape, E2E_BackendBf16Sigmoid_Code,
+                         ::testing::Values(std::vector<int>{32, 16}));

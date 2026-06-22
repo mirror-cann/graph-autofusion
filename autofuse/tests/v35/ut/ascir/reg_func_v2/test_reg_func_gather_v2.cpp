@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -18,7 +18,7 @@
 #include "ascir_ops.h"
 #include "ascir_utils.h"
 
-namespace af{
+namespace af {
 namespace ascir {
 extern std::vector<std::unique_ptr<af::TmpBufDesc>> CalcGatherTmpSizeV2(const af::AscNode &node);
 
@@ -135,7 +135,8 @@ void CreateGraphStaticOneAxis(af::AscGraph &graph, int32_t param_axis, int32_t i
 }
 
 template <af::DataType T1, af::DataType T2>
-void CreateGraphStaticMiddleAxis(af::AscGraph &graph, int32_t param_axis_1, int32_t param_axis_2, int32_t index_axis_1, int32_t index_axis_2) {
+void CreateGraphStaticMiddleAxis(af::AscGraph &graph, int32_t param_axis_1, int32_t param_axis_2, int32_t index_axis_1,
+                                 int32_t index_axis_2) {
   Expression One = af::Symbol(1);
   Expression s0 = af::Symbol(param_axis_1);
   Expression s1 = af::Symbol(param_axis_2);
@@ -190,7 +191,8 @@ void CreateGraphStaticMiddleAxis(af::AscGraph &graph, int32_t param_axis_1, int3
 }
 
 template <af::DataType T1, af::DataType T2>
-void CreateGraphStaticTailAxis(af::AscGraph &graph, int32_t param_axis_1, int32_t param_axis_2, int32_t index_axis_1, int32_t index_axis_2) {
+void CreateGraphStaticTailAxis(af::AscGraph &graph, int32_t param_axis_1, int32_t param_axis_2, int32_t index_axis_1,
+                               int32_t index_axis_2) {
   Expression One = af::Symbol(1);
   Expression s0 = af::Symbol(param_axis_1);
   Expression s1 = af::Symbol(param_axis_2);
@@ -472,4 +474,4 @@ TEST_F(CalcGatherTmpSizeV2Test, CalcGatherTmpSize_ShouldReturnCorrectSize_WhenNo
   ASSERT_EQ(result[0]->life_time_axis_id, -1);
 }
 }  // namespace ascir
-}  // namespace ge
+}  // namespace af

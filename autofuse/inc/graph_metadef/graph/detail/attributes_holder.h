@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -28,7 +28,7 @@
 namespace google {
 namespace protobuf {
 class Message;
-template<typename Key, typename T>
+template <typename Key, typename T>
 class Map;
 }  // namespace protobuf
 }  // namespace google
@@ -54,7 +54,7 @@ using ProtoAttrMap = AttrStore;
 using ConstProtoAttrMap = const AttrStore;
 using ProtoMsgOwner = std::shared_ptr<::google::protobuf::Message>;
 
-template<class ProtoType>
+template <class ProtoType>
 class GeIrProtoHelper {
  public:
   GeIrProtoHelper(const ProtoMsgOwner &protoOwner, ProtoType *const protoMsg)
@@ -66,7 +66,7 @@ class GeIrProtoHelper {
   }
   virtual ~GeIrProtoHelper() = default;
 
-  template<typename T>
+  template <typename T>
   GeIrProtoHelper(const GeIrProtoHelper<T> &other) {
     protoOwner_ = other.protoOwner_;
     protoMsg_ = other.protoMsg_;
@@ -76,7 +76,7 @@ class GeIrProtoHelper {
     protoOwner_ = other.protoOwner_;
     protoMsg_ = other.protoMsg_;
   }
-  template<typename T>
+  template <typename T>
   GeIrProtoHelper &operator=(const GeIrProtoHelper<T> &other) {
     protoOwner_ = other.protoOnwer_;
     protoMsg_ = other.protoMsg_;
@@ -91,7 +91,7 @@ class GeIrProtoHelper {
     return *this;
   }
   void InitDefault();
-  template<typename T>
+  template <typename T>
   bool operator==(const GeIrProtoHelper<T> &other) const {
     return (protoOwner_ == other.protoOwner_) && (protoMsg_ == other.protoMsg_);
   }
@@ -177,7 +177,7 @@ class GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY AttrHolder {
    * @param value 任意类型的属性值
    * @return true/false 设置成功返回true, 设置失败返回false
    */
-  template<class T>
+  template <class T>
   bool SetExtAttr(const std::string &name, const T &value) {
     return ext_attrs_.Set(name, value);
   }
@@ -188,34 +188,34 @@ class GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY AttrHolder {
    * @param defaultValue 默认值，用于查询失败时返回这个默认值
    * @return 如果查询成功，返回查询到的属性值，如果查询失败，返回传入的默认值
    */
-  template<class T>
+  template <class T>
   T TryGetExtAttr(const std::string &name, const T defaultValue) const {
     T ret(defaultValue);
-    (void) ext_attrs_.Get(name, ret);
+    (void)ext_attrs_.Get(name, ret);
     return ret;
   }
 
-  template<class T>
+  template <class T>
   typename std::enable_if<std::is_base_of<AttrGroupsBase, T>::value, T *>::type GetOrCreateAttrsGroup() {
     return MutableAttrMap().GetOrCreateAttrsGroup<T>();
   }
 
-  template<class T>
+  template <class T>
   typename std::enable_if<std::is_base_of<AttrGroupsBase, T>::value, bool>::type DeleteAttrsGroup() {
     return MutableAttrMap().DeleteAttrsGroup<T>();
   }
 
-  template<typename T, typename... Args>
-  typename std::enable_if<std::is_base_of<AttrGroupsBase, T>::value, T *>::type CreateAttrsGroup(Args &&... args) {
+  template <typename T, typename... Args>
+  typename std::enable_if<std::is_base_of<AttrGroupsBase, T>::value, T *>::type CreateAttrsGroup(Args &&...args) {
     return MutableAttrMap().CreateAttrsGroup<T>(args...);
   }
 
-  template<class T>
+  template <class T>
   typename std::enable_if<std::is_base_of<AttrGroupsBase, T>::value, T *>::type GetAttrsGroup() {
     return GetAttrMap().GetAttrsGroup<T>();
   }
 
-  template<class T>
+  template <class T>
   typename std::enable_if<std::is_base_of<AttrGroupsBase, T>::value, const T *>::type GetAttrsGroup() const {
     return GetAttrMap().GetAttrsGroup<T>();
   }
@@ -226,12 +226,12 @@ class GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY AttrHolder {
    * @param name 属性的名称
    * @return 如果查询成功，返回查询到的属性值的指针，如果查询失败，返回空指针
    */
-  template<class T>
+  template <class T>
   const T *GetExtAttr(const std::string &name) const {
     return ext_attrs_.Get<T>(name);
   }
 
-  template<class T>
+  template <class T>
   T *GetExtAttr(const std::string &name) {
     return const_cast<T *>(ext_attrs_.Get<T>(name));
   }
@@ -244,6 +244,7 @@ class GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY AttrHolder {
   const std::unordered_map<std::string, std::string> &GetRequiredAttrWithType() const {
     return required_attrs_and_type_;
   }
+
  protected:
   const std::set<std::string> GetAllAttrNames() const;
   const std::map<std::string, AnyValue> GetAllAttrs() const;

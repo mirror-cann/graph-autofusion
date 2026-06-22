@@ -38,13 +38,13 @@ const char_t OP_DESC_QUANT_PARAMS[] = "quantize_factor";
 
 namespace {
 const uint32_t CONST_OP_NORMAL_WEIGHT_SIZE = 1U;
-const char* const kMultiThreadCompile = "MULTI_THREAD_COMPILE";
-const char* const kDisEnableFlag = "0";
+const char *const kMultiThreadCompile = "MULTI_THREAD_COMPILE";
+const char *const kDisEnableFlag = "0";
 void GetConstantOpName(std::string &op_name) {
   thread_local int64_t const_count = 0;
   std::string compile_thread;
-  if ((GetContext().GetOption(kMultiThreadCompile, compile_thread) == GRAPH_SUCCESS)
-      && (compile_thread.compare(kDisEnableFlag) == 0)) {
+  if ((GetContext().GetOption(kMultiThreadCompile, compile_thread) == GRAPH_SUCCESS) &&
+      (compile_thread.compare(kDisEnableFlag) == 0)) {
     op_name = "dynamic_const_" + std::to_string(const_count);
   } else {
     op_name = "dynamic_const_" + std::to_string(GeLog::GetTid()) + "_" + std::to_string(const_count);
@@ -80,7 +80,7 @@ std::string InputsNamesStr(const OpDescPtr &op_desc) {
   ss << "]";
   return ss.str();
 }
-}
+}  // namespace
 
 bool OpDescUtils::ClearInputDesc(const NodePtr &node) {
   GE_CHK_BOOL_EXEC(node != nullptr, REPORT_INNER_ERR_MSG("E18888", "param node is nullptr, check invalid.");
@@ -158,7 +158,9 @@ GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY bool OpDescUtils::ClearOutputDesc
   return NodeUtils::ClearOutputDesc(op_desc, index);
 }
 
-bool OpDescUtils::HasQuantizeFactorParams(const OpDesc &op_desc) { return op_desc.HasAttr(OP_DESC_QUANT_PARAMS); }
+bool OpDescUtils::HasQuantizeFactorParams(const OpDesc &op_desc) {
+  return op_desc.HasAttr(OP_DESC_QUANT_PARAMS);
+}
 
 GeTensorPtr OpDescUtils::MutableWeights(OpDesc &op_desc) {
   GeTensorPtr weight = nullptr;
@@ -190,8 +192,7 @@ graphStatus OpDescUtils::SetWeights(OpDescPtr op_desc, const GeTensorPtr weight)
   return SetWeights(*op_desc, weight);
 }
 
-GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY
-std::vector<ConstGeTensorPtr> OpDescUtils::GetWeights(const Node &node) {
+GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY std::vector<ConstGeTensorPtr> OpDescUtils::GetWeights(const Node &node) {
   auto weights = MutableWeights(node);
   std::vector<ConstGeTensorPtr> ret(weights.size());
   (void)std::copy(weights.begin(), weights.end(), ret.begin());
@@ -206,8 +207,7 @@ GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY std::vector<ConstGeTensorPtr> OpD
   return GetWeights(*node);
 }
 
-GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY std::vector<NodePtr> OpDescUtils::GetConstInputNode(
-    const Node &node) {
+GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY std::vector<NodePtr> OpDescUtils::GetConstInputNode(const Node &node) {
   std::vector<NodePtr> ret;
   const auto in_anchors = node.GetAllInDataAnchorsPtr();
   for (const auto &in_anchor : in_anchors) {
@@ -322,10 +322,9 @@ vector<ConstGeTensorPtr> OpDescUtils::GetWeightsFromNodes(
   std::vector<ConstGeTensorPtr> ret;
   for (const auto &input_node_2_anchor : input_nodes_2_out_anchors) {
     const auto input_node = input_node_2_anchor.first;
-    GeTensorPtr temp_weight ;
+    GeTensorPtr temp_weight;
     (void)ConstantUtils::MutableWeight(input_node->GetOpDesc(),
-                                       static_cast<uint32_t>(input_node_2_anchor.second->GetIdx()),
-                                       temp_weight);
+                                       static_cast<uint32_t>(input_node_2_anchor.second->GetIdx()), temp_weight);
     if (temp_weight == nullptr) {
       REPORT_INNER_ERR_MSG("E18888", "const op's weight is null, name: %s", input_node->GetName().c_str());
       GELOGE(GRAPH_FAILED, "[Invoke][MutableWeights] const op's weight is null, name: %s",
@@ -348,13 +347,12 @@ size_t OpDescUtils::GetNonConstInputsSize(const Node &node) {
     }
     return input_num;  // lint !e712
   } else {
-    GE_IF_BOOL_EXEC(
-        node.GetInDataNodesSize() < GetConstInputs(node).size(),
-        REPORT_INNER_ERR_MSG("E18888", "InDataNodes size:%zu is smaller than ConstInputs size:%zu",
-                           node.GetInDataNodes().size(), GetConstInputs(node).size());
-        GELOGE(GRAPH_FAILED, "[Check][Param] %zu is smaller than %zu",
-               node.GetInDataNodes().size(), GetConstInputs(node).size());
-        return 0UL);
+    GE_IF_BOOL_EXEC(node.GetInDataNodesSize() < GetConstInputs(node).size(),
+                    REPORT_INNER_ERR_MSG("E18888", "InDataNodes size:%zu is smaller than ConstInputs size:%zu",
+                                         node.GetInDataNodes().size(), GetConstInputs(node).size());
+                    GELOGE(GRAPH_FAILED, "[Check][Param] %zu is smaller than %zu", node.GetInDataNodes().size(),
+                           GetConstInputs(node).size());
+                    return 0UL);
     return node.GetInDataNodesSize() - GetConstInputs(node).size();
   }
 }
@@ -456,8 +454,7 @@ bool OpDescUtils::IsNonConstInput(const Node &node, const size_t index) {
   bool ret = false;
   if (index < static_cast<size_t>(node.GetAllInDataAnchorsSize())) {
     if (NodeUtils::IsAnchorStatusSet(node)) {
-      ret = (AnchorUtils::GetStatus(node.GetInDataAnchor(static_cast<int32_t>(index))) ==
-             ANCHOR_DATA); // lint !e712
+      ret = (AnchorUtils::GetStatus(node.GetInDataAnchor(static_cast<int32_t>(index))) == ANCHOR_DATA);  // lint !e712
     } else {
       for (const auto &anchor : node.GetAllInDataAnchorsPtr()) {
         if (anchor->GetIdx() != static_cast<int32_t>(index)) {
@@ -519,8 +516,8 @@ GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY std::vector<GeTensorDesc> OpDescU
   return ret;
 }
 
-GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY
-std::vector<NodePtr> OpDescUtils::GetConstInputs(const Node &node, const uint32_t depth) {
+GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY std::vector<NodePtr> OpDescUtils::GetConstInputs(const Node &node,
+                                                                                                const uint32_t depth) {
   std::vector<NodePtr> ret;
   if (depth == 0U) {
     return ret;
@@ -554,14 +551,13 @@ std::vector<NodePtr> OpDescUtils::GetConstInputs(const Node &node, const uint32_
   return ret;
 }
 
-
 graphStatus OpDescUtils::SetNoneConstNodeWeights(Node &node, const std::vector<GeTensorPtr> &weights) {
   const auto input_nodes = GetConstInputs(node);
   if (weights.size() < input_nodes.size()) {
     REPORT_INNER_ERR_MSG("E18888", "weights count:%zu can't be less than const input count:%zu, node:%s(%s)",
                          weights.size(), input_nodes.size(), node.GetName().c_str(), node.GetType().c_str());
-    GELOGE(GRAPH_FAILED, "[Check][Param] weights count:%zu can't be less than const input count:%zu",
-           weights.size(), input_nodes.size());
+    GELOGE(GRAPH_FAILED, "[Check][Param] weights count:%zu can't be less than const input count:%zu", weights.size(),
+           input_nodes.size());
     return GRAPH_PARAM_INVALID;
   }
 
@@ -575,8 +571,8 @@ graphStatus OpDescUtils::SetNoneConstNodeWeights(Node &node, const std::vector<G
       if (SetWeights(input_nodes[i]->GetOpDesc(), copy_weights[i]) != GRAPH_SUCCESS) {
         REPORT_INNER_ERR_MSG("E18888", "set weights failed, node:%s(%s)", input_nodes[i]->GetName().c_str(),
                              input_nodes[i]->GetType().c_str());
-        GELOGE(GRAPH_FAILED, "[Set][Weights] failed, node:%s(%s)",
-               input_nodes[i]->GetName().c_str(), input_nodes[i]->GetType().c_str());
+        GELOGE(GRAPH_FAILED, "[Set][Weights] failed, node:%s(%s)", input_nodes[i]->GetName().c_str(),
+               input_nodes[i]->GetType().c_str());
         return GRAPH_FAILED;
       }
     }
@@ -595,11 +591,11 @@ graphStatus OpDescUtils::SetNoneConstNodeWeights(Node &node, const std::vector<G
       return GRAPH_PARAM_INVALID;
     }
     const auto const_node = owner_graph->AddNodeFront(const_opdesc);
-    GE_CHK_BOOL_EXEC(node.AddLinkFrom(const_node) == GRAPH_SUCCESS,
-                     REPORT_INNER_ERR_MSG("E18888", "node:%s add link failed.", node.GetName().c_str());
-                     GELOGE(GRAPH_FAILED, "[Invoke][AddLinkFrom] graph add link failed! node:%s",
-                            node.GetName().c_str());
-                     return GRAPH_FAILED);
+    GE_CHK_BOOL_EXEC(
+        node.AddLinkFrom(const_node) == GRAPH_SUCCESS,
+        REPORT_INNER_ERR_MSG("E18888", "node:%s add link failed.", node.GetName().c_str());
+        GELOGE(GRAPH_FAILED, "[Invoke][AddLinkFrom] graph add link failed! node:%s", node.GetName().c_str());
+        return GRAPH_FAILED);
     const std::vector<NodePtr> original_nodes;
     GraphUtils::RecordOriginalNames(original_nodes, const_node);
   }
@@ -607,7 +603,7 @@ graphStatus OpDescUtils::SetNoneConstNodeWeights(Node &node, const std::vector<G
 }
 
 graphStatus OpDescUtils::SetNoneConstNodeWeights(Node &node, const std::map<int, GeTensorPtr> &weights_map) {
-  for (const auto &pair:weights_map) {
+  for (const auto &pair : weights_map) {
     const auto idx = pair.first;
     // idx = in data anchor size is valid, it meant to add a new const node
     if ((idx < 0) || (static_cast<size_t>(idx) > node.GetAllInDataAnchorsSize())) {
@@ -628,8 +624,8 @@ graphStatus OpDescUtils::SetNoneConstNodeWeights(Node &node, const std::map<int,
       if (SetWeights(peer_node->GetOpDesc(), pair.second) != GRAPH_SUCCESS) {
         REPORT_INNER_ERR_MSG("E18888", "set weights failed, node:%s(%s)", peer_node->GetName().c_str(),
                              peer_node->GetType().c_str());
-        GELOGE(GRAPH_FAILED, "[Set][Weights] failed, node:%s(%s)",
-               peer_node->GetName().c_str(), peer_node->GetType().c_str());
+        GELOGE(GRAPH_FAILED, "[Set][Weights] failed, node:%s(%s)", peer_node->GetName().c_str(),
+               peer_node->GetType().c_str());
         return GRAPH_FAILED;
       }
     } else {
@@ -645,8 +641,8 @@ graphStatus OpDescUtils::SetNoneConstNodeWeights(Node &node, const std::map<int,
       const auto const_node = owner_graph->AddNodeFront(const_opdesc);
       if (node.AddLinkFrom(static_cast<uint32_t>(pair.first), const_node) != GRAPH_SUCCESS) {
         REPORT_INNER_ERR_MSG("E18888", "op %s add const to input index[%d] failed", node.GetName().c_str(), pair.first);
-        GELOGE(GRAPH_FAILED, "[Invoke][AddLinkFrom] op %s add const to input index[%d] failed",
-               node.GetName().c_str(), pair.first);
+        GELOGE(GRAPH_FAILED, "[Invoke][AddLinkFrom] op %s add const to input index[%d] failed", node.GetName().c_str(),
+               pair.first);
         return GRAPH_FAILED;
       }
     }
@@ -654,8 +650,7 @@ graphStatus OpDescUtils::SetNoneConstNodeWeights(Node &node, const std::map<int,
   return GRAPH_SUCCESS;
 }
 
-GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY
-std::vector<GeTensorPtr> OpDescUtils::MutableWeights(const Node &node) {
+GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY std::vector<GeTensorPtr> OpDescUtils::MutableWeights(const Node &node) {
   std::vector<GeTensorPtr> ret;
   auto op_desc = node.GetOpDesc();
   GE_CHK_BOOL_EXEC(op_desc != nullptr, REPORT_INNER_ERR_MSG("E18888", "param node's op_desc is nullptr.");
@@ -708,8 +703,8 @@ std::vector<GeTensorPtr> OpDescUtils::MutableWeights(const Node &node) {
   return ret;
 }
 
-GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY
-std::vector<GeTensorPtr> OpDescUtils::MutableWeights(const NodePtr node) {
+GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY std::vector<GeTensorPtr> OpDescUtils::MutableWeights(
+    const NodePtr node) {
   if (node == nullptr) {
     REPORT_INNER_ERR_MSG("E18888", "node is nullptr, check invalid");
     GELOGE(GRAPH_FAILED, "[Check][Param] Node is nullptr");
@@ -743,8 +738,8 @@ OpDescUtils::SetWeights(Node &node, const std::map<int, GeTensorPtr> &weights_ma
     }
     REPORT_INNER_ERR_MSG("E18888", "const op %s weight size %zu should be 1", node.GetName().c_str(),
                          weights_map.size());
-    GELOGE(GRAPH_PARAM_INVALID, "[Check][Param] const op %s weight size %zu should be 1",
-           node.GetName().c_str(), weights_map.size());
+    GELOGE(GRAPH_PARAM_INVALID, "[Check][Param] const op %s weight size %zu should be 1", node.GetName().c_str(),
+           weights_map.size());
     return GRAPH_PARAM_INVALID;
   }
   // 2. node is not const
@@ -768,7 +763,7 @@ OpDescPtr OpDescUtils::CreateConstOp(const GeTensorPtr &tensor_ptr) {
   return CreateConstOp(tensor_ptr, true);
 }
 
-OpDescPtr OpDescUtils::CreateConstOpZeroCopy(const GeTensorPtr& tensor_ptr) {
+OpDescPtr OpDescUtils::CreateConstOpZeroCopy(const GeTensorPtr &tensor_ptr) {
   return CreateConstOp(tensor_ptr, false);
 }
 
@@ -844,10 +839,8 @@ GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY graphStatus OpDescUtils::ClearWei
   return GRAPH_SUCCESS;
 }
 
-GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY
-graphStatus OpDescUtils::SetSubgraphInstanceName(const std::string &subgraph_name,
-                                                 const std::string &subgraph_instance_name,
-                                                 OpDescPtr &op_desc) {
+GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY graphStatus OpDescUtils::SetSubgraphInstanceName(
+    const std::string &subgraph_name, const std::string &subgraph_instance_name, OpDescPtr &op_desc) {
   const auto &subgraph_names_to_index = op_desc->GetSubgraphNameIndexes();
   const auto iter = subgraph_names_to_index.find(subgraph_name);
   if (iter == subgraph_names_to_index.end()) {
@@ -855,16 +848,17 @@ graphStatus OpDescUtils::SetSubgraphInstanceName(const std::string &subgraph_nam
         "E18888", "Failed to set subgraph instance %s for node %s type %s, the subgraph name %s does not exist",
         subgraph_instance_name.c_str(), op_desc->GetName().c_str(), op_desc->GetType().c_str(), subgraph_name.c_str());
     GELOGE(GRAPH_PARAM_INVALID,
-        "[Check][Param] Failed to set subgraph instance %s for node %s type %s, the subgraph name %s does not exist",
-        subgraph_instance_name.c_str(), op_desc->GetName().c_str(), op_desc->GetType().c_str(), subgraph_name.c_str());
+           "[Check][Param] Failed to set subgraph instance %s for node %s type %s, the subgraph name %s does not exist",
+           subgraph_instance_name.c_str(), op_desc->GetName().c_str(), op_desc->GetType().c_str(),
+           subgraph_name.c_str());
     return GRAPH_PARAM_INVALID;
   }
 
   return op_desc->SetSubgraphInstanceName(iter->second, subgraph_instance_name);
 }
 
-GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY
-ConstGeTensorBarePtr OpDescUtils::GetInputConstData(const Operator &op, const uint32_t idx) {
+GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY ConstGeTensorBarePtr OpDescUtils::GetInputConstData(const Operator &op,
+                                                                                                   const uint32_t idx) {
   if (op.operator_impl_ == nullptr) {
     AscendString op_name;
     (void)op.GetName(op_name);
@@ -877,37 +871,35 @@ ConstGeTensorBarePtr OpDescUtils::GetInputConstData(const Operator &op, const ui
     return ge_tensor.get();
   }
   AscendString name;
-  (void) op.GetName(name);
+  (void)op.GetName(name);
   AscendString type;
-  (void) op.GetOpType(type);
-  GELOGI("[Get][ConstInput] Op(%s %s) is unable to get const data with input index[%u] ",
-         name.GetString(), type.GetString(), idx);
+  (void)op.GetOpType(type);
+  GELOGI("[Get][ConstInput] Op(%s %s) is unable to get const data with input index[%u] ", name.GetString(),
+         type.GetString(), idx);
   return nullptr;
 }
 
-GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY
-void OpDescUtils::SetRuntimeContextToOperator(const Operator &op, RuntimeInferenceContext *const context) {
+GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY void OpDescUtils::SetRuntimeContextToOperator(
+    const Operator &op, RuntimeInferenceContext *const context) {
   op.operator_impl_->runtime_context_ = context;
 }
 
-GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY
-void OpDescUtils::SetCallbackGetConstInputFuncToOperator(const Operator &op,
-                                                         GetConstInputOnRuntimeFun get_const_input_func) {
+GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY void OpDescUtils::SetCallbackGetConstInputFuncToOperator(
+    const Operator &op, GetConstInputOnRuntimeFun get_const_input_func) {
   op.operator_impl_->get_const_input_runtime_ = get_const_input_func;
 }
 
-GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY
-bool OpDescUtils::HasCallbackGetConstInputFunc(const Operator &op) {
+GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY bool OpDescUtils::HasCallbackGetConstInputFunc(const Operator &op) {
   return (op.operator_impl_->get_const_input_runtime_ != nullptr);
 }
 
 graphStatus IrInputRequiredCall(const OpDescPtr &op_desc, size_t ir_index, size_t start_index, size_t all_ins_num,
-                                    const std::string &ir_name,
-                                    const std::map<uint32_t, std::string> &valid_index_2_names, size_t &instance_num);
+                                const std::string &ir_name, const std::map<uint32_t, std::string> &valid_index_2_names,
+                                size_t &instance_num);
 
 graphStatus IrInputRequiredCall(const OpDescPtr &op_desc, size_t ir_index, size_t start_index, size_t all_ins_num,
-                                    const std::string &ir_name,
-                                    const std::map<uint32_t, std::string> &valid_index_2_names, size_t &instance_num) {
+                                const std::string &ir_name, const std::map<uint32_t, std::string> &valid_index_2_names,
+                                size_t &instance_num) {
   (void)all_ins_num;
   const auto max_index = valid_index_2_names.rbegin()->first;
   if (start_index > max_index) {
@@ -918,12 +910,13 @@ graphStatus IrInputRequiredCall(const OpDescPtr &op_desc, size_t ir_index, size_
   }
   const auto name = valid_index_2_names.at(start_index);
   if (name != ir_name) {
-    GELOGW("Failed to get instance num for node %s, can not find the input for ir name %s, current index %zu, "
-           "current name %s",
-           op_desc->GetName().c_str(), ir_name.c_str(), start_index, name.c_str());
+    GELOGW(
+        "Failed to get instance num for node %s, can not find the input for ir name %s, current index %zu, "
+        "current name %s",
+        op_desc->GetName().c_str(), ir_name.c_str(), start_index, name.c_str());
     if (FindSubsequentMatches(valid_index_2_names, start_index + 1U, ir_name)) {
-      GELOGE(FAILED, "Find another input name that match ir name. ir_index:%zu, ir_name:%s, inputs names:%s",
-             ir_index, ir_name.c_str(), InputsNamesStr(op_desc).c_str());
+      GELOGE(FAILED, "Find another input name that match ir name. ir_index:%zu, ir_name:%s, inputs names:%s", ir_index,
+             ir_name.c_str(), InputsNamesStr(op_desc).c_str());
       return FAILED;
     }
   }
@@ -934,12 +927,12 @@ graphStatus IrInputRequiredCall(const OpDescPtr &op_desc, size_t ir_index, size_
 }
 
 graphStatus IrInputOptionalCall(const OpDescPtr &op_desc, size_t ir_index, size_t start_index, size_t all_ins_num,
-                                    const std::string &ir_name,
-                                    const std::map<uint32_t, std::string> &valid_index_2_names, size_t &instance_num);
+                                const std::string &ir_name, const std::map<uint32_t, std::string> &valid_index_2_names,
+                                size_t &instance_num);
 
 graphStatus IrInputOptionalCall(const OpDescPtr &op_desc, size_t ir_index, size_t start_index, size_t all_ins_num,
-                                    const std::string &ir_name,
-                                    const std::map<uint32_t, std::string> &valid_index_2_names, size_t &instance_num) {
+                                const std::string &ir_name, const std::map<uint32_t, std::string> &valid_index_2_names,
+                                size_t &instance_num) {
   (void)all_ins_num;
   const auto max_index = valid_index_2_names.rbegin()->first;
   // ooooooxxx
@@ -961,12 +954,12 @@ graphStatus IrInputOptionalCall(const OpDescPtr &op_desc, size_t ir_index, size_
 }
 
 graphStatus IrDynamicCall(const OpDescPtr &op_desc, size_t ir_index, size_t start_index, size_t all_ins_num,
-                                   const std::string &ir_name,
-                                   const std::map<uint32_t, std::string> &valid_index_2_names, size_t &instance_num);
+                          const std::string &ir_name, const std::map<uint32_t, std::string> &valid_index_2_names,
+                          size_t &instance_num);
 
 graphStatus IrDynamicCall(const OpDescPtr &op_desc, size_t ir_index, size_t start_index, size_t all_ins_num,
-                                   const std::string &ir_name,
-                                   const std::map<uint32_t, std::string> &valid_index_2_names, size_t &instance_num) {
+                          const std::string &ir_name, const std::map<uint32_t, std::string> &valid_index_2_names,
+                          size_t &instance_num) {
   size_t dyn_i = 0;
   const auto max_index = valid_index_2_names.rbegin()->first;
   for (size_t i = start_index; i < all_ins_num; ++i, ++dyn_i) {
@@ -985,10 +978,10 @@ graphStatus IrDynamicCall(const OpDescPtr &op_desc, size_t ir_index, size_t star
 }
 
 graphStatus GetOutputInstanceNum(const OpDescPtr &op_desc, size_t ir_index, size_t start_index,
-                                     const std::map<uint32_t, std::string> &valid_index_2_names, size_t &instance_num);
+                                 const std::map<uint32_t, std::string> &valid_index_2_names, size_t &instance_num);
 
 graphStatus GetOutputInstanceNum(const OpDescPtr &op_desc, size_t ir_index, size_t start_index,
-                                     const std::map<uint32_t, std::string> &valid_index_2_names, size_t &instance_num) {
+                                 const std::map<uint32_t, std::string> &valid_index_2_names, size_t &instance_num) {
   GE_CHECK_NOTNULL(op_desc);
   if (valid_index_2_names.empty()) {
     GELOGD("Node %s has not any outputs, just return", op_desc->GetName().c_str());
@@ -1013,8 +1006,8 @@ graphStatus GetOutputInstanceNum(const OpDescPtr &op_desc, size_t ir_index, size
 }
 
 graphStatus OpDescUtils::GetInstanceNum(const OpDescPtr &op_desc, size_t ir_index, size_t start_index,
-                                            const std::map<uint32_t, std::string> &valid_index_2_names,
-                                            size_t &instance_num) {
+                                        const std::map<uint32_t, std::string> &valid_index_2_names,
+                                        size_t &instance_num) {
   GE_CHECK_NOTNULL(op_desc);
   if (valid_index_2_names.empty()) {
     GELOGD("Node %s has not any inputs, just return", op_desc->GetName().c_str());
@@ -1061,8 +1054,8 @@ std::map<size_t, std::pair<size_t, size_t>> OpDescUtils::GetOutputIrIndexes2Inst
   return {};
 }
 
-graphStatus OpDescUtils::GetInputIrIndexByInstanceIndex(const OpDescPtr &op_desc,
-                                                            size_t instance_index, size_t &ir_index) {
+graphStatus OpDescUtils::GetInputIrIndexByInstanceIndex(const OpDescPtr &op_desc, size_t instance_index,
+                                                        size_t &ir_index) {
   GE_CHECK_NOTNULL(op_desc);
   auto ir_index_to_instance_index_pair_map = GetInputIrIndexes2InstanceIndexesPairMap(op_desc);
   if (ir_index_to_instance_index_pair_map.empty()) {
@@ -1089,8 +1082,8 @@ graphStatus OpDescUtils::GetInputIrIndexByInstanceIndex(const OpDescPtr &op_desc
   return GRAPH_SUCCESS;
 }
 
-graphStatus OpDescUtils::GetOutputIrIndexByInstanceIndex(const OpDescPtr &op_desc,
-                                                             size_t instance_index, size_t &ir_index) {
+graphStatus OpDescUtils::GetOutputIrIndexByInstanceIndex(const OpDescPtr &op_desc, size_t instance_index,
+                                                         size_t &ir_index) {
   GE_CHECK_NOTNULL(op_desc);
   ir_index = std::numeric_limits<size_t>::max();
 
@@ -1183,9 +1176,9 @@ graphStatus OpDescUtils::GetPromoteInstanceInputList(const OpDescPtr &op_desc,
   auto ir_ranges = GetInputIrIndexes2InstanceIndexesPairMap(op_desc);
   std::vector<std::vector<size_t>> ir_promote_index_list;
   GE_ASSERT_SUCCESS(op_desc->GetPromoteIrInputList(ir_promote_index_list));
-  for (const auto& ir_input_indexes : ir_promote_index_list) {
+  for (const auto &ir_input_indexes : ir_promote_index_list) {
     std::vector<size_t> instance_input_indexes;
-    for (const auto& ir_input_index : ir_input_indexes) {
+    for (const auto &ir_input_index : ir_input_indexes) {
       auto ir_range = ir_ranges.find(ir_input_index);
       if (ir_range == ir_ranges.end()) {
         continue;
@@ -1198,5 +1191,5 @@ graphStatus OpDescUtils::GetPromoteInstanceInputList(const OpDescPtr &op_desc,
   }
   return GRAPH_SUCCESS;
 }
-}  // namespace ge
+}  // namespace af
 /*lint +e512 +e737 +e752*/

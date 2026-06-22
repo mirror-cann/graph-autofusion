@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -21,7 +21,7 @@ using Json = nlohmann::json;
 namespace {
 int32_t GetTimeoutValue(const std::string &timeout_option) {
   std::string timeout_str = "-1";
-  (void) GetThreadLocalContext().GetOption(timeout_option, timeout_str);
+  (void)GetThreadLocalContext().GetOption(timeout_option, timeout_str);
   int timeout_value;
   try {
     timeout_value = std::stoi(timeout_str);
@@ -70,7 +70,7 @@ void GEThreadLocalContext::SetGlobalOption(std::map<std::string, std::string> op
   std::string option_name_map = "";
   if (option_name_map_.empty() &&
       (GetThreadLocalContext().GetOption(::af::OPTION_NAME_MAP, option_name_map) == GRAPH_SUCCESS)) {
-    (void) SetOptionNameMap(option_name_map);
+    (void)SetOptionNameMap(option_name_map);
   }
 }
 
@@ -157,4 +157,4 @@ int32_t GEThreadLocalContext::EventSyncTimeout() const {
 OptimizationOption &GEThreadLocalContext::GetOo() {
   return optimization_option_;
 }
-}  // namespace ge
+}  // namespace af

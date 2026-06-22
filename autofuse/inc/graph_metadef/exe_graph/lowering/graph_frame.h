@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -54,15 +54,21 @@ class GraphFrame {
 
   GraphFrame(ge::ExecuteGraphPtr exe_graph, const GraphFrame &parent_frame) noexcept
       : execute_graph_(std::move(exe_graph)),
-        current_compute_node_and_index_(), root_frame_(parent_frame.root_frame_),
-        nodes_to_index_(root_frame_.nodes_to_index_), indexes_to_node_(root_frame_.indexes_to_node_),
+        current_compute_node_and_index_(),
+        root_frame_(parent_frame.root_frame_),
+        nodes_to_index_(root_frame_.nodes_to_index_),
+        indexes_to_node_(root_frame_.indexes_to_node_),
         relevant_input_node_(root_frame_.relevant_input_node_) {}
 
   explicit GraphFrame(ge::ExecuteGraphPtr exe_graph) noexcept
       : execute_graph_(std::move(exe_graph)),
-        current_compute_node_and_index_(), root_frame_(*this),
-        nodes_to_index_holder_(), nodes_to_index_(nodes_to_index_holder_), indexes_to_node_holder_(),
-        indexes_to_node_(indexes_to_node_holder_), relevant_input_node_holder_(),
+        current_compute_node_and_index_(),
+        root_frame_(*this),
+        nodes_to_index_holder_(),
+        nodes_to_index_(nodes_to_index_holder_),
+        indexes_to_node_holder_(),
+        indexes_to_node_(indexes_to_node_holder_),
+        relevant_input_node_holder_(),
         relevant_input_node_(relevant_input_node_holder_) {}
 
   const ge::NodePtr &GetCurrentComputeNode() const {
@@ -127,7 +133,7 @@ class GraphFrame {
   std::unordered_map<ge::NodePtr, size_t> &nodes_to_index_;
   std::vector<ge::NodePtr> indexes_to_node_holder_;
   std::vector<ge::NodePtr> &indexes_to_node_;
-  std::vector<ValueHolderPtr> last_exec_nodes_; // todo to be deprecated
+  std::vector<ValueHolderPtr> last_exec_nodes_;  // todo to be deprecated
   std::vector<ge::NodePtr> relevant_input_node_holder_;
   std::vector<ge::NodePtr> &relevant_input_node_;
 };

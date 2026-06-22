@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -25,14 +25,10 @@ class Node::NodeImpl {
   std::string GetType() const;
   const char *GetTypePtr() const;
   bool NodeMembersAreEqual(const NodeImpl &r_node) const;
-  bool NodeAnchorIsEqual(const AnchorPtr &left_anchor,
-                         const AnchorPtr &right_anchor,
-                         const size_t i) const;
+  bool NodeAnchorIsEqual(const AnchorPtr &left_anchor, const AnchorPtr &right_anchor, const size_t i) const;
 
   graphStatus AddLinkFrom(const NodePtr &input_node, const NodePtr &owner_node);
-  graphStatus AddLinkFrom(const uint32_t &index,
-                          const NodePtr &input_node,
-                          const NodePtr &owner_node);
+  graphStatus AddLinkFrom(const uint32_t &index, const NodePtr &input_node, const NodePtr &owner_node);
 
   graphStatus AddLinkFrom(const uint32_t &index, const NodePtr &input_node, const uint32_t &input_node_index,
                           const NodePtr &owner_node);
@@ -85,16 +81,22 @@ class Node::NodeImpl {
   OpDescPtr GetOpDesc() const;
   OpDesc *GetOpDescBarePtr() const;
   graphStatus UpdateOpDesc(const OpDescPtr &op_desc);
-  Node::Vistor<std::pair<NodePtr, OutDataAnchorPtr>>
-  GetInDataNodesAndAnchors(const ConstNodePtr &owner_node) const;
-  Node::Vistor<std::pair<NodePtr, InDataAnchorPtr>>
-  GetOutDataNodesAndAnchors(const ConstNodePtr &owner_node) const;
+  Node::Vistor<std::pair<NodePtr, OutDataAnchorPtr>> GetInDataNodesAndAnchors(const ConstNodePtr &owner_node) const;
+  Node::Vistor<std::pair<NodePtr, InDataAnchorPtr>> GetOutDataNodesAndAnchors(const ConstNodePtr &owner_node) const;
 
-  void AddSendEventId(const uint32_t event_id) { send_event_id_list_.push_back(event_id); }
-  void AddRecvEventId(const uint32_t event_id) { recv_event_id_list_.push_back(event_id); }
+  void AddSendEventId(const uint32_t event_id) {
+    send_event_id_list_.push_back(event_id);
+  }
+  void AddRecvEventId(const uint32_t event_id) {
+    recv_event_id_list_.push_back(event_id);
+  }
 
-  const std::vector<uint32_t> &GetSendEventIdList() const { return send_event_id_list_; }
-  const std::vector<uint32_t> &GetRecvEventIdList() const { return recv_event_id_list_; }
+  const std::vector<uint32_t> &GetSendEventIdList() const {
+    return send_event_id_list_;
+  }
+  const std::vector<uint32_t> &GetRecvEventIdList() const {
+    return recv_event_id_list_;
+  }
 
   void GetFusionInputFlowList(kFusionDataFlowVec_t &fusion_input_list) const {
     fusion_input_list = fusion_input_dataflow_list_;
@@ -109,11 +111,19 @@ class Node::NodeImpl {
     fusion_output_dataflow_list_ = fusion_output_list;
   }
 
-  bool GetHostNode() const { return host_node_; }
-  void SetHostNode(const bool is_host) { host_node_ = is_host; }
+  bool GetHostNode() const {
+    return host_node_;
+  }
+  void SetHostNode(const bool is_host) {
+    host_node_ = is_host;
+  }
 
-  void SetOrigNode(const NodePtr &orignode) { orig_node_ = orignode; }
-  NodePtr GetOrigNode() { return orig_node_; }
+  void SetOrigNode(const NodePtr &orignode) {
+    orig_node_ = orignode;
+  }
+  NodePtr GetOrigNode() {
+    return orig_node_;
+  }
 
  private:
   friend class NodeUtils;
@@ -136,5 +146,5 @@ class Node::NodeImpl {
   kFusionDataFlowVec_t fusion_output_dataflow_list_;
   NodePtr orig_node_{nullptr};
 };
-}  // namespace ge
+}  // namespace af
 #endif  // GRAPH_BUFFER_IMPL_H_

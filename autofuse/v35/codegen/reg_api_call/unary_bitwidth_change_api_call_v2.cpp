@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -26,9 +26,9 @@ using namespace af::ascir_op;
 using namespace ascgen_utils;
 
 Status UnaryBitWidthChangeApiCallV2::Generate(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
-                              const std::vector<std::reference_wrapper<const Tensor>> &inputs,
-                              const std::vector<std::reference_wrapper<const Tensor>> &outputs,
-                              std::string &result) const {
+                                              const std::vector<std::reference_wrapper<const Tensor>> &inputs,
+                                              const std::vector<std::reference_wrapper<const Tensor>> &outputs,
+                                              std::string &result) const {
   auto x = inputs[0].get();
   auto y = outputs[0].get();
   (void)RegisterBasicDumpParam(this->api_name_, inputs, outputs);
@@ -48,13 +48,13 @@ Status UnaryBitWidthChangeApiCallV2::Generate(const TPipe &tpipe, const std::vec
   SaveApiLoopAxisParams(merge_info, param);
   if (param.outer_repeats.size() == 0) {
     ss << this->api_name_ << "(" << y << "_cast[" << tpipe.tiler.TensorVectorizedOffset(current_axis, y) << "], " << x
-      << "[" << tpipe.tiler.TensorVectorizedOffset(current_axis, x) << "], " << x.actual_size << ");" << std::endl;
+       << "[" << tpipe.tiler.TensorVectorizedOffset(current_axis, x) << "], " << x.actual_size << ");" << std::endl;
   } else {
     std::string input_inner_offset = CalcInnerOffset(tpipe, param.inputs_strides[0]);
     std::string output_inner_offset = CalcInnerOffset(tpipe, param.outputs_strides[0]);
     std::stringstream ss1;
-    ss1 << this->api_name_ << "(" << y << "_cast[" << output_inner_offset << "], " << x << "[" << input_inner_offset << "], "
-        << tpipe.tiler.ActualSize(param.cal_count) << ");" << std::endl;
+    ss1 << this->api_name_ << "(" << y << "_cast[" << output_inner_offset << "], " << x << "[" << input_inner_offset
+        << "], " << tpipe.tiler.ActualSize(param.cal_count) << ");" << std::endl;
     CreateComputeNodeOuterFor(param.outer_repeats, ss1, ss, 0);
   }
 

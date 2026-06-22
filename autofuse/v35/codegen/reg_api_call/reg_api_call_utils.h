@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -69,16 +69,15 @@ void SetNddmaParams(const TPipe &tpipe, const DataCopyParams &data_copy_param, N
                     const int64_t &tensor_id, std::stringstream &ss);
 void SetLoopModeParams(const TPipe &tpipe, const DataCopyParams &data_copy_param, LoopModeParams &loop_mode_param,
                        bool copy_in);
-void SetLoopModeParamsExpr(const DataCopyParams& data_copy_param, LoopModeParamsExpr& loop_mode_param, bool copy_in);
+void SetLoopModeParamsExpr(const DataCopyParams &data_copy_param, LoopModeParamsExpr &loop_mode_param, bool copy_in);
 std::string GetPaddingMode(const TPipe &tpipe, const Tensor &ub_tensor, const DataCopyParams &data_copy_param);
 void BuildDataCopyApiParamInCVFusion(CodegenApiParam &api_param, DmaSpecificParams &dma_specific_params,
                                      const Tensor &gm, const Tensor &ub, std::string &dtype_name, bool copy_in);
 Status BuildDataCopyApiParamInNormal(const TPipe &tpipe, CodegenApiParam &api_param,
                                      DmaSpecificParams &dma_specific_params, const Tensor &src, const Tensor &dst,
                                      std::string &gm_offset, bool copy_in);
-Status GenDataCopyDimParam(const CodegenApiParam &api_param, const Tiler &tiler,
-                           std::string graph_name, std::string node_name,
-                           std::stringstream &ss);
+Status GenDataCopyDimParam(const CodegenApiParam &api_param, const Tiler &tiler, std::string graph_name,
+                           std::string node_name, std::stringstream &ss);
 
 }  // namespace codegen
 

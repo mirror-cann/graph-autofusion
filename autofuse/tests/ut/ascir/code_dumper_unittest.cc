@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -32,7 +32,7 @@ class AscendGraphCodeDumperUT : public testing::Test {
   }
 };
 
-namespace af{
+namespace af {
 namespace {
 std::string ReadFileContent(const std::string &filePath) {
   std::ifstream file(filePath);
@@ -117,7 +117,7 @@ void ConstructAscGraph(AscGraph &graph) {
 
   ascir_op::Select fake_opa("select");
   fake_opa.x1 = exp.y;
-  fake_opa.x2 = exp.y; //可选输入
+  fake_opa.x2 = exp.y;  // 可选输入
   fake_opa.x3 = data1.y;
   fake_opa.attr.sched.exec_order = 4;
   fake_opa.attr.sched.axis = {s0_axis.id, s1_axis.id};
@@ -136,7 +136,7 @@ void ConstructAscGraph(AscGraph &graph) {
   output.x = fake_opa.y;
   output.ir_attr.SetIndex(1);
 }
-}
+}  // namespace
 TEST_F(AscendGraphCodeDumperUT, test_python_gen) {
   AscGraph graph("test");
   ConstructAscGraph(graph);
@@ -1080,5 +1080,4 @@ tiling_def, host_impl, device_impl = fuser.codegen(schedule_results)
   EXPECT_EQ(expected_graph_code, ReadFileContent("./asc_wrong_graph_python.py"));
 }
 
-}
-
+}  // namespace af

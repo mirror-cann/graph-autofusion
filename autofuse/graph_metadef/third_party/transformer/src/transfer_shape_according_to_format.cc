@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -17,25 +17,25 @@
 
 namespace transformer {
 namespace {
-  const std::string kAttrHiddenSize = "hidden_size";
-  const std::string kAttrInputSize = "input_size";
-  const std::string kAttrStateSize = "state_size";
-  const int64_t kM0DefaultVal = 16;
+const std::string kAttrHiddenSize = "hidden_size";
+const std::string kAttrInputSize = "input_size";
+const std::string kAttrStateSize = "state_size";
+const int64_t kM0DefaultVal = 16;
 
-  void GeShapeToRtShape(const af::GeShape &ge_shape, gert::Shape &rt_shape) {
-    rt_shape.SetDimNum(0);
-    for (size_t i = 0; i < ge_shape.GetDimNum(); ++i) {
-      rt_shape.AppendDim(ge_shape.GetDim(i));
-    }
-  }
-
-  void RtShapeToGeShape(const gert::Shape &rt_shape, af::GeShape &ge_shape) {
-    ge_shape.SetDimNum(0);
-    for (size_t i = 0; i < rt_shape.GetDimNum(); ++i) {
-      ge_shape.AppendDim(rt_shape.GetDim(i));
-    }
+void GeShapeToRtShape(const af::GeShape &ge_shape, gert::Shape &rt_shape) {
+  rt_shape.SetDimNum(0);
+  for (size_t i = 0; i < ge_shape.GetDimNum(); ++i) {
+    rt_shape.AppendDim(ge_shape.GetDim(i));
   }
 }
+
+void RtShapeToGeShape(const gert::Shape &rt_shape, af::GeShape &ge_shape) {
+  ge_shape.SetDimNum(0);
+  for (size_t i = 0; i < rt_shape.GetDimNum(); ++i) {
+    ge_shape.AppendDim(rt_shape.GetDim(i));
+  }
+}
+}  // namespace
 
 ShapeTransferAccordingToFormat::ShapeTransferAccordingToFormat() {}
 
@@ -107,7 +107,8 @@ bool ShapeTransferAccordingToFormat::TransferShape(const af::Format &origin_form
 
 bool ShapeTransferAccordingToFormat::TransferShape(const af::Format &origin_format, const af::Format &format,
                                                    const af::DataType &data_type, gert::Shape &shape,
-                                                   const af::OpDescPtr op_desc, const fe::PlatFormInfos *platform_infos_ptr) {
+                                                   const af::OpDescPtr op_desc,
+                                                   const fe::PlatFormInfos *platform_infos_ptr) {
   ExtAxisValue ext_axis;
   InitExtAxisValue(op_desc, ext_axis);
   return TransferShapeUtils::TransferShape(origin_format, format, data_type, ext_axis, shape, platform_infos_ptr);
@@ -175,11 +176,13 @@ int64_t ShapeTransferAccordingToFormat::GetN0ByDtype(const af::DataType &data_ty
   return TransferShapeUtils::GetN0ByDtype(data_type);
 }
 
-bool ShapeTransferAccordingToFormat::GetAlignedShape(const AlignShapeInfo &align_shape_info, gert::Shape &aligned_shape) {
+bool ShapeTransferAccordingToFormat::GetAlignedShape(const AlignShapeInfo &align_shape_info,
+                                                     gert::Shape &aligned_shape) {
   return TransferShapeUtils::GetAlignedShape(align_shape_info, aligned_shape);
 }
 
-bool ShapeTransferAccordingToFormat::TransferDims(const TransferDimsInfo &transfer_dims_info, AxisIndexMapping &axis_index_mapping) {
+bool ShapeTransferAccordingToFormat::TransferDims(const TransferDimsInfo &transfer_dims_info,
+                                                  AxisIndexMapping &axis_index_mapping) {
   return TransferShapeUtils::TransferDims(transfer_dims_info, axis_index_mapping);
 }
 
@@ -194,7 +197,6 @@ bool ShapeTransferAccordingToFormatExt::TransferShape(const af::Format &origin_f
 bool ShapeTransferAccordingToFormatExt::TransferShape(const af::Format &origin_format, const af::Format &format,
                                                       const af::DataType &data_type, const gert::Shape &origin_shape,
                                                       gert::Shape &shape, const ExtAxisOpValue &op_value) {
-  return ShapeTransferAccordingToFormat::TransferShape(origin_format, format, data_type, origin_shape,
-                                                       shape, op_value);
+  return ShapeTransferAccordingToFormat::TransferShape(origin_format, format, data_type, origin_shape, shape, op_value);
 }
-} // namespace transformer
+}  // namespace transformer

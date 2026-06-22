@@ -1,17 +1,17 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
 
 /*!
-* \file test_logical.cpp
-* \brief
-*/
+ * \file test_logical.cpp
+ * \brief
+ */
 
 #include "tikicpulib.h"
 #include "kernel_operator.h"
@@ -26,23 +26,23 @@ using namespace AscendC;
 #include "utils.h"
 #include "logical.h"
 
-template<class T>
-void GmToUb(LocalTensor<T>& local, T* gm, int size) {
+template <class T>
+void GmToUb(LocalTensor<T> &local, T *gm, int size) {
   for (int i = 0; i < size; i++) {
     local.SetValue(i, gm[i]);
   }
 }
 
-template<class T>
-void UbToGm(T* gm, LocalTensor<T>& local, int size) {
+template <class T>
+void UbToGm(T *gm, LocalTensor<T> &local, int size) {
   for (int i = 0; i < size; i++) {
     gm[i] = local.GetValue(i);
   }
 }
 
-template<typename T>
-void InitParams(LocalTensor<T> &l_x1, LocalTensor<T> &l_x2, LocalTensor<uint8_t> &l_y,
-                LocalTensor<uint8_t> &l_tmp, uint32_t size) {
+template <typename T>
+void InitParams(LocalTensor<T> &l_x1, LocalTensor<T> &l_x2, LocalTensor<uint8_t> &l_y, LocalTensor<uint8_t> &l_tmp,
+                uint32_t size) {
   TPipe pipe;
   TBuf<TPosition::VECCALC> x1_buf, x2_buf, y_buf, tmp_buf;
   pipe.InitBuffer(x1_buf, sizeof(T) * size);
@@ -57,13 +57,13 @@ void InitParams(LocalTensor<T> &l_x1, LocalTensor<T> &l_x2, LocalTensor<uint8_t>
   l_tmp = tmp_buf.Get<uint8_t>();
 }
 
-template<typename T>
-void TestLogicalCommon (const std::string &logical, uint32_t size) {
+template <typename T>
+void TestLogicalCommon(const std::string &logical, uint32_t size) {
   ASSERT_TRUE(logical == "or" || logical == "and");
 
-  auto *x1 = static_cast<T*>(GmAlloc(sizeof(T) * size));
-  auto *x2 = static_cast<T*>(GmAlloc(sizeof(T) * size));
-  auto *y = static_cast<uint8_t*>(GmAlloc(sizeof(T) * size));
+  auto *x1 = static_cast<T *>(GmAlloc(sizeof(T) * size));
+  auto *x2 = static_cast<T *>(GmAlloc(sizeof(T) * size));
+  auto *y = static_cast<uint8_t *>(GmAlloc(sizeof(T) * size));
 
   uint8_t expect[size];
 
@@ -119,9 +119,9 @@ void TestLogicalCommon (const std::string &logical, uint32_t size) {
   GmFree(y);
 }
 
-template<typename T>
-void InitParamsScalarExtend(LocalTensor<T> &l_x1, LocalTensor<uint8_t> &l_y,
-                LocalTensor<uint8_t> &l_tmp, uint32_t size) {
+template <typename T>
+void InitParamsScalarExtend(LocalTensor<T> &l_x1, LocalTensor<uint8_t> &l_y, LocalTensor<uint8_t> &l_tmp,
+                            uint32_t size) {
   TPipe pipe;
   TBuf<TPosition::VECCALC> x1_buf, y_buf, tmp_buf;
   pipe.InitBuffer(x1_buf, sizeof(T) * size);
@@ -134,12 +134,12 @@ void InitParamsScalarExtend(LocalTensor<T> &l_x1, LocalTensor<uint8_t> &l_y,
   l_tmp = tmp_buf.Get<uint8_t>();
 }
 
-template<typename T>
-void TestLogicalCommonScalarExtend (const std::string &logical, uint32_t size) {
+template <typename T>
+void TestLogicalCommonScalarExtend(const std::string &logical, uint32_t size) {
   ASSERT_TRUE(logical == "orScalarExtend" || logical == "andScalarExtend");
 
-  auto *x1 = static_cast<T*>(GmAlloc(sizeof(T) * size));
-  auto *y = static_cast<uint8_t*>(GmAlloc(sizeof(T) * size));
+  auto *x1 = static_cast<T *>(GmAlloc(sizeof(T) * size));
+  auto *y = static_cast<uint8_t *>(GmAlloc(sizeof(T) * size));
 
   uint8_t expect[size];
 
@@ -160,12 +160,12 @@ void TestLogicalCommonScalarExtend (const std::string &logical, uint32_t size) {
     LocalTensor<T> l_x1;
     LocalTensor<uint8_t> l_y;
     LocalTensor<uint8_t> l_tmp;
-    
+
     InitParamsScalarExtend(l_x1, l_y, l_tmp, size);
-    
+
     GmToUb(l_x1, x1, size);
     GmToUb(l_y, y, size);
-    
+
     T l_x2 = x2;
     if (logical == "orScalarExtend") {
       LogicalOrScalarExtend(l_y, l_x1, l_x2, l_tmp, size);
@@ -193,15 +193,15 @@ void TestLogicalCommonScalarExtend (const std::string &logical, uint32_t size) {
   GmFree(y);
 }
 
-template<typename T>
+template <typename T>
 void InitParamsUnalign(LocalTensor<T> &l_x1, LocalTensor<T> &l_x2, LocalTensor<uint8_t> &l_y,
-                LocalTensor<uint8_t> &l_tmp, uint32_t size) {
+                       LocalTensor<uint8_t> &l_tmp, uint32_t size) {
   TPipe pipe;
   TBuf<TPosition::VECCALC> x1_buf, x2_buf, y_buf, tmp_buf;
   pipe.InitBuffer(x1_buf, sizeof(T) * size);
   pipe.InitBuffer(x2_buf, sizeof(T) * size);
   pipe.InitBuffer(y_buf, sizeof(uint8_t) * size);
-  constexpr int tmp_size = 16928;     // 任意非对齐长度
+  constexpr int tmp_size = 16928;  // 任意非对齐长度
   pipe.InitBuffer(tmp_buf, tmp_size);
 
   l_x1 = x1_buf.Get<T>();
@@ -210,13 +210,13 @@ void InitParamsUnalign(LocalTensor<T> &l_x1, LocalTensor<T> &l_x2, LocalTensor<u
   l_tmp = tmp_buf.Get<uint8_t>();
 }
 
-template<typename T>
-void TestLogicalCommonUnalign (const std::string &logical, uint32_t size) {
+template <typename T>
+void TestLogicalCommonUnalign(const std::string &logical, uint32_t size) {
   ASSERT_TRUE(logical == "or" || logical == "and");
 
-  auto *x1 = static_cast<T*>(GmAlloc(sizeof(T) * size));
-  auto *x2 = static_cast<T*>(GmAlloc(sizeof(T) * size));
-  auto *y = static_cast<uint8_t*>(GmAlloc(sizeof(T) * size));
+  auto *x1 = static_cast<T *>(GmAlloc(sizeof(T) * size));
+  auto *x2 = static_cast<T *>(GmAlloc(sizeof(T) * size));
+  auto *y = static_cast<uint8_t *>(GmAlloc(sizeof(T) * size));
 
   uint8_t expect[size];
 
@@ -283,7 +283,6 @@ TEST(TestApiLogical, Test_1_blk) {
   TestLogicalCommon<int16_t>("or", size);
   TestLogicalCommon<int32_t>("or", size);
   TestLogicalCommon<int64_t>("or", size);
-
 
   TestLogicalCommon<float>("and", size);
   TestLogicalCommon<half>("and", size);
@@ -412,7 +411,6 @@ TEST(TestApiLogical, Test_1_blk_scalar_extend) {
   TestLogicalCommonScalarExtend<int32_t>("orScalarExtend", size);
   TestLogicalCommonScalarExtend<int64_t>("orScalarExtend", size);
 
-
   TestLogicalCommonScalarExtend<float>("andScalarExtend", size);
   TestLogicalCommonScalarExtend<half>("andScalarExtend", size);
   TestLogicalCommonScalarExtend<uint8_t>("andScalarExtend", size);
@@ -530,15 +528,15 @@ TEST(TestApiLogical, Test_mix_scalar_extend) {
 // --------------------- tmp_buf使用ub不对齐相关的基础测试 -------------------------------//
 // todo int4b_t类型有问题后续补充
 TEST(TestApiLogical, Test_1_blk_unalign) {
-  uint32_t size = 6160;                                 // 任意非对齐长度
+  uint32_t size = 6160;  // 任意非对齐长度
   TestLogicalCommonUnalign<float>("or", size);
   TestLogicalCommonUnalign<half>("or", size);
   TestLogicalCommonUnalign<uint8_t>("or", size);
   TestLogicalCommonUnalign<int8_t>("or", size);
   TestLogicalCommonUnalign<int16_t>("or", size);
   TestLogicalCommonUnalign<int32_t>("or", size);
-  // TestLogicalCommonUnalign<int64_t>("or", size);     // CAST_NONE from int64_t to float not supported on specified device
-
+  // TestLogicalCommonUnalign<int64_t>("or", size);     // CAST_NONE from int64_t to float not supported on specified
+  // device
 
   TestLogicalCommonUnalign<float>("and", size);
   TestLogicalCommonUnalign<half>("and", size);
@@ -546,5 +544,6 @@ TEST(TestApiLogical, Test_1_blk_unalign) {
   TestLogicalCommonUnalign<int8_t>("and", size);
   TestLogicalCommonUnalign<int16_t>("and", size);
   TestLogicalCommonUnalign<int32_t>("and", size);
-  // TestLogicalCommonUnalign<int64_t>("and", size);     // CAST_NONE from int64_t to float not supported on specified device
+  // TestLogicalCommonUnalign<int64_t>("and", size);     // CAST_NONE from int64_t to float not supported on specified
+  // device
 }

@@ -22,7 +22,7 @@ namespace cache {
  * 负责生成Group间缓存相关代码（复用现有逻辑）
  */
 class GroupLevelCacheGen : public TilingCacheCodeGen {
-public:
+ public:
   GroupLevelCacheGen() = default;
   ~GroupLevelCacheGen() override = default;
 
@@ -40,8 +40,7 @@ public:
    * @param cache_capacity 缓存容量
    * @return ge::Status
    */
-  ge::Status GenGroupCacheTypes(ge::CodePrinter &code_printer,
-                                size_t cache_capacity);
+  ge::Status GenGroupCacheTypes(ge::CodePrinter &code_printer, size_t cache_capacity);
 
   /**
    * @brief 生成Group级缓存函数定义
@@ -49,10 +48,9 @@ public:
    * @param tiling_data_type_name TilingData类型名称
    * @return ge::Status
    */
-  ge::Status GenGroupCacheFunctions(ge::CodePrinter &code_printer,
-                                    const std::string &tiling_data_type_name);
+  ge::Status GenGroupCacheFunctions(ge::CodePrinter &code_printer, const std::string &tiling_data_type_name);
 };
-} // namespace cache
-} // namespace att
+}  // namespace cache
+}  // namespace att
 
-#endif // ATT_GROUP_LEVEL_CACHE_GEN_H_
+#endif  // ATT_GROUP_LEVEL_CACHE_GEN_H_

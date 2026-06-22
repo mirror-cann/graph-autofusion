@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -22,14 +22,13 @@
 namespace nnopbase {
 // 二进制内容，用于内存中的二进制.o文件描述
 struct Binary {
-  const uint8_t *content; // 二进制内容的起始指针
-  uint32_t len; // 二进制的长度
+  const uint8_t *content;  // 二进制内容的起始指针
+  uint32_t len;            // 二进制的长度
 };
 
 class OpBinaryResourceManager {
-public:
-  static OpBinaryResourceManager &GetInstance()
-  {
+ public:
+  static OpBinaryResourceManager &GetInstance() {
     static OpBinaryResourceManager manager;
     return manager;
   }
@@ -38,12 +37,12 @@ public:
 
   void AddOpFuncHandle(const ge::AscendString &opType, const std::vector<void *> &opResourceHandle);
   ge::graphStatus AddBinary(const ge::AscendString &opType,
-                            const std::vector<std::tuple<const uint8_t*, const uint8_t*>> &opBinary);
+                            const std::vector<std::tuple<const uint8_t *, const uint8_t *>> &opBinary);
   ge::graphStatus AddRuntimeKB(const ge::AscendString &opType,
-                               const std::vector<std::tuple<const uint8_t*, const uint8_t*>> &opRuntimeKb);
+                               const std::vector<std::tuple<const uint8_t *, const uint8_t *>> &opRuntimeKb);
 
-// 获取资源
-public:
+  // 获取资源
+ public:
   // 获取所有算子的描述信息
   const std::map<const ge::AscendString, nlohmann::json> &GetAllOpBinaryDesc() const;
 
@@ -61,9 +60,9 @@ public:
   // 二进制知识库
   ge::graphStatus GetOpRuntimeKB(const ge::AscendString &opType, std::vector<ge::AscendString> &kbList) const;
 
-private:
-  OpBinaryResourceManager() = default; // 单例，禁止外部创建对象
-  OpBinaryResourceManager &operator=(const OpBinaryResourceManager &) = delete; // 禁止拷贝
+ private:
+  OpBinaryResourceManager() = default;                                           // 单例，禁止外部创建对象
+  OpBinaryResourceManager &operator=(const OpBinaryResourceManager &) = delete;  // 禁止拷贝
   OpBinaryResourceManager &operator=(OpBinaryResourceManager &&) = delete;
   OpBinaryResourceManager(const OpBinaryResourceManager &) = delete;
   OpBinaryResourceManager(OpBinaryResourceManager &&) = delete;
@@ -85,6 +84,6 @@ private:
   // infershape/op tiling/runtime kb parser等全局变量指针，注册类资源，仅需持有
   std::map<const ge::AscendString, std::vector<void *>> resourceHandle_;
 };
-} // nnopbase
+}  // namespace nnopbase
 
 #endif  // INC_EXTERNAL_REGISTER_OP_BINARY_RESOURCE_MANAGER_H_

@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2026 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -25,26 +25,20 @@ using namespace att;
 using namespace af::sym;
 using namespace af::ascir;
 class STestAscirPerfV2 : public ::testing::Test {
-public:
- static af::RuntimeStubV2 stub_v_2;
- static void TearDownTestCase()
- {
-   ge::RuntimeStub::UnInstall(&stub_v_2);
-   ge::PlatformContext::GetInstance().Reset();
-   std::cout << "Test end." << std::endl;
- }
- static void SetUpTestCase()
- {
-   ge::RuntimeStub::Install(&stub_v_2);
-   ge::PlatformContext::GetInstance().Reset();
-   std::cout << "Test begin." << std::endl;
- }
- void SetUp() override
- {
- }
- void TearDown() override
- {
- }
+ public:
+  static af::RuntimeStubV2 stub_v_2;
+  static void TearDownTestCase() {
+    ge::RuntimeStub::UnInstall(&stub_v_2);
+    ge::PlatformContext::GetInstance().Reset();
+    std::cout << "Test end." << std::endl;
+  }
+  static void SetUpTestCase() {
+    ge::RuntimeStub::Install(&stub_v_2);
+    ge::PlatformContext::GetInstance().Reset();
+    std::cout << "Test begin." << std::endl;
+  }
+  void SetUp() override {}
+  void TearDown() override {}
 };
 af::RuntimeStubV2 STestAscirPerfV2::stub_v_2;
 
@@ -53,12 +47,7 @@ TEST_F(STestAscirPerfV2, TestLoadStoreDataTypeSizes) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
   std::vector<std::pair<std::string, int>> type_sizes = {
-      {"float16", 2},
-      {"float32", 4},
-      {"int8", 1},
-      {"int32", 4},
-      {"bfloat16", 2}
-  };
+      {"float16", 2}, {"float32", 4}, {"int8", 1}, {"int32", 4}, {"bfloat16", 2}};
 
   PerfOutputInfo perf_res;
   af::AscNodePtr node_ptr;
@@ -113,7 +102,6 @@ TEST_F(STestAscirPerfV2, TestLoadStoreDataTypeSizes) {
   }
 }
 
-
 TEST_F(STestAscirPerfV2, TestLoadApiForTypev1) {
   std::vector<att::TensorShapeInfo> input_shapes(1);
   std::vector<att::TensorShapeInfo> output_shapes(1);
@@ -147,8 +135,10 @@ TEST_F(STestAscirPerfV2, TestLoadApiForTypev1) {
   // 存在外抛
   auto ternary_ops = perf_res.ternary_ops;
   auto ret = ConcursiveReplaceVars(ternary_ops);
-  EXPECT_EQ(Str(res.Replace(ret)),
-            "TernaryOp((-256 + z0t_size) < 0, ((4 * z0t_size / (((6.40880012512207 / (block_dim)) + 13.1354999542236))) + 160.0), ((4 * z0t_size / (((6.61549997329712 / (block_dim)) + 11.8291997909546))) + 160.0))");
+  EXPECT_EQ(
+      Str(res.Replace(ret)),
+      "TernaryOp((-256 + z0t_size) < 0, ((4 * z0t_size / (((6.40880012512207 / (block_dim)) + 13.1354999542236))) + "
+      "160.0), ((4 * z0t_size / (((6.61549997329712 / (block_dim)) + 11.8291997909546))) + 160.0))");
 }
 
 TEST_F(STestAscirPerfV2, TestLoadApiForTypev2) {
@@ -190,10 +180,8 @@ TEST_F(STestAscirPerfV2, TestLoadApiForTypev2) {
   auto ternary_ops = perf_res.ternary_ops;
   auto ret = ConcursiveReplaceVars(ternary_ops);
   const std::string is_cache_line = "(-256 + z0z1t_size) < 0";
-  const std::string perf1 =
-      "((8 * z0z1t_size / (((6.40880012512207 / (block_dim)) + 13.1354999542236))) + 160.0)";
-  const std::string perf2 =
-      "((8 * z0z1t_size / (((6.61549997329712 / (block_dim)) + 11.8291997909546))) + 160.0))";
+  const std::string perf1 = "((8 * z0z1t_size / (((6.40880012512207 / (block_dim)) + 13.1354999542236))) + 160.0)";
+  const std::string perf2 = "((8 * z0z1t_size / (((6.61549997329712 / (block_dim)) + 11.8291997909546))) + 160.0))";
   EXPECT_EQ(Str(res.Replace(ret)), "TernaryOp(" + is_cache_line + ", " + perf1 + ", " + perf2);
 }
 
@@ -262,8 +250,9 @@ TEST_F(STestAscirPerfV2, TestStoreApiForSmallStride) {
   output_shapes[0].data_type = "int64";
   output_shapes[0].dims = {z0z1t_size, CreateExpr(7), CreateExpr(34), z6t_size};
   output_shapes[0].repeats = output_shapes[0].dims;
-  output_shapes[0].strides = {CreateExpr(238) * (z6t_size + CreateExpr(128)), CreateExpr(34) * (z6t_size + CreateExpr(128)),
-    z6t_size + CreateExpr(128), af::sym::kSymbolOne};
+  output_shapes[0].strides = {CreateExpr(238) * (z6t_size + CreateExpr(128)),
+                              CreateExpr(34) * (z6t_size + CreateExpr(128)), z6t_size + CreateExpr(128),
+                              af::sym::kSymbolOne};
   // 首次非连续的轴block_idx=1,stride=(z6t_size + 128 - z6t_size)=128
   output_shapes[0].gm_strides = output_shapes[0].strides;
 
@@ -310,13 +299,15 @@ TEST_F(STestAscirPerfV2, TestStoreApiForBiggerStride) {
   input_shapes[0].data_type = "int64";
   input_shapes[0].dims = {z0z1t_size, CreateExpr(7), CreateExpr(34), z6t_size};
   input_shapes[0].repeats = input_shapes[0].dims;
-  input_shapes[0].strides = {CreateExpr(7) * CreateExpr(34) * z6t_size, CreateExpr(34) * z6t_size, z6t_size, af::sym::kSymbolOne};
+  input_shapes[0].strides = {CreateExpr(7) * CreateExpr(34) * z6t_size, CreateExpr(34) * z6t_size, z6t_size,
+                             af::sym::kSymbolOne};
   input_shapes[0].gm_strides = input_shapes[0].strides;
   output_shapes[0].data_type = "int64";
   output_shapes[0].dims = {z0z1t_size, CreateExpr(7), CreateExpr(34), z6t_size};
   output_shapes[0].repeats = output_shapes[0].dims;
-  output_shapes[0].strides = {CreateExpr(238) * (z6t_size + CreateExpr(40960)), CreateExpr(34) * (z6t_size + CreateExpr(40960)),
-    z6t_size + CreateExpr(40960), af::sym::kSymbolOne};
+  output_shapes[0].strides = {CreateExpr(238) * (z6t_size + CreateExpr(40960)),
+                              CreateExpr(34) * (z6t_size + CreateExpr(40960)), z6t_size + CreateExpr(40960),
+                              af::sym::kSymbolOne};
   output_shapes[0].gm_strides = output_shapes[0].strides;
 
   input_shapes[0].data_type_size = 8;
@@ -363,12 +354,14 @@ TEST_F(STestAscirPerfV2, TestNddmaApiForType) {
   input_shapes[0].dims = {z0z1t_size, CreateExpr(7), CreateExpr(34), z6t_size};
   input_shapes[0].repeats = {z0z1t_size, CreateExpr(7), CreateExpr(34), z6t_size};
   input_shapes[0].strides = {CreateExpr(7), CreateExpr(34), z6t_size, af::sym::kSymbolOne};
-  input_shapes[0].gm_strides = {CreateExpr(7 * 34) * z6t_size, CreateExpr(34) * z6t_size, z6t_size, af::sym::kSymbolOne};
+  input_shapes[0].gm_strides = {CreateExpr(7 * 34) * z6t_size, CreateExpr(34) * z6t_size, z6t_size,
+                                af::sym::kSymbolOne};
   output_shapes[0].data_type = "int64";
   output_shapes[0].dims = {z0z1t_size, CreateExpr(7), CreateExpr(34), z6t_size};
   output_shapes[0].repeats = {z0z1t_size, CreateExpr(7), CreateExpr(34), z6t_size};
   output_shapes[0].strides = {CreateExpr(7), CreateExpr(34), z6t_size, af::sym::kSymbolOne};
-  output_shapes[0].gm_strides = {CreateExpr(7 * 34) * z6t_size, CreateExpr(34) * z6t_size, z6t_size, af::sym::kSymbolOne};
+  output_shapes[0].gm_strides = {CreateExpr(7 * 34) * z6t_size, CreateExpr(34) * z6t_size, z6t_size,
+                                 af::sym::kSymbolOne};
 
   input_shapes[0].data_type_size = 8;
   output_shapes[0].data_type_size = 8;
@@ -387,7 +380,9 @@ TEST_F(STestAscirPerfV2, TestNddmaApiForType) {
   // 存在外抛
   auto ternary_ops = perf_res.ternary_ops;
   auto ret = ConcursiveReplaceVars(ternary_ops);
-  EXPECT_EQ(Str(res.Replace(ret)), "((1904 * z0z1t_size * z6t_size / (((6.3899998664856 / (block_dim)) + 7.6100001335144))) + 418.978912353516)");
+  EXPECT_EQ(
+      Str(res.Replace(ret)),
+      "((1904 * z0z1t_size * z6t_size / (((6.3899998664856 / (block_dim)) + 7.6100001335144))) + 418.978912353516)");
 }
 
 TEST_F(STestAscirPerfV2, TestMicroApiPerfTableSize) {
@@ -2199,10 +2194,7 @@ TEST_F(STestAscirPerfV2, TestReorderGmStrideByTransposeNddmaMultipleCases) {
   };
 
   std::vector<TestCase> test_cases = {
-    {{0, 1, 2}, {2, 1, 0}, "完全反转"},
-    {{0, 1, 2}, {1, 0, 2}, "前两轴交换"},
-    {{0, 1, 2}, {0, 1, 2}, "无转置"}
-  };
+      {{0, 1, 2}, {2, 1, 0}, "完全反转"}, {{0, 1, 2}, {1, 0, 2}, "前两轴交换"}, {{0, 1, 2}, {0, 1, 2}, "无转置"}};
 
   for (const auto &tc : test_cases) {
     std::vector<att::TensorShapeInfo> input_shapes(1);
@@ -2215,7 +2207,6 @@ TEST_F(STestAscirPerfV2, TestReorderGmStrideByTransposeNddmaMultipleCases) {
     input_shapes[0].repeats = {z0t_size, z1t_size, CreateExpr(64)};
     input_shapes[0].strides = {CreateExpr(64), CreateExpr(4096), CreateExpr(1)};
     input_shapes[0].gm_strides = {CreateExpr(64) * z1t_size, CreateExpr(64), CreateExpr(1)};
-
 
     output_shapes[0].data_type = "int64";
     output_shapes[0].dims = {z0t_size, z1t_size, CreateExpr(64)};

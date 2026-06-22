@@ -1,15 +1,15 @@
 /**
-* Copyright (c) Huawei Technologies Co., Ltd. 2024. All rights reserved.
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Copyright (c) Huawei Technologies Co., Ltd. 2024. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 /**
  * test_sub.cpp
@@ -24,7 +24,7 @@
 
 using namespace AscendC;
 
-namespace af{
+namespace af {
 
 template <typename T>
 struct SubInputParam {
@@ -160,7 +160,7 @@ TEST_F(TestRegbaseApiSubUT, Sub_TensorTensor_Test) {
   SubTensorTensorTest<int64_t>((MAX_REPEAT_NUM - 1) * ONE_REPEAT_BYTE_SIZE / 2 / sizeof(int64_t));
 
   // bf16
-  SubTensorTensorTest<bfloat16_t >(ONE_BLK_SIZE / sizeof(bfloat16_t));
+  SubTensorTensorTest<bfloat16_t>(ONE_BLK_SIZE / sizeof(bfloat16_t));
   SubTensorTensorTest<bfloat16_t>(ONE_REPEAT_BYTE_SIZE / sizeof(bfloat16_t));
   SubTensorTensorTest<bfloat16_t>((ONE_BLK_SIZE - sizeof(bfloat16_t)) / sizeof(bfloat16_t));
   SubTensorTensorTest<bfloat16_t>((ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) / sizeof(bfloat16_t));
@@ -200,4 +200,4 @@ TEST_F(TestRegbaseApiSubUT, Sub_TensorTensor_Test) {
   SubTensorTensorTest<uint64_t>((MAX_REPEAT_NUM - 1) * ONE_REPEAT_BYTE_SIZE / 2 / sizeof(uint64_t));
 }
 
-}  // namespace ge
+}  // namespace af

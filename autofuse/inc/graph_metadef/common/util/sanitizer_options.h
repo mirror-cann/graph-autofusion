@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -25,23 +25,23 @@
   do {                        \
     __lsan_disable();         \
   } while (0)
-#define DT_DETECT_LEAKS_ON()  \
-  do {                        \
-    __lsan_enable();          \
+#define DT_DETECT_LEAKS_ON() \
+  do {                       \
+    __lsan_enable();         \
   } while (0)
-#define DT_DO_DETECT_LEAKS()  \
-  do {                        \
-    __lsan_do_leak_check();   \
+#define DT_DO_DETECT_LEAKS() \
+  do {                       \
+    __lsan_do_leak_check();  \
   } while (0)
 #else
 #define DT_DETECT_LEAKS_OFF() \
   do {                        \
   } while (0)
-#define DT_DETECT_LEAKS_ON()  \
-  do {                        \
+#define DT_DETECT_LEAKS_ON() \
+  do {                       \
   } while (0)
-#define DT_DO_DETECT_LEAKS()  \
-  do {                        \
+#define DT_DO_DETECT_LEAKS() \
+  do {                       \
   } while (0)
 #endif
 
@@ -62,6 +62,6 @@ class LeaksGuarder {
   }
 };
 
-}  // namespace ge
+}  // namespace af
 
 #endif  // COMMON_UTILS_SANITIZERS_SANITIZER_OPTIONS_H_

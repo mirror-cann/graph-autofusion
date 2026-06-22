@@ -85,8 +85,7 @@ class TestRegbaseApiLegendrePolynomialPUT : public testing::Test {
       if (std::isnan(curr)) {
         break;
       }
-      const T numerator =
-          (static_cast<T>((k + k) + 1) * x * curr) - (static_cast<T>(k) * prev);
+      const T numerator = (static_cast<T>((k + k) + 1) * x * curr) - (static_cast<T>(k) * prev);
       next = numerator / static_cast<T>(k + 1);
       prev = curr;
       curr = next;
@@ -115,8 +114,12 @@ class TestRegbaseApiLegendrePolynomialPUT : public testing::Test {
 
     if (n == 5 && size == 6U) {
       static const T kInputs[] = {
-          std::numeric_limits<T>::quiet_NaN(), static_cast<T>(-1.0f), static_cast<T>(-0.5f),
-          static_cast<T>(0.25f),               static_cast<T>(0.75f), static_cast<T>(1.0f),
+          std::numeric_limits<T>::quiet_NaN(),
+          static_cast<T>(-1.0f),
+          static_cast<T>(-0.5f),
+          static_cast<T>(0.25f),
+          static_cast<T>(0.75f),
+          static_cast<T>(1.0f),
       };
       return kInputs[index];
     }
@@ -151,9 +154,8 @@ class TestRegbaseApiLegendrePolynomialPUT : public testing::Test {
           continue;
         }
         ++diffCount;
-        printf("nan mismatch at index %u: x: %.20e, y: %.20e, expect: %.20e\n", i,
-               static_cast<double>(param.x1[i]), static_cast<double>(param.y[i]),
-               static_cast<double>(param.exp[i]));
+        printf("nan mismatch at index %u: x: %.20e, y: %.20e, expect: %.20e\n", i, static_cast<double>(param.x1[i]),
+               static_cast<double>(param.y[i]), static_cast<double>(param.exp[i]));
         continue;
       }
 
@@ -161,8 +163,8 @@ class TestRegbaseApiLegendrePolynomialPUT : public testing::Test {
       if (diff > tolerance) {
         ++diffCount;
         printf("diff at index %u: x: %.20e, y: %.20e, expect: %.20e, abs_err: %.20e\n", i,
-               static_cast<double>(param.x1[i]), static_cast<double>(param.y[i]),
-               static_cast<double>(param.exp[i]), diff);
+               static_cast<double>(param.x1[i]), static_cast<double>(param.y[i]), static_cast<double>(param.exp[i]),
+               diff);
       }
     }
     return diffCount;
@@ -225,4 +227,4 @@ TEST_F(TestRegbaseApiLegendrePolynomialPUT, LegendrePolynomialPOrder4_TensorTens
   LegendrePolynomialPTensorNTest<float>(65U, 4);
 }
 
-}  // namespace ge
+}  // namespace af

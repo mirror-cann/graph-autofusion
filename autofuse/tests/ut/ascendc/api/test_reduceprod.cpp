@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -22,8 +22,8 @@ using namespace AscendC;
 TEST(TestApiReduceProd, test_ab_to_a) {
   // 构造测试输入和预期结果
   uint32_t a = 16, b = 32;
-  auto *x = (float*)AscendC::GmAlloc(sizeof(float) * a * b);
-  auto *y = (float*)AscendC::GmAlloc(sizeof(float) * a);
+  auto *x = (float *)AscendC::GmAlloc(sizeof(float) * a * b);
+  auto *y = (float *)AscendC::GmAlloc(sizeof(float) * a);
   float expect[a];
 
   for (uint32_t i = 0; i < a * b; i++) {
@@ -80,12 +80,11 @@ TEST(TestApiReduceProd, test_ab_to_a) {
   EXPECT_EQ(diff_count, 0);
 }
 
-
 TEST(TestApiReduceProd, test_ab_to_b) {
   // 构造测试输入和预期结果
   uint32_t a = 16, b = 64;
-  auto *x = (float*)AscendC::GmAlloc(sizeof(float) * a * b);
-  auto *y = (float*)AscendC::GmAlloc(sizeof(float) * b);
+  auto *x = (float *)AscendC::GmAlloc(sizeof(float) * a * b);
+  auto *y = (float *)AscendC::GmAlloc(sizeof(float) * b);
   float expect[b];
 
   for (uint32_t i = 0; i < a * b; i++) {
@@ -145,8 +144,8 @@ TEST(TestApiReduceProd, test_ab_to_b) {
 TEST(TestApiReduceProd, test_ab_to_2) {
   // 构造测试输入和预期结果
   uint32_t a = 1, b = 32;
-  auto *x = (float*)AscendC::GmAlloc(sizeof(float) * a * b);
-  auto *y = (float*)AscendC::GmAlloc(sizeof(float) * b);
+  auto *x = (float *)AscendC::GmAlloc(sizeof(float) * a * b);
+  auto *y = (float *)AscendC::GmAlloc(sizeof(float) * b);
   float expect[a];
 
   for (uint32_t i = 0; i < a * b; i++) {
@@ -198,8 +197,8 @@ TEST(TestApiReduceProd, test_ab_to_2) {
 TEST(TestApiReduceProd, test_ab_to_a_unalign) {
   // 构造测试输入和预期结果
   uint32_t a = 8, b = 8;
-  auto *x = (float*)AscendC::GmAlloc(sizeof(float) * a * b);
-  auto *y = (float*)AscendC::GmAlloc(sizeof(float) * b);
+  auto *x = (float *)AscendC::GmAlloc(sizeof(float) * a * b);
+  auto *y = (float *)AscendC::GmAlloc(sizeof(float) * b);
   float expect[a];
 
   for (uint32_t i = 0; i < a * b; i++) {

@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -40,7 +40,7 @@ struct DurationDef {
 
 class Duration {
  public:
-  explicit Duration(const std::string &name): name_(name) {}
+  explicit Duration(const std::string &name) : name_(name) {}
 
   void Begin() {
     call_start_ = Now();
@@ -103,7 +103,7 @@ class DurationManager {
   static DurationManager &GetInstance();
 
   DurationManager();
-  
+
   void AddDuration(const uint32_t type, const std::string &name, const uint32_t level);
 
   void Begin(const DurationType type);
@@ -127,6 +127,7 @@ class DurationManager {
   }
 
   void End(const DurationType type);
+
  private:
   DurationInfo duration_infos_[static_cast<uint32_t>(DurationType::DURATION_MAX)];
 };
@@ -146,14 +147,14 @@ void DurationEnd(const DurationType type);
 
 class DurationGuard {
  public:
-  explicit DurationGuard(const DurationType type) : type_(type)
-  {
+  explicit DurationGuard(const DurationType type) : type_(type) {
     DurationBegin(type);
   }
 
   ~DurationGuard() {
     DurationEnd(type_);
   }
+
  private:
   DurationType type_;
 };
@@ -167,8 +168,7 @@ enum class TilingFuncDurationType {
   TILING_FUNC_DURATION_MAX,
 };
 
-extern DurationDef kg_tiling_func_duration_def[static_cast<uint32_t>(
-  TilingFuncDurationType::TILING_FUNC_DURATION_MAX)];
+extern DurationDef kg_tiling_func_duration_def[static_cast<uint32_t>(TilingFuncDurationType::TILING_FUNC_DURATION_MAX)];
 
 std::string DurationGenHeadCode();
 
@@ -183,6 +183,6 @@ std::string DurationBeginGenCode(const TilingFuncDurationType type);
 std::string DurationEndGenCode(const TilingFuncDurationType type);
 
 std::string DurationGuardGenCode(const TilingFuncDurationType type);
-} //namespace att
+}  // namespace att
 
 #endif  // ATT_DURATION_H_

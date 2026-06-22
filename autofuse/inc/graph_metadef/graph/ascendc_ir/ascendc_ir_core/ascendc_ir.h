@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -25,22 +25,22 @@
 
 namespace af {
 #ifdef AUTOFUSE_USE_GE_METADEF
-using ge::Node;
-using ge::NodePtr;
-using ge::ConstNodePtr;
+using ge::AscendString;
 using ge::ComputeGraph;
 using ge::ComputeGraphPtr;
+using ge::ConstNodePtr;
+using ge::InDataAnchor;
+using ge::InDataAnchorPtr;
+using ge::Node;
+using ge::NodePtr;
+using ge::OpDesc;
 using ge::OpDescPtr;
 using ge::OpDescUtils;
 using ge::Operator;
 using ge::OutDataAnchor;
 using ge::OutDataAnchorPtr;
-using ge::InDataAnchor;
-using ge::InDataAnchorPtr;
 using ge::PARAM_INVALID;
-using ge::AscendString;
 using ge::Status;
-using ge::OpDesc;
 #endif
 struct DiffAxesInfo {
   std::vector<AxisId> add_axes;
@@ -54,7 +54,7 @@ struct View {
 using TransInfoRoadOfGraph = std::vector<OneTransInfo>;
 
 // 默认实现
-template<typename T>
+template <typename T>
 std::string ViewMemberToString(const std::vector<T> &vec) {
   std::ostringstream oss;
   oss << "[";
@@ -69,7 +69,7 @@ std::string ViewMemberToString(const std::vector<T> &vec) {
 }
 
 // 特化实现，针对 Expression 类型
-template<>
+template <>
 inline std::string ViewMemberToString(const std::vector<Expression> &vec) {
   std::ostringstream oss;
   oss << "[";
@@ -86,9 +86,8 @@ inline std::string ViewMemberToString(const std::vector<Expression> &vec) {
 
 inline std::string ViewToString(const View &view) {
   std::string result = "{ axis: " + ViewMemberToString(view.axis_ids) +
-      ", repeats: " + ViewMemberToString(view.repeats) +
-      ", strides: " + ViewMemberToString(view.strides) +
-      " }";
+                       ", repeats: " + ViewMemberToString(view.repeats) +
+                       ", strides: " + ViewMemberToString(view.strides) + " }";
   return result;
 }
 
@@ -107,10 +106,7 @@ class AscOutputAttrDataType {
       return *this;
     }
     if (desc->MutableOutputDesc(output_index_) == nullptr) {
-      GELOGE(PARAM_INVALID,
-             "output_index_ %u is invalid for %s %s",
-             output_index_,
-             desc->GetNamePtr(),
+      GELOGE(PARAM_INVALID, "output_index_ %u is invalid for %s %s", output_index_, desc->GetNamePtr(),
              desc->GetTypePtr());
       return *this;
     }
@@ -129,10 +125,7 @@ class AscOutputAttrDataType {
       return ge::DT_UNDEFINED;
     }
     if (desc->MutableOutputDesc(output_index_) == nullptr) {
-      GELOGE(PARAM_INVALID,
-             "output_index_ %u is invalid for %s %s",
-             output_index_,
-             desc->GetNamePtr(),
+      GELOGE(PARAM_INVALID, "output_index_ %u is invalid for %s %s", output_index_, desc->GetNamePtr(),
              desc->GetTypePtr());
       return ge::DT_UNDEFINED;
     }
@@ -159,10 +152,7 @@ class AscOutputAttrFormat {
       return *this;
     }
     if (desc->MutableOutputDesc(output_index_) == nullptr) {
-      GELOGE(PARAM_INVALID,
-             "output_index_ %u is invalid for %s %s",
-             output_index_,
-             desc->GetNamePtr(),
+      GELOGE(PARAM_INVALID, "output_index_ %u is invalid for %s %s", output_index_, desc->GetNamePtr(),
              desc->GetTypePtr());
       return *this;
     }
@@ -181,10 +171,7 @@ class AscOutputAttrFormat {
       return ge::FORMAT_RESERVED;
     }
     if (desc->MutableOutputDesc(output_index_) == nullptr) {
-      GELOGE(PARAM_INVALID,
-             "output_index_ %u is invalid for %s %s",
-             output_index_,
-             desc->GetNamePtr(),
+      GELOGE(PARAM_INVALID, "output_index_ %u is invalid for %s %s", output_index_, desc->GetNamePtr(),
              desc->GetTypePtr());
       return ge::FORMAT_RESERVED;
     }
@@ -200,6 +187,7 @@ class AscOpOutput {
  public:
   class AscOpOutputOffsetHelper {
     friend class AscOpOutput;
+
    public:
     ~AscOpOutputOffsetHelper() = default;
     void operator=(const AscOpOutput &asc_op_output) {
@@ -219,13 +207,14 @@ class AscOpOutput {
       output_.buf = asc_op_output.buf;
       output_.opt = asc_op_output.opt;
     }
+
    private:
     explicit AscOpOutputOffsetHelper(AscOpOutput &output) : output_(output) {}
     AscOpOutput &output_;
   };
-  template<uint32_t INPUT_INDEX>
+  template <uint32_t INPUT_INDEX>
   friend class AscOpInput;
-  template<uint32_t INPUT_INDEX>
+  template <uint32_t INPUT_INDEX>
   friend class AscOpDynamicInput;
   friend class VectorizedOutTensor;
   AscOpOutput()
@@ -263,7 +252,7 @@ class AscOpOutput {
         buf(nullptr),
         opt(nullptr) {}
   AscOpOutput(const AscOpOutput &output) : AscOpOutput(output.op_, output.output_index) {}
-  AscOpOutput(AscOpOutput &&output) noexcept: AscOpOutput(output.op_, output.output_index) {}
+  AscOpOutput(AscOpOutput &&output) noexcept : AscOpOutput(output.op_, output.output_index) {}
   AscOpOutput &operator=(AscOpOutput &&) = delete;
   AscOpOutput &operator=(const AscOpOutput &) = delete;
 
@@ -278,16 +267,15 @@ class AscOpOutput {
     tmp_repeats.reserve(axes.size());
     tmp_strides.reserve(axes.size());
 
-    std::for_each(axes.rbegin(), axes.rend(),
-                  [&axes_ids, &tmp_repeats, &tmp_strides](const Axis &tmp_axis) {
-                    if (tmp_strides.empty()) {
-                      tmp_strides.emplace_back(sym::kSymbolOne);
-                    } else {
-                      tmp_strides.emplace_back(*tmp_repeats.rbegin() * *tmp_strides.rbegin());
-                    }
-                    tmp_repeats.emplace_back(tmp_axis.size);
-                    axes_ids.emplace_back(tmp_axis.id);
-                  });
+    std::for_each(axes.rbegin(), axes.rend(), [&axes_ids, &tmp_repeats, &tmp_strides](const Axis &tmp_axis) {
+      if (tmp_strides.empty()) {
+        tmp_strides.emplace_back(sym::kSymbolOne);
+      } else {
+        tmp_strides.emplace_back(*tmp_repeats.rbegin() * *tmp_strides.rbegin());
+      }
+      tmp_repeats.emplace_back(tmp_axis.size);
+      axes_ids.emplace_back(tmp_axis.id);
+    });
     std::reverse(axes_ids.begin(), axes_ids.end());
     std::reverse(tmp_repeats.begin(), tmp_repeats.end());
     std::reverse(tmp_strides.begin(), tmp_strides.end());
@@ -302,7 +290,7 @@ class AscOpOutput {
     return *op_;
   }
 
-  Operator &MutableOwnerOp() const{
+  Operator &MutableOwnerOp() const {
     return *op_;
   }
 
@@ -336,10 +324,10 @@ class AscOpOutput {
       return *this;
     }
     if (used_out.que->id != kIdNone) {
-      (void) UseTQue(used_out.mem->position, used_out.que->depth, used_out.que->buf_num, used_out.que->id);
+      (void)UseTQue(used_out.mem->position, used_out.que->depth, used_out.que->buf_num, used_out.que->id);
     }
     if (used_out.buf->id != kIdNone) {
-      (void) UseTBuf(used_out.mem->position, used_out.buf->id);
+      (void)UseTBuf(used_out.mem->position, used_out.buf->id);
     }
     mem->reuse_id = used_out.mem->reuse_id;
     return *this;
@@ -351,7 +339,7 @@ class AscOpOutput {
       return *this;
     }
     mem->reuse_id = GenNextReuseId();
-    (void) UseTQue(pos, depth, buf_num);
+    (void)UseTQue(pos, depth, buf_num);
     return *this;
   }
 
@@ -376,6 +364,7 @@ class AscOpOutput {
   bool HasBindToContainer() const;
   Operator *op_;
   std::vector<int64_t> load_vectorized_axes_;
+
  public:
   uint32_t output_index{UINT32_MAX};
   AscOutputAttrDataType dtype;
@@ -393,8 +382,7 @@ class AscOpOutput {
 
 class VectorizedOutTensor {
  public:
-  explicit VectorizedOutTensor(std::vector<int64_t> vectorized_axis) : vectorized_axis_(std::move(vectorized_axis)) {
-  }
+  explicit VectorizedOutTensor(std::vector<int64_t> vectorized_axis) : vectorized_axis_(std::move(vectorized_axis)) {}
   VectorizedOutTensor &operator=(const VectorizedOutTensor &) = delete;
   VectorizedOutTensor(const VectorizedOutTensor &) = delete;
   explicit operator AscOpOutput() const {
@@ -405,7 +393,7 @@ class VectorizedOutTensor {
     // 不支持更改归属
     if (op_ != nullptr) {
       AscendString name;
-      (void) op_->GetName(name);
+      (void)op_->GetName(name);
       GELOGE(FAILED, "Tensor has been bind to %s", name.GetString());
       return;
     }
@@ -414,6 +402,7 @@ class VectorizedOutTensor {
     // 修改归属op的向量化轴信息
     AscTensorAttr::GetTensorAttr(op_, output_index_).vectorized_axis = vectorized_axis_;
   }
+
  private:
   std::vector<int64_t> vectorized_axis_;
   Operator *op_{nullptr};
@@ -421,14 +410,11 @@ class VectorizedOutTensor {
 };
 
 graphStatus AddEdgeForNode(const Operator &src_op, int32_t src_index, Operator &dst_op, int32_t dst_index);
-graphStatus LinkByIrIndex(const Operator &src_op,
-                          uint32_t src_ir_index,
-                          Operator &dst_op,
-                          uint32_t dst_ir_index,
+graphStatus LinkByIrIndex(const Operator &src_op, uint32_t src_ir_index, Operator &dst_op, uint32_t dst_ir_index,
                           uint32_t dynamic_index = 0U);
 graphStatus SetDynamicInputNumByIrIndex(Operator &op, uint32_t ir_index, uint32_t dynamic_num);
 
-template<uint32_t INPUT_INDEX>
+template <uint32_t INPUT_INDEX>
 class AscOpInput {
  public:
   explicit AscOpInput(Operator *op) : op_(op) {}
@@ -449,7 +435,7 @@ class AscOpInput {
 struct AscTensor {
   explicit AscTensor(const OutDataAnchor &an) : attr(AscTensorAttr::GetTensorAttr(an)), anchor(an) {}
   ~AscTensor() = default;
-  AscTensorAttr &attr;              // not owner
+  AscTensorAttr &attr;          // not owner
   const OutDataAnchor &anchor;  // not owner
 };
 
@@ -457,6 +443,7 @@ struct AscNodeOutputs {
   friend class AscNode;
   AscTensor &operator[](uint32_t index);
   std::vector<AscTensor *> operator()();
+
  private:
   explicit AscNodeOutputs(Node *node) : node_(node) {
     Init();
@@ -471,6 +458,7 @@ struct AscNodeInputs {
   AscTensor &operator[](uint32_t index);
   std::vector<AscTensor *> operator()();
   uint32_t Size();
+
  private:
   explicit AscNodeInputs(Node *node) : node_(node) {
     Init();
@@ -495,6 +483,7 @@ class AscNodeIter {
   AscNodeIter &operator++();
   AscNodePtr operator*();
   bool operator!=(const AscNodeIter &other) const;
+
  private:
   ComputeGraph::Vistor<NodePtr>::Iterator impl_;
 };
@@ -505,12 +494,12 @@ class AscNodeVisitor {
   AscNodeIter begin();
   AscNodeIter end();
   explicit AscNodeVisitor(ComputeGraph::Vistor<NodePtr> &&visitor);
+
  private:
   ComputeGraph::Vistor<NodePtr> impl_;
 };
 
-
-template<uint32_t INPUT_INDEX>
+template <uint32_t INPUT_INDEX>
 class AscOpDynamicInput {
  public:
   explicit AscOpDynamicInput(Operator *op) : op_(op) {}
@@ -522,7 +511,7 @@ class AscOpDynamicInput {
   }
 
  private:
-  template<typename Container>
+  template <typename Container>
   AscOpDynamicInput<INPUT_INDEX> &AssignImpl(const Container &outputs) {
     if (op_ == nullptr) {
       GELOGE(FAILED, "op_ in null");
@@ -530,7 +519,7 @@ class AscOpDynamicInput {
     }
     if (inited_) {
       AscendString op_name;
-      (void) op_->GetName(op_name);
+      (void)op_->GetName(op_name);
       GELOGE(FAILED, "It is not allowed to set the dynamic input repeatedly, node:[%s].", op_name.GetString());
       return *this;
     }
@@ -556,10 +545,11 @@ namespace ascir {
 namespace cg {
 class CodeGenUtils;
 }
-}
+}  // namespace ascir
 class AscGraph {
   friend class ascir::cg::CodeGenUtils;
   friend class AscGraphUtils;
+
  public:
   explicit AscGraph(const char *name);
   ~AscGraph();
@@ -600,14 +590,10 @@ class AscGraph {
   std::string GetName() const;
   bool CheckValid() const;
 
-  AscOpOutput CreateContiguousData(const char *name,
-                                   const ge::DataType &dt,
-                                   const std::vector<Axis> &axes,
+  AscOpOutput CreateContiguousData(const char *name, const ge::DataType &dt, const std::vector<Axis> &axes,
                                    const ge::Format &format = ge::FORMAT_ND);
 
-  AscOpOutput CreateContiguousOut(const char *name,
-                                  const ge::DataType &dt,
-                                  const std::vector<Axis> &axes,
+  AscOpOutput CreateContiguousOut(const char *name, const ge::DataType &dt, const std::vector<Axis> &axes,
                                   const ge::Format &format = ge::FORMAT_ND);
   void SortByExecOrder();
   bool CopyFrom(const AscGraph &graph);
@@ -628,25 +614,25 @@ class AscGraph {
 }  // namespace af
 
 namespace ge {
-using af::DiffAxesInfo;
-using af::View;
+using af::AddEdgeForNode;
+using af::AscGraph;
+using af::AscNode;
+using af::AscNodeInputs;
+using af::AscNodeIter;
+using af::AscNodeOutputs;
+using af::AscNodePtr;
+using af::AscNodeVisitor;
+using af::AscOpDynamicInput;
+using af::AscOpInput;
+using af::AscOpOutput;
 using af::AscOutputAttrDataType;
 using af::AscOutputAttrFormat;
-using af::AscOpOutput;
-using af::VectorizedOutTensor;
-using af::AscOpInput;
-using af::AscOpDynamicInput;
 using af::AscTensor;
-using af::AscNodeOutputs;
-using af::AscNodeInputs;
-using af::AscNode;
-using af::AscNodePtr;
-using af::AscNodeIter;
-using af::AscNodeVisitor;
-using af::AscGraph;
-using af::AddEdgeForNode;
+using af::DiffAxesInfo;
 using af::LinkByIrIndex;
 using af::SetDynamicInputNumByIrIndex;
+using af::VectorizedOutTensor;
+using af::View;
 }  // namespace ge
 
 #endif  // GRAPH_ASCENDC_IR_H

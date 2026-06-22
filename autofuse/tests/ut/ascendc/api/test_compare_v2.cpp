@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -24,7 +24,7 @@
 
 using namespace AscendC;
 
-namespace af{
+namespace af {
 template <typename O, typename I>
 struct TensorCompareV2InputParam {
   O *y{};
@@ -38,7 +38,6 @@ struct TensorCompareV2InputParam {
 
 class TestApiCompareV2UT : public testing::Test {
  protected:
-
   template <CMPMODE mode, typename O, typename I>
   static void InvokeKernelWithTwoTensorInput(TensorCompareV2InputParam<O, I> &param) {
     TPipe tpipe;
@@ -52,7 +51,6 @@ class TestApiCompareV2UT : public testing::Test {
     LocalTensor<I> l_x1 = x1buf.Get<I>();
     LocalTensor<I> l_x2 = x2buf.Get<I>();
 
-
     LocalTensor<O> l_y = ybuf.Get<O>();
     LocalTensor<uint8_t> l_tmp = tmp.Get<uint8_t>();
 
@@ -62,7 +60,6 @@ class TestApiCompareV2UT : public testing::Test {
                            (param.size * sizeof(O) / ONE_BLK_SIZE + 1) * ONE_BLK_SIZE, l_tmp);
     UbToGm(param.y, l_y, param.size);
   }
-
 
   template <CMPMODE mode, typename O, typename I>
   static void CreateTensorInput(TensorCompareV2InputParam<O, I> &param, float def_src1) {
@@ -127,13 +124,13 @@ class TestApiCompareV2UT : public testing::Test {
           }
           break;
         case CMPMODE::GT:
-            param.exp[i] = param.src0[i] > param.src1[i];
+          param.exp[i] = param.src0[i] > param.src1[i];
           break;
         case CMPMODE::LT:
           if constexpr (std::is_same_v<I, half>) {
-              param.exp[i] = static_cast<half>(param.src0[i]) < param.src1[i];
+            param.exp[i] = static_cast<half>(param.src0[i]) < param.src1[i];
           } else {
-              param.exp[i] = param.src0[i] < param.src1[i];
+            param.exp[i] = param.src0[i] < param.src1[i];
           }
           break;
         default:
@@ -175,7 +172,6 @@ class TestApiCompareV2UT : public testing::Test {
     AscendC::GmFree(param.src0);
     AscendC::GmFree(param.src1);
   }
-
 };
 
 // 场景1：GT-int32
@@ -280,4 +276,4 @@ TEST_F(TestApiCompareV2UT, CompareV2_Lt_input_tensor_int32_output_uint8) {
 
 /* End: 输入是两个tensor的 compare 测试--------------------------------------- */
 
-}  // namespace ge
+}  // namespace af

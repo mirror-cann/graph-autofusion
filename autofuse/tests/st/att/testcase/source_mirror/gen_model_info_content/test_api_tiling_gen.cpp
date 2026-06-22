@@ -535,8 +535,8 @@ void WriteTilingFuncFile(const std::string &tiling_func, const std::string &head
 }
 
 void GenerateAndWriteTilingData(const ascir::FusedScheduledResult &fused_result,
-                                const std::map<std::string, std::string> &options,
-                                const std::string &op_name, const std::string &graph_name) {
+                                const std::map<std::string, std::string> &options, const std::string &op_name,
+                                const std::string &graph_name) {
   TilingCodeGenerator generator;
   TilingCodeGenConfig generator_config;
   std::map<std::string, std::string> tiling_res;
@@ -552,18 +552,16 @@ void GenerateAndWriteTilingData(const ascir::FusedScheduledResult &fused_result,
   oss.close();
 }
 
-int32_t CopyStubsAndCompile(const std::string &main_cpp, const std::string &tiling_cpp,
-                            const std::string &output_bin) {
+int32_t CopyStubsAndCompile(const std::string &main_cpp, const std::string &tiling_cpp, const std::string &output_bin) {
   auto ret = std::system(
       std::string("cp ").append(TOP_DIR).append("/autofuse/tests/st/att/testcase/stub/op_log.h ./ -f").c_str());
   EXPECT_EQ(ret, 0);
   ret = autofuse::test::CopyStubFiles(TOP_DIR, "autofuse/tests/st/att/testcase/stub/");
   EXPECT_EQ(ret, 0);
-  ret = std::system(
-      std::string("cp -r ")
-          .append(TOP_DIR)
-          .append("/tests/st/att/testcase/source_mirror/generator/generator_utils/kernel_tiling/ ./ -f")
-          .c_str());
+  ret = std::system(std::string("cp -r ")
+                        .append(TOP_DIR)
+                        .append("/tests/st/att/testcase/source_mirror/generator/generator_utils/kernel_tiling/ ./ -f")
+                        .c_str());
   EXPECT_EQ(ret, 0);
   std::string cmd = "g++ " + main_cpp + " " + tiling_cpp + " -o " + output_bin + " -I ./ -DSTUB_LOG";
   ret = std::system(cmd.c_str());
@@ -587,8 +585,7 @@ void PrepareSingleSchedule(const ascir::AscGraph &graph, ascir::FusedScheduledRe
 }
 
 void WriteTransposeTilingFiles(const ascir::FusedScheduledResult &fused_result,
-                               const std::map<std::string, std::string> &options,
-                               const std::string &tiling_func) {
+                               const std::map<std::string, std::string> &options, const std::string &tiling_func) {
   std::ofstream oss;
   oss.open("transpose_autofuse_tiling_func.cpp", std::ios::out);
   oss << "#include \"Transpose_tiling_data.h\"\n";
@@ -608,7 +605,8 @@ void WriteTransposeTilingFiles(const ascir::FusedScheduledResult &fused_result,
 }
 
 int32_t CopyAndRunTransposeTest() {
-  int32_t ret = std::system(std::string("cp ").append(TILING_DATA_DIR).append("/tiling_func_main_transpose.cpp ./ -f").c_str());
+  int32_t ret =
+      std::system(std::string("cp ").append(TILING_DATA_DIR).append("/tiling_func_main_transpose.cpp ./ -f").c_str());
   EXPECT_EQ(ret, 0);
   (void)std::system("mkdir ./graph/");
   ret = std::system(std::string("cp -r ")
@@ -621,11 +619,10 @@ int32_t CopyAndRunTransposeTest() {
                         .append("/tests/st/att/testcase/source_mirror/generator/generator_utils/lib/ ./ -f")
                         .c_str());
   EXPECT_EQ(ret, 0);
-  ret = std::system(
-      std::string("cp -r ")
-          .append(TOP_DIR)
-          .append("/tests/st/att/testcase/source_mirror/generator/generator_utils/kernel_tiling/ ./ -f")
-          .c_str());
+  ret = std::system(std::string("cp -r ")
+                        .append(TOP_DIR)
+                        .append("/tests/st/att/testcase/source_mirror/generator/generator_utils/kernel_tiling/ ./ -f")
+                        .c_str());
   EXPECT_EQ(ret, 0);
   ret = std::system(std::string("cp ").append(TILING_DATA_DIR).append("/Transpose_tiling_data.h ./ -f").c_str());
   EXPECT_EQ(ret, 0);
@@ -667,8 +664,7 @@ ge::Status PrepareFlashSoftmaxSchedule(ascir::FusedScheduledResult &fused_schedu
 }
 
 ge::Status WriteSoftmaxTilingFiles(const ascir::FusedScheduledResult &fused_schedule_result,
-                                   const std::map<std::string, std::string> &options,
-                                   const std::string &tiling_func) {
+                                   const std::map<std::string, std::string> &options, const std::string &tiling_func) {
   std::ofstream oss;
   oss.open("flash_softmax_tiling_func.cpp", std::ios::out);
   oss << "#include \"FlashSoftmax_tiling_data.h\"\n";

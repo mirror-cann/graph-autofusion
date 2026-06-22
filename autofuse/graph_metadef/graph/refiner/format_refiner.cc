@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -64,37 +64,34 @@ static graphStatus BiasAddFormatFixProcess(const NodePtr &graph_node_ptr) {
   if ((graph_node_ptr->GetType() != "BiasAdd") && (graph_node_ptr->GetType() != "BiasAddGrad")) {
     return GRAPH_SUCCESS;
   }
-  const std::unordered_map<std::string, Format> kTfFormatFix = {
-      {"NHWC", FORMAT_NDHWC},
-      {"NCHW", FORMAT_NCDHW}
-  };
+  const std::unordered_map<std::string, Format> kTfFormatFix = {{"NHWC", FORMAT_NDHWC}, {"NCHW", FORMAT_NCDHW}};
   for (size_t i = 0UL; i < graph_node_ptr->GetOpDesc()->GetInputsSize(); i++) {
-    const auto in_desc = graph_node_ptr->GetOpDesc()->MutableInputDesc(static_cast<uint32_t >(i));
+    const auto in_desc = graph_node_ptr->GetOpDesc()->MutableInputDesc(static_cast<uint32_t>(i));
     GE_CHECK_NOTNULL(in_desc);
     const auto dim_num = in_desc->MutableShape().GetDimNum();
-    if (dim_num == 5UL) { // 5 means dim num
+    if (dim_num == 5UL) {  // 5 means dim num
       const auto org_format = in_desc->GetOriginFormat();
       const auto key = TypeUtils::FormatToSerialString(org_format);
       const auto fixed_format = (kTfFormatFix.count(key) == 0UL) ? org_format : kTfFormatFix.at(key);
       in_desc->SetOriginFormat(fixed_format);
       in_desc->SetFormat(fixed_format);
-      GELOGD("Fix the %zu'th input of node[%s]. Origin format is %s , after fixed it is %s",
-             i, graph_node_ptr->GetName().c_str(), TypeUtils::FormatToSerialString(org_format).c_str(),
+      GELOGD("Fix the %zu'th input of node[%s]. Origin format is %s , after fixed it is %s", i,
+             graph_node_ptr->GetName().c_str(), TypeUtils::FormatToSerialString(org_format).c_str(),
              TypeUtils::FormatToSerialString(fixed_format).c_str());
     } else if (dim_num < 4UL) {
       in_desc->SetOriginFormat(FORMAT_ND);
       in_desc->SetFormat(FORMAT_ND);
-      GELOGD("Fix the %zu'th input of node[%s]. Origin format is %s , after fixed it is %s",
-             i, graph_node_ptr->GetName().c_str(), TypeUtils::FormatToSerialString(FORMAT_ND).c_str(),
+      GELOGD("Fix the %zu'th input of node[%s]. Origin format is %s , after fixed it is %s", i,
+             graph_node_ptr->GetName().c_str(), TypeUtils::FormatToSerialString(FORMAT_ND).c_str(),
              TypeUtils::FormatToSerialString(FORMAT_ND).c_str());
     } else {
       // do nothing
     }
   }
   for (size_t i = 0UL; i < graph_node_ptr->GetOpDesc()->GetOutputsSize(); i++) {
-    const auto out_desc = graph_node_ptr->GetOpDesc()->MutableOutputDesc(static_cast<uint32_t >(i));
+    const auto out_desc = graph_node_ptr->GetOpDesc()->MutableOutputDesc(static_cast<uint32_t>(i));
     GE_CHECK_NOTNULL(out_desc);
-    if (out_desc->MutableShape().GetDimNum() != 5UL) { // 5 means dim num
+    if (out_desc->MutableShape().GetDimNum() != 5UL) {  // 5 means dim num
       continue;
     }
     const auto org_format = out_desc->GetOriginFormat();
@@ -102,13 +99,12 @@ static graphStatus BiasAddFormatFixProcess(const NodePtr &graph_node_ptr) {
     const auto fixed_format = (kTfFormatFix.count(key) == 0UL) ? org_format : kTfFormatFix.at(key);
     out_desc->SetOriginFormat(fixed_format);
     out_desc->SetFormat(fixed_format);
-    GELOGD("fix the %zu'th output of node[%s]. Origin format is %s , after fixed it is %s",
-           i, graph_node_ptr->GetName().c_str(), TypeUtils::FormatToSerialString(org_format).c_str(),
+    GELOGD("fix the %zu'th output of node[%s]. Origin format is %s , after fixed it is %s", i,
+           graph_node_ptr->GetName().c_str(), TypeUtils::FormatToSerialString(org_format).c_str(),
            TypeUtils::FormatToSerialString(fixed_format).c_str());
   }
   return GRAPH_SUCCESS;
 }
-
 
 static bool JudgeNodeIsAllNd(const OpDescPtr &one_op_desc, const NodePtr &one_node_ptr,
                              std::vector<NodePtr> &anchor_data_nodes) {
@@ -177,9 +173,9 @@ static graphStatus AnchorsInferProcess(std::deque<NodePtr> &nodes, const OutData
     }
     if ((ge_tensor_desc->GetOriginFormat() == FORMAT_ND) && (!format_locked)) {
       const auto dim_num = ge_tensor_desc->GetShape().GetDimNum();
-      GE_IF_BOOL_EXEC(dim_num == 0UL,
-          GELOGI("node name:%s idx:%d in is scalar. stop forward infer!", peer_in_data_node->GetName().c_str(), idx);
-          continue);
+      GE_IF_BOOL_EXEC(dim_num == 0UL, GELOGI("node name:%s idx:%d in is scalar. stop forward infer!",
+                                             peer_in_data_node->GetName().c_str(), idx);
+                      continue);
 
       /// Check whether node to change dims ()
       /// Because some node will calculate with 5D, C dim maybe multi meaning
@@ -204,12 +200,12 @@ static graphStatus AnchorsInferProcess(std::deque<NodePtr> &nodes, const OutData
         ret_status = NodeUtilsEx::InferOriginFormat(peer_in_data_node);
         GE_IF_BOOL_EXEC(ret_status != GRAPH_SUCCESS,
                         GELOGE(GRAPH_FAILED, "[Infer][Format] failed, node:%s", (peer_in_data_node->GetName()).c_str());
-        return GRAPH_FAILED);
+                        return GRAPH_FAILED);
         nodes.push_back(peer_in_data_node);
       } else {
         const auto ret = ReflectionProcess(reflection, nodes, to_be_set_format);
         GE_IF_BOOL_EXEC(ret != GRAPH_SUCCESS, GELOGE(GRAPH_FAILED, "[Reflect][Node] failed! status:%d", ret);
-        return GRAPH_FAILED);
+                        return GRAPH_FAILED);
       }
     }
   }
@@ -231,8 +227,7 @@ graphStatus FormatRefiner::RefreshConstantOutProcess(const ComputeGraphPtr &com_
   return GRAPH_SUCCESS;
 }
 
-graphStatus FormatRefiner::GetAnchorPoints(const ComputeGraphPtr &com_graph,
-                                           std::vector<NodePtr> &anchor_points,
+graphStatus FormatRefiner::GetAnchorPoints(const ComputeGraphPtr &com_graph, std::vector<NodePtr> &anchor_points,
                                            std::vector<NodePtr> &anchor_data_nodes) {
   anchor_points.clear();
   // Get all anchor point nodes and switch nodes
@@ -250,8 +245,8 @@ graphStatus FormatRefiner::GetAnchorPoints(const ComputeGraphPtr &com_graph,
     }
     graphStatus ret_status = RefreshConstantOutProcess(com_graph, one_op_desc);
     if (ret_status != GRAPH_SUCCESS) {
-      GELOGE(GRAPH_FAILED, "[Call][RefreshConstantOutProcess] failed! graph:%s, op:%s",
-             com_graph->GetName().c_str(), one_op_desc->GetName().c_str());
+      GELOGE(GRAPH_FAILED, "[Call][RefreshConstantOutProcess] failed! graph:%s, op:%s", com_graph->GetName().c_str(),
+             one_op_desc->GetName().c_str());
       return GRAPH_FAILED;
     }
 
@@ -265,8 +260,8 @@ graphStatus FormatRefiner::GetAnchorPoints(const ComputeGraphPtr &com_graph,
     // so here do special process
     ret_status = BiasAddFormatFixProcess(one_node_ptr);
     if (ret_status != GRAPH_SUCCESS) {
-      GELOGE(GRAPH_FAILED, "[Call][BiasAddFormatFixProcess] failed! node:%s, graph:%s",
-             one_node_ptr->GetName().c_str(), com_graph->GetName().c_str());
+      GELOGE(GRAPH_FAILED, "[Call][BiasAddFormatFixProcess] failed! node:%s, graph:%s", one_node_ptr->GetName().c_str(),
+             com_graph->GetName().c_str());
       return GRAPH_FAILED;
     }
 
@@ -287,14 +282,14 @@ graphStatus FormatRefiner::AnchorProcess(const NodePtr &anchor_node) {
     GE_CHECK_NOTNULL(one_node->GetOpDesc());
     graphStatus ret_status = BackInferProcess(nodes, one_node);
     if ((ret_status != GRAPH_SUCCESS) && (one_node != nullptr)) {
-      GELOGE(ret_status, "[Back][InferProcess] failed! status:%d, node name [%s]",
-             ret_status, one_node->GetName().c_str());
+      GELOGE(ret_status, "[Back][InferProcess] failed! status:%d, node name [%s]", ret_status,
+             one_node->GetName().c_str());
       return ret_status;
     }
     ret_status = ForwardInferProcess(nodes, one_node);
     if ((ret_status != GRAPH_SUCCESS) && (one_node != nullptr)) {
-      GELOGE(ret_status, "[Forward][InferProcess] failed! status:%d, node name [%s]",
-             ret_status, one_node->GetName().c_str());
+      GELOGE(ret_status, "[Forward][InferProcess] failed! status:%d, node name [%s]", ret_status,
+             one_node->GetName().c_str());
       return ret_status;
     }
   }
@@ -311,7 +306,7 @@ graphStatus FormatRefiner::BackInferProcess(std::deque<NodePtr> &nodes, const No
     GE_IF_BOOL_EXEC(to_be_set_format == FORMAT_ND, GELOGD("Node [%s] format is ND.[B]", node->GetName().c_str());
                     continue);
     const auto peer_out_data_anchor = in_anchor->GetPeerOutAnchor();
-    GE_IF_BOOL_EXEC (peer_out_data_anchor == nullptr, continue);
+    GE_IF_BOOL_EXEC(peer_out_data_anchor == nullptr, continue);
     const auto peer_out_data_node = peer_out_data_anchor->GetOwnerNode();
     const int32_t idx = peer_out_data_anchor->GetIdx();
     // do peer_out_node name and index as key to lookup reflections
@@ -320,7 +315,8 @@ graphStatus FormatRefiner::BackInferProcess(std::deque<NodePtr> &nodes, const No
     auto status = reflection_builder.LookUpRefRelations(key, reflection);
     GE_IF_BOOL_EXEC(status != GRAPH_SUCCESS,
                     GELOGE(GRAPH_FAILED, "[Call][LookUpRefRelations] failed! Node is [%s], the %d out edge",
-                           (peer_out_data_node->GetName()).c_str(), idx); return GRAPH_FAILED);
+                           (peer_out_data_node->GetName()).c_str(), idx);
+                    return GRAPH_FAILED);
 
     // Check format whether have been set
     // op_desc of node should not be null
@@ -334,7 +330,8 @@ graphStatus FormatRefiner::BackInferProcess(std::deque<NodePtr> &nodes, const No
     if ((ge_tensor_desc->GetOriginFormat() == FORMAT_ND) && (!format_locked)) {
       const auto dim_num = ge_tensor_desc->GetShape().GetDimNum();
       GE_IF_BOOL_EXEC(dim_num == 0UL, GELOGD("node name:%s idx:%d out is scalar. stop back infer!",
-                                             peer_out_data_node->GetName().c_str(), idx); continue);
+                                             peer_out_data_node->GetName().c_str(), idx);
+                      continue);
 
       /// Check whether node to change dims ()
       /// Because some node will calculate with 5D, C dim maybe multi meaning
@@ -355,7 +352,8 @@ graphStatus FormatRefiner::BackInferProcess(std::deque<NodePtr> &nodes, const No
         GELOGD("call infer format func[Back]!Node is [%s] ", (peer_out_data_node->GetName()).c_str());
         status = NodeUtilsEx::InferOriginFormat(peer_out_data_node);
         GE_IF_BOOL_EXEC(status != GRAPH_SUCCESS, GELOGE(GRAPH_FAILED, "[Infer][Format] failed, Node:%s",
-                                                        (peer_out_data_node->GetName()).c_str()); return GRAPH_FAILED);
+                                                        (peer_out_data_node->GetName()).c_str());
+                        return GRAPH_FAILED);
         nodes.push_back(peer_out_data_node);
       } else {
         const auto ret = ReflectionProcess(reflection, nodes, to_be_set_format);
@@ -377,7 +375,7 @@ graphStatus FormatRefiner::ForwardInferProcess(std::deque<NodePtr> &nodes, const
       continue;
     }
     const auto to_be_set_format =
-      node->GetOpDesc()->MutableOutputDesc(static_cast<uint32_t>(out_data_anchor_idx))->GetOriginFormat();
+        node->GetOpDesc()->MutableOutputDesc(static_cast<uint32_t>(out_data_anchor_idx))->GetOriginFormat();
     if (to_be_set_format == FORMAT_ND) {
       GELOGD("Node [%s] format is ND.[F]", node->GetName().c_str());
       continue;
@@ -421,7 +419,7 @@ graphStatus FormatRefiner::DataNodeFormatProcess(const ComputeGraphPtr &graph,
                                                  const Format data_format) {
   if (!(IsGraphInferred(graph) && (!TypeUtilsInner::IsInternalFormat(data_format)) && (data_format != FORMAT_ND))) {
     GELOGI("no necessary to do DataNodeFormatProcess. is_graph_inferred:%d, data_format:%s",
-           static_cast<int32_t >(IsGraphInferred(graph)), TypeUtils::FormatToSerialString(data_format).c_str());
+           static_cast<int32_t>(IsGraphInferred(graph)), TypeUtils::FormatToSerialString(data_format).c_str());
     return GRAPH_SUCCESS;
   }
   GELOGD("Enter DataNodeFormatProcess");
@@ -491,7 +489,7 @@ graphStatus FormatRefiner::InferOrigineFormat(const ComputeGraphPtr &graph) {
   // User set global net format
   status = GetAnchorPoints(graph, anchor_points, anchor_data_nodes);
   if (status != GRAPH_SUCCESS) {
-    GELOGE(GRAPH_FAILED, "GetAnchorPoints Process Faild! graph:%s", graph->GetName().c_str());
+    GELOGE(GRAPH_FAILED, "GetAnchorPoints Process Failed! graph:%s", graph->GetName().c_str());
     return GRAPH_FAILED;
   }
   // Refresh origin format of anchor point
@@ -523,4 +521,4 @@ bool FormatRefiner::IsGraphInferred(const ComputeGraphPtr &graph) {
   bool is_graph_inferred = false;
   return (AttrUtils::GetBool(graph, kIsGraphInferred, is_graph_inferred) && is_graph_inferred);
 }
-}  // namespace ge
+}  // namespace af

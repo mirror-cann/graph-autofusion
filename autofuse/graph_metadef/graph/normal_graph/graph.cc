@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -54,7 +54,8 @@ class GraphImpl {
 
   graphStatus SetInputs(const std::vector<Operator> &inputs) {
     GE_ASSERT(!IsValid(),
-              "Inner graph has been inited, maybe you call `SetInputs` again or call `AddNodeByOp or SetValid` before `SetInputs`");
+              "Inner graph has been inited, maybe you call `SetInputs` again or call `AddNodeByOp or SetValid` before "
+              "`SetInputs`");
     compute_graph_ = GraphUtilsEx::CreateGraphFromOperator(name_, inputs);
     GE_CHK_BOOL_RET_STATUS(compute_graph_ != nullptr, GRAPH_FAILED, "[Build][Graph] failed.");
     GE_CHK_BOOL_RET_STATUS(inputs.size() != 0U, GRAPH_FAILED, "[Check][Param] set input NULL.");
@@ -100,7 +101,7 @@ class GraphImpl {
       const Operator &output = item.first;
       const std::vector<size_t> &indexs = item.second;
       AscendString out_name;
-      (void) output.GetName(out_name);
+      (void)output.GetName(out_name);
       NodePtr node = compute_graph_->FindNode(out_name.GetString());
       if (node == nullptr) {
         GELOGW("[SetOutputs][Check] User designated out_node %s does not exist in graph, skip it",
@@ -134,7 +135,7 @@ class GraphImpl {
 
     // Del last ";"
     if (!output_name_.empty()) {
-        output_name_ = output_name_.substr(0U, output_name_.length() - 1U);
+      output_name_ = output_name_.substr(0U, output_name_.length() - 1U);
     }
     compute_graph_->SetUserDefOutput(output_name_);
     compute_graph_->SetOutputSize(static_cast<uint32_t>(output_indexs.size()));
@@ -153,13 +154,15 @@ class GraphImpl {
     std::vector<std::pair<NodePtr, int32_t>> output_nodes;
     for (const auto &item : outputs) {
       AscendString out_name;
-      (void) item.first.GetName(out_name);
+      (void)item.first.GetName(out_name);
       NodePtr node = compute_graph_->FindNode(out_name.GetString());
       if (node == nullptr) {
         REPORT_INNER_ERR_MSG("E18888", "designated out_node (%s) does not exist in graph:%s, this out_node ignored!",
                              out_name.GetString(), compute_graph_->GetName().c_str());
-        GELOGE(GRAPH_FAILED, "[Check][Param] Warning, user designated out_node (%s) does not exist in graph:%s, "
-               "this out_node ignored!", out_name.GetString(), compute_graph_->GetName().c_str());
+        GELOGE(GRAPH_FAILED,
+               "[Check][Param] Warning, user designated out_node (%s) does not exist in graph:%s, "
+               "this out_node ignored!",
+               out_name.GetString(), compute_graph_->GetName().c_str());
         return GRAPH_FAILED;
       }
       const OpDescPtr tmp_op_ptr = node->GetOpDesc();
@@ -181,9 +184,10 @@ class GraphImpl {
                                "user designated out_node (%s):(%s) does not exist in graph:%s, "
                                "this out_node ignored!",
                                out_name.GetString(), item.second.c_str(), compute_graph_->GetName().c_str());
-          GELOGE(GRAPH_FAILED, "[Check][Param] Warning, user designated out_node (%s):(%s) does not exist in graph:%s, "
-                 "this out_node ignored!", out_name.GetString(), item.second.c_str(),
-                 compute_graph_->GetName().c_str());
+          GELOGE(GRAPH_FAILED,
+                 "[Check][Param] Warning, user designated out_node (%s):(%s) does not exist in graph:%s, "
+                 "this out_node ignored!",
+                 out_name.GetString(), item.second.c_str(), compute_graph_->GetName().c_str());
           return GRAPH_FAILED;
         }
         output_name_ += std::string(out_name.GetString()) + ":" + std::to_string(index) + ";";
@@ -222,7 +226,7 @@ class GraphImpl {
     std::vector<NodePtr> target_nodes;
     for (const auto &item : targets) {
       AscendString name;
-      (void) item.GetName(name);
+      (void)item.GetName(name);
       const NodePtr node = compute_graph_->FindNode(name.GetString());
       if (node == nullptr) {
         GELOGW("[SetTargets][Check] User designated target_node %s does not exist in graph, skip it", name.GetString());
@@ -233,11 +237,13 @@ class GraphImpl {
     GE_ASSERT_SUCCESS(compute_graph_->SetGraphTargetNodesInfo(target_nodes));
     return GRAPH_SUCCESS;
   }
-  bool IsValid() const { return (compute_graph_ != nullptr); }
+  bool IsValid() const {
+    return (compute_graph_ != nullptr);
+  }
 
   graphStatus AddOp(const Operator &op) {
     AscendString name;
-    (void) op.GetName(name);
+    (void)op.GetName(name);
     const auto ret = op_list_.emplace(std::pair<std::string, Operator>(name.GetString(), op));
     GE_CHK_BOOL_RET_STATUS(ret.second, GRAPH_FAILED, "[Check][Param] the op have added before, op name:%s.",
                            name.GetString());
@@ -255,8 +261,7 @@ class GraphImpl {
 
   graphStatus FindOpByName(const std::string &name, Operator &op) const {
     const auto it = op_list_.find(name);
-    GE_CHK_BOOL_EXEC(it != op_list_.end(),
-                     REPORT_INNER_ERR_MSG("E18888", "there is no op: %s.", name.c_str());
+    GE_CHK_BOOL_EXEC(it != op_list_.end(), REPORT_INNER_ERR_MSG("E18888", "there is no op: %s.", name.c_str());
                      return GRAPH_FAILED, "[Find][Op] there is no op: %s.", name.c_str());
     op = it->second;
     return GRAPH_SUCCESS;
@@ -265,13 +270,13 @@ class GraphImpl {
   graphStatus FindOpByType(const std::string &type, std::vector<Operator> &ops) const {
     for (auto &op : op_list_) {
       AscendString op_type;
-      (void) op.second.GetOpType(op_type);
+      (void)op.second.GetOpType(op_type);
       if (op_type.GetString() == type) {
         ops.push_back(op.second);
         continue;
       }
       if (op_type == FRAMEWORKOP) {
-        (void) op.second.GetAttr(ATTR_NAME_FRAMEWORK_ORIGINAL_TYPE.c_str(), op_type);
+        (void)op.second.GetAttr(ATTR_NAME_FRAMEWORK_ORIGINAL_TYPE.c_str(), op_type);
         if (op_type.GetString() == type) {
           ops.push_back(op.second);
         }
@@ -303,8 +308,8 @@ class GraphImpl {
     return GRAPH_SUCCESS;
   }
 
-  graphStatus RemoveEdge(const NodePtr &src_node_ptr, const int32_t src_port_index,
-                         const NodePtr &dst_node_ptr, const int32_t dst_port_index) {
+  graphStatus RemoveEdge(const NodePtr &src_node_ptr, const int32_t src_port_index, const NodePtr &dst_node_ptr,
+                         const int32_t dst_port_index) {
     GE_CHECK_NOTNULL(src_node_ptr);
     GE_CHECK_NOTNULL(dst_node_ptr);
 
@@ -319,8 +324,8 @@ class GraphImpl {
       if (res != GRAPH_SUCCESS) {
         REPORT_INNER_ERR_MSG("E18888", "remove control edge between [%s] and [%s]failed.",
                              src_node_ptr->GetName().c_str(), dst_node_ptr->GetName().c_str());
-        GELOGE(GRAPH_FAILED, "[Remove][ControlEdge] between [%s] and [%s]failed.",
-               src_node_ptr->GetName().c_str(), dst_node_ptr->GetName().c_str());
+        GELOGE(GRAPH_FAILED, "[Remove][ControlEdge] between [%s] and [%s]failed.", src_node_ptr->GetName().c_str(),
+               dst_node_ptr->GetName().c_str());
         return GRAPH_FAILED;
       }
       return GRAPH_SUCCESS;
@@ -329,8 +334,8 @@ class GraphImpl {
     if (src_node_ptr->GetOutDataAnchor(src_port_index) == nullptr) {
       REPORT_INNER_ERR_MSG("E18888", "src node[%s] out data anchor[%d] is null.", src_node_ptr->GetName().c_str(),
                            src_port_index);
-      GELOGE(GRAPH_FAILED, "[Get][Anchor] src node[%s] out data anchor[%d] is null.",
-             src_node_ptr->GetName().c_str(), src_port_index);
+      GELOGE(GRAPH_FAILED, "[Get][Anchor] src node[%s] out data anchor[%d] is null.", src_node_ptr->GetName().c_str(),
+             src_port_index);
       return GRAPH_FAILED;
     }
 
@@ -339,8 +344,8 @@ class GraphImpl {
       if (res != GRAPH_SUCCESS) {
         REPORT_INNER_ERR_MSG("E18888", "remove data-control edge between [%s] and [%s]failed.",
                              src_node_ptr->GetName().c_str(), dst_node_ptr->GetName().c_str());
-        GELOGE(GRAPH_FAILED, "[Remove][Edge] between [%s] and [%s]failed.",
-               src_node_ptr->GetName().c_str(), dst_node_ptr->GetName().c_str());
+        GELOGE(GRAPH_FAILED, "[Remove][Edge] between [%s] and [%s]failed.", src_node_ptr->GetName().c_str(),
+               dst_node_ptr->GetName().c_str());
         return GRAPH_FAILED;
       }
       return GRAPH_SUCCESS;
@@ -351,8 +356,8 @@ class GraphImpl {
     if (res != GRAPH_SUCCESS) {
       REPORT_INNER_ERR_MSG("E18888", "remove data edge between [%s] and [%s] failed.", src_node_ptr->GetName().c_str(),
                            dst_node_ptr->GetName().c_str());
-      GELOGE(GRAPH_FAILED, "[Remove][Edge] between [%s] and [%s] failed.",
-             src_node_ptr->GetName().c_str(), dst_node_ptr->GetName().c_str());
+      GELOGE(GRAPH_FAILED, "[Remove][Edge] between [%s] and [%s] failed.", src_node_ptr->GetName().c_str(),
+             dst_node_ptr->GetName().c_str());
       return GRAPH_FAILED;
     }
 
@@ -456,7 +461,7 @@ Graph &Graph::SetInputs(const std::vector<Operator> &inputs) {
                    return *this, "[Check][Param] SetInputs failed: graph can not be used, impl is nullptr.");
   GE_CHK_BOOL_EXEC(!inputs.empty(), REPORT_INNER_ERR_MSG("E18888", "input operator size can not be 0");
                    return *this, "[Check][Param] SetInputs failed: input operator size can not be 0, graph: %s",
-                   impl_->GetName().c_str());
+                          impl_->GetName().c_str());
   (void)impl_->SetInputs(inputs);
   return *this;
 }
@@ -498,7 +503,7 @@ Graph &Graph::SetOutputs(const std::vector<std::pair<Operator, AscendString>> &o
                    return *this, "[Check][Param] SetOutputs failed: graph can not be used, impl is nullptr.");
   std::vector<std::pair<Operator, std::string>> graph_outputs;
   for (auto &item : outputs) {
-    const char_t * const name = item.second.GetString();
+    const char_t *const name = item.second.GetString();
     if (name != nullptr) {
       graph_outputs.emplace_back((std::pair<Operator, std::string>(item.first, name)));
     } else {
@@ -573,7 +578,7 @@ std::vector<GraphPtr> Graph::GetAllSubgraphs() const {
 
 GraphPtr Graph::GetSubGraph(const char *name) const {
   GE_ASSERT(IsValid(), "[Check][Param] current graph is invalid.");
-  auto sub_compute_graph =  impl_->GetComputeGraph()->GetSubgraph(name);
+  auto sub_compute_graph = impl_->GetComputeGraph()->GetSubgraph(name);
   if (sub_compute_graph != nullptr) {
     return GraphUtilsEx::CreateGraphPtrFromComputeGraph(sub_compute_graph);
   }
@@ -588,8 +593,8 @@ graphStatus Graph::AddSubGraph(const Graph &subgraph) {
   if (compute_graph->AddSubgraph(sub_compute_graph) != GRAPH_SUCCESS) {
     REPORT_INNER_ERR_MSG("E18888", "graph:%s add subgraph:%s failed", compute_graph->GetName().c_str(),
                          sub_compute_graph->GetName().c_str());
-    GELOGE(GRAPH_FAILED, "[Add][Subgraph] %s to graph:%s failed.",
-           sub_compute_graph->GetName().c_str(), compute_graph->GetName().c_str());
+    GELOGE(GRAPH_FAILED, "[Add][Subgraph] %s to graph:%s failed.", sub_compute_graph->GetName().c_str(),
+           compute_graph->GetName().c_str());
     return GRAPH_FAILED;
   }
   return GRAPH_SUCCESS;
@@ -644,8 +649,8 @@ graphStatus Graph::RemoveNode(GNode &node, bool contain_subgraph) {
     if (!GraphUtils::IsNodeInGraphRecursively(compute_graph_ptr, *node_ptr)) {
       REPORT_INNER_ERR_MSG("E18888", "node[%s] is not in the graph[%s] or not in subgraph.",
                            node_ptr->GetName().c_str(), compute_graph_ptr->GetName().c_str());
-      GELOGE(GRAPH_FAILED, "[Check][Param] node[%s] is not in the graph[%s].",
-             node_ptr->GetName().c_str(), compute_graph_ptr->GetName().c_str());
+      GELOGE(GRAPH_FAILED, "[Check][Param] node[%s] is not in the graph[%s].", node_ptr->GetName().c_str(),
+             compute_graph_ptr->GetName().c_str());
       return GRAPH_FAILED;
     }
     compute_graph_ptr = owner_compute_graph;
@@ -653,8 +658,8 @@ graphStatus Graph::RemoveNode(GNode &node, bool contain_subgraph) {
     if (compute_graph_ptr != owner_compute_graph) {
       REPORT_INNER_ERR_MSG("E18888", "node[%s] is not in the graph[%s].", node_ptr->GetName().c_str(),
                            compute_graph_ptr->GetName().c_str());
-      GELOGE(GRAPH_FAILED, "[Check][Param] node[%s] is not in the graph[%s].",
-             node_ptr->GetName().c_str(), compute_graph_ptr->GetName().c_str());
+      GELOGE(GRAPH_FAILED, "[Check][Param] node[%s] is not in the graph[%s].", node_ptr->GetName().c_str(),
+             compute_graph_ptr->GetName().c_str());
       return GRAPH_FAILED;
     }
   }
@@ -663,16 +668,16 @@ graphStatus Graph::RemoveNode(GNode &node, bool contain_subgraph) {
   if (GraphUtils::RemoveNodeWithoutRelink(compute_graph_ptr, node_ptr) != GRAPH_SUCCESS) {
     REPORT_INNER_ERR_MSG("E18888", "graph:%s remove node:%s failed", compute_graph_ptr->GetName().c_str(),
                          node_ptr->GetName().c_str());
-    GELOGE(GRAPH_FAILED, "[Remove][Node] %s from graph:%s failed.",
-           node_ptr->GetName().c_str(), compute_graph_ptr->GetName().c_str());
+    GELOGE(GRAPH_FAILED, "[Remove][Node] %s from graph:%s failed.", node_ptr->GetName().c_str(),
+           compute_graph_ptr->GetName().c_str());
     return GRAPH_FAILED;
   }
   (void)node_ptr->ClearOwnerGraph(nullptr);
   return GRAPH_SUCCESS;
 }
 
-graphStatus Graph::RemoveEdge(GNode &src_node, const int32_t src_port_index,
-                              GNode &dst_node, const int32_t dst_port_index) {
+graphStatus Graph::RemoveEdge(GNode &src_node, const int32_t src_port_index, GNode &dst_node,
+                              const int32_t dst_port_index) {
   if (impl_ == nullptr) {
     REPORT_INNER_ERR_MSG("E18888", "graph can not be used, impl is nullptr.");
     GELOGE(GRAPH_FAILED, "[Check][Param] graph can not be used, impl is nullptr.");
@@ -714,8 +719,8 @@ graphStatus Graph::RemoveEdge(GNode &src_node, const int32_t src_port_index,
   if (impl_->RemoveEdge(src_node_ptr, src_port_index, dst_node_ptr, dst_port_index) != GRAPH_SUCCESS) {
     REPORT_INNER_ERR_MSG("E18888", "remove edge between %s(%d) and %s(%d) failed.", src_node_ptr->GetName().c_str(),
                          src_port_index, dst_node_ptr->GetName().c_str(), dst_port_index);
-    GELOGE(GRAPH_FAILED, "[Remove][Edge] between %s(%d) and %s(%d) failed.",
-           src_node_ptr->GetName().c_str(), src_port_index, dst_node_ptr->GetName().c_str(), dst_port_index);
+    GELOGE(GRAPH_FAILED, "[Remove][Edge] between %s(%d) and %s(%d) failed.", src_node_ptr->GetName().c_str(),
+           src_port_index, dst_node_ptr->GetName().c_str(), dst_port_index);
     return GRAPH_FAILED;
   }
 
@@ -732,10 +737,10 @@ GNode Graph::AddNodeByOp(const Operator &op) {
   const OpDescPtr op_desc = OpDescUtils::GetOpDescFromOperator(op);
   if (op_desc == nullptr) {
     AscendString name;
-    (void) op.GetName(name);
+    (void)op.GetName(name);
     REPORT_INNER_ERR_MSG("E18888", "get op desc from op:%s failed", name.GetString());
     GELOGE(GRAPH_FAILED, "[Get][OpDesc] from op[%s] failed.", name.GetString());
-    return  GNode();
+    return GNode();
   }
 
   GE_ASSERT_GRAPH_SUCCESS(SetValid());
@@ -747,8 +752,8 @@ GNode Graph::AddNodeByOp(const Operator &op) {
   return gnode;
 }
 
-graphStatus Graph::AddDataEdge(GNode &src_node, const int32_t src_port_index,
-                               GNode &dst_node, const int32_t dst_port_index) {
+graphStatus Graph::AddDataEdge(GNode &src_node, const int32_t src_port_index, GNode &dst_node,
+                               const int32_t dst_port_index) {
   if (impl_ == nullptr) {
     REPORT_INNER_ERR_MSG("E18888", "graph can not be used, impl is nullptr.");
     GELOGE(GRAPH_FAILED, "[Check][Param] graph can not be used, impl is nullptr.");
@@ -929,16 +934,14 @@ graphStatus Graph::LoadFromSerializedModelArray(const void *serialized_model, si
   return GRAPH_SUCCESS;
 }
 
-graphStatus Graph::SaveToMem(GraphBuffer &graph_buffer) const
-{
+graphStatus Graph::SaveToMem(GraphBuffer &graph_buffer) const {
   Model model = Model();
   model.SetGraph(GraphUtilsEx::GetComputeGraph(*this));
   GE_ASSERT_GRAPH_SUCCESS(model.Save(*(graph_buffer.buffer_)), "Failed to save graph to memory.");
   return GRAPH_SUCCESS;
 }
 
-graphStatus Graph::LoadFromMem(const GraphBuffer &graph_buffer)
-{
+graphStatus Graph::LoadFromMem(const GraphBuffer &graph_buffer) {
   Model model = Model();
   GE_ASSERT_GRAPH_SUCCESS(Model::Load(graph_buffer.GetData(), graph_buffer.GetSize(), model),
                           "Failed to load graph from memory.");
@@ -947,8 +950,7 @@ graphStatus Graph::LoadFromMem(const GraphBuffer &graph_buffer)
   return GRAPH_SUCCESS;
 }
 
-graphStatus Graph::LoadFromMem(const uint8_t *data, const size_t len)
-{
+graphStatus Graph::LoadFromMem(const uint8_t *data, const size_t len) {
   Model model = Model();
   GE_ASSERT_GRAPH_SUCCESS(Model::Load(data, len, model), "Failed to load graph from memory.");
 
@@ -956,8 +958,7 @@ graphStatus Graph::LoadFromMem(const uint8_t *data, const size_t len)
   return GRAPH_SUCCESS;
 }
 
-GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY
-const std::string &Graph::GetName() const {
+GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY const std::string &Graph::GetName() const {
   return impl_->GetName();
 }
 
@@ -1135,7 +1136,8 @@ GNodePtr Graph::FindNodeByName(const AscendString &node_name) const {
     return nullptr;
   }
   auto node = impl_->GetComputeGraph()->FindNode(node_name.GetString());
-  GE_ASSERT_NOTNULL(node, "Node name: %s was not found in the current graph：%s.", node_name.GetString(), impl_->GetName().c_str());
+  GE_ASSERT_NOTNULL(node, "Node name: %s was not found in the current graph：%s.", node_name.GetString(),
+                    impl_->GetName().c_str());
   return NodeAdapter::Node2GNodePtr(node);
 }
 
@@ -1161,10 +1163,9 @@ GNodePtr Graph::GetParentNode() const {
   return NodeAdapter::Node2GNodePtr(parent_graph_node_ptr);
 }
 
-GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY graphStatus
-GraphUtils::CopyGraphImpl(const Graph &src_graph, Graph &dst_graph,
-                          const std::map<ConstNodePtr, NodePtr> &node_old_2_new,
-                          const std::map<ConstOpDescPtr, OpDescPtr> &op_desc_old_2_new) {
+GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY graphStatus GraphUtils::CopyGraphImpl(
+    const Graph &src_graph, Graph &dst_graph, const std::map<ConstNodePtr, NodePtr> &node_old_2_new,
+    const std::map<ConstOpDescPtr, OpDescPtr> &op_desc_old_2_new) {
   GE_CHECK_NOTNULL(dst_graph.impl_);
   GE_CHECK_NOTNULL(src_graph.impl_);
 
@@ -1174,9 +1175,7 @@ GraphUtils::CopyGraphImpl(const Graph &src_graph, Graph &dst_graph,
 
   dst_graph.impl_->output_name_ = src_graph.impl_->output_name_;
 
-  auto ret = OpDescUtils::CopyOperators(dst_compute_graph,
-                                        node_old_2_new, op_desc_old_2_new,
-                                        src_op_list, dst_op_list);
+  auto ret = OpDescUtils::CopyOperators(dst_compute_graph, node_old_2_new, op_desc_old_2_new, src_op_list, dst_op_list);
   if (ret != GRAPH_SUCCESS) {
     REPORT_INNER_ERR_MSG("E18888", "copy operators to graph:%s failed.", dst_compute_graph->GetName().c_str());
     GELOGE(GRAPH_FAILED, "[Copy][Operators] to graph:%s failed.", dst_compute_graph->GetName().c_str());
@@ -1199,15 +1198,13 @@ GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY ComputeGraphPtr GraphUtilsEx::Get
   return graph.impl_->compute_graph_;
 }
 
-GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY graphStatus GraphUtilsEx::CreateGraphFromOperatorWithStableTopo(
-    Graph &graph,
-    const std::vector<Operator> &ops) {
+GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY graphStatus
+GraphUtilsEx::CreateGraphFromOperatorWithStableTopo(Graph &graph, const std::vector<Operator> &ops) {
   AscendString graph_name;
   GE_ASSERT_SUCCESS(graph.GetName(graph_name));
   GE_ASSERT_TRUE(graph.impl_->compute_graph_ == nullptr, "Compute graph of graph: %s has been created",
-      graph_name.GetString());
-  graph.impl_->compute_graph_ =
-      GraphUtilsEx::CreateComputeGraphFromOperatorWithStableTopo(graph_name.GetString(), ops);
+                 graph_name.GetString());
+  graph.impl_->compute_graph_ = GraphUtilsEx::CreateComputeGraphFromOperatorWithStableTopo(graph_name.GetString(), ops);
   GE_ASSERT_NOTNULL(graph.impl_->compute_graph_);
   return SUCCESS;
 }
@@ -1227,8 +1224,8 @@ GraphUtilsEx::CreateGraphFromComputeGraph(const ComputeGraphPtr compute_graph) {
   return graph;
 }
 
-GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY
-std::unique_ptr<Graph> GraphUtilsEx::CreateGraphUniquePtrFromComputeGraph(const ComputeGraphPtr &compute_graph) {
+GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY std::unique_ptr<Graph>
+GraphUtilsEx::CreateGraphUniquePtrFromComputeGraph(const ComputeGraphPtr &compute_graph) {
   GE_ASSERT_NOTNULL(compute_graph);
   auto name = compute_graph->GetName();
   auto graph = ComGraphMakeUnique<Graph>(name.c_str());
@@ -1242,8 +1239,7 @@ GraphUtilsEx::CreateGraphPtrFromComputeGraph(const ComputeGraphPtr compute_graph
   return CreateGraphUniquePtrFromComputeGraph(compute_graph);
 }
 
-GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY
-graphStatus GraphUtilsEx::RecoverGraphOperators(const Graph &graph) {
+GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY graphStatus GraphUtilsEx::RecoverGraphOperators(const Graph &graph) {
   GE_CHECK_NOTNULL(graph.impl_);
   GE_CHECK_NOTNULL(graph.impl_->compute_graph_);
 
@@ -1254,10 +1250,9 @@ graphStatus GraphUtilsEx::RecoverGraphOperators(const Graph &graph) {
   return SUCCESS;
 }
 
-GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY graphStatus
-GraphUtilsEx::CopyGraphImpl(const Graph &src_graph, Graph &dst_graph,
-                            const std::map<ConstNodePtr, NodePtr> &node_old_2_new,
-                            const std::map<ConstOpDescPtr, OpDescPtr> &op_desc_old_2_new) {
+GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY graphStatus GraphUtilsEx::CopyGraphImpl(
+    const Graph &src_graph, Graph &dst_graph, const std::map<ConstNodePtr, NodePtr> &node_old_2_new,
+    const std::map<ConstOpDescPtr, OpDescPtr> &op_desc_old_2_new) {
   GE_CHECK_NOTNULL(dst_graph.impl_);
   GE_CHECK_NOTNULL(src_graph.impl_);
 
@@ -1267,9 +1262,7 @@ GraphUtilsEx::CopyGraphImpl(const Graph &src_graph, Graph &dst_graph,
 
   dst_graph.impl_->output_name_ = src_graph.impl_->output_name_;
 
-  auto ret = OpDescUtils::CopyOperators(dst_compute_graph,
-                                        node_old_2_new, op_desc_old_2_new,
-                                        src_op_list, dst_op_list);
+  auto ret = OpDescUtils::CopyOperators(dst_compute_graph, node_old_2_new, op_desc_old_2_new, src_op_list, dst_op_list);
   if (ret != GRAPH_SUCCESS) {
     REPORT_INNER_ERR_MSG("E18888", "copy operators to graph:%s failed.", dst_compute_graph->GetName().c_str());
     GELOGE(GRAPH_FAILED, "[Copy][Operators] to graph:%s failed.", dst_compute_graph->GetName().c_str());
@@ -1284,7 +1277,7 @@ GraphUtilsEx::CopyGraphImpl(const Graph &src_graph, Graph &dst_graph,
   }
   return GRAPH_SUCCESS;
 }
-}  // namespace ge
+}  // namespace af
 
 #ifdef __cplusplus
 extern "C" {

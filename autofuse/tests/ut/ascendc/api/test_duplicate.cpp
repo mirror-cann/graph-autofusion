@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -22,7 +22,7 @@
 
 using namespace AscendC;
 
-namespace af{
+namespace af {
 template <typename T>
 struct DuplicateInputParam {
   T *y{};
@@ -147,8 +147,8 @@ TEST_F(TestApiDuplicateUT, Duplicate_uint64_LT_RPT) {
 
 TEST_F(TestApiDuplicateUT, Duplicate_uint64_LT_MAX) {
   DuplicateTest<uint64_t>(((MAX_REPEAT_NUM - 1) * ONE_REPEAT_BYTE_SIZE + (ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) +
-                          (ONE_BLK_SIZE - sizeof(uint64_t))) /
-                         sizeof(uint64_t));
+                           (ONE_BLK_SIZE - sizeof(uint64_t))) /
+                          sizeof(uint64_t));
 }
 
 TEST_F(TestApiDuplicateUT, Duplicate_u8_LT_1BLK) {
@@ -185,7 +185,8 @@ TEST_F(TestApiDuplicateUT, Duplicate_u8_LT_RPT) {
 
 TEST_F(TestApiDuplicateUT, Duplicate_u8_LT_MAX) {
   DuplicateTest<uint8_t>(((MAX_REPEAT_NUM - 1) * ONE_REPEAT_BYTE_SIZE + (ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) +
-                          (ONE_BLK_SIZE - sizeof(uint8_t))) / sizeof(uint8_t));
+                          (ONE_BLK_SIZE - sizeof(uint8_t))) /
+                         sizeof(uint8_t));
 }
 
 TEST_F(TestApiDuplicateUT, Duplicate_s8_LT_1BLK) {
@@ -222,6 +223,7 @@ TEST_F(TestApiDuplicateUT, Duplicate_s8_LT_RPT) {
 
 TEST_F(TestApiDuplicateUT, Duplicate_s8_LT_MAX) {
   DuplicateTest<int8_t>(((MAX_REPEAT_NUM - 1) * ONE_REPEAT_BYTE_SIZE + (ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) +
-                          (ONE_BLK_SIZE - sizeof(int8_t))) / sizeof(int8_t));
+                         (ONE_BLK_SIZE - sizeof(int8_t))) /
+                        sizeof(int8_t));
 }
-}  // namespace ge
+}  // namespace af

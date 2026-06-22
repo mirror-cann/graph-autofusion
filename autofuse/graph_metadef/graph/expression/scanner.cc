@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -14,15 +14,30 @@
 
 namespace af {
 namespace {
-std::unordered_map<std::string, TokenType> kTokenMap = {
-    {"Max", TokenType::kMax}, {"Min", TokenType::kMin}, {"Pow", TokenType::kPow}, {"Log", TokenType::kLog},
-    {"Ceiling", TokenType::kCeil}, {"Rational", TokenType::kRational}, {"+", TokenType::kPlus},
-    {"-", TokenType::kMinus}, {"*", TokenType::kMultiply}, {"/", TokenType::kDivide},
-    {"(", TokenType::kLparen}, {")", TokenType::kRparen}, {",", TokenType::kComma},
-    {"Abs", TokenType::kAbs}, {"ExpectEq", TokenType::kEq}, {"ExpectNe", TokenType::kNe},
-    {"ExpectLe", TokenType::kLe}, {"ExpectLt", TokenType::kLt}, {"True", TokenType::kTrue},
-    {"False", TokenType::kFalse}, {"Floor", TokenType::kFloor}, {"Mod", TokenType::kMod},
-    {"LogicAnd", TokenType::kLogicalAnd}, {"LogicOr", TokenType::kLogicalOr}};
+std::unordered_map<std::string, TokenType> kTokenMap = {{"Max", TokenType::kMax},
+                                                        {"Min", TokenType::kMin},
+                                                        {"Pow", TokenType::kPow},
+                                                        {"Log", TokenType::kLog},
+                                                        {"Ceiling", TokenType::kCeil},
+                                                        {"Rational", TokenType::kRational},
+                                                        {"+", TokenType::kPlus},
+                                                        {"-", TokenType::kMinus},
+                                                        {"*", TokenType::kMultiply},
+                                                        {"/", TokenType::kDivide},
+                                                        {"(", TokenType::kLparen},
+                                                        {")", TokenType::kRparen},
+                                                        {",", TokenType::kComma},
+                                                        {"Abs", TokenType::kAbs},
+                                                        {"ExpectEq", TokenType::kEq},
+                                                        {"ExpectNe", TokenType::kNe},
+                                                        {"ExpectLe", TokenType::kLe},
+                                                        {"ExpectLt", TokenType::kLt},
+                                                        {"True", TokenType::kTrue},
+                                                        {"False", TokenType::kFalse},
+                                                        {"Floor", TokenType::kFloor},
+                                                        {"Mod", TokenType::kMod},
+                                                        {"LogicAnd", TokenType::kLogicalAnd},
+                                                        {"LogicOr", TokenType::kLogicalOr}};
 }
 Scanner::Scanner(const std::string &input) : input_(input), pos_(0) {
   Advance();
@@ -97,4 +112,4 @@ Token Scanner::ReadNumber() {
   }
   return {TokenType::kNumber, result};
 }
-}  // namespace ge
+}  // namespace af

@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -66,8 +66,8 @@ void ConstantLoadGtStore_BeforeAutofuse(af::AscGraph &graph) {
   y.x = store.y;
   y.attr.sched.axis = {z0.id};
 
-  //graph.SetInputs({x, constant});
-  //graph.SetOutputs({y});
+  // graph.SetInputs({x, constant});
+  // graph.SetOutputs({y});
 }
 
 void ConstantLoadGtStore_AfterInferOutput(af::AscGraph &graph) {
@@ -133,22 +133,34 @@ void ConstantLoadGtStore_AfterScheduler(af::AscGraph &graph) {
   graph.ApplySplit(load, z0T->id, z0t->id);
   graph.ApplySplit(load, z0TB->id, z0Tb->id);
   load->attr.sched.loop_axis = z0Tb->id;
-  load->outputs[0].attr.vectorized_axis = {z0t->id,};
-  load->outputs[0].attr.vectorized_strides = {One,};
+  load->outputs[0].attr.vectorized_axis = {
+      z0t->id,
+  };
+  load->outputs[0].attr.vectorized_strides = {
+      One,
+  };
 
   auto gt = graph.FindNode("gt");
   graph.ApplySplit(gt, z0T->id, z0t->id);
   graph.ApplySplit(gt, z0TB->id, z0Tb->id);
   gt->attr.sched.loop_axis = z0Tb->id;
-  gt->outputs[0].attr.vectorized_axis = {z0t->id,};
-  gt->outputs[0].attr.vectorized_strides = {One,};
+  gt->outputs[0].attr.vectorized_axis = {
+      z0t->id,
+  };
+  gt->outputs[0].attr.vectorized_strides = {
+      One,
+  };
 
   auto store = graph.FindNode("store");
   graph.ApplySplit(store, z0T->id, z0t->id);
   graph.ApplySplit(store, z0TB->id, z0Tb->id);
   store->attr.sched.loop_axis = z0Tb->id;
-  store->outputs[0].attr.vectorized_axis = {z0t->id,};
-  store->outputs[0].attr.vectorized_strides = {One,};
+  store->outputs[0].attr.vectorized_axis = {
+      z0t->id,
+  };
+  store->outputs[0].attr.vectorized_strides = {
+      One,
+  };
   cout << utils::DebugHintGraphStr(graph) << endl;
 }
 
@@ -201,12 +213,12 @@ void ConstantLoadGtStore_AfterQueBufAlloc(af::AscGraph &graph) {
 }
 
 void ConstantLoadGtStore_AfterAutofuse(af::AscGraph &graph, std::vector<af::AscGraph> &impl_graphs) {
-   ConstantLoadGtStore_BeforeAutofuse(graph);
-   ConstantLoadGtStore_AfterInferOutput(graph);
+  ConstantLoadGtStore_BeforeAutofuse(graph);
+  ConstantLoadGtStore_AfterInferOutput(graph);
 
-   impl_graphs.push_back(af::AscGraph("constant_load_gt_store_general_0_nil_0_nil"));
-   impl_graphs[0].CopyFrom(graph);
-   ConstantLoadGtStore_AfterGetApiInfo(impl_graphs[0]);
-   ConstantLoadGtStore_AfterScheduler(impl_graphs[0]);
-   ConstantLoadGtStore_AfterQueBufAlloc(impl_graphs[0]);
+  impl_graphs.push_back(af::AscGraph("constant_load_gt_store_general_0_nil_0_nil"));
+  impl_graphs[0].CopyFrom(graph);
+  ConstantLoadGtStore_AfterGetApiInfo(impl_graphs[0]);
+  ConstantLoadGtStore_AfterScheduler(impl_graphs[0]);
+  ConstantLoadGtStore_AfterQueBufAlloc(impl_graphs[0]);
 }

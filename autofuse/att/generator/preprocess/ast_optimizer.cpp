@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -56,8 +56,8 @@ std::vector<std::string> Parser::Tokenize(const std::string &s) const {
       continue;
     }
     // 处理负数
-    if ((s[i] == '-') && ((i == 0u) || tokens.empty() || (tokens.back() == "(") || (tokens.back() == ",")
-              || (std::string("+-*/(").find(tokens.back()[0]) != std::string::npos))) {
+    if ((s[i] == '-') && ((i == 0u) || tokens.empty() || (tokens.back() == "(") || (tokens.back() == ",") ||
+                          (std::string("+-*/(").find(tokens.back()[0]) != std::string::npos))) {
       HandleNegativeNumber(s, i, tokens);
     }
     // 处理非负数字
@@ -183,8 +183,8 @@ ASTPtr Parser::Parse() {
 }
 
 // 处理操作符或函数节点
-void ProcessOperatorOrFunction(ASTNode *node, std::unordered_map<std::string, std::string> &expr_map_, std::vector<ASTNode> &temp_order_,
-                               int32_t &temp_count_) {
+void ProcessOperatorOrFunction(ASTNode *node, std::unordered_map<std::string, std::string> &expr_map_,
+                               std::vector<ASTNode> &temp_order_, int32_t &temp_count_) {
   auto it = expr_map_.find(node->hash);
   if (it != expr_map_.end()) {
     node->temp_var = it->second;  // 复用已有变量名
@@ -212,7 +212,8 @@ void Optimizer::Traverse(ASTNode *node) {
   }
 }
 
-std::string RebuildFunctionCall(const ASTNode &node, int iter, std::function<std::string(const ASTNode &, int)> rebuild_expr) {
+std::string RebuildFunctionCall(const ASTNode &node, int iter,
+                                std::function<std::string(const ASTNode &, int)> rebuild_expr) {
   std::stringstream ss;
   ss << node.op << "(";
   for (size_t i = 0; i < node.children.size(); ++i) {
@@ -225,12 +226,13 @@ std::string RebuildFunctionCall(const ASTNode &node, int iter, std::function<std
   return ss.str();
 }
 
-std::string RebuildBinaryOperation(const ASTNode &node, int iter, std::function<std::string(const ASTNode &, int)> rebuild_expr) {
+std::string RebuildBinaryOperation(const ASTNode &node, int iter,
+                                   std::function<std::string(const ASTNode &, int)> rebuild_expr) {
   if (node.children.size() != 2u) {
     return node.expr;
   }
   return "(" + rebuild_expr(*node.children[0].get(), iter + 1) + " " + node.op + " " +
-              rebuild_expr(*node.children[1].get(), iter + 1) + ")";
+         rebuild_expr(*node.children[1].get(), iter + 1) + ")";
 }
 
 std::string Optimizer::RebuildExpr(const ASTNode &node, int iter) {
@@ -238,9 +240,7 @@ std::string Optimizer::RebuildExpr(const ASTNode &node, int iter) {
   if (!node.temp_var.empty() && (iter != 0)) {
     return node.temp_var;
   }
-  auto rebuild_expr = [this](const ASTNode &n, int i) { 
-    return this->RebuildExpr(n, i); 
-  };
+  auto rebuild_expr = [this](const ASTNode &n, int i) { return this->RebuildExpr(n, i); };
   switch (node.type) {
     case NodeType::FUNCTION:
       return RebuildFunctionCall(node, iter, rebuild_expr);

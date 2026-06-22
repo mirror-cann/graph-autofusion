@@ -21,5 +21,5 @@ class TruncToIntApiCall : public ApiCall {
                   const std::vector<std::reference_wrapper<const Tensor>> &inputs,
                   const std::vector<std::reference_wrapper<const Tensor>> &outputs, std::string &result) const override;
 };
-}
-#endif // __AUTOFUSE_TRUNC_TO_INT_API_CALL_H
+}  // namespace codegen
+#endif  // __AUTOFUSE_TRUNC_TO_INT_API_CALL_H

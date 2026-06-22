@@ -57,7 +57,10 @@ TEST_F(TestGenMatmulModelInfoE2E, case1) {
   EXPECT_EQ(generator.GenTilingCode("Matmul", modelInfos, config), af::SUCCESS);
   AddHeaderGuardToFile("autofuse_tiling_func_common.h", "__AUTOFUSE_TILING_FUNC_COMMON_H__");
 
-  ret = std::system(std::string("cp ").append(TOP_DIR).append("/tests/st/att/testcase/scenario/tiling_data/tiling_func_matmul_main.cpp ./ -f").c_str());
+  ret = std::system(std::string("cp ")
+                        .append(TOP_DIR)
+                        .append("/tests/st/att/testcase/scenario/tiling_data/tiling_func_matmul_main.cpp ./ -f")
+                        .c_str());
   ret = std::system(std::string("cp ").append(TOP_DIR).append("/tests/st/att/testcase/stub/op_log.h ./ -f").c_str());
   ret = autofuse::test::CopyStubFiles(UT_DIR, "testcase/stub/");
   EXPECT_EQ(ret, 0);

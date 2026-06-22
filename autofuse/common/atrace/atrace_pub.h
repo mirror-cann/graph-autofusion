@@ -31,8 +31,8 @@ TRACE_EXPORT TraHandle AtraceCreate(TracerType tracerType, const char *objName) 
  * @param [in]  attr:          object attribute
  * @return      atrace handle
  */
-TRACE_EXPORT TraHandle
-    AtraceCreateWithAttr(TracerType tracerType, const char *objName, const TraceAttr *attr) __attribute((weak));
+TRACE_EXPORT TraHandle AtraceCreateWithAttr(TracerType tracerType, const char *objName, const TraceAttr *attr)
+    __attribute((weak));
 
 /**
  * @brief       Get trace handle
@@ -74,8 +74,8 @@ TRACE_EXPORT TraStatus AtraceSave(TracerType tracerType, bool syncFlag) __attrib
  * @param [in]  bufSize:        size of buffer
  * @return      TraStatus
  */
-TRACE_EXPORT TraStatus AtraceSubmitByType(TraHandle handle, uint8_t bufferType,
-    const void *buffer, uint32_t bufSize) __attribute((weak));
+TRACE_EXPORT TraStatus AtraceSubmitByType(TraHandle handle, uint8_t bufferType, const void *buffer, uint32_t bufSize)
+    __attribute((weak));
 
 /**
  * @brief           create trace struct entry with name
@@ -100,8 +100,8 @@ TRACE_EXPORT void AtraceStructEntryDestroy(TraceStructEntry *en) __attribute((we
  * @param [in]      len:        bytes occupied by this item
  * @return          NA
  */
-TRACE_EXPORT void AtraceStructItemFieldSet(TraceStructEntry *en, const char *item,
-    uint8_t type, uint8_t mode, uint16_t len) __attribute((weak));
+TRACE_EXPORT void AtraceStructItemFieldSet(TraceStructEntry *en, const char *item, uint8_t type, uint8_t mode,
+                                           uint16_t len) __attribute((weak));
 
 /**
  * @brief           define trace struct item if array
@@ -112,8 +112,8 @@ TRACE_EXPORT void AtraceStructItemFieldSet(TraceStructEntry *en, const char *ite
  * @param [in]      len:        bytes occupied by this item
  * @return          NA
  */
-TRACE_EXPORT void AtraceStructItemArraySet(TraceStructEntry *en, const char *item,
-    uint8_t type, uint8_t mode, uint16_t len) __attribute((weak));
+TRACE_EXPORT void AtraceStructItemArraySet(TraceStructEntry *en, const char *item, uint8_t type, uint8_t mode,
+                                           uint16_t len) __attribute((weak));
 
 /**
  * @brief           set trace struct to trace attribute
@@ -177,6 +177,6 @@ TRACE_EXPORT TraStatus AtraceSetGlobalAttr(const TraceGlobalAttr *attr) __attrib
 
 #ifdef __cplusplus
 }
-#endif // end of the 'extern "C"' block
+#endif  // end of the 'extern "C"' block
 
-#endif //GRAPH_AUTOFUSION_ATRACE_PUB_H
+#endif  // GRAPH_AUTOFUSION_ATRACE_PUB_H

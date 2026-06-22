@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -19,7 +19,7 @@
 #include "transfer_def.h"
 
 namespace transformer {
- /* Pad dimension according to reshape type */
+/* Pad dimension according to reshape type */
 bool ExpandDimension(const std::string &op_type, const af::Format &original_format, const af::Format &final_format,
                      const uint32_t &tensor_index, const std::string &reshape_type, af::GeShape &shape);
 
@@ -47,17 +47,16 @@ class ExpandDimension {
   static bool GetDefaultReshapeType(const af::Format &origin_format, const size_t &origin_dim_size,
                                     std::string &reshape_type);
   static int32_t GetAxisIndexByName(char ch, const af::Format &format);
-  static int64_t GetReshapeAxicValue(const int64_t &reshape_type_mask,
-                                     const af::GeShape &shape, int32_t axis_index);
-  static int64_t GetReshapeAxicValueByName(const int64_t &reshape_type_mask, char ch,
-                                           const af::GeShape &shape, const af::Format &format);
+  static int64_t GetReshapeAxicValue(const int64_t &reshape_type_mask, const af::GeShape &shape, int32_t axis_index);
+  static int64_t GetReshapeAxicValueByName(const int64_t &reshape_type_mask, char ch, const af::GeShape &shape,
+                                           const af::Format &format);
   static bool GetFormatFullSize(const af::Format &format, size_t &full_size);
+
  private:
-  static bool IsNeedExpand(const af::Format &origin_format, const af::Format &format,
-                           const size_t &origin_dim_size, const size_t &full_size, const std::string &reshape_type);
+  static bool IsNeedExpand(const af::Format &origin_format, const af::Format &format, const size_t &origin_dim_size,
+                           const size_t &full_size, const std::string &reshape_type);
   static bool IsReshapeTypeValid(const af::Format &origin_format, const size_t &origin_dim_size,
                                  const std::string &reshape_type);
 };
-} // namespace transformer
-#endif // COMMON_UTILS_TRANSFORMER_INC_EXPAND_DIMENSION_H_
- 
+}  // namespace transformer
+#endif  // COMMON_UTILS_TRANSFORMER_INC_EXPAND_DIMENSION_H_

@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -37,18 +37,18 @@ enum class PatternRelation { RELATIVE_POSITION_CONSISTENT = 0 };
 extern const std::map<ShapeTypeRule, const std::string> kShapeTypeRuleToStr;
 
 struct BufferFusionOpDesc {
-  std::string desc_name;                       // description name
+  std::string desc_name;                      // description name
   std::vector<std::string> types;             // description type
   std::vector<BufferFusionOpDesc *> inputs;   // all input op
   std::vector<BufferFusionOpDesc *> outputs;  // all output op
-  int64_t out_branch_type;                      // out desc type, 1:single, 2: multi
-  int64_t repeate_min;                         // opdesc min repeat num
-  int64_t repeate_max;                         // opdesc max repeat num
-  int64_t repeate_curr;                        // opdesc current repeat num
+  int64_t out_branch_type;                    // out desc type, 1:single, 2: multi
+  int64_t repeate_min;                        // opdesc min repeat num
+  int64_t repeate_max;                        // opdesc max repeat num
+  int64_t repeate_curr;                       // opdesc current repeat num
   bool match_status;
   bool not_pattern;
   int64_t group_id;  // record desc groupid, need one desc matched at least in
-                    // the same group
+                     // the same group
   std::vector<ShapeTypeRule> shape_type_rules;
   bool ignore_input_num;
   bool ignore_output_num;
@@ -62,7 +62,7 @@ struct BufferFusionOpDesc {
 };
 
 struct MappingCmpKey {
-  bool operator() (const BufferFusionOpDesc *key1, const BufferFusionOpDesc *key2) const {
+  bool operator()(const BufferFusionOpDesc *key1, const BufferFusionOpDesc *key2) const {
     return (key1->desc_name) < (key2->desc_name);
   }
 };
@@ -85,15 +85,15 @@ class BufferFusionPattern {
                                  const ShapeTypeRule shape_type_rule = ONLY_SUPPORT_STATIC,
                                  const bool not_pattern = false, const bool is_allow_series = true);
 
-/**
- * add node desc
- * @param desc_name
- * @param types
- * @param repeat_min
- * @param repeat_max
- * @param is_allow_series
- * @return ref
- */
+  /**
+   * add node desc
+   * @param desc_name
+   * @param types
+   * @param repeat_min
+   * @param repeat_max
+   * @param is_allow_series
+   * @return ref
+   */
   BufferFusionPattern &AddOpDesc(const std::string &desc_name, const std::vector<std::string> &types,
                                  const int64_t repeat_min, const int64_t repeat_max, const bool is_allow_series);
 
@@ -123,10 +123,10 @@ class BufferFusionPattern {
   BufferFusionPattern &SetRelation(const std::string &src_desc_name, const std::string &dst_desc_name,
                                    const PatternRelation pattern_relation);
 
-  const std::string& GetName() const;
+  const std::string &GetName() const;
   int64_t GetOpMaxCount() const;
-  const std::vector<BufferFusionOpDesc *>& GetOpDescs() const;
-  const std::vector<BufferFusionOpDesc *>& GetHead() const;
+  const std::vector<BufferFusionOpDesc *> &GetOpDescs() const;
+  const std::vector<BufferFusionOpDesc *> &GetHead() const;
   int64_t GetErrorCnt() const;
   void SetGraphModType(int64_t graph_mod_type);
   int64_t GetGraphModType() const;

@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -18,20 +18,14 @@
 namespace att {
 class TestExeTimePass : public ::testing::Test {
  public:
-  static void TearDownTestCase()
-  {
+  static void TearDownTestCase() {
     std::cout << "Test end." << std::endl;
   }
-  static void SetUpTestCase()
-  {
+  static void SetUpTestCase() {
     std::cout << "Test begin." << std::endl;
   }
-  void SetUp() override
-  {
-  }
-  void TearDown() override
-  {
-  }
+  void SetUp() override {}
+  void TearDown() override {}
 };
 
 void GetExeTime(const TuningSpacePtr &tuning_space, TernaryOp &exe_cast0, TernaryOp &exe_store) {
@@ -40,18 +34,17 @@ void GetExeTime(const TuningSpacePtr &tuning_space, TernaryOp &exe_cast0, Ternar
   for (const auto &node : tuning_space->node_infos) {
     exe_time = CreateExpr(1U);
     for (auto &loop_axis : node.loop_axes) {
-        exe_time = af::sym::Mul(exe_time, loop_axis->repeat);
+      exe_time = af::sym::Mul(exe_time, loop_axis->repeat);
     }
     if (node.name == "cast0") {
-        exe_cast0 = exe_mgr.UpdateNodeExeTime(node, exe_time);
+      exe_cast0 = exe_mgr.UpdateNodeExeTime(node, exe_time);
     } else if (node.name == "store") {
-        exe_store = exe_mgr.UpdateNodeExeTime(node, exe_time);
+      exe_store = exe_mgr.UpdateNodeExeTime(node, exe_time);
     }
   }
 }
 
-TEST_F(TestExeTimePass, case1)
-{
+TEST_F(TestExeTimePass, case1) {
   af::AscGraph graph("graph");
   att::BrcBufBeforeAutoFuse1(graph);
   att::BrcBufAfterScheduler1(graph);
@@ -67,8 +60,7 @@ TEST_F(TestExeTimePass, case1)
   EXPECT_EQ(exe_time_store.GetTernaryOpStr(), "(Ceiling((Z1 / (z1t_size))) * z0z2Tb_size)");
 }
 
-TEST_F(TestExeTimePass, case2)
-{
+TEST_F(TestExeTimePass, case2) {
   af::AscGraph graph("graph");
   att::BrcBufBeforeAutoFuse2(graph);
   att::BrcBufAfterScheduler1(graph);
@@ -80,12 +72,12 @@ TEST_F(TestExeTimePass, case2)
   TernaryOp exe_time_cast0;
   TernaryOp exe_time_store;
   GetExeTime(tuning_space, exe_time_cast0, exe_time_store);
-  EXPECT_EQ(exe_time_cast0.GetTernaryOpStr(), "TernaryOp(IsEqual(z0z2Tb_size, 1.0), 1, (Ceiling((Z1 / (z1t_size))) * z0z2Tb_size))");
+  EXPECT_EQ(exe_time_cast0.GetTernaryOpStr(),
+            "TernaryOp(IsEqual(z0z2Tb_size, 1.0), 1, (Ceiling((Z1 / (z1t_size))) * z0z2Tb_size))");
   EXPECT_EQ(exe_time_store.GetTernaryOpStr(), "(Ceiling((Z1 / (z1t_size))) * z0z2Tb_size)");
 }
 
-TEST_F(TestExeTimePass, case3)
-{
+TEST_F(TestExeTimePass, case3) {
   af::AscGraph graph("graph");
   att::BrcBufBeforeAutoFuse3(graph);
   att::BrcBufAfterScheduler3(graph);
@@ -101,8 +93,7 @@ TEST_F(TestExeTimePass, case3)
   EXPECT_EQ(exe_time_store.GetTernaryOpStr(), "(Ceiling((Z1 / (z1t_size))) * z0z2Tb_size)");
 }
 
-TEST_F(TestExeTimePass, case4)
-{
+TEST_F(TestExeTimePass, case4) {
   af::AscGraph graph("graph");
   att::BrcBufBeforeAutoFuse4(graph);
   att::BrcBufAfterScheduler4(graph);
@@ -132,7 +123,8 @@ TEST_F(TestExeTimePass, exec_condition) {
   TernaryOp exe_time_cast0;
   TernaryOp exe_time_store;
   GetExeTime(tuning_space, exe_time_cast0, exe_time_store);
-  EXPECT_EQ(exe_time_cast0.GetTernaryOpStr(), "Max(1, (Ceiling((Z1 / (z1t_size))) * z0z2Tb_size / (Ceiling((Z2 / (z2t_size))))))");
+  EXPECT_EQ(exe_time_cast0.GetTernaryOpStr(),
+            "Max(1, (Ceiling((Z1 / (z1t_size))) * z0z2Tb_size / (Ceiling((Z2 / (z2t_size))))))");
   EXPECT_EQ(exe_time_store.GetTernaryOpStr(), "(Ceiling((Z1 / (z1t_size))) * z0z2Tb_size)");
 }
-}
+}  // namespace att

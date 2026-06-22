@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -20,7 +20,7 @@
 
 namespace fe {
 class ConnectionMatrix {
-public:
+ public:
   ConnectionMatrix();
   explicit ConnectionMatrix(bool enable_data_flow);
   explicit ConnectionMatrix(const ge::ComputeGraph &graph);
@@ -52,7 +52,7 @@ public:
 
   void RestoreBitMap();
 
-private:
+ private:
   int64_t GetIndex(const ge::NodePtr &node) const;
 
   const ge::LargeBitmap &GetBitMap(const ge::NodePtr &node) const;
@@ -77,5 +77,5 @@ private:
   std::vector<ge::LargeBitmap> data_bit_maps_back_up_;
   std::map<std::string, int64_t> name_to_index_;
 };
-}
+}  // namespace fe
 #endif  // INC_REGISTER_GRAPH_OPTIMIZER_GRAPH_FUSION_CONNECTION_MATRIX_H_

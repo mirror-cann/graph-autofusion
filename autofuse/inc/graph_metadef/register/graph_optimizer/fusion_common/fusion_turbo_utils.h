@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -14,12 +14,12 @@
 #include "graph/utils/op_desc_utils.h"
 #include "framework/common/debug/ge_log.h"
 
-#define FUSION_TURBO_NOTNULL(val, ret)                       \
-  do {                                                  \
-    if ((val) == nullptr) {                             \
+#define FUSION_TURBO_NOTNULL(val, ret)                 \
+  do {                                                 \
+    if ((val) == nullptr) {                            \
       GELOGD("Parameter[%s] must not be null.", #val); \
-      return ret;                         \
-    }                                                   \
+      return ret;                                      \
+    }                                                  \
   } while (0)
 
 namespace fe {
@@ -88,35 +88,36 @@ class Relations {
   Relations(const std::initializer_list<std::pair<ThisIndex, std::initializer_list<NodeIndex>>> &peer_indices_vec);
 
   /****** Interface Add from here. ******/
-  Relations& Add(ThisIndex this_index, const NodeIndex &peer_index);
+  Relations &Add(ThisIndex this_index, const NodeIndex &peer_index);
 
-  Relations& Add(ThisIndex this_index, const std::initializer_list<NodeIndex> &peer_indices);
+  Relations &Add(ThisIndex this_index, const std::initializer_list<NodeIndex> &peer_indices);
 
-  Relations& Add(ThisIndex this_index, const NodeIndices &peer_indices);
+  Relations &Add(ThisIndex this_index, const NodeIndices &peer_indices);
 
-  Relations& Add(ThisIndex this_index, NodeIndex &&peer_index);
+  Relations &Add(ThisIndex this_index, NodeIndex &&peer_index);
 
-  Relations& Add(ThisIndex this_index, NodeIndices &&peer_indices);
+  Relations &Add(ThisIndex this_index, NodeIndices &&peer_indices);
 
   /* 由于NodeIndex当连接输入或输出是完全不一样的，我们需要根据原始relations计算作为
    * 输入和输出的真正的对端节点，所以要求必须通过接口来修改relations。 */
-  Relations& UpdatePeerIndex(ThisIndex this_index, const NodeIndices &peer_indices);
+  Relations &UpdatePeerIndex(ThisIndex this_index, const NodeIndices &peer_indices);
 
-  Relations& UpdatePeerIndex(ThisIndex this_index, NodeIndices &&peer_indices);
+  Relations &UpdatePeerIndex(ThisIndex this_index, NodeIndices &&peer_indices);
 
-  Relations& UpdatePeerIndex(const std::map<ThisIndex, NodeIndices> &peer_indices);
+  Relations &UpdatePeerIndex(const std::map<ThisIndex, NodeIndices> &peer_indices);
 
-  Relations& UpdatePeerIndex(std::map<ThisIndex, NodeIndices> &&peer_indices);
+  Relations &UpdatePeerIndex(std::map<ThisIndex, NodeIndices> &&peer_indices);
 
-  const std::map<ThisIndex, NodeIndices>& GetRelations();
+  const std::map<ThisIndex, NodeIndices> &GetRelations();
 
-  const std::map<ThisIndex, NodeIndices>& GetInRelations();
+  const std::map<ThisIndex, NodeIndices> &GetInRelations();
 
-  const std::map<ThisIndex, NodeIndices>& GetOutRelations();
+  const std::map<ThisIndex, NodeIndices> &GetOutRelations();
 
-  Relations& operator=(const Relations &relations_param);
+  Relations &operator=(const Relations &relations_param);
 
-  Relations& operator=(Relations &&relations_param) noexcept;
+  Relations &operator=(Relations &&relations_param) noexcept;
+
  private:
   NodeIndex GetPeerInFirstPair(ThisIndex relation_index, const ge::NodePtr &node, int32_t index);
 
@@ -144,5 +145,5 @@ class FusionTurboUtils {
   static NodeIndex GetPeerOutPair(const ge::NodePtr &node, int32_t index);
   static ge::NodePtr GetConstInput(const ge::NodePtr &node, int32_t index);
 };
-}
-#endif // INC_REGISTER_GRAPH_OPTIMIZER_FUSION_COMMON_FUSION_TURBO_UTILS_H
+}  // namespace fe
+#endif  // INC_REGISTER_GRAPH_OPTIMIZER_FUSION_COMMON_FUSION_TURBO_UTILS_H

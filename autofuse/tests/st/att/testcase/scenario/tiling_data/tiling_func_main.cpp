@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2026 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -23,13 +23,13 @@ int TestCase0() {
   // tilingData.z = 0;
   const auto status = GetTiling(tilingData, 0);
   if ((status)) {
-    std::cout << "basem"<< " = " << tilingData.get_basem_size() << std::endl;
-    std::cout << "basen"<< " = " << tilingData.get_basen_size() << std::endl;
-    std::cout << "tilem"<< " = " << tilingData.get_tilem_size() << std::endl;
-    std::cout << "tilen"<< " = " << tilingData.get_tilen_size() << std::endl;
-    std::cout << "stepn"<< " = " << tilingData.get_stepn_size() << std::endl;
-    std::cout << "stepm"<< " = " << tilingData.get_stepm_size() << std::endl;
-    std::cout << "tiling_key"<< " = " << tilingData.get_tiling_key() << std::endl;
+    std::cout << "basem" << " = " << tilingData.get_basem_size() << std::endl;
+    std::cout << "basen" << " = " << tilingData.get_basen_size() << std::endl;
+    std::cout << "tilem" << " = " << tilingData.get_tilem_size() << std::endl;
+    std::cout << "tilen" << " = " << tilingData.get_tilen_size() << std::endl;
+    std::cout << "stepn" << " = " << tilingData.get_stepn_size() << std::endl;
+    std::cout << "stepm" << " = " << tilingData.get_stepm_size() << std::endl;
+    std::cout << "tiling_key" << " = " << tilingData.get_tiling_key() << std::endl;
     if ((tilingData.get_basem_size() != 128) || (tilingData.get_stepn_size() < 256)) {
       std::cout << "Case0 tiling func execute failed." << std::endl;
       return -1;
@@ -54,15 +54,15 @@ int TestCase1() {
   // tilingData.z = 0;
   const auto status = GetTiling(tilingData, 1);
   if ((status)) {
-    std::cout << "basem"<< " = " << tilingData.get_basem_size() << std::endl;
-    std::cout << "basen"<< " = " << tilingData.get_basen_size() << std::endl;
-    std::cout << "tilem"<< " = " << tilingData.get_tilem_size() << std::endl;
-    std::cout << "tilen"<< " = " << tilingData.get_tilen_size() << std::endl;
-    std::cout << "stepn"<< " = " << tilingData.get_stepn_size() << std::endl;
-    std::cout << "stepm"<< " = " << tilingData.get_stepm_size() << std::endl;
-    std::cout << "stepka"<< " = " << tilingData.get_stepka_size() << std::endl;
-    std::cout << "stepkb"<< " = " << tilingData.get_stepkb_size() << std::endl;
-    std::cout << "tiling_key"<< " = " << tilingData.get_tiling_key() << std::endl;
+    std::cout << "basem" << " = " << tilingData.get_basem_size() << std::endl;
+    std::cout << "basen" << " = " << tilingData.get_basen_size() << std::endl;
+    std::cout << "tilem" << " = " << tilingData.get_tilem_size() << std::endl;
+    std::cout << "tilen" << " = " << tilingData.get_tilen_size() << std::endl;
+    std::cout << "stepn" << " = " << tilingData.get_stepn_size() << std::endl;
+    std::cout << "stepm" << " = " << tilingData.get_stepm_size() << std::endl;
+    std::cout << "stepka" << " = " << tilingData.get_stepka_size() << std::endl;
+    std::cout << "stepkb" << " = " << tilingData.get_stepkb_size() << std::endl;
+    std::cout << "tiling_key" << " = " << tilingData.get_tiling_key() << std::endl;
     if ((tilingData.get_basen_size() != 256) || (tilingData.get_stepka_size() < 256)) {
       std::cout << "Case1 tiling func execute failed." << std::endl;
       return -1;
@@ -76,7 +76,7 @@ int TestCase1() {
 int main() {
   auto ret0 = TestCase0();
   auto ret1 = TestCase1();
-  if (ret0 == 0 && ret1 ==0) {
+  if (ret0 == 0 && ret1 == 0) {
     return 0;
   }
   return -1;

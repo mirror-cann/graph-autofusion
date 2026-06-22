@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -310,11 +310,10 @@ GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY bool NodeUtils::ClearInputDesc(co
                    REPORT_INNER_ERR_MSG("E18888", "op_desc is nullptr, check invalid");
                    return false, "[Check][Param] op_desc is nullptr");
   GE_CHK_BOOL_EXEC(index < op_desc->impl_->inputs_desc_.size(),
-                   REPORT_INNER_ERR_MSG("E18888", "index %u is invalid, out of range(0, %zu).",
-                                      index, op_desc->impl_->inputs_desc_.size());
-                   return false,
-                   "[Check][Param] index %u is invalid, out of range(0, %zu).",
-                   index, op_desc->impl_->inputs_desc_.size());
+                   REPORT_INNER_ERR_MSG("E18888", "index %u is invalid, out of range(0, %zu).", index,
+                                        op_desc->impl_->inputs_desc_.size());
+                   return false, "[Check][Param] index %u is invalid, out of range(0, %zu).", index,
+                          op_desc->impl_->inputs_desc_.size());
 
   const auto iter = op_desc->impl_->inputs_desc_.begin() + static_cast<int64_t>(index);
   if (iter < op_desc->impl_->inputs_desc_.end()) {
@@ -331,11 +330,10 @@ GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY bool NodeUtils::ClearOutputDesc(c
                    REPORT_INNER_ERR_MSG("E18888", "param op_desc is nullptr, check invalid");
                    return false, "[Check][Param] op_desc is nullptr");
   GE_CHK_BOOL_EXEC(index < op_desc->impl_->outputs_desc_.size(),
-                   REPORT_INNER_ERR_MSG("E18888", "index %u is invalid. out of range(0, %zu)",
-                                      index, op_desc->impl_->outputs_desc_.size());
-                   return false,
-                   "[Check][Param] index %u is invalid. out of range(0, %zu)",
-                   index, op_desc->impl_->outputs_desc_.size());
+                   REPORT_INNER_ERR_MSG("E18888", "index %u is invalid. out of range(0, %zu)", index,
+                                        op_desc->impl_->outputs_desc_.size());
+                   return false, "[Check][Param] index %u is invalid. out of range(0, %zu)", index,
+                          op_desc->impl_->outputs_desc_.size());
   const auto iter = op_desc->impl_->outputs_desc_.begin() + static_cast<int64_t>(index);
   if (iter < op_desc->impl_->outputs_desc_.end()) {
     (void)op_desc->impl_->outputs_desc_.erase(iter);
@@ -361,7 +359,7 @@ GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY graphStatus NodeUtils::RemoveInpu
   }
 
   const auto input_names = op_desc->GetAllInputName();
-  (void) op_desc->UpdateInputName(input_names);
+  (void)op_desc->UpdateInputName(input_names);
   auto is_input_const = op_desc->GetIsInputConst();
   is_input_const.resize(static_cast<std::size_t>(num));
   op_desc->SetIsInputConst(is_input_const);
@@ -419,7 +417,7 @@ GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY graphStatus NodeUtils::RemoveOutp
       return GRAPH_FAILED;
     }
   }
-  (void) op_desc->UpdateOutputName(output_names);
+  (void)op_desc->UpdateOutputName(output_names);
 
   while (node->impl_->out_data_anchors_.size() > num) {
     node->impl_->out_data_anchors_.pop_back();
@@ -576,7 +574,7 @@ graphStatus NodeUtils::AddSubgraph(Node &node, const std::string &subgraph_ir_na
 
   // Will report inner warning if the Op is created using REG_OP format
   // because during REG_OP it has already registered subgraph IR name
-  (void) op_desc->AddSubgraphName(subgraph_ir_name);
+  (void)op_desc->AddSubgraphName(subgraph_ir_name);
   auto &subgraph_names_to_index = op_desc->GetSubgraphNameIndexes();
   const auto &iter = subgraph_names_to_index.find(subgraph_ir_name);
   GE_ASSERT_TRUE(iter != subgraph_names_to_index.cend());
@@ -610,7 +608,7 @@ graphStatus NodeUtils::AddSubgraphs(const NodePtr &node_ptr, const std::string &
   }
   auto &node = *node_ptr.get();
   for (int64_t i = 0U; i < static_cast<int64_t>(subgraphs.size()); ++i) {
-    const auto& subgraph = subgraphs[i];
+    const auto &subgraph = subgraphs[i];
     GE_ASSERT_SUCCESS(AddSubgraph(node, GenDynamicSubgraphName(subgraph_ir_name, i), subgraph));
   }
   return GRAPH_SUCCESS;
@@ -644,8 +642,10 @@ bool NodeUtils::IsSubgraphInput(const Node *const node) {
     if (node->GetOwnerComputeGraphBarePtr()->GetParentGraphBarePtr()->GetGraphUnknownFlag()) {
       return false;
     } else {
-      if (node->GetOwnerComputeGraphBarePtr()->GetParentNodeBarePtr()->GetOwnerComputeGraphBarePtr()
-          ->GetParentNodeBarePtr() == nullptr) {
+      if (node->GetOwnerComputeGraphBarePtr()
+              ->GetParentNodeBarePtr()
+              ->GetOwnerComputeGraphBarePtr()
+              ->GetParentNodeBarePtr() == nullptr) {
         return false;
       }
     }
@@ -703,9 +703,7 @@ NodePtr NodeUtils::GetParentInput(const Node &node) {
 
   const Node *parent_node = graph->GetParentNodeBarePtr();
   if (parent_node == nullptr) {
-    GELOGW("Node {%s %s} has attr %s but has no parent node.",
-           node.GetNamePtr(),
-           node.GetTypePtr(),
+    GELOGW("Node {%s %s} has attr %s but has no parent node.", node.GetNamePtr(), node.GetTypePtr(),
            ATTR_NAME_PARENT_NODE_INDEX.c_str());
     return nullptr;
   }
@@ -843,7 +841,7 @@ bool NodeUtils::IsDynamicShape(const Node &node) {
   }
 
   bool is_dynamic_shape = false;
-  (void) AttrUtils::GetBool(graph, ATTR_NAME_DYNAMIC_SHAPE_PARTITIONED, is_dynamic_shape);
+  (void)AttrUtils::GetBool(graph, ATTR_NAME_DYNAMIC_SHAPE_PARTITIONED, is_dynamic_shape);
   return is_dynamic_shape;
 }
 
@@ -883,9 +881,8 @@ bool NodeUtils::IsWhileVaryingInput(const af::NodePtr &node) {
     }
     const OpDescPtr op_desc = item.first->GetOpDesc();
     uint32_t index_o = 0U;
-    if ((op_desc == nullptr) ||
-        (!AttrUtils::GetInt(op_desc->GetInputDesc(static_cast<uint32_t>(item.second->GetIdx())),
-                            ATTR_NAME_PARENT_NODE_INDEX, index_o))) {
+    if ((op_desc == nullptr) || (!AttrUtils::GetInt(op_desc->GetInputDesc(static_cast<uint32_t>(item.second->GetIdx())),
+                                                    ATTR_NAME_PARENT_NODE_INDEX, index_o))) {
       continue;  // input for while-cond subgraph
     }
     if (index_i != index_o) {
@@ -940,7 +937,7 @@ graphStatus NodeUtils::RemoveSubgraphsOnNode(const NodePtr &node) {
     for (auto &subgraph_name : subgraph_names) {
       std::deque<std::string> queue;
       queue.push_back(subgraph_name);
-      (void) subgraph_to_remove.insert(subgraph_name);
+      (void)subgraph_to_remove.insert(subgraph_name);
       op_desc->RemoveSubgraphInstanceName(subgraph_name);
       while (!queue.empty()) {
         const auto graph_name = queue.front();
@@ -989,7 +986,7 @@ std::vector<NodePtr> NodeUtils::GetSubgraphDataNodesByIndex(const Node &node, co
     for (const auto &node_in_subgraph : subgraph->GetDirectNode()) {
       if (IsTypeEqual(node_in_subgraph, DATA)) {
         int32_t parent_index = -1;
-        (void) AttrUtils::GetInt(node_in_subgraph->GetOpDesc(), ATTR_NAME_PARENT_NODE_INDEX, parent_index);
+        (void)AttrUtils::GetInt(node_in_subgraph->GetOpDesc(), ATTR_NAME_PARENT_NODE_INDEX, parent_index);
         if (parent_index == index) {
           in_data_node_vec.emplace_back(node_in_subgraph);
           break;
@@ -1183,7 +1180,7 @@ graphStatus NodeUtils::GetInNodeCrossPartionedCallNode(const NodePtr &node, uint
 }
 
 bool NodeUtils::IsNodeInRootGraph(const NodePtr &node) {
-  GE_ASSERT_NOTNULL(node);  
+  GE_ASSERT_NOTNULL(node);
 
   const auto owner_graph = node->GetOwnerComputeGraph();
   GE_ASSERT_NOTNULL(owner_graph);
@@ -1195,8 +1192,8 @@ bool NodeUtils::IsNodeInRootGraph(const NodePtr &node) {
     GELOGD("Node [%s] is in root graph [%s].", node->GetName().c_str(), root_graph->GetName().c_str());
     return true;
   }
-  GELOGD("Node [%s] is in sub graph [%s], root graph is [%s].", node->GetName().c_str(),
-         owner_graph->GetName().c_str(), root_graph->GetName().c_str());
+  GELOGD("Node [%s] is in sub graph [%s], root graph is [%s].", node->GetName().c_str(), owner_graph->GetName().c_str(),
+         root_graph->GetName().c_str());
   return false;
 }
 
@@ -1228,7 +1225,8 @@ graphStatus NodeUtils::SetNodeParallelGroup(Node &node, const char_t *const grou
   }
   if (!AttrUtils::SetStr(node.GetOpDesc(), ATTR_NAME_PARALLEL_GROUP, new_group)) {
     GE_LOGE("[Set][Attr] Failed to set parallel group name %s on node %s", group_name, node.GetName().c_str());
-    REPORT_INNER_ERR_MSG("E18888", "Failed to set parallel group name %s on node %s", group_name, node.GetName().c_str());
+    REPORT_INNER_ERR_MSG("E18888", "Failed to set parallel group name %s on node %s", group_name,
+                         node.GetName().c_str());
     return GRAPH_FAILED;
   }
   return GRAPH_SUCCESS;
@@ -1330,11 +1328,12 @@ bool NodeUtils::IsIdentityUsefulForRWControl(const NodePtr &node_ptr) {
       if (in_node_out_data_anchor->IsLinkedWith(out_control_node_in_data_anchor->shared_from_this())) {
         if ((OpTypeUtils::IsVarLikeNode(in_node_ptr->GetType())) &&
             (OpTypeUtils::IsAssignLikeNode(out_control_node->GetType()))) {
-          GELOGD("Node[%s %s] is useful for control relation, keep this node to ensure out data node[%s %s] read "
-                 "in_data_node [%s %s] firstly, then out control node [%s %s] write in_data_node",
-                 node.GetName().c_str(), node.GetType().c_str(), out_data_node->GetName().c_str(),
-                 out_data_node->GetType().c_str(), in_node_ptr->GetName().c_str(), in_node_ptr->GetType().c_str(),
-                 out_control_node->GetName().c_str(), out_control_node->GetType().c_str());
+          GELOGD(
+              "Node[%s %s] is useful for control relation, keep this node to ensure out data node[%s %s] read "
+              "in_data_node [%s %s] firstly, then out control node [%s %s] write in_data_node",
+              node.GetName().c_str(), node.GetType().c_str(), out_data_node->GetName().c_str(),
+              out_data_node->GetType().c_str(), in_node_ptr->GetName().c_str(), in_node_ptr->GetType().c_str(),
+              out_control_node->GetName().c_str(), out_control_node->GetType().c_str());
           return true;
         }
       }
@@ -1377,7 +1376,6 @@ std::vector<NodePtr> NodeUtils::GetOutDataNodes(const Node &node, const NodeFilt
   }
   return out_data_nodes;
 }
-
 
 std::vector<NodePtr> NodeUtils::GetInControlNodes(const Node &node, const NodeFilter &node_filter) {
   std::vector<NodePtr> in_ctrl_nodes;
@@ -1464,13 +1462,14 @@ graphStatus NodeUtils::TryGetWeightByDataNode(const NodePtr &node_ptr, ConstGeTe
   if ((node_ptr->GetOwnerComputeGraphBarePtr() != nullptr) &&
       (node_ptr->GetOwnerComputeGraphBarePtr()->GetParentNodeBarePtr() != nullptr) &&
       (kWhileOpTypes.count(node_ptr->GetOwnerComputeGraphBarePtr()->GetParentNodeBarePtr()->GetType()) > 0U)) {
-    GELOGI("The value of a const node should not be obtained, when the const node is outside a while node, "
-           "while node name: %s",
-           node_ptr->GetOwnerComputeGraphBarePtr()->GetParentNodeBarePtr()->GetName().c_str());
+    GELOGI(
+        "The value of a const node should not be obtained, when the const node is outside a while node, "
+        "while node name: %s",
+        node_ptr->GetOwnerComputeGraphBarePtr()->GetParentNodeBarePtr()->GetName().c_str());
     return GRAPH_SUCCESS;
   }
   NodePtr real_parent_node = nullptr;
-  (void) NodeUtils::GetInNodeCrossPartionedCallNode(node_ptr, 0U, real_parent_node);
+  (void)NodeUtils::GetInNodeCrossPartionedCallNode(node_ptr, 0U, real_parent_node);
   if ((real_parent_node != nullptr) && (ConstantUtils::IsConstant(real_parent_node->GetOpDesc()))) {
     GELOGI("Get in really parent node:[%s %s] for node:[%s %s]", real_parent_node->GetName().c_str(),
            real_parent_node->GetType().c_str(), op_desc->GetName().c_str(), op_desc->GetType().c_str());
@@ -1506,4 +1505,4 @@ NodePtr NodeUtils::GetNodeWithMinimalId(const std::vector<NodePtr> &nodes) {
   }
   return min_id_node;
 }
-}  // namespace ge
+}  // namespace af

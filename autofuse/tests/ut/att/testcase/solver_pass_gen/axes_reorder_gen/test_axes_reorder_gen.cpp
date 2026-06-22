@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -15,8 +15,7 @@
 #include "gen_model_info/api_perf_register/v1/perf_param_v1.h"
 using namespace att;
 
-size_t CountSubstr(const std::string &text, const std::string &pattern)
-{
+size_t CountSubstr(const std::string &text, const std::string &pattern) {
   size_t count = 0U;
   size_t pos = text.find(pattern);
   while (pos != std::string::npos) {
@@ -26,8 +25,7 @@ size_t CountSubstr(const std::string &text, const std::string &pattern)
   return count;
 }
 
-void ExpectNoTempVars(const std::string &actual)
-{
+void ExpectNoTempVars(const std::string &actual) {
   EXPECT_EQ(actual.find("temp0"), std::string::npos);
   EXPECT_EQ(actual.find("temp1"), std::string::npos);
   EXPECT_EQ(actual.find("auto temp"), std::string::npos);
@@ -35,32 +33,29 @@ void ExpectNoTempVars(const std::string &actual)
 
 class TestAxesReorderSolverGen : public ::testing::Test {
  public:
-  static void TearDownTestCase()
-  {
+  static void TearDownTestCase() {
     std::cout << "Test end." << std::endl;
   }
-  static void SetUpTestCase()
-  {
+  static void SetUpTestCase() {
     std::cout << "Test begin." << std::endl;
   }
   void SetUp() override {
-     // Code here will be called immediately after the constructor (right
-     // before each test).
+    // Code here will be called immediately after the constructor (right
+    // before each test).
   }
 
   void TearDown() override {
-     // Code here will be called immediately after each test (right
-     // before the destructor).
+    // Code here will be called immediately after each test (right
+    // before the destructor).
   }
 };
 
-TEST_F(TestAxesReorderSolverGen, TEST_ARRANGE)
-{
+TEST_F(TestAxesReorderSolverGen, TEST_ARRANGE) {
   Expr x0 = CreateExpr("x0");
   Expr x1 = CreateExpr("x1");
   std::vector<Expr> cut_cons;
   std::vector<Expr> input_args;
-  std::vector<Expr> search_args{x0,x1};
+  std::vector<Expr> search_args{x0, x1};
   std::map<HardwareDef, Expr> hardware_cons;
   std::map<Expr, Expr, ExprCmp> arg_align_map;
   std::map<Expr, uint32_t, ExprCmp> const_args;
@@ -83,14 +78,13 @@ TEST_F(TestAxesReorderSolverGen, TEST_ARRANGE)
   solver_gen.SetFromAxesMap(from_axes_map);
   solver_gen.SetVarPriority(axis_priority);
   solver_gen.Arrange();
-  
+
   auto vars = solver_gen.local_buffer_tiling_vars_;
   EXPECT_NE(vars.size(), 0);
   EXPECT_EQ(Str(vars[0]), "x0");
 }
 
-TEST_F(TestAxesReorderSolverGen, TEST_ARRANGE_SIZE_VAR_AS_INPUT)
-{
+TEST_F(TestAxesReorderSolverGen, TEST_ARRANGE_SIZE_VAR_AS_INPUT) {
   Expr x0 = CreateExpr("x0");
   Expr x1 = CreateExpr("x1");
   Expr x2 = CreateExpr("x2");
@@ -120,20 +114,18 @@ TEST_F(TestAxesReorderSolverGen, TEST_ARRANGE_SIZE_VAR_AS_INPUT)
   solver_gen.SetVarPriority(axis_priority);
   solver_gen.SetSearchArgs(search_args);
   solver_gen.Arrange();
-  
+
   auto vars = solver_gen.input_args_;
   EXPECT_NE(vars.size(), 0);
   EXPECT_EQ(Str(vars[0]), "x2");
 }
 
-
-TEST_F(TestAxesReorderSolverGen, TEST_GEN_SOLVER)
-{
+TEST_F(TestAxesReorderSolverGen, TEST_GEN_SOLVER) {
   Expr x0 = CreateExpr("x0");
   Expr x1 = CreateExpr("x1");
   std::vector<Expr> cut_cons;
   std::vector<Expr> input_args;
-  std::vector<Expr> search_args{x0,x1};
+  std::vector<Expr> search_args{x0, x1};
   std::map<HardwareDef, Expr> hardware_cons;
   std::map<Expr, Expr, ExprCmp> arg_align_map;
   std::map<Expr, uint32_t, ExprCmp> const_args;
@@ -166,8 +158,7 @@ TEST_F(TestAxesReorderSolverGen, TEST_GEN_SOLVER)
   EXPECT_NE(invoke_code, "");
 }
 
-TEST_F(TestAxesReorderSolverGen, TEST_GEN_SOLVER_case2)
-{
+TEST_F(TestAxesReorderSolverGen, TEST_GEN_SOLVER_case2) {
   Expr x0 = CreateExpr("x0");
   Expr x1 = CreateExpr("block_dim");
   std::vector<Expr> cut_cons;
@@ -205,8 +196,7 @@ TEST_F(TestAxesReorderSolverGen, TEST_GEN_SOLVER_case2)
   EXPECT_NE(invoke_code, "");
 }
 
-TEST_F(TestAxesReorderSolverGen, TEST_GEN_SOLVER_ub_cache_code)
-{
+TEST_F(TestAxesReorderSolverGen, TEST_GEN_SOLVER_ub_cache_code) {
   Expr x0 = CreateExpr("x0");
   Expr x1 = CreateExpr("block_dim");
   Expr x2 = CreateExpr("x2");
@@ -247,7 +237,7 @@ TEST_F(TestAxesReorderSolverGen, TEST_GEN_SOLVER_ub_cache_code)
   std::string impl_code = solver_gen.GenSolverClassImpl();
   std::string invoke_code = solver_gen.GenSolverFuncInvoke();
   EXPECT_NE(impl_code, "");
-  EXPECT_NE(invoke_code, "");  
+  EXPECT_NE(invoke_code, "");
   EXPECT_FALSE(impl_code.find("// check node ") != std::string::npos);
   auto vars = solver_gen.local_buffer_tiling_vars_;
 
@@ -256,18 +246,18 @@ TEST_F(TestAxesReorderSolverGen, TEST_GEN_SOLVER_ub_cache_code)
   impl_code = solver_gen.GenSolverClassImpl();
   invoke_code = solver_gen.GenSolverFuncInvoke();
   EXPECT_NE(impl_code, "");
-  EXPECT_NE(invoke_code, "");  
+  EXPECT_NE(invoke_code, "");
   EXPECT_TRUE(impl_code.find("// check node ") != std::string::npos);
 }
 
 TEST_F(TestAxesReorderSolverGen, GenUpperBoundFunc_ConstExpr) {
-    Expr var = CreateExpr("var");
-    AxesReorderSolverGen solver_gen("case_test", "TilingData");
-    solver_gen.from_axes_map_[var] = {CreateExpr(2), CreateExpr(3)};
-    
-    std::string result = solver_gen.GenUpperBoundFunc(var);
-    
-    std::string expected = R"(    GetUpperBoundFuncPtr var_upper_bound = [](Variable **parent_vars) {
+  Expr var = CreateExpr("var");
+  AxesReorderSolverGen solver_gen("case_test", "TilingData");
+  solver_gen.from_axes_map_[var] = {CreateExpr(2), CreateExpr(3)};
+
+  std::string result = solver_gen.GenUpperBoundFunc(var);
+
+  std::string expected = R"(    GetUpperBoundFuncPtr var_upper_bound = [](Variable **parent_vars) {
       (void)parent_vars;
       int64_t upper_bound = 1;
       upper_bound *= 2;
@@ -276,55 +266,55 @@ TEST_F(TestAxesReorderSolverGen, GenUpperBoundFunc_ConstExpr) {
     };
     var.upper_bound = var_upper_bound;
 )";
-    EXPECT_EQ(result, expected);
+  EXPECT_EQ(result, expected);
 }
 
 TEST_F(TestAxesReorderSolverGen, GenUpperBoundInfo_ConstExpr) {
-    Expr var = CreateExpr("var");
-    AxesReorderSolverGen solver("case_test", "TilingData");
-    solver.from_axes_map_[var] = {CreateExpr(5)}; // Constant expression
-    EXPECT_EQ(solver.GenUpperBoundInfo(var), "");
+  Expr var = CreateExpr("var");
+  AxesReorderSolverGen solver("case_test", "TilingData");
+  solver.from_axes_map_[var] = {CreateExpr(5)};  // Constant expression
+  EXPECT_EQ(solver.GenUpperBoundInfo(var), "");
 }
 
 TEST_F(TestAxesReorderSolverGen, InitiateArgs_MixedValidInvalidArgs) {
-    // Setup test data with mixed valid and invalid args
-    AxesReorderSolverGen solver_("case_test", "TilingData");
-    Expr valid = CreateExpr("valid");
-    Expr invalid = CreateExpr("invalid");
-    solver_.input_args_ = {valid, invalid};
-    solver_.input_align_ = {{valid, af::Symbol(4)}, {invalid, af::Symbol(1)}}; // One needs alignment
-    solver_.mc_args_ = {};
-    solver_.local_buffer_tiling_vars_ = {};
+  // Setup test data with mixed valid and invalid args
+  AxesReorderSolverGen solver_("case_test", "TilingData");
+  Expr valid = CreateExpr("valid");
+  Expr invalid = CreateExpr("invalid");
+  solver_.input_args_ = {valid, invalid};
+  solver_.input_align_ = {{valid, af::Symbol(4)}, {invalid, af::Symbol(1)}};  // One needs alignment
+  solver_.mc_args_ = {};
+  solver_.local_buffer_tiling_vars_ = {};
 
-    // Expected output
-    std::string expected = 
-        "    Variable valid;\n"
-        "    valid.value = (tiling_data.get_valid() + std::max(1, 4) - 1) / std::max(1, 4) * std::max(1, 4);\n"
-        "    Variable invalid;\n"
-        "    invalid.value = tiling_data.get_invalid();\n";
+  // Expected output
+  std::string expected =
+      "    Variable valid;\n"
+      "    valid.value = (tiling_data.get_valid() + std::max(1, 4) - 1) / std::max(1, 4) * std::max(1, 4);\n"
+      "    Variable invalid;\n"
+      "    invalid.value = tiling_data.get_invalid();\n";
 
-    std::string result = solver_.InitiateArgs();
-    EXPECT_EQ(result, expected);
+  std::string result = solver_.InitiateArgs();
+  EXPECT_EQ(result, expected);
 }
 
 TEST_F(TestAxesReorderSolverGen, NeitherInPriorityMap) {
-    // Neither expression in priority map
-    // Should use string comparison
-    Expr expr1 = CreateExpr("var1");
-    Expr expr2 = CreateExpr("var2");
-    Expr expr3 = CreateExpr("var3");
-    Expr expr4 = CreateExpr("var4");
-    AxesReorderSolverGen solver("case_test", "TilingData");
-    solver.VarCmp(expr1, expr2);
+  // Neither expression in priority map
+  // Should use string comparison
+  Expr expr1 = CreateExpr("var1");
+  Expr expr2 = CreateExpr("var2");
+  Expr expr3 = CreateExpr("var3");
+  Expr expr4 = CreateExpr("var4");
+  AxesReorderSolverGen solver("case_test", "TilingData");
+  solver.VarCmp(expr1, expr2);
 }
 
 TEST_F(TestAxesReorderSolverGen, GenUpperBoundFunc_ConstantAxes) {
-    // Test with constant axes
-    Expr var = CreateExpr("test_var");
-    AxesReorderSolverGen solver("case_test", "TilingData");
-    solver.from_axes_map_[var] = {CreateExpr(2), CreateExpr(3), CreateExpr(5)};
-    
-    std::string expected = R"(    GetUpperBoundFuncPtr test_var_upper_bound = [](Variable **parent_vars) {
+  // Test with constant axes
+  Expr var = CreateExpr("test_var");
+  AxesReorderSolverGen solver("case_test", "TilingData");
+  solver.from_axes_map_[var] = {CreateExpr(2), CreateExpr(3), CreateExpr(5)};
+
+  std::string expected = R"(    GetUpperBoundFuncPtr test_var_upper_bound = [](Variable **parent_vars) {
       (void)parent_vars;
       int64_t upper_bound = 1;
       upper_bound *= 2;
@@ -338,155 +328,150 @@ TEST_F(TestAxesReorderSolverGen, GenUpperBoundFunc_ConstantAxes) {
 }
 
 TEST_F(TestAxesReorderSolverGen, HandlesBothVars) {
-    std::vector<Expr> tiling_vars = {CreateExpr("t_var1"), CreateExpr("t_var2")};
-    std::vector<Expr> cons_vars = {CreateExpr("c_var1"), CreateExpr("c_var2")};
-    AxesReorderSolverGen solver("case_test", "TilingData");
-    Expr cons = CreateExpr("c_var1 * c_var2");
-    std::string result = solver.GenConsFunc(0, ConsType::BUFFER, cons, tiling_vars, cons_vars);
-    EXPECT_NE(result, "");
+  std::vector<Expr> tiling_vars = {CreateExpr("t_var1"), CreateExpr("t_var2")};
+  std::vector<Expr> cons_vars = {CreateExpr("c_var1"), CreateExpr("c_var2")};
+  AxesReorderSolverGen solver("case_test", "TilingData");
+  Expr cons = CreateExpr("c_var1 * c_var2");
+  std::string result = solver.GenConsFunc(0, ConsType::BUFFER, cons, tiling_vars, cons_vars);
+  EXPECT_NE(result, "");
 }
 
 TEST_F(TestAxesReorderSolverGen, GenInputInfoTest) {
-    std::vector<Expr> all_cons;
-    std::vector<Expr> local_buffer_cons;
-    std::vector<Expr> mc_mixed_cons;
+  std::vector<Expr> all_cons;
+  std::vector<Expr> local_buffer_cons;
+  std::vector<Expr> mc_mixed_cons;
 
-    AxesReorderSolverGen solver("case_test", "TilingData");
-    std::map<HardwareDef, Expr> hardware_use_map_;
-    std::vector<Expr> total_cut_cons_;
-    std::vector<Expr> mc_args_;
-    std::vector<Expr> local_buffer_tiling_vars_;
-    ExprExprMap arg_align_map_;
-    ExprUintMap arg_prompt_align_map_;
-    ExprUintMap is_concat_outer_map_;
-    std::vector<Expr> concat_inner_dims_;
+  AxesReorderSolverGen solver("case_test", "TilingData");
+  std::map<HardwareDef, Expr> hardware_use_map_;
+  std::vector<Expr> total_cut_cons_;
+  std::vector<Expr> mc_args_;
+  std::vector<Expr> local_buffer_tiling_vars_;
+  ExprExprMap arg_align_map_;
+  ExprUintMap arg_prompt_align_map_;
+  ExprUintMap is_concat_outer_map_;
+  std::vector<Expr> concat_inner_dims_;
 
-    // Initialize test data
-    hardware_use_map_[HardwareDef::CORENUM] = CreateExpr(1);
-    hardware_use_map_[HardwareDef::GM] = CreateExpr(1024);
-    hardware_use_map_[HardwareDef::UB] = CreateExpr(512);
-    
-    total_cut_cons_.push_back(CreateExpr(256));
-    total_cut_cons_.push_back(CreateExpr(128));
+  // Initialize test data
+  hardware_use_map_[HardwareDef::CORENUM] = CreateExpr(1);
+  hardware_use_map_[HardwareDef::GM] = CreateExpr(1024);
+  hardware_use_map_[HardwareDef::UB] = CreateExpr(512);
 
-    
-    mc_args_.push_back(CreateExpr("mc_var1"));
-    mc_args_.push_back(CreateExpr("mc_var2"));
+  total_cut_cons_.push_back(CreateExpr(256));
+  total_cut_cons_.push_back(CreateExpr(128));
 
-    Expr var1 = CreateExpr("local_var1");
-    Expr var2 = CreateExpr("local_var2");
-    Expr var3 = af::Symbol(255, "local_var3");
+  mc_args_.push_back(CreateExpr("mc_var1"));
+  mc_args_.push_back(CreateExpr("mc_var2"));
 
-    
-    local_buffer_tiling_vars_.push_back(var1);
-    local_buffer_tiling_vars_.push_back(var2);
-    
-    arg_align_map_[var1] = af::Symbol(64);
-    arg_align_map_[var2] = af::Symbol(32);
-    
-    arg_prompt_align_map_[var1] = 128;
-    arg_prompt_align_map_[var3] = 64;
-    
-    is_concat_outer_map_[var1] = 1;
-    is_concat_outer_map_[var2] = 0;
-    
-    concat_inner_dims_.push_back(var3);
-    
-    // Set the test data to the solver
-    solver.hardware_use_map_ = hardware_use_map_;
-    solver.total_cut_cons_ = total_cut_cons_;
-    solver.mc_args_ = mc_args_;
-    solver.local_buffer_tiling_vars_ = local_buffer_tiling_vars_;
-    solver.arg_align_map_ = arg_align_map_;
-    solver.arg_prompt_align_map_ = arg_prompt_align_map_;
-    solver.is_concat_outer_map_ = is_concat_outer_map_;
-    solver.concat_inner_dims_ = concat_inner_dims_;
-    
-    std::string result = solver.GenInputInfo(all_cons, local_buffer_cons, mc_mixed_cons);
+  Expr var1 = CreateExpr("local_var1");
+  Expr var2 = CreateExpr("local_var2");
+  Expr var3 = af::Symbol(255, "local_var3");
 
-    // 4. Check local buffer variables processing
-    // Verify alignment strings are generated
-    EXPECT_TRUE(result.find("local_var1.align = std::max(1, 64)") != std::string::npos);
-    EXPECT_TRUE(result.find("local_var2.align = std::max(1, 32)") != std::string::npos);
-    
-    std::cout<<result<<std::endl;
-    // Verify prompt alignment for concat outer case
-    EXPECT_TRUE(result.find("local_var1.prompt_align = 128") != std::string::npos);
-    
-    // Verify no prompt alignment for non-concat outer case
-    EXPECT_TRUE(result.find("local_var2.prompt_align") == std::string::npos);
+  local_buffer_tiling_vars_.push_back(var1);
+  local_buffer_tiling_vars_.push_back(var2);
+
+  arg_align_map_[var1] = af::Symbol(64);
+  arg_align_map_[var2] = af::Symbol(32);
+
+  arg_prompt_align_map_[var1] = 128;
+  arg_prompt_align_map_[var3] = 64;
+
+  is_concat_outer_map_[var1] = 1;
+  is_concat_outer_map_[var2] = 0;
+
+  concat_inner_dims_.push_back(var3);
+
+  // Set the test data to the solver
+  solver.hardware_use_map_ = hardware_use_map_;
+  solver.total_cut_cons_ = total_cut_cons_;
+  solver.mc_args_ = mc_args_;
+  solver.local_buffer_tiling_vars_ = local_buffer_tiling_vars_;
+  solver.arg_align_map_ = arg_align_map_;
+  solver.arg_prompt_align_map_ = arg_prompt_align_map_;
+  solver.is_concat_outer_map_ = is_concat_outer_map_;
+  solver.concat_inner_dims_ = concat_inner_dims_;
+
+  std::string result = solver.GenInputInfo(all_cons, local_buffer_cons, mc_mixed_cons);
+
+  // 4. Check local buffer variables processing
+  // Verify alignment strings are generated
+  EXPECT_TRUE(result.find("local_var1.align = std::max(1, 64)") != std::string::npos);
+  EXPECT_TRUE(result.find("local_var2.align = std::max(1, 32)") != std::string::npos);
+
+  std::cout << result << std::endl;
+  // Verify prompt alignment for concat outer case
+  EXPECT_TRUE(result.find("local_var1.prompt_align = 128") != std::string::npos);
+
+  // Verify no prompt alignment for non-concat outer case
+  EXPECT_TRUE(result.find("local_var2.prompt_align") == std::string::npos);
 }
 
-
 TEST_F(TestAxesReorderSolverGen, GenInputInfoCase2Test) {
-    std::vector<Expr> all_cons;
-    std::vector<Expr> local_buffer_cons;
-    std::vector<Expr> mc_mixed_cons;
+  std::vector<Expr> all_cons;
+  std::vector<Expr> local_buffer_cons;
+  std::vector<Expr> mc_mixed_cons;
 
-    AxesReorderSolverGen solver("case_test", "TilingData");
-    std::map<HardwareDef, Expr> hardware_use_map_;
-    std::vector<Expr> total_cut_cons_;
-    std::vector<Expr> mc_args_;
-    std::vector<Expr> local_buffer_tiling_vars_;
-    ExprExprMap arg_align_map_;
-    ExprUintMap arg_prompt_align_map_;
-    ExprUintMap is_concat_outer_map_;
-    std::vector<Expr> concat_inner_dims_;
+  AxesReorderSolverGen solver("case_test", "TilingData");
+  std::map<HardwareDef, Expr> hardware_use_map_;
+  std::vector<Expr> total_cut_cons_;
+  std::vector<Expr> mc_args_;
+  std::vector<Expr> local_buffer_tiling_vars_;
+  ExprExprMap arg_align_map_;
+  ExprUintMap arg_prompt_align_map_;
+  ExprUintMap is_concat_outer_map_;
+  std::vector<Expr> concat_inner_dims_;
 
-    // Initialize test data
-    hardware_use_map_[HardwareDef::CORENUM] = CreateExpr(1);
-    hardware_use_map_[HardwareDef::GM] = CreateExpr(1024);
-    hardware_use_map_[HardwareDef::UB] = CreateExpr(512);
-    
-    total_cut_cons_.push_back(CreateExpr(256));
-    total_cut_cons_.push_back(CreateExpr(128));
+  // Initialize test data
+  hardware_use_map_[HardwareDef::CORENUM] = CreateExpr(1);
+  hardware_use_map_[HardwareDef::GM] = CreateExpr(1024);
+  hardware_use_map_[HardwareDef::UB] = CreateExpr(512);
 
-    
-    mc_args_.push_back(CreateExpr("mc_var1"));
-    mc_args_.push_back(CreateExpr("mc_var2"));
+  total_cut_cons_.push_back(CreateExpr(256));
+  total_cut_cons_.push_back(CreateExpr(128));
 
-    Expr var1 = CreateExpr("local_var1");
-    Expr var2 = CreateExpr("local_var2");
-    Expr var3 = af::Symbol("local_var3");
+  mc_args_.push_back(CreateExpr("mc_var1"));
+  mc_args_.push_back(CreateExpr("mc_var2"));
 
-    
-    local_buffer_tiling_vars_.push_back(var1);
-    local_buffer_tiling_vars_.push_back(var2);
-    
-    arg_align_map_[var1] = af::Symbol(64);
-    arg_align_map_[var2] = af::Symbol(32);
-    
-    arg_prompt_align_map_[var1] = 128;
-    arg_prompt_align_map_[var3] = 64;
-    
-    is_concat_outer_map_[var1] = 1;
-    is_concat_outer_map_[var2] = 0;
-    
-    concat_inner_dims_.push_back(var3);
-    
-    // Set the test data to the solver
-    solver.hardware_use_map_ = hardware_use_map_;
-    solver.total_cut_cons_ = total_cut_cons_;
-    solver.mc_args_ = mc_args_;
-    solver.local_buffer_tiling_vars_ = local_buffer_tiling_vars_;
-    solver.arg_align_map_ = arg_align_map_;
-    solver.arg_prompt_align_map_ = arg_prompt_align_map_;
-    solver.is_concat_outer_map_ = is_concat_outer_map_;
-    solver.concat_inner_dims_ = concat_inner_dims_;
-    
-    std::string result = solver.GenInputInfo(all_cons, local_buffer_cons, mc_mixed_cons);
+  Expr var1 = CreateExpr("local_var1");
+  Expr var2 = CreateExpr("local_var2");
+  Expr var3 = af::Symbol("local_var3");
 
-    // 4. Check local buffer variables processing
-    // Verify alignment strings are generated
-    EXPECT_TRUE(result.find("local_var1.align = std::max(1, 64)") != std::string::npos);
-    EXPECT_TRUE(result.find("local_var2.align = std::max(1, 32)") != std::string::npos);
-    
-    std::cout<<result<<std::endl;
-    // Verify prompt alignment for concat outer case
-    EXPECT_TRUE(result.find("local_var1.prompt_align = 128") != std::string::npos);
-    
-    // Verify no prompt alignment for non-concat outer case
-    EXPECT_TRUE(result.find("local_var2.prompt_align") == std::string::npos);
+  local_buffer_tiling_vars_.push_back(var1);
+  local_buffer_tiling_vars_.push_back(var2);
+
+  arg_align_map_[var1] = af::Symbol(64);
+  arg_align_map_[var2] = af::Symbol(32);
+
+  arg_prompt_align_map_[var1] = 128;
+  arg_prompt_align_map_[var3] = 64;
+
+  is_concat_outer_map_[var1] = 1;
+  is_concat_outer_map_[var2] = 0;
+
+  concat_inner_dims_.push_back(var3);
+
+  // Set the test data to the solver
+  solver.hardware_use_map_ = hardware_use_map_;
+  solver.total_cut_cons_ = total_cut_cons_;
+  solver.mc_args_ = mc_args_;
+  solver.local_buffer_tiling_vars_ = local_buffer_tiling_vars_;
+  solver.arg_align_map_ = arg_align_map_;
+  solver.arg_prompt_align_map_ = arg_prompt_align_map_;
+  solver.is_concat_outer_map_ = is_concat_outer_map_;
+  solver.concat_inner_dims_ = concat_inner_dims_;
+
+  std::string result = solver.GenInputInfo(all_cons, local_buffer_cons, mc_mixed_cons);
+
+  // 4. Check local buffer variables processing
+  // Verify alignment strings are generated
+  EXPECT_TRUE(result.find("local_var1.align = std::max(1, 64)") != std::string::npos);
+  EXPECT_TRUE(result.find("local_var2.align = std::max(1, 32)") != std::string::npos);
+
+  std::cout << result << std::endl;
+  // Verify prompt alignment for concat outer case
+  EXPECT_TRUE(result.find("local_var1.prompt_align = 128") != std::string::npos);
+
+  // Verify no prompt alignment for non-concat outer case
+  EXPECT_TRUE(result.find("local_var2.prompt_align") == std::string::npos);
 }
 
 TEST_F(TestAxesReorderSolverGen, GenUBThresholdFunc_WithUBAndVariables) {
@@ -514,7 +499,8 @@ TEST_F(TestAxesReorderSolverGen, GenUBThresholdFunc_WithUBAndVariables) {
   solver.hardware_use_map_ = hardware_use_map_;
   solver.SetEnableMulticoreUBTradeoff(true);
   std::string actual = solver.GenUBThresholdFunc();
-  EXPECT_TRUE(actual.find("return (ub_size - 0) > static_cast<uint32_t>(input_.ub_threshold * input_.ub_size);") != std::string::npos);
+  EXPECT_TRUE(actual.find("return (ub_size - 0) > static_cast<uint32_t>(input_.ub_threshold * input_.ub_size);") !=
+              std::string::npos);
 }
 
 TEST_F(TestAxesReorderSolverGen, GenUBThresholdFunc_WithUBAndVariablesNotFound) {
@@ -542,7 +528,8 @@ TEST_F(TestAxesReorderSolverGen, GenUBThresholdFunc_WithUBAndVariablesNotFound) 
   solver.hardware_use_map_ = hardware_use_map_;
   solver.SetEnableMulticoreUBTradeoff(true);
   std::string actual = solver.GenUBThresholdFunc();
-  EXPECT_TRUE(actual.find("return ub_size > static_cast<uint32_t>(input_.ub_threshold * input_.ub_size);") == std::string::npos);
+  EXPECT_TRUE(actual.find("return ub_size > static_cast<uint32_t>(input_.ub_threshold * input_.ub_size);") ==
+              std::string::npos);
 }
 
 TEST_F(TestAxesReorderSolverGen, GenSolverFuncImpl_WithUBAndVariables) {
@@ -638,22 +625,26 @@ TEST_F(TestAxesReorderSolverGen, GenInput_UseMemberVariableWhenTradeOffEnabled) 
   // 注意: std::to_string() 默认生成6位小数格式
   EXPECT_TRUE(gen_code.find("input.ub_threshold = 0.000000;") != std::string::npos)
       << "GenInput should use ub_threshold_ member variable (0.0), not hardcoded default.\n"
-      << "Generated code:\n" << gen_code;
+      << "Generated code:\n"
+      << gen_code;
 
   EXPECT_TRUE(gen_code.find("input.corenum_threshold = 1.000000;") != std::string::npos)
       << "GenInput should use corenum_threshold_ member variable (1.0), not hardcoded default.\n"
-      << "Generated code:\n" << gen_code;
+      << "Generated code:\n"
+      << gen_code;
 
   // 防止回退检查：确保代码中不包含硬编码的默认值 0.200000 和 0.400000
   EXPECT_EQ(gen_code.find("0.200000"), std::string::npos)
       << "Generated code contains hardcoded default ub_threshold 0.2!\n"
       << "This indicates the fix from commit 3d7b57d5 may have regressed.\n"
-      << "Generated code:\n" << gen_code;
+      << "Generated code:\n"
+      << gen_code;
 
   EXPECT_EQ(gen_code.find("0.400000"), std::string::npos)
       << "Generated code contains hardcoded default corenum_threshold 0.4!\n"
       << "This indicates the fix from commit 3d7b57d5 may have regressed.\n"
-      << "Generated code:\n" << gen_code;
+      << "Generated code:\n"
+      << gen_code;
 }
 
 /**
@@ -776,8 +767,7 @@ TEST_F(TestAxesReorderSolverGen, GenGetBlockDimStatic_ShouldClampToOneWhenCoreNu
   EXPECT_TRUE(actual.find("return std::max(1, static_cast<int32_t>(0));") != std::string::npos) << actual;
 }
 
-TEST_F(TestAxesReorderSolverGen, GenGetUbSizeStaticFunc_UsesNamedExprForSemanticContainer)
-{
+TEST_F(TestAxesReorderSolverGen, GenGetUbSizeStaticFunc_UsesNamedExprForSemanticContainer) {
   AxesReorderSolverGen solver("case_test", "TilingData");
   Expr tensor = CreateExpr("tensor_0");
   Expr s2 = CreateExpr("S2");
@@ -803,8 +793,7 @@ TEST_F(TestAxesReorderSolverGen, GenGetUbSizeStaticFunc_UsesNamedExprForSemantic
   EXPECT_NE(actual.find("ub_size = (32 * Ceiling((Rational(1,32) * tensor_size_0)))"), std::string::npos) << actual;
 }
 
-TEST_F(TestAxesReorderSolverGen, GenGetUbSizeStaticFunc_NamesExpandedUbExpr)
-{
+TEST_F(TestAxesReorderSolverGen, GenGetUbSizeStaticFunc_NamesExpandedUbExpr) {
   AxesReorderSolverGen solver("case_test", "TilingData");
   Expr s2 = CreateExpr("S2");
   Expr s1tt_size = CreateExpr("s1tt_size");
@@ -818,12 +807,11 @@ TEST_F(TestAxesReorderSolverGen, GenGetUbSizeStaticFunc_NamesExpandedUbExpr)
   ExpectNoTempVars(actual);
   EXPECT_EQ(actual.find("auto common_size_"), std::string::npos) << actual;
   EXPECT_EQ(actual.find("auto que_size_"), std::string::npos) << actual;
-  EXPECT_NE(actual.find("int64_t ub_size = (32 * Ceiling(((Rational(1,8) * S2) * s1tt_size)));"),
-            std::string::npos) << actual;
+  EXPECT_NE(actual.find("int64_t ub_size = (32 * Ceiling(((Rational(1,8) * S2) * s1tt_size)));"), std::string::npos)
+      << actual;
 }
 
-TEST_F(TestAxesReorderSolverGen, GenGetUbSizeStaticFunc_ReusesDuplicateSemanticExpr)
-{
+TEST_F(TestAxesReorderSolverGen, GenGetUbSizeStaticFunc_ReusesDuplicateSemanticExpr) {
   AxesReorderSolverGen solver("case_test", "TilingData");
   Expr tensor0 = CreateExpr("tensor_0");
   Expr tensor1 = CreateExpr("tensor_1");
@@ -844,8 +832,7 @@ TEST_F(TestAxesReorderSolverGen, GenGetUbSizeStaticFunc_ReusesDuplicateSemanticE
   EXPECT_NE(actual.find("ub_size = Max(tensor_size_0,tensor_size_0);"), std::string::npos) << actual;
 }
 
-TEST_F(TestAxesReorderSolverGen, GenGetUbSizeStaticFunc_NoUbKeepsReturnZero)
-{
+TEST_F(TestAxesReorderSolverGen, GenGetUbSizeStaticFunc_NoUbKeepsReturnZero) {
   AxesReorderSolverGen solver("case_test", "TilingData");
 
   std::string actual = solver.GenGetUbSizeStaticFunc();
@@ -854,8 +841,7 @@ TEST_F(TestAxesReorderSolverGen, GenGetUbSizeStaticFunc_NoUbKeepsReturnZero)
   EXPECT_NE(actual.find("return 0;"), std::string::npos) << actual;
 }
 
-TEST_F(TestAxesReorderSolverGen, GenUbIndirectPathsReuseGetUbSizeStatic)
-{
+TEST_F(TestAxesReorderSolverGen, GenUbIndirectPathsReuseGetUbSizeStatic) {
   AxesReorderSolverGen solver("case_test", "TilingData");
   Expr z0t_size = CreateExpr("z0t_size");
   Expr z1t_size = CreateExpr("z1t_size");
@@ -882,8 +868,7 @@ TEST_F(TestAxesReorderSolverGen, GenUbIndirectPathsReuseGetUbSizeStatic)
   ExpectNoTempVars(cons_func);
 }
 
-TEST_F(TestAxesReorderSolverGen, GenConsFunc_BufferStillUsesOriginTempExpr)
-{
+TEST_F(TestAxesReorderSolverGen, GenConsFunc_BufferStillUsesOriginTempExpr) {
   AxesReorderSolverGen solver("case_test", "TilingData");
   Expr tiling_var = CreateExpr("tiling_var");
   Expr cons_var = CreateExpr("cons_var");
@@ -896,8 +881,7 @@ TEST_F(TestAxesReorderSolverGen, GenConsFunc_BufferStillUsesOriginTempExpr)
   EXPECT_EQ(actual.find("que_size_"), std::string::npos) << actual;
 }
 
-TEST_F(TestAxesReorderSolverGen, GenGetUbSizeStaticFunc_LeafUbExprDoesNotCreateIntermediate)
-{
+TEST_F(TestAxesReorderSolverGen, GenGetUbSizeStaticFunc_LeafUbExprDoesNotCreateIntermediate) {
   AxesReorderSolverGen solver("case_test", "TilingData");
   Expr var = CreateExpr("var");
   std::map<HardwareDef, Expr> hardware_use_map;
@@ -911,8 +895,7 @@ TEST_F(TestAxesReorderSolverGen, GenGetUbSizeStaticFunc_LeafUbExprDoesNotCreateI
   EXPECT_EQ(actual.find("auto common_size_"), std::string::npos) << actual;
 }
 
-TEST_F(TestAxesReorderSolverGen, GenGetUbSizeStaticFunc_AvoidsGeneratedNameCollision)
-{
+TEST_F(TestAxesReorderSolverGen, GenGetUbSizeStaticFunc_AvoidsGeneratedNameCollision) {
   AxesReorderSolverGen solver("case_test", "TilingData");
   Expr tensor_size_0 = CreateExpr("tensor_size_0");
   Expr tensor = CreateExpr("tensor_0");
@@ -929,8 +912,7 @@ TEST_F(TestAxesReorderSolverGen, GenGetUbSizeStaticFunc_AvoidsGeneratedNameColli
   EXPECT_NE(actual.find("auto tensor_size_1 ="), std::string::npos) << actual;
 }
 
-TEST_F(TestAxesReorderSolverGen, GenGetUbSizeStaticFunc_QueryTensorNameUsesTensorKind)
-{
+TEST_F(TestAxesReorderSolverGen, GenGetUbSizeStaticFunc_QueryTensorNameUsesTensorKind) {
   AxesReorderSolverGen solver("case_test", "TilingData");
   Expr tensor = CreateExpr("tensor_0");
   Expr axis = CreateExpr("axis_size");
@@ -947,8 +929,7 @@ TEST_F(TestAxesReorderSolverGen, GenGetUbSizeStaticFunc_QueryTensorNameUsesTenso
   EXPECT_EQ(actual.find("auto que_size_"), std::string::npos) << actual;
 }
 
-TEST_F(TestAxesReorderSolverGen, GenGetUbSizeStaticFunc_KeepsFirstKindWhenSemanticExprReused)
-{
+TEST_F(TestAxesReorderSolverGen, GenGetUbSizeStaticFunc_KeepsFirstKindWhenSemanticExprReused) {
   AxesReorderSolverGen solver("case_test", "TilingData");
   Expr tensor = CreateExpr("a_tensor_0");
   Expr buffer = CreateExpr("z_buffer_size");
@@ -968,8 +949,7 @@ TEST_F(TestAxesReorderSolverGen, GenGetUbSizeStaticFunc_KeepsFirstKindWhenSemant
   EXPECT_NE(actual.find("int64_t ub_size = (tensor_size_0 + tensor_size_0);"), std::string::npos) << actual;
 }
 
-TEST_F(TestAxesReorderSolverGen, GenGetUbSizeStaticFunc_QueueAlignSupportsRightMultiply)
-{
+TEST_F(TestAxesReorderSolverGen, GenGetUbSizeStaticFunc_QueueAlignSupportsRightMultiply) {
   AxesReorderSolverGen solver("case_test", "TilingData");
   Expr tensor = CreateExpr("tensor_0");
   Expr axis = CreateExpr("axis_size");
@@ -986,8 +966,7 @@ TEST_F(TestAxesReorderSolverGen, GenGetUbSizeStaticFunc_QueueAlignSupportsRightM
   EXPECT_NE(actual.find("int64_t ub_size = (32 * Ceiling(tensor_size_0));"), std::string::npos) << actual;
 }
 
-TEST_F(TestAxesReorderSolverGen, GenGetUbSizeStaticFunc_KeepsShortCeilingInline)
-{
+TEST_F(TestAxesReorderSolverGen, GenGetUbSizeStaticFunc_KeepsShortCeilingInline) {
   AxesReorderSolverGen solver("case_test", "TilingData");
   Expr tensor = CreateExpr("tensor_0");
   Expr axis = CreateExpr("axis_size");
@@ -1004,8 +983,7 @@ TEST_F(TestAxesReorderSolverGen, GenGetUbSizeStaticFunc_KeepsShortCeilingInline)
   EXPECT_NE(actual.find("int64_t ub_size = (1 + Ceiling(tensor_size_0));"), std::string::npos) << actual;
 }
 
-TEST_F(TestAxesReorderSolverGen, GenGetUbSizeStaticFunc_MaterializesRepeatedSubExpr)
-{
+TEST_F(TestAxesReorderSolverGen, GenGetUbSizeStaticFunc_MaterializesRepeatedSubExpr) {
   AxesReorderSolverGen solver("case_test", "TilingData");
   Expr tensor0 = CreateExpr("tensor_0");
   Expr tensor1 = CreateExpr("tensor_1");
@@ -1024,8 +1002,7 @@ TEST_F(TestAxesReorderSolverGen, GenGetUbSizeStaticFunc_MaterializesRepeatedSubE
   EXPECT_NE(actual.find("int64_t ub_size = (tensor_size_0 + tensor_size_0);"), std::string::npos) << actual;
 }
 
-TEST_F(TestAxesReorderSolverGen, GenGetUbSizeStaticFunc_MaterializesLongSubExpr)
-{
+TEST_F(TestAxesReorderSolverGen, GenGetUbSizeStaticFunc_MaterializesLongSubExpr) {
   AxesReorderSolverGen solver("case_test", "TilingData");
   Expr very_long_axis_size_0 = CreateExpr("very_long_axis_size_0");
   Expr very_long_axis_size_1 = CreateExpr("very_long_axis_size_1");
@@ -1043,17 +1020,15 @@ TEST_F(TestAxesReorderSolverGen, GenGetUbSizeStaticFunc_MaterializesLongSubExpr)
   EXPECT_NE(actual.find("int64_t ub_size = (common_size_"), std::string::npos) << actual;
 }
 
-TEST_F(TestAxesReorderSolverGen, GenGetUbSizeStaticFunc_UsesQueueSemanticName)
-{
+TEST_F(TestAxesReorderSolverGen, GenGetUbSizeStaticFunc_UsesQueueSemanticName) {
   AxesReorderSolverGen solver("case_test", "TilingData");
   Expr q0 = CreateExpr("q0");
   Expr q1 = CreateExpr("q1");
   Expr axis0 = CreateExpr("axis0_size");
   Expr axis1 = CreateExpr("axis1_size");
   std::map<HardwareDef, Expr> hardware_use_map;
-  hardware_use_map[HardwareDef::UB] =
-      CreateExpr(32) * af::sym::Ceiling(q0 * af::sym::Rational(1, 32)) +
-      CreateExpr(64) * af::sym::Ceiling(q1 * af::sym::Rational(1, 64));
+  hardware_use_map[HardwareDef::UB] = CreateExpr(32) * af::sym::Ceiling(q0 * af::sym::Rational(1, 32)) +
+                                      CreateExpr(64) * af::sym::Ceiling(q1 * af::sym::Rational(1, 64));
   solver.SetBufferUseAlg(hardware_use_map);
   solver.SetContainerExpr({{q0, axis0 * CreateExpr(4)}, {q1, axis1 * CreateExpr(8)}});
   solver.SetContainerNames({{q0, "q0"}, {q1, "q1"}});
@@ -1069,8 +1044,7 @@ TEST_F(TestAxesReorderSolverGen, GenGetUbSizeStaticFunc_UsesQueueSemanticName)
   EXPECT_EQ(actual.find("auto que_size_"), std::string::npos) << actual;
 }
 
-TEST_F(TestAxesReorderSolverGen, GenGetUbSizeStaticFunc_UsesBufferSemanticName)
-{
+TEST_F(TestAxesReorderSolverGen, GenGetUbSizeStaticFunc_UsesBufferSemanticName) {
   AxesReorderSolverGen solver("case_test", "TilingData");
   Expr buffer = CreateExpr("buffer_size_0");
   Expr tmp_buffer = CreateExpr("tmp_buffer");

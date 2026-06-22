@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -78,7 +78,8 @@ struct ConfusionTransposeNLast4DTiling {
 };
 
 template <typename T>
-__aicore__ inline void Transpose10ConfigMatrixA(const LocalTensor<T> &dstTensor, const LocalTensor<T> &srcTensor, const ConfusionTransposeLastTiling &tiling) { 
+__aicore__ inline void Transpose10ConfigMatrixA(const LocalTensor<T> &dstTensor, const LocalTensor<T> &srcTensor,
+                                                const ConfusionTransposeLastTiling &tiling) {
   uint64_t dstLocalList[NCHW_CONV_ADDR_LIST_SIZE];
   uint64_t srcLocalList[NCHW_CONV_ADDR_LIST_SIZE];
   AscendC::TransDataTo5HDParams transParams;
@@ -89,17 +90,22 @@ __aicore__ inline void Transpose10ConfigMatrixA(const LocalTensor<T> &dstTensor,
   for (loopIdx = 0; loopIdx < tiling.highBlock; loopIdx++) {
     if constexpr (sizeof(T) == sizeof(half)) {
       for (i = 0; i < NCHW_CONV_ADDR_LIST_SIZE; i++) {
-        dstLocalList[i] = reinterpret_cast<uint64_t>(dstTensor[loopIdx * BLOCK_CUBE + tiling.firstAxisAlign * i].GetPhyAddr());
-        srcLocalList[i] = reinterpret_cast<uint64_t>(srcTensor[loopIdx * BLOCK_CUBE * tiling.secondAxisAlign + tiling.secondAxisAlign * i].GetPhyAddr());
+        dstLocalList[i] =
+            reinterpret_cast<uint64_t>(dstTensor[loopIdx * BLOCK_CUBE + tiling.firstAxisAlign * i].GetPhyAddr());
+        srcLocalList[i] = reinterpret_cast<uint64_t>(
+            srcTensor[loopIdx * BLOCK_CUBE * tiling.secondAxisAlign + tiling.secondAxisAlign * i].GetPhyAddr());
       }
       TransDataTo5HD<T>(dstLocalList, srcLocalList, transParams);
     } else if constexpr (sizeof(T) == sizeof(float)) {
       for (i = 0; i < NCHW_CONV_ADDR_LIST_SIZE; i = i + 2) {
-        dstLocalList[i] = reinterpret_cast<uint64_t>(dstTensor[loopIdx * BLOCK_CUBE + tiling.firstAxisAlign * (i / 2)].GetPhyAddr());
-        dstLocalList[i + 1] = reinterpret_cast<uint64_t>(dstTensor[loopIdx * BLOCK_CUBE + tiling.firstAxisAlign * (i / 2) + tiling.blockSize].GetPhyAddr());
+        dstLocalList[i] =
+            reinterpret_cast<uint64_t>(dstTensor[loopIdx * BLOCK_CUBE + tiling.firstAxisAlign * (i / 2)].GetPhyAddr());
+        dstLocalList[i + 1] = reinterpret_cast<uint64_t>(
+            dstTensor[loopIdx * BLOCK_CUBE + tiling.firstAxisAlign * (i / 2) + tiling.blockSize].GetPhyAddr());
       }
       for (i = 0; i < NCHW_CONV_ADDR_LIST_SIZE; i++) {
-        srcLocalList[i] = reinterpret_cast<uint64_t>(srcTensor[loopIdx * BLOCK_CUBE * tiling.secondAxisAlign + tiling.secondAxisAlign * i].GetPhyAddr());
+        srcLocalList[i] = reinterpret_cast<uint64_t>(
+            srcTensor[loopIdx * BLOCK_CUBE * tiling.secondAxisAlign + tiling.secondAxisAlign * i].GetPhyAddr());
       }
       TransDataTo5HD<T>(dstLocalList, srcLocalList, transParams);
     }
@@ -107,7 +113,8 @@ __aicore__ inline void Transpose10ConfigMatrixA(const LocalTensor<T> &dstTensor,
 }
 
 template <typename T>
-__aicore__ inline void Transpose10ConfigMatrixB(const LocalTensor<T> &dstTensor, const LocalTensor<T> &srcTensor, const ConfusionTransposeLastTiling &tiling) { 
+__aicore__ inline void Transpose10ConfigMatrixB(const LocalTensor<T> &dstTensor, const LocalTensor<T> &srcTensor,
+                                                const ConfusionTransposeLastTiling &tiling) {
   uint64_t dstLocalList[NCHW_CONV_ADDR_LIST_SIZE];
   uint64_t srcLocalList[NCHW_CONV_ADDR_LIST_SIZE];
   AscendC::TransDataTo5HDParams transParams;
@@ -117,37 +124,50 @@ __aicore__ inline void Transpose10ConfigMatrixB(const LocalTensor<T> &dstTensor,
   transParams.dstRepStride = tiling.repeat > 1 ? tiling.stride : 0;
   if constexpr (sizeof(T) == sizeof(half)) {
     for (i = 0; i < tiling.firstAxisRem; i++) {
-      dstLocalList[i] = reinterpret_cast<uint64_t>(dstTensor[tiling.highBlock * BLOCK_CUBE + tiling.firstAxisAlign * i].GetPhyAddr());
-      srcLocalList[i] = reinterpret_cast<uint64_t>(srcTensor[tiling.highBlock * BLOCK_CUBE * tiling.secondAxisAlign + tiling.secondAxisAlign * i].GetPhyAddr());
+      dstLocalList[i] =
+          reinterpret_cast<uint64_t>(dstTensor[tiling.highBlock * BLOCK_CUBE + tiling.firstAxisAlign * i].GetPhyAddr());
+      srcLocalList[i] = reinterpret_cast<uint64_t>(
+          srcTensor[tiling.highBlock * BLOCK_CUBE * tiling.secondAxisAlign + tiling.secondAxisAlign * i].GetPhyAddr());
     }
     for (; i < NCHW_CONV_ADDR_LIST_SIZE; i++) {
-      dstLocalList[i] = reinterpret_cast<uint64_t>(dstTensor[tiling.highBlock * BLOCK_CUBE + tiling.firstAxisAlign * i].GetPhyAddr());
-      srcLocalList[i] = reinterpret_cast<uint64_t>(srcTensor[tiling.highBlock * BLOCK_CUBE * tiling.secondAxisAlign + tiling.secondAxisAlign * (tiling.firstAxisRem - 1)].GetPhyAddr());
+      dstLocalList[i] =
+          reinterpret_cast<uint64_t>(dstTensor[tiling.highBlock * BLOCK_CUBE + tiling.firstAxisAlign * i].GetPhyAddr());
+      srcLocalList[i] = reinterpret_cast<uint64_t>(srcTensor[tiling.highBlock * BLOCK_CUBE * tiling.secondAxisAlign +
+                                                             tiling.secondAxisAlign * (tiling.firstAxisRem - 1)]
+                                                       .GetPhyAddr());
     }
     TransDataTo5HD<T>(dstLocalList, srcLocalList, transParams);
   } else if constexpr (sizeof(T) == sizeof(float)) {
     for (i = 0; i < NCHW_CONV_ADDR_LIST_SIZE; i = i + 2) {
-      dstLocalList[i] = reinterpret_cast<uint64_t>(dstTensor[tiling.highBlock * BLOCK_CUBE + tiling.firstAxisAlign * (i / 2)].GetPhyAddr());
-      dstLocalList[i + 1] = reinterpret_cast<uint64_t>(dstTensor[tiling.highBlock * BLOCK_CUBE + tiling.firstAxisAlign * (i / 2) + tiling.blockSize].GetPhyAddr());
+      dstLocalList[i] = reinterpret_cast<uint64_t>(
+          dstTensor[tiling.highBlock * BLOCK_CUBE + tiling.firstAxisAlign * (i / 2)].GetPhyAddr());
+      dstLocalList[i + 1] = reinterpret_cast<uint64_t>(
+          dstTensor[tiling.highBlock * BLOCK_CUBE + tiling.firstAxisAlign * (i / 2) + tiling.blockSize].GetPhyAddr());
     }
     for (i = 0; i < tiling.firstAxisRem; i++) {
-      srcLocalList[i] = reinterpret_cast<uint64_t>(srcTensor[tiling.highBlock * BLOCK_CUBE * tiling.secondAxisAlign + tiling.secondAxisAlign * i].GetPhyAddr());
+      srcLocalList[i] = reinterpret_cast<uint64_t>(
+          srcTensor[tiling.highBlock * BLOCK_CUBE * tiling.secondAxisAlign + tiling.secondAxisAlign * i].GetPhyAddr());
     }
     for (; i < NCHW_CONV_ADDR_LIST_SIZE; i++) {
-      srcLocalList[i] = reinterpret_cast<uint64_t>(srcTensor[tiling.highBlock * BLOCK_CUBE * tiling.secondAxisAlign + tiling.secondAxisAlign * (tiling.firstAxisRem - 1)].GetPhyAddr());
+      srcLocalList[i] = reinterpret_cast<uint64_t>(srcTensor[tiling.highBlock * BLOCK_CUBE * tiling.secondAxisAlign +
+                                                             tiling.secondAxisAlign * (tiling.firstAxisRem - 1)]
+                                                       .GetPhyAddr());
     }
     TransDataTo5HD<T>(dstLocalList, srcLocalList, transParams);
   }
 }
 
 template <typename T>
-__aicore__ inline void Transpose10ConfigMatrixC(const LocalTensor<T> &dstTensor, const LocalTensor<T> &srcTensor, const ConfusionTransposeLastTiling &tiling, const LocalTensor<uint8_t> &tmpbuf) {
+__aicore__ inline void Transpose10ConfigMatrixC(const LocalTensor<T> &dstTensor, const LocalTensor<T> &srcTensor,
+                                                const ConfusionTransposeLastTiling &tiling,
+                                                const LocalTensor<uint8_t> &tmpbuf) {
   uint64_t dstLocalList[NCHW_CONV_ADDR_LIST_SIZE];
   uint64_t srcLocalList[NCHW_CONV_ADDR_LIST_SIZE];
   AscendC::TransDataTo5HDParams transParams;
   const LocalTensor<T> tmpTensor = tmpbuf.ReinterpretCast<T>();
-  const uint64_t dstAddrOffset = tiling.repeat * tiling.blockSize * tiling.firstAxisAlign; // 矩阵 C 目的地址相对于起始地址的偏移
-  const uint64_t srcAddrOffset = tiling.repeat * tiling.blockSize; // 矩阵 C 源地址相对于起始地址的偏移
+  const uint64_t dstAddrOffset =
+      tiling.repeat * tiling.blockSize * tiling.firstAxisAlign;  // 矩阵 C 目的地址相对于起始地址的偏移
+  const uint64_t srcAddrOffset = tiling.repeat * tiling.blockSize;  // 矩阵 C 源地址相对于起始地址的偏移
   uint32_t loopIdx, i;
   transParams.repeatTimes = 1;
   transParams.srcRepStride = 0;
@@ -155,25 +175,38 @@ __aicore__ inline void Transpose10ConfigMatrixC(const LocalTensor<T> &dstTensor,
   for (loopIdx = 0; loopIdx < tiling.highBlock; loopIdx++) {
     if constexpr (sizeof(T) == sizeof(half)) {
       for (i = 0; i < tiling.secondAxisRem; i++) {
-        dstLocalList[i] = reinterpret_cast<uint64_t>(dstTensor[dstAddrOffset + loopIdx * BLOCK_CUBE + tiling.firstAxisAlign * i].GetPhyAddr());
-        srcLocalList[i] = reinterpret_cast<uint64_t>(srcTensor[srcAddrOffset + loopIdx * BLOCK_CUBE * tiling.secondAxisAlign + tiling.secondAxisAlign * i].GetPhyAddr());
+        dstLocalList[i] = reinterpret_cast<uint64_t>(
+            dstTensor[dstAddrOffset + loopIdx * BLOCK_CUBE + tiling.firstAxisAlign * i].GetPhyAddr());
+        srcLocalList[i] = reinterpret_cast<uint64_t>(
+            srcTensor[srcAddrOffset + loopIdx * BLOCK_CUBE * tiling.secondAxisAlign + tiling.secondAxisAlign * i]
+                .GetPhyAddr());
       }
       for (; i < NCHW_CONV_ADDR_LIST_SIZE; i++) {
-        dstLocalList[i] = reinterpret_cast<uint64_t>(tmpTensor[(i - tiling.secondAxisRem) * tiling.blockSize].GetPhyAddr());
-        srcLocalList[i] = reinterpret_cast<uint64_t>(srcTensor[srcAddrOffset + loopIdx * BLOCK_CUBE * tiling.secondAxisAlign + tiling.secondAxisAlign * i].GetPhyAddr());
+        dstLocalList[i] =
+            reinterpret_cast<uint64_t>(tmpTensor[(i - tiling.secondAxisRem) * tiling.blockSize].GetPhyAddr());
+        srcLocalList[i] = reinterpret_cast<uint64_t>(
+            srcTensor[srcAddrOffset + loopIdx * BLOCK_CUBE * tiling.secondAxisAlign + tiling.secondAxisAlign * i]
+                .GetPhyAddr());
       }
       TransDataTo5HD<T>(dstLocalList, srcLocalList, transParams);
-    } else if constexpr (sizeof(T) == sizeof(float)) { 
+    } else if constexpr (sizeof(T) == sizeof(float)) {
       for (i = 0; i < tiling.secondAxisRem * 2; i = i + 2) {
-        dstLocalList[i] = reinterpret_cast<uint64_t>(dstTensor[dstAddrOffset + loopIdx * BLOCK_CUBE + tiling.firstAxisAlign * (i / 2)].GetPhyAddr());
-        dstLocalList[i + 1] = reinterpret_cast<uint64_t>(dstTensor[dstAddrOffset + loopIdx * BLOCK_CUBE + tiling.firstAxisAlign * (i / 2) + tiling.blockSize].GetPhyAddr());
+        dstLocalList[i] = reinterpret_cast<uint64_t>(
+            dstTensor[dstAddrOffset + loopIdx * BLOCK_CUBE + tiling.firstAxisAlign * (i / 2)].GetPhyAddr());
+        dstLocalList[i + 1] = reinterpret_cast<uint64_t>(
+            dstTensor[dstAddrOffset + loopIdx * BLOCK_CUBE + tiling.firstAxisAlign * (i / 2) + tiling.blockSize]
+                .GetPhyAddr());
       }
       for (; i < NCHW_CONV_ADDR_LIST_SIZE; i = i + 2) {
-        dstLocalList[i] = reinterpret_cast<uint64_t>(tmpTensor[(i - tiling.secondAxisRem * 2) * tiling.blockSize].GetPhyAddr());
-        dstLocalList[i + 1] = reinterpret_cast<uint64_t>(tmpTensor[(i - tiling.secondAxisRem * 2 + 1) * tiling.blockSize].GetPhyAddr());
+        dstLocalList[i] =
+            reinterpret_cast<uint64_t>(tmpTensor[(i - tiling.secondAxisRem * 2) * tiling.blockSize].GetPhyAddr());
+        dstLocalList[i + 1] =
+            reinterpret_cast<uint64_t>(tmpTensor[(i - tiling.secondAxisRem * 2 + 1) * tiling.blockSize].GetPhyAddr());
       }
       for (i = 0; i < NCHW_CONV_ADDR_LIST_SIZE; i++) {
-        srcLocalList[i] = reinterpret_cast<uint64_t>(srcTensor[srcAddrOffset + loopIdx * BLOCK_CUBE * tiling.secondAxisAlign + tiling.secondAxisAlign * i].GetPhyAddr());
+        srcLocalList[i] = reinterpret_cast<uint64_t>(
+            srcTensor[srcAddrOffset + loopIdx * BLOCK_CUBE * tiling.secondAxisAlign + tiling.secondAxisAlign * i]
+                .GetPhyAddr());
       }
       TransDataTo5HD<T>(dstLocalList, srcLocalList, transParams);
     }
@@ -181,45 +214,65 @@ __aicore__ inline void Transpose10ConfigMatrixC(const LocalTensor<T> &dstTensor,
 }
 
 template <typename T>
-__aicore__ inline void Transpose10ConfigMatrixD(const LocalTensor<T> &dstTensor, const LocalTensor<T> &srcTensor, const ConfusionTransposeLastTiling &tiling, const LocalTensor<uint8_t> &tmpbuf) {
+__aicore__ inline void Transpose10ConfigMatrixD(const LocalTensor<T> &dstTensor, const LocalTensor<T> &srcTensor,
+                                                const ConfusionTransposeLastTiling &tiling,
+                                                const LocalTensor<uint8_t> &tmpbuf) {
   uint64_t dstLocalList[NCHW_CONV_ADDR_LIST_SIZE];
   uint64_t srcLocalList[NCHW_CONV_ADDR_LIST_SIZE];
   AscendC::TransDataTo5HDParams transParams;
   const LocalTensor<T> tmpTensor = tmpbuf.ReinterpretCast<T>();
-  const uint64_t dstAddrOffset = tiling.repeat * tiling.blockSize * tiling.firstAxisAlign; // 矩阵 C 目的地址相对于起始地址的偏移
-  const uint64_t srcAddrOffset = tiling.repeat * tiling.blockSize; // 矩阵 C 源地址相对于起始地址的偏移
+  const uint64_t dstAddrOffset =
+      tiling.repeat * tiling.blockSize * tiling.firstAxisAlign;  // 矩阵 C 目的地址相对于起始地址的偏移
+  const uint64_t srcAddrOffset = tiling.repeat * tiling.blockSize;  // 矩阵 C 源地址相对于起始地址的偏移
   uint32_t i;
   transParams.repeatTimes = 1;
   transParams.srcRepStride = 0;
   transParams.dstRepStride = 0;
   if constexpr (sizeof(T) == sizeof(half)) {
     for (i = 0; i < tiling.secondAxisRem; i++) {
-      dstLocalList[i] = reinterpret_cast<uint64_t>(dstTensor[dstAddrOffset + tiling.highBlock * BLOCK_CUBE + tiling.firstAxisAlign * i].GetPhyAddr());
+      dstLocalList[i] = reinterpret_cast<uint64_t>(
+          dstTensor[dstAddrOffset + tiling.highBlock * BLOCK_CUBE + tiling.firstAxisAlign * i].GetPhyAddr());
     }
     for (; i < NCHW_CONV_ADDR_LIST_SIZE; i++) {
-      dstLocalList[i] = reinterpret_cast<uint64_t>(tmpTensor[(i - tiling.secondAxisRem) * tiling.blockSize].GetPhyAddr());
+      dstLocalList[i] =
+          reinterpret_cast<uint64_t>(tmpTensor[(i - tiling.secondAxisRem) * tiling.blockSize].GetPhyAddr());
     }
     for (i = 0; i < tiling.firstAxisRem; i++) {
-      srcLocalList[i] = reinterpret_cast<uint64_t>(srcTensor[srcAddrOffset + tiling.highBlock * BLOCK_CUBE * tiling.secondAxisAlign + tiling.secondAxisAlign * i].GetPhyAddr());
+      srcLocalList[i] = reinterpret_cast<uint64_t>(
+          srcTensor[srcAddrOffset + tiling.highBlock * BLOCK_CUBE * tiling.secondAxisAlign + tiling.secondAxisAlign * i]
+              .GetPhyAddr());
     }
     for (; i < NCHW_CONV_ADDR_LIST_SIZE; i++) {
-      srcLocalList[i] = reinterpret_cast<uint64_t>(srcTensor[srcAddrOffset + tiling.highBlock * BLOCK_CUBE * tiling.secondAxisAlign + tiling.secondAxisAlign * (tiling.firstAxisRem - 1)].GetPhyAddr());
+      srcLocalList[i] =
+          reinterpret_cast<uint64_t>(srcTensor[srcAddrOffset + tiling.highBlock * BLOCK_CUBE * tiling.secondAxisAlign +
+                                               tiling.secondAxisAlign * (tiling.firstAxisRem - 1)]
+                                         .GetPhyAddr());
     }
     TransDataTo5HD<T>(dstLocalList, srcLocalList, transParams);
-  } else if constexpr (sizeof(T) == sizeof(float)) { 
+  } else if constexpr (sizeof(T) == sizeof(float)) {
     for (i = 0; i < tiling.secondAxisRem * 2; i = i + 2) {
-      dstLocalList[i] = reinterpret_cast<uint64_t>(dstTensor[dstAddrOffset + tiling.highBlock * BLOCK_CUBE + tiling.firstAxisAlign * (i / 2)].GetPhyAddr());
-      dstLocalList[i + 1] = reinterpret_cast<uint64_t>(dstTensor[dstAddrOffset + tiling.highBlock * BLOCK_CUBE + tiling.firstAxisAlign * (i / 2) + tiling.blockSize].GetPhyAddr());
+      dstLocalList[i] = reinterpret_cast<uint64_t>(
+          dstTensor[dstAddrOffset + tiling.highBlock * BLOCK_CUBE + tiling.firstAxisAlign * (i / 2)].GetPhyAddr());
+      dstLocalList[i + 1] = reinterpret_cast<uint64_t>(
+          dstTensor[dstAddrOffset + tiling.highBlock * BLOCK_CUBE + tiling.firstAxisAlign * (i / 2) + tiling.blockSize]
+              .GetPhyAddr());
     }
     for (; i < NCHW_CONV_ADDR_LIST_SIZE; i = i + 2) {
-      dstLocalList[i] = reinterpret_cast<uint64_t>(tmpTensor[(i - tiling.secondAxisRem * 2) * tiling.blockSize].GetPhyAddr());
-      dstLocalList[i + 1] = reinterpret_cast<uint64_t>(tmpTensor[(i - tiling.secondAxisRem * 2 + 1) * tiling.blockSize].GetPhyAddr());
+      dstLocalList[i] =
+          reinterpret_cast<uint64_t>(tmpTensor[(i - tiling.secondAxisRem * 2) * tiling.blockSize].GetPhyAddr());
+      dstLocalList[i + 1] =
+          reinterpret_cast<uint64_t>(tmpTensor[(i - tiling.secondAxisRem * 2 + 1) * tiling.blockSize].GetPhyAddr());
     }
     for (i = 0; i < tiling.firstAxisRem; i++) {
-      srcLocalList[i] = reinterpret_cast<uint64_t>(srcTensor[srcAddrOffset + tiling.highBlock * BLOCK_CUBE * tiling.secondAxisAlign + tiling.secondAxisAlign * i].GetPhyAddr());
+      srcLocalList[i] = reinterpret_cast<uint64_t>(
+          srcTensor[srcAddrOffset + tiling.highBlock * BLOCK_CUBE * tiling.secondAxisAlign + tiling.secondAxisAlign * i]
+              .GetPhyAddr());
     }
     for (; i < NCHW_CONV_ADDR_LIST_SIZE; i++) {
-      srcLocalList[i] = reinterpret_cast<uint64_t>(srcTensor[srcAddrOffset + tiling.highBlock * BLOCK_CUBE * tiling.secondAxisAlign + tiling.secondAxisAlign * (tiling.firstAxisRem - 1)].GetPhyAddr());
+      srcLocalList[i] =
+          reinterpret_cast<uint64_t>(srcTensor[srcAddrOffset + tiling.highBlock * BLOCK_CUBE * tiling.secondAxisAlign +
+                                               tiling.secondAxisAlign * (tiling.firstAxisRem - 1)]
+                                         .GetPhyAddr());
     }
     TransDataTo5HD<T>(dstLocalList, srcLocalList, transParams);
   }
@@ -233,13 +286,14 @@ ____________           ______________
 |        | |  ------>  |        |   |
 |________|_|           |________|___|
 |    B   |D|           |____C'__|_D'|
-|________|_|        
+|________|_|
 
 以转置前矩阵[37,35]为例，切分为A[32,32], B[5,32], C[32,3]， D[5,3]分别进行转置
 */
 template <typename T>
-__aicore__ inline void ConfusionTranspose10Compute(const LocalTensor<T> &dstTensor, const LocalTensor<T> &srcTensor, const LocalTensor<uint8_t> &tmpbuf,
-                                                   const ConfusionTransposeLastTiling &tiling) { 
+__aicore__ inline void ConfusionTranspose10Compute(const LocalTensor<T> &dstTensor, const LocalTensor<T> &srcTensor,
+                                                   const LocalTensor<uint8_t> &tmpbuf,
+                                                   const ConfusionTransposeLastTiling &tiling) {
   if (tiling.highBlock > 0) {
     if (tiling.repeat > 0) {
       Transpose10ConfigMatrixA(dstTensor, srcTensor, tiling);
@@ -297,7 +351,8 @@ __aicore__ inline void ConfusionTransposeNLast4DCompute(const LocalTensor<T> &ds
 }
 
 template <typename T>
-__aicore__ inline void Transpose021ConfigMatrixA(const LocalTensor<T> &dstTensor, const LocalTensor<T> &srcTensor, const ConfusionTranspose3DTiling &tiling) { 
+__aicore__ inline void Transpose021ConfigMatrixA(const LocalTensor<T> &dstTensor, const LocalTensor<T> &srcTensor,
+                                                 const ConfusionTranspose3DTiling &tiling) {
   uint64_t dstLocalList[NCHW_CONV_ADDR_LIST_SIZE];
   uint64_t srcLocalList[NCHW_CONV_ADDR_LIST_SIZE];
   AscendC::TransDataTo5HDParams transParams;
@@ -308,21 +363,29 @@ __aicore__ inline void Transpose021ConfigMatrixA(const LocalTensor<T> &dstTensor
   transParams.dstRepStride = tiling.repeat > 1 ? tiling.stride : 0;
   for (outerMostLoopIdx = 0; outerMostLoopIdx < tiling.channel; outerMostLoopIdx++) {
     srcMostOuterOffset = outerMostLoopIdx * tiling.height * tiling.secondAxisAlign;
-    dstMostOuterOffset = outerMostLoopIdx  * tiling.width * tiling.firstAxisAlign;
+    dstMostOuterOffset = outerMostLoopIdx * tiling.width * tiling.firstAxisAlign;
     for (loopIdx = 0; loopIdx < tiling.highBlock; loopIdx++) {
       if constexpr (sizeof(T) == sizeof(half)) {
         for (i = 0; i < NCHW_CONV_ADDR_LIST_SIZE; i++) {
-          dstLocalList[i] = reinterpret_cast<uint64_t>(dstTensor[dstMostOuterOffset + loopIdx * BLOCK_CUBE + tiling.firstAxisAlign * i].GetPhyAddr());
-          srcLocalList[i] = reinterpret_cast<uint64_t>(srcTensor[srcMostOuterOffset + loopIdx * BLOCK_CUBE * tiling.secondAxisAlign + tiling.secondAxisAlign * i].GetPhyAddr());
+          dstLocalList[i] = reinterpret_cast<uint64_t>(
+              dstTensor[dstMostOuterOffset + loopIdx * BLOCK_CUBE + tiling.firstAxisAlign * i].GetPhyAddr());
+          srcLocalList[i] = reinterpret_cast<uint64_t>(
+              srcTensor[srcMostOuterOffset + loopIdx * BLOCK_CUBE * tiling.secondAxisAlign + tiling.secondAxisAlign * i]
+                  .GetPhyAddr());
         }
         TransDataTo5HD<T>(dstLocalList, srcLocalList, transParams);
       } else if constexpr (sizeof(T) == sizeof(float)) {
         for (i = 0; i < NCHW_CONV_ADDR_LIST_SIZE; i = i + 2) {
-          dstLocalList[i] = reinterpret_cast<uint64_t>(dstTensor[dstMostOuterOffset + loopIdx * BLOCK_CUBE + tiling.firstAxisAlign * (i / 2)].GetPhyAddr());
-          dstLocalList[i + 1] = reinterpret_cast<uint64_t>(dstTensor[dstMostOuterOffset + loopIdx * BLOCK_CUBE + tiling.firstAxisAlign * (i / 2) + tiling.blockSize].GetPhyAddr());
+          dstLocalList[i] = reinterpret_cast<uint64_t>(
+              dstTensor[dstMostOuterOffset + loopIdx * BLOCK_CUBE + tiling.firstAxisAlign * (i / 2)].GetPhyAddr());
+          dstLocalList[i + 1] = reinterpret_cast<uint64_t>(
+              dstTensor[dstMostOuterOffset + loopIdx * BLOCK_CUBE + tiling.firstAxisAlign * (i / 2) + tiling.blockSize]
+                  .GetPhyAddr());
         }
         for (i = 0; i < NCHW_CONV_ADDR_LIST_SIZE; i++) {
-          srcLocalList[i] = reinterpret_cast<uint64_t>(srcTensor[srcMostOuterOffset + loopIdx * BLOCK_CUBE * tiling.secondAxisAlign + tiling.secondAxisAlign * i].GetPhyAddr());
+          srcLocalList[i] = reinterpret_cast<uint64_t>(
+              srcTensor[srcMostOuterOffset + loopIdx * BLOCK_CUBE * tiling.secondAxisAlign + tiling.secondAxisAlign * i]
+                  .GetPhyAddr());
         }
         TransDataTo5HD<T>(dstLocalList, srcLocalList, transParams);
       }
@@ -331,7 +394,8 @@ __aicore__ inline void Transpose021ConfigMatrixA(const LocalTensor<T> &dstTensor
 }
 
 template <typename T>
-__aicore__ inline void Transpose021ConfigMatrixB(const LocalTensor<T> &dstTensor, const LocalTensor<T> &srcTensor, const ConfusionTranspose3DTiling &tiling) { 
+__aicore__ inline void Transpose021ConfigMatrixB(const LocalTensor<T> &dstTensor, const LocalTensor<T> &srcTensor,
+                                                 const ConfusionTranspose3DTiling &tiling) {
   uint64_t dstLocalList[NCHW_CONV_ADDR_LIST_SIZE];
   uint64_t srcLocalList[NCHW_CONV_ADDR_LIST_SIZE];
   AscendC::TransDataTo5HDParams transParams;
@@ -342,27 +406,45 @@ __aicore__ inline void Transpose021ConfigMatrixB(const LocalTensor<T> &dstTensor
   transParams.dstRepStride = tiling.repeat > 1 ? tiling.stride : 0;
   for (outerMostLoopIdx = 0; outerMostLoopIdx < tiling.channel; outerMostLoopIdx++) {
     srcMostOuterOffset = outerMostLoopIdx * tiling.height * tiling.secondAxisAlign;
-    dstMostOuterOffset = outerMostLoopIdx  * tiling.width * tiling.firstAxisAlign;
+    dstMostOuterOffset = outerMostLoopIdx * tiling.width * tiling.firstAxisAlign;
     if constexpr (sizeof(T) == sizeof(half)) {
       for (i = 0; i < tiling.firstAxisRem; i++) {
-        dstLocalList[i] = reinterpret_cast<uint64_t>(dstTensor[dstMostOuterOffset + tiling.highBlock * BLOCK_CUBE + tiling.firstAxisAlign * i].GetPhyAddr());
-        srcLocalList[i] = reinterpret_cast<uint64_t>(srcTensor[srcMostOuterOffset + tiling.highBlock * BLOCK_CUBE * tiling.secondAxisAlign + tiling.secondAxisAlign * i].GetPhyAddr());
+        dstLocalList[i] = reinterpret_cast<uint64_t>(
+            dstTensor[dstMostOuterOffset + tiling.highBlock * BLOCK_CUBE + tiling.firstAxisAlign * i].GetPhyAddr());
+        srcLocalList[i] = reinterpret_cast<uint64_t>(
+            srcTensor[srcMostOuterOffset + tiling.highBlock * BLOCK_CUBE * tiling.secondAxisAlign +
+                      tiling.secondAxisAlign * i]
+                .GetPhyAddr());
       }
       for (; i < NCHW_CONV_ADDR_LIST_SIZE; i++) {
-        dstLocalList[i] = reinterpret_cast<uint64_t>(dstTensor[dstMostOuterOffset + tiling.highBlock * BLOCK_CUBE + tiling.firstAxisAlign * i].GetPhyAddr());
-        srcLocalList[i] = reinterpret_cast<uint64_t>(srcTensor[srcMostOuterOffset + tiling.highBlock * BLOCK_CUBE * tiling.secondAxisAlign + tiling.secondAxisAlign * (tiling.firstAxisRem - 1)].GetPhyAddr());
+        dstLocalList[i] = reinterpret_cast<uint64_t>(
+            dstTensor[dstMostOuterOffset + tiling.highBlock * BLOCK_CUBE + tiling.firstAxisAlign * i].GetPhyAddr());
+        srcLocalList[i] = reinterpret_cast<uint64_t>(
+            srcTensor[srcMostOuterOffset + tiling.highBlock * BLOCK_CUBE * tiling.secondAxisAlign +
+                      tiling.secondAxisAlign * (tiling.firstAxisRem - 1)]
+                .GetPhyAddr());
       }
       TransDataTo5HD<T>(dstLocalList, srcLocalList, transParams);
     } else if constexpr (sizeof(T) == sizeof(float)) {
       for (i = 0; i < NCHW_CONV_ADDR_LIST_SIZE; i = i + 2) {
-        dstLocalList[i] = reinterpret_cast<uint64_t>(dstTensor[dstMostOuterOffset + tiling.highBlock * BLOCK_CUBE + tiling.firstAxisAlign * (i / 2)].GetPhyAddr());
-        dstLocalList[i + 1] = reinterpret_cast<uint64_t>(dstTensor[dstMostOuterOffset + tiling.highBlock * BLOCK_CUBE + tiling.firstAxisAlign * (i / 2) + tiling.blockSize].GetPhyAddr());
+        dstLocalList[i] = reinterpret_cast<uint64_t>(
+            dstTensor[dstMostOuterOffset + tiling.highBlock * BLOCK_CUBE + tiling.firstAxisAlign * (i / 2)]
+                .GetPhyAddr());
+        dstLocalList[i + 1] = reinterpret_cast<uint64_t>(dstTensor[dstMostOuterOffset + tiling.highBlock * BLOCK_CUBE +
+                                                                   tiling.firstAxisAlign * (i / 2) + tiling.blockSize]
+                                                             .GetPhyAddr());
       }
       for (i = 0; i < tiling.firstAxisRem; i++) {
-        srcLocalList[i] = reinterpret_cast<uint64_t>(srcTensor[srcMostOuterOffset + tiling.highBlock * BLOCK_CUBE * tiling.secondAxisAlign + tiling.secondAxisAlign * i].GetPhyAddr());
+        srcLocalList[i] = reinterpret_cast<uint64_t>(
+            srcTensor[srcMostOuterOffset + tiling.highBlock * BLOCK_CUBE * tiling.secondAxisAlign +
+                      tiling.secondAxisAlign * i]
+                .GetPhyAddr());
       }
       for (; i < NCHW_CONV_ADDR_LIST_SIZE; i++) {
-        srcLocalList[i] = reinterpret_cast<uint64_t>(srcTensor[srcMostOuterOffset + tiling.highBlock * BLOCK_CUBE * tiling.secondAxisAlign + tiling.secondAxisAlign * (tiling.firstAxisRem - 1)].GetPhyAddr());
+        srcLocalList[i] = reinterpret_cast<uint64_t>(
+            srcTensor[srcMostOuterOffset + tiling.highBlock * BLOCK_CUBE * tiling.secondAxisAlign +
+                      tiling.secondAxisAlign * (tiling.firstAxisRem - 1)]
+                .GetPhyAddr());
       }
       TransDataTo5HD<T>(dstLocalList, srcLocalList, transParams);
     }
@@ -370,13 +452,16 @@ __aicore__ inline void Transpose021ConfigMatrixB(const LocalTensor<T> &dstTensor
 }
 
 template <typename T>
-__aicore__ inline void Transpose021ConfigMatrixC(const LocalTensor<T> &dstTensor, const LocalTensor<T> &srcTensor, const ConfusionTranspose3DTiling &tiling, const LocalTensor<uint8_t> &tmpbuf) {
+__aicore__ inline void Transpose021ConfigMatrixC(const LocalTensor<T> &dstTensor, const LocalTensor<T> &srcTensor,
+                                                 const ConfusionTranspose3DTiling &tiling,
+                                                 const LocalTensor<uint8_t> &tmpbuf) {
   uint64_t dstLocalList[NCHW_CONV_ADDR_LIST_SIZE];
   uint64_t srcLocalList[NCHW_CONV_ADDR_LIST_SIZE];
   AscendC::TransDataTo5HDParams transParams;
   const LocalTensor<T> tmpTensor = tmpbuf.ReinterpretCast<T>();
-  const uint64_t dstAddrOffset = tiling.repeat * tiling.blockSize * tiling.firstAxisAlign; // 矩阵 C 目的地址相对于起始地址的偏移
-  const uint64_t srcAddrOffset = tiling.repeat * tiling.blockSize; // 矩阵 C 源地址相对于起始地址的偏移
+  const uint64_t dstAddrOffset =
+      tiling.repeat * tiling.blockSize * tiling.firstAxisAlign;  // 矩阵 C 目的地址相对于起始地址的偏移
+  const uint64_t srcAddrOffset = tiling.repeat * tiling.blockSize;  // 矩阵 C 源地址相对于起始地址的偏移
   uint32_t outerMostLoopIdx, loopIdx, i;
   uint64_t srcMostOuterOffset, dstMostOuterOffset;
   transParams.repeatTimes = 1;
@@ -384,29 +469,48 @@ __aicore__ inline void Transpose021ConfigMatrixC(const LocalTensor<T> &dstTensor
   transParams.dstRepStride = 0;
   for (outerMostLoopIdx = 0; outerMostLoopIdx < tiling.channel; outerMostLoopIdx++) {
     srcMostOuterOffset = outerMostLoopIdx * tiling.height * tiling.secondAxisAlign;
-    dstMostOuterOffset = outerMostLoopIdx  * tiling.width * tiling.firstAxisAlign;
+    dstMostOuterOffset = outerMostLoopIdx * tiling.width * tiling.firstAxisAlign;
     for (loopIdx = 0; loopIdx < tiling.highBlock; loopIdx++) {
       if constexpr (sizeof(T) == sizeof(half)) {
         for (i = 0; i < tiling.secondAxisRem; i++) {
-          dstLocalList[i] = reinterpret_cast<uint64_t>(dstTensor[dstMostOuterOffset + dstAddrOffset + loopIdx * BLOCK_CUBE + tiling.firstAxisAlign * i].GetPhyAddr());
-          srcLocalList[i] = reinterpret_cast<uint64_t>(srcTensor[srcMostOuterOffset + srcAddrOffset + loopIdx * BLOCK_CUBE * tiling.secondAxisAlign + tiling.secondAxisAlign * i].GetPhyAddr());
+          dstLocalList[i] = reinterpret_cast<uint64_t>(
+              dstTensor[dstMostOuterOffset + dstAddrOffset + loopIdx * BLOCK_CUBE + tiling.firstAxisAlign * i]
+                  .GetPhyAddr());
+          srcLocalList[i] = reinterpret_cast<uint64_t>(
+              srcTensor[srcMostOuterOffset + srcAddrOffset + loopIdx * BLOCK_CUBE * tiling.secondAxisAlign +
+                        tiling.secondAxisAlign * i]
+                  .GetPhyAddr());
         }
         for (; i < NCHW_CONV_ADDR_LIST_SIZE; i++) {
-          dstLocalList[i] = reinterpret_cast<uint64_t>(tmpTensor[(i - tiling.secondAxisRem) * tiling.blockSize].GetPhyAddr());
-          srcLocalList[i] = reinterpret_cast<uint64_t>(srcTensor[srcMostOuterOffset + srcAddrOffset + loopIdx * BLOCK_CUBE * tiling.secondAxisAlign + tiling.secondAxisAlign * i].GetPhyAddr());
+          dstLocalList[i] =
+              reinterpret_cast<uint64_t>(tmpTensor[(i - tiling.secondAxisRem) * tiling.blockSize].GetPhyAddr());
+          srcLocalList[i] = reinterpret_cast<uint64_t>(
+              srcTensor[srcMostOuterOffset + srcAddrOffset + loopIdx * BLOCK_CUBE * tiling.secondAxisAlign +
+                        tiling.secondAxisAlign * i]
+                  .GetPhyAddr());
         }
         TransDataTo5HD<T>(dstLocalList, srcLocalList, transParams);
       } else if constexpr (sizeof(T) == sizeof(float)) {
         for (i = 0; i < tiling.secondAxisRem * 2; i = i + 2) {
-          dstLocalList[i] = reinterpret_cast<uint64_t>(dstTensor[dstMostOuterOffset + dstAddrOffset + loopIdx * BLOCK_CUBE + tiling.firstAxisAlign * (i / 2)].GetPhyAddr());
-          dstLocalList[i + 1] = reinterpret_cast<uint64_t>(dstTensor[dstMostOuterOffset + dstAddrOffset + loopIdx * BLOCK_CUBE + tiling.firstAxisAlign * (i / 2) + tiling.blockSize].GetPhyAddr());
+          dstLocalList[i] = reinterpret_cast<uint64_t>(
+              dstTensor[dstMostOuterOffset + dstAddrOffset + loopIdx * BLOCK_CUBE + tiling.firstAxisAlign * (i / 2)]
+                  .GetPhyAddr());
+          dstLocalList[i + 1] =
+              reinterpret_cast<uint64_t>(dstTensor[dstMostOuterOffset + dstAddrOffset + loopIdx * BLOCK_CUBE +
+                                                   tiling.firstAxisAlign * (i / 2) + tiling.blockSize]
+                                             .GetPhyAddr());
         }
         for (; i < NCHW_CONV_ADDR_LIST_SIZE; i = i + 2) {
-          dstLocalList[i] = reinterpret_cast<uint64_t>(tmpTensor[(i - tiling.secondAxisRem * 2) * tiling.blockSize].GetPhyAddr());
-          dstLocalList[i + 1] = reinterpret_cast<uint64_t>(tmpTensor[(i - tiling.secondAxisRem * 2 + 1) * tiling.blockSize].GetPhyAddr());
+          dstLocalList[i] =
+              reinterpret_cast<uint64_t>(tmpTensor[(i - tiling.secondAxisRem * 2) * tiling.blockSize].GetPhyAddr());
+          dstLocalList[i + 1] =
+              reinterpret_cast<uint64_t>(tmpTensor[(i - tiling.secondAxisRem * 2 + 1) * tiling.blockSize].GetPhyAddr());
         }
         for (i = 0; i < NCHW_CONV_ADDR_LIST_SIZE; i++) {
-          srcLocalList[i] = reinterpret_cast<uint64_t>(srcTensor[srcMostOuterOffset + srcAddrOffset + loopIdx * BLOCK_CUBE * tiling.secondAxisAlign + tiling.secondAxisAlign * i].GetPhyAddr());
+          srcLocalList[i] = reinterpret_cast<uint64_t>(
+              srcTensor[srcMostOuterOffset + srcAddrOffset + loopIdx * BLOCK_CUBE * tiling.secondAxisAlign +
+                        tiling.secondAxisAlign * i]
+                  .GetPhyAddr());
         }
         TransDataTo5HD<T>(dstLocalList, srcLocalList, transParams);
       }
@@ -415,13 +519,16 @@ __aicore__ inline void Transpose021ConfigMatrixC(const LocalTensor<T> &dstTensor
 }
 
 template <typename T>
-__aicore__ inline void Transpose021ConfigMatrixD(const LocalTensor<T> &dstTensor, const LocalTensor<T> &srcTensor, const ConfusionTranspose3DTiling &tiling, const LocalTensor<uint8_t> &tmpbuf) {
+__aicore__ inline void Transpose021ConfigMatrixD(const LocalTensor<T> &dstTensor, const LocalTensor<T> &srcTensor,
+                                                 const ConfusionTranspose3DTiling &tiling,
+                                                 const LocalTensor<uint8_t> &tmpbuf) {
   uint64_t dstLocalList[NCHW_CONV_ADDR_LIST_SIZE];
   uint64_t srcLocalList[NCHW_CONV_ADDR_LIST_SIZE];
   AscendC::TransDataTo5HDParams transParams;
   const LocalTensor<T> tmpTensor = tmpbuf.ReinterpretCast<T>();
-  const uint64_t dstAddrOffset = tiling.repeat * tiling.blockSize * tiling.firstAxisAlign; // 矩阵 C 目的地址相对于起始地址的偏移
-  const uint64_t srcAddrOffset = tiling.repeat * tiling.blockSize; // 矩阵 C 源地址相对于起始地址的偏移
+  const uint64_t dstAddrOffset =
+      tiling.repeat * tiling.blockSize * tiling.firstAxisAlign;  // 矩阵 C 目的地址相对于起始地址的偏移
+  const uint64_t srcAddrOffset = tiling.repeat * tiling.blockSize;  // 矩阵 C 源地址相对于起始地址的偏移
   uint32_t outerMostLoopIdx, i;
   uint64_t srcMostOuterOffset, dstMostOuterOffset;
   transParams.repeatTimes = 1;
@@ -429,35 +536,58 @@ __aicore__ inline void Transpose021ConfigMatrixD(const LocalTensor<T> &dstTensor
   transParams.dstRepStride = 0;
   for (outerMostLoopIdx = 0; outerMostLoopIdx < tiling.channel; outerMostLoopIdx++) {
     srcMostOuterOffset = outerMostLoopIdx * tiling.height * tiling.secondAxisAlign;
-    dstMostOuterOffset = outerMostLoopIdx  * tiling.width * tiling.firstAxisAlign;
+    dstMostOuterOffset = outerMostLoopIdx * tiling.width * tiling.firstAxisAlign;
     if constexpr (sizeof(T) == sizeof(half)) {
       for (i = 0; i < tiling.secondAxisRem; i++) {
-        dstLocalList[i] = reinterpret_cast<uint64_t>(dstTensor[dstMostOuterOffset + dstAddrOffset + tiling.highBlock * BLOCK_CUBE + tiling.firstAxisAlign * i].GetPhyAddr());
+        dstLocalList[i] = reinterpret_cast<uint64_t>(
+            dstTensor[dstMostOuterOffset + dstAddrOffset + tiling.highBlock * BLOCK_CUBE + tiling.firstAxisAlign * i]
+                .GetPhyAddr());
       }
       for (; i < NCHW_CONV_ADDR_LIST_SIZE; i++) {
-        dstLocalList[i] = reinterpret_cast<uint64_t>(tmpTensor[(i - tiling.secondAxisRem) * tiling.blockSize].GetPhyAddr());
+        dstLocalList[i] =
+            reinterpret_cast<uint64_t>(tmpTensor[(i - tiling.secondAxisRem) * tiling.blockSize].GetPhyAddr());
       }
       for (i = 0; i < tiling.firstAxisRem; i++) {
-        srcLocalList[i] = reinterpret_cast<uint64_t>(srcTensor[srcMostOuterOffset + srcAddrOffset + tiling.highBlock * BLOCK_CUBE * tiling.secondAxisAlign + tiling.secondAxisAlign * i].GetPhyAddr());
+        srcLocalList[i] = reinterpret_cast<uint64_t>(
+            srcTensor[srcMostOuterOffset + srcAddrOffset + tiling.highBlock * BLOCK_CUBE * tiling.secondAxisAlign +
+                      tiling.secondAxisAlign * i]
+                .GetPhyAddr());
       }
       for (; i < NCHW_CONV_ADDR_LIST_SIZE; i++) {
-        srcLocalList[i] = reinterpret_cast<uint64_t>(srcTensor[srcMostOuterOffset + srcAddrOffset + tiling.highBlock * BLOCK_CUBE * tiling.secondAxisAlign + tiling.secondAxisAlign * (tiling.firstAxisRem - 1)].GetPhyAddr());
+        srcLocalList[i] = reinterpret_cast<uint64_t>(
+            srcTensor[srcMostOuterOffset + srcAddrOffset + tiling.highBlock * BLOCK_CUBE * tiling.secondAxisAlign +
+                      tiling.secondAxisAlign * (tiling.firstAxisRem - 1)]
+                .GetPhyAddr());
       }
       TransDataTo5HD<T>(dstLocalList, srcLocalList, transParams);
-    } else if constexpr (sizeof(T) == sizeof(float)) { 
+    } else if constexpr (sizeof(T) == sizeof(float)) {
       for (i = 0; i < tiling.secondAxisRem * 2; i = i + 2) {
-        dstLocalList[i] = reinterpret_cast<uint64_t>(dstTensor[dstMostOuterOffset + dstAddrOffset + tiling.highBlock * BLOCK_CUBE + tiling.firstAxisAlign * (i / 2)].GetPhyAddr());
-        dstLocalList[i + 1] = reinterpret_cast<uint64_t>(dstTensor[dstMostOuterOffset + dstAddrOffset + tiling.highBlock * BLOCK_CUBE + tiling.firstAxisAlign * (i / 2) + tiling.blockSize].GetPhyAddr());
+        dstLocalList[i] =
+            reinterpret_cast<uint64_t>(dstTensor[dstMostOuterOffset + dstAddrOffset + tiling.highBlock * BLOCK_CUBE +
+                                                 tiling.firstAxisAlign * (i / 2)]
+                                           .GetPhyAddr());
+        dstLocalList[i + 1] =
+            reinterpret_cast<uint64_t>(dstTensor[dstMostOuterOffset + dstAddrOffset + tiling.highBlock * BLOCK_CUBE +
+                                                 tiling.firstAxisAlign * (i / 2) + tiling.blockSize]
+                                           .GetPhyAddr());
       }
       for (; i < NCHW_CONV_ADDR_LIST_SIZE; i = i + 2) {
-        dstLocalList[i] = reinterpret_cast<uint64_t>(tmpTensor[(i - tiling.secondAxisRem * 2) * tiling.blockSize].GetPhyAddr());
-        dstLocalList[i + 1] = reinterpret_cast<uint64_t>(tmpTensor[(i - tiling.secondAxisRem * 2 + 1) * tiling.blockSize].GetPhyAddr());
+        dstLocalList[i] =
+            reinterpret_cast<uint64_t>(tmpTensor[(i - tiling.secondAxisRem * 2) * tiling.blockSize].GetPhyAddr());
+        dstLocalList[i + 1] =
+            reinterpret_cast<uint64_t>(tmpTensor[(i - tiling.secondAxisRem * 2 + 1) * tiling.blockSize].GetPhyAddr());
       }
       for (i = 0; i < tiling.firstAxisRem; i++) {
-        srcLocalList[i] = reinterpret_cast<uint64_t>(srcTensor[srcMostOuterOffset + srcAddrOffset + tiling.highBlock * BLOCK_CUBE * tiling.secondAxisAlign + tiling.secondAxisAlign * i].GetPhyAddr());
+        srcLocalList[i] = reinterpret_cast<uint64_t>(
+            srcTensor[srcMostOuterOffset + srcAddrOffset + tiling.highBlock * BLOCK_CUBE * tiling.secondAxisAlign +
+                      tiling.secondAxisAlign * i]
+                .GetPhyAddr());
       }
       for (; i < NCHW_CONV_ADDR_LIST_SIZE; i++) {
-        srcLocalList[i] = reinterpret_cast<uint64_t>(srcTensor[srcMostOuterOffset + srcAddrOffset + tiling.highBlock * BLOCK_CUBE * tiling.secondAxisAlign + tiling.secondAxisAlign * (tiling.firstAxisRem - 1)].GetPhyAddr());
+        srcLocalList[i] = reinterpret_cast<uint64_t>(
+            srcTensor[srcMostOuterOffset + srcAddrOffset + tiling.highBlock * BLOCK_CUBE * tiling.secondAxisAlign +
+                      tiling.secondAxisAlign * (tiling.firstAxisRem - 1)]
+                .GetPhyAddr());
       }
       TransDataTo5HD<T>(dstLocalList, srcLocalList, transParams);
     }
@@ -466,8 +596,9 @@ __aicore__ inline void Transpose021ConfigMatrixD(const LocalTensor<T> &dstTensor
 
 /* 3维尾轴转置场景，需要进行UB重拍，UB内使用TransDataTo5HD重排   021 */
 template <typename T>
-__aicore__ inline void ConfusionTranspose021Compute(const LocalTensor<T> &dstTensor, const LocalTensor<T> &srcTensor, const LocalTensor<uint8_t> &tmpbuf,
-                                                   const ConfusionTranspose3DTiling &tiling) { 
+__aicore__ inline void ConfusionTranspose021Compute(const LocalTensor<T> &dstTensor, const LocalTensor<T> &srcTensor,
+                                                    const LocalTensor<uint8_t> &tmpbuf,
+                                                    const ConfusionTranspose3DTiling &tiling) {
   if (tiling.highBlock > 0) {
     if (tiling.repeat > 0) {
       Transpose021ConfigMatrixA(dstTensor, srcTensor, tiling);
@@ -488,7 +619,8 @@ __aicore__ inline void ConfusionTranspose021Compute(const LocalTensor<T> &dstTen
 }
 
 template <typename T>
-__aicore__ inline void Transpose210ConfigMatrixA(const LocalTensor<T> &dstTensor, const LocalTensor<T> &srcTensor, const ConfusionTranspose3DTiling &tiling) { 
+__aicore__ inline void Transpose210ConfigMatrixA(const LocalTensor<T> &dstTensor, const LocalTensor<T> &srcTensor,
+                                                 const ConfusionTranspose3DTiling &tiling) {
   uint64_t dstLocalList[NCHW_CONV_ADDR_LIST_SIZE];
   uint64_t srcLocalList[NCHW_CONV_ADDR_LIST_SIZE];
   AscendC::TransDataTo5HDParams transParams;
@@ -503,17 +635,30 @@ __aicore__ inline void Transpose210ConfigMatrixA(const LocalTensor<T> &dstTensor
     for (loopIdx = 0; loopIdx < tiling.highBlock; loopIdx++) {
       if constexpr (sizeof(T) == sizeof(half)) {
         for (i = 0; i < NCHW_CONV_ADDR_LIST_SIZE; i++) {
-          dstLocalList[i] = reinterpret_cast<uint64_t>(dstTensor[dstOuterOffset + loopIdx * BLOCK_CUBE + tiling.firstAxisAlign * tiling.height * i].GetPhyAddr());
-          srcLocalList[i] = reinterpret_cast<uint64_t>(srcTensor[srcOuterOffset + loopIdx * BLOCK_CUBE * tiling.secondAxisAlign * tiling.height + tiling.secondAxisAlign * tiling.height * i].GetPhyAddr());
+          dstLocalList[i] = reinterpret_cast<uint64_t>(
+              dstTensor[dstOuterOffset + loopIdx * BLOCK_CUBE + tiling.firstAxisAlign * tiling.height * i]
+                  .GetPhyAddr());
+          srcLocalList[i] = reinterpret_cast<uint64_t>(
+              srcTensor[srcOuterOffset + loopIdx * BLOCK_CUBE * tiling.secondAxisAlign * tiling.height +
+                        tiling.secondAxisAlign * tiling.height * i]
+                  .GetPhyAddr());
         }
         TransDataTo5HD<T>(dstLocalList, srcLocalList, transParams);
       } else if constexpr (sizeof(T) == sizeof(float)) {
         for (i = 0; i < NCHW_CONV_ADDR_LIST_SIZE; i = i + 2) {
-          dstLocalList[i] = reinterpret_cast<uint64_t>(dstTensor[dstOuterOffset + loopIdx * BLOCK_CUBE + tiling.firstAxisAlign * tiling.height * (i / 2)].GetPhyAddr());
-          dstLocalList[i + 1] = reinterpret_cast<uint64_t>(dstTensor[dstOuterOffset + loopIdx * BLOCK_CUBE + tiling.firstAxisAlign * tiling.height * (i / 2) + tiling.blockSize].GetPhyAddr());
+          dstLocalList[i] = reinterpret_cast<uint64_t>(
+              dstTensor[dstOuterOffset + loopIdx * BLOCK_CUBE + tiling.firstAxisAlign * tiling.height * (i / 2)]
+                  .GetPhyAddr());
+          dstLocalList[i + 1] =
+              reinterpret_cast<uint64_t>(dstTensor[dstOuterOffset + loopIdx * BLOCK_CUBE +
+                                                   tiling.firstAxisAlign * tiling.height * (i / 2) + tiling.blockSize]
+                                             .GetPhyAddr());
         }
         for (i = 0; i < NCHW_CONV_ADDR_LIST_SIZE; i++) {
-          srcLocalList[i] = reinterpret_cast<uint64_t>(srcTensor[srcOuterOffset + loopIdx * BLOCK_CUBE * tiling.secondAxisAlign * tiling.height + tiling.secondAxisAlign * tiling.height * i].GetPhyAddr());
+          srcLocalList[i] = reinterpret_cast<uint64_t>(
+              srcTensor[srcOuterOffset + loopIdx * BLOCK_CUBE * tiling.secondAxisAlign * tiling.height +
+                        tiling.secondAxisAlign * tiling.height * i]
+                  .GetPhyAddr());
         }
         TransDataTo5HD<T>(dstLocalList, srcLocalList, transParams);
       }
@@ -522,7 +667,8 @@ __aicore__ inline void Transpose210ConfigMatrixA(const LocalTensor<T> &dstTensor
 }
 
 template <typename T>
-__aicore__ inline void Transpose210ConfigMatrixB(const LocalTensor<T> &dstTensor, const LocalTensor<T> &srcTensor, const ConfusionTranspose3DTiling &tiling) { 
+__aicore__ inline void Transpose210ConfigMatrixB(const LocalTensor<T> &dstTensor, const LocalTensor<T> &srcTensor,
+                                                 const ConfusionTranspose3DTiling &tiling) {
   uint64_t dstLocalList[NCHW_CONV_ADDR_LIST_SIZE];
   uint64_t srcLocalList[NCHW_CONV_ADDR_LIST_SIZE];
   AscendC::TransDataTo5HDParams transParams;
@@ -536,24 +682,45 @@ __aicore__ inline void Transpose210ConfigMatrixB(const LocalTensor<T> &dstTensor
     dstOuterOffset = outerLoopIdx * tiling.firstAxisAlign;
     if constexpr (sizeof(T) == sizeof(half)) {
       for (i = 0; i < tiling.firstAxisRem; i++) {
-        dstLocalList[i] = reinterpret_cast<uint64_t>(dstTensor[dstOuterOffset + tiling.highBlock * BLOCK_CUBE + tiling.firstAxisAlign * tiling.height * i].GetPhyAddr());
-        srcLocalList[i] = reinterpret_cast<uint64_t>(srcTensor[srcOuterOffset + tiling.highBlock * BLOCK_CUBE * tiling.secondAxisAlign * tiling.height + tiling.secondAxisAlign * tiling.height * i].GetPhyAddr());
+        dstLocalList[i] = reinterpret_cast<uint64_t>(
+            dstTensor[dstOuterOffset + tiling.highBlock * BLOCK_CUBE + tiling.firstAxisAlign * tiling.height * i]
+                .GetPhyAddr());
+        srcLocalList[i] = reinterpret_cast<uint64_t>(
+            srcTensor[srcOuterOffset + tiling.highBlock * BLOCK_CUBE * tiling.secondAxisAlign * tiling.height +
+                      tiling.secondAxisAlign * tiling.height * i]
+                .GetPhyAddr());
       }
       for (; i < NCHW_CONV_ADDR_LIST_SIZE; i++) {
-        dstLocalList[i] = reinterpret_cast<uint64_t>(dstTensor[dstOuterOffset + tiling.highBlock * BLOCK_CUBE + tiling.firstAxisAlign * tiling.height * i].GetPhyAddr());
-        srcLocalList[i] = reinterpret_cast<uint64_t>(srcTensor[srcOuterOffset + tiling.highBlock * BLOCK_CUBE * tiling.secondAxisAlign * tiling.height + tiling.secondAxisAlign * tiling.height * (tiling.firstAxisRem - 1)].GetPhyAddr());
+        dstLocalList[i] = reinterpret_cast<uint64_t>(
+            dstTensor[dstOuterOffset + tiling.highBlock * BLOCK_CUBE + tiling.firstAxisAlign * tiling.height * i]
+                .GetPhyAddr());
+        srcLocalList[i] = reinterpret_cast<uint64_t>(
+            srcTensor[srcOuterOffset + tiling.highBlock * BLOCK_CUBE * tiling.secondAxisAlign * tiling.height +
+                      tiling.secondAxisAlign * tiling.height * (tiling.firstAxisRem - 1)]
+                .GetPhyAddr());
       }
       TransDataTo5HD<T>(dstLocalList, srcLocalList, transParams);
-    } else if constexpr (sizeof(T) == sizeof(float)) { 
+    } else if constexpr (sizeof(T) == sizeof(float)) {
       for (i = 0; i < NCHW_CONV_ADDR_LIST_SIZE; i = i + 2) {
-        dstLocalList[i] = reinterpret_cast<uint64_t>(dstTensor[dstOuterOffset + tiling.highBlock * BLOCK_CUBE + tiling.firstAxisAlign * tiling.height * (i / 2)].GetPhyAddr());
-        dstLocalList[i + 1] = reinterpret_cast<uint64_t>(dstTensor[dstOuterOffset + tiling.highBlock * BLOCK_CUBE + tiling.firstAxisAlign * tiling.height * (i / 2) + tiling.blockSize].GetPhyAddr());
+        dstLocalList[i] = reinterpret_cast<uint64_t>(
+            dstTensor[dstOuterOffset + tiling.highBlock * BLOCK_CUBE + tiling.firstAxisAlign * tiling.height * (i / 2)]
+                .GetPhyAddr());
+        dstLocalList[i + 1] =
+            reinterpret_cast<uint64_t>(dstTensor[dstOuterOffset + tiling.highBlock * BLOCK_CUBE +
+                                                 tiling.firstAxisAlign * tiling.height * (i / 2) + tiling.blockSize]
+                                           .GetPhyAddr());
       }
       for (i = 0; i < tiling.firstAxisRem; i++) {
-        srcLocalList[i] = reinterpret_cast<uint64_t>(srcTensor[srcOuterOffset + tiling.highBlock * BLOCK_CUBE * tiling.secondAxisAlign * tiling.height + tiling.secondAxisAlign * tiling.height * i].GetPhyAddr());
+        srcLocalList[i] = reinterpret_cast<uint64_t>(
+            srcTensor[srcOuterOffset + tiling.highBlock * BLOCK_CUBE * tiling.secondAxisAlign * tiling.height +
+                      tiling.secondAxisAlign * tiling.height * i]
+                .GetPhyAddr());
       }
       for (; i < NCHW_CONV_ADDR_LIST_SIZE; i++) {
-        srcLocalList[i] = reinterpret_cast<uint64_t>(srcTensor[srcOuterOffset + tiling.highBlock * BLOCK_CUBE * tiling.secondAxisAlign * tiling.height + tiling.secondAxisAlign * tiling.height * (tiling.firstAxisRem - 1)].GetPhyAddr());
+        srcLocalList[i] = reinterpret_cast<uint64_t>(
+            srcTensor[srcOuterOffset + tiling.highBlock * BLOCK_CUBE * tiling.secondAxisAlign * tiling.height +
+                      tiling.secondAxisAlign * tiling.height * (tiling.firstAxisRem - 1)]
+                .GetPhyAddr());
       }
       TransDataTo5HD<T>(dstLocalList, srcLocalList, transParams);
     }
@@ -561,13 +728,16 @@ __aicore__ inline void Transpose210ConfigMatrixB(const LocalTensor<T> &dstTensor
 }
 
 template <typename T>
-__aicore__ inline void Transpose210ConfigMatrixC(const LocalTensor<T> &dstTensor, const LocalTensor<T> &srcTensor, const ConfusionTranspose3DTiling &tiling, const LocalTensor<uint8_t> &tmpbuf) {
+__aicore__ inline void Transpose210ConfigMatrixC(const LocalTensor<T> &dstTensor, const LocalTensor<T> &srcTensor,
+                                                 const ConfusionTranspose3DTiling &tiling,
+                                                 const LocalTensor<uint8_t> &tmpbuf) {
   uint64_t dstLocalList[NCHW_CONV_ADDR_LIST_SIZE];
   uint64_t srcLocalList[NCHW_CONV_ADDR_LIST_SIZE];
   AscendC::TransDataTo5HDParams transParams;
   const LocalTensor<T> tmpTensor = tmpbuf.ReinterpretCast<T>();
-  const uint64_t dstAddrOffset = tiling.repeat * tiling.blockSize * tiling.firstAxisAlign * tiling.height; // 矩阵 C 目的地址相对于起始地址的偏移
-  const uint64_t srcAddrOffset = tiling.repeat * tiling.blockSize; // 矩阵 C 源地址相对于起始地址的偏移
+  const uint64_t dstAddrOffset =
+      tiling.repeat * tiling.blockSize * tiling.firstAxisAlign * tiling.height;  // 矩阵 C 目的地址相对于起始地址的偏移
+  const uint64_t srcAddrOffset = tiling.repeat * tiling.blockSize;  // 矩阵 C 源地址相对于起始地址的偏移
   uint32_t outerLoopIdx, loopIdx, i;
   uint64_t srcOuterOffset, dstOuterOffset;
   transParams.repeatTimes = 1;
@@ -579,25 +749,44 @@ __aicore__ inline void Transpose210ConfigMatrixC(const LocalTensor<T> &dstTensor
     for (loopIdx = 0; loopIdx < tiling.highBlock; loopIdx++) {
       if constexpr (sizeof(T) == sizeof(half)) {
         for (i = 0; i < tiling.secondAxisRem; i++) {
-          dstLocalList[i] = reinterpret_cast<uint64_t>(dstTensor[dstOuterOffset + dstAddrOffset + loopIdx * BLOCK_CUBE + tiling.firstAxisAlign * tiling.height * i].GetPhyAddr());
-          srcLocalList[i] = reinterpret_cast<uint64_t>(srcTensor[srcOuterOffset + srcAddrOffset + loopIdx * BLOCK_CUBE * tiling.secondAxisAlign * tiling.height + tiling.secondAxisAlign * tiling.height * i].GetPhyAddr());
+          dstLocalList[i] = reinterpret_cast<uint64_t>(dstTensor[dstOuterOffset + dstAddrOffset + loopIdx * BLOCK_CUBE +
+                                                                 tiling.firstAxisAlign * tiling.height * i]
+                                                           .GetPhyAddr());
+          srcLocalList[i] = reinterpret_cast<uint64_t>(
+              srcTensor[srcOuterOffset + srcAddrOffset + loopIdx * BLOCK_CUBE * tiling.secondAxisAlign * tiling.height +
+                        tiling.secondAxisAlign * tiling.height * i]
+                  .GetPhyAddr());
         }
         for (; i < NCHW_CONV_ADDR_LIST_SIZE; i++) {
-          dstLocalList[i] = reinterpret_cast<uint64_t>(tmpTensor[(i - tiling.secondAxisRem) * tiling.blockSize].GetPhyAddr());
-          srcLocalList[i] = reinterpret_cast<uint64_t>(srcTensor[srcOuterOffset + srcAddrOffset + loopIdx * BLOCK_CUBE * tiling.secondAxisAlign * tiling.height + tiling.secondAxisAlign * tiling.height * i].GetPhyAddr());
+          dstLocalList[i] =
+              reinterpret_cast<uint64_t>(tmpTensor[(i - tiling.secondAxisRem) * tiling.blockSize].GetPhyAddr());
+          srcLocalList[i] = reinterpret_cast<uint64_t>(
+              srcTensor[srcOuterOffset + srcAddrOffset + loopIdx * BLOCK_CUBE * tiling.secondAxisAlign * tiling.height +
+                        tiling.secondAxisAlign * tiling.height * i]
+                  .GetPhyAddr());
         }
         TransDataTo5HD<T>(dstLocalList, srcLocalList, transParams);
-      } else if constexpr (sizeof(T) == sizeof(float)) { 
+      } else if constexpr (sizeof(T) == sizeof(float)) {
         for (i = 0; i < tiling.secondAxisRem * 2; i = i + 2) {
-          dstLocalList[i] = reinterpret_cast<uint64_t>(dstTensor[dstOuterOffset + dstAddrOffset + loopIdx * BLOCK_CUBE + tiling.firstAxisAlign * tiling.height * (i / 2)].GetPhyAddr());
-          dstLocalList[i + 1] = reinterpret_cast<uint64_t>(dstTensor[dstOuterOffset + dstAddrOffset + loopIdx * BLOCK_CUBE + tiling.firstAxisAlign * tiling.height * (i / 2) + tiling.blockSize].GetPhyAddr());
+          dstLocalList[i] = reinterpret_cast<uint64_t>(dstTensor[dstOuterOffset + dstAddrOffset + loopIdx * BLOCK_CUBE +
+                                                                 tiling.firstAxisAlign * tiling.height * (i / 2)]
+                                                           .GetPhyAddr());
+          dstLocalList[i + 1] =
+              reinterpret_cast<uint64_t>(dstTensor[dstOuterOffset + dstAddrOffset + loopIdx * BLOCK_CUBE +
+                                                   tiling.firstAxisAlign * tiling.height * (i / 2) + tiling.blockSize]
+                                             .GetPhyAddr());
         }
         for (; i < NCHW_CONV_ADDR_LIST_SIZE; i = i + 2) {
-          dstLocalList[i] = reinterpret_cast<uint64_t>(tmpTensor[(i - tiling.secondAxisRem * 2) * tiling.blockSize].GetPhyAddr());
-          dstLocalList[i + 1] = reinterpret_cast<uint64_t>(tmpTensor[(i - tiling.secondAxisRem * 2 + 1) * tiling.blockSize].GetPhyAddr());
+          dstLocalList[i] =
+              reinterpret_cast<uint64_t>(tmpTensor[(i - tiling.secondAxisRem * 2) * tiling.blockSize].GetPhyAddr());
+          dstLocalList[i + 1] =
+              reinterpret_cast<uint64_t>(tmpTensor[(i - tiling.secondAxisRem * 2 + 1) * tiling.blockSize].GetPhyAddr());
         }
         for (i = 0; i < NCHW_CONV_ADDR_LIST_SIZE; i++) {
-          srcLocalList[i] = reinterpret_cast<uint64_t>(srcTensor[srcOuterOffset + srcAddrOffset + loopIdx * BLOCK_CUBE * tiling.secondAxisAlign * tiling.height + tiling.secondAxisAlign * tiling.height * i].GetPhyAddr());
+          srcLocalList[i] = reinterpret_cast<uint64_t>(
+              srcTensor[srcOuterOffset + srcAddrOffset + loopIdx * BLOCK_CUBE * tiling.secondAxisAlign * tiling.height +
+                        tiling.secondAxisAlign * tiling.height * i]
+                  .GetPhyAddr());
         }
         TransDataTo5HD<T>(dstLocalList, srcLocalList, transParams);
       }
@@ -606,13 +795,16 @@ __aicore__ inline void Transpose210ConfigMatrixC(const LocalTensor<T> &dstTensor
 }
 
 template <typename T>
-__aicore__ inline void Transpose210ConfigMatrixD(const LocalTensor<T> &dstTensor, const LocalTensor<T> &srcTensor, const ConfusionTranspose3DTiling &tiling, const LocalTensor<uint8_t> &tmpbuf) {
+__aicore__ inline void Transpose210ConfigMatrixD(const LocalTensor<T> &dstTensor, const LocalTensor<T> &srcTensor,
+                                                 const ConfusionTranspose3DTiling &tiling,
+                                                 const LocalTensor<uint8_t> &tmpbuf) {
   uint64_t dstLocalList[NCHW_CONV_ADDR_LIST_SIZE];
   uint64_t srcLocalList[NCHW_CONV_ADDR_LIST_SIZE];
   AscendC::TransDataTo5HDParams transParams;
   const LocalTensor<T> tmpTensor = tmpbuf.ReinterpretCast<T>();
-  const uint64_t dstAddrOffset = tiling.repeat * tiling.blockSize * tiling.firstAxisAlign * tiling.height; // 矩阵 C 目的地址相对于起始地址的偏移
-  const uint64_t srcAddrOffset = tiling.repeat * tiling.blockSize; // 矩阵 C 源地址相对于起始地址的偏移
+  const uint64_t dstAddrOffset =
+      tiling.repeat * tiling.blockSize * tiling.firstAxisAlign * tiling.height;  // 矩阵 C 目的地址相对于起始地址的偏移
+  const uint64_t srcAddrOffset = tiling.repeat * tiling.blockSize;  // 矩阵 C 源地址相对于起始地址的偏移
   uint32_t outerLoopIdx, i;
   uint64_t srcOuterOffset, dstOuterOffset;
   transParams.repeatTimes = 1;
@@ -623,48 +815,78 @@ __aicore__ inline void Transpose210ConfigMatrixD(const LocalTensor<T> &dstTensor
     dstOuterOffset = outerLoopIdx * tiling.firstAxisAlign;
     if constexpr (sizeof(T) == sizeof(half)) {
       for (i = 0; i < tiling.secondAxisRem; i++) {
-        dstLocalList[i] = reinterpret_cast<uint64_t>(dstTensor[dstOuterOffset + dstAddrOffset + tiling.highBlock * BLOCK_CUBE + tiling.firstAxisAlign * tiling.height * i].GetPhyAddr());
+        dstLocalList[i] =
+            reinterpret_cast<uint64_t>(dstTensor[dstOuterOffset + dstAddrOffset + tiling.highBlock * BLOCK_CUBE +
+                                                 tiling.firstAxisAlign * tiling.height * i]
+                                           .GetPhyAddr());
       }
       for (; i < NCHW_CONV_ADDR_LIST_SIZE; i++) {
-        dstLocalList[i] = reinterpret_cast<uint64_t>(tmpTensor[(i - tiling.secondAxisRem) * tiling.blockSize].GetPhyAddr());
+        dstLocalList[i] =
+            reinterpret_cast<uint64_t>(tmpTensor[(i - tiling.secondAxisRem) * tiling.blockSize].GetPhyAddr());
       }
       for (i = 0; i < tiling.firstAxisRem; i++) {
-        srcLocalList[i] = reinterpret_cast<uint64_t>(srcTensor[srcOuterOffset + srcAddrOffset + tiling.highBlock * BLOCK_CUBE * tiling.secondAxisAlign * tiling.height + tiling.secondAxisAlign * tiling.height * i].GetPhyAddr());
+        srcLocalList[i] = reinterpret_cast<uint64_t>(
+            srcTensor[srcOuterOffset + srcAddrOffset +
+                      tiling.highBlock * BLOCK_CUBE * tiling.secondAxisAlign * tiling.height +
+                      tiling.secondAxisAlign * tiling.height * i]
+                .GetPhyAddr());
       }
       for (; i < NCHW_CONV_ADDR_LIST_SIZE; i++) {
-        srcLocalList[i] = reinterpret_cast<uint64_t>(srcTensor[srcOuterOffset + srcAddrOffset + tiling.highBlock * BLOCK_CUBE * tiling.secondAxisAlign * tiling.height + tiling.secondAxisAlign * tiling.height * (tiling.firstAxisRem - 1)].GetPhyAddr());
+        srcLocalList[i] = reinterpret_cast<uint64_t>(
+            srcTensor[srcOuterOffset + srcAddrOffset +
+                      tiling.highBlock * BLOCK_CUBE * tiling.secondAxisAlign * tiling.height +
+                      tiling.secondAxisAlign * tiling.height * (tiling.firstAxisRem - 1)]
+                .GetPhyAddr());
       }
       TransDataTo5HD<T>(dstLocalList, srcLocalList, transParams);
-    } else if constexpr (sizeof(T) == sizeof(float)) { 
+    } else if constexpr (sizeof(T) == sizeof(float)) {
       for (i = 0; i < tiling.secondAxisRem * 2; i = i + 2) {
-        dstLocalList[i] = reinterpret_cast<uint64_t>(dstTensor[dstOuterOffset + dstAddrOffset + tiling.highBlock * BLOCK_CUBE + tiling.firstAxisAlign * tiling.height * (i / 2)].GetPhyAddr());
-        dstLocalList[i + 1] = reinterpret_cast<uint64_t>(dstTensor[dstOuterOffset + dstAddrOffset + tiling.highBlock * BLOCK_CUBE + tiling.firstAxisAlign * tiling.height * (i / 2) + tiling.blockSize].GetPhyAddr());
+        dstLocalList[i] =
+            reinterpret_cast<uint64_t>(dstTensor[dstOuterOffset + dstAddrOffset + tiling.highBlock * BLOCK_CUBE +
+                                                 tiling.firstAxisAlign * tiling.height * (i / 2)]
+                                           .GetPhyAddr());
+        dstLocalList[i + 1] =
+            reinterpret_cast<uint64_t>(dstTensor[dstOuterOffset + dstAddrOffset + tiling.highBlock * BLOCK_CUBE +
+                                                 tiling.firstAxisAlign * tiling.height * (i / 2) + tiling.blockSize]
+                                           .GetPhyAddr());
       }
       for (; i < NCHW_CONV_ADDR_LIST_SIZE; i = i + 2) {
-        dstLocalList[i] = reinterpret_cast<uint64_t>(tmpTensor[(i - tiling.secondAxisRem * 2) * tiling.blockSize].GetPhyAddr());
-        dstLocalList[i + 1] = reinterpret_cast<uint64_t>(tmpTensor[(i - tiling.secondAxisRem * 2 + 1) * tiling.blockSize].GetPhyAddr());
+        dstLocalList[i] =
+            reinterpret_cast<uint64_t>(tmpTensor[(i - tiling.secondAxisRem * 2) * tiling.blockSize].GetPhyAddr());
+        dstLocalList[i + 1] =
+            reinterpret_cast<uint64_t>(tmpTensor[(i - tiling.secondAxisRem * 2 + 1) * tiling.blockSize].GetPhyAddr());
       }
       for (i = 0; i < tiling.firstAxisRem; i++) {
-        srcLocalList[i] = reinterpret_cast<uint64_t>(srcTensor[srcOuterOffset + srcAddrOffset + tiling.highBlock * BLOCK_CUBE * tiling.secondAxisAlign * tiling.height + tiling.secondAxisAlign * tiling.height * i].GetPhyAddr());
+        srcLocalList[i] = reinterpret_cast<uint64_t>(
+            srcTensor[srcOuterOffset + srcAddrOffset +
+                      tiling.highBlock * BLOCK_CUBE * tiling.secondAxisAlign * tiling.height +
+                      tiling.secondAxisAlign * tiling.height * i]
+                .GetPhyAddr());
       }
       for (; i < NCHW_CONV_ADDR_LIST_SIZE; i++) {
-        srcLocalList[i] = reinterpret_cast<uint64_t>(srcTensor[srcOuterOffset + srcAddrOffset + tiling.highBlock * BLOCK_CUBE * tiling.secondAxisAlign * tiling.height + tiling.secondAxisAlign * tiling.height * (tiling.firstAxisRem - 1)].GetPhyAddr());
+        srcLocalList[i] = reinterpret_cast<uint64_t>(
+            srcTensor[srcOuterOffset + srcAddrOffset +
+                      tiling.highBlock * BLOCK_CUBE * tiling.secondAxisAlign * tiling.height +
+                      tiling.secondAxisAlign * tiling.height * (tiling.firstAxisRem - 1)]
+                .GetPhyAddr());
       }
       TransDataTo5HD<T>(dstLocalList, srcLocalList, transParams);
     }
-  } 
+  }
 }
 
 /* 3维尾轴转置场景，需要进行UB重拍，UB内使用TransDataTo5HD重排   210 */
 template <typename T>
-__aicore__ inline void ConfusionTranspose210Compute(const LocalTensor<T> &dstTensor, const LocalTensor<T> &srcTensor, const LocalTensor<uint8_t> &tmpbuf,
-                                                   const ConfusionTranspose3DTiling &tiling) { 
+__aicore__ inline void ConfusionTranspose210Compute(const LocalTensor<T> &dstTensor, const LocalTensor<T> &srcTensor,
+                                                    const LocalTensor<uint8_t> &tmpbuf,
+                                                    const ConfusionTranspose3DTiling &tiling) {
   uint64_t dstLocalList[NCHW_CONV_ADDR_LIST_SIZE];
   uint64_t srcLocalList[NCHW_CONV_ADDR_LIST_SIZE];
   AscendC::TransDataTo5HDParams transParams;
   const LocalTensor<T> tmpTensor = tmpbuf.ReinterpretCast<T>();
-  const uint64_t dstAddrOffset = tiling.repeat * tiling.blockSize * tiling.firstAxisAlign * tiling.height; // 矩阵 C 目的地址相对于起始地址的偏移
-  const uint64_t srcAddrOffset = tiling.repeat * tiling.blockSize; // 矩阵 C 源地址相对于起始地址的偏移
+  const uint64_t dstAddrOffset =
+      tiling.repeat * tiling.blockSize * tiling.firstAxisAlign * tiling.height;  // 矩阵 C 目的地址相对于起始地址的偏移
+  const uint64_t srcAddrOffset = tiling.repeat * tiling.blockSize;  // 矩阵 C 源地址相对于起始地址的偏移
   uint32_t outerLoopIdx, loopIdx, i;
   uint64_t srcOuterOffset, dstOuterOffset;
 
@@ -700,17 +922,34 @@ __aicore__ inline void Transpose0321ConfigMatrixAInnerProc(const LocalTensor<T> 
   for (loopIdx = 0; loopIdx < tiling.highBlock; loopIdx++) {
     if constexpr (sizeof(T) == sizeof(half)) {
       for (i = 0; i < NCHW_CONV_ADDR_LIST_SIZE; i++) {
-        dstLocalList[i] = reinterpret_cast<uint64_t>(dstTensor[dstMostOuterOffset + dstOuterOffset + loopIdx * BLOCK_CUBE + tiling.firstAxisAlign * tiling.height * i].GetPhyAddr());
-        srcLocalList[i] = reinterpret_cast<uint64_t>(srcTensor[srcMostOuterOffset + srcOuterOffset + loopIdx * BLOCK_CUBE * tiling.secondAxisAlign * tiling.height + tiling.secondAxisAlign * tiling.height * i].GetPhyAddr());
+        dstLocalList[i] =
+            reinterpret_cast<uint64_t>(dstTensor[dstMostOuterOffset + dstOuterOffset + loopIdx * BLOCK_CUBE +
+                                                 tiling.firstAxisAlign * tiling.height * i]
+                                           .GetPhyAddr());
+        srcLocalList[i] =
+            reinterpret_cast<uint64_t>(srcTensor[srcMostOuterOffset + srcOuterOffset +
+                                                 loopIdx * BLOCK_CUBE * tiling.secondAxisAlign * tiling.height +
+                                                 tiling.secondAxisAlign * tiling.height * i]
+                                           .GetPhyAddr());
       }
       TransDataTo5HD<T>(dstLocalList, srcLocalList, transParams);
     } else if constexpr (sizeof(T) == sizeof(float)) {
       for (i = 0; i < NCHW_CONV_ADDR_LIST_SIZE; i = i + 2) {
-        dstLocalList[i] = reinterpret_cast<uint64_t>(dstTensor[dstMostOuterOffset + dstOuterOffset + loopIdx * BLOCK_CUBE + tiling.firstAxisAlign * tiling.height * (i / 2)].GetPhyAddr());
-        dstLocalList[i + 1] = reinterpret_cast<uint64_t>(dstTensor[dstMostOuterOffset + dstOuterOffset + loopIdx * BLOCK_CUBE + tiling.firstAxisAlign * tiling.height * (i / 2) + tiling.blockSize].GetPhyAddr());
+        dstLocalList[i] =
+            reinterpret_cast<uint64_t>(dstTensor[dstMostOuterOffset + dstOuterOffset + loopIdx * BLOCK_CUBE +
+                                                 tiling.firstAxisAlign * tiling.height * (i / 2)]
+                                           .GetPhyAddr());
+        dstLocalList[i + 1] =
+            reinterpret_cast<uint64_t>(dstTensor[dstMostOuterOffset + dstOuterOffset + loopIdx * BLOCK_CUBE +
+                                                 tiling.firstAxisAlign * tiling.height * (i / 2) + tiling.blockSize]
+                                           .GetPhyAddr());
       }
       for (i = 0; i < NCHW_CONV_ADDR_LIST_SIZE; i++) {
-        srcLocalList[i] = reinterpret_cast<uint64_t>(srcTensor[srcMostOuterOffset + srcOuterOffset + loopIdx * BLOCK_CUBE * tiling.secondAxisAlign * tiling.height + tiling.secondAxisAlign * tiling.height * i].GetPhyAddr());
+        srcLocalList[i] =
+            reinterpret_cast<uint64_t>(srcTensor[srcMostOuterOffset + srcOuterOffset +
+                                                 loopIdx * BLOCK_CUBE * tiling.secondAxisAlign * tiling.height +
+                                                 tiling.secondAxisAlign * tiling.height * i]
+                                           .GetPhyAddr());
       }
       TransDataTo5HD<T>(dstLocalList, srcLocalList, transParams);
     }
@@ -718,7 +957,8 @@ __aicore__ inline void Transpose0321ConfigMatrixAInnerProc(const LocalTensor<T> 
 }
 
 template <typename T>
-__aicore__ inline void Transpose0321ConfigMatrixA(const LocalTensor<T> &dstTensor, const LocalTensor<T> &srcTensor, const ConfusionTranspose4DTiling &tiling) { 
+__aicore__ inline void Transpose0321ConfigMatrixA(const LocalTensor<T> &dstTensor, const LocalTensor<T> &srcTensor,
+                                                  const ConfusionTranspose4DTiling &tiling) {
   AscendC::TransDataTo5HDParams transParams;
   uint32_t outerMostLoopIdx, outerLoopIdx;
   uint64_t srcMostOuterOffset, srcOuterOffset, dstMostOuterOffset, dstOuterOffset;
@@ -727,17 +967,19 @@ __aicore__ inline void Transpose0321ConfigMatrixA(const LocalTensor<T> &dstTenso
   transParams.dstRepStride = tiling.repeat > 1 ? tiling.stride : 0;
   for (outerMostLoopIdx = 0; outerMostLoopIdx < tiling.batch; outerMostLoopIdx++) {
     srcMostOuterOffset = outerMostLoopIdx * tiling.channel * tiling.height * tiling.secondAxisAlign;
-    dstMostOuterOffset = outerMostLoopIdx  * tiling.width * tiling.height * tiling.firstAxisAlign;
+    dstMostOuterOffset = outerMostLoopIdx * tiling.width * tiling.height * tiling.firstAxisAlign;
     for (outerLoopIdx = 0; outerLoopIdx < tiling.height; outerLoopIdx++) {
       srcOuterOffset = outerLoopIdx * tiling.secondAxisAlign;
       dstOuterOffset = outerLoopIdx * tiling.firstAxisAlign;
-      Transpose0321ConfigMatrixAInnerProc(dstTensor, srcTensor, tiling, transParams, srcMostOuterOffset, srcOuterOffset, dstMostOuterOffset, dstOuterOffset);
+      Transpose0321ConfigMatrixAInnerProc(dstTensor, srcTensor, tiling, transParams, srcMostOuterOffset, srcOuterOffset,
+                                          dstMostOuterOffset, dstOuterOffset);
     }
   }
 }
 
 template <typename T>
-__aicore__ inline void Transpose0321ConfigMatrixB(const LocalTensor<T> &dstTensor, const LocalTensor<T> &srcTensor, const ConfusionTranspose4DTiling &tiling) { 
+__aicore__ inline void Transpose0321ConfigMatrixB(const LocalTensor<T> &dstTensor, const LocalTensor<T> &srcTensor,
+                                                  const ConfusionTranspose4DTiling &tiling) {
   uint64_t dstLocalList[NCHW_CONV_ADDR_LIST_SIZE];
   uint64_t srcLocalList[NCHW_CONV_ADDR_LIST_SIZE];
   AscendC::TransDataTo5HDParams transParams;
@@ -748,30 +990,58 @@ __aicore__ inline void Transpose0321ConfigMatrixB(const LocalTensor<T> &dstTenso
   transParams.dstRepStride = tiling.repeat > 1 ? tiling.stride : 0;
   for (outerMostLoopIdx = 0; outerMostLoopIdx < tiling.batch; outerMostLoopIdx++) {
     srcMostOuterOffset = outerMostLoopIdx * tiling.channel * tiling.height * tiling.secondAxisAlign;
-    dstMostOuterOffset = outerMostLoopIdx  * tiling.width * tiling.height * tiling.firstAxisAlign;
+    dstMostOuterOffset = outerMostLoopIdx * tiling.width * tiling.height * tiling.firstAxisAlign;
     for (outerLoopIdx = 0; outerLoopIdx < tiling.height; outerLoopIdx++) {
       srcOuterOffset = outerLoopIdx * tiling.secondAxisAlign;
       dstOuterOffset = outerLoopIdx * tiling.firstAxisAlign;
       if constexpr (sizeof(T) == sizeof(half)) {
         for (i = 0; i < tiling.firstAxisRem; i++) {
-          dstLocalList[i] = reinterpret_cast<uint64_t>(dstTensor[dstMostOuterOffset + dstOuterOffset + tiling.highBlock * BLOCK_CUBE + tiling.firstAxisAlign * tiling.height * i].GetPhyAddr());
-          srcLocalList[i] = reinterpret_cast<uint64_t>(srcTensor[srcMostOuterOffset + srcOuterOffset + tiling.highBlock * BLOCK_CUBE * tiling.secondAxisAlign * tiling.height + tiling.secondAxisAlign * tiling.height * i].GetPhyAddr());
+          dstLocalList[i] =
+              reinterpret_cast<uint64_t>(dstTensor[dstMostOuterOffset + dstOuterOffset + tiling.highBlock * BLOCK_CUBE +
+                                                   tiling.firstAxisAlign * tiling.height * i]
+                                             .GetPhyAddr());
+          srcLocalList[i] = reinterpret_cast<uint64_t>(
+              srcTensor[srcMostOuterOffset + srcOuterOffset +
+                        tiling.highBlock * BLOCK_CUBE * tiling.secondAxisAlign * tiling.height +
+                        tiling.secondAxisAlign * tiling.height * i]
+                  .GetPhyAddr());
         }
         for (; i < NCHW_CONV_ADDR_LIST_SIZE; i++) {
-          dstLocalList[i] = reinterpret_cast<uint64_t>(dstTensor[dstMostOuterOffset + dstOuterOffset + tiling.highBlock * BLOCK_CUBE + tiling.firstAxisAlign * tiling.height * i].GetPhyAddr());
-          srcLocalList[i] = reinterpret_cast<uint64_t>(srcTensor[srcMostOuterOffset + srcOuterOffset + tiling.highBlock * BLOCK_CUBE * tiling.secondAxisAlign * tiling.height + tiling.secondAxisAlign * tiling.height * (tiling.firstAxisRem - 1)].GetPhyAddr());
+          dstLocalList[i] =
+              reinterpret_cast<uint64_t>(dstTensor[dstMostOuterOffset + dstOuterOffset + tiling.highBlock * BLOCK_CUBE +
+                                                   tiling.firstAxisAlign * tiling.height * i]
+                                             .GetPhyAddr());
+          srcLocalList[i] = reinterpret_cast<uint64_t>(
+              srcTensor[srcMostOuterOffset + srcOuterOffset +
+                        tiling.highBlock * BLOCK_CUBE * tiling.secondAxisAlign * tiling.height +
+                        tiling.secondAxisAlign * tiling.height * (tiling.firstAxisRem - 1)]
+                  .GetPhyAddr());
         }
         TransDataTo5HD<T>(dstLocalList, srcLocalList, transParams);
       } else if constexpr (sizeof(T) == sizeof(float)) {
         for (i = 0; i < NCHW_CONV_ADDR_LIST_SIZE; i = i + 2) {
-          dstLocalList[i] = reinterpret_cast<uint64_t>(dstTensor[dstMostOuterOffset + dstOuterOffset + tiling.highBlock * BLOCK_CUBE + tiling.firstAxisAlign * tiling.height * (i / 2)].GetPhyAddr());
-          dstLocalList[i + 1] = reinterpret_cast<uint64_t>(dstTensor[dstMostOuterOffset + dstOuterOffset + tiling.highBlock * BLOCK_CUBE + tiling.firstAxisAlign * tiling.height * (i / 2) + tiling.blockSize].GetPhyAddr());
+          dstLocalList[i] =
+              reinterpret_cast<uint64_t>(dstTensor[dstMostOuterOffset + dstOuterOffset + tiling.highBlock * BLOCK_CUBE +
+                                                   tiling.firstAxisAlign * tiling.height * (i / 2)]
+                                             .GetPhyAddr());
+          dstLocalList[i + 1] =
+              reinterpret_cast<uint64_t>(dstTensor[dstMostOuterOffset + dstOuterOffset + tiling.highBlock * BLOCK_CUBE +
+                                                   tiling.firstAxisAlign * tiling.height * (i / 2) + tiling.blockSize]
+                                             .GetPhyAddr());
         }
         for (i = 0; i < tiling.firstAxisRem; i++) {
-          srcLocalList[i] = reinterpret_cast<uint64_t>(srcTensor[srcMostOuterOffset + srcOuterOffset + tiling.highBlock * BLOCK_CUBE * tiling.secondAxisAlign * tiling.height + tiling.secondAxisAlign * tiling.height * i].GetPhyAddr());
+          srcLocalList[i] = reinterpret_cast<uint64_t>(
+              srcTensor[srcMostOuterOffset + srcOuterOffset +
+                        tiling.highBlock * BLOCK_CUBE * tiling.secondAxisAlign * tiling.height +
+                        tiling.secondAxisAlign * tiling.height * i]
+                  .GetPhyAddr());
         }
         for (; i < NCHW_CONV_ADDR_LIST_SIZE; i++) {
-          srcLocalList[i] = reinterpret_cast<uint64_t>(srcTensor[srcMostOuterOffset + srcOuterOffset + tiling.highBlock * BLOCK_CUBE * tiling.secondAxisAlign * tiling.height + tiling.secondAxisAlign * tiling.height * (tiling.firstAxisRem - 1)].GetPhyAddr());
+          srcLocalList[i] = reinterpret_cast<uint64_t>(
+              srcTensor[srcMostOuterOffset + srcOuterOffset +
+                        tiling.highBlock * BLOCK_CUBE * tiling.secondAxisAlign * tiling.height +
+                        tiling.secondAxisAlign * tiling.height * (tiling.firstAxisRem - 1)]
+                  .GetPhyAddr());
         }
         TransDataTo5HD<T>(dstLocalList, srcLocalList, transParams);
       }
@@ -780,40 +1050,62 @@ __aicore__ inline void Transpose0321ConfigMatrixB(const LocalTensor<T> &dstTenso
 }
 
 template <typename T>
-__aicore__ inline void Transpose0321ConfigMatrixCInnerProc(const LocalTensor<T> &dstTensor,
-                                                           const LocalTensor<T> &srcTensor,
-                                                           const ConfusionTranspose4DTiling &tiling,
-                                                           const LocalTensor<T> tmpTensor,
-                                                           const TransDataTo5HDParams &transParams,
-                                                           uint64_t srcMostOuterOffset, uint64_t srcOuterOffset,
-                                                           uint64_t dstMostOuterOffset, uint64_t dstOuterOffset) {
+__aicore__ inline void Transpose0321ConfigMatrixCInnerProc(
+    const LocalTensor<T> &dstTensor, const LocalTensor<T> &srcTensor, const ConfusionTranspose4DTiling &tiling,
+    const LocalTensor<T> tmpTensor, const TransDataTo5HDParams &transParams, uint64_t srcMostOuterOffset,
+    uint64_t srcOuterOffset, uint64_t dstMostOuterOffset, uint64_t dstOuterOffset) {
   uint64_t dstLocalList[NCHW_CONV_ADDR_LIST_SIZE];
   uint64_t srcLocalList[NCHW_CONV_ADDR_LIST_SIZE];
-  const uint64_t dstAddrOffset = tiling.repeat * tiling.blockSize * tiling.firstAxisAlign * tiling.height; // 矩阵 C 目的地址相对于起始地址的偏移
-  const uint64_t srcAddrOffset = tiling.repeat * tiling.blockSize; // 矩阵 C 源地址相对于起始地址的偏移
+  const uint64_t dstAddrOffset =
+      tiling.repeat * tiling.blockSize * tiling.firstAxisAlign * tiling.height;  // 矩阵 C 目的地址相对于起始地址的偏移
+  const uint64_t srcAddrOffset = tiling.repeat * tiling.blockSize;  // 矩阵 C 源地址相对于起始地址的偏移
   uint32_t loopIdx, i;
   for (loopIdx = 0; loopIdx < tiling.highBlock; loopIdx++) {
     if constexpr (sizeof(T) == sizeof(half)) {
       for (i = 0; i < tiling.secondAxisRem; i++) {
-        dstLocalList[i] = reinterpret_cast<uint64_t>(dstTensor[dstMostOuterOffset + dstOuterOffset + dstAddrOffset + loopIdx * BLOCK_CUBE + tiling.firstAxisAlign * tiling.height * i].GetPhyAddr());
-        srcLocalList[i] = reinterpret_cast<uint64_t>(srcTensor[srcMostOuterOffset + srcOuterOffset + srcAddrOffset + loopIdx * BLOCK_CUBE * tiling.secondAxisAlign * tiling.height + tiling.secondAxisAlign * tiling.height * i].GetPhyAddr());
+        dstLocalList[i] =
+            reinterpret_cast<uint64_t>(dstTensor[dstMostOuterOffset + dstOuterOffset + dstAddrOffset +
+                                                 loopIdx * BLOCK_CUBE + tiling.firstAxisAlign * tiling.height * i]
+                                           .GetPhyAddr());
+        srcLocalList[i] =
+            reinterpret_cast<uint64_t>(srcTensor[srcMostOuterOffset + srcOuterOffset + srcAddrOffset +
+                                                 loopIdx * BLOCK_CUBE * tiling.secondAxisAlign * tiling.height +
+                                                 tiling.secondAxisAlign * tiling.height * i]
+                                           .GetPhyAddr());
       }
       for (; i < NCHW_CONV_ADDR_LIST_SIZE; i++) {
-        dstLocalList[i] = reinterpret_cast<uint64_t>(tmpTensor[(i - tiling.secondAxisRem) * tiling.blockSize].GetPhyAddr());
-        srcLocalList[i] = reinterpret_cast<uint64_t>(srcTensor[srcMostOuterOffset + srcOuterOffset + srcAddrOffset + loopIdx * BLOCK_CUBE * tiling.secondAxisAlign * tiling.height + tiling.secondAxisAlign * tiling.height * i].GetPhyAddr());
+        dstLocalList[i] =
+            reinterpret_cast<uint64_t>(tmpTensor[(i - tiling.secondAxisRem) * tiling.blockSize].GetPhyAddr());
+        srcLocalList[i] =
+            reinterpret_cast<uint64_t>(srcTensor[srcMostOuterOffset + srcOuterOffset + srcAddrOffset +
+                                                 loopIdx * BLOCK_CUBE * tiling.secondAxisAlign * tiling.height +
+                                                 tiling.secondAxisAlign * tiling.height * i]
+                                           .GetPhyAddr());
       }
       TransDataTo5HD<T>(dstLocalList, srcLocalList, transParams);
     } else if constexpr (sizeof(T) == sizeof(float)) {
       for (i = 0; i < tiling.secondAxisRem * 2; i = i + 2) {
-        dstLocalList[i] = reinterpret_cast<uint64_t>(dstTensor[dstMostOuterOffset + dstOuterOffset + dstAddrOffset + loopIdx * BLOCK_CUBE + tiling.firstAxisAlign * tiling.height * (i / 2)].GetPhyAddr());
-        dstLocalList[i + 1] = reinterpret_cast<uint64_t>(dstTensor[dstMostOuterOffset + dstOuterOffset + dstAddrOffset + loopIdx * BLOCK_CUBE + tiling.firstAxisAlign * tiling.height * (i / 2) + tiling.blockSize].GetPhyAddr());
+        dstLocalList[i] =
+            reinterpret_cast<uint64_t>(dstTensor[dstMostOuterOffset + dstOuterOffset + dstAddrOffset +
+                                                 loopIdx * BLOCK_CUBE + tiling.firstAxisAlign * tiling.height * (i / 2)]
+                                           .GetPhyAddr());
+        dstLocalList[i + 1] = reinterpret_cast<uint64_t>(
+            dstTensor[dstMostOuterOffset + dstOuterOffset + dstAddrOffset + loopIdx * BLOCK_CUBE +
+                      tiling.firstAxisAlign * tiling.height * (i / 2) + tiling.blockSize]
+                .GetPhyAddr());
       }
       for (; i < NCHW_CONV_ADDR_LIST_SIZE; i = i + 2) {
-        dstLocalList[i] = reinterpret_cast<uint64_t>(tmpTensor[(i - tiling.secondAxisRem * 2) * tiling.blockSize].GetPhyAddr());
-        dstLocalList[i + 1] = reinterpret_cast<uint64_t>(tmpTensor[(i - tiling.secondAxisRem * 2 + 1) * tiling.blockSize].GetPhyAddr());
+        dstLocalList[i] =
+            reinterpret_cast<uint64_t>(tmpTensor[(i - tiling.secondAxisRem * 2) * tiling.blockSize].GetPhyAddr());
+        dstLocalList[i + 1] =
+            reinterpret_cast<uint64_t>(tmpTensor[(i - tiling.secondAxisRem * 2 + 1) * tiling.blockSize].GetPhyAddr());
       }
       for (i = 0; i < NCHW_CONV_ADDR_LIST_SIZE; i++) {
-        srcLocalList[i] = reinterpret_cast<uint64_t>(srcTensor[srcMostOuterOffset + srcOuterOffset + srcAddrOffset + loopIdx * BLOCK_CUBE * tiling.secondAxisAlign * tiling.height + tiling.secondAxisAlign * tiling.height * i].GetPhyAddr());
+        srcLocalList[i] =
+            reinterpret_cast<uint64_t>(srcTensor[srcMostOuterOffset + srcOuterOffset + srcAddrOffset +
+                                                 loopIdx * BLOCK_CUBE * tiling.secondAxisAlign * tiling.height +
+                                                 tiling.secondAxisAlign * tiling.height * i]
+                                           .GetPhyAddr());
       }
       TransDataTo5HD<T>(dstLocalList, srcLocalList, transParams);
     }
@@ -821,7 +1113,9 @@ __aicore__ inline void Transpose0321ConfigMatrixCInnerProc(const LocalTensor<T> 
 }
 
 template <typename T>
-__aicore__ inline void Transpose0321ConfigMatrixC(const LocalTensor<T> &dstTensor, const LocalTensor<T> &srcTensor, const ConfusionTranspose4DTiling &tiling, const LocalTensor<uint8_t> &tmpbuf) {
+__aicore__ inline void Transpose0321ConfigMatrixC(const LocalTensor<T> &dstTensor, const LocalTensor<T> &srcTensor,
+                                                  const ConfusionTranspose4DTiling &tiling,
+                                                  const LocalTensor<uint8_t> &tmpbuf) {
   AscendC::TransDataTo5HDParams transParams;
   const LocalTensor<T> tmpTensor = tmpbuf.ReinterpretCast<T>();
   uint32_t outerMostLoopIdx, outerLoopIdx;
@@ -831,60 +1125,93 @@ __aicore__ inline void Transpose0321ConfigMatrixC(const LocalTensor<T> &dstTenso
   transParams.dstRepStride = 0;
   for (outerMostLoopIdx = 0; outerMostLoopIdx < tiling.batch; outerMostLoopIdx++) {
     srcMostOuterOffset = outerMostLoopIdx * tiling.channel * tiling.height * tiling.secondAxisAlign;
-    dstMostOuterOffset = outerMostLoopIdx  * tiling.width * tiling.height * tiling.firstAxisAlign;
+    dstMostOuterOffset = outerMostLoopIdx * tiling.width * tiling.height * tiling.firstAxisAlign;
     for (outerLoopIdx = 0; outerLoopIdx < tiling.height; outerLoopIdx++) {
       srcOuterOffset = outerLoopIdx * tiling.secondAxisAlign;
       dstOuterOffset = outerLoopIdx * tiling.firstAxisAlign;
-      Transpose0321ConfigMatrixCInnerProc(dstTensor, srcTensor, tiling, tmpTensor, transParams, srcMostOuterOffset, srcOuterOffset, dstMostOuterOffset, dstOuterOffset);
+      Transpose0321ConfigMatrixCInnerProc(dstTensor, srcTensor, tiling, tmpTensor, transParams, srcMostOuterOffset,
+                                          srcOuterOffset, dstMostOuterOffset, dstOuterOffset);
     }
   }
 }
 
 template <typename T>
-__aicore__ inline void Transpose0321ConfigMatrixD(const LocalTensor<T> &dstTensor, const LocalTensor<T> &srcTensor, const ConfusionTranspose4DTiling &tiling, const LocalTensor<uint8_t> &tmpbuf) {
-  uint64_t dstLocalList[NCHW_CONV_ADDR_LIST_SIZE], srcLocalList[NCHW_CONV_ADDR_LIST_SIZE], srcMostOuterOffset, srcOuterOffset, dstMostOuterOffset, dstOuterOffset;
+__aicore__ inline void Transpose0321ConfigMatrixD(const LocalTensor<T> &dstTensor, const LocalTensor<T> &srcTensor,
+                                                  const ConfusionTranspose4DTiling &tiling,
+                                                  const LocalTensor<uint8_t> &tmpbuf) {
+  uint64_t dstLocalList[NCHW_CONV_ADDR_LIST_SIZE], srcLocalList[NCHW_CONV_ADDR_LIST_SIZE], srcMostOuterOffset,
+      srcOuterOffset, dstMostOuterOffset, dstOuterOffset;
   AscendC::TransDataTo5HDParams transParams;
   const LocalTensor<T> tmpTensor = tmpbuf.ReinterpretCast<T>();
-  const uint64_t dstAddrOffset = tiling.repeat * tiling.blockSize * tiling.firstAxisAlign * tiling.height; // 矩阵 C 目的地址相对于起始地址的偏移
-  const uint64_t srcAddrOffset = tiling.repeat * tiling.blockSize; // 矩阵 C 源地址相对于起始地址的偏移
+  const uint64_t dstAddrOffset =
+      tiling.repeat * tiling.blockSize * tiling.firstAxisAlign * tiling.height;  // 矩阵 C 目的地址相对于起始地址的偏移
+  const uint64_t srcAddrOffset = tiling.repeat * tiling.blockSize;  // 矩阵 C 源地址相对于起始地址的偏移
   uint32_t outerMostLoopIdx, outerLoopIdx, i;
   transParams.repeatTimes = 1;
   transParams.srcRepStride = 0;
   transParams.dstRepStride = 0;
   for (outerMostLoopIdx = 0; outerMostLoopIdx < tiling.batch; outerMostLoopIdx++) {
     srcMostOuterOffset = outerMostLoopIdx * tiling.channel * tiling.height * tiling.secondAxisAlign;
-    dstMostOuterOffset = outerMostLoopIdx  * tiling.width * tiling.height * tiling.firstAxisAlign;
+    dstMostOuterOffset = outerMostLoopIdx * tiling.width * tiling.height * tiling.firstAxisAlign;
     for (outerLoopIdx = 0; outerLoopIdx < tiling.height; outerLoopIdx++) {
       srcOuterOffset = outerLoopIdx * tiling.secondAxisAlign;
       dstOuterOffset = outerLoopIdx * tiling.firstAxisAlign;
       if constexpr (sizeof(T) == sizeof(half)) {
         for (i = 0; i < tiling.secondAxisRem; i++) {
-          dstLocalList[i] = reinterpret_cast<uint64_t>(dstTensor[dstMostOuterOffset + dstOuterOffset + dstAddrOffset + tiling.highBlock * BLOCK_CUBE + tiling.firstAxisAlign * tiling.height * i].GetPhyAddr());
+          dstLocalList[i] = reinterpret_cast<uint64_t>(
+              dstTensor[dstMostOuterOffset + dstOuterOffset + dstAddrOffset + tiling.highBlock * BLOCK_CUBE +
+                        tiling.firstAxisAlign * tiling.height * i]
+                  .GetPhyAddr());
         }
         for (; i < NCHW_CONV_ADDR_LIST_SIZE; i++) {
-          dstLocalList[i] = reinterpret_cast<uint64_t>(tmpTensor[(i - tiling.secondAxisRem) * tiling.blockSize].GetPhyAddr());
+          dstLocalList[i] =
+              reinterpret_cast<uint64_t>(tmpTensor[(i - tiling.secondAxisRem) * tiling.blockSize].GetPhyAddr());
         }
         for (i = 0; i < tiling.firstAxisRem; i++) {
-          srcLocalList[i] = reinterpret_cast<uint64_t>(srcTensor[srcMostOuterOffset + srcOuterOffset + srcAddrOffset + tiling.highBlock * BLOCK_CUBE * tiling.secondAxisAlign * tiling.height + tiling.secondAxisAlign * tiling.height * i].GetPhyAddr());
+          srcLocalList[i] = reinterpret_cast<uint64_t>(
+              srcTensor[srcMostOuterOffset + srcOuterOffset + srcAddrOffset +
+                        tiling.highBlock * BLOCK_CUBE * tiling.secondAxisAlign * tiling.height +
+                        tiling.secondAxisAlign * tiling.height * i]
+                  .GetPhyAddr());
         }
         for (; i < NCHW_CONV_ADDR_LIST_SIZE; i++) {
-          srcLocalList[i] = reinterpret_cast<uint64_t>(srcTensor[srcMostOuterOffset + srcOuterOffset + srcAddrOffset + tiling.highBlock * BLOCK_CUBE * tiling.secondAxisAlign * tiling.height + tiling.secondAxisAlign * tiling.height * (tiling.firstAxisRem - 1)].GetPhyAddr());
+          srcLocalList[i] = reinterpret_cast<uint64_t>(
+              srcTensor[srcMostOuterOffset + srcOuterOffset + srcAddrOffset +
+                        tiling.highBlock * BLOCK_CUBE * tiling.secondAxisAlign * tiling.height +
+                        tiling.secondAxisAlign * tiling.height * (tiling.firstAxisRem - 1)]
+                  .GetPhyAddr());
         }
         TransDataTo5HD<T>(dstLocalList, srcLocalList, transParams);
       } else if constexpr (sizeof(T) == sizeof(float)) {
         for (i = 0; i < tiling.secondAxisRem * 2; i = i + 2) {
-          dstLocalList[i] = reinterpret_cast<uint64_t>(dstTensor[dstMostOuterOffset + dstOuterOffset + dstAddrOffset + tiling.highBlock * BLOCK_CUBE + tiling.firstAxisAlign * tiling.height * (i / 2)].GetPhyAddr());
-          dstLocalList[i + 1] = reinterpret_cast<uint64_t>(dstTensor[dstMostOuterOffset + dstOuterOffset + dstAddrOffset + tiling.highBlock * BLOCK_CUBE + tiling.firstAxisAlign * tiling.height * (i / 2) + tiling.blockSize].GetPhyAddr());
+          dstLocalList[i] = reinterpret_cast<uint64_t>(
+              dstTensor[dstMostOuterOffset + dstOuterOffset + dstAddrOffset + tiling.highBlock * BLOCK_CUBE +
+                        tiling.firstAxisAlign * tiling.height * (i / 2)]
+                  .GetPhyAddr());
+          dstLocalList[i + 1] = reinterpret_cast<uint64_t>(
+              dstTensor[dstMostOuterOffset + dstOuterOffset + dstAddrOffset + tiling.highBlock * BLOCK_CUBE +
+                        tiling.firstAxisAlign * tiling.height * (i / 2) + tiling.blockSize]
+                  .GetPhyAddr());
         }
         for (; i < NCHW_CONV_ADDR_LIST_SIZE; i = i + 2) {
-          dstLocalList[i] = reinterpret_cast<uint64_t>(tmpTensor[(i - tiling.secondAxisRem * 2) * tiling.blockSize].GetPhyAddr());
-          dstLocalList[i + 1] = reinterpret_cast<uint64_t>(tmpTensor[(i - tiling.secondAxisRem * 2 + 1) * tiling.blockSize].GetPhyAddr());
+          dstLocalList[i] =
+              reinterpret_cast<uint64_t>(tmpTensor[(i - tiling.secondAxisRem * 2) * tiling.blockSize].GetPhyAddr());
+          dstLocalList[i + 1] =
+              reinterpret_cast<uint64_t>(tmpTensor[(i - tiling.secondAxisRem * 2 + 1) * tiling.blockSize].GetPhyAddr());
         }
         for (i = 0; i < tiling.firstAxisRem; i++) {
-          srcLocalList[i] = reinterpret_cast<uint64_t>(srcTensor[srcMostOuterOffset + srcOuterOffset + srcAddrOffset + tiling.highBlock * BLOCK_CUBE * tiling.secondAxisAlign * tiling.height + tiling.secondAxisAlign * tiling.height * i].GetPhyAddr());
+          srcLocalList[i] = reinterpret_cast<uint64_t>(
+              srcTensor[srcMostOuterOffset + srcOuterOffset + srcAddrOffset +
+                        tiling.highBlock * BLOCK_CUBE * tiling.secondAxisAlign * tiling.height +
+                        tiling.secondAxisAlign * tiling.height * i]
+                  .GetPhyAddr());
         }
         for (; i < NCHW_CONV_ADDR_LIST_SIZE; i++) {
-          srcLocalList[i] = reinterpret_cast<uint64_t>(srcTensor[srcMostOuterOffset + srcOuterOffset + srcAddrOffset + tiling.highBlock * BLOCK_CUBE * tiling.secondAxisAlign * tiling.height + tiling.secondAxisAlign * tiling.height * (tiling.firstAxisRem - 1)].GetPhyAddr());
+          srcLocalList[i] = reinterpret_cast<uint64_t>(
+              srcTensor[srcMostOuterOffset + srcOuterOffset + srcAddrOffset +
+                        tiling.highBlock * BLOCK_CUBE * tiling.secondAxisAlign * tiling.height +
+                        tiling.secondAxisAlign * tiling.height * (tiling.firstAxisRem - 1)]
+                  .GetPhyAddr());
         }
         TransDataTo5HD<T>(dstLocalList, srcLocalList, transParams);
       }
@@ -894,8 +1221,9 @@ __aicore__ inline void Transpose0321ConfigMatrixD(const LocalTensor<T> &dstTenso
 
 /* 4维尾轴转置场景，需要进行UB重拍，UB内使用TransDataTo5HD重排   0321 */
 template <typename T>
-__aicore__ inline void ConfusionTranspose0321Compute(const LocalTensor<T> &dstTensor, const LocalTensor<T> &srcTensor, const LocalTensor<uint8_t> &tmpbuf,
-                                                   const ConfusionTranspose4DTiling &tiling) { 
+__aicore__ inline void ConfusionTranspose0321Compute(const LocalTensor<T> &dstTensor, const LocalTensor<T> &srcTensor,
+                                                     const LocalTensor<uint8_t> &tmpbuf,
+                                                     const ConfusionTranspose4DTiling &tiling) {
   if (tiling.highBlock > 0) {
     if (tiling.repeat > 0) {
       Transpose0321ConfigMatrixA(dstTensor, srcTensor, tiling);
@@ -917,7 +1245,8 @@ __aicore__ inline void ConfusionTranspose0321Compute(const LocalTensor<T> &dstTe
 
 /* scene7：{ shape:[s0,s1], format:"ND"} -->{ shape:[s1, s0], format:"ND"} */
 template <typename T>
-__aicore__ inline void ConfusionTransposeNd2Nd10(const LocalTensor<T> &dstTensor, const LocalTensor<T> &srcTensor, const LocalTensor<uint8_t> &tmpBuf,
+__aicore__ inline void ConfusionTransposeNd2Nd10(const LocalTensor<T> &dstTensor, const LocalTensor<T> &srcTensor,
+                                                 const LocalTensor<uint8_t> &tmpBuf,
                                                  ConfusionTransposeLastTiling &tiling) {
   ConfusionTranspose10Compute(dstTensor, srcTensor, tmpBuf, tiling);
 }
@@ -945,21 +1274,24 @@ __aicore__ inline void ConfusionTransposeNd2Nd2103(const LocalTensor<T> &dstTens
 
 /*scene11：{ shape:[s0,s1,s2], format:"ND"} -->{ shape:[s0, s2, s1], format:"ND"}*/
 template <typename T>
-__aicore__ inline void ConfusionTransposeNd2Nd021(const LocalTensor<T> &dstTensor, const LocalTensor<T> &srcTensor, const LocalTensor<uint8_t> &tmpBuf,
+__aicore__ inline void ConfusionTransposeNd2Nd021(const LocalTensor<T> &dstTensor, const LocalTensor<T> &srcTensor,
+                                                  const LocalTensor<uint8_t> &tmpBuf,
                                                   const ConfusionTranspose3DTiling &tiling) {
   ConfusionTranspose021Compute(dstTensor, srcTensor, tmpBuf, tiling);
 }
 
 /*scene12：{ shape:[s0,s1,s2], format:"ND"} -->{ shape:[s2, s1, s0], format:"ND"}*/
 template <typename T>
-__aicore__ inline void ConfusionTransposeNd2Nd210(const LocalTensor<T> &dstTensor, const LocalTensor<T> &srcTensor, const LocalTensor<uint8_t> &tmpBuf,
+__aicore__ inline void ConfusionTransposeNd2Nd210(const LocalTensor<T> &dstTensor, const LocalTensor<T> &srcTensor,
+                                                  const LocalTensor<uint8_t> &tmpBuf,
                                                   const ConfusionTranspose3DTiling &tiling) {
   ConfusionTranspose210Compute(dstTensor, srcTensor, tmpBuf, tiling);
 }
 
 /*scene13：{ shape:[s0,s1,s2,s3], format:"ND"} -->{ shape:[s0,s3,s2,s1], format:"ND"}*/
 template <typename T>
-__aicore__ inline void ConfusionTransposeNd2Nd0321(const LocalTensor<T> &dstTensor, const LocalTensor<T> &srcTensor, const LocalTensor<uint8_t> &tmpBuf,
+__aicore__ inline void ConfusionTransposeNd2Nd0321(const LocalTensor<T> &dstTensor, const LocalTensor<T> &srcTensor,
+                                                   const LocalTensor<uint8_t> &tmpBuf,
                                                    const ConfusionTranspose4DTiling &tiling) {
   ConfusionTranspose0321Compute(dstTensor, srcTensor, tmpBuf, tiling);
 }
@@ -967,10 +1299,10 @@ __aicore__ inline void ConfusionTransposeNd2Nd0321(const LocalTensor<T> &dstTens
 template <typename T>
 __aicore__ inline void ConfusionTransposeImpl(const LocalTensor<T> &dstTensor, const LocalTensor<T> &srcTensor,
                                               const LocalTensor<uint8_t> &sharedTmpBuffer,
-                                              AutoFuseTransposeType transposeType,
-                                              ConfusionTransposeTiling &tiling) {
+                                              AutoFuseTransposeType transposeType, ConfusionTransposeTiling &tiling) {
   if (transposeType == AutoFuseTransposeType::TRANSPOSE_ND2ND_ONLY) {
-    ConfusionTransposeNd2Nd10(dstTensor, srcTensor, sharedTmpBuffer, reinterpret_cast<ConfusionTransposeLastTiling &>(tiling));
+    ConfusionTransposeNd2Nd10(dstTensor, srcTensor, sharedTmpBuffer,
+                              reinterpret_cast<ConfusionTransposeLastTiling &>(tiling));
   } else if (transposeType == AutoFuseTransposeType::TRANSPOSE_ND2ND_102) {
     ConfusionTransposeNd2Nd102(dstTensor, srcTensor, reinterpret_cast<ConfusionTransposeNLast3DTiling &>(tiling));
   } else if (transposeType == AutoFuseTransposeType::TRANSPOSE_ND2ND_0213) {
@@ -978,11 +1310,14 @@ __aicore__ inline void ConfusionTransposeImpl(const LocalTensor<T> &dstTensor, c
   } else if (transposeType == AutoFuseTransposeType::TRANSPOSE_ND2ND_2103) {
     ConfusionTransposeNd2Nd2103(dstTensor, srcTensor, reinterpret_cast<ConfusionTransposeNLast4DTiling &>(tiling));
   } else if (transposeType == AutoFuseTransposeType::TRANSPOSE_ND2ND_021) {
-    ConfusionTransposeNd2Nd021(dstTensor, srcTensor, sharedTmpBuffer, reinterpret_cast<ConfusionTranspose3DTiling &>(tiling));
+    ConfusionTransposeNd2Nd021(dstTensor, srcTensor, sharedTmpBuffer,
+                               reinterpret_cast<ConfusionTranspose3DTiling &>(tiling));
   } else if (transposeType == AutoFuseTransposeType::TRANSPOSE_ND2ND_210) {
-    ConfusionTransposeNd2Nd210(dstTensor, srcTensor, sharedTmpBuffer, reinterpret_cast<ConfusionTranspose3DTiling &>(tiling));
+    ConfusionTransposeNd2Nd210(dstTensor, srcTensor, sharedTmpBuffer,
+                               reinterpret_cast<ConfusionTranspose3DTiling &>(tiling));
   } else if (transposeType == AutoFuseTransposeType::TRANSPOSE_ND2ND_0321) {
-    ConfusionTransposeNd2Nd0321(dstTensor, srcTensor, sharedTmpBuffer, reinterpret_cast<ConfusionTranspose4DTiling &>(tiling));
+    ConfusionTransposeNd2Nd0321(dstTensor, srcTensor, sharedTmpBuffer,
+                                reinterpret_cast<ConfusionTranspose4DTiling &>(tiling));
   }
 }
 

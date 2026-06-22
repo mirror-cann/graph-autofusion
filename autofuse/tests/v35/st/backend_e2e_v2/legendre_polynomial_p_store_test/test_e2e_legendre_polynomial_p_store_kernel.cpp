@@ -18,7 +18,7 @@
 
 extern "C" __global__ __aicore__ void legendre_polynomial_p_store_test(GM_ADDR x1, GM_ADDR x2, GM_ADDR y1,
                                                                        GM_ADDR workspace, GM_ADDR tiling);
-extern "C" int64_t AutofuseTiling(uint32_t s0, uint32_t s1, AutofuseTilingData* tiling, uint32_t* workspaceSize,
+extern "C" int64_t AutofuseTiling(uint32_t s0, uint32_t s1, AutofuseTilingData *tiling, uint32_t *workspaceSize,
                                   uint64_t *blockDim, uint32_t aiv_num, uint32_t ub_size);
 
 class E2EBackendLegendrePolynomialPStoreCode : public testing::Test,
@@ -43,10 +43,10 @@ TEST_P(E2EBackendLegendrePolynomialPStoreCode, CalculateCorrect) {
   uint64_t legendre_block_dim = 48;
   int legendre_test_size = legendre_shape[0] * legendre_shape[1];
   AutofuseTilingData tiling_data;
-  float* legendre_x = static_cast<float*>(AscendC::GmAlloc(legendre_test_size * sizeof(float) + 32));
-  int32_t* legendre_n = static_cast<int32_t*>(AscendC::GmAlloc(legendre_test_size * sizeof(int32_t) + 32));
-  float* legendre_y = static_cast<float*>(AscendC::GmAlloc(legendre_test_size * sizeof(float) + 32));
-  float* legendre_expect = static_cast<float*>(AscendC::GmAlloc(legendre_test_size * sizeof(float) + 32));
+  float *legendre_x = static_cast<float *>(AscendC::GmAlloc(legendre_test_size * sizeof(float) + 32));
+  int32_t *legendre_n = static_cast<int32_t *>(AscendC::GmAlloc(legendre_test_size * sizeof(int32_t) + 32));
+  float *legendre_y = static_cast<float *>(AscendC::GmAlloc(legendre_test_size * sizeof(float) + 32));
+  float *legendre_expect = static_cast<float *>(AscendC::GmAlloc(legendre_test_size * sizeof(float) + 32));
 
   for (int i = 0; i < legendre_test_size; i++) {
     legendre_x[i] = static_cast<float>((i % 7) - 3) / 4.0F;
@@ -57,9 +57,9 @@ TEST_P(E2EBackendLegendrePolynomialPStoreCode, CalculateCorrect) {
   uint32_t ws_size = 0;
   AutofuseTiling(legendre_shape[0], legendre_shape[1], &tiling_data, &ws_size, &legendre_block_dim, 48, 192 * 1024);
   AscendC::SetKernelMode(KernelMode::AIV_MODE);
-  ICPU_RUN_KF(legendre_polynomial_p_store_test, tiling_data.block_dim, reinterpret_cast<uint8_t*>(legendre_x),
-              reinterpret_cast<uint8_t*>(legendre_n), reinterpret_cast<uint8_t*>(legendre_y), nullptr,
-              reinterpret_cast<uint8_t*>(&tiling_data));
+  ICPU_RUN_KF(legendre_polynomial_p_store_test, tiling_data.block_dim, reinterpret_cast<uint8_t *>(legendre_x),
+              reinterpret_cast<uint8_t *>(legendre_n), reinterpret_cast<uint8_t *>(legendre_y), nullptr,
+              reinterpret_cast<uint8_t *>(&tiling_data));
 
   uint32_t legendre_diff_count = 0;
   for (int i = 0; i < legendre_test_size; i++) {

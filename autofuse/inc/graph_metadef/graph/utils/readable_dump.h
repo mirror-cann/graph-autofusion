@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -33,8 +33,8 @@ class ReadableDump {
 
  public:
   ReadableDump() = delete;
-  ReadableDump(const ReadableDump&) = delete;
-  ReadableDump& operator=(const ReadableDump&) = delete;
+  ReadableDump(const ReadableDump &) = delete;
+  ReadableDump &operator=(const ReadableDump &) = delete;
   ~ReadableDump() = delete;
 
   /**
@@ -220,7 +220,7 @@ class ReadableDump {
    *         如果 IR 定义为空，返回空字符串
    */
   static std::string GetSubgraphAttrsWithIr(const Node *node, std::vector<ComputeGraphPtr> &subgraphs_to_dump,
-                                             DumpContext &ctx);
+                                            DumpContext &ctx);
 
   /**
    * @brief 获取节点的子图属性信息，同时收集子图用于后续展开
@@ -283,6 +283,6 @@ class ReadableDump {
    */
   static void GenGraphOutput(std::stringstream &graph_output_ss, const Node *net_output, OutputHandler &output_handler);
 };
-}  // namespace ge
+}  // namespace af
 
 #endif  // INC_GRAPH_UTILS_READABLE_DUMP_H_

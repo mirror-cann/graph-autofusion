@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -57,20 +57,21 @@ using SymConstInfoPtr = std::shared_ptr<SymConstInfo>;
 
 struct AttAxis {
   std::string name;  // 轴的名称
-  AxisPosition axis_pos;  // 切分轴的位置。origin原始轴，对应求解问题的输入，inner轴，对应待求解变量，outter轴可由origin和inner轴推导
-  bool bind_multicore;  // 是否绑多核
-  bool is_last;  // 原始轴的最内切分轴，用于设定轴的默认初始值
-  bool is_node_innerest_dim;  // 是否是某个node的最内轴，用于决定轴的搜索优先级
-  bool is_concat_outer_dim; // 是否是concat node的concat dim外轴
-  bool is_concat_inner_dim; // 是否是concat node的concat dim尾轴
-  size_t order{0UL};  // 轴排序的优先级，值越小优先级越高，默认为0
-  SymInfoPtr size;  // 用于表达轴的size
+  AxisPosition
+      axis_pos;  // 切分轴的位置。origin原始轴，对应求解问题的输入，inner轴，对应待求解变量，outter轴可由origin和inner轴推导
+  bool bind_multicore;               // 是否绑多核
+  bool is_last;                      // 原始轴的最内切分轴，用于设定轴的默认初始值
+  bool is_node_innerest_dim;         // 是否是某个node的最内轴，用于决定轴的搜索优先级
+  bool is_concat_outer_dim;          // 是否是concat node的concat dim外轴
+  bool is_concat_inner_dim;          // 是否是concat node的concat dim尾轴
+  size_t order{0UL};                 // 轴排序的优先级，值越小优先级越高，默认为0
+  SymInfoPtr size;                   // 用于表达轴的size
   std::vector<AttAxis *> orig_axis;  // 原始轴的信息
   std::vector<AttAxis *> from_axis;  // 父轴的信息
 
   // 分核轴类型标记（用于Store冲突检测）
-  bool is_reduce_split_axis{false};    // 该轴是否是Reduce分核轴
-  bool is_broadcast_split_axis{false}; // 该轴是否是Broadcast分核轴
+  bool is_reduce_split_axis{false};     // 该轴是否是Reduce分核轴
+  bool is_broadcast_split_axis{false};  // 该轴是否是Broadcast分核轴
 };
 
 using AttAxisPtr = std::shared_ptr<AttAxis>;
@@ -92,10 +93,10 @@ struct InputTensor {
 };
 
 struct ScheduleGroupIdent {
-  size_t asc_graph_id{0L}; // AscGraph的ID
-  size_t impl_graph_id{0L}; // ImplGraph的ID
-  size_t group_id{0L}; // ScheduleGroup的ID
-  bool operator < (const ScheduleGroupIdent &other) const {
+  size_t asc_graph_id{0L};   // AscGraph的ID
+  size_t impl_graph_id{0L};  // ImplGraph的ID
+  size_t group_id{0L};       // ScheduleGroup的ID
+  bool operator<(const ScheduleGroupIdent &other) const {
     if (impl_graph_id < other.impl_graph_id) {
       return true;
     } else if (impl_graph_id > other.impl_graph_id) {
@@ -104,10 +105,10 @@ struct ScheduleGroupIdent {
     // 如果 impl_graph_id 相等，则比较 group_id
     return group_id < other.group_id;
   }
-  bool operator == (const ScheduleGroupIdent &other) const {
+  bool operator==(const ScheduleGroupIdent &other) const {
     return (impl_graph_id == other.impl_graph_id) && (group_id == other.group_id);
   }
-  bool operator != (const ScheduleGroupIdent &other) const {
+  bool operator!=(const ScheduleGroupIdent &other) const {
     return (impl_graph_id != other.impl_graph_id) || (group_id != other.group_id);
   }
   [[nodiscard]] std::string GetGroupPrefix() const {
@@ -126,12 +127,12 @@ struct ScheduleGroupIdent {
 };
 
 struct ReuseScheduleGroupInfo {
-  std::vector<std::string> reuse_input_axes;  // 复用的schedule group内所有输入轴名称
+  std::vector<std::string> reuse_input_axes;   // 复用的schedule group内所有输入轴名称
   std::vector<std::string> reuse_search_axes;  // 复用的schedule group内所有求解轴名称
-  std::vector<uint32_t> tiling_keys; // 复用的schedule group内对应的tiling key
+  std::vector<uint32_t> tiling_keys;           // 复用的schedule group内对应的tiling key
 };
 struct ReuseScheduleGroup {
-  ScheduleGroupIdent reuse_group_ident; // 复用的schedule group信息
+  ScheduleGroupIdent reuse_group_ident;  // 复用的schedule group信息
   ReuseScheduleGroupInfo info;
   std::map<ScheduleGroupIdent, ReuseScheduleGroupInfo>
       schedule_group_to_info;  // 所有schedule group对应的轴名称，映射的轴与reuse_axes对应
@@ -156,13 +157,12 @@ enum class TilingScheduleConfigPriority : int32_t {
 };
 
 struct TradeOffConfig {
-  bool is_enable = false;                          // 是否使能 multicore-ub tradeoff
-  Expr ub_ratio{af::Symbol(0.1)};            // UB 阈值（Expr 类型）
-  Expr core_num_ratio{af::Symbol(0.8)};      // 核数比例（Expr 类型）
+  bool is_enable = false;                // 是否使能 multicore-ub tradeoff
+  Expr ub_ratio{af::Symbol(0.1)};        // UB 阈值（Expr 类型）
+  Expr core_num_ratio{af::Symbol(0.8)};  // 核数比例（Expr 类型）
 
   [[nodiscard]] std::string DebugString() const {
-    return "is_enable: " + std::to_string(is_enable) +
-           ", ub_ratio: " + Str(ub_ratio) +
+    return "is_enable: " + std::to_string(is_enable) + ", ub_ratio: " + Str(ub_ratio) +
            ", core_num_ratio: " + Str(core_num_ratio);
   }
 };
@@ -262,12 +262,13 @@ struct ModelInfo {
   uint32_t tiling_case_id;
   std::string graph_name;
   std::string score_func;
-  std::string sub_case_tag; // Reduce切R，优先切R轴的模板
+  std::string sub_case_tag;                    // Reduce切R，优先切R轴的模板
   std::map<int64_t, Expr> workspace_size_map;  // 用于描述每个tensor_id的workspace大小
-  std::map<HardwareDef, Expr> hardware_cons;  // 用于描述硬件约束
+  std::map<HardwareDef, Expr> hardware_cons;   // 用于描述硬件约束
   Expr reserved_ub_size{CreateExpr(0)};
-  std::map<std::string, std::vector<std::pair<Expr, Expr>>> eq_exprs;  // 用于描述等式约束,切分轴之间的整除约束key值为NO_TAIL
-  std::map<std::string, std::vector<Expr>> leq_exprs;  // 用于描述不等式约束
+  std::map<std::string, std::vector<std::pair<Expr, Expr>>>
+      eq_exprs;  // 用于描述等式约束,切分轴之间的整除约束key值为NO_TAIL
+  std::map<std::string, std::vector<Expr>> leq_exprs;              // 用于描述不等式约束
   std::map<std::string, NodeApiTilingCode> node_name_to_api_code;  // 用于定义高阶API的代码
   std::map<std::string, std::pair<std::string, std::string>>
       tiling_api_name_to_vars;       // 工具场景高阶API使用, API名,高阶API变量名,高阶API变量类型
@@ -275,22 +276,22 @@ struct ModelInfo {
   std::vector<AttAxisPtr> arg_list;  // 用于描述轴以及轴size的信息, owner att axis ptr
   std::map<std::string, Expr> container_exprs;
   std::map<std::string, Expr> tensor_exprs;
-  Expr head_cost{CreateExpr(0)}; // 用于描述多核头开销
-  ScheduleGroupIdent schedule_group_ident; // 标记graph的schedule group信息
-  ReuseScheduleGroupPtr reuse_schedule_group; // 标记reuse group信息
-  ExprExprMap variable_expr_map; //用于记录tensor的表达式
-  std::map<Expr, std::string, ExprCmp> variable_name_map; //用于记录tensor的名称
-  std::map<Expr, TernaryOp, ExprCmp> ternary_op_map; //用于记录三目运算符的名称
-  std::vector<PerfBreakdownGroup> perf_breakdowns; // 用于记录性能公式的语义化拆解
+  Expr head_cost{CreateExpr(0)};                           // 用于描述多核头开销
+  ScheduleGroupIdent schedule_group_ident;                 // 标记graph的schedule group信息
+  ReuseScheduleGroupPtr reuse_schedule_group;              // 标记reuse group信息
+  ExprExprMap variable_expr_map;                           // 用于记录tensor的表达式
+  std::map<Expr, std::string, ExprCmp> variable_name_map;  // 用于记录tensor的名称
+  std::map<Expr, TernaryOp, ExprCmp> ternary_op_map;       // 用于记录三目运算符的名称
+  std::vector<PerfBreakdownGroup> perf_breakdowns;         // 用于记录性能公式的语义化拆解
   uint32_t output_size;
-  std::vector<af::AscNodePtr> input_nodes; // 获取输入schedule_results[0].input_nodes
-  std::vector<af::AscNodePtr> output_nodes; // 获取输入出schedule_results[0].output_nodes
-  bool enable_group_parallel{false}; // 使能group并行
-  std::vector<Expr> sizes{}; // 图原始Sizes信息
-  vector<CacheLineConfig> cache_line_config; // ub->gm/gm->ub节点的cache配置信息
+  std::vector<af::AscNodePtr> input_nodes;    // 获取输入schedule_results[0].input_nodes
+  std::vector<af::AscNodePtr> output_nodes;   // 获取输入出schedule_results[0].output_nodes
+  bool enable_group_parallel{false};          // 使能group并行
+  std::vector<Expr> sizes{};                  // 图原始Sizes信息
+  vector<CacheLineConfig> cache_line_config;  // ub->gm/gm->ub节点的cache配置信息
   const TilingScheduleConfigTable *tiling_schedule_config_table{nullptr};
   TilingScheduleConfig tiling_schedule_config;  // Model 级别的 Tiling 调度配置
-  bool is_enable_equal_order_tiling{false}; // 使能等order tiling算法
+  bool is_enable_equal_order_tiling{false};     // 使能等order tiling算法
 };
 
 using TilingModelInfo = std::vector<ModelInfo>;
@@ -299,7 +300,8 @@ using TensorIdSet = std::map<size_t, std::map<size_t, std::set<int64_t>>>;
 // score_funcs: {level, {asc_graph_id, {impl_graph_id, score_func}}
 using ScoreFuncs = std::map<kModelInfoLevel, std::map<size_t, std::map<size_t, std::string>>>;
 using EnableGroupParallels = std::map<size_t, std::map<size_t, bool>>;
-using VarRelations = std::map<size_t, std::map<size_t, std::map<size_t, std::map<size_t, std::map<std::string, af::Expression>>>>>;
+using VarRelations =
+    std::map<size_t, std::map<size_t, std::map<size_t, std::map<size_t, std::map<std::string, af::Expression>>>>>;
 // schedule result id->{score_func, group_model_infos}
 struct ParsedScheduleResult {
   size_t asc_graph_id{0UL};
@@ -310,5 +312,5 @@ struct ParsedScheduleResult {
   bool enable_group_parallel{false};
 };
 using FusedParsedScheduleResult = std::map<size_t, std::map<size_t, ParsedScheduleResult>>;
-}
+}  // namespace att
 #endif

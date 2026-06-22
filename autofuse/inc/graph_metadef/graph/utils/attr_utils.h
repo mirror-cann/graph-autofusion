@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -55,8 +55,7 @@ class GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY AttrUtils {
   static bool SetBytes(AttrHolderAdapter &&obj, const std::string &name, const Buffer &value);
   static bool SetListBytes(AttrHolderAdapter &&obj, const std::string &name, const std::vector<Buffer> &value);
   static bool SetNamedAttrs(AttrHolderAdapter &&obj, const std::string &name, const NamedAttrs &value);
-  static bool SetListNamedAttrs(AttrHolderAdapter &&obj, const std::string &name,
-                                const std::vector<NamedAttrs> &value);
+  static bool SetListNamedAttrs(AttrHolderAdapter &&obj, const std::string &name, const std::vector<NamedAttrs> &value);
 
   // Get
   static bool GetInt(ConstAttrHolderAdapter &&obj, const std::string &name, int64_t &value);
@@ -93,8 +92,7 @@ class GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY AttrUtils {
   static bool SetZeroCopyBytes(AttrHolderAdapter &&obj, const std::string &name, Buffer &&buffer);
   static bool GetZeroCopyBytes(ConstAttrHolderAdapter &&obj, const std::string &name, Buffer &buffer);
   // Value will be moved
-  static bool SetZeroCopyListBytes(AttrHolderAdapter &&obj, const std::string &name,
-                                   std::vector<Buffer> &list_buffer);
+  static bool SetZeroCopyListBytes(AttrHolderAdapter &&obj, const std::string &name, std::vector<Buffer> &list_buffer);
   static bool GetZeroCopyListBytes(ConstAttrHolderAdapter &&obj, const std::string &name,
                                    std::vector<Buffer> &list_buffer);
 
@@ -141,9 +139,15 @@ class GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY AttrUtils {
       return *this;
     }
     AttrHolderAdapter(AttrHolder &obj) : obj_(&obj) {}
-    operator bool() const { return obj_ != nullptr; }
-    AttrHolder *operator->() const { return obj_; }
-    AttrHolder *get() const { return obj_; }
+    operator bool() const {
+      return obj_ != nullptr;
+    }
+    AttrHolder *operator->() const {
+      return obj_;
+    }
+    AttrHolder *get() const {
+      return obj_;
+    }
 
    private:
     AttrHolder *obj_;
@@ -163,14 +167,20 @@ class GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY AttrUtils {
       return *this;
     }
     ConstAttrHolderAdapter(const AttrHolder &obj) : obj_(&obj) {}
-    operator bool() const { return obj_ != nullptr; }
-    const AttrHolder *operator->() const { return obj_; }
-    const AttrHolder *get() const { return obj_; }
+    operator bool() const {
+      return obj_ != nullptr;
+    }
+    const AttrHolder *operator->() const {
+      return obj_;
+    }
+    const AttrHolder *get() const {
+      return obj_;
+    }
 
    private:
     const AttrHolder *obj_;
   };
 };
-}  // namespace ge
+}  // namespace af
 /*lint +e148*/
 #endif  // INC_GRAPH_UTILS_ATTR_UTILS_H_

@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -30,28 +30,23 @@ using namespace af::sym;
 using namespace af::ascir;
 
 class UTestAscirPerfV2 : public ::testing::Test {
-public:
- static ge::RuntimeStubV2 stub_v_2;
- static void TearDownTestCase()
- {
-   ge::RuntimeStub::UnInstall(&stub_v_2);
-   ge::PlatformContext::GetInstance().Reset();
-   std::cout << "Test end." << std::endl;
- }
- static void SetUpTestCase()
- {
-   ge::RuntimeStub::Install(&stub_v_2);
-   ge::PlatformContext::GetInstance().Reset();
-   std::cout << "Test begin." << std::endl;
- }
- void SetUp() override
- {
-   setenv("ASCEND_GLOBAL_LOG_LEVEL", "0", 1);
-   setenv("ASCEND_SLOG_PRINT_TO_STDOUT", "1", 1);
- }
- void TearDown() override
- {
- }
+ public:
+  static ge::RuntimeStubV2 stub_v_2;
+  static void TearDownTestCase() {
+    ge::RuntimeStub::UnInstall(&stub_v_2);
+    ge::PlatformContext::GetInstance().Reset();
+    std::cout << "Test end." << std::endl;
+  }
+  static void SetUpTestCase() {
+    ge::RuntimeStub::Install(&stub_v_2);
+    ge::PlatformContext::GetInstance().Reset();
+    std::cout << "Test begin." << std::endl;
+  }
+  void SetUp() override {
+    setenv("ASCEND_GLOBAL_LOG_LEVEL", "0", 1);
+    setenv("ASCEND_SLOG_PRINT_TO_STDOUT", "1", 1);
+  }
+  void TearDown() override {}
 };
 ge::RuntimeStubV2 UTestAscirPerfV2::stub_v_2;
 
@@ -68,8 +63,8 @@ void SetSingleReduceSpecificParams(NodeInfo &node) {
 }
 
 TEST_F(UTestAscirPerfV2, FillReduceSpecificParamsStoresSharedParamsOnAscNode) {
-  using ascir_reduce_test_helpers::ReduceTestEnv;
   using ascir_reduce_test_helpers::BuildReduceNodeInfo;
+  using ascir_reduce_test_helpers::ReduceTestEnv;
   ReduceTestEnv env("reduce");
   env.SetIoAttrs({env.s1, CreateExpr(1)}, {env.s0, CreateExpr(1)}, {CreateExpr(1), CreateExpr(0)});
   auto node_info = BuildReduceNodeInfo(env, "reduce");
@@ -148,8 +143,7 @@ TEST_F(UTestAscirPerfV2, TestLoadApiForTypev1) {
   // LoadStride calculation: k=0.005, block_count=z0t_size*z1t_size, stride_used=min(448*4, 4096)=1792
   // Result: 0.005 * z0t_size * z1t_size * 1792 = 8.96 * z0t_size * z1t_size
   const std::string expect_stride = "(8.95999979972839 * z0t_size * z1t_size)";
-  const std::string load_perf =
-      "(256 * z0t_size * z1t_size / (((6.40880012512207 / (block_dim)) + 13.1354999542236)))";
+  const std::string load_perf = "(256 * z0t_size * z1t_size / (((6.40880012512207 / (block_dim)) + 13.1354999542236)))";
   // Note: The order of terms in the output is (load_perf + stride + 160.0)
   EXPECT_EQ(Str(res.Replace(ret)), "(" + load_perf + " + " + expect_stride + " + 160.0)");
 }
@@ -197,24 +191,14 @@ TEST_F(UTestAscirPerfV2, TestLoadApiForTypev3) {
   input_shapes[0].dims = {z0z1t_size, CreateExpr(7), CreateExpr(34), z4t_size, CreateExpr(7)};
   input_shapes[0].repeats = input_shapes[0].dims;
   // 连续 {true, false, true, true}
-  input_shapes[0].strides = {z4t_size * CreateExpr(7 * 7 * 34),
-                             z4t_size * CreateExpr(7 * 34),
-                             z4t_size * CreateExpr(7),
-                             CreateExpr(7),
-                             af::sym::kSymbolOne};
+  input_shapes[0].strides = {z4t_size * CreateExpr(7 * 7 * 34), z4t_size * CreateExpr(7 * 34), z4t_size * CreateExpr(7),
+                             CreateExpr(7), af::sym::kSymbolOne};
   input_shapes[0].gm_strides = input_shapes[0].strides;
   output_shapes[0].data_type = "int64";
-  output_shapes[0].dims = {z0z1t_size,
-                           CreateExpr(7),
-                           CreateExpr(34),
-                           z4t_size,
-                           CreateExpr(7)};
+  output_shapes[0].dims = {z0z1t_size, CreateExpr(7), CreateExpr(34), z4t_size, CreateExpr(7)};
   output_shapes[0].repeats = output_shapes[0].dims;
-  output_shapes[0].strides = {z4t_size * CreateExpr(7 * 7 * 34),
-                              z4t_size * CreateExpr(7 * 34),
-                              z4t_size * CreateExpr(7),
-                              CreateExpr(7),
-                              af::sym::kSymbolOne};
+  output_shapes[0].strides = {z4t_size * CreateExpr(7 * 7 * 34), z4t_size * CreateExpr(7 * 34),
+                              z4t_size * CreateExpr(7), CreateExpr(7), af::sym::kSymbolOne};
   output_shapes[0].gm_strides = output_shapes[0].strides;
   input_shapes[0].data_type_size = 8;
   output_shapes[0].data_type_size = 8;
@@ -272,7 +256,8 @@ TEST_F(UTestAscirPerfV2, TestStoreApiForType) {
   // 存在外抛
   auto ternary_ops = perf_res.ternary_ops;
   auto ret = ConcursiveReplaceVars(ternary_ops);
-  EXPECT_EQ(Str(res.Replace(ret)), "((1904 * z0z1t_size * z6t_size / (((10.2650003433228 / (block_dim)) + 11.7740001678467))) + 160.0)");
+  EXPECT_EQ(Str(res.Replace(ret)),
+            "((1904 * z0z1t_size * z6t_size / (((10.2650003433228 / (block_dim)) + 11.7740001678467))) + 160.0)");
 }
 
 TEST_F(UTestAscirPerfV2, TestStoreApiCacheLineExprUsesSingleTransferLen) {
@@ -348,7 +333,8 @@ TEST_F(UTestAscirPerfV2, TestStoreApiForSmallStride) {
   // Note: 由于padding, z6t_size会被替换为TernaryOp表达式,且TernaryOp在z0z1t_size之前
   EXPECT_EQ(Str(res.Replace(ret)),
             "((1904 * TernaryOp(IsEqual(ExpectLt((8 * z6t_size), 128), 0), z6t_size, 16) * z0z1t_size / "
-            "(((10.2650003433228 / (block_dim)) + 11.7740001678467))) + " + kStride + " + 160.0)");
+            "(((10.2650003433228 / (block_dim)) + 11.7740001678467))) + " +
+                kStride + " + 160.0)");
 }
 
 TEST_F(UTestAscirPerfV2, TestStoreApiForBiggerStride) {
@@ -389,7 +375,8 @@ TEST_F(UTestAscirPerfV2, TestStoreApiForBiggerStride) {
   const std::string kStride = "(37531.6477966309 * z0z1t_size)";
   EXPECT_EQ(Str(res.Replace(ret)),
             "((1904 * TernaryOp(IsEqual(ExpectLt((8 * z6t_size), 128), 0), z6t_size, 16) * z0z1t_size / "
-            "(((10.2650003433228 / (block_dim)) + 11.7740001678467))) + " + kStride + " + 160.0)");
+            "(((10.2650003433228 / (block_dim)) + 11.7740001678467))) + " +
+                kStride + " + 160.0)");
 }
 
 TEST_F(UTestAscirPerfV2, TestNddmaApiForType) {
@@ -442,15 +429,13 @@ TEST_F(UTestAscirPerfV2, TestNddmaApiSmallBlockLen) {
   input_shapes[0].repeats = {z0z1t_size, CreateExpr(7), CreateExpr(34), z6t_size};
   input_shapes[0].strides = {CreateExpr(7) * CreateExpr(34) * z6t_size, CreateExpr(34) * z6t_size, z6t_size,
                              af::sym::kSymbolOne};
-  input_shapes[0].gm_strides = {CreateExpr(34 * 32 * 7), CreateExpr(34 * 32), CreateExpr(32),
-                                af::sym::kSymbolOne};
+  input_shapes[0].gm_strides = {CreateExpr(34 * 32 * 7), CreateExpr(34 * 32), CreateExpr(32), af::sym::kSymbolOne};
   output_shapes[0].data_type = "int64";
   output_shapes[0].dims = {z0z1t_size, CreateExpr(7), CreateExpr(34), z6t_size};
   output_shapes[0].repeats = {z0z1t_size, CreateExpr(7), CreateExpr(34), z6t_size};
   output_shapes[0].strides = {CreateExpr(7) * CreateExpr(34) * z6t_size, CreateExpr(34) * z6t_size, z6t_size,
                               af::sym::kSymbolOne};
-  output_shapes[0].gm_strides = {CreateExpr(34 * 32 * 7), CreateExpr(34 * 32), CreateExpr(32),
-                                 af::sym::kSymbolOne};
+  output_shapes[0].gm_strides = {CreateExpr(34 * 32 * 7), CreateExpr(34 * 32), CreateExpr(32), af::sym::kSymbolOne};
 
   input_shapes[0].data_type_size = 8;
   output_shapes[0].data_type_size = 8;
@@ -467,18 +452,19 @@ TEST_F(UTestAscirPerfV2, TestNddmaApiSmallBlockLen) {
   // 存在外抛
   auto ternary_ops = perf_res.ternary_ops;
   auto ret = ConcursiveReplaceVars(ternary_ops);
-  const std::string kIsSmallBlockLen = "IsEqual(LogicAnd(ExpectLt(0, Abs((32 - z6t_size))), ExpectLt(z6t_size, 16)), 0)";
+  const std::string kIsSmallBlockLen =
+      "IsEqual(LogicAnd(ExpectLt(0, Abs((32 - z6t_size))), ExpectLt(z6t_size, 16)), 0)";
   const std::string kLastAxisLen = "TernaryOp(" + kIsSmallBlockLen + ", z6t_size, 16)";
   // NddmaStride with penalty: penalty + stride calculation
   // penalty = block_count_idx * stride_used * penalty_coeff = 2 * Abs((32-z6t_size))*8) * 4 = 64.0 * Abs((32-z6t_size))
-  // stride = k * block_count * stride_used = 0.005 * (238*z0z1t_size) * Abs((32-z6t_size))*8) = 9.52... * Abs((32-z6t_size)) * z0z1t_size
+  // stride = k * block_count * stride_used = 0.005 * (238*z0z1t_size) * Abs((32-z6t_size))*8) = 9.52... *
+  // Abs((32-z6t_size)) * z0z1t_size
   const std::string kPenalty = "(64.0 * Abs((32 - z6t_size)))";
   const std::string kStride = "(9.51999978721142 * Abs((32 - z6t_size)) * z0z1t_size)";
   // Note: SymEngine may reorder additive terms; nddma_perf comes before penalty and stride
-  EXPECT_EQ(Str(res.Replace(ret)),
-            "((1904 * " + kLastAxisLen +
-                " * z0z1t_size / (((6.3899998664856 / (block_dim)) + 7.6100001335144))) + " +
-                kPenalty + " + " + kStride + " + 418.978912353516)");
+  EXPECT_EQ(Str(res.Replace(ret)), "((1904 * " + kLastAxisLen +
+                                       " * z0z1t_size / (((6.3899998664856 / (block_dim)) + 7.6100001335144))) + " +
+                                       kPenalty + " + " + kStride + " + 418.978912353516)");
 }
 
 TEST_F(UTestAscirPerfV2, TestNddmaApiGmStrideTranspose) {
@@ -516,13 +502,14 @@ TEST_F(UTestAscirPerfV2, TestNddmaApiGmStrideTranspose) {
   auto ternary_ops = perf_res.ternary_ops;
   auto ret = ConcursiveReplaceVars(ternary_ops);
   // NddmaStride with penalty: stride calculation
-  // stride = k * block_count * stride_used = 0.005 * (z0t_size * z1t_size) * 4096 = 20.4799995422363 * z0t_size * z1t_size
-  // penalty = block_count_idx * stride_used * penalty_coeff = 1 * 4096 * 4 = 16384.0
+  // stride = k * block_count * stride_used = 0.005 * (z0t_size * z1t_size) * 4096 = 20.4799995422363 * z0t_size *
+  // z1t_size penalty = block_count_idx * stride_used * penalty_coeff = 1 * 4096 * 4 = 16384.0
   const std::string kStride = "(20.4799995422363 * z0t_size * z1t_size)";
   // Note: The order of terms in the output is (nddma_perf + stride + penalty + constant)
   EXPECT_EQ(Str(res.Replace(ret)),
             "((17688 * z0t_size * z1t_size / (((6.3899998664856 / (block_dim)) + "
-            "7.6100001335144))) + " + kStride + " + 16802.9789123535)");
+            "7.6100001335144))) + " +
+                kStride + " + 16802.9789123535)");
 }
 
 // 测试 CalculateStride 函数 - Nddma 节点验证 block_count_idx
@@ -2567,13 +2554,8 @@ TEST_F(UTestAscirPerfV2, TestReorderGmStrideByTransposeComplex) {
   node_ptr->outputs[0].attr.axis = {4, 3, 2, 1, 0};
 
   // 转置后的 gm_strides (按 axis [4,3,2,1,0] 顺序)
-  tensor.gm_strides = {
-    CreateExpr("stride0"),
-    CreateExpr("stride1"),
-    CreateExpr("stride2"),
-    CreateExpr("stride3"),
-    CreateExpr("stride4")
-  };
+  tensor.gm_strides = {CreateExpr("stride0"), CreateExpr("stride1"), CreateExpr("stride2"), CreateExpr("stride3"),
+                       CreateExpr("stride4")};
   node_ptr->outputs[0].attr.strides = tensor.gm_strides;
 
   // 执行重排
@@ -2717,8 +2699,7 @@ TEST_F(UTestAscirPerfV2, TestLoadApiExpandBlockLenSmallBlock) {
   // data_size = z0t * z1t * 64 * 2 = 128 * z0t * z1t, SmallBlk case
   // stride_cost = 0.005 * z0t * z1t * min((64-8)*2, 4096) = 0.56 * z0t * z1t
   const std::string expect_stride = "(0.559999987483025 * z0t_size * z1t_size)";
-  const std::string load_perf =
-      "(128 * z0t_size * z1t_size / (((6.40880012512207 / (block_dim)) + 13.1354999542236)))";
+  const std::string load_perf = "(128 * z0t_size * z1t_size / (((6.40880012512207 / (block_dim)) + 13.1354999542236)))";
   EXPECT_EQ(Str(res.Replace(ret)), "(" + expect_stride + " + " + load_perf + " + 160.0)");
 }
 
@@ -2756,8 +2737,7 @@ TEST_F(UTestAscirPerfV2, TestLoadApiExpandBlockLenLargeBlock) {
   // data_size = 256 * z0t * z1t
   // stride = 0.005 * z0t * z1t * min((256-128)*2, 4096) = 1.28 * z0t * z1t
   const std::string expect_stride = "(1.27999997138977 * z0t_size * z1t_size)";
-  const std::string load_perf =
-      "(256 * z0t_size * z1t_size / (((6.40880012512207 / (block_dim)) + 13.1354999542236)))";
+  const std::string load_perf = "(256 * z0t_size * z1t_size / (((6.40880012512207 / (block_dim)) + 13.1354999542236)))";
   EXPECT_EQ(Str(res.Replace(ret)), "(" + expect_stride + " + " + load_perf + " + 160.0)");
 }
 
@@ -2790,8 +2770,7 @@ TEST_F(UTestAscirPerfV2, TestLoadApiExpandBlockLenContinuous) {
   auto ret = ConcursiveReplaceVars(ternary_ops);
   // 连续: gm_stride=0, 不触发pad, SmallBlk case
   // data_size = 10 * 8 * 2 = 160
-  const std::string load_perf =
-      "(160 / (((6.40880012512207 / (block_dim)) + 13.1354999542236)))";
+  const std::string load_perf = "(160 / (((6.40880012512207 / (block_dim)) + 13.1354999542236)))";
   EXPECT_EQ(Str(res.Replace(ret)), "(" + load_perf + " + 160.0)");
 }
 

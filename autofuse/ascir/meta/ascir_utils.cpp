@@ -40,7 +40,7 @@ constexpr int32_t DUMP_ID_WIDTH = 5;
 std::string SanitizeFileName(const std::string &name) {
   std::string result;
   result.reserve(name.length());
-  for (char c: name) {
+  for (char c : name) {
     if (std::isalnum(static_cast<unsigned char>(c)) || c == '_' || c == '-' || c == '.' || c == ' ') {
       result += c;
     } else {
@@ -105,8 +105,7 @@ bool IsStoreWithoutStride(const af::AscNode &node) {
     size_t concat_dim;
     GE_WARN_ASSERT(GetConcatDim(node, concat_dim));
     GE_WARN_ASSERT((concat_dim > 0) && (concat_dim < output_tensor_attr.repeats.size()),
-                   "concat_dim output range, concat_dim = %zu, repeats = %s, ",
-                   concat_dim,
+                   "concat_dim output range, concat_dim = %zu, repeats = %s, ", concat_dim,
                    af::ToString(output_tensor_attr.repeats).c_str());
     af::Expression elt_num = output_tensor_attr.repeats[concat_dim];
     for (size_t i = concat_dim + 1UL; i < output_tensor_attr.repeats.size(); ++i) {
@@ -119,9 +118,7 @@ bool IsStoreWithoutStride(const af::AscNode &node) {
   return true;
 }
 
-bool GetConcatDimAndColSizes(const af::AscNode &node,
-                             size_t &concat_dim,
-                             std::vector<int64_t> &src_col_sizes,
+bool GetConcatDimAndColSizes(const af::AscNode &node, size_t &concat_dim, std::vector<int64_t> &src_col_sizes,
                              int64_t &dst_col_size) {
   concat_dim = std::numeric_limits<size_t>::max();
   GE_WARN_ASSERT(GetConcatDim(node, concat_dim));
@@ -138,19 +135,18 @@ bool GetConcatDimAndColSizes(const af::AscNode &node,
                                    "[%s] dynamic dim after concat dim, inputs = %s, outputs = %s", node.GetNamePtr(),
                                    af::ToString(input_repeats).c_str(), af::ToString(output_repeats).c_str());
     int64_t dim_size = -1;
-    (void) dim_size_expr.GetConstValue(dim_size);
+    (void)dim_size_expr.GetConstValue(dim_size);
     concat_dim_stride *= dim_size;
   }
-  GELOGD("[%s] inputs = %s, output = %s, concat_dim = %u, concat_dim_stride = %ld",
-         node.GetNamePtr(), af::ToString(input_repeats).c_str(), af::ToString(output_repeats).c_str(),
-         concat_dim, concat_dim_stride);
+  GELOGD("[%s] inputs = %s, output = %s, concat_dim = %u, concat_dim_stride = %ld", node.GetNamePtr(),
+         af::ToString(input_repeats).c_str(), af::ToString(output_repeats).c_str(), concat_dim, concat_dim_stride);
   for (uint32_t i = 0U; i < node_inputs.Size(); ++i) {
     const auto &dim_size_expr = node_inputs[i].attr.repeats[concat_dim];
     GE_CHK_BOOL_RET_SPECIAL_STATUS((!dim_size_expr.IsConstExpr()), false,
                                    "[%s] input[%u] concat dim = %s, not a static dim", node.GetNamePtr(), i,
                                    dim_size_expr.Str().get());
     int64_t dim_size = -1;
-    (void) dim_size_expr.GetConstValue(dim_size);
+    (void)dim_size_expr.GetConstValue(dim_size);
     src_col_sizes.emplace_back(dim_size * concat_dim_stride);
   }
 
@@ -159,7 +155,7 @@ bool GetConcatDimAndColSizes(const af::AscNode &node,
                                  "[%s] output concat dim = %s, not a static dim", node.GetNamePtr(),
                                  output_dim_size_expr.Str().get());
   int64_t output_dim_size = -1L;
-  (void) output_dim_size_expr.GetConstValue(output_dim_size);
+  (void)output_dim_size_expr.GetConstValue(output_dim_size);
   dst_col_size = output_dim_size * concat_dim_stride;
   GELOGD("src_col_sizes = %s, dst_col_size = %ld", af::ToString(src_col_sizes).c_str(), dst_col_size);
   return true;
@@ -273,17 +269,28 @@ thread_local std::set<std::string> g_created_graph_dirs;
 namespace ascir::utils {
 static std::string DtypeToStr(af::DataType dtype) {
   switch (dtype) {
-    case af::DT_FLOAT: return "float32";
-    case af::DT_FLOAT16: return "float16";
-    case af::DT_INT8: return "int8_t";
-    case af::DT_INT32: return "int32_t";
-    case af::DT_UINT8: return "uint8_t";
-    case af::DT_INT16: return "int16_t";
-    case af::DT_UINT16: return "uint16_t";
-    case af::DT_UINT32: return "uint32_t";
-    case af::DT_INT64: return "int64_t";
-    case af::DT_UINT64: return "uint64_t";
-    default: return af::TypeUtils::DataTypeToSerialString(dtype);
+    case af::DT_FLOAT:
+      return "float32";
+    case af::DT_FLOAT16:
+      return "float16";
+    case af::DT_INT8:
+      return "int8_t";
+    case af::DT_INT32:
+      return "int32_t";
+    case af::DT_UINT8:
+      return "uint8_t";
+    case af::DT_INT16:
+      return "int16_t";
+    case af::DT_UINT16:
+      return "uint16_t";
+    case af::DT_UINT32:
+      return "uint32_t";
+    case af::DT_INT64:
+      return "int64_t";
+    case af::DT_UINT64:
+      return "uint64_t";
+    default:
+      return af::TypeUtils::DataTypeToSerialString(dtype);
   }
 }
 
@@ -360,10 +367,10 @@ static std::string GetDumpGraphPrefixAndCreateDir() {
 
 static std::string ExecConditionToStr(af::ExecuteCondition condition) {
   static const std::map<af::ExecuteCondition, std::string> kTypeToStr = {
-    {af::ExecuteCondition::kNoCache, "no_cache"},
-    {af::ExecuteCondition::kCacheBlockSplitFusedBroadcastAxis, "cache_block_split_fused_brc_axis"},
-    {af::ExecuteCondition::kCacheBlockSplitOriginBroadcastAxis, "cache_block_split_origin_brc_axis"},
-    {af::ExecuteCondition::kConditionInvalid, "invalid"}};
+      {af::ExecuteCondition::kNoCache, "no_cache"},
+      {af::ExecuteCondition::kCacheBlockSplitFusedBroadcastAxis, "cache_block_split_fused_brc_axis"},
+      {af::ExecuteCondition::kCacheBlockSplitOriginBroadcastAxis, "cache_block_split_origin_brc_axis"},
+      {af::ExecuteCondition::kConditionInvalid, "invalid"}};
 
   auto it = kTypeToStr.find(condition);
   if (it != kTypeToStr.end()) {
@@ -455,7 +462,7 @@ static std::stringstream &GraphAxisStr(std::stringstream &ss, const ascir::Graph
     } else {
       ss << "UNKNOWN";
     }
-    ss <<", size:"<< af::SymbolicUtils::ToString(axis->size) << ", ";
+    ss << ", size:" << af::SymbolicUtils::ToString(axis->size) << ", ";
 
     if (!axis->from.empty()) {
       ss << ", from: {";
@@ -520,7 +527,8 @@ static std::stringstream &NodeAttrStr(std::stringstream &ss, const ascir::Graph 
       ss << "    .tmp_buf = {";
       for (size_t i = 0; i < tmp_buffers.size(); ++i) {
         if (i > 0) ss << ", ";
-        ss << "{buf_id=" << tmp_buffers[i].id << ", size=" << af::SymbolicUtils::ToString(tmp_buffers[i].buf_desc.size) << "}";
+        ss << "{buf_id=" << tmp_buffers[i].id << ", size=" << af::SymbolicUtils::ToString(tmp_buffers[i].buf_desc.size)
+           << "}";
       }
       ss << "}" << std::endl;
     }
@@ -714,14 +722,14 @@ static std::stringstream &NodeOutputStr(std::stringstream &ss, const ascir::Grap
 }
 
 static void DumpGraphText(const Graph &graph, const string &suffix, const uint32_t graph_id, const bool verbose,
-                           const std::string &prefix) {
+                          const std::string &prefix) {
   // 判断是否是子图
   bool is_subgraph = (suffix.find("_Subgraph_") != std::string::npos);
   // 使用新的 MLIR 风格格式
   auto dump_asc_graph = DebugStrNew(graph, verbose, is_subgraph);
 
-  std::string base_name = "ascgraph_" + FormatDumpIndex(g_current_fused_graph_dump_index)
-                          + "_" + graph.GetName() + "_" + suffix + "_" + std::to_string(graph_id) + ".txt";
+  std::string base_name = "ascgraph_" + FormatDumpIndex(g_current_fused_graph_dump_index) + "_" + graph.GetName() +
+                          "_" + suffix + "_" + std::to_string(graph_id) + ".txt";
   std::string file_name = prefix + SanitizeFileName(base_name);
   std::ofstream f_stream(file_name);
   if (f_stream.is_open()) {
@@ -736,8 +744,8 @@ static void DumpComputeGraphImpl(const af::ComputeGraphPtr &compute_graph, const
   if (compute_graph == nullptr) {
     return;
   }
-  std::string base_name = "ge_onnx_" + FormatDumpIndex(g_current_onnx_dump_index)
-                          + "_" + compute_graph->GetName() + "_" + suffix + ".pbtxt";
+  std::string base_name = "ge_onnx_" + FormatDumpIndex(g_current_onnx_dump_index) + "_" + compute_graph->GetName() +
+                          "_" + suffix + ".pbtxt";
   std::string file_name = prefix + SanitizeFileName(base_name);
   af::Model model("GE", "");
   model.SetGraph(compute_graph);
@@ -891,18 +899,18 @@ bool UseSmallTailConcatApi(const af::AscNode &node, bool *output_need_align) {
   (void)af::AttrUtils::GetBool(node.GetOpDesc(), "_concat_small_tail", force_small_tail);
   GE_CHK_BOOL_RET_SPECIAL_STATUS(force_small_tail, true, "[%s] marked use small tail kernel", node.GetNamePtr());
   auto node_inputs = node.inputs;
-  GE_CHK_BOOL_RET_SPECIAL_STATUS(node_inputs.Size() <= 1U,
-                                 false, "input num = %u, do not use small tail concat api", node_inputs.Size());
+  GE_CHK_BOOL_RET_SPECIAL_STATUS(node_inputs.Size() <= 1U, false, "input num = %u, do not use small tail concat api",
+                                 node_inputs.Size());
   const auto dtype_size = GetSizeByDataType(node_inputs[0].attr.dtype);
-  GE_WARN_ASSERT(dtype_size > 0); // 其实下一判断可以确保非0, 然而静态检查识别不了
+  GE_WARN_ASSERT(dtype_size > 0);  // 其实下一判断可以确保非0, 然而静态检查识别不了
   GE_CHK_BOOL_RET_SPECIAL_STATUS(dtype_size != sizeof(uint16_t) && dtype_size != sizeof(uint32_t), false,
                                  "[%s] only support dtype size = 2 or 4, but = %d", node.GetNamePtr(), dtype_size);
   const int32_t kAlignSize = 32 / dtype_size;
   std::vector<int64_t> src_col_sizes;
   int64_t dst_col_size = 0;
   size_t concat_dim;
-  GE_CHK_BOOL_RET_SPECIAL_STATUS(!GetConcatDimAndColSizes(node, concat_dim, src_col_sizes, dst_col_size),
-                                 false, "do not use small tail concat api");
+  GE_CHK_BOOL_RET_SPECIAL_STATUS(!GetConcatDimAndColSizes(node, concat_dim, src_col_sizes, dst_col_size), false,
+                                 "do not use small tail concat api");
   size_t aligned_cnt = 0;
   int64_t gcd = 16;
   for (const auto src_col_size : src_col_sizes) {
@@ -910,22 +918,21 @@ bool UseSmallTailConcatApi(const af::AscNode &node, bool *output_need_align) {
     gcd = ascgen_utils::Gcd(gcd, src_col_size);
   }
   // 全对齐, 使用全对齐的api性能更好
-  GE_CHK_BOOL_RET_SPECIAL_STATUS(aligned_cnt == node_inputs.Size(), false,
-                                 "[%s] inputs is all aligned", node.GetNamePtr());
+  GE_CHK_BOOL_RET_SPECIAL_STATUS(aligned_cnt == node_inputs.Size(), false, "[%s] inputs is all aligned",
+                                 node.GetNamePtr());
   constexpr int64_t kSrcMaxSrcColSize = 64;
   constexpr uint32_t kMaxDstColSize = 96;  // 最大96K的tmp buffer, 只支持96
   for (size_t i = 0U; i < src_col_sizes.size(); ++i) {
     GE_CHK_BOOL_RET_SPECIAL_STATUS((gcd == 0) || (src_col_sizes[i] / gcd > kSrcMaxSrcColSize), false,
-                                   "[%s] input[%zu] col_size = %ld, gcd = %ld, not a small dim",
-                                   node.GetNamePtr(), i, src_col_sizes[i], gcd);
+                                   "[%s] input[%zu] col_size = %ld, gcd = %ld, not a small dim", node.GetNamePtr(), i,
+                                   src_col_sizes[i], gcd);
   }
   GE_CHK_BOOL_RET_SPECIAL_STATUS((gcd == 0) || (dst_col_size / gcd) > kMaxDstColSize, false,
                                  "[%s] output col_size = %ld, gcd = %ld, not a small dim", node.GetNamePtr(),
                                  dst_col_size, gcd);
   if (!IsStoreWithoutStride(node)) {
     bool concat_last_dim = concat_dim == (node_inputs[0].attr.repeats.size() - 1UL);
-    GE_CHK_BOOL_RET_SPECIAL_STATUS((!concat_last_dim) && (dst_col_size % kAlignSize != 0),
-                                   false,
+    GE_CHK_BOOL_RET_SPECIAL_STATUS((!concat_last_dim) && (dst_col_size % kAlignSize != 0), false,
                                    "[%s] Concat on non tail dim, output is not aligned and need store with strides",
                                    node.GetNamePtr());
     if (output_need_align != nullptr) {
@@ -1034,8 +1041,8 @@ std::string SetCurrentFusedGraphName(const std::string &name) {
     g_current_fused_graph_name = safe_name;
     g_current_fused_graph_dump_index = 0UL;
     g_current_onnx_dump_index = 0UL;
-    GELOGI("[DumpGraph] Set fused_graph_name to: %s (original: %s), reset dump index to 0",
-           safe_name.c_str(), name.c_str());
+    GELOGI("[DumpGraph] Set fused_graph_name to: %s (original: %s), reset dump index to 0", safe_name.c_str(),
+           name.c_str());
   }
   return prev_name;
 }

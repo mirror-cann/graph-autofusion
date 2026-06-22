@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -16,13 +16,21 @@
 namespace af {
 class ScopesResult::ScopesResultImpl {
  public:
-  void SetScopes(const std::vector<Scope *> &scopes) { scopes_ = scopes; }
-  const std::vector<Scope *> &GetScopes() const { return scopes_; }
-  void SetNodes(const std::vector<ge::OperatorPtr> &nodes) { nodes_ = nodes; }
-  const std::vector<ge::OperatorPtr> &GetNodes() const { return nodes_; }
+  void SetScopes(const std::vector<Scope *> &scopes) {
+    scopes_ = scopes;
+  }
+  const std::vector<Scope *> &GetScopes() const {
+    return scopes_;
+  }
+  void SetNodes(const std::vector<ge::OperatorPtr> &nodes) {
+    nodes_ = nodes;
+  }
+  const std::vector<ge::OperatorPtr> &GetNodes() const {
+    return nodes_;
+  }
 
  private:
-  std::vector<Scope *> scopes_;  // multiple scopes
+  std::vector<Scope *> scopes_;         // multiple scopes
   std::vector<ge::OperatorPtr> nodes_;  // op outside of scope
 };
 
@@ -51,5 +59,5 @@ class ScopeBasePass::ScopeBasePassImpl {
   std::vector<ScopeFusionPatterns> patterns_;
   ScopeBasePass *parent_;
 };
-}  // namespace ge
+}  // namespace af
 #endif  // REGISTER_SCOPE_SCOPE_PASS_IMPL_H

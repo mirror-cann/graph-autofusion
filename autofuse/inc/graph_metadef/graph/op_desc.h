@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -26,24 +26,11 @@ class OpDescImpl;
 class IRMetaData;
 using OpDescImplPtr = std::shared_ptr<OpDescImpl>;
 
-enum SubgraphType {
-  kStatic,
-  kDynamic,
-  kSubgraphTypeEnd
-};
+enum SubgraphType { kStatic, kDynamic, kSubgraphTypeEnd };
 
-enum IrInputType {
-  kIrInputRequired,
-  kIrInputOptional,
-  kIrInputDynamic,
-  kIrInputTypeEnd
-};
+enum IrInputType { kIrInputRequired, kIrInputOptional, kIrInputDynamic, kIrInputTypeEnd };
 
-enum IrOutputType {
-  kIrOutputRequired,
-  kIrOutputDynamic,
-  kIrOutputTypeEnd
-};
+enum IrOutputType { kIrOutputRequired, kIrOutputDynamic, kIrOutputTypeEnd };
 
 class OpDesc : public std::enable_shared_from_this<OpDesc>, public AttrHolder {
  public:
@@ -180,9 +167,9 @@ class OpDesc : public std::enable_shared_from_this<OpDesc>, public AttrHolder {
   std::map<std::string, uint32_t> GetAllOutputName();
   std::map<uint32_t, std::string> GetAllOutputIndexToName();
 
-  std::map<std::string, uint32_t>& MutableAllInputName();
+  std::map<std::string, uint32_t> &MutableAllInputName();
 
-  std::map<std::string, uint32_t>& MutableAllOutputName();
+  std::map<std::string, uint32_t> &MutableAllOutputName();
 
   bool UpdateInputName(const std::map<std::string, uint32_t> input_name_idx);
 
@@ -442,5 +429,5 @@ class OpDescBuilder {
   std::vector<std::pair<std::string, GeTensorDesc>> inputs_;
   std::vector<std::pair<std::string, GeTensorDesc>> outputs_;
 };
-}  // namespace ge
+}  // namespace af
 #endif  // INC_GRAPH_OP_DESC_H_

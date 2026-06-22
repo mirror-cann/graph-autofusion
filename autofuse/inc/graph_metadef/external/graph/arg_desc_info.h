@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -19,21 +19,21 @@
 
 namespace af {
 enum class ArgDescType {
-  kIrInput = 0, // 输入
-  kIrOutput, // 输出
-  kWorkspace, // workspace地址
-  kTiling, // tiling地址
-  kHiddenInput, // ir上不表达的额外输入
-  kCustomValue, // 自定义内容
-  kIrInputDesc, // 具有描述信息的输入地址
-  kIrOutputDesc, // 具有描述信息的输入地址
-  kInputInstance, // 实例化的输入
-  kOutputInstance, // 实例化的输出
+  kIrInput = 0,     // 输入
+  kIrOutput,        // 输出
+  kWorkspace,       // workspace地址
+  kTiling,          // tiling地址
+  kHiddenInput,     // ir上不表达的额外输入
+  kCustomValue,     // 自定义内容
+  kIrInputDesc,     // 具有描述信息的输入地址
+  kIrOutputDesc,    // 具有描述信息的输入地址
+  kInputInstance,   // 实例化的输入
+  kOutputInstance,  // 实例化的输出
   kEnd
 };
 
 enum class HiddenInputSubType {
-  kHcom, // 用于通信的hiddenInput，mc2算子使用
+  kHcom,  // 用于通信的hiddenInput，mc2算子使用
   kEnd
 };
 
@@ -47,8 +47,7 @@ class ArgDescInfo {
    * @param ir_index 当前args地址对应算子的ir索引
    * @param is_folded 当前args地址是否为二级指针 (即是否将多个地址折叠到一个二级指针中设置给args，设置为true)
    */
-  explicit ArgDescInfo(ArgDescType arg_type,
-      int32_t ir_index = -1, bool is_folded = false);
+  explicit ArgDescInfo(ArgDescType arg_type, int32_t ir_index = -1, bool is_folded = false);
   ~ArgDescInfo();
   ArgDescInfo(const ArgDescInfo &other);
   ArgDescInfo(ArgDescInfo &&other) noexcept;
@@ -113,6 +112,7 @@ class ArgDescInfo {
    * @param is_folded：是否为二级指针
    */
   void SetFolded(bool is_folded);
+
  private:
   friend class ArgsFormatSerializer;
   ArgDescInfo() = delete;
@@ -135,5 +135,5 @@ class ArgsFormatSerializer {
    */
   static std::vector<ArgDescInfo> Deserialize(const AscendString &args_str);
 };
-}
-#endif // METADEF_INC_EXTERNAL_GRAPH_ARG_DESC_INFO_H
+}  // namespace af
+#endif  // METADEF_INC_EXTERNAL_GRAPH_ARG_DESC_INFO_H

@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -50,11 +50,11 @@ ge::Status NddmaTemplate::ReAlignVectorizedStrides(const af::AscNodePtr &node) {
     const auto axis = output_vec_axis.at(vec_axis_id);
     auto axis_tensor_iter = std::find(output_attr.axis.begin(), output_attr.axis.end(), axis);
     GE_ASSERT_TRUE(axis_tensor_iter != output_attr.axis.end(),
-           "Cannot find vectorized axis [%ld] in [%s]'s output tensor.", axis, node->GetNamePtr());
+                   "Cannot find vectorized axis [%ld] in [%s]'s output tensor.", axis, node->GetNamePtr());
     const int64_t axis_index = std::distance(output_attr.axis.begin(), axis_tensor_iter);
     const auto &repeat = output_attr.repeats.at(axis_index);
     // 对次尾轴做对齐
-    if (vec_axis_id == static_cast<int64_t>(output_vec_axis.size() - 2)) { // 2 表示次尾轴偏移量
+    if (vec_axis_id == static_cast<int64_t>(output_vec_axis.size() - 2)) {  // 2 表示次尾轴偏移量
       vectorized_stride = af::sym::Align(vectorized_stride, kAlignBytes / dtype_size);
       size_product = af::sym::Mul(repeat, vectorized_stride);
       continue;
@@ -96,7 +96,7 @@ Status NddmaTemplate::GenNddmaNode(const af::AscNodePtr &node_pre, const af::Asc
 
 Status NddmaTemplate::AddTransposeNodeAfter(af::AscGraph &graph, const af::AscNodePtr &node,
                                             af::AscNodePtr &new_transpose_node,
-                                            const af::AscNodePtr &old_transpose_node){
+                                            const af::AscNodePtr &old_transpose_node) {
   GE_ASSERT_NOTNULL(node);
   const auto &old_transpose_node_info = old_transpose_node->outputs[0].attr;
   const std::string node_name = node->GetName() + "_transpose_tmp";
@@ -111,7 +111,7 @@ Status NddmaTemplate::AddTransposeNodeAfter(af::AscGraph &graph, const af::AscNo
   new_transpose_node->outputs[0].attr.repeats = node->outputs[0].attr.repeats;
   GE_ASSERT_SUCCESS(ReorderRepeats(old_transpose_node, new_transpose_node));
   GE_ASSERT_SUCCESS(ScheduleUtils::RecalculateStridesFromRepeats(new_transpose_node->outputs[0].attr.repeats,
-                                                              new_transpose_node->outputs[0].attr.strides));
+                                                                 new_transpose_node->outputs[0].attr.strides));
   new_transpose_node->attr.sched.axis = old_transpose_node->attr.sched.axis;
   new_transpose_node->outputs[0].attr.axis = old_transpose_node_info.axis;
   new_transpose_node->outputs[0].attr.vectorized_axis = old_transpose_node_info.vectorized_axis;
@@ -125,7 +125,7 @@ Status NddmaTemplate::AddTransposeNodeAfter(af::AscGraph &graph, const af::AscNo
   return ge::SUCCESS;
 }
 
-Status NddmaTemplate::MergeLoadAndTranspose(const af::AscNodePtr &load_node, af::AscGraph& new_case) {
+Status NddmaTemplate::MergeLoadAndTranspose(const af::AscNodePtr &load_node, af::AscGraph &new_case) {
   auto load_out_anchor = load_node->GetOutDataAnchor(0);
   GE_CHECK_NOTNULL(load_out_anchor);
   auto peer_in_anchor = load_out_anchor->GetPeerInDataAnchors().at(0);
@@ -183,8 +183,8 @@ uint32_t NddmaTemplate::GetNodeContinuousAxisNum(const af::AscNodePtr &node) {
     GE_CHECK_NOTNULL(out_anchor, "Node [%s] out_anchor[%zu] is null", node->GetNamePtr(), out_idx);
     for (size_t in_idx = 0U; in_idx < out_anchor->GetPeerInDataAnchors().size(); in_idx++) {
       auto in_anchor = out_anchor->GetPeerInDataAnchors().at(in_idx);
-      GE_CHECK_NOTNULL(in_anchor, "Node [%s] out_anchor[%zu] in_anchor[%zu] is null", node->GetNamePtr(),
-                       out_idx, in_idx);
+      GE_CHECK_NOTNULL(in_anchor, "Node [%s] out_anchor[%zu] in_anchor[%zu] is null", node->GetNamePtr(), out_idx,
+                       in_idx);
       const auto &out_node = std::dynamic_pointer_cast<af::AscNode>(in_anchor->GetOwnerNode());
       GE_CHECK_NOTNULL(out_node, "Node [%s] out_anchor[%zu] in_anchor[%zu] owner_node is null", node->GetNamePtr(),
                        out_idx, in_idx);
@@ -236,9 +236,9 @@ Status NddmaTemplate::ModifyTransposeFusionVectorizedStrides(af::AscGraph &nddma
         af::ops::IsOps<af::ascir_op::Workspace>(node)) {
       continue;
     }
-    uint32_t continuous_axis_num = (!af::ops::IsOps<af::ascir_op::Store>(node) ? GetNodeContinuousAxisNum(node) :
-                                    GetStoreContinuousAxisNum(node));
-    if (continuous_axis_num <= 1U || continuous_axis_num == UINT32_MAX) { // 小于一个连续轴，不需要调整strides
+    uint32_t continuous_axis_num =
+        (!af::ops::IsOps<af::ascir_op::Store>(node) ? GetNodeContinuousAxisNum(node) : GetStoreContinuousAxisNum(node));
+    if (continuous_axis_num <= 1U || continuous_axis_num == UINT32_MAX) {  // 小于一个连续轴，不需要调整strides
       continue;
     }
     for (const auto &output : node->outputs()) {
@@ -274,7 +274,7 @@ Status NddmaTemplate::TransposeToNddmaNode(const af::AscNodePtr &transpose_node,
     if (!ScheduleUtils::IsScalarLikeNode(current_node)) {
       GE_ASSERT_SUCCESS(ReorderRepeats(transpose_node, current_node));
       GE_ASSERT_SUCCESS(ScheduleUtils::RecalculateStridesFromRepeats(current_node->outputs[0].attr.repeats,
-                                                                  current_node->outputs[0].attr.strides));
+                                                                     current_node->outputs[0].attr.strides));
       current_node->attr.sched.axis = transpose_node->attr.sched.axis;
       current_node->outputs[0].attr.axis = transpose_info.axis;
       current_node->outputs[0].attr.vectorized_axis = transpose_info.vectorized_axis;
@@ -307,8 +307,7 @@ Status NddmaTemplate::TransposeToNddmaNode(const af::AscNodePtr &transpose_node,
   return ge::SUCCESS;
 }
 
-ge::Status NddmaTemplate::ProcessSliceToNddma(const af::AscNodePtr &node_load,
-                                              bool &is_nddma_generated_cur) {
+ge::Status NddmaTemplate::ProcessSliceToNddma(const af::AscNodePtr &node_load, bool &is_nddma_generated_cur) {
   if (is_nddma_generated_cur) {
     GELOGD("Node [%s] has already converted to Nddma.", node_load->GetNamePtr());
     return ge::SUCCESS;
@@ -339,10 +338,9 @@ ge::Status NddmaTemplate::ProcessSliceToNddma(const af::AscNodePtr &node_load,
  * 3. 判断load/nddma节点的输出是否为brc节点，若是则将load/nddma和brc继续合并为nddma节点
  */
 ge::Status NddmaTemplate::Generate([[maybe_unused]] const af::AscGraph &origin_graph,
-                                   [[maybe_unused]] const af::AscGraph &based_case,
-                                   af::AscGraph &new_case) {
+                                   [[maybe_unused]] const af::AscGraph &based_case, af::AscGraph &new_case) {
   bool is_nddma_generated = false;
-  for  (const auto &node : new_case.GetAllNodes()) {
+  for (const auto &node : new_case.GetAllNodes()) {
     GE_CHECK_NOTNULL(node);
     if (af::ops::IsOps<af::ascir_op::Transpose>(node)) {
       GE_ASSERT_SUCCESS(TransposeToNddmaNode(node, new_case));
@@ -400,14 +398,16 @@ bool NddmaTemplate::IsSecondaryTailAxisAligned(const af::AscNodePtr &node) {
     return false;
   }
   const auto &penultimate_axis_vectorized_stride =
-    node_output_attr.vectorized_strides.at(node_output_attr.vectorized_strides.size() - 2);
-  if (af::SymbolicUtils::StaticCheckEq(penultimate_axis_vectorized_stride, af::sym::kSymbolZero) == af::TriBool::kTrue
-    || af::SymbolicUtils::StaticCheckEq(tail_axis_vectorized_stride, af::sym::kSymbolZero) == af::TriBool::kTrue) {
+      node_output_attr.vectorized_strides.at(node_output_attr.vectorized_strides.size() - 2);
+  if (af::SymbolicUtils::StaticCheckEq(penultimate_axis_vectorized_stride, af::sym::kSymbolZero) ==
+          af::TriBool::kTrue ||
+      af::SymbolicUtils::StaticCheckEq(tail_axis_vectorized_stride, af::sym::kSymbolZero) == af::TriBool::kTrue) {
     GELOGD("Node [%s] penultimate or tail axis vectorized stride is zero, skip.", node->GetNamePtr());
     return false;
   }
   if (af::SymbolicUtils::StaticCheckEq(penultimate_axis_vectorized_stride,
-    af::sym::Mul(tail_axis_repeat, tail_axis_vectorized_stride)) != af::TriBool::kTrue) {
+                                       af::sym::Mul(tail_axis_repeat, tail_axis_vectorized_stride)) !=
+      af::TriBool::kTrue) {
     GELOGD("Node [%s] tail axis has been aligned.", node->GetNamePtr());
     return true;
   }
@@ -417,7 +417,7 @@ bool NddmaTemplate::IsSecondaryTailAxisAligned(const af::AscNodePtr &node) {
 /**
  * 参照node_src对node_dst的repeats属性重排
  */
-ge::Status NddmaTemplate::ReorderRepeats(const af::AscNodePtr &node_src, const af::AscNodePtr &node_dst){
+ge::Status NddmaTemplate::ReorderRepeats(const af::AscNodePtr &node_src, const af::AscNodePtr &node_dst) {
   // 获取dst节点的axis和repeats
   const auto &dst_axis = node_dst->outputs[0].attr.axis;
   const auto &dst_repeats = node_dst->outputs[0].attr.repeats;
@@ -457,7 +457,7 @@ ge::Status NddmaTemplate::ReorderRepeats(const af::AscNodePtr &node_src, const a
 }
 
 ge::Status NddmaTemplate::SwapCastBrcAndGenNddma(const af::AscNodePtr &node_cast, const af::AscNodePtr &node_load,
-  af::AscGraph &new_case) {
+                                                 af::AscGraph &new_case) {
   // 针对cast输出多引用的场景不做处理
   if (node_cast->GetOutNodesSize() != 1UL) {
     GELOGD("Node %s with single output and multiple refs, do not support gen nddma.", node_cast->GetNamePtr());
@@ -501,15 +501,15 @@ ge::Status NddmaTemplate::SwapCastBrcAndGenNddma(const af::AscNodePtr &node_cast
   node_cast->outputs[0].attr.strides = next_node->outputs[0].attr.strides;
   node_cast->outputs[0].attr.vectorized_axis = next_node->outputs[0].attr.vectorized_axis;
   node_cast->outputs[0].attr.vectorized_strides = next_node->outputs[0].attr.vectorized_strides;
-  GE_ASSERT_SUCCESS(GenNddmaNode(node_load, std::dynamic_pointer_cast<af::AscNode>(next_node), new_case,
-                                 is_need_realignment));
+  GE_ASSERT_SUCCESS(
+      GenNddmaNode(node_load, std::dynamic_pointer_cast<af::AscNode>(next_node), new_case, is_need_realignment));
   return ge::SUCCESS;
 }
 
 bool NddmaTemplate::NeedDropBasedCase(const af::AscGraph &origin_graph, [[maybe_unused]] const af::AscGraph &based_case,
                                       [[maybe_unused]] const af::AscGraph &new_case) {
   if (ScheduleUtils::HasComputeType(origin_graph, af::ComputeType::kComputeTranspose)) {
-    return  true;
+    return true;
   }
   return false;
 }
@@ -543,7 +543,7 @@ bool IsTailBroadcastNddmaNode(const af::AscNodePtr &node) {
   return false;
 }
 
-bool IsStaticGraph(const af::AscGraph &origin_graph){
+bool IsStaticGraph(const af::AscGraph &origin_graph) {
   for (const auto &var : origin_graph.GetAllSizeVar()) {
     if (!var->expr.IsConstExpr()) {
       return false;
@@ -552,7 +552,7 @@ bool IsStaticGraph(const af::AscGraph &origin_graph){
   return true;
 }
 
-std::string GetStaticScoreFunc(const af::AscNodePtr &nddma_node, std::stringstream &ss){
+std::string GetStaticScoreFunc(const af::AscNodePtr &nddma_node, std::stringstream &ss) {
   // 默认打分为0，ATT根据性能公式选择模板
   int32_t score = 0;
   const int low_score = -1;
@@ -629,8 +629,7 @@ std::string NddmaTemplate::GetScoreFunc(const af::AscGraph &origin_graph, const 
 
   for (const auto &node : nddma_graph.GetAllNodes()) {
     if (nddma_node_cnt > 1) {
-      GELOGD("Graph [%s]: Has more than 1 Nddma ndoe, assigning default score.",
-             nddma_graph.GetName().c_str());
+      GELOGD("Graph [%s]: Has more than 1 Nddma ndoe, assigning default score.", nddma_graph.GetName().c_str());
       return "";
     }
     if (IsNddma(node)) {

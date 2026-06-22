@@ -84,7 +84,7 @@ void ConstructNormStruct3ElewiseArgMax(af::AscGraph &graph) {
   load.x = data.y;
   *load.y.axis = {z0.id, z1.id};
   load.y.dtype = ge::DT_FLOAT;
-  *load.y.strides = {s1 ,af::ops::One};
+  *load.y.strides = {s1, af::ops::One};
   *load.y.repeats = {s0, s1};
 
   // ArgMax outputs int32 indices
@@ -127,7 +127,7 @@ void ConstructNormStruct1ElewiseArgMax(af::AscGraph &graph) {
   load.x = data.y;
   *load.y.axis = {z0.id, z1.id};
   load.y.dtype = ge::DT_FLOAT;
-  *load.y.strides = {s1 ,af::ops::One};
+  *load.y.strides = {s1, af::ops::One};
   *load.y.repeats = {s0, s1};
 
   // ArgMax outputs int32 indices
@@ -170,7 +170,7 @@ void ConstructNormStructMultiplyCitationsArgMax(af::AscGraph &graph) {
   load.x = data.y;
   *load.y.axis = {z0.id, z1.id};
   load.y.dtype = ge::DT_FLOAT;
-  *load.y.strides = {s1 ,af::ops::One};
+  *load.y.strides = {s1, af::ops::One};
   *load.y.repeats = {s0, s1};
 
   // ArgMax outputs int32 indices
@@ -213,7 +213,7 @@ void ConstructNormStruct4ElewiseArgMax(af::AscGraph &graph) {
   load.x = data.y;
   *load.y.axis = {z0.id, z1.id};
   load.y.dtype = ge::DT_FLOAT;
-  *load.y.strides = {s1 ,af::ops::One};
+  *load.y.strides = {s1, af::ops::One};
   *load.y.repeats = {s0, s1};
 
   // ArgMax outputs int32 indices
@@ -252,7 +252,6 @@ TEST_F(ArgMaxScheduleCaseGeneratorTest, TestArgMax_Three_Elewise_Store) {
   ASSERT_EQ(tasks[0].grouped_graphs.size(), 1UL);
 }
 
-
 TEST_F(ArgMaxScheduleCaseGeneratorTest, TestArgMax_One_Elewise_Store) {
   af::AscGraph graph("argmax_one_elewise_store");
   ConstructNormStruct1ElewiseArgMax(graph);
@@ -284,4 +283,4 @@ TEST_F(ArgMaxScheduleCaseGeneratorTest, TestArgMax_Multi_Cita_Store) {
   generator.GeneratorTask(graph, tasks, options);
   ASSERT_EQ(tasks[0].grouped_graphs.size(), 1UL);
 }
-}
+}  // namespace schedule

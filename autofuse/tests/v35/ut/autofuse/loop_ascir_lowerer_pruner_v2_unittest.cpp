@@ -1,10 +1,10 @@
 
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -45,7 +45,7 @@
 using namespace std;
 using namespace testing;
 
-namespace af{
+namespace af {
 using namespace autofuse;
 namespace {
 REGISTER_LOWERING(DynamicQuantStub) {
@@ -127,8 +127,8 @@ es::Tensor CreateConst(es::Graph &graph, af::DataType dtype, const std::vector<i
 }  // namespace
 
 class LoopAscIrLowerPrunerUTV2 : public testing::Test {
-public:
-protected:
+ public:
+ protected:
   void SetUp() override {
     AutoFuseConfig::MutableConfig().GetMutableFusionStrategySolver().max_fusion_size = 64U;
     es_graph_ = std::unique_ptr<es::Graph>(new es::Graph("graph"));
@@ -148,21 +148,20 @@ protected:
   std::unique_ptr<es::Graph> es_graph_;
 };
 
-
 TEST_F(LoopAscIrLowerPrunerUTV2, GraphLiftingAfterSplitLowering) {
   [this]() {
     auto data0 = es_graph_->CreateInput(0, "data0", nullptr);
     data0.SetSymbolShape({"192", "64", "16"});
     auto split_dim = CreateConst(*es_graph_, af::DT_INT64, {1}, std::vector<int64_t>{1});
-    auto split = es::Split(split_dim,data0,2);
+    auto split = es::Split(split_dim, data0, 2);
     split[0].SetSymbolShape({"192", "32", "16"});
     split[1].SetSymbolShape({"192", "32", "16"});
     auto abs = es::Abs(split[0]);
     abs.SetSymbolShape({"192", "32", "16"});
     auto perms0 = CreateConst(*es_graph_, af::DT_INT64, {3}, std::vector<int64_t>{2, 1, 0});
-    auto transpose0 = es::Transpose(split[0],perms0);
+    auto transpose0 = es::Transpose(split[0], perms0);
     transpose0.SetSymbolShape({"192", "32", "16"});
-    auto transpose1 = es::TransposeD(split[1],{2,1,0});
+    auto transpose1 = es::TransposeD(split[1], {2, 1, 0});
     transpose1.SetSymbolShape({"192", "32", "16"});
     es_graph_->SetOutput(abs, 0);
     es_graph_->SetOutput(transpose0, 1);
@@ -173,7 +172,7 @@ TEST_F(LoopAscIrLowerPrunerUTV2, GraphLiftingAfterSplitLowering) {
   cg->FindFirstNodeMatchType("Split")->GetOpDesc()->SetType("Split");
   af::AscIrLowerer lowerer;
   ASSERT_EQ(lowerer.Lowering(cg), GRAPH_SUCCESS);
-  EXPECT_EQ(asc_adapt::GeFallback(cg),SUCCESS);
+  EXPECT_EQ(asc_adapt::GeFallback(cg), SUCCESS);
   FusionStrategySolver fusion_strategy_solver;
   FusionDeciderRegistry::Instance().Register(std::unique_ptr<FusionDecider>(new AscBackendFusionDecider()));
   EXPECT_EQ(fusion_strategy_solver.Fuse(cg), SUCCESS);
@@ -287,4 +286,4 @@ tmp5 = ge.ConcatD(ConcatD_4, [tmp3, tmp2])
 ununsed nodes: []
 )");
 }
-}  // namespace ge
+}  // namespace af

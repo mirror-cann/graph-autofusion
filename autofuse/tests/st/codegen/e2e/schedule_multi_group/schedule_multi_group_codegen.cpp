@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -25,22 +25,22 @@
 using namespace af::ascir_op;
 using namespace af::ops;
 
-std::vector<std::string> splitString(const std::string& input, char delimiter) {
+std::vector<std::string> splitString(const std::string &input, char delimiter) {
   std::vector<std::string> result;
   std::stringstream ss(input);
   std::string token;
 
   while (std::getline(ss, token, delimiter)) {
-      result.push_back(token);
+    result.push_back(token);
   }
 
   return result;
 }
 
-class ScheduleMultiGoupTest : public testing::Test {
-};
+class ScheduleMultiGoupTest : public testing::Test {};
 
-void MultiGroupDoScheduler(ascir::FusedScheduledResult &fused_schedule_result, std::vector<af::AscGraph> &impl_graphs_group) {
+void MultiGroupDoScheduler(ascir::FusedScheduledResult &fused_schedule_result,
+                           std::vector<af::AscGraph> &impl_graphs_group) {
   // Scheduler
   // impl_graph1
   auto all_axis1 = impl_graphs_group[0].GetAllAxis();
@@ -237,7 +237,7 @@ void MultiGroupDoScheduler(ascir::FusedScheduledResult &fused_schedule_result, s
  *              |
  *            data0
  */
-void ConstructMultiGroupGraph(af::AscGraph& graph, ascir::FusedScheduledResult &fused_schedule_result) {
+void ConstructMultiGroupGraph(af::AscGraph &graph, ascir::FusedScheduledResult &fused_schedule_result) {
   af::AscGraph impl_graph1("AscBc1");
   af::AscGraph impl_graph2("AscBc2");
 
@@ -362,26 +362,26 @@ TEST_F(ScheduleMultiGoupTest, ScheduleMultiGoupCodegen) {
   ConstructMultiGroupGraph(graph, fused_schedule_result);
 
   std::vector<std::string> parts = splitString(KERNEL_SRC_LIST, ':');
-  std::string kernel_src_file_name = parts[0];      // schedule_multi_group_kernel.cpp
-  std::string tiling_src_file_name = parts[1];      // schedule_multi_group_tiling.cpp
-  std::string tiling_data_src_file_name = parts[2]; // autofuse_tiling_data.h
+  std::string kernel_src_file_name = parts[0];       // schedule_multi_group_kernel.cpp
+  std::string tiling_src_file_name = parts[1];       // schedule_multi_group_tiling.cpp
+  std::string tiling_data_src_file_name = parts[2];  // autofuse_tiling_data.h
 
   try {
-    auto codegen = codegen::Codegen(codegen::CodegenOptions{
-        .tiling_lib_path = ATT_SO_NAME, .tiling_lib_codegen_symbol = "CodegenTiling", .using_att_calc_qbt_size = false});
+    auto codegen = codegen::Codegen(codegen::CodegenOptions{.tiling_lib_path = ATT_SO_NAME,
+                                                            .tiling_lib_codegen_symbol = "CodegenTiling",
+                                                            .using_att_calc_qbt_size = false});
 
     std::fstream kernel_file(kernel_src_file_name, std::ios::out);
     std::fstream tiling_file(tiling_src_file_name, std::ios::out);
     std::fstream tiling_data_file(tiling_data_src_file_name, std::ios::out);
 
     codegen::CodegenResult result;
-    EXPECT_EQ(codegen.Generate(fused_schedule_result, result),0);
+    EXPECT_EQ(codegen.Generate(fused_schedule_result, result), 0);
     kernel_file << tilig_stub << RemoveSubDirInclude(result.kernel);
     tiling_file << result.tiling;
     tiling_data_file << result.tiling_data;
-  }
-  catch (...) {
-   gen_success = false;
+  } catch (...) {
+    gen_success = false;
   }
 
   EXPECT_EQ(gen_success, true);
@@ -407,13 +407,13 @@ TEST_F(ScheduleMultiGoupTest, ScheduleMultiGoupCodegen_EnableGroupParallel) {
   schedule_result.schedule_groups.emplace_back(schedule_result.schedule_groups[0]);
 
   try {
-    auto codegen = codegen::Codegen(codegen::CodegenOptions{
-        .tiling_lib_path = ATT_SO_NAME, .tiling_lib_codegen_symbol = "CodegenTiling", .using_att_calc_qbt_size = false});
+    auto codegen = codegen::Codegen(codegen::CodegenOptions{.tiling_lib_path = ATT_SO_NAME,
+                                                            .tiling_lib_codegen_symbol = "CodegenTiling",
+                                                            .using_att_calc_qbt_size = false});
 
     codegen::CodegenResult result;
-    EXPECT_EQ(codegen.Generate(fused_schedule_result, result),0);
-  }
-  catch (...) {
+    EXPECT_EQ(codegen.Generate(fused_schedule_result, result), 0);
+  } catch (...) {
     gen_success = false;
   }
 

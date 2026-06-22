@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -30,7 +30,7 @@ class EagerOpExecutionContext : public ExtendedKernelContext {
    * @param index 输入index
    * @return Tensor指针，异常时返回空指针
    */
-  const Tensor *GetInputTensor(size_t index) const  {
+  const Tensor *GetInputTensor(size_t index) const {
     if (static_cast<int64_t>(index) >= GetAdditionalInputStartIndex()) {
       return nullptr;
     }
@@ -58,7 +58,8 @@ class EagerOpExecutionContext : public ExtendedKernelContext {
   /**
    * 基于算子IR原型定义，获取`DYNAMIC_INPUT`类型的输入Tensor指针
    * @param ir_index IR原型定义中的index
-   * @param relative_index 该输入实例化后的相对index，例如某个DYNAMIC_INPUT实例化了3个输入，那么relative_index的有效范围是[0,2]
+   * @param relative_index
+   * 该输入实例化后的相对index，例如某个DYNAMIC_INPUT实例化了3个输入，那么relative_index的有效范围是[0,2]
    * @return Tensor指针，异常时返回空指针
    */
   const Tensor *GetDynamicInputTensor(size_t ir_index, size_t relative_index) const {

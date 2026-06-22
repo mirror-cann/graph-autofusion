@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2026 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -22,14 +22,13 @@ using namespace att;
 class TestL0SolverGen : public ::testing::Test {
  public:
   void TearDown() override {
-     // 清理测试生成的临时文件
+    // 清理测试生成的临时文件
     autofuse::test::CleanupTestArtifacts();
-     // before the destructor).
+    // before the destructor).
   }
 };
 
-TEST_F(TestL0SolverGen, TEST_CASE_01)
-{
+TEST_F(TestL0SolverGen, TEST_CASE_01) {
   L0TileSolverGen solver_gen("case0", "TilingData");
   std::vector<Expr> ori_args;
   std::vector<Expr> l0_args;
@@ -55,7 +54,6 @@ TEST_F(TestL0SolverGen, TEST_CASE_01)
   ori_args.emplace_back(n);
   ori_args.emplace_back(k);
 
-
   l0_args.emplace_back(basem);
   l0_args.emplace_back(basen);
   l0_args.emplace_back(basek);
@@ -69,7 +67,7 @@ TEST_F(TestL0SolverGen, TEST_CASE_01)
 
   father_args_map[basem] = tilem;
   father_args_map[basen] = tilen;
-  
+
   arg_align_map[basem] = ge::Symbol(16);
   arg_align_map[basen] = ge::Symbol(16);
   arg_align_map[basek] = ge::Symbol(16);
@@ -90,9 +88,7 @@ TEST_F(TestL0SolverGen, TEST_CASE_01)
   EXPECT_NE(invoke_code, "");
 }
 
-
-TEST_F(TestL0SolverGen, TEST_CASE_02)
-{
+TEST_F(TestL0SolverGen, TEST_CASE_02) {
   L0TileSolverGen solver_gen("case1", "TilingData");
   std::vector<Expr> ori_args;
   std::vector<Expr> l0_args;
@@ -118,7 +114,6 @@ TEST_F(TestL0SolverGen, TEST_CASE_02)
   ori_args.emplace_back(n);
   ori_args.emplace_back(k);
 
-
   l0_args.emplace_back(basem);
   l0_args.emplace_back(basen);
   l0_args.emplace_back(basek);
@@ -132,7 +127,7 @@ TEST_F(TestL0SolverGen, TEST_CASE_02)
 
   father_args_map[basem] = tilem;
   father_args_map[basen] = tilen;
-  
+
   arg_align_map[basem] = ge::Symbol(256);
   arg_align_map[basen] = ge::Symbol(16);
   arg_align_map[basek] = ge::Symbol(16);

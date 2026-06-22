@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -12,8 +12,8 @@
 
 template <typename T>
 inline __aicore__ void RsqrtExtend(const AscendC::LocalTensor<T> &dst, const AscendC::LocalTensor<T> &src,
-                                   const LocalTensor<float> &blk_tensor_with_value_1,
-                                   LocalTensor<uint8_t> &tmp_buf, const uint32_t size) {
+                                   const LocalTensor<float> &blk_tensor_with_value_1, LocalTensor<uint8_t> &tmp_buf,
+                                   const uint32_t size) {
   uint32_t offset = 0;
 
   // Prepare sqrt in float type tensor
@@ -36,15 +36,15 @@ inline __aicore__ void RsqrtExtend(const AscendC::LocalTensor<T> &dst, const Asc
     if constexpr (std::is_same<T, float>::value) {
       Sqrt(float_sqrt[0], src[calc_size], max_repeat_calc_size);
       PipeBarrier<PIPE_V>();
-      Div(dst[calc_size], blk_tensor_with_value_1[0], float_sqrt[0],
-          ONE_REPEAT_BYTE_SIZE / sizeof(float), max_repeat, div_repeat);
+      Div(dst[calc_size], blk_tensor_with_value_1[0], float_sqrt[0], ONE_REPEAT_BYTE_SIZE / sizeof(float), max_repeat,
+          div_repeat);
     } else {
       Cast(float_sqrt[0], src[calc_size], RoundMode::CAST_NONE, max_repeat_calc_size);
       PipeBarrier<PIPE_V>();
       Sqrt(float_sqrt[0], float_sqrt[0], max_repeat_calc_size);
       PipeBarrier<PIPE_V>();
-      Div(float_sqrt[0], blk_tensor_with_value_1[0], float_sqrt[0],
-          ONE_REPEAT_BYTE_SIZE / sizeof(float), max_repeat, div_repeat);
+      Div(float_sqrt[0], blk_tensor_with_value_1[0], float_sqrt[0], ONE_REPEAT_BYTE_SIZE / sizeof(float), max_repeat,
+          div_repeat);
       PipeBarrier<PIPE_V>();
       Cast(dst[calc_size], float_sqrt[0], RoundMode::CAST_NONE, max_repeat_calc_size);
     }
@@ -57,14 +57,15 @@ inline __aicore__ void RsqrtExtend(const AscendC::LocalTensor<T> &dst, const Asc
     if constexpr (std::is_same<T, float>::value) {
       Sqrt(float_sqrt[0], src[calc_size], repeat * one_repeat_calc_size);
       PipeBarrier<PIPE_V>();
-      Div(dst[calc_size], blk_tensor_with_value_1[0], float_sqrt[0], ONE_REPEAT_BYTE_SIZE / sizeof(float), repeat, div_repeat);
+      Div(dst[calc_size], blk_tensor_with_value_1[0], float_sqrt[0], ONE_REPEAT_BYTE_SIZE / sizeof(float), repeat,
+          div_repeat);
     } else {
       Cast(float_sqrt[0], src[calc_size], RoundMode::CAST_NONE, repeat * one_repeat_calc_size);
       PipeBarrier<PIPE_V>();
       Sqrt(float_sqrt[0], float_sqrt[0], repeat * one_repeat_calc_size);
       PipeBarrier<PIPE_V>();
-      Div(float_sqrt[0], blk_tensor_with_value_1[0], float_sqrt[0],
-          ONE_REPEAT_BYTE_SIZE / sizeof(float), repeat, div_repeat);
+      Div(float_sqrt[0], blk_tensor_with_value_1[0], float_sqrt[0], ONE_REPEAT_BYTE_SIZE / sizeof(float), repeat,
+          div_repeat);
       PipeBarrier<PIPE_V>();
       Cast(dst[calc_size], float_sqrt[0], RoundMode::CAST_NONE, repeat * one_repeat_calc_size);
     }
@@ -85,7 +86,7 @@ inline __aicore__ void RsqrtExtend(const AscendC::LocalTensor<T> &dst, const Asc
       Sqrt(float_sqrt[0], float_sqrt[0], size - calc_size);
       PipeBarrier<PIPE_V>();
       Div(float_sqrt[0], blk_tensor_with_value_1[0], float_sqrt[0],
-          div_repeat.blockNumber * (ONE_BLK_SIZE / sizeof(float)), 1,div_repeat);
+          div_repeat.blockNumber * (ONE_BLK_SIZE / sizeof(float)), 1, div_repeat);
       PipeBarrier<PIPE_V>();
       Cast(dst[calc_size], float_sqrt[0], RoundMode::CAST_NONE, size - calc_size);
     }

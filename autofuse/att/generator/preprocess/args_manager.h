@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -18,7 +18,7 @@
 
 namespace att {
 class ArgsManager {
-public:
+ public:
   explicit ArgsManager(const ModelInfo &model_info) : model_info_(model_info) {}
   ~ArgsManager() = default;
   uint32_t GetTilingCaseId() const;
@@ -180,13 +180,13 @@ public:
   /**
    * @brief 获取 TernaryOp 映射（用于获取描述信息）
    */
-  const std::map<Expr, TernaryOp, ExprCmp>& GetTernaryOps() const;
+  const std::map<Expr, TernaryOp, ExprCmp> &GetTernaryOps() const;
   /**
    * @brief 获取性能公式语义化拆解信息
    */
-  const std::vector<PerfBreakdownGroup>& GetPerfBreakdowns() const;
+  const std::vector<PerfBreakdownGroup> &GetPerfBreakdowns() const;
   /**
-  * @brief 获取多核头开销
+   * @brief 获取多核头开销
    */
   Expr GetHeadCost() const;
   /**
@@ -196,16 +196,16 @@ public:
   /**
    * @brief 获取Model Info
    */
-  const ModelInfo& GetModelInfo() const;
-private:
+  const ModelInfo &GetModelInfo() const;
+
+ private:
   /**
    * @brief 对model_info中的信息进行解析，提取出可替换的变量，并对model_info中的表达式进行变量替换
    * @param replaced_vars 参数输出 返回替换后的符号变量与替换前的符号变量的映射
    * @param replacements 参数输出 保存替换前符号变量与替换后符号表达式的映射
    * @return bool 如果变量替换成功，则返回true，否则返回false
-  */
-  bool ReplaceVars(ExprExprMap &replaced_vars, ExprExprMap &replacements,
-                   ExprExprMap &new_expr_replacements);
+   */
+  bool ReplaceVars(ExprExprMap &replaced_vars, ExprExprMap &replacements, ExprExprMap &new_expr_replacements);
   /**
    * @brief 将类的成员变量置空
    */
@@ -221,8 +221,8 @@ private:
    * @brief 设置原始model info中的信息，例如变量的最大值初始值等
    */
   void SetOrigExprs();
-  bool SetNewVarInfoAttrs(const Expr &old_var, const ExprExprMap &replacement,
-    const ExprExprMap ori_to_new_vars_map, const ExprExprMap local_new_expr_replacements, VarInfo &new_var_info);
+  bool SetNewVarInfoAttrs(const Expr &old_var, const ExprExprMap &replacement, const ExprExprMap ori_to_new_vars_map,
+                          const ExprExprMap local_new_expr_replacements, VarInfo &new_var_info);
   Expr GetNewExprMaxValueReplaced(const Expr &ori_expr, const Expr &max_value);
   Expr GetNewExprInitValueReplaced(const Expr &new_var);
   static VarInfo &SetSizeInfo(VarInfo &info, const SymVarInfoPtr &var_info, const AttAxis *arg_axis);
@@ -232,8 +232,8 @@ private:
   static void ReplaceNewExpr(ExprExprMap &new_expr_replacements);
   bool replacement_done_{false};
   ExprInfoMap vars_infos_;
-  std::map<HardwareDef, Expr> hardware_cons_;  // 硬件相关约束
-  std::vector<Expr> cut_leq_cons_;  // 变量替换以及花间之后的不等式
+  std::map<HardwareDef, Expr> hardware_cons_;       // 硬件相关约束
+  std::vector<Expr> cut_leq_cons_;                  // 变量替换以及花间之后的不等式
   std::vector<std::pair<Expr, Expr>> cut_eq_cons_;  // 变量替换以及化简之后的等式约束
   std::map<PipeType, Expr> objs_;
   const ModelInfo &model_info_;

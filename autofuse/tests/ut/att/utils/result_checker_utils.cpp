@@ -1,17 +1,17 @@
 /**
-* Copyright (c) Huawei Technologies Co., Ltd. 2026 All rights reserved.
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-* http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
+ * Copyright (c) Huawei Technologies Co., Ltd. 2026 All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 #include "result_checker_utils.h"
@@ -97,17 +97,15 @@ bool ResultCheckerUtils::CreateBackupAndWrite(const std::string &filename, const
     return false;
   }
 
-  for (const auto& current_line : lines) {
+  for (const auto &current_line : lines) {
     outFile << current_line << std::endl;
   }
   outFile.close();
   return true;
 }
 
-bool ResultCheckerUtils::FinalizeLogFileReplacement(
-    const std::string &filename,
-    const std::vector<std::string> &lines,
-    const std::string &log_type) {
+bool ResultCheckerUtils::FinalizeLogFileReplacement(const std::string &filename, const std::vector<std::string> &lines,
+                                                    const std::string &log_type) {
   if (!CreateBackupAndWrite(filename, lines)) {
     return false;
   }
@@ -115,7 +113,7 @@ bool ResultCheckerUtils::FinalizeLogFileReplacement(
   return true;
 }
 
-bool ResultCheckerUtils::ReplaceLogMacros(const std::string& filename) {
+bool ResultCheckerUtils::ReplaceLogMacros(const std::string &filename) {
   std::vector<std::string> lines;
   if (!ReadFileLines(filename, lines)) {
     return false;
@@ -134,30 +132,28 @@ bool ResultCheckerUtils::ReplaceLogMacros(const std::string& filename) {
   // 替换字符串
   std::string replacement_LOGD = R"(#define OP_LOGD(name, fmt, ...) printf("\n[DEBUG][%s]" fmt, name, ##__VA_ARGS__))";
   std::string replacement_LOGI = R"(#define OP_LOGI(name, fmt, ...) printf("\n[INFO][%s]" fmt, name, ##__VA_ARGS__))";
-  std::string replacement_LOGW = R"(#define OP_LOGW(name, fmt, ...) printf("\n[WARNING][%s]" fmt, name, ##__VA_ARGS__))";
+  std::string replacement_LOGW =
+      R"(#define OP_LOGW(name, fmt, ...) printf("\n[WARNING][%s]" fmt, name, ##__VA_ARGS__))";
   std::string replacement_LOGE = R"(#define OP_LOGE(name, fmt, ...) printf("\n[ERROR][%s]" fmt, name, ##__VA_ARGS__))";
 
   bool modified = false;
 
   // 处理每一行
-  for (auto& current_line : lines) {
+  for (auto &current_line : lines) {
     std::string original_line = current_line;
     if (std::regex_search(current_line, pattern_LOGD)) {
       current_line = std::regex_replace(current_line, pattern_LOGD, replacement_LOGD);
       std::cout << "Replace OP_LOGD: " << original_line << " -> " << current_line << std::endl;
       modified = true;
-    }
-    else if (std::regex_search(current_line, pattern_LOGI)) {
+    } else if (std::regex_search(current_line, pattern_LOGI)) {
       current_line = std::regex_replace(current_line, pattern_LOGI, replacement_LOGI);
       std::cout << "Replace OP_LOGI: " << original_line << " -> " << current_line << std::endl;
       modified = true;
-    }
-    else if (std::regex_search(current_line, pattern_LOGW)) {
+    } else if (std::regex_search(current_line, pattern_LOGW)) {
       current_line = std::regex_replace(current_line, pattern_LOGW, replacement_LOGW);
       std::cout << "Replace OP_LOGW: " << original_line << " -> " << current_line << std::endl;
       modified = true;
-    }
-    else if (std::regex_search(current_line, pattern_LOGE)) {
+    } else if (std::regex_search(current_line, pattern_LOGE)) {
       current_line = std::regex_replace(current_line, pattern_LOGE, replacement_LOGE);
       std::cout << "Replace OP_LOGE: " << original_line << " -> " << current_line << std::endl;
       modified = true;
@@ -196,16 +192,10 @@ bool ResultCheckerUtils::ReplaceLogMacrosGeneric(const std::string &filename) {
   }
 
   // 通用正则表达式：匹配 OP_LOG[D/I/W/E]
-  std::regex pattern(
-      "#define\\s+OP_LOG([DIWE])\\([^)]*\\)");
+  std::regex pattern("#define\\s+OP_LOG([DIWE])\\([^)]*\\)");
 
   // 级别映射
-  const std::map<char, std::string> level_map = {
-      {'D', "DEBUG"},
-      {'I', "INFO"},
-      {'W', "WARNING"},
-      {'E', "ERROR"}
-  };
+  const std::map<char, std::string> level_map = {{'D', "DEBUG"}, {'I', "INFO"}, {'W', "WARNING"}, {'E', "ERROR"}};
 
   bool modified = false;
 
@@ -216,16 +206,12 @@ bool ResultCheckerUtils::ReplaceLogMacrosGeneric(const std::string &filename) {
       char level_char = match[1].str()[0];
       std::string level_str = level_map.at(level_char);
 
-      std::string replacement = R"(#define OP_LOG)" +
-                                std::string(1, level_char) +
-                                R"((name, fmt, ...) printf("\n[)" +
-                                level_str +
-                                R"(][%s]" fmt, name, ##__VA_ARGS__))";
+      std::string replacement = R"(#define OP_LOG)" + std::string(1, level_char) + R"((name, fmt, ...) printf("\n[)" +
+                                level_str + R"(][%s]" fmt, name, ##__VA_ARGS__))";
 
       std::string original_line = current_line;
       current_line = replacement;
-      std::cout << "Replace OP_LOG" << level_char << ": "
-          << original_line << " -> " << current_line << std::endl;
+      std::cout << "Replace OP_LOG" << level_char << ": " << original_line << " -> " << current_line << std::endl;
       modified = true;
     }
   }
@@ -238,4 +224,4 @@ bool ResultCheckerUtils::ReplaceLogMacrosGeneric(const std::string &filename) {
 
   return FinalizeLogFileReplacement(filename, lines, "log macros");
 }
-}
+}  // namespace att

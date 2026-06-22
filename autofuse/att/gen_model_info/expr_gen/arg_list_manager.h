@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -25,7 +25,7 @@ inline std::string GetTmpBufferName(int32_t index) {
 }
 
 class ArgListManager {
-public:
+ public:
   static ArgListManager &GetInstance();
 
   // 按照目标名保存表达式
@@ -49,7 +49,7 @@ public:
     Expr res;
     return res;
   }
-  
+
   Expr GetArgExpr(const std::vector<std::string> &names) {
     Expr cur_var = CreateExpr(1U);
     for (auto &name : names) {
@@ -65,7 +65,7 @@ public:
   // 获取所有表达式
   void GetArgList(std::vector<Expr> &arg_list) {
     for (const auto &arg : arg_list_map_) {
-      if(arg.second.IsValid()) {
+      if (arg.second.IsValid()) {
         arg_list.emplace_back(arg.second);
       }
     }
@@ -101,7 +101,7 @@ public:
 
   // 设置轴、buffer、queue、tensor size表达式
   ge::Status LoadArgList(const TuningSpacePtr &tuning_space);
-  
+
   Expr SetTensorInfo(const std::string &name, const Expr &expr) {
     size_t idx = replace_container_.size();
     std::string tensor_name = "tensor_" + std::to_string(idx);
@@ -112,16 +112,16 @@ public:
     return tensor_expr;
   }
 
-private:
+ private:
   // 设置tensor大小的表达式
   ge::Status SetTensorSizeExpr(const std::vector<TensorPtr> &allocated_tensors);
 
-private:
+ private:
   ArgListManager() = default;
   ~ArgListManager() = default;
   std::unordered_map<std::string, Expr> arg_list_map_;
   std::vector<TensorInfo> replace_container_;
 };
-}
+}  // namespace att
 
 #endif

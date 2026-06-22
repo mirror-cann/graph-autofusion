@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -35,57 +35,43 @@ const std::map<domi::domiTensorFormat_t, Format> kDomiFormatToGeFormat = {
     {domi::DOMI_TENSOR_NCDHW, FORMAT_NCDHW},
     {domi::DOMI_TENSOR_DHWCN, FORMAT_DHWCN},
     {domi::DOMI_TENSOR_DHWNC, FORMAT_DHWNC},
-    {domi::DOMI_TENSOR_RESERVED, FORMAT_RESERVED}
-};
+    {domi::DOMI_TENSOR_RESERVED, FORMAT_RESERVED}};
 
-const std::set<std::string> kInternalFormat = {
-    "NC1HWC0",
-    "FRACTAL_Z",
-    "NC1C0HWPAD",
-    "NHWC1C0",
-    "FRACTAL_DECONV",
-    "C1HWNC0",
-    "FRACTAL_DECONV_TRANSPOSE",
-    "FRACTAL_DECONV_SP_STRIDE_TRANS",
-    "NC1HWC0_C04",
-    "FRACTAL_Z_C04",
-    "FRACTAL_DECONV_SP_STRIDE8_TRANS",
-    "NC1KHKWHWC0",
-    "C1HWNCoC0",
-    "FRACTAL_ZZ",
-    "FRACTAL_NZ",
-    "NDC1HWC0",
-    "FRACTAL_Z_3D",
-    "FRACTAL_Z_3D_TRANSPOSE",
-    "FRACTAL_ZN_LSTM",
-    "FRACTAL_Z_G",
-    "ND_RNN_BIAS",
-    "FRACTAL_ZN_RNN",
-    "NYUV",
-    "NYUV_A"
-};
+const std::set<std::string> kInternalFormat = {"NC1HWC0",
+                                               "FRACTAL_Z",
+                                               "NC1C0HWPAD",
+                                               "NHWC1C0",
+                                               "FRACTAL_DECONV",
+                                               "C1HWNC0",
+                                               "FRACTAL_DECONV_TRANSPOSE",
+                                               "FRACTAL_DECONV_SP_STRIDE_TRANS",
+                                               "NC1HWC0_C04",
+                                               "FRACTAL_Z_C04",
+                                               "FRACTAL_DECONV_SP_STRIDE8_TRANS",
+                                               "NC1KHKWHWC0",
+                                               "C1HWNCoC0",
+                                               "FRACTAL_ZZ",
+                                               "FRACTAL_NZ",
+                                               "NDC1HWC0",
+                                               "FRACTAL_Z_3D",
+                                               "FRACTAL_Z_3D_TRANSPOSE",
+                                               "FRACTAL_ZN_LSTM",
+                                               "FRACTAL_Z_G",
+                                               "ND_RNN_BIAS",
+                                               "FRACTAL_ZN_RNN",
+                                               "NYUV",
+                                               "NYUV_A"};
 
 const std::map<domi::FrameworkType, std::string> kFmkTypeToString = {
-    {domi::CAFFE, "caffe"},
-    {domi::MINDSPORE, "mindspore"},
-    {domi::TENSORFLOW, "tensorflow"},
-    {domi::ANDROID_NN, "android_nn"},
-    {domi::ONNX, "onnx"},
-    {domi::FRAMEWORK_RESERVED, "framework_reserved"},
+    {domi::CAFFE, "caffe"},           {domi::MINDSPORE, "mindspore"}, {domi::TENSORFLOW, "tensorflow"},
+    {domi::ANDROID_NN, "android_nn"}, {domi::ONNX, "onnx"},           {domi::FRAMEWORK_RESERVED, "framework_reserved"},
 };
 
 const std::map<domi::ImplyType, std::string> kImplyTypeToString = {
-    {domi::ImplyType::BUILDIN, "buildin"},
-    {domi::ImplyType::TVM, "tvm"},
-    {domi::ImplyType::CUSTOM, "custom"},
-    {domi::ImplyType::AI_CPU, "ai_cpu"},
-    {domi::ImplyType::CCE, "cce"},
-    {domi::ImplyType::GELOCAL, "gelocal"},
-    {domi::ImplyType::HCCL, "hccl"},
-    {domi::ImplyType::INVALID, "invalid"}
-};
-}
-
+    {domi::ImplyType::BUILDIN, "buildin"}, {domi::ImplyType::TVM, "tvm"},        {domi::ImplyType::CUSTOM, "custom"},
+    {domi::ImplyType::AI_CPU, "ai_cpu"},   {domi::ImplyType::CCE, "cce"},        {domi::ImplyType::GELOCAL, "gelocal"},
+    {domi::ImplyType::HCCL, "hccl"},       {domi::ImplyType::INVALID, "invalid"}};
+}  // namespace
 
 std::string TypeUtils::DataTypeToSerialString(const DataType data_type) {
   return TypeUtilsImpl::DataTypeToAscendString(data_type).GetString();
@@ -149,4 +135,4 @@ std::string TypeUtilsInner::FmkTypeToSerialString(const domi::FrameworkType fmk_
     return "";
   }
 }
-}  // namespace af\n
+}  // namespace af

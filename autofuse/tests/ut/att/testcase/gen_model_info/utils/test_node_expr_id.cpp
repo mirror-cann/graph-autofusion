@@ -160,5 +160,5 @@ TEST_F(TestNodeExprId, TestSameNameDifferentType) {
   EXPECT_NE(prefix1, prefix2);
 }
 
-} // namespace test
-} // namespace att
+}  // namespace test
+}  // namespace att

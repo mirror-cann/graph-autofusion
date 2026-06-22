@@ -26,7 +26,7 @@ namespace {
 using Element = std::pair<size_t, size_t>;
 using MinHeap = std::priority_queue<Element, std::vector<Element>, std::greater<>>;
 
-template<typename Heap>
+template <typename Heap>
 size_t GetMinMergeCost(const Heap &heap) {
   auto temp = heap;
   const auto e1 = temp.top();
@@ -55,7 +55,9 @@ bool IsAxisVecEqual(const std::vector<af::AxisPtr> &lhs, const std::vector<af::A
 }
 
 size_t FindRoot(std::unordered_map<size_t, size_t> &idx_to_parent, size_t x) {
-  while (idx_to_parent[x] != x) { x = idx_to_parent[x] = idx_to_parent[idx_to_parent[x]]; }
+  while (idx_to_parent[x] != x) {
+    x = idx_to_parent[x] = idx_to_parent[idx_to_parent[x]];
+  }
   return x;
 }
 }  // namespace
@@ -234,10 +236,8 @@ bool ScheduleGroupGraphPartitioner::IsSimpleComputeGraph(const ::ascir::ImplGrap
     }
     ++node_count;
     const auto compute_type = node->attr.api.compute_type;
-    if (compute_type != af::ComputeType::kComputeLoad &&
-        compute_type != af::ComputeType::kComputeStore &&
-        compute_type != af::ComputeType::kComputeElewise &&
-        compute_type != af::ComputeType::kComputeBroadcast) {
+    if (compute_type != af::ComputeType::kComputeLoad && compute_type != af::ComputeType::kComputeStore &&
+        compute_type != af::ComputeType::kComputeElewise && compute_type != af::ComputeType::kComputeBroadcast) {
       return false;
     }
   }
@@ -259,8 +259,7 @@ std::vector<MergeableGraphs> ScheduleGroupGraphPartitioner::FindMergeableGraphs(
     group.graph_indices.push_back(i);
     group.node_counts.push_back(node_counts[i]);
 
-    const auto graph_attr_i = AscGraphUtils::GetComputeGraph(grouped_graphs[i])
-        ->GetOrCreateAttrsGroup<AscGraphAttr>();
+    const auto graph_attr_i = AscGraphUtils::GetComputeGraph(grouped_graphs[i])->GetOrCreateAttrsGroup<AscGraphAttr>();
     GE_ASSERT_NOTNULL(graph_attr_i);
 
     for (size_t j = i + 1; j < grouped_graphs.size(); ++j) {
@@ -268,8 +267,8 @@ std::vector<MergeableGraphs> ScheduleGroupGraphPartitioner::FindMergeableGraphs(
         continue;
       }
 
-      const auto graph_attr_j = AscGraphUtils::GetComputeGraph(grouped_graphs[j])
-          ->GetOrCreateAttrsGroup<AscGraphAttr>();
+      const auto graph_attr_j =
+          AscGraphUtils::GetComputeGraph(grouped_graphs[j])->GetOrCreateAttrsGroup<AscGraphAttr>();
       GE_ASSERT_NOTNULL(graph_attr_j);
 
       if (IsAxisVecEqual(graph_attr_i->axis, graph_attr_j->axis)) {
@@ -284,8 +283,7 @@ std::vector<MergeableGraphs> ScheduleGroupGraphPartitioner::FindMergeableGraphs(
     }
   }
   for (const auto &mergeable_group : mergeable_groups) {
-    GELOGD("mergeable_group: %s, node_num = %s",
-           ToString(mergeable_group.graph_indices).c_str(),
+    GELOGD("mergeable_group: %s, node_num = %s", ToString(mergeable_group.graph_indices).c_str(),
            ToString(mergeable_group.node_counts).c_str());
   }
 
@@ -293,8 +291,8 @@ std::vector<MergeableGraphs> ScheduleGroupGraphPartitioner::FindMergeableGraphs(
 }
 
 Status ScheduleGroupGraphPartitioner::MergeGraphs(::ascir::ImplGraph &dst,
-                                                   const std::vector<::ascir::ImplGraph> &grouped_graphs,
-                                                   const std::vector<size_t> &group) {
+                                                  const std::vector<::ascir::ImplGraph> &grouped_graphs,
+                                                  const std::vector<size_t> &group) {
   for (size_t idx : group) {
     const auto &src = grouped_graphs[idx];
     GELOGI("MergeGraphs: merging %s into %s", src.GetName().c_str(), dst.GetName().c_str());
@@ -324,7 +322,7 @@ Status ScheduleGroupGraphPartitioner::MergeGraphs(::ascir::ImplGraph &dst,
 }
 
 MergePlan ScheduleGroupGraphPartitioner::ResolveMergePlan(const std::vector<MergeableGraphs> &mergeable_groups,
-                                                           size_t reductions_needed) {
+                                                          size_t reductions_needed) {
   GELOGD("ResolveMergePlan: reductions_needed=%zu, mergeable_groups=%zu", reductions_needed, mergeable_groups.size());
 
   std::unordered_map<size_t, size_t> idx_to_parent;
@@ -349,8 +347,10 @@ MergePlan ScheduleGroupGraphPartitioner::ResolveMergePlan(const std::vector<Merg
     const auto g = global_heap.begin()->second;
     global_heap.erase(global_heap.begin());
 
-    auto [cost1, idx1] = heaps[g].top(); heaps[g].pop();
-    auto [cost2, idx2] = heaps[g].top(); heaps[g].pop();
+    auto [cost1, idx1] = heaps[g].top();
+    heaps[g].pop();
+    auto [cost2, idx2] = heaps[g].top();
+    heaps[g].pop();
 
     GELOGD("ResolveMergePlan: merge graph[%zu](%zu) and graph[%zu](%zu)", idx1, cost1, idx2, cost2);
 

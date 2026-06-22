@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -33,8 +33,8 @@ using namespace reduce_base;
 
 int64_t ReduceApiCall::GetTmpBufIdByLifeTime(int64_t life_time, const std::string &api_name) const {
   auto it = this->tmp_buf_id.find(life_time);
-  GE_ASSERT_TRUE(it != this->tmp_buf_id.end(),
-                 "ReduceApiCall(%s) cannot find tmp buffer id for life_time=%ld.", api_name.c_str(), life_time);
+  GE_ASSERT_TRUE(it != this->tmp_buf_id.end(), "ReduceApiCall(%s) cannot find tmp buffer id for life_time=%ld.",
+                 api_name.c_str(), life_time);
   return it->second;
 }
 
@@ -43,7 +43,8 @@ Status ReduceApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::Axis
                                const std::vector<std::reference_wrapper<const Tensor>> &outputs,
                                std::string &result) const {
   auto iter = reduce_type_map.find(this->api_name_);
-  GE_CHK_BOOL_RET_STATUS(iter != reduce_type_map.end(), ge::FAILED, "Codegen unsupported reduce api::%s", this->api_name_.c_str());
+  GE_CHK_BOOL_RET_STATUS(iter != reduce_type_map.end(), ge::FAILED, "Codegen unsupported reduce api::%s",
+                         this->api_name_.c_str());
   auto &[type_value, instr_type] = iter->second;
 
   auto x = inputs[0].get();
@@ -79,22 +80,22 @@ Status ReduceApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::Axis
   std::string new_api_name = this->api_name_ == "Mean" ? "Sum" : this->api_name_;
   if (!IsNeedMultiReduce(tpipe.tiler, x, y, current_axis.back())) {
     if (new_api_name == "ArgMax") {
-      ss << "ArgMaxExtend<int64_t, " << dtype_name << ", " << reduce_pattern << ">("
-         << y << "[" << tpipe.tiler.TensorVectorizedOffset(current_axis, y) << "], "
-         << x << "[" << tpipe.tiler.TensorVectorizedOffset(current_axis, x) << "], "
-         << tpipe.tmp_buf << "_" << std::to_string(id) << ", tmp_reduce_shape, false);" << std::endl;
+      ss << "ArgMaxExtend<int64_t, " << dtype_name << ", " << reduce_pattern << ">(" << y << "["
+         << tpipe.tiler.TensorVectorizedOffset(current_axis, y) << "], " << x << "["
+         << tpipe.tiler.TensorVectorizedOffset(current_axis, x) << "], " << tpipe.tmp_buf << "_" << std::to_string(id)
+         << ", tmp_reduce_shape, false);" << std::endl;
     } else if (new_api_name == "Sum" && dtype_name == "int32_t") {
-      ss << "ReduceSumInt32<" << dtype_name << ", " << reduce_pattern << ", false>("
-         << y << "[" << tpipe.tiler.TensorVectorizedOffset(current_axis, y) << "], "
-         << x << "[" << tpipe.tiler.TensorVectorizedOffset(current_axis, x) << "], "
-         << tpipe.tmp_buf << "_" << std::to_string(id) <<", tmp_reduce_shape, true);" << std::endl;
+      ss << "ReduceSumInt32<" << dtype_name << ", " << reduce_pattern << ", false>(" << y << "["
+         << tpipe.tiler.TensorVectorizedOffset(current_axis, y) << "], " << x << "["
+         << tpipe.tiler.TensorVectorizedOffset(current_axis, x) << "], " << tpipe.tmp_buf << "_" << std::to_string(id)
+         << ", tmp_reduce_shape, true);" << std::endl;
     } else {
-      ss << "Reduce" << new_api_name << "<" << dtype_name << ", " << reduce_pattern << ", false>("
-         << y << "[" << tpipe.tiler.TensorVectorizedOffset(current_axis, y) << "], "
-         << x << "[" << tpipe.tiler.TensorVectorizedOffset(current_axis, x) << "], "
-         << tpipe.tmp_buf << "_" << std::to_string(id) <<", tmp_reduce_shape, true);" << std::endl;
+      ss << "Reduce" << new_api_name << "<" << dtype_name << ", " << reduce_pattern << ", false>(" << y << "["
+         << tpipe.tiler.TensorVectorizedOffset(current_axis, y) << "], " << x << "["
+         << tpipe.tiler.TensorVectorizedOffset(current_axis, x) << "], " << tpipe.tmp_buf << "_" << std::to_string(id)
+         << ", tmp_reduce_shape, true);" << std::endl;
     }
-    if (this->api_name_== "Mean") {
+    if (this->api_name_ == "Mean") {
       ReduceMeanCodeGen(dtype_name, tpipe, x, y, ss);
     }
   } else {
@@ -126,23 +127,24 @@ Status ReduceApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::Axis
 
       // 调用 ArgMaxWithValueExtend 获取本次迭代的局部索引和最大值
       ss << "ArgMaxWithValueExtend<int64_t, " << dtype_name << ", " << reduce_pattern << ">("
-         << "tmp_argmax_index[0], " << "tmp_argmax_value[0], "
-         << x << "[" << tpipe.tiler.TensorVectorizedOffset(current_axis, x) << "], "
-         << tpipe.tmp_buf << "_" << std::to_string(id) << ", tmp_reduce_shape, false);" << std::endl;
+         << "tmp_argmax_index[0], " << "tmp_argmax_value[0], " << x << "["
+         << tpipe.tiler.TensorVectorizedOffset(current_axis, x) << "], " << tpipe.tmp_buf << "_" << std::to_string(id)
+         << ", tmp_reduce_shape, false);" << std::endl;
 
       ss << "AscendC::PipeBarrier<PIPE_V>();" << std::endl;
 
       // 如果是第一次迭代，直接赋值；否则使用 UpdateMaxIndexAndValue 更新全局最大值和索引
       ss << "uint32_t temp_size_index = " << KernelUtils::SizeAlign() << "(" << y.actual_size << ", 4);" << std::endl;
-      ss << "uint32_t temp_size_value = " << KernelUtils::SizeAlign() << "(" << y.actual_size << ", 32/sizeof(" << dtype_name << "));" << std::endl;
+      ss << "uint32_t temp_size_value = " << KernelUtils::SizeAlign() << "(" << y.actual_size << ", 32/sizeof("
+         << dtype_name << "));" << std::endl;
       ss << "if (" << tpipe.tiler.GetAxis(current_axis.back()) << " == 0) {" << std::endl;
       ss << "DataCopyExtend(" << y << "[0], " << "tmp_argmax_index[0], " << "temp_size_index);" << std::endl;
       ss << "DataCopyExtend(" << "tmp_argmax_value_saved[0], " << "tmp_argmax_value[0], temp_size_value);" << std::endl;
       ss << "} else {" << std::endl;
       // 使用当前的 accumulated_offset（标量）来更新全局最大值和索引
       // tmp_argmax_value_current是当前计算的value，tmp_argmax_value_saved是历史最大
-      ss << "UpdateMaxIndexAndValue<" << dtype_name << ">(tmp_argmax_index[0], tmp_argmax_value[0], "
-         << y << "[0], " << "tmp_argmax_value_saved[0], "
+      ss << "UpdateMaxIndexAndValue<" << dtype_name << ">(tmp_argmax_index[0], tmp_argmax_value[0], " << y << "[0], "
+         << "tmp_argmax_value_saved[0], "
          << "accumulated_offset, " << tpipe.tmp_buf << "_" << std::to_string(id) << ", temp_size_value);" << std::endl;
       ss << "}" << std::endl;
 
@@ -175,22 +177,25 @@ Status ReduceApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::Axis
 
       // 调用 ArgMaxWithValueExtend 获取本次迭代的局部索引和最大值
       ss << "ArgMaxWithValueExtend<int64_t, " << dtype_name << ", " << reduce_pattern << ">("
-         << "tmp_argmax1_index[0], " << "tmp_argmax1_value[0], "
-         << x << "[" << tpipe.tiler.TensorVectorizedOffset(current_axis, x) << "], "
-         << tpipe.tmp_buf << "_" << std::to_string(id) << ", tmp_reduce_shape, false);" << std::endl;
+         << "tmp_argmax1_index[0], " << "tmp_argmax1_value[0], " << x << "["
+         << tpipe.tiler.TensorVectorizedOffset(current_axis, x) << "], " << tpipe.tmp_buf << "_" << std::to_string(id)
+         << ", tmp_reduce_shape, false);" << std::endl;
 
       ss << "AscendC::PipeBarrier<PIPE_V>();" << std::endl;
 
       // ArgMaxMultiRPhase1有两个输出：
       //   - outputs[0]: value
       //   - outputs[1]: index
-      GE_ASSERT_TRUE(outputs.size() >= ARGMAXMULTIRPHASE_OUTPUT_AND_INPUT_NUM, "ArgMaxMultiRPhase1 requires at least 2 outputs.");
+      GE_ASSERT_TRUE(outputs.size() >= ARGMAXMULTIRPHASE_OUTPUT_AND_INPUT_NUM,
+                     "ArgMaxMultiRPhase1 requires at least 2 outputs.");
       auto y_value = outputs[0].get();
       auto y_index = outputs[1].get();
 
       // 如果是第一次迭代，直接赋值；否则使用UpdateMaxIndexAndValue更新全局最大值和索引
-      ss << "uint32_t temp_size_index = " << KernelUtils::SizeAlign() << "(" << y_index.actual_size << ", 4);" << std::endl;
-      ss << "uint32_t temp_size_value = " << KernelUtils::SizeAlign() << "(" << y_value.actual_size << ", 32/sizeof(" << dtype_name << "));" << std::endl;
+      ss << "uint32_t temp_size_index = " << KernelUtils::SizeAlign() << "(" << y_index.actual_size << ", 4);"
+         << std::endl;
+      ss << "uint32_t temp_size_value = " << KernelUtils::SizeAlign() << "(" << y_value.actual_size << ", 32/sizeof("
+         << dtype_name << "));" << std::endl;
       ss << "if (" << tpipe.tiler.GetAxis(current_axis.back()) << " == 0) {" << std::endl;
       // 第一次迭代：直接复制到输出
       ss << "DataCopyExtend(" << y_value << "[0], tmp_argmax1_value[0], temp_size_value);" << std::endl;
@@ -199,9 +204,10 @@ Status ReduceApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::Axis
       // 后续迭代：使用UpdateMaxIndexAndValue更新全局最大值和索引
       // 注意：这里需要offset，offset = 当前核id * R轴每块大小 + 累加的offset
       // 暂时传入accumulated_offset，需要在循环外初始化
-      ss << "UpdateMaxIndexAndValue<" << dtype_name << ">(tmp_argmax1_index[0], tmp_argmax1_value[0], "
-         << y_index << "[0], " << y_value << "[0], "
-         << "accumulated_offset + block_dim * r_axis_block_size, " << tpipe.tmp_buf << "_" << std::to_string(id) << ", temp_size_value);" << std::endl;
+      ss << "UpdateMaxIndexAndValue<" << dtype_name << ">(tmp_argmax1_index[0], tmp_argmax1_value[0], " << y_index
+         << "[0], " << y_value << "[0], "
+         << "accumulated_offset + block_dim * r_axis_block_size, " << tpipe.tmp_buf << "_" << std::to_string(id)
+         << ", temp_size_value);" << std::endl;
       ss << "}" << std::endl;
 
       // 累加 offset：accumulated_offset += 本次处理的 R 轴 actual_size
@@ -220,8 +226,10 @@ Status ReduceApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::Axis
       //   - outputs[0]: 最终的index输出
       // 注意：Phase2也是R轴分核，需要调用ArgmaxExtend和ReduceMax
 
-      GE_ASSERT_TRUE(inputs.size() >= ARGMAXMULTIRPHASE_OUTPUT_AND_INPUT_NUM, "ArgMaxMultiRPhase2 requires at least 2 inputs.");
-      GE_ASSERT_TRUE(outputs.size() >= 1, "ArgMaxMultiRPhase2 requires at least 1 output."); // ArgMaxMultiRPhase2有1个输出
+      GE_ASSERT_TRUE(inputs.size() >= ARGMAXMULTIRPHASE_OUTPUT_AND_INPUT_NUM,
+                     "ArgMaxMultiRPhase2 requires at least 2 inputs.");
+      GE_ASSERT_TRUE(outputs.size() >= 1,
+                     "ArgMaxMultiRPhase2 requires at least 1 output.");  // ArgMaxMultiRPhase2有1个输出
       auto x_value = inputs[0].get();
       auto x_index = inputs[1].get();
 
@@ -244,27 +252,30 @@ Status ReduceApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::Axis
 
       // 调用 ArgMaxWithValueExtend 获取本次迭代的局部索引和最大值
       ss << "ArgMaxWithValueExtend<int64_t, " << dtype_name << ", " << reduce_pattern << ">("
-         << "tmp_argmax2_index[0], " << "tmp_argmax2_value[0], "
-         << x_value << "[" << tpipe.tiler.TensorVectorizedOffset(current_axis, x_value) << "], "
-         << tpipe.tmp_buf << "_" << std::to_string(id) << ", tmp_reduce_shape, false);" << std::endl;
+         << "tmp_argmax2_index[0], " << "tmp_argmax2_value[0], " << x_value << "["
+         << tpipe.tiler.TensorVectorizedOffset(current_axis, x_value) << "], " << tpipe.tmp_buf << "_"
+         << std::to_string(id) << ", tmp_reduce_shape, false);" << std::endl;
 
       ss << "AscendC::PipeBarrier<PIPE_V>();" << std::endl;
 
       // 如果是第一次迭代，直接赋值；否则使用UpdateMaxIndexAndValue更新全局最大值和索引
       ss << "uint32_t temp_size_index = " << KernelUtils::SizeAlign() << "(" << y.actual_size << ", 4);" << std::endl;
-      ss << "uint32_t temp_size_value = " << KernelUtils::SizeAlign() << "(" << y.actual_size << ", 32/sizeof(" << dtype_name << "));" << std::endl;
+      ss << "uint32_t temp_size_value = " << KernelUtils::SizeAlign() << "(" << y.actual_size << ", 32/sizeof("
+         << dtype_name << "));" << std::endl;
       ss << "if (" << tpipe.tiler.GetAxis(current_axis.back()) << " == 0) {" << std::endl;
       ss << "DataCopyExtend(" << y << "[0], tmp_argmax2_index[0], temp_size_index);" << std::endl;
-      ss << "DataCopyExtend(" << "tmp_argmax2_value_saved[0], " << "tmp_argmax2_value[0], temp_size_value);" << std::endl;
+      ss << "DataCopyExtend(" << "tmp_argmax2_value_saved[0], " << "tmp_argmax2_value[0], temp_size_value);"
+         << std::endl;
       ss << "} else {" << std::endl;
       // 使用UpdateMaxIndexAndValue更新，注意这里offset传入0（因为Phase1已经处理了offset）
-      ss << "UpdateMaxIndexAndValue<" << dtype_name << ">(tmp_argmax2_index[0], tmp_argmax2_value[0], "
-         << y << "[0], " << "tmp_argmax2_value_saved[0], "
+      ss << "UpdateMaxIndexAndValue<" << dtype_name << ">(tmp_argmax2_index[0], tmp_argmax2_value[0], " << y << "[0], "
+         << "tmp_argmax2_value_saved[0], "
          << "0, " << tpipe.tmp_buf << "_" << std::to_string(id) << ", temp_size_value);" << std::endl;
       ss << "}" << std::endl;
     } else {
       ss << "LocalTensor<" << dtype_name << "> tmp_reduce;" << std::endl;
-      ss << "tmp_reduce = " << tpipe.tmp_buf << "_" << std::to_string(tmp_lifetime_0_id) << ".template ReinterpretCast<" << dtype_name << ">();" << std::endl;
+      ss << "tmp_reduce = " << tpipe.tmp_buf << "_" << std::to_string(tmp_lifetime_0_id) << ".template ReinterpretCast<"
+         << dtype_name << ">();" << std::endl;
       if (new_api_name == "Sum" && dtype_name == "int32_t") {
         ss << "ReduceSumInt32<" << dtype_name << ", " << reduce_pattern << ", false>"
            << "(tmp_reduce[0], " << x << "[" << tpipe.tiler.TensorVectorizedOffset(current_axis, x) << "], "
@@ -275,7 +286,8 @@ Status ReduceApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::Axis
            << tpipe.tmp_buf << "_" << std::to_string(id) << ", tmp_reduce_shape, true);" << std::endl;
       }
       ss << "AscendC::PipeBarrier<PIPE_V>();" << std::endl;
-      ss << "uint32_t temp_size = " << KernelUtils::SizeAlign() << "(" << y.actual_size << ", 32/sizeof(" << dtype_name << "));" << std::endl;
+      ss << "uint32_t temp_size = " << KernelUtils::SizeAlign() << "(" << y.actual_size << ", 32/sizeof(" << dtype_name
+         << "));" << std::endl;
       ss << "if (" << tpipe.tiler.GetAxis(current_axis.back()) << " == 0) {" << std::endl;
       ss << "DataCopyExtend(" << y << "[0], " << "tmp_reduce[0], " << "temp_size);" << std::endl;
       ss << "} else {" << std::endl;

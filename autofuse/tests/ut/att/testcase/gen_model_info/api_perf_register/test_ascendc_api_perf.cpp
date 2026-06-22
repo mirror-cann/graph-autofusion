@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -17,27 +17,20 @@ using namespace att;
 using namespace af::sym;
 class UTestAscendcApiPerf : public ::testing::Test {
  public:
-  static void TearDownTestCase()
-  {
+  static void TearDownTestCase() {
     std::cout << "Test end." << std::endl;
   }
-  static void SetUpTestCase()
-  {
+  static void SetUpTestCase() {
     std::cout << "Test begin." << std::endl;
   }
-  void SetUp() override
-  {
-  }
-  void TearDown() override
-  {
-  }
+  void SetUp() override {}
+  void TearDown() override {}
 };
 
-TEST_F(UTestAscendcApiPerf, case0)
-{
+TEST_F(UTestAscendcApiPerf, case0) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
+
   att::TensorShapeInfo input;
   input.data_type = "float16";
   input.data_type_size = 2U;
@@ -68,11 +61,10 @@ TEST_F(UTestAscendcApiPerf, case0)
   EXPECT_EQ(Str(res), "Rational(51200 , 387)");
 }
 
-TEST_F(UTestAscendcApiPerf, case1)
-{
+TEST_F(UTestAscendcApiPerf, case1) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
+
   att::TensorShapeInfo input;
   input.data_type = "float16";
   input.data_type_size = 2U;
@@ -103,11 +95,10 @@ TEST_F(UTestAscendcApiPerf, case1)
   EXPECT_EQ(Str(res), "Rational(56960 , 9)");
 }
 
-TEST_F(UTestAscendcApiPerf, case2)
-{
+TEST_F(UTestAscendcApiPerf, case2) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
+
   att::TensorShapeInfo input;
   input.data_type = "float16";
   input.data_type_size = 2U;
@@ -138,11 +129,10 @@ TEST_F(UTestAscendcApiPerf, case2)
   EXPECT_EQ(Str(res), "Rational(8656 , 99)");
 }
 
-TEST_F(UTestAscendcApiPerf, case3)
-{
+TEST_F(UTestAscendcApiPerf, case3) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
+
   att::TensorShapeInfo input1;
   input1.data_type = "float16";
   input1.data_type_size = 2U;
@@ -183,11 +173,10 @@ TEST_F(UTestAscendcApiPerf, case3)
   EXPECT_EQ(Str(res), "Rational(232875 , 4096)");
 }
 
-TEST_F(UTestAscendcApiPerf, case4)
-{
+TEST_F(UTestAscendcApiPerf, case4) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
+
   att::TensorShapeInfo input;
   input.data_type = "float16";
   input.data_type_size = 2U;
@@ -218,11 +207,10 @@ TEST_F(UTestAscendcApiPerf, case4)
   EXPECT_EQ(Str(res), "Rational(4132 , 33)");
 }
 
-TEST_F(UTestAscendcApiPerf, case5)
-{
+TEST_F(UTestAscendcApiPerf, case5) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
+
   att::TensorShapeInfo input;
   input.data_type = "float16";
   input.data_type_size = 2U;
@@ -252,7 +240,7 @@ TEST_F(UTestAscendcApiPerf, case5)
 TEST_F(UTestAscendcApiPerf, Abs) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
+
   att::TensorShapeInfo input;
   input.data_type_size = 2U;
   input.loc = att::HardwareDef::UB;
@@ -286,7 +274,7 @@ TEST_F(UTestAscendcApiPerf, Abs) {
 TEST_F(UTestAscendcApiPerf, Adds) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
+
   att::TensorShapeInfo input;
   input.data_type_size = 2U;
   input.loc = att::HardwareDef::UB;
@@ -320,7 +308,7 @@ TEST_F(UTestAscendcApiPerf, Adds) {
 TEST_F(UTestAscendcApiPerf, And) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
+
   att::TensorShapeInfo input;
   input.data_type_size = 2U;
   input.loc = att::HardwareDef::UB;
@@ -354,7 +342,7 @@ TEST_F(UTestAscendcApiPerf, And) {
 TEST_F(UTestAscendcApiPerf, Broadcast) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
+
   att::TensorShapeInfo output;
   output.data_type_size = 2U;
   output.loc = att::HardwareDef::UB;
@@ -411,7 +399,7 @@ TEST_F(UTestAscendcApiPerf, Broadcast) {
 TEST_F(UTestAscendcApiPerf, BroadcastFourDim) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
+
   att::TensorShapeInfo output;
   output.data_type_size = 2U;
   output.loc = att::HardwareDef::UB;
@@ -435,7 +423,7 @@ TEST_F(UTestAscendcApiPerf, BroadcastFourDim) {
   input2.data_type = "float16";
   input2.dims = {dim0, CreateExpr(1), dim2, CreateExpr(1)};
   input_shapes2.emplace_back(input2);
-  
+
   PerfOutputInfo perf_res;
   NodeInfo node;
   std::string op_type = "Broadcast";
@@ -466,7 +454,7 @@ TEST_F(UTestAscendcApiPerf, BroadcastFourDim) {
 TEST_F(UTestAscendcApiPerf, TestCastFloat16ToFloat32) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
+
   // 构造输入形状（float16类型）
   att::TensorShapeInfo input;
   input.data_type = "float16";
@@ -504,7 +492,6 @@ TEST_F(UTestAscendcApiPerf, TestCastFloat16ToFloat32) {
 TEST_F(UTestAscendcApiPerf, TestCastFloat32ToFloat16) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   att::TensorShapeInfo input;
   input.data_type = "float32";
@@ -540,7 +527,6 @@ TEST_F(UTestAscendcApiPerf, TestCastFloat32ToFloat16) {
 TEST_F(UTestAscendcApiPerf, TestCastFloat16ToUint8) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   att::TensorShapeInfo input;
   input.data_type = "float16";
@@ -576,10 +562,10 @@ TEST_F(UTestAscendcApiPerf, TestCastFloat16ToUint8) {
 TEST_F(UTestAscendcApiPerf, TestCastEmptyInputShapes) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
+
   output_shapes[0].data_type = "float32";
   output_shapes[0].dims = {CreateExpr(10)};
-  
+
   PerfOutputInfo perf_res;
   NodeInfo node;
   std::string op_type = "Cast";
@@ -593,10 +579,10 @@ TEST_F(UTestAscendcApiPerf, TestCastEmptyInputShapes) {
 TEST_F(UTestAscendcApiPerf, TestCastEmptyOutputShapes) {
   std::vector<att::TensorShapeInfo> input_shapes(1);
   std::vector<att::TensorShapeInfo> output_shapes;
-  
+
   input_shapes[0].data_type = "float16";
   input_shapes[0].dims = {CreateExpr(5)};
-  
+
   PerfOutputInfo perf_res;
   NodeInfo node;
   std::string op_type = "Cast";
@@ -610,7 +596,6 @@ TEST_F(UTestAscendcApiPerf, TestCastEmptyOutputShapes) {
 TEST_F(UTestAscendcApiPerf, TestCastUnsupportedDataType) {
   std::vector<att::TensorShapeInfo> input_shapes(1);
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   input_shapes[0].data_type = "int8";
   input_shapes[0].data_type_size = 1;
@@ -622,7 +607,7 @@ TEST_F(UTestAscendcApiPerf, TestCastUnsupportedDataType) {
   output_shapes[0].dims = {CreateExpr(100)};
   output_shapes[0].repeats = {CreateExpr(100)};
   output_shapes[0].strides = {CreateExpr(1)};
-  
+
   PerfOutputInfo perf_res;
   NodeInfo node;
   std::string op_type = "Cast";
@@ -636,7 +621,6 @@ TEST_F(UTestAscendcApiPerf, TestCastUnsupportedDataType) {
 TEST_F(UTestAscendcApiPerf, TestCastEmptyDims) {
   std::vector<att::TensorShapeInfo> input_shapes(1);
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   input_shapes[0].data_type = "float16";
   output_shapes[0].data_type = "float32";
@@ -650,12 +634,10 @@ TEST_F(UTestAscendcApiPerf, TestCastEmptyDims) {
   EXPECT_NE(result, af::SUCCESS);
 }
 
-
 // 测试 CompareScalarEQ API
 TEST_F(UTestAscendcApiPerf, TestCompareScalarEQ) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   // 构造输入形状
   att::TensorShapeInfo input;
@@ -694,7 +676,6 @@ TEST_F(UTestAscendcApiPerf, TestCompareScalarEQ) {
 TEST_F(UTestAscendcApiPerf, TestCompareScalarGE) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   // 构造输入形状
   att::TensorShapeInfo input;
@@ -733,7 +714,6 @@ TEST_F(UTestAscendcApiPerf, TestCompareScalarGE) {
 TEST_F(UTestAscendcApiPerf, TestCompareScalarGT) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   // 构造输入形状
   att::TensorShapeInfo input;
@@ -772,7 +752,6 @@ TEST_F(UTestAscendcApiPerf, TestCompareScalarGT) {
 TEST_F(UTestAscendcApiPerf, TestCompareScalarLE) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   // 构造输入形状
   att::TensorShapeInfo input;
@@ -811,7 +790,6 @@ TEST_F(UTestAscendcApiPerf, TestCompareScalarLT) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
 
-
   // 构造输入形状
   att::TensorShapeInfo input;
   input.data_type = "float16";
@@ -844,7 +822,6 @@ TEST_F(UTestAscendcApiPerf, TestCompareScalarNE) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
 
-
   // 构造输入形状
   att::TensorShapeInfo input;
   input.data_type = "float16";
@@ -875,7 +852,6 @@ TEST_F(UTestAscendcApiPerf, TestCompareScalarNE) {
 TEST_F(UTestAscendcApiPerf, TestPowerTensorTensor) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-
 
   // 构造输入形状
   att::TensorShapeInfo input;
@@ -908,7 +884,6 @@ TEST_F(UTestAscendcApiPerf, TestPowerTensorTensor) {
 TEST_F(UTestAscendcApiPerf, TestPowerTensorScalar) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-
 
   // 构造输入形状
   att::TensorShapeInfo input;
@@ -961,32 +936,38 @@ TEST_F(UTestAscendcApiPerf, TestCompareAscir) {
   node.node_ptr = GraphConstructUtils::ConstructSingleOp(op_type, 1, 1);
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   EXPECT_EQ(result, af::SUCCESS);
-  EXPECT_TRUE(std::string(perf_res.pipe_res[PipeType::AIV_VEC].Serialize().get()).find("compare_node") != std::string::npos);
+  EXPECT_TRUE(std::string(perf_res.pipe_res[PipeType::AIV_VEC].Serialize().get()).find("compare_node") !=
+              std::string::npos);
   op_type = kEq;
   perf = GetPerfFunc(op_type);
   result = perf(input_shapes, output_shapes, node, perf_res);
   EXPECT_EQ(result, af::SUCCESS);
-  EXPECT_TRUE(std::string(perf_res.pipe_res[PipeType::AIV_VEC].Serialize().get()).find("compare_node") != std::string::npos);
+  EXPECT_TRUE(std::string(perf_res.pipe_res[PipeType::AIV_VEC].Serialize().get()).find("compare_node") !=
+              std::string::npos);
   op_type = kNe;
   perf = GetPerfFunc(op_type);
   result = perf(input_shapes, output_shapes, node, perf_res);
   EXPECT_EQ(result, af::SUCCESS);
-  EXPECT_TRUE(std::string(perf_res.pipe_res[PipeType::AIV_VEC].Serialize().get()).find("compare_node") != std::string::npos);
+  EXPECT_TRUE(std::string(perf_res.pipe_res[PipeType::AIV_VEC].Serialize().get()).find("compare_node") !=
+              std::string::npos);
   op_type = kGt;
   perf = GetPerfFunc(op_type);
   result = perf(input_shapes, output_shapes, node, perf_res);
   EXPECT_EQ(result, af::SUCCESS);
-  EXPECT_TRUE(std::string(perf_res.pipe_res[PipeType::AIV_VEC].Serialize().get()).find("compare_node") != std::string::npos);
+  EXPECT_TRUE(std::string(perf_res.pipe_res[PipeType::AIV_VEC].Serialize().get()).find("compare_node") !=
+              std::string::npos);
   op_type = kLe;
   perf = GetPerfFunc(op_type);
   result = perf(input_shapes, output_shapes, node, perf_res);
   EXPECT_EQ(result, af::SUCCESS);
-  EXPECT_TRUE(std::string(perf_res.pipe_res[PipeType::AIV_VEC].Serialize().get()).find("compare_node") != std::string::npos);
+  EXPECT_TRUE(std::string(perf_res.pipe_res[PipeType::AIV_VEC].Serialize().get()).find("compare_node") !=
+              std::string::npos);
   op_type = kLt;
   perf = GetPerfFunc(op_type);
   result = perf(input_shapes, output_shapes, node, perf_res);
   EXPECT_EQ(result, af::SUCCESS);
-  EXPECT_TRUE(std::string(perf_res.pipe_res[PipeType::AIV_VEC].Serialize().get()).find("compare_node") != std::string::npos);
+  EXPECT_TRUE(std::string(perf_res.pipe_res[PipeType::AIV_VEC].Serialize().get()).find("compare_node") !=
+              std::string::npos);
 }
 
 TEST_F(UTestAscendcApiPerf, TestCompareInt64Ascir) {
@@ -1017,12 +998,14 @@ TEST_F(UTestAscendcApiPerf, TestCompareInt64Ascir) {
   perf = GetPerfFunc(op_type);
   result = perf(input_shapes, output_shapes, node, perf_res);
   EXPECT_EQ(result, af::SUCCESS);
-  EXPECT_TRUE(std::string(perf_res.pipe_res[PipeType::AIV_VEC].Serialize().get()).find("compare_node") != std::string::npos);
+  EXPECT_TRUE(std::string(perf_res.pipe_res[PipeType::AIV_VEC].Serialize().get()).find("compare_node") !=
+              std::string::npos);
   op_type = kNe;
   perf = GetPerfFunc(op_type);
   result = perf(input_shapes, output_shapes, node, perf_res);
   EXPECT_EQ(result, af::SUCCESS);
-  EXPECT_TRUE(std::string(perf_res.pipe_res[PipeType::AIV_VEC].Serialize().get()).find("compare_node") != std::string::npos);
+  EXPECT_TRUE(std::string(perf_res.pipe_res[PipeType::AIV_VEC].Serialize().get()).find("compare_node") !=
+              std::string::npos);
   op_type = kGt;
   perf = GetPerfFunc(op_type);
   result = perf(input_shapes, output_shapes, node, perf_res);
@@ -1039,7 +1022,6 @@ TEST_F(UTestAscendcApiPerf, TestCompareInt64Ascir) {
 TEST_F(UTestAscendcApiPerf, TestCompareScalarEmptyInput) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   output_shapes[0].data_type = "float16";
   output_shapes[0].dims = {CreateExpr(10)};
@@ -1057,7 +1039,6 @@ TEST_F(UTestAscendcApiPerf, TestCompareScalarEmptyInput) {
 TEST_F(UTestAscendcApiPerf, TestCompareScalarEmptyOutput) {
   std::vector<att::TensorShapeInfo> input_shapes(1);
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   input_shapes[0].data_type = "float16";
   input_shapes[0].dims = {CreateExpr(10)};
@@ -1075,7 +1056,6 @@ TEST_F(UTestAscendcApiPerf, TestCompareScalarEmptyOutput) {
 TEST_F(UTestAscendcApiPerf, TestCompareScalarUnsupportedDataType) {
   std::vector<att::TensorShapeInfo> input_shapes(1);
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   input_shapes[0].data_type = "int64";
   input_shapes[0].data_type_size = 8;
@@ -1097,7 +1077,6 @@ TEST_F(UTestAscendcApiPerf, TestCompareScalarUnsupportedDataType) {
 TEST_F(UTestAscendcApiPerf, TestDiv) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   // 构造输入形状
   att::TensorShapeInfo input;
@@ -1132,7 +1111,6 @@ TEST_F(UTestAscendcApiPerf, TestDiv) {
 TEST_F(UTestAscendcApiPerf, TestEmptyInput) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   output_shapes[0].data_type = "float16";
   output_shapes[0].dims = {CreateExpr(10)};
@@ -1150,7 +1128,6 @@ TEST_F(UTestAscendcApiPerf, TestEmptyInput) {
 TEST_F(UTestAscendcApiPerf, TestUnsupportedDataType) {
   std::vector<att::TensorShapeInfo> input_shapes(1);
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   input_shapes[0].data_type = "int64";
   input_shapes[0].dims = {CreateExpr(32)};
@@ -1172,7 +1149,6 @@ TEST_F(UTestAscendcApiPerf, TestUnsupportedDataType) {
 TEST_F(UTestAscendcApiPerf, TestExp) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   // 构造输入形状
   att::TensorShapeInfo input;
@@ -1207,7 +1183,6 @@ TEST_F(UTestAscendcApiPerf, TestExp) {
 TEST_F(UTestAscendcApiPerf, TestLogicalAnd) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   // 构造输入形状
   att::TensorShapeInfo input;
@@ -1236,7 +1211,6 @@ TEST_F(UTestAscendcApiPerf, TestLogicalAnd) {
 TEST_F(UTestAscendcApiPerf, TestLogicalOr) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   // 构造输入形状
   att::TensorShapeInfo input;
@@ -1294,7 +1268,7 @@ TEST_F(UTestAscendcApiPerf, TestMoveGmToUbSmallblk) {
   node.node_ptr = GraphConstructUtils::ConstructSingleOp(op_type, 1, 1);
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   EXPECT_EQ(result, af::SUCCESS);
-  
+
   // 验证结果
   auto blockdim = CreateExpr("block_dim");
   auto T = Add(CreateExpr(7.90520000457764), Div(CreateExpr(7.30999994277954), blockdim));
@@ -1337,7 +1311,7 @@ TEST_F(UTestAscendcApiPerf, TestMoveGmToUb) {
   node.node_ptr = GraphConstructUtils::ConstructSingleOp(op_type, 1, 1);
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   EXPECT_EQ(result, af::SUCCESS);
-  
+
   // 验证结果
   auto blockdim = CreateExpr("block_dim");
   auto T = Add(CreateExpr(9.90740013122559), Div(CreateExpr(15.8959999084473), blockdim));
@@ -1357,7 +1331,7 @@ TEST_F(UTestAscendcApiPerf, TestMoveGmToUbStride) {
   att::TensorShapeInfo input;
   input.data_type = "float16";
   input.dims = {CreateExpr(10), CreateExpr(20)};
-  input.repeats = {CreateExpr(100), CreateExpr(400)};  
+  input.repeats = {CreateExpr(100), CreateExpr(400)};
   input.strides = {CreateExpr(400), CreateExpr(1)};
   input.gm_strides = {CreateExpr(800), CreateExpr(1)};
   input.loc = att::HardwareDef::GM;
@@ -1367,7 +1341,7 @@ TEST_F(UTestAscendcApiPerf, TestMoveGmToUbStride) {
   att::TensorShapeInfo output;
   output.data_type = "float16";
   output.dims = {CreateExpr(10), CreateExpr(20)};
-  output.repeats = {CreateExpr(100), CreateExpr(200)};  
+  output.repeats = {CreateExpr(100), CreateExpr(200)};
   output.strides = {CreateExpr(400), CreateExpr(1)};
   output.gm_strides = {CreateExpr(800), CreateExpr(1)};
   output.loc = att::HardwareDef::UB;
@@ -1393,7 +1367,7 @@ TEST_F(UTestAscendcApiPerf, TestMoveGmToUbStride) {
 }
 
 // 测试 MoveGmToUb 非连续搬运API，gm和ub非连续
-TEST_F(UTestAscendcApiPerf, TestMoveGmToUbStride2) {  
+TEST_F(UTestAscendcApiPerf, TestMoveGmToUbStride2) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
 
@@ -1478,7 +1452,6 @@ TEST_F(UTestAscendcApiPerf, TestMoveUbToGmStride) {
 TEST_F(UTestAscendcApiPerf, TestMoveEmptyInput) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   output_shapes[0].data_type = "float16";
   output_shapes[0].dims = {CreateExpr(10)};
@@ -1496,7 +1469,6 @@ TEST_F(UTestAscendcApiPerf, TestMoveEmptyInput) {
 TEST_F(UTestAscendcApiPerf, TestMoveEmptyOutput) {
   std::vector<att::TensorShapeInfo> input_shapes(1);
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   input_shapes[0].data_type = "float16";
   input_shapes[0].dims = {CreateExpr(10)};
@@ -1514,7 +1486,6 @@ TEST_F(UTestAscendcApiPerf, TestMoveEmptyOutput) {
 TEST_F(UTestAscendcApiPerf, TestMoveUnsupportedDataType) {
   std::vector<att::TensorShapeInfo> input_shapes(1);
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   input_shapes[0].data_type = "int64";
   input_shapes[0].dims = {CreateExpr(32)};
@@ -1540,7 +1511,6 @@ TEST_F(UTestAscendcApiPerf, TestMoveUnsupportedDataType) {
 TEST_F(UTestAscendcApiPerf, TestMaximum) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   // 构造输入形状
   att::TensorShapeInfo input;
@@ -1575,7 +1545,6 @@ TEST_F(UTestAscendcApiPerf, TestMaximum) {
 TEST_F(UTestAscendcApiPerf, TestMaxs) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   // 构造输入形状
   att::TensorShapeInfo input;
@@ -1610,7 +1579,6 @@ TEST_F(UTestAscendcApiPerf, TestMaxs) {
 TEST_F(UTestAscendcApiPerf, TestMax) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   // 构造输入形状
   att::TensorShapeInfo input;
@@ -1645,7 +1613,6 @@ TEST_F(UTestAscendcApiPerf, TestMax) {
 TEST_F(UTestAscendcApiPerf, TestMinimum) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   // 构造输入形状
   att::TensorShapeInfo input;
@@ -1680,7 +1647,6 @@ TEST_F(UTestAscendcApiPerf, TestMinimum) {
 TEST_F(UTestAscendcApiPerf, TestMins) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   // 构造输入形状
   att::TensorShapeInfo input;
@@ -1715,7 +1681,6 @@ TEST_F(UTestAscendcApiPerf, TestMins) {
 TEST_F(UTestAscendcApiPerf, TestMin) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   // 构造输入形状
   att::TensorShapeInfo input;
@@ -1750,7 +1715,6 @@ TEST_F(UTestAscendcApiPerf, TestMin) {
 TEST_F(UTestAscendcApiPerf, TestMul) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   // 构造输入形状
   att::TensorShapeInfo input;
@@ -1785,7 +1749,6 @@ TEST_F(UTestAscendcApiPerf, TestMul) {
 TEST_F(UTestAscendcApiPerf, TestMuls) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   // 构造输入形状
   att::TensorShapeInfo input;
@@ -1820,7 +1783,6 @@ TEST_F(UTestAscendcApiPerf, TestMuls) {
 TEST_F(UTestAscendcApiPerf, TestNeg) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   // 构造输入形状
   att::TensorShapeInfo input;
@@ -1855,7 +1817,6 @@ TEST_F(UTestAscendcApiPerf, TestNeg) {
 TEST_F(UTestAscendcApiPerf, TestReciprocal) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   // 构造输入形状
   att::TensorShapeInfo input;
@@ -1890,7 +1851,6 @@ TEST_F(UTestAscendcApiPerf, TestReciprocal) {
 TEST_F(UTestAscendcApiPerf, TestRelu) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   // 构造输入形状
   att::TensorShapeInfo input;
@@ -1925,7 +1885,6 @@ TEST_F(UTestAscendcApiPerf, TestRelu) {
 TEST_F(UTestAscendcApiPerf, TestRsqrt) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   // 构造输入形状
   att::TensorShapeInfo input;
@@ -1998,7 +1957,8 @@ TEST_F(UTestAscendcApiPerf, TestSelectCase1) {
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
   EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), "where_base_node");
-  EXPECT_EQ(Str(res.Replace(ConcursiveReplaceVars(perf_res.ternary_ops))), "TernaryOp(16320 <= 2048, -9260586.41082808, 689197.283277584)");
+  EXPECT_EQ(Str(res.Replace(ConcursiveReplaceVars(perf_res.ternary_ops))),
+            "TernaryOp(16320 <= 2048, -9260586.41082808, 689197.283277584)");
 }
 
 // 测试 Select API
@@ -2043,14 +2003,14 @@ TEST_F(UTestAscendcApiPerf, TestSelectCase2) {
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
   EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), "where_base_node");
-  EXPECT_EQ(Str(res.Replace(ConcursiveReplaceVars(perf_res.ternary_ops))), "TernaryOp(16320 <= 65536, 16926703.4515522, 22081696.3273777)");
+  EXPECT_EQ(Str(res.Replace(ConcursiveReplaceVars(perf_res.ternary_ops))),
+            "TernaryOp(16320 <= 65536, 16926703.4515522, 22081696.3273777)");
 }
 
 // 测试 SetVectorMask API
 TEST_F(UTestAscendcApiPerf, TestSetVectorMask) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   // 构造输入形状
   att::TensorShapeInfo input;
@@ -2077,7 +2037,6 @@ TEST_F(UTestAscendcApiPerf, TestSetVectorMask) {
 TEST_F(UTestAscendcApiPerf, TestSigmoid) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   // 构造输入形状
   att::TensorShapeInfo input;
@@ -2112,7 +2071,6 @@ TEST_F(UTestAscendcApiPerf, TestSigmoid) {
 TEST_F(UTestAscendcApiPerf, TestSign) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   // 构造输入形状
   att::TensorShapeInfo input;
@@ -2147,7 +2105,6 @@ TEST_F(UTestAscendcApiPerf, TestSign) {
 TEST_F(UTestAscendcApiPerf, TestSqrt) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   // 构造输入形状
   att::TensorShapeInfo input;
@@ -2182,7 +2139,6 @@ TEST_F(UTestAscendcApiPerf, TestSqrt) {
 TEST_F(UTestAscendcApiPerf, TestSub) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   // 构造输入形状
   att::TensorShapeInfo input;
@@ -2217,7 +2173,6 @@ TEST_F(UTestAscendcApiPerf, TestSub) {
 TEST_F(UTestAscendcApiPerf, TestSum) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   // 构造输入形状
   att::TensorShapeInfo input;
@@ -2252,7 +2207,6 @@ TEST_F(UTestAscendcApiPerf, TestSum) {
 TEST_F(UTestAscendcApiPerf, TestTanh) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   // 构造输入形状
   att::TensorShapeInfo input;
@@ -2287,7 +2241,6 @@ TEST_F(UTestAscendcApiPerf, TestTanh) {
 TEST_F(UTestAscendcApiPerf, TestWholeReduceMax) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   // 构造输入形状
   att::TensorShapeInfo input;
@@ -2322,7 +2275,6 @@ TEST_F(UTestAscendcApiPerf, TestWholeReduceMax) {
 TEST_F(UTestAscendcApiPerf, TestWholeReduceMin) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   // 构造输入形状
   att::TensorShapeInfo input;
@@ -2357,7 +2309,6 @@ TEST_F(UTestAscendcApiPerf, TestWholeReduceMin) {
 TEST_F(UTestAscendcApiPerf, TestWholeReduceSum) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   // 构造输入形状
   att::TensorShapeInfo input;
@@ -2392,7 +2343,6 @@ TEST_F(UTestAscendcApiPerf, TestWholeReduceSum) {
 TEST_F(UTestAscendcApiPerf, TestZerosLike) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-
 
   // 构造输入形状
   att::TensorShapeInfo input;
@@ -2473,7 +2423,8 @@ TEST_F(UTestAscendcApiPerf, TestWhereBase) {
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
   EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), "where_base_node");
-  EXPECT_EQ(Str(res.Replace(ConcursiveReplaceVars(perf_res.ternary_ops))), "TernaryOp(16320 <= 2048, -9273412.97818479, 690200.90328796)");
+  EXPECT_EQ(Str(res.Replace(ConcursiveReplaceVars(perf_res.ternary_ops))),
+            "TernaryOp(16320 <= 2048, -9273412.97818479, 690200.90328796)");
 }
 
 // 测试Where API的WhereExtend分支
@@ -2524,7 +2475,6 @@ TEST_F(UTestAscendcApiPerf, TestWhereExtend) {
 TEST_F(UTestAscendcApiPerf, TestConstant) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   // 构造输入形状
   att::TensorShapeInfo input;
@@ -2592,7 +2542,6 @@ TEST_F(UTestAscendcApiPerf, TestFlashSoftmax) {
 TEST_F(UTestAscendcApiPerf, TestDropOut) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   // 构造输入形状
   att::TensorShapeInfo input;
@@ -2634,7 +2583,6 @@ TEST_F(UTestAscendcApiPerf, TestDropOut) {
 TEST_F(UTestAscendcApiPerf, TestMatMul) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   // 构造输入形状A
   att::TensorShapeInfo input_a;
@@ -2667,7 +2615,6 @@ TEST_F(UTestAscendcApiPerf, TestMatMul) {
 TEST_F(UTestAscendcApiPerf, TestErf) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   // 构造输入形状
   att::TensorShapeInfo input;
@@ -2702,7 +2649,7 @@ TEST_F(UTestAscendcApiPerf, TestErf) {
 TEST_F(UTestAscendcApiPerf, TestBroadcastMiddle) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
+
   att::Expr dim0 = af::Symbol(16, "a");
   att::Expr dim1 = af::Symbol(48, "b");
   att::Expr dim2 = af::Symbol(64, "c");
@@ -2734,7 +2681,7 @@ TEST_F(UTestAscendcApiPerf, TestBroadcastMiddle) {
 TEST_F(UTestAscendcApiPerf, TestBroadcastMerge) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
+
   att::Expr dim0 = af::Symbol(16, "a");
   att::Expr dim1 = af::Symbol(2, "b");
   att::Expr dim2 = af::Symbol(64, "c");
@@ -2768,7 +2715,6 @@ TEST_F(UTestAscendcApiPerf, TestBroadcastMerge) {
 TEST_F(UTestAscendcApiPerf, TestBroadcastMerge2) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   // 构造输入形状 - 3维,中间维度为1
   att::TensorShapeInfo input;
@@ -2795,7 +2741,6 @@ TEST_F(UTestAscendcApiPerf, TestBroadcastMerge2) {
 TEST_F(UTestAscendcApiPerf, TestBroadcastMerge3) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   // 构造输入形状 - 3维,中间维度为1
   att::TensorShapeInfo input;
@@ -2822,7 +2767,7 @@ TEST_F(UTestAscendcApiPerf, TestBroadcastMerge3) {
 TEST_F(UTestAscendcApiPerf, TestBroadcastMiddleInvalidDims) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
+
   att::Expr dim0 = CreateExpr(32);
   att::Expr dim1 = CreateExpr(64);
   att::Expr dim2 = CreateExpr(128);
@@ -2852,7 +2797,6 @@ TEST_F(UTestAscendcApiPerf, TestBroadcastMiddleInvalidDims) {
 TEST_F(UTestAscendcApiPerf, TestBroadcastMiddleUnsupportedType) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   // 构造输入形状 - int32类型
   att::TensorShapeInfo input;
@@ -2881,7 +2825,7 @@ TEST_F(UTestAscendcApiPerf, TestBroadcastMiddleUnsupportedType) {
 TEST_F(UTestAscendcApiPerf, TestBroadcastMiddleFloat32) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
+
   att::Expr dim0 = af::Symbol(32, "a");
   att::Expr dim1 = af::Symbol(64, "b");
   att::Expr dim2 = af::Symbol(128, "c");
@@ -2913,7 +2857,6 @@ TEST_F(UTestAscendcApiPerf, TestBroadcastMiddleFloat32) {
 TEST_F(UTestAscendcApiPerf, TestErfFloat32) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   // 构造输入形状
   att::TensorShapeInfo input;
@@ -2948,7 +2891,7 @@ TEST_F(UTestAscendcApiPerf, TestErfFloat32) {
 TEST_F(UTestAscendcApiPerf, TestBroadcastOuter) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
+
   att::Expr dim0 = af::Symbol(64, "a");
   att::Expr dim1 = af::Symbol(128, "b");
 
@@ -2978,7 +2921,7 @@ TEST_F(UTestAscendcApiPerf, TestBroadcastOuter) {
 TEST_F(UTestAscendcApiPerf, TestBroadcastOuterFP32) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
+
   att::Expr dim0 = af::Symbol(64, "a");
   att::Expr dim1 = af::Symbol(128, "b");
 
@@ -3013,7 +2956,7 @@ TEST_F(UTestAscendcApiPerf, TestBroadcastOuterFP32) {
 TEST_F(UTestAscendcApiPerf, TestBroadcastInner) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
+
   att::Expr dim0 = af::Symbol(64, "a");
   att::Expr dim1 = af::Symbol(128, "b");
 
@@ -3044,7 +2987,7 @@ TEST_F(UTestAscendcApiPerf, TestBroadcastInner) {
 TEST_F(UTestAscendcApiPerf, TestBroadcastInnerWithStride) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
+
   att::Expr dim0 = af::Symbol(64, "a");
   att::Expr dim1 = af::Symbol(128, "b");
 
@@ -3075,7 +3018,7 @@ TEST_F(UTestAscendcApiPerf, TestBroadcastInnerWithStride) {
 TEST_F(UTestAscendcApiPerf, TestBroadcastInner2) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
+
   att::Expr dim0 = af::Symbol(64, "a");
   att::Expr dim1 = af::Symbol(128, "b");
   att::Expr dim2 = af::Symbol(256, "c");
@@ -3105,7 +3048,7 @@ TEST_F(UTestAscendcApiPerf, TestBroadcastInner2) {
 TEST_F(UTestAscendcApiPerf, TestBroadcastInnerMerge) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
+
   att::Expr dim0 = af::Symbol(4, "a");
   att::Expr dim1 = af::Symbol(16, "b");
   att::Expr dim2 = af::Symbol(128, "c");
@@ -3136,7 +3079,7 @@ TEST_F(UTestAscendcApiPerf, TestBroadcastInnerMerge) {
 TEST_F(UTestAscendcApiPerf, TestBroadcastInnerFP32) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
+
   att::Expr dim0 = af::Symbol(64, "a");
   att::Expr dim1 = af::Symbol(128, "b");
 
@@ -3167,7 +3110,6 @@ TEST_F(UTestAscendcApiPerf, TestBroadcastInnerFP32) {
 TEST_F(UTestAscendcApiPerf, TestBroadcastBoth) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   // 构造输入形状 - 两个维度都为1
   att::TensorShapeInfo input;
@@ -3196,7 +3138,6 @@ TEST_F(UTestAscendcApiPerf, TestBroadcastBoth) {
 TEST_F(UTestAscendcApiPerf, TestBroadcastBothFloat32) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   // 构造输入形状 - 两个维度都为1
   att::TensorShapeInfo input;
@@ -3225,7 +3166,6 @@ TEST_F(UTestAscendcApiPerf, TestBroadcastBothFloat32) {
 TEST_F(UTestAscendcApiPerf, TestErfEmptyInput) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   output_shapes[0].data_type = "float16";
   output_shapes[0].dims = {CreateExpr(10)};
@@ -3243,7 +3183,6 @@ TEST_F(UTestAscendcApiPerf, TestErfEmptyInput) {
 TEST_F(UTestAscendcApiPerf, TestErfUnsupportedType) {
   std::vector<att::TensorShapeInfo> input_shapes(1);
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   input_shapes[0].data_type = "int32";
   input_shapes[0].dims = {CreateExpr(32)};
@@ -3265,7 +3204,6 @@ TEST_F(UTestAscendcApiPerf, TestErfUnsupportedType) {
 TEST_F(UTestAscendcApiPerf, TestLoadApiBFloat16) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   att::TensorShapeInfo input;
   input.data_type = "bfloat16";
@@ -3305,7 +3243,6 @@ TEST_F(UTestAscendcApiPerf, TestLoadApiBFloat16) {
 TEST_F(UTestAscendcApiPerf, TestStoreApiUint8) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   att::TensorShapeInfo input;
   input.data_type = "uint8";
@@ -3345,7 +3282,6 @@ TEST_F(UTestAscendcApiPerf, TestStoreApiUint8) {
 TEST_F(UTestAscendcApiPerf, TestEmptyDims) {
   std::vector<att::TensorShapeInfo> input_shapes(1);
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   input_shapes[0].data_type = "float16";
   // dims保持为空
@@ -3364,7 +3300,6 @@ TEST_F(UTestAscendcApiPerf, TestEmptyDims) {
 TEST_F(UTestAscendcApiPerf, TestInvalidOpType) {
   std::vector<att::TensorShapeInfo> input_shapes(1);
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   input_shapes[0].data_type = "float16";
   input_shapes[0].dims = {CreateExpr(32)};
@@ -3379,7 +3314,6 @@ TEST_F(UTestAscendcApiPerf, TestInvalidOpType) {
 TEST_F(UTestAscendcApiPerf, TestAbsFloat32) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   // 构造输入形状
   att::TensorShapeInfo input;
@@ -3453,7 +3387,6 @@ TEST_F(UTestAscendcApiPerf, TestStoreFloat32) {
 TEST_F(UTestAscendcApiPerf, TestAddsFloat32) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   att::TensorShapeInfo input;
   input.data_type = "float32";
@@ -3486,7 +3419,6 @@ TEST_F(UTestAscendcApiPerf, TestAddsFloat32) {
 TEST_F(UTestAscendcApiPerf, TestAddFloat32) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   att::TensorShapeInfo input;
   input.data_type = "float32";
@@ -3519,7 +3451,6 @@ TEST_F(UTestAscendcApiPerf, TestAddFloat32) {
 TEST_F(UTestAscendcApiPerf, TestAndFloat32) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   att::TensorShapeInfo input;
   input.data_type = "float32";
@@ -3552,7 +3483,6 @@ TEST_F(UTestAscendcApiPerf, TestAndFloat32) {
 TEST_F(UTestAscendcApiPerf, TestBroadCastOneDimFloat32) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   att::TensorShapeInfo input;
   input.data_type = "float32";
@@ -3585,7 +3515,6 @@ TEST_F(UTestAscendcApiPerf, TestBroadCastOneDimFloat32) {
 TEST_F(UTestAscendcApiPerf, TestDuplicateFloat32) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   att::TensorShapeInfo input;
   input.data_type = "float32";
@@ -3618,7 +3547,6 @@ TEST_F(UTestAscendcApiPerf, TestDuplicateFloat32) {
 TEST_F(UTestAscendcApiPerf, TestExpFloat32) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   att::TensorShapeInfo input;
   input.data_type = "float32";
@@ -3651,7 +3579,6 @@ TEST_F(UTestAscendcApiPerf, TestExpFloat32) {
 TEST_F(UTestAscendcApiPerf, TestMaxsFloat32) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   att::TensorShapeInfo input;
   input.data_type = "float32";
@@ -3684,7 +3611,6 @@ TEST_F(UTestAscendcApiPerf, TestMaxsFloat32) {
 TEST_F(UTestAscendcApiPerf, TestMaxFloat32) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   att::TensorShapeInfo input;
   input.data_type = "float32";
@@ -3717,7 +3643,6 @@ TEST_F(UTestAscendcApiPerf, TestMaxFloat32) {
 TEST_F(UTestAscendcApiPerf, TestMinsFloat32) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   att::TensorShapeInfo input;
   input.data_type = "float32";
@@ -3750,7 +3675,6 @@ TEST_F(UTestAscendcApiPerf, TestMinsFloat32) {
 TEST_F(UTestAscendcApiPerf, TestMinFloat32) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   att::TensorShapeInfo input;
   input.data_type = "float32";
@@ -3783,7 +3707,6 @@ TEST_F(UTestAscendcApiPerf, TestMinFloat32) {
 TEST_F(UTestAscendcApiPerf, TestLogicalAndFloat32) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   // 构造输入形状
   att::TensorShapeInfo input;
@@ -3812,7 +3735,6 @@ TEST_F(UTestAscendcApiPerf, TestLogicalAndFloat32) {
 TEST_F(UTestAscendcApiPerf, TestLogicalOrFloat32) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   // 构造输入形状
   att::TensorShapeInfo input;
@@ -3841,7 +3763,6 @@ TEST_F(UTestAscendcApiPerf, TestLogicalOrFloat32) {
 TEST_F(UTestAscendcApiPerf, TestMaximumFloat32) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   // 构造输入形状
   att::TensorShapeInfo input;
@@ -3872,12 +3793,10 @@ TEST_F(UTestAscendcApiPerf, TestMaximumFloat32) {
   EXPECT_EQ(Str(res), Str(expected_value));
 }
 
-
 // 测试 Minimum API - float32类型
 TEST_F(UTestAscendcApiPerf, TestMinimumFloat32) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   // 构造输入形状
   att::TensorShapeInfo input;
@@ -3912,7 +3831,6 @@ TEST_F(UTestAscendcApiPerf, TestMinimumFloat32) {
 TEST_F(UTestAscendcApiPerf, TestMulsFloat32) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   // 构造输入形状
   att::TensorShapeInfo input;
@@ -3947,7 +3865,6 @@ TEST_F(UTestAscendcApiPerf, TestMulsFloat32) {
 TEST_F(UTestAscendcApiPerf, TestMulFloat32) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   // 构造输入形状
   att::TensorShapeInfo input;
@@ -3982,7 +3899,6 @@ TEST_F(UTestAscendcApiPerf, TestMulFloat32) {
 TEST_F(UTestAscendcApiPerf, TestNegFloat32) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   // 构造输入形状
   att::TensorShapeInfo input;
@@ -4017,7 +3933,6 @@ TEST_F(UTestAscendcApiPerf, TestNegFloat32) {
 TEST_F(UTestAscendcApiPerf, TestReciprocalFloat32) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   // 构造输入形状
   att::TensorShapeInfo input;
@@ -4052,7 +3967,6 @@ TEST_F(UTestAscendcApiPerf, TestReciprocalFloat32) {
 TEST_F(UTestAscendcApiPerf, TestReluFloat32) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   // 构造输入形状
   att::TensorShapeInfo input;
@@ -4087,7 +4001,6 @@ TEST_F(UTestAscendcApiPerf, TestReluFloat32) {
 TEST_F(UTestAscendcApiPerf, TestRsqrtFloat32) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   // 构造输入形状
   att::TensorShapeInfo input;
@@ -4122,7 +4035,6 @@ TEST_F(UTestAscendcApiPerf, TestRsqrtFloat32) {
 TEST_F(UTestAscendcApiPerf, TestSetVectorMaskFloat32) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   // 构造输入形状
   att::TensorShapeInfo input;
@@ -4149,7 +4061,6 @@ TEST_F(UTestAscendcApiPerf, TestSetVectorMaskFloat32) {
 TEST_F(UTestAscendcApiPerf, TestSigmoidFloat32) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   // 构造输入形状
   att::TensorShapeInfo input;
@@ -4184,7 +4095,6 @@ TEST_F(UTestAscendcApiPerf, TestSigmoidFloat32) {
 TEST_F(UTestAscendcApiPerf, TestSignFloat32) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   // 构造输入形状
   att::TensorShapeInfo input;
@@ -4219,7 +4129,6 @@ TEST_F(UTestAscendcApiPerf, TestSignFloat32) {
 TEST_F(UTestAscendcApiPerf, TestSqrtFloat32) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   // 构造输入形状
   att::TensorShapeInfo input;
@@ -4254,7 +4163,6 @@ TEST_F(UTestAscendcApiPerf, TestSqrtFloat32) {
 TEST_F(UTestAscendcApiPerf, TestSubFloat32) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   // 构造输入形状
   att::TensorShapeInfo input;
@@ -4289,7 +4197,6 @@ TEST_F(UTestAscendcApiPerf, TestSubFloat32) {
 TEST_F(UTestAscendcApiPerf, TestTanhFloat32) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   // 构造输入形状
   att::TensorShapeInfo input;
@@ -4362,14 +4269,14 @@ TEST_F(UTestAscendcApiPerf, TestSelectFloat32) {
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
   EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), "where_base_node");
-  EXPECT_EQ(Str(res.Replace(ConcursiveReplaceVars(perf_res.ternary_ops))), "TernaryOp(16320 <= 8192, -7731.84273529891, 4450.97347860783)");
+  EXPECT_EQ(Str(res.Replace(ConcursiveReplaceVars(perf_res.ternary_ops))),
+            "TernaryOp(16320 <= 8192, -7731.84273529891, 4450.97347860783)");
 }
 
 // 测试 WholeReduceMax API - float32类型
 TEST_F(UTestAscendcApiPerf, TestWholeReduceMaxFloat32) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   // 构造输入形状
   att::TensorShapeInfo input;
@@ -4404,7 +4311,6 @@ TEST_F(UTestAscendcApiPerf, TestWholeReduceMaxFloat32) {
 TEST_F(UTestAscendcApiPerf, TestWholeReduceMinFloat32) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   // 构造输入形状
   att::TensorShapeInfo input;
@@ -4439,7 +4345,6 @@ TEST_F(UTestAscendcApiPerf, TestWholeReduceMinFloat32) {
 TEST_F(UTestAscendcApiPerf, TestWholeReduceSumFloat32) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   // 构造输入形状
   att::TensorShapeInfo input;
@@ -4474,7 +4379,6 @@ TEST_F(UTestAscendcApiPerf, TestWholeReduceSumFloat32) {
 TEST_F(UTestAscendcApiPerf, TestZerosLikeFloat32) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   // 构造输入形状
   att::TensorShapeInfo input;
@@ -4509,7 +4413,6 @@ TEST_F(UTestAscendcApiPerf, TestZerosLikeFloat32) {
 TEST_F(UTestAscendcApiPerf, TestCompareScalarEQFloat32) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   // 构造输入形状
   att::TensorShapeInfo input;
@@ -4528,7 +4431,7 @@ TEST_F(UTestAscendcApiPerf, TestCompareScalarEQFloat32) {
   const float h = 21.9749f;
   const int dim_product = 64 * 128;
   auto expected_value = CreateExpr(dim_product) * CreateExpr(k) + CreateExpr(h);
-  
+
   PerfOutputInfo perf_res;
   NodeInfo node;
   std::string op_type = "CompareScalarEQ";
@@ -4544,7 +4447,6 @@ TEST_F(UTestAscendcApiPerf, TestCompareScalarEQFloat32) {
 TEST_F(UTestAscendcApiPerf, TestCompareScalarEQUnsupported) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   // 构造输入形状
   att::TensorShapeInfo input;
@@ -4559,7 +4461,7 @@ TEST_F(UTestAscendcApiPerf, TestCompareScalarEQUnsupported) {
   output.dims = {CreateExpr(64), CreateExpr(128)};
   output.data_type_size = 1;
   output_shapes.push_back(output);
-  
+
   PerfOutputInfo perf_res;
   NodeInfo node;
   std::string op_type = "CompareScalarEQ";
@@ -4569,12 +4471,10 @@ TEST_F(UTestAscendcApiPerf, TestCompareScalarEQUnsupported) {
   EXPECT_EQ(result, af::SUCCESS);
 }
 
-
 // 测试 CompareScalarGE API - float32类型
 TEST_F(UTestAscendcApiPerf, TestCompareScalarGEFloat32) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   // 构造输入形状
   att::TensorShapeInfo input;
@@ -4609,7 +4509,6 @@ TEST_F(UTestAscendcApiPerf, TestCompareScalarGEFloat32) {
 TEST_F(UTestAscendcApiPerf, TestCompareScalarGTFloat32) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   // 构造输入形状
   att::TensorShapeInfo input;
@@ -4644,7 +4543,6 @@ TEST_F(UTestAscendcApiPerf, TestCompareScalarGTFloat32) {
 TEST_F(UTestAscendcApiPerf, TestCompareScalarLEFloat32) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   // 构造输入形状
   att::TensorShapeInfo input;
@@ -4679,7 +4577,6 @@ TEST_F(UTestAscendcApiPerf, TestCompareScalarLEFloat32) {
 TEST_F(UTestAscendcApiPerf, TestCompareScalarNEFloat32) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   // 构造输入形状
   att::TensorShapeInfo input;
@@ -4714,7 +4611,6 @@ TEST_F(UTestAscendcApiPerf, TestCompareScalarNEFloat32) {
 TEST_F(UTestAscendcApiPerf, TestMatMulInsufficientInputs) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   // 只添加一个输入
   att::TensorShapeInfo input;
@@ -4740,7 +4636,6 @@ TEST_F(UTestAscendcApiPerf, TestMatMulInsufficientInputs) {
 TEST_F(UTestAscendcApiPerf, TestMatMulMismatchedDimensions) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   att::TensorShapeInfo input_a;
   input_a.data_type = "float16";
@@ -4749,7 +4644,7 @@ TEST_F(UTestAscendcApiPerf, TestMatMulMismatchedDimensions) {
 
   att::TensorShapeInfo input_b;
   input_b.data_type = "float16";
-  input_b.dims = {CreateExpr(256), CreateExpr(512)}; // 维度不匹配
+  input_b.dims = {CreateExpr(256), CreateExpr(512)};  // 维度不匹配
   input_shapes.push_back(input_b);
 
   att::TensorShapeInfo output;
@@ -4770,11 +4665,10 @@ TEST_F(UTestAscendcApiPerf, TestMatMulMismatchedDimensions) {
 TEST_F(UTestAscendcApiPerf, TestMatMulInvalidDimCount) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   att::TensorShapeInfo input_a;
   input_a.data_type = "float16";
-  input_a.dims = {CreateExpr(64)}; // 只有一个维度
+  input_a.dims = {CreateExpr(64)};  // 只有一个维度
   input_shapes.push_back(input_a);
 
   att::TensorShapeInfo input_b;
@@ -4800,7 +4694,6 @@ TEST_F(UTestAscendcApiPerf, TestMatMulInvalidDimCount) {
 TEST_F(UTestAscendcApiPerf, TestCopyEmptyInput) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   output_shapes[0].data_type = "float16";
   output_shapes[0].dims = {CreateExpr(64), CreateExpr(128)};
@@ -4818,7 +4711,6 @@ TEST_F(UTestAscendcApiPerf, TestCopyEmptyInput) {
 TEST_F(UTestAscendcApiPerf, TestCopyEmptyDims) {
   std::vector<att::TensorShapeInfo> input_shapes(1);
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   input_shapes[0].data_type = "float16";
   // dims保持为空
@@ -4837,7 +4729,6 @@ TEST_F(UTestAscendcApiPerf, TestCopyEmptyDims) {
 TEST_F(UTestAscendcApiPerf, TestCopyGMtoL1EmptyInput) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   output_shapes[0].data_type = "float16";
   output_shapes[0].dims = {CreateExpr(64), CreateExpr(128)};
@@ -4855,7 +4746,6 @@ TEST_F(UTestAscendcApiPerf, TestCopyGMtoL1EmptyInput) {
 TEST_F(UTestAscendcApiPerf, TestCopyGMtoL1EmptyDims) {
   std::vector<att::TensorShapeInfo> input_shapes(1);
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   input_shapes[0].data_type = "float16";
   // dims保持为空
@@ -4874,7 +4764,6 @@ TEST_F(UTestAscendcApiPerf, TestCopyGMtoL1EmptyDims) {
 TEST_F(UTestAscendcApiPerf, TestCopyFromL1EmptyInput) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   output_shapes[0].data_type = "float16";
   output_shapes[0].dims = {CreateExpr(64), CreateExpr(128)};
@@ -4892,7 +4781,6 @@ TEST_F(UTestAscendcApiPerf, TestCopyFromL1EmptyInput) {
 TEST_F(UTestAscendcApiPerf, TestCopyFromL1EmptyDims) {
   std::vector<att::TensorShapeInfo> input_shapes(1);
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   input_shapes[0].data_type = "float16";
   // dims保持为空
@@ -4911,7 +4799,6 @@ TEST_F(UTestAscendcApiPerf, TestCopyFromL1EmptyDims) {
 TEST_F(UTestAscendcApiPerf, TestCubeComputeInsufficientInputs) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   att::TensorShapeInfo input;
   input.data_type = "float16";
@@ -4934,11 +4821,10 @@ TEST_F(UTestAscendcApiPerf, TestCubeComputeInsufficientInputs) {
 TEST_F(UTestAscendcApiPerf, TestCubeComputeInvalidDimCount) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   att::TensorShapeInfo input_a;
   input_a.data_type = "float16";
-  input_a.dims = {CreateExpr(64)}; // 只有一个维度
+  input_a.dims = {CreateExpr(64)};  // 只有一个维度
   input_shapes.push_back(input_a);
 
   att::TensorShapeInfo input_b;
@@ -4962,7 +4848,6 @@ TEST_F(UTestAscendcApiPerf, TestCubeComputeInvalidDimCount) {
 TEST_F(UTestAscendcApiPerf, TestVectorComputeEmptyInput) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   output_shapes[0].data_type = "float16";
   output_shapes[0].dims = {CreateExpr(64), CreateExpr(128)};
@@ -4980,7 +4865,6 @@ TEST_F(UTestAscendcApiPerf, TestVectorComputeEmptyInput) {
 TEST_F(UTestAscendcApiPerf, TestVectorComputeEmptyDims) {
   std::vector<att::TensorShapeInfo> input_shapes(1);
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   input_shapes[0].data_type = "float16";
   // dims保持为空
@@ -4999,7 +4883,6 @@ TEST_F(UTestAscendcApiPerf, TestVectorComputeEmptyDims) {
 TEST_F(UTestAscendcApiPerf, TestDropoutComputeEmptyInput) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   output_shapes[0].data_type = "float16";
   output_shapes[0].dims = {CreateExpr(64), CreateExpr(128)};
@@ -5017,7 +4900,6 @@ TEST_F(UTestAscendcApiPerf, TestDropoutComputeEmptyInput) {
 TEST_F(UTestAscendcApiPerf, TestDropoutComputeEmptyDims) {
   std::vector<att::TensorShapeInfo> input_shapes(1);
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   input_shapes[0].data_type = "float16";
   // dims保持为空
@@ -5036,7 +4918,6 @@ TEST_F(UTestAscendcApiPerf, TestDropoutComputeEmptyDims) {
 TEST_F(UTestAscendcApiPerf, TestSoftmaxFlashV2EmptyInput) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   output_shapes[0].data_type = "float16";
   output_shapes[0].dims = {CreateExpr(64), CreateExpr(128)};
@@ -5054,7 +4935,6 @@ TEST_F(UTestAscendcApiPerf, TestSoftmaxFlashV2EmptyInput) {
 TEST_F(UTestAscendcApiPerf, TestSoftmaxFlashV2EmptyDims) {
   std::vector<att::TensorShapeInfo> input_shapes(1);
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   input_shapes[0].data_type = "float16";
   // dims保持为空
@@ -5073,7 +4953,6 @@ TEST_F(UTestAscendcApiPerf, TestSoftmaxFlashV2EmptyDims) {
 TEST_F(UTestAscendcApiPerf, TestMatMulHighDimensions) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   // 构造4维输入形状A
   att::TensorShapeInfo input_a;
@@ -5106,7 +4985,6 @@ TEST_F(UTestAscendcApiPerf, TestMatMulHighDimensions) {
 TEST_F(UTestAscendcApiPerf, TestCopyDifferentLocations) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   // 构造输入形状
   att::TensorShapeInfo input;
@@ -5128,24 +5006,13 @@ TEST_F(UTestAscendcApiPerf, TestCopyDifferentLocations) {
 
   // 测试所有可能的硬件位置组合
   std::vector<std::pair<att::HardwareDef, att::HardwareDef>> locations = {
-    {att::HardwareDef::GM, att::HardwareDef::L1},
-    {att::HardwareDef::L1, att::HardwareDef::L0A},
-    {att::HardwareDef::L1, att::HardwareDef::L0B},
-    {att::HardwareDef::L0C, att::HardwareDef::L2},
-    {att::HardwareDef::L0C, att::HardwareDef::GM},
-    {att::HardwareDef::GM, att::HardwareDef::UB},
-    {att::HardwareDef::UB, att::HardwareDef::GM}
-  };
+      {att::HardwareDef::GM, att::HardwareDef::L1},  {att::HardwareDef::L1, att::HardwareDef::L0A},
+      {att::HardwareDef::L1, att::HardwareDef::L0B}, {att::HardwareDef::L0C, att::HardwareDef::L2},
+      {att::HardwareDef::L0C, att::HardwareDef::GM}, {att::HardwareDef::GM, att::HardwareDef::UB},
+      {att::HardwareDef::UB, att::HardwareDef::GM}};
 
-  std::vector<std::string> op_types = {
-    "T_LoadTscm",
-    "T_LoadA",
-    "T_LoadB", 
-    "CopyL0CToL2",
-    "T_FixPipeTrans",
-    "Load",
-    "Store"
-  };
+  std::vector<std::string> op_types = {"T_LoadTscm",     "T_LoadA", "T_LoadB", "CopyL0CToL2",
+                                       "T_FixPipeTrans", "Load",    "Store"};
 
   PerfOutputInfo perf_res;
   NodeInfo node;
@@ -5155,8 +5022,7 @@ TEST_F(UTestAscendcApiPerf, TestCopyDifferentLocations) {
 
     auto perf = GetPerfFunc(op_types[i]);
     node.node_ptr = GraphConstructUtils::ConstructSingleOp(op_types[i], 1, 1);
-    auto result =
-        perf(input_shapes, output_shapes, node, perf_res);
+    auto result = perf(input_shapes, output_shapes, node, perf_res);
     EXPECT_EQ(result, af::SUCCESS);
   }
 }
@@ -5165,14 +5031,13 @@ TEST_F(UTestAscendcApiPerf, TestCopyDifferentLocations) {
 TEST_F(UTestAscendcApiPerf, TestVectorComputeDifferentTypes) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   std::vector<std::string> data_types = {"float16", "float32", "int8", "int32"};
-  
+
   PerfOutputInfo perf_res;
   NodeInfo node;
-  for (const auto& input_type : data_types) {
-    for (const auto& output_type : data_types) {
+  for (const auto &input_type : data_types) {
+    for (const auto &output_type : data_types) {
       input_shapes.clear();
       output_shapes.clear();
 
@@ -5192,7 +5057,7 @@ TEST_F(UTestAscendcApiPerf, TestVectorComputeDifferentTypes) {
       auto perf = GetPerfFunc(op_type);
       node.node_ptr = GraphConstructUtils::ConstructSingleOp(op_type, 1, 1);
       auto result = perf(input_shapes, output_shapes, node, perf_res);
-      
+
       if (input_type == "float16" || input_type == "float32") {
         EXPECT_EQ(result, af::SUCCESS);
       } else {
@@ -5206,7 +5071,6 @@ TEST_F(UTestAscendcApiPerf, TestVectorComputeDifferentTypes) {
 TEST_F(UTestAscendcApiPerf, TestCubeComputeSpecialDims) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   // 测试1维输入
   att::TensorShapeInfo input_a;
@@ -5235,15 +5099,15 @@ TEST_F(UTestAscendcApiPerf, TestCubeComputeSpecialDims) {
   // 测试3维输入
   input_shapes.clear();
   output_shapes.clear();
-  
+
   input_a.dims = {CreateExpr(8), CreateExpr(16), CreateExpr(32)};
   input_b.dims = {CreateExpr(8), CreateExpr(32), CreateExpr(64)};
   output.dims = {CreateExpr(8), CreateExpr(16), CreateExpr(64)};
-  
+
   input_shapes.push_back(input_a);
   input_shapes.push_back(input_b);
   output_shapes.push_back(output);
-  
+
   result = perf(input_shapes, output_shapes, node, perf_res);
   EXPECT_EQ(result, af::SUCCESS);
 }
@@ -5252,7 +5116,7 @@ TEST_F(UTestAscendcApiPerf, TestCubeComputeSpecialDims) {
 TEST_F(UTestAscendcApiPerf, TestBroadcastSpecialDims) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
+
   att::Expr dim0 = af::Symbol(32, "a");
   att::Expr dim1 = af::Symbol(64, "b");
 
@@ -5278,13 +5142,13 @@ TEST_F(UTestAscendcApiPerf, TestBroadcastSpecialDims) {
   // 测试3维到4维广播
   input_shapes.clear();
   output_shapes.clear();
-  
+
   input.dims = {CreateExpr(1), CreateExpr(16), CreateExpr(32)};
   output.dims = {CreateExpr(8), CreateExpr(16), CreateExpr(32), CreateExpr(64)};
-  
+
   input_shapes.push_back(input);
   output_shapes.push_back(output);
-  
+
   result = perf(input_shapes, output_shapes, node, perf_res);
   EXPECT_EQ(result, af::SUCCESS);
 }
@@ -5293,19 +5157,13 @@ TEST_F(UTestAscendcApiPerf, TestBroadcastSpecialDims) {
 TEST_F(UTestAscendcApiPerf, TestLoadStoreDataTypeSizes) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   std::vector<std::pair<std::string, int>> type_sizes = {
-    {"float16", 2},
-    {"float32", 4},
-    {"int8", 1},
-    {"int32", 4},
-    {"bfloat16", 2}
-  };
+      {"float16", 2}, {"float32", 4}, {"int8", 1}, {"int32", 4}, {"bfloat16", 2}};
 
   PerfOutputInfo perf_res;
   NodeInfo node;
-  for (const auto& type_size : type_sizes) {
+  for (const auto &type_size : type_sizes) {
     input_shapes.clear();
     output_shapes.clear();
 
@@ -5341,7 +5199,7 @@ TEST_F(UTestAscendcApiPerf, TestLoadStoreDataTypeSizes) {
     // 测试Store
     input.loc = att::HardwareDef::UB;
     output.loc = att::HardwareDef::GM;
-    
+
     op_type = "Store";
     perf = GetPerfFunc(op_type);
     node.node_ptr = GraphConstructUtils::ConstructSingleOp(op_type, 1, 1);
@@ -5355,14 +5213,13 @@ TEST_F(UTestAscendcApiPerf, TestLoadStoreDataTypeSizes) {
 TEST_F(UTestAscendcApiPerf, TestMatMulDifferentTypes) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   std::vector<std::string> data_types = {"float16", "float32", "int8", "int32"};
-  
+
   PerfOutputInfo perf_res;
   NodeInfo node;
-  for (const auto& type_a : data_types) {
-    for (const auto& type_b : data_types) {
+  for (const auto &type_a : data_types) {
+    for (const auto &type_b : data_types) {
       input_shapes.clear();
       output_shapes.clear();
 
@@ -5388,7 +5245,7 @@ TEST_F(UTestAscendcApiPerf, TestMatMulDifferentTypes) {
       auto perf = GetPerfFunc(op_type);
       node.node_ptr = GraphConstructUtils::ConstructSingleOp(op_type, 1, 1);
       auto result = perf(input_shapes, output_shapes, node, perf_res);
-      
+
       if (type_a == "float16" && type_b == "float16") {
         EXPECT_EQ(result, af::SUCCESS);
       } else {
@@ -5402,18 +5259,17 @@ TEST_F(UTestAscendcApiPerf, TestMatMulDifferentTypes) {
 TEST_F(UTestAscendcApiPerf, TestFlashSoftmaxDifferentDims) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   std::vector<std::vector<Expr>> dim_combinations = {
-    {CreateExpr(64)},  // 1维
-    {CreateExpr(32), CreateExpr(64)},  // 2维
-    {CreateExpr(16), CreateExpr(32), CreateExpr(64)},  // 3维
-    {CreateExpr(8), CreateExpr(16), CreateExpr(32), CreateExpr(64)}  // 4维
+      {CreateExpr(64)},                                                // 1维
+      {CreateExpr(32), CreateExpr(64)},                                // 2维
+      {CreateExpr(16), CreateExpr(32), CreateExpr(64)},                // 3维
+      {CreateExpr(8), CreateExpr(16), CreateExpr(32), CreateExpr(64)}  // 4维
   };
 
   PerfOutputInfo perf_res;
   NodeInfo node;
-  for (const auto& dims : dim_combinations) {
+  for (const auto &dims : dim_combinations) {
     input_shapes.clear();
     output_shapes.clear();
 
@@ -5441,18 +5297,17 @@ TEST_F(UTestAscendcApiPerf, TestFlashSoftmaxDifferentDims) {
 TEST_F(UTestAscendcApiPerf, TestDropOutDifferentDims) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   std::vector<std::vector<Expr>> dim_combinations = {
-    {CreateExpr(64)},  // 1维
-    {CreateExpr(32), CreateExpr(64)},  // 2维
-    {CreateExpr(16), CreateExpr(32), CreateExpr(64)},  // 3维
-    {CreateExpr(8), CreateExpr(16), CreateExpr(32), CreateExpr(64)}  // 4维
+      {CreateExpr(64)},                                                // 1维
+      {CreateExpr(32), CreateExpr(64)},                                // 2维
+      {CreateExpr(16), CreateExpr(32), CreateExpr(64)},                // 3维
+      {CreateExpr(8), CreateExpr(16), CreateExpr(32), CreateExpr(64)}  // 4维
   };
 
   PerfOutputInfo perf_res;
   NodeInfo node;
-  for (const auto& dims : dim_combinations) {
+  for (const auto &dims : dim_combinations) {
     input_shapes.clear();
     output_shapes.clear();
 
@@ -5487,7 +5342,6 @@ TEST_F(UTestAscendcApiPerf, TestGetPerfFuncInvalidOp) {
 TEST_F(UTestAscendcApiPerf, TestLogicalOrEmptyInput) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   output_shapes[0].data_type = "float16";
   output_shapes[0].dims = {CreateExpr(10)};
@@ -5504,7 +5358,6 @@ TEST_F(UTestAscendcApiPerf, TestLogicalOrEmptyInput) {
 TEST_F(UTestAscendcApiPerf, TestLogicalOrEmptyDims) {
   std::vector<att::TensorShapeInfo> input_shapes(1);
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   input_shapes[0].data_type = "float16";
   // dims保持为空
@@ -5522,7 +5375,6 @@ TEST_F(UTestAscendcApiPerf, TestLogicalOrEmptyDims) {
 TEST_F(UTestAscendcApiPerf, TestLogicalOrUnsupportedType) {
   std::vector<att::TensorShapeInfo> input_shapes(1);
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   input_shapes[0].data_type = "int8";
   input_shapes[0].dims = {CreateExpr(32)};
@@ -5544,7 +5396,6 @@ TEST_F(UTestAscendcApiPerf, TestLogicalOrUnsupportedType) {
 TEST_F(UTestAscendcApiPerf, TestLogicalAndEmptyInput) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   output_shapes[0].data_type = "float16";
   output_shapes[0].dims = {CreateExpr(10)};
@@ -5561,7 +5412,6 @@ TEST_F(UTestAscendcApiPerf, TestLogicalAndEmptyInput) {
 TEST_F(UTestAscendcApiPerf, TestLogicalAndEmptyDims) {
   std::vector<att::TensorShapeInfo> input_shapes(1);
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   input_shapes[0].data_type = "float16";
   // dims保持为空
@@ -5579,7 +5429,6 @@ TEST_F(UTestAscendcApiPerf, TestLogicalAndEmptyDims) {
 TEST_F(UTestAscendcApiPerf, TestLogicalAndUnsupportedType) {
   std::vector<att::TensorShapeInfo> input_shapes(1);
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   input_shapes[0].data_type = "int8";
   input_shapes[0].dims = {CreateExpr(32)};
@@ -5601,7 +5450,6 @@ TEST_F(UTestAscendcApiPerf, TestLogicalAndUnsupportedType) {
 TEST_F(UTestAscendcApiPerf, TestWholeReduceSumEmptyInput) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   output_shapes[0].data_type = "float16";
   output_shapes[0].dims = {CreateExpr(10)};
@@ -5618,7 +5466,6 @@ TEST_F(UTestAscendcApiPerf, TestWholeReduceSumEmptyInput) {
 TEST_F(UTestAscendcApiPerf, TestWholeReduceSumEmptyDims) {
   std::vector<att::TensorShapeInfo> input_shapes(1);
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   input_shapes[0].data_type = "float16";
   // dims保持为空
@@ -5636,7 +5483,6 @@ TEST_F(UTestAscendcApiPerf, TestWholeReduceSumEmptyDims) {
 TEST_F(UTestAscendcApiPerf, TestWholeReduceSumUnsupportedType) {
   std::vector<att::TensorShapeInfo> input_shapes(1);
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   input_shapes[0].data_type = "int8";
   input_shapes[0].dims = {CreateExpr(32)};
@@ -5658,7 +5504,6 @@ TEST_F(UTestAscendcApiPerf, TestWholeReduceSumUnsupportedType) {
 TEST_F(UTestAscendcApiPerf, TestWholeReduceMinEmptyInput) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   output_shapes[0].data_type = "float16";
   output_shapes[0].dims = {CreateExpr(10)};
@@ -5675,7 +5520,6 @@ TEST_F(UTestAscendcApiPerf, TestWholeReduceMinEmptyInput) {
 TEST_F(UTestAscendcApiPerf, TestWholeReduceMinEmptyDims) {
   std::vector<att::TensorShapeInfo> input_shapes(1);
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   input_shapes[0].data_type = "float16";
   // dims保持为空
@@ -5693,7 +5537,6 @@ TEST_F(UTestAscendcApiPerf, TestWholeReduceMinEmptyDims) {
 TEST_F(UTestAscendcApiPerf, TestWholeReduceMinUnsupportedType) {
   std::vector<att::TensorShapeInfo> input_shapes(1);
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   input_shapes[0].data_type = "int8";
   input_shapes[0].dims = {CreateExpr(32)};
@@ -5715,7 +5558,6 @@ TEST_F(UTestAscendcApiPerf, TestWholeReduceMinUnsupportedType) {
 TEST_F(UTestAscendcApiPerf, TestWholeReduceMaxEmptyInput) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   output_shapes[0].data_type = "float16";
   output_shapes[0].dims = {CreateExpr(10)};
@@ -5732,7 +5574,6 @@ TEST_F(UTestAscendcApiPerf, TestWholeReduceMaxEmptyInput) {
 TEST_F(UTestAscendcApiPerf, TestWholeReduceMaxEmptyDims) {
   std::vector<att::TensorShapeInfo> input_shapes(1);
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   input_shapes[0].data_type = "float16";
   // dims保持为空
@@ -5750,7 +5591,6 @@ TEST_F(UTestAscendcApiPerf, TestWholeReduceMaxEmptyDims) {
 TEST_F(UTestAscendcApiPerf, TestWholeReduceMaxUnsupportedType) {
   std::vector<att::TensorShapeInfo> input_shapes(1);
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   input_shapes[0].data_type = "int8";
   input_shapes[0].dims = {CreateExpr(32)};
@@ -5826,7 +5666,6 @@ TEST_F(UTestAscendcApiPerf, TestSelectUnsupportedType) {
 TEST_F(UTestAscendcApiPerf, TestTanhEmptyInput) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   output_shapes[0].data_type = "float16";
   output_shapes[0].dims = {CreateExpr(10)};
@@ -5843,7 +5682,6 @@ TEST_F(UTestAscendcApiPerf, TestTanhEmptyInput) {
 TEST_F(UTestAscendcApiPerf, TestTanhEmptyDims) {
   std::vector<att::TensorShapeInfo> input_shapes(1);
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   input_shapes[0].data_type = "float16";
   // dims保持为空
@@ -5861,7 +5699,6 @@ TEST_F(UTestAscendcApiPerf, TestTanhEmptyDims) {
 TEST_F(UTestAscendcApiPerf, TestTanhUnsupportedType) {
   std::vector<att::TensorShapeInfo> input_shapes(1);
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   input_shapes[0].data_type = "int8";
   input_shapes[0].dims = {CreateExpr(32)};
@@ -5883,7 +5720,6 @@ TEST_F(UTestAscendcApiPerf, TestTanhUnsupportedType) {
 TEST_F(UTestAscendcApiPerf, TestSubEmptyInput) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   output_shapes[0].data_type = "float16";
   output_shapes[0].dims = {CreateExpr(10)};
@@ -5900,7 +5736,6 @@ TEST_F(UTestAscendcApiPerf, TestSubEmptyInput) {
 TEST_F(UTestAscendcApiPerf, TestSubEmptyDims) {
   std::vector<att::TensorShapeInfo> input_shapes(1);
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   input_shapes[0].data_type = "float16";
   // dims保持为空
@@ -5918,7 +5753,6 @@ TEST_F(UTestAscendcApiPerf, TestSubEmptyDims) {
 TEST_F(UTestAscendcApiPerf, TestSubUnsupportedType) {
   std::vector<att::TensorShapeInfo> input_shapes(1);
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   input_shapes[0].data_type = "int8";
   input_shapes[0].dims = {CreateExpr(32)};
@@ -5940,7 +5774,6 @@ TEST_F(UTestAscendcApiPerf, TestSubUnsupportedType) {
 TEST_F(UTestAscendcApiPerf, TestSqrtEmptyInput) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   output_shapes[0].data_type = "float16";
   output_shapes[0].dims = {CreateExpr(10)};
@@ -5957,7 +5790,6 @@ TEST_F(UTestAscendcApiPerf, TestSqrtEmptyInput) {
 TEST_F(UTestAscendcApiPerf, TestSqrtEmptyDims) {
   std::vector<att::TensorShapeInfo> input_shapes(1);
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   input_shapes[0].data_type = "float16";
   // dims保持为空
@@ -5975,7 +5807,6 @@ TEST_F(UTestAscendcApiPerf, TestSqrtEmptyDims) {
 TEST_F(UTestAscendcApiPerf, TestSqrtUnsupportedType) {
   std::vector<att::TensorShapeInfo> input_shapes(1);
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   input_shapes[0].data_type = "int8";
   input_shapes[0].dims = {CreateExpr(32)};
@@ -5997,7 +5828,6 @@ TEST_F(UTestAscendcApiPerf, TestSqrtUnsupportedType) {
 TEST_F(UTestAscendcApiPerf, TestSignEmptyInput) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   output_shapes[0].data_type = "float16";
   output_shapes[0].dims = {CreateExpr(10)};
@@ -6014,7 +5844,6 @@ TEST_F(UTestAscendcApiPerf, TestSignEmptyInput) {
 TEST_F(UTestAscendcApiPerf, TestSignEmptyDims) {
   std::vector<att::TensorShapeInfo> input_shapes(1);
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   input_shapes[0].data_type = "float16";
   // dims保持为空
@@ -6032,7 +5861,6 @@ TEST_F(UTestAscendcApiPerf, TestSignEmptyDims) {
 TEST_F(UTestAscendcApiPerf, TestSignUnsupportedType) {
   std::vector<att::TensorShapeInfo> input_shapes(1);
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   input_shapes[0].data_type = "int8";
   input_shapes[0].dims = {CreateExpr(32)};
@@ -6054,7 +5882,6 @@ TEST_F(UTestAscendcApiPerf, TestSignUnsupportedType) {
 TEST_F(UTestAscendcApiPerf, TestSigmoidEmptyInput) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   output_shapes[0].data_type = "float16";
   output_shapes[0].dims = {CreateExpr(10)};
@@ -6071,7 +5898,6 @@ TEST_F(UTestAscendcApiPerf, TestSigmoidEmptyInput) {
 TEST_F(UTestAscendcApiPerf, TestSigmoidEmptyDims) {
   std::vector<att::TensorShapeInfo> input_shapes(1);
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   input_shapes[0].data_type = "float16";
   // dims保持为空
@@ -6089,7 +5915,6 @@ TEST_F(UTestAscendcApiPerf, TestSigmoidEmptyDims) {
 TEST_F(UTestAscendcApiPerf, TestSigmoidUnsupportedType) {
   std::vector<att::TensorShapeInfo> input_shapes(1);
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   input_shapes[0].data_type = "int8";
   input_shapes[0].dims = {CreateExpr(32)};
@@ -6111,7 +5936,6 @@ TEST_F(UTestAscendcApiPerf, TestSigmoidUnsupportedType) {
 TEST_F(UTestAscendcApiPerf, TestSetVectorMaskEmptyInput) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   output_shapes[0].data_type = "float16";
   output_shapes[0].dims = {CreateExpr(10)};
@@ -6128,7 +5952,6 @@ TEST_F(UTestAscendcApiPerf, TestSetVectorMaskEmptyInput) {
 TEST_F(UTestAscendcApiPerf, TestSetVectorMaskEmptyDims) {
   std::vector<att::TensorShapeInfo> input_shapes(1);
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   input_shapes[0].data_type = "float16";
   // dims保持为空
@@ -6146,7 +5969,6 @@ TEST_F(UTestAscendcApiPerf, TestSetVectorMaskEmptyDims) {
 TEST_F(UTestAscendcApiPerf, TestSetVectorMaskUnsupportedType) {
   std::vector<att::TensorShapeInfo> input_shapes(1);
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   input_shapes[0].data_type = "int8";
   input_shapes[0].dims = {CreateExpr(32)};
@@ -6168,7 +5990,6 @@ TEST_F(UTestAscendcApiPerf, TestSetVectorMaskUnsupportedType) {
 TEST_F(UTestAscendcApiPerf, TestRsqrtEmptyInput) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   output_shapes[0].data_type = "float16";
   output_shapes[0].dims = {CreateExpr(10)};
@@ -6185,7 +6006,6 @@ TEST_F(UTestAscendcApiPerf, TestRsqrtEmptyInput) {
 TEST_F(UTestAscendcApiPerf, TestRsqrtEmptyDims) {
   std::vector<att::TensorShapeInfo> input_shapes(1);
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   input_shapes[0].data_type = "float16";
   // dims保持为空
@@ -6204,7 +6024,6 @@ TEST_F(UTestAscendcApiPerf, TestRsqrtEmptyDims) {
 TEST_F(UTestAscendcApiPerf, TestBroadcastOuterEmptyInput) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   output_shapes[0].data_type = "float16";
   output_shapes[0].dims = {CreateExpr(10)};
@@ -6221,7 +6040,6 @@ TEST_F(UTestAscendcApiPerf, TestBroadcastOuterEmptyInput) {
 TEST_F(UTestAscendcApiPerf, TestBroadcastOuterEmptyDims) {
   std::vector<att::TensorShapeInfo> input_shapes(1);
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   input_shapes[0].data_type = "float16";
   // dims保持为空
@@ -6239,7 +6057,6 @@ TEST_F(UTestAscendcApiPerf, TestBroadcastOuterEmptyDims) {
 TEST_F(UTestAscendcApiPerf, TestBroadcastOuterUnsupportedType) {
   std::vector<att::TensorShapeInfo> input_shapes(1);
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   input_shapes[0].data_type = "int8";
   input_shapes[0].dims = {CreateExpr(1), CreateExpr(32)};
@@ -6261,7 +6078,6 @@ TEST_F(UTestAscendcApiPerf, TestBroadcastOuterUnsupportedType) {
 TEST_F(UTestAscendcApiPerf, TestLoadApiEmptyInput) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   output_shapes[0].data_type = "float16";
   output_shapes[0].dims = {CreateExpr(10)};
@@ -6295,7 +6111,6 @@ TEST_F(UTestAscendcApiPerf, TestLoadApiEmptyDims) {
 TEST_F(UTestAscendcApiPerf, TestLoadApiUnsupportedType) {
   std::vector<att::TensorShapeInfo> input_shapes(1);
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   input_shapes[0].data_type = "int64";
   input_shapes[0].dims = {CreateExpr(32)};
@@ -6353,7 +6168,16 @@ TEST_F(UTestAscendcApiPerf, TestLoadApiForTypev1) {
   auto iter = replace_vars.find(res);
   EXPECT_TRUE(iter != replace_vars.end());
   EXPECT_EQ(Str(iter->second),
-            "TernaryOp(z1t_size < z0t_size, (TernaryOp((256 * z0t_size) < 25000, TernaryOp(IsEqual(False, 0), ((0.0700000002980232 * Mod(Abs((64 - (64 * z0t_size))), 256) * z0t_size) + (256 * z0t_size / (((7.30999994277954 / (block_dim)) + 7.90520000457764))) + 27.0100002288818), ((512 * z0t_size / (((7.30999994277954 / (block_dim)) + 7.90520000457764))) + 27.0100002288818)), ((0.0700000002980232 * Mod(Abs((64 - (64 * z0t_size))), 256) * z0t_size) + (256 * z0t_size / (((15.8959999084473 / (block_dim)) + 9.90740013122559))) + 27.0100002288818)) * z1t_size), (TernaryOp((256 * z1t_size) < 25000, TernaryOp(IsEqual(False, 0), ((256 * z1t_size / (((7.30999994277954 / (block_dim)) + 7.90520000457764))) + 27.0100002288818), ((512 * z1t_size / (((7.30999994277954 / (block_dim)) + 7.90520000457764))) + 27.0100002288818)), ((256 * z1t_size / (((15.8959999084473 / (block_dim)) + 9.90740013122559))) + 27.0100002288818)) * z0t_size))");
+            "TernaryOp(z1t_size < z0t_size, (TernaryOp((256 * z0t_size) < 25000, TernaryOp(IsEqual(False, 0), "
+            "((0.0700000002980232 * Mod(Abs((64 - (64 * z0t_size))), 256) * z0t_size) + (256 * z0t_size / "
+            "(((7.30999994277954 / (block_dim)) + 7.90520000457764))) + 27.0100002288818), ((512 * z0t_size / "
+            "(((7.30999994277954 / (block_dim)) + 7.90520000457764))) + 27.0100002288818)), ((0.0700000002980232 * "
+            "Mod(Abs((64 - (64 * z0t_size))), 256) * z0t_size) + (256 * z0t_size / (((15.8959999084473 / (block_dim)) "
+            "+ 9.90740013122559))) + 27.0100002288818)) * z1t_size), (TernaryOp((256 * z1t_size) < 25000, "
+            "TernaryOp(IsEqual(False, 0), ((256 * z1t_size / (((7.30999994277954 / (block_dim)) + 7.90520000457764))) "
+            "+ 27.0100002288818), ((512 * z1t_size / (((7.30999994277954 / (block_dim)) + 7.90520000457764))) + "
+            "27.0100002288818)), ((256 * z1t_size / (((15.8959999084473 / (block_dim)) + 9.90740013122559))) + "
+            "27.0100002288818)) * z0t_size))");
 }
 
 TEST_F(UTestAscendcApiPerf, TestLoadApiForTypev2) {
@@ -6367,14 +6191,14 @@ TEST_F(UTestAscendcApiPerf, TestLoadApiForTypev2) {
   input_shapes[0].repeats = {z0z1t_size, CreateExpr(7), CreateExpr(34), z4t_size, CreateExpr(7)};
   // 连续 {true, false, true, true}
   input_shapes[0].strides = {CreateExpr(7), CreateExpr(34), z4t_size, CreateExpr(7), af::sym::kSymbolOne};
-  input_shapes[0].gm_strides = {z4t_size * CreateExpr(7 * 7 * 34), z4t_size * CreateExpr(7 * 34), z4t_size * CreateExpr(7), CreateExpr(7),
-                             af::sym::kSymbolOne};
+  input_shapes[0].gm_strides = {z4t_size * CreateExpr(7 * 7 * 34), z4t_size * CreateExpr(7 * 34),
+                                z4t_size * CreateExpr(7), CreateExpr(7), af::sym::kSymbolOne};
   output_shapes[0].data_type = "int64";
   output_shapes[0].dims = {z0z1t_size, CreateExpr(7), CreateExpr(34), z4t_size, CreateExpr(7)};
   output_shapes[0].repeats = {z0z1t_size, CreateExpr(7), CreateExpr(34), z4t_size, CreateExpr(7)};
   output_shapes[0].strides = {CreateExpr(7), CreateExpr(34), z4t_size, CreateExpr(7), af::sym::kSymbolOne};
-  output_shapes[0].gm_strides = {z4t_size * CreateExpr(7 * 7 * 34), z4t_size * CreateExpr(7 * 34), z4t_size * CreateExpr(7), CreateExpr(7),
-                             af::sym::kSymbolOne};
+  output_shapes[0].gm_strides = {z4t_size * CreateExpr(7 * 7 * 34), z4t_size * CreateExpr(7 * 34),
+                                 z4t_size * CreateExpr(7), CreateExpr(7), af::sym::kSymbolOne};
   input_shapes[0].data_type_size = 8;
   output_shapes[0].data_type_size = 8;
 
@@ -6395,8 +6219,11 @@ TEST_F(UTestAscendcApiPerf, TestLoadApiForTypev2) {
   // 存在外抛
   auto ternary_ops = perf_res.ternary_ops;
   auto ret = ConcursiveReplaceVars(ternary_ops);
-  EXPECT_EQ(Str(res.Replace(ret)), 
-            "(7 * TernaryOp((1904 * z4t_size) < 25000, TernaryOp(IsEqual(False, 0), ((1904 * z4t_size / (((7.30999994277954 / (block_dim)) + 7.90520000457764))) + 27.0100002288818), ((17408 / (((7.30999994277954 / (block_dim)) + 7.90520000457764))) + 27.0100002288818)), ((1904 * z4t_size / (((15.8959999084473 / (block_dim)) + 9.90740013122559))) + 27.0100002288818)) * z0z1t_size)");
+  EXPECT_EQ(Str(res.Replace(ret)),
+            "(7 * TernaryOp((1904 * z4t_size) < 25000, TernaryOp(IsEqual(False, 0), ((1904 * z4t_size / "
+            "(((7.30999994277954 / (block_dim)) + 7.90520000457764))) + 27.0100002288818), ((17408 / "
+            "(((7.30999994277954 / (block_dim)) + 7.90520000457764))) + 27.0100002288818)), ((1904 * z4t_size / "
+            "(((15.8959999084473 / (block_dim)) + 9.90740013122559))) + 27.0100002288818)) * z0z1t_size)");
 }
 
 TEST_F(UTestAscendcApiPerf, TestStoreApiForType) {
@@ -6409,12 +6236,14 @@ TEST_F(UTestAscendcApiPerf, TestStoreApiForType) {
   input_shapes[0].dims = {z0z1t_size, CreateExpr(7), CreateExpr(34), z6t_size};
   input_shapes[0].repeats = {z0z1t_size, CreateExpr(7), CreateExpr(34), z6t_size};
   input_shapes[0].strides = {CreateExpr(7), CreateExpr(34), z6t_size, af::sym::kSymbolOne};
-  input_shapes[0].gm_strides = {CreateExpr(7 * 34) * z6t_size, CreateExpr(34) * z6t_size, z6t_size, af::sym::kSymbolOne};
+  input_shapes[0].gm_strides = {CreateExpr(7 * 34) * z6t_size, CreateExpr(34) * z6t_size, z6t_size,
+                                af::sym::kSymbolOne};
   output_shapes[0].data_type = "int64";
   output_shapes[0].dims = {z0z1t_size, CreateExpr(7), CreateExpr(34), z6t_size};
   output_shapes[0].repeats = {z0z1t_size, CreateExpr(7), CreateExpr(34), z6t_size};
   output_shapes[0].strides = {CreateExpr(7), CreateExpr(34), z6t_size, af::sym::kSymbolOne};
-  output_shapes[0].gm_strides = {CreateExpr(7 * 34) * z6t_size, CreateExpr(34) * z6t_size, z6t_size, af::sym::kSymbolOne};
+  output_shapes[0].gm_strides = {CreateExpr(7 * 34) * z6t_size, CreateExpr(34) * z6t_size, z6t_size,
+                                 af::sym::kSymbolOne};
 
   input_shapes[0].data_type_size = 8;
   output_shapes[0].data_type_size = 8;
@@ -6435,14 +6264,26 @@ TEST_F(UTestAscendcApiPerf, TestStoreApiForType) {
   auto ret = iter->second;
   ret.Replace(replace_vars);
   EXPECT_EQ(ret.GetTernaryOpStr(),
-            "TernaryOp(7 < z0z1t_size, (7 * TernaryOp(IsEqual(Mod((2 * z6t_size), 4), 0), ((0.0199999995529652 * Mod(Abs((33 * z6t_size)), 256) * z0z1t_size) + (272 * z0z1t_size * z6t_size / (((3.78999996185303 / (block_dim)) + 9.96000003814697))) + 12.0900001525879), TernaryOp(((34 * z6t_size) + -512) < 0, TernaryOp(((34 * z6t_size) + -4) < 0, (((((-2.20000004768372 - (0.101000003516674 * block_dim)) * 272 * z6t_size) + (8.89000034332275 * block_dim) + 96.2399978637695) * z0z1t_size) + 12.0900001525879), ((136.0 * z0z1t_size * z6t_size) + 1.29999995231628)), (((256 - ((512 / (((3.78999996185303 / (block_dim)) + 9.96000003814697))) + 12.0900001525879)) * 1.0) + (272 * z0z1t_size * z6t_size / (((3.78999996185303 / (block_dim)) + 9.96000003814697))) + 12.0900001525879)))), (TernaryOp(IsEqual(Mod((2 * z6t_size), 4), 0), ((1904 * z6t_size / (((3.78999996185303 / (block_dim)) + 9.96000003814697))) + 12.0900001525879), TernaryOp(((34 * z6t_size) + -512) < 0, TernaryOp(((34 * z6t_size) + -4) < 0, (((((-2.20000004768372 - (0.101000003516674 * block_dim)) * 272 * z6t_size) + (8.89000034332275 * block_dim) + 96.2399978637695) * 7) + 12.0900001525879), ((952.0 * z6t_size) + 1.29999995231628)), (((256 - ((512 / (((3.78999996185303 / (block_dim)) + 9.96000003814697))) + 12.0900001525879)) * 1.0) + (1904 * z6t_size / (((3.78999996185303 / (block_dim)) + 9.96000003814697))) + 12.0900001525879))) * z0z1t_size))");
+            "TernaryOp(7 < z0z1t_size, (7 * TernaryOp(IsEqual(Mod((2 * z6t_size), 4), 0), ((0.0199999995529652 * "
+            "Mod(Abs((33 * z6t_size)), 256) * z0z1t_size) + (272 * z0z1t_size * z6t_size / (((3.78999996185303 / "
+            "(block_dim)) + 9.96000003814697))) + 12.0900001525879), TernaryOp(((34 * z6t_size) + -512) < 0, "
+            "TernaryOp(((34 * z6t_size) + -4) < 0, (((((-2.20000004768372 - (0.101000003516674 * block_dim)) * 272 * "
+            "z6t_size) + (8.89000034332275 * block_dim) + 96.2399978637695) * z0z1t_size) + 12.0900001525879), ((136.0 "
+            "* z0z1t_size * z6t_size) + 1.29999995231628)), (((256 - ((512 / (((3.78999996185303 / (block_dim)) + "
+            "9.96000003814697))) + 12.0900001525879)) * 1.0) + (272 * z0z1t_size * z6t_size / (((3.78999996185303 / "
+            "(block_dim)) + 9.96000003814697))) + 12.0900001525879)))), (TernaryOp(IsEqual(Mod((2 * z6t_size), 4), 0), "
+            "((1904 * z6t_size / (((3.78999996185303 / (block_dim)) + 9.96000003814697))) + 12.0900001525879), "
+            "TernaryOp(((34 * z6t_size) + -512) < 0, TernaryOp(((34 * z6t_size) + -4) < 0, (((((-2.20000004768372 - "
+            "(0.101000003516674 * block_dim)) * 272 * z6t_size) + (8.89000034332275 * block_dim) + 96.2399978637695) * "
+            "7) + 12.0900001525879), ((952.0 * z6t_size) + 1.29999995231628)), (((256 - ((512 / (((3.78999996185303 / "
+            "(block_dim)) + 9.96000003814697))) + 12.0900001525879)) * 1.0) + (1904 * z6t_size / (((3.78999996185303 / "
+            "(block_dim)) + 9.96000003814697))) + 12.0900001525879))) * z0z1t_size))");
 }
 
 // 测试 StoreApi API 边界条件
 TEST_F(UTestAscendcApiPerf, TestStoreApiEmptyInput) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes(1);
-
 
   output_shapes[0].data_type = "float16";
   output_shapes[0].dims = {CreateExpr(10)};
@@ -6460,7 +6301,6 @@ TEST_F(UTestAscendcApiPerf, TestStoreApiEmptyDims) {
   std::vector<att::TensorShapeInfo> input_shapes(1);
   std::vector<att::TensorShapeInfo> output_shapes(1);
 
-
   input_shapes[0].data_type = "float16";
   // dims保持为空
 
@@ -6476,7 +6316,6 @@ TEST_F(UTestAscendcApiPerf, TestStoreApiEmptyDims) {
 TEST_F(UTestAscendcApiPerf, TestStoreApiUnsupportedType) {
   std::vector<att::TensorShapeInfo> input_shapes(1);
   std::vector<att::TensorShapeInfo> output_shapes(1);
-
 
   input_shapes[0].data_type = "int64";
   input_shapes[0].dims = {CreateExpr(32)};
@@ -6502,7 +6341,6 @@ TEST_F(UTestAscendcApiPerf, TestStoreApiMisalignedSizeV1) {
   std::vector<att::TensorShapeInfo> input_shapes(1);
   std::vector<att::TensorShapeInfo> output_shapes(1);
 
-
   input_shapes[0].data_type = "int64";
   input_shapes[0].dims = {CreateExpr(32)};
   input_shapes[0].repeats = {CreateExpr(6)};
@@ -6527,7 +6365,6 @@ TEST_F(UTestAscendcApiPerf, TestStoreApiMisalignedSizeV2) {
   std::vector<att::TensorShapeInfo> input_shapes(1);
   std::vector<att::TensorShapeInfo> output_shapes(1);
 
-
   input_shapes[0].data_type = "int64";
   input_shapes[0].dims = {CreateExpr(32)};
   input_shapes[0].repeats = {CreateExpr(70)};
@@ -6551,7 +6388,6 @@ TEST_F(UTestAscendcApiPerf, TestStoreApiMisalignedSizeV2) {
 TEST_F(UTestAscendcApiPerf, TestAbsApiEmptyInput) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   output_shapes[0].data_type = "float16";
   output_shapes[0].dims = {CreateExpr(10)};
@@ -6568,7 +6404,6 @@ TEST_F(UTestAscendcApiPerf, TestAbsApiEmptyInput) {
 TEST_F(UTestAscendcApiPerf, TestAbsApiEmptyDims) {
   std::vector<att::TensorShapeInfo> input_shapes(1);
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   input_shapes[0].data_type = "float16";
   // dims保持为空
@@ -6586,7 +6421,6 @@ TEST_F(UTestAscendcApiPerf, TestAbsApiEmptyDims) {
 TEST_F(UTestAscendcApiPerf, TestAbsApiUnsupportedType) {
   std::vector<att::TensorShapeInfo> input_shapes(1);
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   input_shapes[0].data_type = "int8";
   input_shapes[0].dims = {CreateExpr(32)};
@@ -6608,7 +6442,6 @@ TEST_F(UTestAscendcApiPerf, TestAbsApiUnsupportedType) {
 TEST_F(UTestAscendcApiPerf, TestAddsApiEmptyInput) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   output_shapes[0].data_type = "float16";
   output_shapes[0].dims = {CreateExpr(10)};
@@ -6625,7 +6458,6 @@ TEST_F(UTestAscendcApiPerf, TestAddsApiEmptyInput) {
 TEST_F(UTestAscendcApiPerf, TestAddsApiEmptyDims) {
   std::vector<att::TensorShapeInfo> input_shapes(1);
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   input_shapes[0].data_type = "float16";
   // dims保持为空
@@ -6643,7 +6475,6 @@ TEST_F(UTestAscendcApiPerf, TestAddsApiEmptyDims) {
 TEST_F(UTestAscendcApiPerf, TestAddsApiUnsupportedType) {
   std::vector<att::TensorShapeInfo> input_shapes(1);
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   input_shapes[0].data_type = "int8";
   input_shapes[0].dims = {CreateExpr(32)};
@@ -6665,7 +6496,6 @@ TEST_F(UTestAscendcApiPerf, TestAddsApiUnsupportedType) {
 TEST_F(UTestAscendcApiPerf, TestAddApiEmptyInput) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   output_shapes[0].data_type = "float16";
   output_shapes[0].dims = {CreateExpr(10)};
@@ -6682,7 +6512,6 @@ TEST_F(UTestAscendcApiPerf, TestAddApiEmptyInput) {
 TEST_F(UTestAscendcApiPerf, TestAddApiEmptyDims) {
   std::vector<att::TensorShapeInfo> input_shapes(1);
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   input_shapes[0].data_type = "float16";
   // dims保持为空
@@ -6700,7 +6529,6 @@ TEST_F(UTestAscendcApiPerf, TestAddApiEmptyDims) {
 TEST_F(UTestAscendcApiPerf, TestAddApiUnsupportedType) {
   std::vector<att::TensorShapeInfo> input_shapes(1);
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   input_shapes[0].data_type = "int8";
   input_shapes[0].dims = {CreateExpr(32)};
@@ -6722,7 +6550,6 @@ TEST_F(UTestAscendcApiPerf, TestAddApiUnsupportedType) {
 TEST_F(UTestAscendcApiPerf, TestAndApiEmptyInput) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   output_shapes[0].data_type = "float16";
   output_shapes[0].dims = {CreateExpr(10)};
@@ -6739,7 +6566,6 @@ TEST_F(UTestAscendcApiPerf, TestAndApiEmptyInput) {
 TEST_F(UTestAscendcApiPerf, TestAndApiEmptyDims) {
   std::vector<att::TensorShapeInfo> input_shapes(1);
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   input_shapes[0].data_type = "float16";
   // dims保持为空
@@ -6757,7 +6583,6 @@ TEST_F(UTestAscendcApiPerf, TestAndApiEmptyDims) {
 TEST_F(UTestAscendcApiPerf, TestAndApiUnsupportedType) {
   std::vector<att::TensorShapeInfo> input_shapes(1);
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   input_shapes[0].data_type = "int8";
   input_shapes[0].dims = {CreateExpr(32)};
@@ -6779,7 +6604,6 @@ TEST_F(UTestAscendcApiPerf, TestAndApiUnsupportedType) {
 TEST_F(UTestAscendcApiPerf, TestBroadcastInnerEmptyInput) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   output_shapes[0].data_type = "float16";
   output_shapes[0].dims = {CreateExpr(10)};
@@ -6796,7 +6620,6 @@ TEST_F(UTestAscendcApiPerf, TestBroadcastInnerEmptyInput) {
 TEST_F(UTestAscendcApiPerf, TestBroadcastInnerEmptyDims) {
   std::vector<att::TensorShapeInfo> input_shapes(1);
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   input_shapes[0].data_type = "float16";
   // dims保持为空
@@ -6814,7 +6637,6 @@ TEST_F(UTestAscendcApiPerf, TestBroadcastInnerEmptyDims) {
 TEST_F(UTestAscendcApiPerf, TestBroadcastInnerUnsupportedType) {
   std::vector<att::TensorShapeInfo> input_shapes(1);
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   input_shapes[0].data_type = "int8";
   input_shapes[0].dims = {CreateExpr(32), CreateExpr(1)};
@@ -6836,7 +6658,6 @@ TEST_F(UTestAscendcApiPerf, TestBroadcastInnerUnsupportedType) {
 TEST_F(UTestAscendcApiPerf, TestBroadcastBothEmptyInput) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   output_shapes[0].data_type = "float16";
   output_shapes[0].dims = {CreateExpr(10)};
@@ -6853,7 +6674,6 @@ TEST_F(UTestAscendcApiPerf, TestBroadcastBothEmptyInput) {
 TEST_F(UTestAscendcApiPerf, TestBroadcastBothEmptyDims) {
   std::vector<att::TensorShapeInfo> input_shapes(1);
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   input_shapes[0].data_type = "float16";
   // dims保持为空
@@ -6871,7 +6691,6 @@ TEST_F(UTestAscendcApiPerf, TestBroadcastBothEmptyDims) {
 TEST_F(UTestAscendcApiPerf, TestBroadcastBothUnsupportedType) {
   std::vector<att::TensorShapeInfo> input_shapes(1);
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   input_shapes[0].data_type = "int8";
   input_shapes[0].dims = {CreateExpr(1), CreateExpr(1)};
@@ -6893,7 +6712,6 @@ TEST_F(UTestAscendcApiPerf, TestBroadcastBothUnsupportedType) {
 TEST_F(UTestAscendcApiPerf, TestBroadcastApiEmptyInput) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   output_shapes[0].data_type = "float16";
   output_shapes[0].dims = {CreateExpr(10)};
@@ -6910,7 +6728,6 @@ TEST_F(UTestAscendcApiPerf, TestBroadcastApiEmptyInput) {
 TEST_F(UTestAscendcApiPerf, TestBroadcastApiEmptyDims) {
   std::vector<att::TensorShapeInfo> input_shapes(1);
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   input_shapes[0].data_type = "float16";
   // dims保持为空
@@ -6925,12 +6742,10 @@ TEST_F(UTestAscendcApiPerf, TestBroadcastApiEmptyDims) {
   EXPECT_NE(result, af::SUCCESS);
 }
 
-
 // 测试 CompareScalarEQ API 边界条件
 TEST_F(UTestAscendcApiPerf, TestCompareScalarEQEmptyInput) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   output_shapes[0].data_type = "float16";
   output_shapes[0].dims = {CreateExpr(10)};
@@ -6947,7 +6762,6 @@ TEST_F(UTestAscendcApiPerf, TestCompareScalarEQEmptyInput) {
 TEST_F(UTestAscendcApiPerf, TestCompareScalarEQEmptyDims) {
   std::vector<att::TensorShapeInfo> input_shapes(1);
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   input_shapes[0].data_type = "float16";
   // dims保持为空
@@ -6965,7 +6779,6 @@ TEST_F(UTestAscendcApiPerf, TestCompareScalarEQEmptyDims) {
 TEST_F(UTestAscendcApiPerf, TestCompareScalarEQUnsupportedType) {
   std::vector<att::TensorShapeInfo> input_shapes(1);
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   input_shapes[0].data_type = "int8";
   input_shapes[0].dims = {CreateExpr(32)};
@@ -6987,7 +6800,6 @@ TEST_F(UTestAscendcApiPerf, TestCompareScalarEQUnsupportedType) {
 TEST_F(UTestAscendcApiPerf, TestCompareScalarGEEmptyInput) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   output_shapes[0].data_type = "float16";
   output_shapes[0].dims = {CreateExpr(10)};
@@ -7004,7 +6816,6 @@ TEST_F(UTestAscendcApiPerf, TestCompareScalarGEEmptyInput) {
 TEST_F(UTestAscendcApiPerf, TestCompareScalarGEEmptyDims) {
   std::vector<att::TensorShapeInfo> input_shapes(1);
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   input_shapes[0].data_type = "float16";
   // dims保持为空
@@ -7022,7 +6833,6 @@ TEST_F(UTestAscendcApiPerf, TestCompareScalarGEEmptyDims) {
 TEST_F(UTestAscendcApiPerf, TestCompareScalarGEUnsupportedType) {
   std::vector<att::TensorShapeInfo> input_shapes(1);
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   input_shapes[0].data_type = "int8";
   input_shapes[0].dims = {CreateExpr(32)};
@@ -7044,7 +6854,6 @@ TEST_F(UTestAscendcApiPerf, TestCompareScalarGEUnsupportedType) {
 TEST_F(UTestAscendcApiPerf, TestCompareScalarGTEmptyInput) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   output_shapes[0].data_type = "float16";
   output_shapes[0].dims = {CreateExpr(10)};
@@ -7061,7 +6870,6 @@ TEST_F(UTestAscendcApiPerf, TestCompareScalarGTEmptyInput) {
 TEST_F(UTestAscendcApiPerf, TestCompareScalarGTEmptyDims) {
   std::vector<att::TensorShapeInfo> input_shapes(1);
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   input_shapes[0].data_type = "float16";
   // dims保持为空
@@ -7079,7 +6887,6 @@ TEST_F(UTestAscendcApiPerf, TestCompareScalarGTEmptyDims) {
 TEST_F(UTestAscendcApiPerf, TestCompareScalarGTUnsupportedType) {
   std::vector<att::TensorShapeInfo> input_shapes(1);
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   input_shapes[0].data_type = "int8";
   input_shapes[0].dims = {CreateExpr(32)};
@@ -7101,7 +6908,6 @@ TEST_F(UTestAscendcApiPerf, TestCompareScalarGTUnsupportedType) {
 TEST_F(UTestAscendcApiPerf, TestCompareScalarLEEmptyInput) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   output_shapes[0].data_type = "float16";
   output_shapes[0].dims = {CreateExpr(10)};
@@ -7118,7 +6924,6 @@ TEST_F(UTestAscendcApiPerf, TestCompareScalarLEEmptyInput) {
 TEST_F(UTestAscendcApiPerf, TestCompareScalarLEEmptyDims) {
   std::vector<att::TensorShapeInfo> input_shapes(1);
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   input_shapes[0].data_type = "float16";
   // dims保持为空
@@ -7136,7 +6941,6 @@ TEST_F(UTestAscendcApiPerf, TestCompareScalarLEEmptyDims) {
 TEST_F(UTestAscendcApiPerf, TestCompareScalarLEUnsupportedType) {
   std::vector<att::TensorShapeInfo> input_shapes(1);
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   input_shapes[0].data_type = "int8";
   input_shapes[0].dims = {CreateExpr(32)};
@@ -7158,7 +6962,6 @@ TEST_F(UTestAscendcApiPerf, TestCompareScalarLEUnsupportedType) {
 TEST_F(UTestAscendcApiPerf, TestCompareScalarNEEmptyInput) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   output_shapes[0].data_type = "float16";
   output_shapes[0].dims = {CreateExpr(10)};
@@ -7175,7 +6978,6 @@ TEST_F(UTestAscendcApiPerf, TestCompareScalarNEEmptyInput) {
 TEST_F(UTestAscendcApiPerf, TestCompareScalarNEEmptyDims) {
   std::vector<att::TensorShapeInfo> input_shapes(1);
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   input_shapes[0].data_type = "float16";
   // dims保持为空
@@ -7193,7 +6995,6 @@ TEST_F(UTestAscendcApiPerf, TestCompareScalarNEEmptyDims) {
 TEST_F(UTestAscendcApiPerf, TestCompareScalarNEUnsupportedType) {
   std::vector<att::TensorShapeInfo> input_shapes(1);
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   input_shapes[0].data_type = "int8";
   input_shapes[0].dims = {CreateExpr(32)};
@@ -7215,7 +7016,6 @@ TEST_F(UTestAscendcApiPerf, TestCompareScalarNEUnsupportedType) {
 TEST_F(UTestAscendcApiPerf, TestDivEmptyInput) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   output_shapes[0].data_type = "float16";
   output_shapes[0].dims = {CreateExpr(10)};
@@ -7232,7 +7032,6 @@ TEST_F(UTestAscendcApiPerf, TestDivEmptyInput) {
 TEST_F(UTestAscendcApiPerf, TestDivEmptyDims) {
   std::vector<att::TensorShapeInfo> input_shapes(1);
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   input_shapes[0].data_type = "float16";
   // dims保持为空
@@ -7250,7 +7049,6 @@ TEST_F(UTestAscendcApiPerf, TestDivEmptyDims) {
 TEST_F(UTestAscendcApiPerf, TestDivUnsupportedType) {
   std::vector<att::TensorShapeInfo> input_shapes(1);
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   input_shapes[0].data_type = "int8";
   input_shapes[0].dims = {CreateExpr(32)};
@@ -7288,7 +7086,6 @@ TEST_F(UTestAscendcApiPerf, TestDuplicateEmptyInput) {
 TEST_F(UTestAscendcApiPerf, TestDuplicateEmptyDims) {
   std::vector<att::TensorShapeInfo> input_shapes(1);
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   input_shapes[0].data_type = "float16";
   // dims保持为空
@@ -7306,7 +7103,6 @@ TEST_F(UTestAscendcApiPerf, TestDuplicateEmptyDims) {
 TEST_F(UTestAscendcApiPerf, TestDuplicateUnsupportedType) {
   std::vector<att::TensorShapeInfo> input_shapes(1);
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   input_shapes[0].data_type = "int8";
   input_shapes[0].dims = {CreateExpr(32)};
@@ -7324,11 +7120,9 @@ TEST_F(UTestAscendcApiPerf, TestDuplicateUnsupportedType) {
   EXPECT_EQ(result, af::SUCCESS);
 }
 
-
 TEST_F(UTestAscendcApiPerf, TestErfEmptyDims) {
   std::vector<att::TensorShapeInfo> input_shapes(1);
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   input_shapes[0].data_type = "float16";
   // dims保持为空
@@ -7346,7 +7140,6 @@ TEST_F(UTestAscendcApiPerf, TestErfEmptyDims) {
 TEST_F(UTestAscendcApiPerf, TestExpEmptyInput) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   output_shapes[0].data_type = "float16";
   output_shapes[0].dims = {CreateExpr(10)};
@@ -7363,7 +7156,6 @@ TEST_F(UTestAscendcApiPerf, TestExpEmptyInput) {
 TEST_F(UTestAscendcApiPerf, TestExpEmptyDims) {
   std::vector<att::TensorShapeInfo> input_shapes(1);
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   input_shapes[0].data_type = "float16";
   // dims保持为空
@@ -7381,7 +7173,6 @@ TEST_F(UTestAscendcApiPerf, TestExpEmptyDims) {
 TEST_F(UTestAscendcApiPerf, TestExpUnsupportedType) {
   std::vector<att::TensorShapeInfo> input_shapes(1);
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   input_shapes[0].data_type = "int8";
   input_shapes[0].dims = {CreateExpr(32)};
@@ -7403,7 +7194,6 @@ TEST_F(UTestAscendcApiPerf, TestExpUnsupportedType) {
 TEST_F(UTestAscendcApiPerf, TestMaxsEmptyInput) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   output_shapes[0].data_type = "float16";
   output_shapes[0].dims = {CreateExpr(10)};
@@ -7420,7 +7210,6 @@ TEST_F(UTestAscendcApiPerf, TestMaxsEmptyInput) {
 TEST_F(UTestAscendcApiPerf, TestMaxsEmptyDims) {
   std::vector<att::TensorShapeInfo> input_shapes(1);
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   input_shapes[0].data_type = "float16";
   // dims保持为空
@@ -7438,7 +7227,6 @@ TEST_F(UTestAscendcApiPerf, TestMaxsEmptyDims) {
 TEST_F(UTestAscendcApiPerf, TestMaxsUnsupportedType) {
   std::vector<att::TensorShapeInfo> input_shapes(1);
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   input_shapes[0].data_type = "int8";
   input_shapes[0].dims = {CreateExpr(32)};
@@ -7460,7 +7248,6 @@ TEST_F(UTestAscendcApiPerf, TestMaxsUnsupportedType) {
 TEST_F(UTestAscendcApiPerf, TestMaxEmptyInput) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   output_shapes[0].data_type = "float16";
   output_shapes[0].dims = {CreateExpr(10)};
@@ -7477,7 +7264,6 @@ TEST_F(UTestAscendcApiPerf, TestMaxEmptyInput) {
 TEST_F(UTestAscendcApiPerf, TestMaxEmptyDims) {
   std::vector<att::TensorShapeInfo> input_shapes(1);
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   input_shapes[0].data_type = "float16";
   // dims保持为空
@@ -7495,7 +7281,6 @@ TEST_F(UTestAscendcApiPerf, TestMaxEmptyDims) {
 TEST_F(UTestAscendcApiPerf, TestMaxUnsupportedType) {
   std::vector<att::TensorShapeInfo> input_shapes(1);
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   input_shapes[0].data_type = "int8";
   input_shapes[0].dims = {CreateExpr(32)};
@@ -7517,7 +7302,6 @@ TEST_F(UTestAscendcApiPerf, TestMaxUnsupportedType) {
 TEST_F(UTestAscendcApiPerf, TestMinsEmptyInput) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
 
   output_shapes[0].data_type = "float16";
   output_shapes[0].dims = {CreateExpr(10)};
@@ -7535,7 +7319,6 @@ TEST_F(UTestAscendcApiPerf, TestMinsEmptyInput) {
 TEST_F(UTestAscendcApiPerf, TestDefaultApi) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   att::TensorShapeInfo input;
   input.data_type = "float16";
@@ -7563,7 +7346,6 @@ TEST_F(UTestAscendcApiPerf, TestDefaultApi) {
 TEST_F(UTestAscendcApiPerf, TestReduceAnyPerf) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   att::TensorShapeInfo input;
   input.data_type = "float16";
@@ -7590,7 +7372,6 @@ TEST_F(UTestAscendcApiPerf, TestReduceAnyPerf) {
 TEST_F(UTestAscendcApiPerf, TestReduceMaxPerf) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   att::TensorShapeInfo input;
   input.data_type = "float16";
@@ -7617,7 +7398,6 @@ TEST_F(UTestAscendcApiPerf, TestReduceMaxPerf) {
 TEST_F(UTestAscendcApiPerf, TestReduceAllPerf) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   att::TensorShapeInfo input;
   input.data_type = "float16";
@@ -7644,7 +7424,6 @@ TEST_F(UTestAscendcApiPerf, TestReduceAllPerf) {
 TEST_F(UTestAscendcApiPerf, TestReduceMinPerf) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   att::TensorShapeInfo input;
   input.data_type = "float16";
@@ -7671,7 +7450,6 @@ TEST_F(UTestAscendcApiPerf, TestReduceMinPerf) {
 TEST_F(UTestAscendcApiPerf, TestReduceSumPerf) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   att::TensorShapeInfo input;
   input.data_type = "float16";
@@ -7698,7 +7476,6 @@ TEST_F(UTestAscendcApiPerf, TestReduceSumPerf) {
 TEST_F(UTestAscendcApiPerf, TestReduceProdPerf) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   att::TensorShapeInfo input;
   input.data_type = "float16";
@@ -7725,7 +7502,6 @@ TEST_F(UTestAscendcApiPerf, TestReduceProdPerf) {
 TEST_F(UTestAscendcApiPerf, TestReduceMeanPerf) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   att::TensorShapeInfo input;
   input.data_type = "float16";
@@ -7752,7 +7528,6 @@ TEST_F(UTestAscendcApiPerf, TestReduceMeanPerf) {
 TEST_F(UTestAscendcApiPerf, TestBlockReduceMax) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   att::TensorShapeInfo input;
   input.data_type = "float16";
@@ -7779,7 +7554,6 @@ TEST_F(UTestAscendcApiPerf, TestBlockReduceMax) {
 TEST_F(UTestAscendcApiPerf, TestBlockReduceMin) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   att::TensorShapeInfo input;
   input.data_type = "float16";
@@ -7806,7 +7580,6 @@ TEST_F(UTestAscendcApiPerf, TestBlockReduceMin) {
 TEST_F(UTestAscendcApiPerf, TestLogicalNot) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   att::TensorShapeInfo input;
   input.data_type = "float16";
@@ -7833,7 +7606,6 @@ TEST_F(UTestAscendcApiPerf, TestLogicalNot) {
 TEST_F(UTestAscendcApiPerf, TestOrUint16) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   att::TensorShapeInfo input;
   input.data_type = "uint16";
@@ -7866,12 +7638,12 @@ TEST_F(UTestAscendcApiPerf, TestOrUint16) {
 TEST_F(UTestAscendcApiPerf, TestOrEmptyInputShapes) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
+
   output_shapes[0].data_type = "float32";
   output_shapes[0].dims = {CreateExpr(10)};
 
   PerfOutputInfo perf_res;
-  NodeInfo node;  
+  NodeInfo node;
   std::string op_type = "Or";
   auto perf = GetPerfFunc(op_type);
   node.node_ptr = GraphConstructUtils::ConstructSingleOp(op_type, 1, 1);
@@ -7883,7 +7655,6 @@ TEST_F(UTestAscendcApiPerf, TestOrEmptyInputShapes) {
 TEST_F(UTestAscendcApiPerf, TestCopyUbtoUbFloat16) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   att::TensorShapeInfo input;
   input.data_type = "float16";
@@ -7916,7 +7687,6 @@ TEST_F(UTestAscendcApiPerf, TestCopyUbtoUbFloat16) {
 TEST_F(UTestAscendcApiPerf, TestCopyUbtoUbFloat32) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   att::TensorShapeInfo input;
   input.data_type = "float32";
@@ -7949,10 +7719,10 @@ TEST_F(UTestAscendcApiPerf, TestCopyUbtoUbFloat32) {
 TEST_F(UTestAscendcApiPerf, TestCopyUbtoUbEmptyInputShapes) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
+
   output_shapes[0].data_type = "float32";
   output_shapes[0].dims = {CreateExpr(10)};
-  
+
   PerfOutputInfo perf_res;
   NodeInfo node;
   std::string op_type = kUb2ub;
@@ -7966,7 +7736,6 @@ TEST_F(UTestAscendcApiPerf, TestCopyUbtoUbEmptyInputShapes) {
 TEST_F(UTestAscendcApiPerf, TestBrcbFloat16) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   att::TensorShapeInfo input;
   input.data_type = "float16";
@@ -7999,7 +7768,6 @@ TEST_F(UTestAscendcApiPerf, TestBrcbFloat16) {
 TEST_F(UTestAscendcApiPerf, TestBrcb32) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes;
-  
 
   att::TensorShapeInfo input;
   input.data_type = "float32";
@@ -8032,10 +7800,10 @@ TEST_F(UTestAscendcApiPerf, TestBrcb32) {
 TEST_F(UTestAscendcApiPerf, TestBrcbEmptyInputShapes) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
+
   output_shapes[0].data_type = "float32";
   output_shapes[0].dims = {CreateExpr(10)};
-  
+
   PerfOutputInfo perf_res;
   NodeInfo node;
   std::string op_type = "Brcb";
@@ -8121,10 +7889,10 @@ TEST_F(UTestAscendcApiPerf, TestGather32) {
 TEST_F(UTestAscendcApiPerf, TestGatherEmptyInputShapes) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
+
   output_shapes[0].data_type = "float32";
   output_shapes[0].dims = {CreateExpr(10)};
-  
+
   PerfOutputInfo perf_res;
   NodeInfo node;
   std::string op_type = "Gather";
@@ -8192,10 +7960,10 @@ TEST_F(UTestAscendcApiPerf, TestRemovePad32) {
 TEST_F(UTestAscendcApiPerf, TestRemovePadEmptyInputShapes) {
   std::vector<att::TensorShapeInfo> input_shapes;
   std::vector<att::TensorShapeInfo> output_shapes(1);
-  
+
   output_shapes[0].data_type = "float32";
   output_shapes[0].dims = {CreateExpr(10)};
-  
+
   PerfOutputInfo perf_res;
   NodeInfo node;
   std::string op_type = "RemovePad";

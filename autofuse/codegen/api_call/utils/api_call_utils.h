@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -35,35 +35,31 @@ struct DmaParams {
 // DmaParams 表达式版本 - 使用 CombinedExpression 替代 std::string
 struct DmaParamsExpr {
   CombinedExpression block_count = CombinedExprFactory::Constant(1);
-  CombinedExpression block_len = CombinedExprFactory::Constant(1);  // 这里的单位是数字个数，在DataCopyExtend中会转换成字节数
+  CombinedExpression block_len =
+      CombinedExprFactory::Constant(1);  // 这里的单位是数字个数，在DataCopyExtend中会转换成字节数
   CombinedExpression src_stride = CombinedExprFactory::Constant(0);
   CombinedExpression dst_stride = CombinedExprFactory::Constant(0);
   CombinedExpression gm_offset = CombinedExprFactory::Constant(0);
   CombinedExpression ub_offset = CombinedExprFactory::Constant(0);
 
   // 辅助方法：转换为字符串（需要 tiler）
-  std::string ToStr(const Tiler& tiler) const {
+  std::string ToStr(const Tiler &tiler) const {
     std::stringstream ss;
-    ss << block_count.ToStr(tiler) << ", "
-       << block_len.ToStr(tiler) << ", "
-       << src_stride.ToStr(tiler) << ", "
+    ss << block_count.ToStr(tiler) << ", " << block_len.ToStr(tiler) << ", " << src_stride.ToStr(tiler) << ", "
        << dst_stride.ToStr(tiler);
     return ss.str();
   }
 
   // 辅助方法：生成带 offset 的调用参数
-  std::string ToStrWithOffset(const Tiler& tiler, bool copy_in, const std::string& src_name, const std::string& dst_name) const {
+  std::string ToStrWithOffset(const Tiler &tiler, bool copy_in, const std::string &src_name,
+                              const std::string &dst_name) const {
     std::stringstream ss;
     if (copy_in) {
-      ss << dst_name << "[" << ub_offset.ToStr(tiler) << "], "
-         << src_name << "[" << gm_offset.ToStr(tiler) << "], ";
+      ss << dst_name << "[" << ub_offset.ToStr(tiler) << "], " << src_name << "[" << gm_offset.ToStr(tiler) << "], ";
     } else {
-      ss << dst_name << "[" << gm_offset.ToStr(tiler) << "], "
-         << src_name << "[" << ub_offset.ToStr(tiler) << "], ";
+      ss << dst_name << "[" << gm_offset.ToStr(tiler) << "], " << src_name << "[" << ub_offset.ToStr(tiler) << "], ";
     }
-    ss << block_count.ToStr(tiler) << ", "
-       << block_len.ToStr(tiler) << ", "
-       << src_stride.ToStr(tiler) << ", "
+    ss << block_count.ToStr(tiler) << ", " << block_len.ToStr(tiler) << ", " << src_stride.ToStr(tiler) << ", "
        << dst_stride.ToStr(tiler);
     return ss.str();
   }

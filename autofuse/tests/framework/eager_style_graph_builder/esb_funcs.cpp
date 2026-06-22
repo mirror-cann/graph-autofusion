@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -39,12 +39,12 @@ EsbTensor *EsCreateConst(EsbGraph *graph, const T *value, const int64_t *dims, i
 
   auto ge_tensor = CreateGeTensor<T, DT>(value, dims, dim_num);
   auto c = af::CompliantOpDescBuilder()
-      .OpType("Const")
-      .Name(("Const" + std::to_string(graph->NextNodeIndex())).c_str())
-      .IrDefOutputs({{"y", af::kIrOutputRequired, ""}})
-      .IrDefAttrs({{"value", af::kAttrOptional, "Tensor", af::AnyValue::CreateFrom(ge_tensor)}})
-      .InstanceOutputShape("y", ge_tensor.GetTensorDesc().GetShape().GetDims())
-      .Build();
+               .OpType("Const")
+               .Name(("Const" + std::to_string(graph->NextNodeIndex())).c_str())
+               .IrDefOutputs({{"y", af::kIrOutputRequired, ""}})
+               .IrDefAttrs({{"value", af::kAttrOptional, "Tensor", af::AnyValue::CreateFrom(ge_tensor)}})
+               .InstanceOutputShape("y", ge_tensor.GetTensorDesc().GetShape().GetDims())
+               .Build();
   GE_ASSERT_NOTNULL(c);
   auto ge_graph = graph->GetComputeGraph();
   return graph->GetEsbTensorFromNode(ge_graph->AddNode(c), 0);
@@ -53,21 +53,21 @@ EsbTensor *EsCreateConst(EsbGraph *graph, const T *value, const int64_t *dims, i
 template <typename T, af::DataType DT>
 EsbTensor *EsCreateVariable(EsbGraph *graph, int32_t index, const T *value, const int64_t *dims, int64_t dim_num,
                             const char *container, const char *shared_name) {
-  (void) container;
-  (void) shared_name;
+  (void)container;
+  (void)shared_name;
   GE_ASSERT_NOTNULL(graph);
   GE_ASSERT_NOTNULL(value);
 
   auto ge_tensor = CreateGeTensor<T, DT>(value, dims, dim_num);
   auto c = af::CompliantOpDescBuilder()
-      .OpType("Variable")
-      .Name(("Variable" + std::to_string(index)).c_str())
-      .IrDefInputs({{"x", af::kIrInputRequired, ""}})
-      .IrDefOutputs({{"y", af::kIrOutputRequired, ""}})
-      .IrDefAttrs({{"index", af::kAttrOptional, "Int", af::AnyValue::CreateFrom(static_cast<int64_t>(index))},
-                   {"value", af::kAttrOptional, "Tensor", af::AnyValue::CreateFrom(ge_tensor)}})
-      .InstanceOutputShape("y", ge_tensor.GetTensorDesc().GetShape().GetDims())
-      .Build();
+               .OpType("Variable")
+               .Name(("Variable" + std::to_string(index)).c_str())
+               .IrDefInputs({{"x", af::kIrInputRequired, ""}})
+               .IrDefOutputs({{"y", af::kIrOutputRequired, ""}})
+               .IrDefAttrs({{"index", af::kAttrOptional, "Int", af::AnyValue::CreateFrom(static_cast<int64_t>(index))},
+                            {"value", af::kAttrOptional, "Tensor", af::AnyValue::CreateFrom(ge_tensor)}})
+               .InstanceOutputShape("y", ge_tensor.GetTensorDesc().GetShape().GetDims())
+               .Build();
   GE_ASSERT_NOTNULL(c);
   auto ge_graph = graph->GetComputeGraph();
   return graph->GetEsbTensorFromNode(ge_graph->AddNode(c), 0);
@@ -165,4 +165,3 @@ int EsSetInputSymbolShape(EsbTensor *tensor, const char *const *shape, int64_t d
 #ifdef __cplusplus
 }
 #endif
-

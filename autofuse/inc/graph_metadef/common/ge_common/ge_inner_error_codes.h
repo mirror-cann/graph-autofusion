@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -49,18 +49,18 @@ GE_ERRORNO_CLIENT(GE_CLI_GE_ALREADY_INITIALIZED, 10, "GE is already initialized.
 GE_ERRORNO_CLIENT(GE_CLI_GE_NOT_INITIALIZED, 11, "GE is not yet initialized or is finalized.");  // 1343229963
 
 // Init module error code definition
-GE_ERRORNO_INIT(GE_MULTI_INIT, 0, "Multiple initializations are not supported.");            // 1343234048
-GE_ERRORNO_INIT(GE_FINALIZE_NOT_INIT, 1, "Finalize is not allowed before initialization.");  // 1343234049
-GE_ERRORNO_INIT(GE_MULTI_FINALIZE, 2, "Multiple finalizations are not supported.");          // 1343234050
-GE_ERRORNO_INIT(GE_PROF_MULTI_INIT, 3, "Multiple profiling initializations are not supported.");          // 1343234051
-GE_ERRORNO_INIT(GE_PROF_NOT_INIT, 4, "Profing initializations have not been done.");          // 1343234052
+GE_ERRORNO_INIT(GE_MULTI_INIT, 0, "Multiple initializations are not supported.");                 // 1343234048
+GE_ERRORNO_INIT(GE_FINALIZE_NOT_INIT, 1, "Finalize is not allowed before initialization.");       // 1343234049
+GE_ERRORNO_INIT(GE_MULTI_FINALIZE, 2, "Multiple finalizations are not supported.");               // 1343234050
+GE_ERRORNO_INIT(GE_PROF_MULTI_INIT, 3, "Multiple profiling initializations are not supported.");  // 1343234051
+GE_ERRORNO_INIT(GE_PROF_NOT_INIT, 4, "Profing initializations have not been done.");              // 1343234052
 GE_ERRORNO_INIT(GE_PROF_MODE_CONFLICT, 5,
-                "Profiling command mode which is preferred is running, the api mode will not work.");   // 1343234053
+                "Profiling command mode which is preferred is running, the api mode will not work.");  // 1343234053
 
 // Session module error code definition
 GE_ERRORNO_SESSION(GE_SESS_INIT_FAILED, 0, "Failed to initialize session.");                          // 1343238144
 GE_ERRORNO_SESSION(GE_SESS_ALREADY_RUNNING, 1, "Session already running,not support parallel run.");  // 1343238145
-GE_ERRORNO_SESSION(GE_SESS_GRAPH_NOT_EXIST, 2, "Graph ID does not exist.");                                // 1343238146
+GE_ERRORNO_SESSION(GE_SESS_GRAPH_NOT_EXIST, 2, "Graph ID does not exist.");                           // 1343238146
 GE_ERRORNO_SESSION(GE_SESS_GRAPH_ALREADY_EXIST, 3, "Graph ID already exist.");                        // 1343238147
 GE_ERRORNO_SESSION(GE_SESS_GRAPH_IS_RUNNING, 4, "Graph is running.");                                 // 1343238148
 GE_ERRORNO_SESSION(GE_SESSION_NOT_EXIST, 5, "Can not find session with specific session id.");        // 1343238149
@@ -69,7 +69,7 @@ GE_ERRORNO_SESSION(GE_SESSION_MANAGER_NOT_INIT, 6, "Session manager has not been
 // Graph module error code definition
 GE_ERRORNO_GRAPH(GE_GRAPH_INIT_FAILED, 0, "Failed to initialize graph.");                                // 1343242240
 GE_ERRORNO_GRAPH(GE_GRAPH_ALREADY_RUNNING, 1, "graph already running,not support parallel run.");        // 1343242241
-GE_ERRORNO_GRAPH(GE_GRAPH_GRAPH_NOT_EXIST, 2, "graph ID does not exist.");                                    // 1343242242
+GE_ERRORNO_GRAPH(GE_GRAPH_GRAPH_NOT_EXIST, 2, "graph ID does not exist.");                               // 1343242242
 GE_ERRORNO_GRAPH(GE_GRAPH_GRAPH_ALREADY_EXIST, 3, "Graph ID already exist.");                            // 1343242243
 GE_ERRORNO_GRAPH(GE_GRAPH_GRAPH_IS_RUNNING, 4, "Graph is running.");                                     // 1343242244
 GE_ERRORNO_GRAPH(GE_GRAPH_MALLOC_FAILED, 5, "Graph malloc failed.");                                     // 1343242245
@@ -123,7 +123,7 @@ GE_ERRORNO_GRAPH(GE_GRAPH_NO_OUTPUT_DESC_INFO, 52, "No output desc info.");     
 GE_ERRORNO_GRAPH(GE_GRAPH_OUTPUT_DESCINFO_TENSOR_NUM_MISMATCH, 53,
                  "Number of output descinfo and tensor mismatch.");                                        // 1343242293
 GE_ERRORNO_GRAPH(GE_GRAPH_FILENAMEPREFIX_INVALID, 54, "Graph Save Model fileNamePrefix is invalid.");      // 1343242294
-GE_ERRORNO_GRAPH(GE_GRAPH_NOT_BUILT, 55, "Graph is not compiled.");                          // 1343242295
+GE_ERRORNO_GRAPH(GE_GRAPH_NOT_BUILT, 55, "Graph is not compiled.");                                        // 1343242295
 GE_ERRORNO_GRAPH(GE_GRAPH_SAVEMODEL_FAILED, 56, "Graph SaveModel failed.");                                // 1343242296
 GE_ERRORNO_GRAPH(GE_GRAPH_MEMORY_ALLOC_FAILED, 57, "Failed allocating memory for model file header.");     // 1343242297
 GE_ERRORNO_GRAPH(GE_GRAPH_NODE_SEARCHER_REMOVE_GRAPH_FAILED, 58, "Failed remove graph in node seacher.");  // 1343242298
@@ -145,8 +145,8 @@ GE_ERRORNO_ENGINE(GE_ENG_MEMTYPE_ERROR, 2, "Memory type HBM is necessary when en
 // Ops module error code definition
 GE_ERRORNO_OPS(GE_OPS_KERNEL_STORE_INIT_FAILED, 0, "Failed to initialize OpsKernelInfoStore.");  // 1343250432
 GE_ERRORNO_OPS(GE_OPS_GRAPH_OPTIMIZER_INIT_FAILED, 1, "Failed to initialize GraphOptimizer.");   // 1343250433
-GE_ERRORNO_OPS(GE_OPS_KERNEL_INFO_NOT_EXIST, 2, "OpsKernelInfo does not exist.");                     // 1343250434
-GE_ERRORNO_OPS(GE_OPS_KERNEL_STORE_NOT_EXIST, 3, "OpsKernelInfoStore does not exist.");               // 1343250435
+GE_ERRORNO_OPS(GE_OPS_KERNEL_INFO_NOT_EXIST, 2, "OpsKernelInfo does not exist.");                // 1343250434
+GE_ERRORNO_OPS(GE_OPS_KERNEL_STORE_NOT_EXIST, 3, "OpsKernelInfoStore does not exist.");          // 1343250435
 GE_ERRORNO_OPS(GE_OPS_CALC_RUNNING_PARAM_FAILED, 4, "Failed to CalcOpRunningParam.");            // 1343250436
 GE_ERRORNO_OPS(GE_OPS_GENERATE_TASK_FAILED, 5, "Failed to GenerateTask.");                       // 1343250437
 GE_ERRORNO_OPS(GE_OPS_OPTIMIZE_ORIGINAL_GRAPH_FAILED, 6, "Failed to OptimizeOriginalGraph.");    // 1343250438

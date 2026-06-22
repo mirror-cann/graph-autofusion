@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -31,11 +31,10 @@ class IRMetaData {
     }
     void RemoveIrInput(const std::string &name) {
       if (ir_input_names.erase(name) > 0) {
-        ir_inputs.erase(std::remove_if(ir_inputs.begin(), ir_inputs.end(),
-                                       [&name](const std::pair<std::string, IrInputType> &pair) {
-                                         return pair.first == name;
-                                       }),
-                       ir_inputs.end());
+        ir_inputs.erase(
+            std::remove_if(ir_inputs.begin(), ir_inputs.end(),
+                           [&name](const std::pair<std::string, IrInputType> &pair) { return pair.first == name; }),
+            ir_inputs.end());
       }
     }
     std::unordered_set<std::string> ir_input_names;
@@ -50,6 +49,7 @@ class IRMetaData {
     std::unordered_set<std::string> ir_output_names;
     std::vector<std::pair<std::string, IrOutputType>> ir_outputs;
   };
+
  public:
   explicit IRMetaData(const std::string &op_name) : op_name_(op_name) {};
   IRMetaData() = default;
@@ -96,8 +96,8 @@ class IRMetaData {
   std::string op_name_;
   IrInputs ir_inputs_;
   IrOutputs ir_outputs_;
-  std::vector<std::string> register_input_name_; // todo need to deprecate
-  std::set<std::string> optional_input_names_; // todo need to deprecate
+  std::vector<std::string> register_input_name_;  // todo need to deprecate
+  std::set<std::string> optional_input_names_;    // todo need to deprecate
   std::vector<std::string> register_output_name_;
   std::vector<std::string> ir_attr_names_;
   // subgraph ir names to type, for a `if` operator:
@@ -117,19 +117,45 @@ class OpMetadata {
   OpMetadata() = default;
   ~OpMetadata() = default;
   OpMetadata(std::string name, std::string type) : name_(std::move(name)), type_(std::move(type)), ir_meta_(name) {}
-  int64_t GetId() const {return id_;}
-  int64_t GetStreamId() const {return stream_id_;}
-  const std::vector<std::string> &GetInputNames() const {return input_names_;}
-  const std::vector<std::string> &GetSrcNames() const {return src_names_;}
-  const std::vector<int64_t> &GetSrcIndexes() const {return src_indexes_;}
-  const std::vector<std::string> &GetDstNames() const {return dst_names_;}
-  const std::vector<int64_t> &GetDstIndexes() const {return dst_indexes_;}
-  const std::vector<int64_t> &GetInputOffsets() const {return input_offsets_;}
-  const std::vector<int64_t> &GetOutputOffsets() const {return output_offsets_;}
-  const std::vector<bool> &GetIsInputConsts() const {return is_input_consts_;}
-  const std::vector<std::string> &GetSubgraphNames() const {return subgraph_names_;}
-  void AddSubGraphName(const std::string &name) {subgraph_names_.push_back(name);}
-  void ClearSubgraphNames() { subgraph_names_.clear(); }
+  int64_t GetId() const {
+    return id_;
+  }
+  int64_t GetStreamId() const {
+    return stream_id_;
+  }
+  const std::vector<std::string> &GetInputNames() const {
+    return input_names_;
+  }
+  const std::vector<std::string> &GetSrcNames() const {
+    return src_names_;
+  }
+  const std::vector<int64_t> &GetSrcIndexes() const {
+    return src_indexes_;
+  }
+  const std::vector<std::string> &GetDstNames() const {
+    return dst_names_;
+  }
+  const std::vector<int64_t> &GetDstIndexes() const {
+    return dst_indexes_;
+  }
+  const std::vector<int64_t> &GetInputOffsets() const {
+    return input_offsets_;
+  }
+  const std::vector<int64_t> &GetOutputOffsets() const {
+    return output_offsets_;
+  }
+  const std::vector<bool> &GetIsInputConsts() const {
+    return is_input_consts_;
+  }
+  const std::vector<std::string> &GetSubgraphNames() const {
+    return subgraph_names_;
+  }
+  void AddSubGraphName(const std::string &name) {
+    subgraph_names_.push_back(name);
+  }
+  void ClearSubgraphNames() {
+    subgraph_names_.clear();
+  }
   void SetOpName(std::string name) {
     name_ = std::move(name);
     ir_meta_.SetOpName(name);
@@ -156,5 +182,5 @@ class OpMetadata {
   std::vector<std::string> subgraph_names_;
   IRMetaData ir_meta_;
 };
-} // namespace ge
-#endif // METADEF_CXX_GRAPH_IR_META_H_
+}  // namespace af
+#endif  // METADEF_CXX_GRAPH_IR_META_H_

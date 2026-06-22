@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -17,8 +17,7 @@
 namespace af {
 class ArgDescInfoImpl {
  public:
-  explicit ArgDescInfoImpl(ArgDescType arg_type,
-      int32_t ir_index = -1, bool is_folded = false);
+  explicit ArgDescInfoImpl(ArgDescType arg_type, int32_t ir_index = -1, bool is_folded = false);
   ~ArgDescInfoImpl() = default;
   ArgDescInfoImpl() = default;
   static ArgDescInfoImplPtr CreateCustomValue(uint64_t custom_value);
@@ -34,6 +33,7 @@ class ArgDescInfoImpl {
   void SetFolded(bool is_folded);
   void SetInnerArgType(AddrType inner_arg_type);
   AddrType GetInnerArgType() const;
+
  private:
   ArgDescType arg_type_{ArgDescType::kEnd};
   AddrType inner_arg_type_{AddrType::MAX};
@@ -42,6 +42,6 @@ class ArgDescInfoImpl {
   uint64_t custom_value_{0};
   bool is_folded_{false};
 };
-}
+}  // namespace af
 
-#endif // METADEF_GRAPH_ARGS_FORMAT_ARG_DESC_INFO_IMPL_H
+#endif  // METADEF_GRAPH_ARGS_FORMAT_ARG_DESC_INFO_IMPL_H

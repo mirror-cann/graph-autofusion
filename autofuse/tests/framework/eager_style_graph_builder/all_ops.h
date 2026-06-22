@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -20,7 +20,8 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-EsbTensor *EsAGLU(EsbTensor *x, EsbTensor *weight1, EsbTensor *bias1, EsbTensor *weight2, EsbTensor *bias2, const char *activate_func, bool activate_left);
+EsbTensor *EsAGLU(EsbTensor *x, EsbTensor *weight1, EsbTensor *bias1, EsbTensor *weight2, EsbTensor *bias2,
+                  const char *activate_func, bool activate_left);
 
 typedef struct {
   EsbTensor *dh_prev;
@@ -28,13 +29,18 @@ typedef struct {
   EsbTensor *dnt_x;
   EsbTensor *dw_att_t;
 } EsAUGRUHiddenGradCellOutput;
-EsAUGRUHiddenGradCellOutput EsAUGRUHiddenGradCell(EsbTensor *weight_att, EsbTensor *dh_pre_t, EsbTensor *h, EsbTensor *dy, EsbTensor *dh, EsbTensor *update, EsbTensor *update_att, EsbTensor *reset, EsbTensor *in_new, EsbTensor *hidden_new, EsbTensor *seq_length, int64_t t_state, const char *gate_order);
+EsAUGRUHiddenGradCellOutput EsAUGRUHiddenGradCell(EsbTensor *weight_att, EsbTensor *dh_pre_t, EsbTensor *h,
+                                                  EsbTensor *dy, EsbTensor *dh, EsbTensor *update,
+                                                  EsbTensor *update_att, EsbTensor *reset, EsbTensor *in_new,
+                                                  EsbTensor *hidden_new, EsbTensor *seq_length, int64_t t_state,
+                                                  const char *gate_order);
 EsbTensor *EsAbs(EsbTensor *x);
 EsbTensor *EsAbsGrad(EsbTensor *y, EsbTensor *dy);
 EsbTensor *EsAccumulateNV2(EsbTensor **x, int64_t x_num, int64_t N);
 
 // AccumulatorApplyGradient does not produce an output, so the returned EsTensor cannot be used to connect edges.
-EsbTensor *EsAccumulatorApplyGradient(EsbTensor *handle, EsbTensor *local_step, EsbTensor *gradient, af::DataType dtype);
+EsbTensor *EsAccumulatorApplyGradient(EsbTensor *handle, EsbTensor *local_step, EsbTensor *gradient,
+                                      af::DataType dtype);
 EsbTensor *EsAccumulatorNumAccumulated(EsbTensor *handle);
 
 // AccumulatorSetGlobalStep does not produce an output, so the returned EsTensor cannot be used to connect edges.
@@ -72,35 +78,46 @@ typedef struct {
   EsbTensor *dshift;
   EsbTensor *dscale;
 } EsAdaLayerNormGradOutput;
-EsAdaLayerNormGradOutput EsAdaLayerNormGrad(EsbTensor *dy, EsbTensor *x, EsbTensor *mean, EsbTensor *rstd, EsbTensor *scale, EsbTensor *ln_res);
+EsAdaLayerNormGradOutput EsAdaLayerNormGrad(EsbTensor *dy, EsbTensor *x, EsbTensor *mean, EsbTensor *rstd,
+                                            EsbTensor *scale, EsbTensor *ln_res);
 
 typedef struct {
   EsbTensor *output0;
   EsbTensor *output1;
   EsbTensor *output2;
 } EsAdamApplyOneOutput;
-EsAdamApplyOneOutput EsAdamApplyOne(EsbTensor *input0, EsbTensor *input1, EsbTensor *input2, EsbTensor *input3, EsbTensor *input4, EsbTensor *mul0_x, EsbTensor *mul1_x, EsbTensor *mul2_x, EsbTensor *mul3_x, EsbTensor *add2_y);
+EsAdamApplyOneOutput EsAdamApplyOne(EsbTensor *input0, EsbTensor *input1, EsbTensor *input2, EsbTensor *input3,
+                                    EsbTensor *input4, EsbTensor *mul0_x, EsbTensor *mul1_x, EsbTensor *mul2_x,
+                                    EsbTensor *mul3_x, EsbTensor *add2_y);
 
 typedef struct {
   EsbTensor *input1;
   EsbTensor *input2;
   EsbTensor *input3;
 } EsAdamApplyOneAssignOutput;
-EsAdamApplyOneAssignOutput EsAdamApplyOneAssign(EsbTensor *input0, EsbTensor *input1, EsbTensor *input2, EsbTensor *input3, EsbTensor *input4, EsbTensor *mul0_x, EsbTensor *mul1_x, EsbTensor *mul2_x, EsbTensor *mul3_x, EsbTensor *add2_y);
+EsAdamApplyOneAssignOutput EsAdamApplyOneAssign(EsbTensor *input0, EsbTensor *input1, EsbTensor *input2,
+                                                EsbTensor *input3, EsbTensor *input4, EsbTensor *mul0_x,
+                                                EsbTensor *mul1_x, EsbTensor *mul2_x, EsbTensor *mul3_x,
+                                                EsbTensor *add2_y);
 
 typedef struct {
   EsbTensor *output0;
   EsbTensor *output1;
   EsbTensor *output2;
 } EsAdamApplyOneWithDecayOutput;
-EsAdamApplyOneWithDecayOutput EsAdamApplyOneWithDecay(EsbTensor *input0, EsbTensor *input1, EsbTensor *input2, EsbTensor *input3, EsbTensor *input4, EsbTensor *mul0_x, EsbTensor *mul1_x, EsbTensor *mul2_x, EsbTensor *mul3_x, EsbTensor *mul4_x, EsbTensor *add2_y);
+EsAdamApplyOneWithDecayOutput EsAdamApplyOneWithDecay(EsbTensor *input0, EsbTensor *input1, EsbTensor *input2,
+                                                      EsbTensor *input3, EsbTensor *input4, EsbTensor *mul0_x,
+                                                      EsbTensor *mul1_x, EsbTensor *mul2_x, EsbTensor *mul3_x,
+                                                      EsbTensor *mul4_x, EsbTensor *add2_y);
 
 typedef struct {
   EsbTensor *input1;
   EsbTensor *input2;
   EsbTensor *input3;
 } EsAdamApplyOneWithDecayAssignOutput;
-EsAdamApplyOneWithDecayAssignOutput EsAdamApplyOneWithDecayAssign(EsbTensor *input0, EsbTensor *input1, EsbTensor *input2, EsbTensor *input3, EsbTensor *input4, EsbTensor *mul0_x, EsbTensor *mul1_x, EsbTensor *mul2_x, EsbTensor *mul3_x, EsbTensor *mul4_x, EsbTensor *add2_y);
+EsAdamApplyOneWithDecayAssignOutput EsAdamApplyOneWithDecayAssign(
+    EsbTensor *input0, EsbTensor *input1, EsbTensor *input2, EsbTensor *input3, EsbTensor *input4, EsbTensor *mul0_x,
+    EsbTensor *mul1_x, EsbTensor *mul2_x, EsbTensor *mul3_x, EsbTensor *mul4_x, EsbTensor *add2_y);
 EsbTensor *EsAdaptiveAvgPool(EsbTensor *x, EsbTensor *output_size);
 EsbTensor *EsAdaptiveAvgPool2d(EsbTensor *x, const int64_t *output_size, int64_t output_size_num);
 
@@ -109,9 +126,12 @@ typedef struct {
   EsbTensor *right_matrix;
   EsbTensor *weight_matrix;
 } EsAdaptiveAvgPool2dAssistMatrixOutput;
-EsAdaptiveAvgPool2dAssistMatrixOutput EsAdaptiveAvgPool2dAssistMatrix(EsbTensor *input_size, const int64_t *output_size, int64_t output_size_num);
-EsbTensor *EsAdaptiveAvgPool2dGrad(EsbTensor *input_grad, const int64_t *orig_input_shape, int64_t orig_input_shape_num);
-EsbTensor *EsAdaptiveAvgPool3d(EsbTensor *x, const int64_t *output_size, int64_t output_size_num, const char *data_format);
+EsAdaptiveAvgPool2dAssistMatrixOutput EsAdaptiveAvgPool2dAssistMatrix(EsbTensor *input_size, const int64_t *output_size,
+                                                                      int64_t output_size_num);
+EsbTensor *EsAdaptiveAvgPool2dGrad(EsbTensor *input_grad, const int64_t *orig_input_shape,
+                                   int64_t orig_input_shape_num);
+EsbTensor *EsAdaptiveAvgPool3d(EsbTensor *x, const int64_t *output_size, int64_t output_size_num,
+                               const char *data_format);
 
 typedef struct {
   EsbTensor *left_matrix;
@@ -133,14 +153,16 @@ typedef struct {
   EsbTensor *rstd;
   EsbTensor *x;
 } EsAddLayerNormOutput;
-EsAddLayerNormOutput EsAddLayerNorm(EsbTensor *x1, EsbTensor *x2, EsbTensor *gamma, EsbTensor *beta, EsbTensor *bias, float epsilon, bool additional_output);
+EsAddLayerNormOutput EsAddLayerNorm(EsbTensor *x1, EsbTensor *x2, EsbTensor *gamma, EsbTensor *beta, EsbTensor *bias,
+                                    float epsilon, bool additional_output);
 
 typedef struct {
   EsbTensor *dx;
   EsbTensor *dgamma;
   EsbTensor *dbeta;
 } EsAddLayerNormGradOutput;
-EsAddLayerNormGradOutput EsAddLayerNormGrad(EsbTensor *dy, EsbTensor *x1, EsbTensor *x2, EsbTensor *rstd, EsbTensor *mean, EsbTensor *gamma, EsbTensor *dsum);
+EsAddLayerNormGradOutput EsAddLayerNormGrad(EsbTensor *dy, EsbTensor *x1, EsbTensor *x2, EsbTensor *rstd,
+                                            EsbTensor *mean, EsbTensor *gamma, EsbTensor *dsum);
 
 typedef struct {
   EsbTensor *y1;
@@ -149,8 +171,12 @@ typedef struct {
   EsbTensor *out_scales1;
   EsbTensor *out_scales2;
 } EsAddLayerNormQuantOutput;
-EsAddLayerNormQuantOutput EsAddLayerNormQuant(EsbTensor *x1, EsbTensor *x2, EsbTensor *gamma, EsbTensor *beta, EsbTensor *bias, EsbTensor *scales1, EsbTensor *scales2, EsbTensor *zero_points1, EsbTensor *zero_points2, const char *quant_mode, float epsilon, bool additional_output);
-EsbTensor *EsAddManySparseToTensorsMap(EsbTensor *indices, EsbTensor *values, EsbTensor *shape, const char *container, const char *shared_name);
+EsAddLayerNormQuantOutput EsAddLayerNormQuant(EsbTensor *x1, EsbTensor *x2, EsbTensor *gamma, EsbTensor *beta,
+                                              EsbTensor *bias, EsbTensor *scales1, EsbTensor *scales2,
+                                              EsbTensor *zero_points1, EsbTensor *zero_points2, const char *quant_mode,
+                                              float epsilon, bool additional_output);
+EsbTensor *EsAddManySparseToTensorsMap(EsbTensor *indices, EsbTensor *values, EsbTensor *shape, const char *container,
+                                       const char *shared_name);
 EsbTensor *EsAddMatMatElements(EsbTensor *c, EsbTensor *a, EsbTensor *b, EsbTensor *beta, EsbTensor *alpha);
 EsbTensor *EsAddN(EsbTensor **x, int64_t x_num, int64_t N);
 
@@ -168,24 +194,31 @@ typedef struct {
   EsbTensor *scale1;
   EsbTensor *scale2;
 } EsAddRmsNormDynamicQuantOutput;
-EsAddRmsNormDynamicQuantOutput EsAddRmsNormDynamicQuant(EsbTensor *x1, EsbTensor *x2, EsbTensor *gamma, EsbTensor *smooth_scale1, EsbTensor *smooth_scale2, float epsilon);
+EsAddRmsNormDynamicQuantOutput EsAddRmsNormDynamicQuant(EsbTensor *x1, EsbTensor *x2, EsbTensor *gamma,
+                                                        EsbTensor *smooth_scale1, EsbTensor *smooth_scale2,
+                                                        float epsilon);
 
 typedef struct {
   EsbTensor *y1;
   EsbTensor *y2;
   EsbTensor *x;
 } EsAddRmsNormQuantOutput;
-EsAddRmsNormQuantOutput EsAddRmsNormQuant(EsbTensor *x1, EsbTensor *x2, EsbTensor *gamma, EsbTensor *scales1, EsbTensor *scales2, EsbTensor *zero_points1, EsbTensor *zero_points2, int64_t axis, float epsilon);
+EsAddRmsNormQuantOutput EsAddRmsNormQuant(EsbTensor *x1, EsbTensor *x2, EsbTensor *gamma, EsbTensor *scales1,
+                                          EsbTensor *scales2, EsbTensor *zero_points1, EsbTensor *zero_points2,
+                                          int64_t axis, float epsilon);
 EsbTensor *EsAddRowRanges(EsbTensor *x, EsbTensor *src, EsbTensor *indices);
-EsbTensor *EsAddSparseToTensorsMap(EsbTensor *indices, EsbTensor *values, EsbTensor *shape, const char *container, const char *shared_name);
+EsbTensor *EsAddSparseToTensorsMap(EsbTensor *indices, EsbTensor *values, EsbTensor *shape, const char *container,
+                                   const char *shared_name);
 EsbTensor *EsAddV2(EsbTensor *x1, EsbTensor *x2);
 EsbTensor *EsAddcdiv(EsbTensor *input_data, EsbTensor *x1, EsbTensor *x2, EsbTensor *value);
 EsbTensor *EsAddcmul(EsbTensor *input_data, EsbTensor *x1, EsbTensor *x2, EsbTensor *value);
 EsbTensor *EsAdds(EsbTensor *x, float value);
 EsbTensor *EsAdjustBrightness(EsbTensor *images, EsbTensor *delta);
 EsbTensor *EsAdjustBrightnessV2(EsbTensor *images, EsbTensor *factor);
-EsbTensor *EsAdjustContrast(EsbTensor *images, EsbTensor *contrast_factor, const char *data_format, const char *mean_mode);
-EsbTensor *EsAdjustContrastWithMean(EsbTensor *images, EsbTensor *mean, EsbTensor *contrast_factor, const char *data_format);
+EsbTensor *EsAdjustContrast(EsbTensor *images, EsbTensor *contrast_factor, const char *data_format,
+                            const char *mean_mode);
+EsbTensor *EsAdjustContrastWithMean(EsbTensor *images, EsbTensor *mean, EsbTensor *contrast_factor,
+                                    const char *data_format);
 EsbTensor *EsAdjustHue(EsbTensor *images, EsbTensor *delta, const char *data_format);
 EsbTensor *EsAdjustSaturation(EsbTensor *images, EsbTensor *scale);
 EsbTensor *EsAdjustSaturationV2(EsbTensor *images, EsbTensor *scale, const char *data_format);
@@ -197,27 +230,37 @@ typedef struct {
   EsbTensor *true_expected_count;
   EsbTensor *sampled_expected_count;
 } EsAllCandidateSamplerOutput;
-EsAllCandidateSamplerOutput EsAllCandidateSampler(EsbTensor *true_classes, int64_t num_true, int64_t num_sampled, bool unique, int64_t seed, int64_t seed2);
+EsAllCandidateSamplerOutput EsAllCandidateSampler(EsbTensor *true_classes, int64_t num_true, int64_t num_sampled,
+                                                  bool unique, int64_t seed, int64_t seed2);
 
 typedef struct {
   EsbTensor *y;
   EsbTensor *gather_out;
 } EsAllGatherMatmulOutput;
-EsAllGatherMatmulOutput EsAllGatherMatmul(EsbTensor *x1, EsbTensor *x2, EsbTensor *bias, const char *group, bool is_trans_a, bool is_trans_b, int64_t gather_index, int64_t comm_turn, int64_t rank_size, bool is_gather_out);
+EsAllGatherMatmulOutput EsAllGatherMatmul(EsbTensor *x1, EsbTensor *x2, EsbTensor *bias, const char *group,
+                                          bool is_trans_a, bool is_trans_b, int64_t gather_index, int64_t comm_turn,
+                                          int64_t rank_size, bool is_gather_out);
 
 typedef struct {
   EsbTensor *y1;
   EsbTensor *y2;
   EsbTensor *y3;
 } EsAlltoAllAllGatherBatchMatMulOutput;
-EsAlltoAllAllGatherBatchMatMulOutput EsAlltoAllAllGatherBatchMatMul(EsbTensor *x, EsbTensor *weight, EsbTensor *bias, const char *group_ep, const char *group_tp, int64_t ep_world_size, int64_t tp_world_size, int64_t x_shard_type, int64_t act_type, bool transpose_weight, bool output_y2_flag, bool output_y3_flag);
+EsAlltoAllAllGatherBatchMatMulOutput EsAlltoAllAllGatherBatchMatMul(EsbTensor *x, EsbTensor *weight, EsbTensor *bias,
+                                                                    const char *group_ep, const char *group_tp,
+                                                                    int64_t ep_world_size, int64_t tp_world_size,
+                                                                    int64_t x_shard_type, int64_t act_type,
+                                                                    bool transpose_weight, bool output_y2_flag,
+                                                                    bool output_y3_flag);
 
 typedef struct {
   EsbTensor *updated_scale;
   EsbTensor *updated_growth_tracker;
 } EsAmpUpdateScaleOutput;
-EsAmpUpdateScaleOutput EsAmpUpdateScale(EsbTensor *current_scale, EsbTensor *growth_tracker, EsbTensor *found_inf, float growth_factor, float backoff_factor, int64_t growth_interval);
-EsbTensor *EsAnchorResponseFlags(EsbTensor *gt_bboxes, const int64_t *featmap_size, int64_t featmap_size_num, const int64_t *strides, int64_t strides_num, int64_t num_base_anchors);
+EsAmpUpdateScaleOutput EsAmpUpdateScale(EsbTensor *current_scale, EsbTensor *growth_tracker, EsbTensor *found_inf,
+                                        float growth_factor, float backoff_factor, int64_t growth_interval);
+EsbTensor *EsAnchorResponseFlags(EsbTensor *gt_bboxes, const int64_t *featmap_size, int64_t featmap_size_num,
+                                 const int64_t *strides, int64_t strides_num, int64_t num_base_anchors);
 EsbTensor *EsAngle(EsbTensor *input, af::DataType Tout);
 EsbTensor *EsAngleV2(EsbTensor *x);
 
@@ -226,70 +269,97 @@ typedef struct {
   EsbTensor *deleter;
 } EsAnonymousSeedGeneratorOutput;
 EsAnonymousSeedGeneratorOutput EsAnonymousSeedGenerator(EsbTensor *seed, EsbTensor *seed2, EsbTensor *reshuffle);
-EsbTensor *EsApplyAdaMax(EsbTensor *var, EsbTensor *m, EsbTensor *v, EsbTensor *beta1_power, EsbTensor *lr, EsbTensor *beta1, EsbTensor *beta2, EsbTensor *epsilon, EsbTensor *grad, bool use_locking);
+EsbTensor *EsApplyAdaMax(EsbTensor *var, EsbTensor *m, EsbTensor *v, EsbTensor *beta1_power, EsbTensor *lr,
+                         EsbTensor *beta1, EsbTensor *beta2, EsbTensor *epsilon, EsbTensor *grad, bool use_locking);
 
 typedef struct {
   EsbTensor *var;
   EsbTensor *m;
   EsbTensor *v;
 } EsApplyAdaMaxDOutput;
-EsApplyAdaMaxDOutput EsApplyAdaMaxD(EsbTensor *var, EsbTensor *m, EsbTensor *v, EsbTensor *beta1_power, EsbTensor *lr, EsbTensor *beta1, EsbTensor *beta2, EsbTensor *epsilon, EsbTensor *grad, bool use_locking);
-EsbTensor *EsApplyAdadelta(EsbTensor *var, EsbTensor *accum, EsbTensor *accum_update, EsbTensor *lr, EsbTensor *rho, EsbTensor *epsilon, EsbTensor *grad, bool use_locking);
+EsApplyAdaMaxDOutput EsApplyAdaMaxD(EsbTensor *var, EsbTensor *m, EsbTensor *v, EsbTensor *beta1_power, EsbTensor *lr,
+                                    EsbTensor *beta1, EsbTensor *beta2, EsbTensor *epsilon, EsbTensor *grad,
+                                    bool use_locking);
+EsbTensor *EsApplyAdadelta(EsbTensor *var, EsbTensor *accum, EsbTensor *accum_update, EsbTensor *lr, EsbTensor *rho,
+                           EsbTensor *epsilon, EsbTensor *grad, bool use_locking);
 
 typedef struct {
   EsbTensor *var;
   EsbTensor *accum;
   EsbTensor *accum_update;
 } EsApplyAdadeltaDOutput;
-EsApplyAdadeltaDOutput EsApplyAdadeltaD(EsbTensor *var, EsbTensor *accum, EsbTensor *accum_update, EsbTensor *lr, EsbTensor *rho, EsbTensor *epsilon, EsbTensor *grad, bool use_locking);
-EsbTensor *EsApplyAdagrad(EsbTensor *var, EsbTensor *accum, EsbTensor *lr, EsbTensor *grad, bool update_slots, bool use_locking);
+EsApplyAdadeltaDOutput EsApplyAdadeltaD(EsbTensor *var, EsbTensor *accum, EsbTensor *accum_update, EsbTensor *lr,
+                                        EsbTensor *rho, EsbTensor *epsilon, EsbTensor *grad, bool use_locking);
+EsbTensor *EsApplyAdagrad(EsbTensor *var, EsbTensor *accum, EsbTensor *lr, EsbTensor *grad, bool update_slots,
+                          bool use_locking);
 
 typedef struct {
   EsbTensor *var;
   EsbTensor *accum;
 } EsApplyAdagradDOutput;
-EsApplyAdagradDOutput EsApplyAdagradD(EsbTensor *var, EsbTensor *accum, EsbTensor *lr, EsbTensor *grad, bool update_slots, bool use_locking);
-EsbTensor *EsApplyAdagradDA(EsbTensor *var, EsbTensor *gradient_accumulator, EsbTensor *gradient_squared_accumulator, EsbTensor *grad, EsbTensor *lr, EsbTensor *l1, EsbTensor *l2, EsbTensor *global_step, bool use_locking);
+EsApplyAdagradDOutput EsApplyAdagradD(EsbTensor *var, EsbTensor *accum, EsbTensor *lr, EsbTensor *grad,
+                                      bool update_slots, bool use_locking);
+EsbTensor *EsApplyAdagradDA(EsbTensor *var, EsbTensor *gradient_accumulator, EsbTensor *gradient_squared_accumulator,
+                            EsbTensor *grad, EsbTensor *lr, EsbTensor *l1, EsbTensor *l2, EsbTensor *global_step,
+                            bool use_locking);
 
 typedef struct {
   EsbTensor *var;
   EsbTensor *gradient_accumulator;
   EsbTensor *gradient_squared_accumulator;
 } EsApplyAdagradDADOutput;
-EsApplyAdagradDADOutput EsApplyAdagradDAD(EsbTensor *var, EsbTensor *gradient_accumulator, EsbTensor *gradient_squared_accumulator, EsbTensor *grad, EsbTensor *lr, EsbTensor *l1, EsbTensor *l2, EsbTensor *global_step, bool use_locking);
-EsbTensor *EsApplyAdagradV2(EsbTensor *var, EsbTensor *accum, EsbTensor *lr, EsbTensor *epsilon, EsbTensor *grad, bool update_slots, bool use_locking);
+EsApplyAdagradDADOutput EsApplyAdagradDAD(EsbTensor *var, EsbTensor *gradient_accumulator,
+                                          EsbTensor *gradient_squared_accumulator, EsbTensor *grad, EsbTensor *lr,
+                                          EsbTensor *l1, EsbTensor *l2, EsbTensor *global_step, bool use_locking);
+EsbTensor *EsApplyAdagradV2(EsbTensor *var, EsbTensor *accum, EsbTensor *lr, EsbTensor *epsilon, EsbTensor *grad,
+                            bool update_slots, bool use_locking);
 
 typedef struct {
   EsbTensor *var;
   EsbTensor *accum;
 } EsApplyAdagradV2DOutput;
-EsApplyAdagradV2DOutput EsApplyAdagradV2D(EsbTensor *var, EsbTensor *accum, EsbTensor *lr, EsbTensor *grad, float epsilon, bool update_slots, bool use_locking);
-EsbTensor *EsApplyAdam(EsbTensor *var, EsbTensor *m, EsbTensor *v, EsbTensor *beta1_power, EsbTensor *beta2_power, EsbTensor *lr, EsbTensor *beta1, EsbTensor *beta2, EsbTensor *epsilon, EsbTensor *grad, bool use_locking, bool use_nesterov);
+EsApplyAdagradV2DOutput EsApplyAdagradV2D(EsbTensor *var, EsbTensor *accum, EsbTensor *lr, EsbTensor *grad,
+                                          float epsilon, bool update_slots, bool use_locking);
+EsbTensor *EsApplyAdam(EsbTensor *var, EsbTensor *m, EsbTensor *v, EsbTensor *beta1_power, EsbTensor *beta2_power,
+                       EsbTensor *lr, EsbTensor *beta1, EsbTensor *beta2, EsbTensor *epsilon, EsbTensor *grad,
+                       bool use_locking, bool use_nesterov);
 
 typedef struct {
   EsbTensor *var;
   EsbTensor *m;
   EsbTensor *v;
 } EsApplyAdamDOutput;
-EsApplyAdamDOutput EsApplyAdamD(EsbTensor *var, EsbTensor *m, EsbTensor *v, EsbTensor *beta1_power, EsbTensor *beta2_power, EsbTensor *lr, EsbTensor *beta1, EsbTensor *beta2, EsbTensor *epsilon, EsbTensor *grad, bool use_locking, bool use_nesterov);
+EsApplyAdamDOutput EsApplyAdamD(EsbTensor *var, EsbTensor *m, EsbTensor *v, EsbTensor *beta1_power,
+                                EsbTensor *beta2_power, EsbTensor *lr, EsbTensor *beta1, EsbTensor *beta2,
+                                EsbTensor *epsilon, EsbTensor *grad, bool use_locking, bool use_nesterov);
 
 typedef struct {
   EsbTensor *var;
   EsbTensor *m;
   EsbTensor *v;
 } EsApplyAdamV2Output;
-EsApplyAdamV2Output EsApplyAdamV2(EsbTensor *var, EsbTensor *m, EsbTensor *v, EsbTensor *lr, EsbTensor *beta1, EsbTensor *beta2, EsbTensor *epsilon, EsbTensor *grad, EsbTensor *max_grad_norm, EsbTensor *global_grad_norm, EsbTensor *weight_decay, EsbTensor *step_size, const char *adam_mode);
+EsApplyAdamV2Output EsApplyAdamV2(EsbTensor *var, EsbTensor *m, EsbTensor *v, EsbTensor *lr, EsbTensor *beta1,
+                                  EsbTensor *beta2, EsbTensor *epsilon, EsbTensor *grad, EsbTensor *max_grad_norm,
+                                  EsbTensor *global_grad_norm, EsbTensor *weight_decay, EsbTensor *step_size,
+                                  const char *adam_mode);
 
 typedef struct {
   EsbTensor *var;
   EsbTensor *m;
   EsbTensor *v;
 } EsApplyAdamWOutput;
-EsApplyAdamWOutput EsApplyAdamW(EsbTensor *var, EsbTensor *m, EsbTensor *v, EsbTensor *beta1_power, EsbTensor *beta2_power, EsbTensor *lr, EsbTensor *weight_decay, EsbTensor *beta1, EsbTensor *beta2, EsbTensor *epsilon, EsbTensor *grad, EsbTensor *max_grad_norm, bool amsgrad, bool maximize);
+EsApplyAdamWOutput EsApplyAdamW(EsbTensor *var, EsbTensor *m, EsbTensor *v, EsbTensor *beta1_power,
+                                EsbTensor *beta2_power, EsbTensor *lr, EsbTensor *weight_decay, EsbTensor *beta1,
+                                EsbTensor *beta2, EsbTensor *epsilon, EsbTensor *grad, EsbTensor *max_grad_norm,
+                                bool amsgrad, bool maximize);
 
 // ApplyAdamWV2 does not produce an output, so the returned EsTensor cannot be used to connect edges.
-EsbTensor *EsApplyAdamWV2(EsbTensor *var, EsbTensor *m, EsbTensor *v, EsbTensor *grad, EsbTensor *step, EsbTensor *max_grad_norm, float lr, float beta1, float beta2, float weight_decay, float eps, bool amsgrad, bool maximize);
-EsbTensor *EsApplyAdamWithAmsgrad(EsbTensor *var, EsbTensor *m, EsbTensor *v, EsbTensor *vhat, EsbTensor *beta1_power, EsbTensor *beta2_power, EsbTensor *lr, EsbTensor *beta1, EsbTensor *beta2, EsbTensor *epsilon, EsbTensor *grad, bool use_locking);
+EsbTensor *EsApplyAdamWV2(EsbTensor *var, EsbTensor *m, EsbTensor *v, EsbTensor *grad, EsbTensor *step,
+                          EsbTensor *max_grad_norm, float lr, float beta1, float beta2, float weight_decay, float eps,
+                          bool amsgrad, bool maximize);
+EsbTensor *EsApplyAdamWithAmsgrad(EsbTensor *var, EsbTensor *m, EsbTensor *v, EsbTensor *vhat, EsbTensor *beta1_power,
+                                  EsbTensor *beta2_power, EsbTensor *lr, EsbTensor *beta1, EsbTensor *beta2,
+                                  EsbTensor *epsilon, EsbTensor *grad, bool use_locking);
 
 typedef struct {
   EsbTensor *var;
@@ -297,7 +367,10 @@ typedef struct {
   EsbTensor *v;
   EsbTensor *vhat;
 } EsApplyAdamWithAmsgradDOutput;
-EsApplyAdamWithAmsgradDOutput EsApplyAdamWithAmsgradD(EsbTensor *var, EsbTensor *m, EsbTensor *v, EsbTensor *vhat, EsbTensor *beta1_power, EsbTensor *beta2_power, EsbTensor *lr, EsbTensor *grad, float beta1, float beta2, float epsilon, bool use_locking);
+EsApplyAdamWithAmsgradDOutput EsApplyAdamWithAmsgradD(EsbTensor *var, EsbTensor *m, EsbTensor *v, EsbTensor *vhat,
+                                                      EsbTensor *beta1_power, EsbTensor *beta2_power, EsbTensor *lr,
+                                                      EsbTensor *grad, float beta1, float beta2, float epsilon,
+                                                      bool use_locking);
 
 typedef struct {
   EsbTensor *var;
@@ -305,15 +378,22 @@ typedef struct {
   EsbTensor *v;
   EsbTensor *vhat;
 } EsApplyAdamWithAmsgradV2Output;
-EsApplyAdamWithAmsgradV2Output EsApplyAdamWithAmsgradV2(EsbTensor *var, EsbTensor *m, EsbTensor *v, EsbTensor *vhat, EsbTensor *beta1_power, EsbTensor *beta2_power, EsbTensor *lr, EsbTensor *beta1, EsbTensor *beta2, EsbTensor *epsilon, EsbTensor *grad, bool use_locking);
-EsbTensor *EsApplyAddSign(EsbTensor *var, EsbTensor *m, EsbTensor *lr, EsbTensor *alpha, EsbTensor *sign_decay, EsbTensor *beta, EsbTensor *grad, bool use_locking);
+EsApplyAdamWithAmsgradV2Output EsApplyAdamWithAmsgradV2(EsbTensor *var, EsbTensor *m, EsbTensor *v, EsbTensor *vhat,
+                                                        EsbTensor *beta1_power, EsbTensor *beta2_power, EsbTensor *lr,
+                                                        EsbTensor *beta1, EsbTensor *beta2, EsbTensor *epsilon,
+                                                        EsbTensor *grad, bool use_locking);
+EsbTensor *EsApplyAddSign(EsbTensor *var, EsbTensor *m, EsbTensor *lr, EsbTensor *alpha, EsbTensor *sign_decay,
+                          EsbTensor *beta, EsbTensor *grad, bool use_locking);
 
 typedef struct {
   EsbTensor *var;
   EsbTensor *m;
 } EsApplyAddSignDOutput;
-EsApplyAddSignDOutput EsApplyAddSignD(EsbTensor *var, EsbTensor *m, EsbTensor *lr, EsbTensor *alpha, EsbTensor *sign_decay, EsbTensor *beta, EsbTensor *grad, bool use_locking);
-EsbTensor *EsApplyCenteredRMSProp(EsbTensor *var, EsbTensor *mg, EsbTensor *ms, EsbTensor *mom, EsbTensor *lr, EsbTensor *rho, EsbTensor *momentum, EsbTensor *epsilon, EsbTensor *grad, bool use_locking);
+EsApplyAddSignDOutput EsApplyAddSignD(EsbTensor *var, EsbTensor *m, EsbTensor *lr, EsbTensor *alpha,
+                                      EsbTensor *sign_decay, EsbTensor *beta, EsbTensor *grad, bool use_locking);
+EsbTensor *EsApplyCenteredRMSProp(EsbTensor *var, EsbTensor *mg, EsbTensor *ms, EsbTensor *mom, EsbTensor *lr,
+                                  EsbTensor *rho, EsbTensor *momentum, EsbTensor *epsilon, EsbTensor *grad,
+                                  bool use_locking);
 
 typedef struct {
   EsbTensor *var;
@@ -321,23 +401,30 @@ typedef struct {
   EsbTensor *ms;
   EsbTensor *mom;
 } EsApplyCenteredRMSPropDOutput;
-EsApplyCenteredRMSPropDOutput EsApplyCenteredRMSPropD(EsbTensor *var, EsbTensor *mg, EsbTensor *ms, EsbTensor *mom, EsbTensor *lr, EsbTensor *rho, EsbTensor *momentum, EsbTensor *epsilon, EsbTensor *grad, bool use_locking);
-EsbTensor *EsApplyFtrl(EsbTensor *var, EsbTensor *accum, EsbTensor *linear, EsbTensor *grad, EsbTensor *lr, EsbTensor *l1, EsbTensor *l2, EsbTensor *lr_power, bool use_locking);
+EsApplyCenteredRMSPropDOutput EsApplyCenteredRMSPropD(EsbTensor *var, EsbTensor *mg, EsbTensor *ms, EsbTensor *mom,
+                                                      EsbTensor *lr, EsbTensor *rho, EsbTensor *momentum,
+                                                      EsbTensor *epsilon, EsbTensor *grad, bool use_locking);
+EsbTensor *EsApplyFtrl(EsbTensor *var, EsbTensor *accum, EsbTensor *linear, EsbTensor *grad, EsbTensor *lr,
+                       EsbTensor *l1, EsbTensor *l2, EsbTensor *lr_power, bool use_locking);
 
 typedef struct {
   EsbTensor *var;
   EsbTensor *accum;
   EsbTensor *linear;
 } EsApplyFtrlDOutput;
-EsApplyFtrlDOutput EsApplyFtrlD(EsbTensor *var, EsbTensor *accum, EsbTensor *linear, EsbTensor *grad, EsbTensor *lr, EsbTensor *l1, EsbTensor *l2, EsbTensor *lr_power, bool use_locking);
-EsbTensor *EsApplyFtrlV2(EsbTensor *var, EsbTensor *accum, EsbTensor *linear, EsbTensor *grad, EsbTensor *lr, EsbTensor *l1, EsbTensor *l2, EsbTensor *l2_shrinkage, EsbTensor *lr_power, bool use_locking);
+EsApplyFtrlDOutput EsApplyFtrlD(EsbTensor *var, EsbTensor *accum, EsbTensor *linear, EsbTensor *grad, EsbTensor *lr,
+                                EsbTensor *l1, EsbTensor *l2, EsbTensor *lr_power, bool use_locking);
+EsbTensor *EsApplyFtrlV2(EsbTensor *var, EsbTensor *accum, EsbTensor *linear, EsbTensor *grad, EsbTensor *lr,
+                         EsbTensor *l1, EsbTensor *l2, EsbTensor *l2_shrinkage, EsbTensor *lr_power, bool use_locking);
 
 typedef struct {
   EsbTensor *var;
   EsbTensor *accum;
   EsbTensor *linear;
 } EsApplyFtrlV2DOutput;
-EsApplyFtrlV2DOutput EsApplyFtrlV2D(EsbTensor *var, EsbTensor *accum, EsbTensor *linear, EsbTensor *grad, EsbTensor *lr, EsbTensor *l1, EsbTensor *l2, EsbTensor *l2_shrinkage, EsbTensor *lr_power, bool use_locking);
+EsApplyFtrlV2DOutput EsApplyFtrlV2D(EsbTensor *var, EsbTensor *accum, EsbTensor *linear, EsbTensor *grad, EsbTensor *lr,
+                                    EsbTensor *l1, EsbTensor *l2, EsbTensor *l2_shrinkage, EsbTensor *lr_power,
+                                    bool use_locking);
 
 typedef struct {
   EsbTensor *var;
@@ -345,51 +432,65 @@ typedef struct {
   EsbTensor *v;
   EsbTensor *s;
 } EsApplyFusedEmaAdamOutput;
-EsApplyFusedEmaAdamOutput EsApplyFusedEmaAdam(EsbTensor *grad, EsbTensor *var, EsbTensor *m, EsbTensor *v, EsbTensor *s, EsbTensor *step, float lr, float ema_decay, float beta1, float beta2, float eps, int64_t mode, bool bias_correction, float weight_decay);
+EsApplyFusedEmaAdamOutput EsApplyFusedEmaAdam(EsbTensor *grad, EsbTensor *var, EsbTensor *m, EsbTensor *v, EsbTensor *s,
+                                              EsbTensor *step, float lr, float ema_decay, float beta1, float beta2,
+                                              float eps, int64_t mode, bool bias_correction, float weight_decay);
 EsbTensor *EsApplyGradientDescent(EsbTensor *var, EsbTensor *alpha, EsbTensor *delta, bool use_locking);
-EsbTensor *EsApplyKerasMomentum(EsbTensor *var, EsbTensor *accum, EsbTensor *lr, EsbTensor *grad, EsbTensor *momentum, bool use_locking, bool use_nesterov);
+EsbTensor *EsApplyKerasMomentum(EsbTensor *var, EsbTensor *accum, EsbTensor *lr, EsbTensor *grad, EsbTensor *momentum,
+                                bool use_locking, bool use_nesterov);
 
 typedef struct {
   EsbTensor *var;
   EsbTensor *accum;
 } EsApplyKerasMomentumDOutput;
-EsApplyKerasMomentumDOutput EsApplyKerasMomentumD(EsbTensor *var, EsbTensor *accum, EsbTensor *lr, EsbTensor *grad, EsbTensor *momentum, bool use_locking, bool use_nesterov);
-EsbTensor *EsApplyMomentum(EsbTensor *var, EsbTensor *accum, EsbTensor *lr, EsbTensor *grad, EsbTensor *momentum, bool use_nesterov, bool use_locking);
+EsApplyKerasMomentumDOutput EsApplyKerasMomentumD(EsbTensor *var, EsbTensor *accum, EsbTensor *lr, EsbTensor *grad,
+                                                  EsbTensor *momentum, bool use_locking, bool use_nesterov);
+EsbTensor *EsApplyMomentum(EsbTensor *var, EsbTensor *accum, EsbTensor *lr, EsbTensor *grad, EsbTensor *momentum,
+                           bool use_nesterov, bool use_locking);
 
 typedef struct {
   EsbTensor *var;
   EsbTensor *accum;
 } EsApplyMomentumDOutput;
-EsApplyMomentumDOutput EsApplyMomentumD(EsbTensor *var, EsbTensor *accum, EsbTensor *lr, EsbTensor *grad, EsbTensor *momentum, bool use_nesterov, bool use_locking);
-EsbTensor *EsApplyPowerSign(EsbTensor *var, EsbTensor *m, EsbTensor *lr, EsbTensor *logbase, EsbTensor *sign_decay, EsbTensor *beta, EsbTensor *grad, bool use_locking);
+EsApplyMomentumDOutput EsApplyMomentumD(EsbTensor *var, EsbTensor *accum, EsbTensor *lr, EsbTensor *grad,
+                                        EsbTensor *momentum, bool use_nesterov, bool use_locking);
+EsbTensor *EsApplyPowerSign(EsbTensor *var, EsbTensor *m, EsbTensor *lr, EsbTensor *logbase, EsbTensor *sign_decay,
+                            EsbTensor *beta, EsbTensor *grad, bool use_locking);
 
 typedef struct {
   EsbTensor *var;
   EsbTensor *m;
 } EsApplyPowerSignDOutput;
-EsApplyPowerSignDOutput EsApplyPowerSignD(EsbTensor *var, EsbTensor *m, EsbTensor *lr, EsbTensor *logbase, EsbTensor *sign_decay, EsbTensor *beta, EsbTensor *grad, bool use_locking);
-EsbTensor *EsApplyProximalAdagrad(EsbTensor *var, EsbTensor *accum, EsbTensor *lr, EsbTensor *l1, EsbTensor *l2, EsbTensor *grad, bool use_locking);
+EsApplyPowerSignDOutput EsApplyPowerSignD(EsbTensor *var, EsbTensor *m, EsbTensor *lr, EsbTensor *logbase,
+                                          EsbTensor *sign_decay, EsbTensor *beta, EsbTensor *grad, bool use_locking);
+EsbTensor *EsApplyProximalAdagrad(EsbTensor *var, EsbTensor *accum, EsbTensor *lr, EsbTensor *l1, EsbTensor *l2,
+                                  EsbTensor *grad, bool use_locking);
 
 typedef struct {
   EsbTensor *var;
   EsbTensor *accum;
 } EsApplyProximalAdagradDOutput;
-EsApplyProximalAdagradDOutput EsApplyProximalAdagradD(EsbTensor *var, EsbTensor *accum, EsbTensor *lr, EsbTensor *l1, EsbTensor *l2, EsbTensor *grad, bool use_locking);
-EsbTensor *EsApplyProximalGradientDescent(EsbTensor *var, EsbTensor *alpha, EsbTensor *l1, EsbTensor *l2, EsbTensor *delta, bool use_locking);
-EsbTensor *EsApplyRMSProp(EsbTensor *var, EsbTensor *ms, EsbTensor *mom, EsbTensor *lr, EsbTensor *rho, EsbTensor *momentum, EsbTensor *epsilon, EsbTensor *grad, bool use_locking);
+EsApplyProximalAdagradDOutput EsApplyProximalAdagradD(EsbTensor *var, EsbTensor *accum, EsbTensor *lr, EsbTensor *l1,
+                                                      EsbTensor *l2, EsbTensor *grad, bool use_locking);
+EsbTensor *EsApplyProximalGradientDescent(EsbTensor *var, EsbTensor *alpha, EsbTensor *l1, EsbTensor *l2,
+                                          EsbTensor *delta, bool use_locking);
+EsbTensor *EsApplyRMSProp(EsbTensor *var, EsbTensor *ms, EsbTensor *mom, EsbTensor *lr, EsbTensor *rho,
+                          EsbTensor *momentum, EsbTensor *epsilon, EsbTensor *grad, bool use_locking);
 
 typedef struct {
   EsbTensor *var;
   EsbTensor *ms;
   EsbTensor *mom;
 } EsApplyRMSPropDOutput;
-EsApplyRMSPropDOutput EsApplyRMSPropD(EsbTensor *var, EsbTensor *ms, EsbTensor *mom, EsbTensor *lr, EsbTensor *grad, float rho, float momentum, float epsilon, bool use_locking);
+EsApplyRMSPropDOutput EsApplyRMSPropD(EsbTensor *var, EsbTensor *ms, EsbTensor *mom, EsbTensor *lr, EsbTensor *grad,
+                                      float rho, float momentum, float epsilon, bool use_locking);
 
 typedef struct {
   EsbTensor *query;
   EsbTensor *key;
 } EsApplyRotaryPosEmbOutput;
-EsApplyRotaryPosEmbOutput EsApplyRotaryPosEmb(EsbTensor *query, EsbTensor *key, EsbTensor *cos, EsbTensor *sin, int64_t layout);
+EsApplyRotaryPosEmbOutput EsApplyRotaryPosEmb(EsbTensor *query, EsbTensor *key, EsbTensor *cos, EsbTensor *sin,
+                                              int64_t layout);
 EsbTensor *EsApproximateEqual(EsbTensor *x1, EsbTensor *x2, float tolerance);
 EsbTensor *EsArgMaxD(EsbTensor *x, int64_t dimension, af::DataType dtype);
 EsbTensor *EsArgMaxGrad(EsbTensor *var, EsbTensor *indices, EsbTensor *updates, int64_t dimension);
@@ -422,15 +523,18 @@ EsbTensor *EsAscendAntiQuantV2(EsbTensor *x, EsbTensor *scale, EsbTensor *offset
 EsbTensor *EsAscendDequant(EsbTensor *x, EsbTensor *deq_scale, bool sqrt_mode, bool relu_flag, int64_t dtype);
 EsbTensor *EsAscendDequantS16(EsbTensor *x0, EsbTensor *deq_scale, EsbTensor *x1, bool relu_flag);
 EsbTensor *EsAscendPadding(EsbTensor *x, int64_t pad_dim_size);
-EsbTensor *EsAscendQuant(EsbTensor *x, float scale, float offset, bool sqrt_mode, const char *round_mode, int64_t dst_type);
-EsbTensor *EsAscendQuantV2(EsbTensor *x, EsbTensor *scale, EsbTensor *offset, bool sqrt_mode, const char *round_mode, int64_t dst_type, int64_t axis);
+EsbTensor *EsAscendQuant(EsbTensor *x, float scale, float offset, bool sqrt_mode, const char *round_mode,
+                         int64_t dst_type);
+EsbTensor *EsAscendQuantV2(EsbTensor *x, EsbTensor *scale, EsbTensor *offset, bool sqrt_mode, const char *round_mode,
+                           int64_t dst_type, int64_t axis);
 EsbTensor *EsAscendRequant(EsbTensor *x, EsbTensor *req_scale, bool relu_flag);
 
 typedef struct {
   EsbTensor *y0;
   EsbTensor *y1;
 } EsAscendRequantS16Output;
-EsAscendRequantS16Output EsAscendRequantS16(EsbTensor *x0, EsbTensor *req_scale, EsbTensor *x1, bool dual_output, bool relu_flag);
+EsAscendRequantS16Output EsAscendRequantS16(EsbTensor *x0, EsbTensor *req_scale, EsbTensor *x1, bool dual_output,
+                                            bool relu_flag);
 EsbTensor *EsAscendWeightQuant(EsbTensor *x, EsbTensor *offset, int64_t dst_type);
 EsbTensor *EsAsin(EsbTensor *x);
 EsbTensor *EsAsinGrad(EsbTensor *y, EsbTensor *dy);
@@ -457,7 +561,8 @@ EsbTensor *EsAtanGrad(EsbTensor *y, EsbTensor *dy);
 EsbTensor *EsAtanh(EsbTensor *x);
 
 // AtomicAddrClean does not produce an output, so the returned EsTensor cannot be used to connect edges.
-EsbTensor *EsAtomicAddrClean(EsbGraph *owner_graph, const int64_t *automic_add_mem_size, int64_t automic_add_mem_size_num);
+EsbTensor *EsAtomicAddrClean(EsbGraph *owner_graph, const int64_t *automic_add_mem_size,
+                             int64_t automic_add_mem_size_num);
 
 typedef struct {
   EsbTensor *norm;
@@ -467,7 +572,10 @@ typedef struct {
   EsbTensor *mean;
   EsbTensor *variance;
 } EsAttentionLnQKVOutput;
-EsAttentionLnQKVOutput EsAttentionLnQKV(EsbTensor *x, EsbTensor *kernel_query, EsbTensor *kernel_key, EsbTensor *kernel_value, EsbTensor *gamma, EsbTensor *beta, EsbTensor *bias_query, EsbTensor *bias_key, EsbTensor *bias_value, float epsilon, bool trans_a, bool trans_b);
+EsAttentionLnQKVOutput EsAttentionLnQKV(EsbTensor *x, EsbTensor *kernel_query, EsbTensor *kernel_key,
+                                        EsbTensor *kernel_value, EsbTensor *gamma, EsbTensor *beta,
+                                        EsbTensor *bias_query, EsbTensor *bias_key, EsbTensor *bias_value,
+                                        float epsilon, bool trans_a, bool trans_b);
 
 typedef struct {
   EsbTensor *dw_query;
@@ -477,36 +585,75 @@ typedef struct {
   EsbTensor *dbias_key;
   EsbTensor *dbias_value;
 } EsAttentionQKVGradWOutput;
-EsAttentionQKVGradWOutput EsAttentionQKVGradW(EsbTensor *x, EsbTensor *query_dx, EsbTensor *key_dw, EsbTensor *value_dw, bool trans_a, bool trans_b, bool trans_dw);
-EsbTensor *EsAttentionQKVGradX(EsbTensor *ln_dx, EsbTensor *query_dx, EsbTensor *key_dw, EsbTensor *value_dw, EsbTensor *kernel_query, EsbTensor *kernel_key, EsbTensor *kernel_value, bool trans_a, bool trans_b);
+EsAttentionQKVGradWOutput EsAttentionQKVGradW(EsbTensor *x, EsbTensor *query_dx, EsbTensor *key_dw, EsbTensor *value_dw,
+                                              bool trans_a, bool trans_b, bool trans_dw);
+EsbTensor *EsAttentionQKVGradX(EsbTensor *ln_dx, EsbTensor *query_dx, EsbTensor *key_dw, EsbTensor *value_dw,
+                               EsbTensor *kernel_query, EsbTensor *kernel_key, EsbTensor *kernel_value, bool trans_a,
+                               bool trans_b);
 
 typedef struct {
   EsbTensor *attention_score;
   EsbTensor *softmax_output;
 } EsAttentionScoreOutput;
-EsAttentionScoreOutput EsAttentionScore(EsbTensor *query, EsbTensor *key, EsbTensor *value, EsbTensor *padding_mask, EsbTensor *scale, EsbTensor *drop_mask, float keep_prob, bool query_transpose, bool key_transpose, bool bmm_score_transpose_a, bool bmm_score_transpose_b, const int64_t *softmax_axes, int64_t softmax_axes_num);
+EsAttentionScoreOutput EsAttentionScore(EsbTensor *query, EsbTensor *key, EsbTensor *value, EsbTensor *padding_mask,
+                                        EsbTensor *scale, EsbTensor *drop_mask, float keep_prob, bool query_transpose,
+                                        bool key_transpose, bool bmm_score_transpose_a, bool bmm_score_transpose_b,
+                                        const int64_t *softmax_axes, int64_t softmax_axes_num);
 
 typedef struct {
   EsbTensor *value_dw;
   EsbTensor *query_dx;
   EsbTensor *key_dw;
 } EsAttentionScoreGradOutput;
-EsAttentionScoreGradOutput EsAttentionScoreGrad(EsbTensor *attention_score, EsbTensor *dx, EsbTensor *query, EsbTensor *key, EsbTensor *value, EsbTensor *scale, EsbTensor *drop_mask, float keep_prob, bool query_transpose, bool key_transpose, bool value_transpose, bool dx_transpose, int64_t softmax_axes);
+EsAttentionScoreGradOutput EsAttentionScoreGrad(EsbTensor *attention_score, EsbTensor *dx, EsbTensor *query,
+                                                EsbTensor *key, EsbTensor *value, EsbTensor *scale,
+                                                EsbTensor *drop_mask, float keep_prob, bool query_transpose,
+                                                bool key_transpose, bool value_transpose, bool dx_transpose,
+                                                int64_t softmax_axes);
 EsbTensor *EsAudioSpectrogram(EsbTensor *x, int64_t window_size, int64_t stride, bool magnitude_squared);
-EsbTensor *EsAvgPool(EsbTensor *x, const int64_t *ksize, int64_t ksize_num, const int64_t *strides, int64_t strides_num, const char *padding, const char *data_format);
-EsbTensor *EsAvgPool1D(EsbTensor *x, int64_t ksize, int64_t strides, const int64_t *pads, int64_t pads_num, bool ceil_mode, bool count_include_pad);
-EsbTensor *EsAvgPool1DAvgMatrix(EsbTensor *x, int64_t ksize, int64_t strides, const int64_t *pads, int64_t pads_num, bool ceil_mode, bool count_include_pad);
-EsbTensor *EsAvgPool1DD(EsbTensor *x, EsbTensor *assist_matrix, int64_t ksize, int64_t strides, const int64_t *pads, int64_t pads_num, bool ceil_mode, bool count_include_pad);
-EsbTensor *EsAvgPool3D(EsbTensor *x, const int64_t *ksize, int64_t ksize_num, const int64_t *strides, int64_t strides_num, const int64_t *pads, int64_t pads_num, bool ceil_mode, bool count_include_pad, int64_t divisor_override, const char *data_format);
-EsbTensor *EsAvgPool3DD(EsbTensor *x, EsbTensor *filter, EsbTensor *multiplier, const int64_t *ksize, int64_t ksize_num, const int64_t *strides, int64_t strides_num, const int64_t *pads, int64_t pads_num, bool ceil_mode, bool count_include_pad, int64_t divisor_override, const char *data_format);
-EsbTensor *EsAvgPool3DGrad(EsbTensor *orig_input_shape, EsbTensor *grads, const int64_t *ksize, int64_t ksize_num, const int64_t *strides, int64_t strides_num, const int64_t *pads, int64_t pads_num, bool ceil_mode, bool count_include_pad, int64_t divisor_override, const char *data_format);
-EsbTensor *EsAvgPool3DGradD(EsbTensor *grads, EsbTensor *filter, EsbTensor *multiplier, const int64_t *orig_input_shape, int64_t orig_input_shape_num, const int64_t *ksize, int64_t ksize_num, const int64_t *strides, int64_t strides_num, const int64_t *pads, int64_t pads_num, bool ceil_mode, bool count_include_pad, int64_t divisor_override, const char *data_format);
-EsbTensor *EsAvgPoolGrad(EsbTensor *orig_input_shape, EsbTensor *input_grad, const int64_t *ksize, int64_t ksize_num, const int64_t *strides, int64_t strides_num, const char *padding, const char *data_format);
-EsbTensor *EsAvgPoolGradD(EsbTensor *input_grad, EsbTensor *mean_matrix, EsbTensor *kernel_matrix, const int64_t *orig_input_shape, int64_t orig_input_shape_num, const int64_t *ksize, int64_t ksize_num, const int64_t *strides, int64_t strides_num, const char *padding, const char *data_format);
-EsbTensor *EsAvgPoolUpdate(EsbTensor *x1, EsbTensor *x2, const int64_t *ksize, int64_t ksize_num, const int64_t *strides, int64_t strides_num, const char *padding_mode, const int64_t *pads, int64_t pads_num, const char *data_format, bool ceil_mode, bool exclusive);
-EsbTensor *EsAvgPoolV2(EsbTensor *x, const int64_t *ksize, int64_t ksize_num, const int64_t *strides, int64_t strides_num, const char *padding_mode, const int64_t *pads, int64_t pads_num, const char *data_format, bool global_pooling, bool ceil_mode, bool exclusive, int64_t divisor_override);
-EsbTensor *EsAvgPoolV2Grad(EsbTensor *orig_input_shape, EsbTensor *input_grad, const int64_t *ksize, int64_t ksize_num, const int64_t *strides, int64_t strides_num, const char *padding_mode, const int64_t *pads, int64_t pads_num, const char *data_format, bool global_pooling, bool ceil_mode, bool exclusive);
-EsbTensor *EsAvgPoolV2GradD(EsbTensor *input_grad, EsbTensor *mean_matrix, EsbTensor *kernel_matrix, const int64_t *orig_input_shape, int64_t orig_input_shape_num, const int64_t *ksize, int64_t ksize_num, const int64_t *strides, int64_t strides_num, const char *padding_mode, const int64_t *pads, int64_t pads_num, const char *data_format, bool global_pooling, bool ceil_mode, bool exclusive);
+EsbTensor *EsAvgPool(EsbTensor *x, const int64_t *ksize, int64_t ksize_num, const int64_t *strides, int64_t strides_num,
+                     const char *padding, const char *data_format);
+EsbTensor *EsAvgPool1D(EsbTensor *x, int64_t ksize, int64_t strides, const int64_t *pads, int64_t pads_num,
+                       bool ceil_mode, bool count_include_pad);
+EsbTensor *EsAvgPool1DAvgMatrix(EsbTensor *x, int64_t ksize, int64_t strides, const int64_t *pads, int64_t pads_num,
+                                bool ceil_mode, bool count_include_pad);
+EsbTensor *EsAvgPool1DD(EsbTensor *x, EsbTensor *assist_matrix, int64_t ksize, int64_t strides, const int64_t *pads,
+                        int64_t pads_num, bool ceil_mode, bool count_include_pad);
+EsbTensor *EsAvgPool3D(EsbTensor *x, const int64_t *ksize, int64_t ksize_num, const int64_t *strides,
+                       int64_t strides_num, const int64_t *pads, int64_t pads_num, bool ceil_mode,
+                       bool count_include_pad, int64_t divisor_override, const char *data_format);
+EsbTensor *EsAvgPool3DD(EsbTensor *x, EsbTensor *filter, EsbTensor *multiplier, const int64_t *ksize, int64_t ksize_num,
+                        const int64_t *strides, int64_t strides_num, const int64_t *pads, int64_t pads_num,
+                        bool ceil_mode, bool count_include_pad, int64_t divisor_override, const char *data_format);
+EsbTensor *EsAvgPool3DGrad(EsbTensor *orig_input_shape, EsbTensor *grads, const int64_t *ksize, int64_t ksize_num,
+                           const int64_t *strides, int64_t strides_num, const int64_t *pads, int64_t pads_num,
+                           bool ceil_mode, bool count_include_pad, int64_t divisor_override, const char *data_format);
+EsbTensor *EsAvgPool3DGradD(EsbTensor *grads, EsbTensor *filter, EsbTensor *multiplier, const int64_t *orig_input_shape,
+                            int64_t orig_input_shape_num, const int64_t *ksize, int64_t ksize_num,
+                            const int64_t *strides, int64_t strides_num, const int64_t *pads, int64_t pads_num,
+                            bool ceil_mode, bool count_include_pad, int64_t divisor_override, const char *data_format);
+EsbTensor *EsAvgPoolGrad(EsbTensor *orig_input_shape, EsbTensor *input_grad, const int64_t *ksize, int64_t ksize_num,
+                         const int64_t *strides, int64_t strides_num, const char *padding, const char *data_format);
+EsbTensor *EsAvgPoolGradD(EsbTensor *input_grad, EsbTensor *mean_matrix, EsbTensor *kernel_matrix,
+                          const int64_t *orig_input_shape, int64_t orig_input_shape_num, const int64_t *ksize,
+                          int64_t ksize_num, const int64_t *strides, int64_t strides_num, const char *padding,
+                          const char *data_format);
+EsbTensor *EsAvgPoolUpdate(EsbTensor *x1, EsbTensor *x2, const int64_t *ksize, int64_t ksize_num,
+                           const int64_t *strides, int64_t strides_num, const char *padding_mode, const int64_t *pads,
+                           int64_t pads_num, const char *data_format, bool ceil_mode, bool exclusive);
+EsbTensor *EsAvgPoolV2(EsbTensor *x, const int64_t *ksize, int64_t ksize_num, const int64_t *strides,
+                       int64_t strides_num, const char *padding_mode, const int64_t *pads, int64_t pads_num,
+                       const char *data_format, bool global_pooling, bool ceil_mode, bool exclusive,
+                       int64_t divisor_override);
+EsbTensor *EsAvgPoolV2Grad(EsbTensor *orig_input_shape, EsbTensor *input_grad, const int64_t *ksize, int64_t ksize_num,
+                           const int64_t *strides, int64_t strides_num, const char *padding_mode, const int64_t *pads,
+                           int64_t pads_num, const char *data_format, bool global_pooling, bool ceil_mode,
+                           bool exclusive);
+EsbTensor *EsAvgPoolV2GradD(EsbTensor *input_grad, EsbTensor *mean_matrix, EsbTensor *kernel_matrix,
+                            const int64_t *orig_input_shape, int64_t orig_input_shape_num, const int64_t *ksize,
+                            int64_t ksize_num, const int64_t *strides, int64_t strides_num, const char *padding_mode,
+                            const int64_t *pads, int64_t pads_num, const char *data_format, bool global_pooling,
+                            bool ceil_mode, bool exclusive);
 EsbTensor *EsAxpy(EsbTensor *x1, EsbTensor *x2, float alpha);
 EsbTensor *EsAxpyV2(EsbTensor *x1, EsbTensor *x2, EsbTensor *alpha);
 
@@ -514,14 +661,17 @@ typedef struct {
   EsbTensor *y1;
   EsbTensor *y2;
 } EsAxpyWithSoftmaxAndDropOutDoMaskOutput;
-EsAxpyWithSoftmaxAndDropOutDoMaskOutput EsAxpyWithSoftmaxAndDropOutDoMask(EsbTensor *x1, EsbTensor *x2, EsbTensor *mask, float alpha, float input_keep_prob, const int64_t *axis, int64_t axis_num);
+EsAxpyWithSoftmaxAndDropOutDoMaskOutput EsAxpyWithSoftmaxAndDropOutDoMask(EsbTensor *x1, EsbTensor *x2, EsbTensor *mask,
+                                                                          float alpha, float input_keep_prob,
+                                                                          const int64_t *axis, int64_t axis_num);
 
 typedef struct {
   EsbTensor *sum;
   EsbTensor *square_sum;
 } EsBN3DTrainingReduceOutput;
 EsBN3DTrainingReduceOutput EsBN3DTrainingReduce(EsbTensor *x);
-EsbTensor *EsBN3DTrainingReduceGrad(EsbTensor *grads, EsbTensor *x, EsbTensor *diff_scale, EsbTensor *diff_offset, EsbTensor *scale, EsbTensor *batch_mean, EsbTensor *batch_variance, float epsilon);
+EsbTensor *EsBN3DTrainingReduceGrad(EsbTensor *grads, EsbTensor *x, EsbTensor *diff_scale, EsbTensor *diff_offset,
+                                    EsbTensor *scale, EsbTensor *batch_mean, EsbTensor *batch_variance, float epsilon);
 
 typedef struct {
   EsbTensor *y;
@@ -530,17 +680,23 @@ typedef struct {
   EsbTensor *batch_mean;
   EsbTensor *batch_variance;
 } EsBN3DTrainingUpdateOutput;
-EsBN3DTrainingUpdateOutput EsBN3DTrainingUpdate(EsbTensor *x, EsbTensor *sum, EsbTensor *square_sum, EsbTensor *scale, EsbTensor *offset, EsbTensor *mean, EsbTensor *variance, float factor, float epsilon);
+EsBN3DTrainingUpdateOutput EsBN3DTrainingUpdate(EsbTensor *x, EsbTensor *sum, EsbTensor *square_sum, EsbTensor *scale,
+                                                EsbTensor *offset, EsbTensor *mean, EsbTensor *variance, float factor,
+                                                float epsilon);
 
 typedef struct {
   EsbTensor *diff_scale;
   EsbTensor *diff_offset;
 } EsBN3DTrainingUpdateGradOutput;
-EsBN3DTrainingUpdateGradOutput EsBN3DTrainingUpdateGrad(EsbTensor *grads, EsbTensor *x, EsbTensor *batch_mean, EsbTensor *batch_variance, float epsilon);
-EsbTensor *EsBNInfer(EsbTensor *x, EsbTensor *scale, EsbTensor *offset, EsbTensor *mean, EsbTensor *variance, float epsilon);
+EsBN3DTrainingUpdateGradOutput EsBN3DTrainingUpdateGrad(EsbTensor *grads, EsbTensor *x, EsbTensor *batch_mean,
+                                                        EsbTensor *batch_variance, float epsilon);
+EsbTensor *EsBNInfer(EsbTensor *x, EsbTensor *scale, EsbTensor *offset, EsbTensor *mean, EsbTensor *variance,
+                     float epsilon);
 EsbTensor *EsBNInferGrad(EsbTensor *grads, EsbTensor *scale, EsbTensor *batch_variance, float epsilon);
-EsbTensor *EsBNInference(EsbTensor *x, EsbTensor *mean, EsbTensor *variance, EsbTensor *momentum, EsbTensor *scale, EsbTensor *offset, float epsilon, bool use_global_stats, int64_t mode);
-EsbTensor *EsBNInferenceD(EsbTensor *x, EsbTensor *mean, EsbTensor *variance, EsbTensor *scale, EsbTensor *b, float momentum, float epsilon, bool use_global_stats, int64_t mode);
+EsbTensor *EsBNInference(EsbTensor *x, EsbTensor *mean, EsbTensor *variance, EsbTensor *momentum, EsbTensor *scale,
+                         EsbTensor *offset, float epsilon, bool use_global_stats, int64_t mode);
+EsbTensor *EsBNInferenceD(EsbTensor *x, EsbTensor *mean, EsbTensor *variance, EsbTensor *scale, EsbTensor *b,
+                          float momentum, float epsilon, bool use_global_stats, int64_t mode);
 EsbTensor *EsBNLL(EsbTensor *x);
 
 typedef struct {
@@ -548,7 +704,8 @@ typedef struct {
   EsbTensor *square_sum;
 } EsBNTrainingReduceOutput;
 EsBNTrainingReduceOutput EsBNTrainingReduce(EsbTensor *x);
-EsbTensor *EsBNTrainingReduceGrad(EsbTensor *grads, EsbTensor *x, EsbTensor *diff_scale, EsbTensor *diff_offset, EsbTensor *scale, EsbTensor *batch_mean, EsbTensor *batch_variance, float epsilon);
+EsbTensor *EsBNTrainingReduceGrad(EsbTensor *grads, EsbTensor *x, EsbTensor *diff_scale, EsbTensor *diff_offset,
+                                  EsbTensor *scale, EsbTensor *batch_mean, EsbTensor *batch_variance, float epsilon);
 
 typedef struct {
   EsbTensor *y;
@@ -557,20 +714,24 @@ typedef struct {
   EsbTensor *batch_mean;
   EsbTensor *batch_variance;
 } EsBNTrainingUpdateOutput;
-EsBNTrainingUpdateOutput EsBNTrainingUpdate(EsbTensor *x, EsbTensor *sum, EsbTensor *square_sum, EsbTensor *scale, EsbTensor *offset, EsbTensor *mean, EsbTensor *variance, float factor, float epsilon);
+EsBNTrainingUpdateOutput EsBNTrainingUpdate(EsbTensor *x, EsbTensor *sum, EsbTensor *square_sum, EsbTensor *scale,
+                                            EsbTensor *offset, EsbTensor *mean, EsbTensor *variance, float factor,
+                                            float epsilon);
 
 typedef struct {
   EsbTensor *diff_scale;
   EsbTensor *diff_offset;
 } EsBNTrainingUpdateGradOutput;
-EsBNTrainingUpdateGradOutput EsBNTrainingUpdateGrad(EsbTensor *grads, EsbTensor *x, EsbTensor *batch_mean, EsbTensor *batch_variance, float epsilon);
+EsBNTrainingUpdateGradOutput EsBNTrainingUpdateGrad(EsbTensor *grads, EsbTensor *x, EsbTensor *batch_mean,
+                                                    EsbTensor *batch_variance, float epsilon);
 
 typedef struct {
   EsbTensor *y;
   EsbTensor *batch_mean;
   EsbTensor *batch_variance;
 } EsBNTrainingUpdateV2Output;
-EsBNTrainingUpdateV2Output EsBNTrainingUpdateV2(EsbTensor *x, EsbTensor *sum, EsbTensor *square_sum, EsbTensor *scale, EsbTensor *offset, float epsilon);
+EsBNTrainingUpdateV2Output EsBNTrainingUpdateV2(EsbTensor *x, EsbTensor *sum, EsbTensor *square_sum, EsbTensor *scale,
+                                                EsbTensor *offset, float epsilon);
 
 typedef struct {
   EsbTensor *y;
@@ -579,7 +740,8 @@ typedef struct {
   EsbTensor *reserve_1;
   EsbTensor *reserve_2;
 } EsBNTrainingUpdateV3Output;
-EsBNTrainingUpdateV3Output EsBNTrainingUpdateV3(EsbTensor *x, EsbTensor *sum, EsbTensor *square_sum, EsbTensor *scale, EsbTensor *offset, float epsilon);
+EsBNTrainingUpdateV3Output EsBNTrainingUpdateV3(EsbTensor *x, EsbTensor *sum, EsbTensor *square_sum, EsbTensor *scale,
+                                                EsbTensor *offset, float epsilon);
 
 typedef struct {
   EsbTensor *balance_rois;
@@ -606,19 +768,24 @@ typedef struct {
   EsbTensor *ot;
   EsbTensor *tanhct;
 } EsBasicLSTMCellOutput;
-EsBasicLSTMCellOutput EsBasicLSTMCell(EsbTensor *x, EsbTensor *h, EsbTensor *c, EsbTensor *w, EsbTensor *b, EsbTensor *mask, float keep_prob, float forget_bias, bool state_is_tuple, const char *activation);
+EsBasicLSTMCellOutput EsBasicLSTMCell(EsbTensor *x, EsbTensor *h, EsbTensor *c, EsbTensor *w, EsbTensor *b,
+                                      EsbTensor *mask, float keep_prob, float forget_bias, bool state_is_tuple,
+                                      const char *activation);
 
 typedef struct {
   EsbTensor *dgate;
   EsbTensor *dct_1;
 } EsBasicLSTMCellCStateGradOutput;
-EsBasicLSTMCellCStateGradOutput EsBasicLSTMCellCStateGrad(EsbTensor *c, EsbTensor *dht, EsbTensor *dct, EsbTensor *it, EsbTensor *jt, EsbTensor *ft, EsbTensor *ot, EsbTensor *tanhct, float forget_bias, const char *activation);
+EsBasicLSTMCellCStateGradOutput EsBasicLSTMCellCStateGrad(EsbTensor *c, EsbTensor *dht, EsbTensor *dct, EsbTensor *it,
+                                                          EsbTensor *jt, EsbTensor *ft, EsbTensor *ot,
+                                                          EsbTensor *tanhct, float forget_bias, const char *activation);
 
 typedef struct {
   EsbTensor *dxt;
   EsbTensor *dht;
 } EsBasicLSTMCellInputGradOutput;
-EsBasicLSTMCellInputGradOutput EsBasicLSTMCellInputGrad(EsbTensor *dgate, EsbTensor *w, EsbTensor *dropout_mask, float keep_prob);
+EsBasicLSTMCellInputGradOutput EsBasicLSTMCellInputGrad(EsbTensor *dgate, EsbTensor *w, EsbTensor *dropout_mask,
+                                                        float keep_prob);
 
 typedef struct {
   EsbTensor *dw;
@@ -630,20 +797,30 @@ typedef struct {
   EsbTensor *o_t;
   EsbTensor *h_t;
 } EsBasicRNNCellOutput;
-EsBasicRNNCellOutput EsBasicRNNCell(EsbTensor *x, EsbTensor *cont, EsbTensor *w_xh_x_static, EsbTensor *h_0, EsbTensor *w_xh, EsbTensor *bias_h, EsbTensor *w_hh, EsbTensor *w_ho, EsbTensor *bias_o, bool expose_hidden, int64_t num_output);
+EsBasicRNNCellOutput EsBasicRNNCell(EsbTensor *x, EsbTensor *cont, EsbTensor *w_xh_x_static, EsbTensor *h_0,
+                                    EsbTensor *w_xh, EsbTensor *bias_h, EsbTensor *w_hh, EsbTensor *w_ho,
+                                    EsbTensor *bias_o, bool expose_hidden, int64_t num_output);
 
 typedef struct {
   EsbTensor *dilated_polys_data;
   EsbTensor *dilated_polys_offset;
   EsbTensor *dilated_polys_size;
 } EsBatchDilatePolysOutput;
-EsBatchDilatePolysOutput EsBatchDilatePolys(EsbTensor *polys_data, EsbTensor *polys_offset, EsbTensor *polys_size, EsbTensor *score, EsbTensor *min_border, EsbTensor *min_area_thr, EsbTensor *score_thr, EsbTensor *expands_cale);
-EsbTensor *EsBatchEnqueue(EsbTensor *x, EsbTensor *queue_id, int64_t batch_size, const char *queue_name, int64_t queue_depth, const char *pad_mode);
+EsBatchDilatePolysOutput EsBatchDilatePolys(EsbTensor *polys_data, EsbTensor *polys_offset, EsbTensor *polys_size,
+                                            EsbTensor *score, EsbTensor *min_border, EsbTensor *min_area_thr,
+                                            EsbTensor *score_thr, EsbTensor *expands_cale);
+EsbTensor *EsBatchEnqueue(EsbTensor *x, EsbTensor *queue_id, int64_t batch_size, const char *queue_name,
+                          int64_t queue_depth, const char *pad_mode);
 EsbTensor *EsBatchMatMul(EsbTensor *x1, EsbTensor *x2, bool adj_x1, bool adj_x2);
-EsbTensor *EsBatchMatMulReduceScatterAlltoAll(EsbTensor *x, EsbTensor *weight, EsbTensor *bias, const char *group_ep, const char *group_tp, int64_t ep_world_size, int64_t tp_world_size, int64_t y_shard_type, bool transpose_weight);
-EsbTensor *EsBatchMatMulV2(EsbTensor *x1, EsbTensor *x2, EsbTensor *bias, EsbTensor *offset_w, bool adj_x1, bool adj_x2, int64_t offset_x);
-EsbTensor *EsBatchMatMulV3(EsbTensor *x1, EsbTensor *x2, EsbTensor *bias, EsbTensor *offset_w, bool adj_x1, bool adj_x2, int64_t offset_x, bool enable_hf32);
-EsbTensor *EsBatchMatmulFixpipe(EsbTensor *x1, EsbTensor *x2, EsbTensor *quant_pre, EsbTensor *bias, bool adj_x1, bool adj_x2);
+EsbTensor *EsBatchMatMulReduceScatterAlltoAll(EsbTensor *x, EsbTensor *weight, EsbTensor *bias, const char *group_ep,
+                                              const char *group_tp, int64_t ep_world_size, int64_t tp_world_size,
+                                              int64_t y_shard_type, bool transpose_weight);
+EsbTensor *EsBatchMatMulV2(EsbTensor *x1, EsbTensor *x2, EsbTensor *bias, EsbTensor *offset_w, bool adj_x1, bool adj_x2,
+                           int64_t offset_x);
+EsbTensor *EsBatchMatMulV3(EsbTensor *x1, EsbTensor *x2, EsbTensor *bias, EsbTensor *offset_w, bool adj_x1, bool adj_x2,
+                           int64_t offset_x, bool enable_hf32);
+EsbTensor *EsBatchMatmulFixpipe(EsbTensor *x1, EsbTensor *x2, EsbTensor *quant_pre, EsbTensor *bias, bool adj_x1,
+                                bool adj_x2);
 
 typedef struct {
   EsbTensor *nmsed_boxes;
@@ -651,7 +828,10 @@ typedef struct {
   EsbTensor *nmsed_classes;
   EsbTensor *nmsed_num;
 } EsBatchMultiClassNonMaxSuppressionOutput;
-EsBatchMultiClassNonMaxSuppressionOutput EsBatchMultiClassNonMaxSuppression(EsbTensor *boxes, EsbTensor *scores, EsbTensor *clip_window, EsbTensor *num_valid_boxes, float score_threshold, float iou_threshold, int64_t max_size_per_class, int64_t max_total_size, bool change_coordinate_frame, bool transpose_box, const int64_t *image_size, int64_t image_size_num);
+EsBatchMultiClassNonMaxSuppressionOutput EsBatchMultiClassNonMaxSuppression(
+    EsbTensor *boxes, EsbTensor *scores, EsbTensor *clip_window, EsbTensor *num_valid_boxes, float score_threshold,
+    float iou_threshold, int64_t max_size_per_class, int64_t max_total_size, bool change_coordinate_frame,
+    bool transpose_box, const int64_t *image_size, int64_t image_size_num);
 
 typedef struct {
   EsbTensor *y;
@@ -661,7 +841,8 @@ typedef struct {
   EsbTensor *reserve_space_2;
   EsbTensor *reserve_space_3;
 } EsBatchNormOutput;
-EsBatchNormOutput EsBatchNorm(EsbTensor *x, EsbTensor *scale, EsbTensor *offset, EsbTensor *mean, EsbTensor *variance, float epsilon, const char *data_format, bool is_training, float exponential_avg_factor);
+EsBatchNormOutput EsBatchNorm(EsbTensor *x, EsbTensor *scale, EsbTensor *offset, EsbTensor *mean, EsbTensor *variance,
+                              float epsilon, const char *data_format, bool is_training, float exponential_avg_factor);
 
 typedef struct {
   EsbTensor *y;
@@ -670,7 +851,8 @@ typedef struct {
   EsbTensor *reserve_space_1;
   EsbTensor *reserve_space_2;
 } EsBatchNorm3DOutput;
-EsBatchNorm3DOutput EsBatchNorm3D(EsbTensor *x, EsbTensor *scale, EsbTensor *offset, EsbTensor *mean, EsbTensor *variance, float epsilon, const char *data_format, bool is_training);
+EsBatchNorm3DOutput EsBatchNorm3D(EsbTensor *x, EsbTensor *scale, EsbTensor *offset, EsbTensor *mean,
+                                  EsbTensor *variance, float epsilon, const char *data_format, bool is_training);
 
 typedef struct {
   EsbTensor *x_backprop;
@@ -679,7 +861,9 @@ typedef struct {
   EsbTensor *reserve_space_4;
   EsbTensor *reserve_space_5;
 } EsBatchNorm3DGradOutput;
-EsBatchNorm3DGradOutput EsBatchNorm3DGrad(EsbTensor *y_backprop, EsbTensor *x, EsbTensor *scale, EsbTensor *reserve_space_1, EsbTensor *reserve_space_2, float epsilon, const char *data_format, bool is_training);
+EsBatchNorm3DGradOutput EsBatchNorm3DGrad(EsbTensor *y_backprop, EsbTensor *x, EsbTensor *scale,
+                                          EsbTensor *reserve_space_1, EsbTensor *reserve_space_2, float epsilon,
+                                          const char *data_format, bool is_training);
 
 typedef struct {
   EsbTensor *output_y;
@@ -688,7 +872,9 @@ typedef struct {
   EsbTensor *output_reserve_space_1;
   EsbTensor *output_reserve_space_2;
 } EsBatchNormExt2Output;
-EsBatchNormExt2Output EsBatchNormExt2(EsbTensor *input_x, EsbTensor *input_scale, EsbTensor *input_offset, EsbTensor *input_mean, EsbTensor *input_variance, float epsilon, const char *data_format, bool is_training);
+EsBatchNormExt2Output EsBatchNormExt2(EsbTensor *input_x, EsbTensor *input_scale, EsbTensor *input_offset,
+                                      EsbTensor *input_mean, EsbTensor *input_variance, float epsilon,
+                                      const char *data_format, bool is_training);
 
 typedef struct {
   EsbTensor *x_backprop;
@@ -697,7 +883,9 @@ typedef struct {
   EsbTensor *reserve_space_4;
   EsbTensor *reserve_space_5;
 } EsBatchNormGradOutput;
-EsBatchNormGradOutput EsBatchNormGrad(EsbTensor *y_backprop, EsbTensor *x, EsbTensor *scale, EsbTensor *reserve_space_1, EsbTensor *reserve_space_2, EsbTensor *reserve_space_3, float epsilon, const char *data_format, bool is_training);
+EsBatchNormGradOutput EsBatchNormGrad(EsbTensor *y_backprop, EsbTensor *x, EsbTensor *scale, EsbTensor *reserve_space_1,
+                                      EsbTensor *reserve_space_2, EsbTensor *reserve_space_3, float epsilon,
+                                      const char *data_format, bool is_training);
 
 typedef struct {
   EsbTensor *x_backprop;
@@ -706,7 +894,9 @@ typedef struct {
   EsbTensor *reserve_space_3;
   EsbTensor *reserve_space_4;
 } EsBatchNormGradExt2Output;
-EsBatchNormGradExt2Output EsBatchNormGradExt2(EsbTensor *y_backprop, EsbTensor *x, EsbTensor *scale, EsbTensor *reserve_space_1, EsbTensor *reserve_space_2, float epsilon, const char *data_format, bool is_training);
+EsBatchNormGradExt2Output EsBatchNormGradExt2(EsbTensor *y_backprop, EsbTensor *x, EsbTensor *scale,
+                                              EsbTensor *reserve_space_1, EsbTensor *reserve_space_2, float epsilon,
+                                              const char *data_format, bool is_training);
 
 typedef struct {
   EsbTensor *y;
@@ -715,11 +905,13 @@ typedef struct {
   EsbTensor *save_mean;
   EsbTensor *save_rstd;
 } EsBatchNormV3Output;
-EsBatchNormV3Output EsBatchNormV3(EsbTensor *x, EsbTensor *weight, EsbTensor *bias, EsbTensor *running_mean, EsbTensor *running_var, float epsilon, float momentum, bool is_training);
+EsBatchNormV3Output EsBatchNormV3(EsbTensor *x, EsbTensor *weight, EsbTensor *bias, EsbTensor *running_mean,
+                                  EsbTensor *running_var, float epsilon, float momentum, bool is_training);
 EsbTensor *EsBatchToSpace(EsbTensor *x, EsbTensor *crops, int64_t block_size);
 EsbTensor *EsBatchToSpaceD(EsbTensor *x, int64_t block_size, const int64_t *crops, int64_t crops_num);
 EsbTensor *EsBatchToSpaceND(EsbTensor *x, EsbTensor *block_shape, EsbTensor *crops);
-EsbTensor *EsBatchToSpaceNDD(EsbTensor *x, const int64_t *block_shape, int64_t block_shape_num, const int64_t *crops, int64_t crops_num);
+EsbTensor *EsBatchToSpaceNDD(EsbTensor *x, const int64_t *block_shape, int64_t block_shape_num, const int64_t *crops,
+                             int64_t crops_num);
 EsbTensor *EsBesselI0e(EsbTensor *x);
 EsbTensor *EsBesselI1e(EsbTensor *x);
 EsbTensor *EsBetainc(EsbTensor *a, EsbTensor *b, EsbTensor *x);
@@ -727,7 +919,8 @@ EsbTensor *EsBias(EsbTensor *x, EsbTensor *bias, int64_t axis, int64_t num_axes,
 EsbTensor *EsBiasAdd(EsbTensor *x, EsbTensor *bias, const char *data_format);
 EsbTensor *EsBiasAddGrad(EsbTensor *x, const char *data_format);
 EsbTensor *EsBinaryCrossEntropy(EsbTensor *x, EsbTensor *y, EsbTensor *weight, const char *reduction);
-EsbTensor *EsBinaryCrossEntropyGrad(EsbTensor *x, EsbTensor *y, EsbTensor *grad_output, EsbTensor *weight, const char *reduction);
+EsbTensor *EsBinaryCrossEntropyGrad(EsbTensor *x, EsbTensor *y, EsbTensor *grad_output, EsbTensor *weight,
+                                    const char *reduction);
 EsbTensor *EsBincount(EsbTensor *array, EsbTensor *size, EsbTensor *weights);
 EsbTensor *EsBitcast(EsbTensor *x, af::DataType type);
 EsbTensor *EsBitwiseAnd(EsbTensor *x1, EsbTensor *x2);
@@ -739,11 +932,16 @@ typedef struct {
   EsbTensor *acc_mask;
   EsbTensor *max_mask;
 } EsBlendFaceBgPartOneOutput;
-EsBlendFaceBgPartOneOutput EsBlendFaceBgPartOne(EsbTensor *face_img, EsbTensor *face_rect, EsbTensor *face_mask, EsbTensor *acc_face, EsbTensor *acc_mask, EsbTensor *max_mask);
-EsbTensor *EsBlendFaceBgPartTwo(EsbTensor *acc_face, EsbTensor *acc_mask, EsbTensor *max_mask, EsbTensor *bg_img, float epsilon);
+EsBlendFaceBgPartOneOutput EsBlendFaceBgPartOne(EsbTensor *face_img, EsbTensor *face_rect, EsbTensor *face_mask,
+                                                EsbTensor *acc_face, EsbTensor *acc_mask, EsbTensor *max_mask);
+EsbTensor *EsBlendFaceBgPartTwo(EsbTensor *acc_face, EsbTensor *acc_mask, EsbTensor *max_mask, EsbTensor *bg_img,
+                                float epsilon);
 EsbTensor *EsBlendImagesCustom(EsbTensor *rgb, EsbTensor *alpha, EsbTensor *frame);
-EsbTensor *EsBoundingBoxDecode(EsbTensor *rois, EsbTensor *deltas, const int64_t *max_shape, int64_t max_shape_num, const float *means, int64_t means_num, const float *stds, int64_t stds_num, float wh_ratio_clip);
-EsbTensor *EsBoundingBoxEncode(EsbTensor *anchor_box, EsbTensor *ground_truth_box, const float *means, int64_t means_num, const float *stds, int64_t stds_num);
+EsbTensor *EsBoundingBoxDecode(EsbTensor *rois, EsbTensor *deltas, const int64_t *max_shape, int64_t max_shape_num,
+                               const float *means, int64_t means_num, const float *stds, int64_t stds_num,
+                               float wh_ratio_clip);
+EsbTensor *EsBoundingBoxEncode(EsbTensor *anchor_box, EsbTensor *ground_truth_box, const float *means,
+                               int64_t means_num, const float *stds, int64_t stds_num);
 EsbTensor *EsBroadcastArgs(EsbTensor *x1, EsbTensor *x2);
 
 typedef struct {
@@ -759,13 +957,15 @@ typedef struct {
   EsbTensor *overlap;
   EsbTensor *atan_sub;
 } EsCIoUOutput;
-EsCIoUOutput EsCIoU(EsbTensor *bboxes, EsbTensor *gtboxes, bool trans, bool is_cross, const char *mode, bool atan_sub_flag);
+EsCIoUOutput EsCIoU(EsbTensor *bboxes, EsbTensor *gtboxes, bool trans, bool is_cross, const char *mode,
+                    bool atan_sub_flag);
 
 typedef struct {
   EsbTensor *dbboxes;
   EsbTensor *dgtboxes;
 } EsCIoUGradOutput;
-EsCIoUGradOutput EsCIoUGrad(EsbTensor *dy, EsbTensor *bboxes, EsbTensor *gtboxes, EsbTensor *atan_sub, bool trans, bool is_cross, const char *mode);
+EsCIoUGradOutput EsCIoUGrad(EsbTensor *dy, EsbTensor *bboxes, EsbTensor *gtboxes, EsbTensor *atan_sub, bool trans,
+                            bool is_cross, const char *mode);
 
 typedef struct {
   EsbTensor *decoded_indices;
@@ -779,14 +979,19 @@ typedef struct {
   EsbTensor *loss;
   EsbTensor *gradient;
 } EsCTCLossOutput;
-EsCTCLossOutput EsCTCLoss(EsbTensor *inputs, EsbTensor *labels_indices, EsbTensor *labels_values, EsbTensor *sequence_length, bool preprocess_collapse_repeated, bool ctc_merge_repeated, bool ignore_longer_outputs_than_inputs);
+EsCTCLossOutput EsCTCLoss(EsbTensor *inputs, EsbTensor *labels_indices, EsbTensor *labels_values,
+                          EsbTensor *sequence_length, bool preprocess_collapse_repeated, bool ctc_merge_repeated,
+                          bool ignore_longer_outputs_than_inputs);
 
 typedef struct {
   EsbTensor *neg_log_likelihood;
   EsbTensor *log_alpha;
 } EsCTCLossV2Output;
-EsCTCLossV2Output EsCTCLossV2(EsbTensor *log_probs, EsbTensor *targets, EsbTensor *input_lengths, EsbTensor *target_lengths, int64_t blank, const char *reduction, bool zero_infinity);
-EsbTensor *EsCTCLossV2Grad(EsbTensor *grad_out, EsbTensor *log_probs, EsbTensor *targets, EsbTensor *input_lengths, EsbTensor *target_lengths, EsbTensor *neg_log_likelihood, EsbTensor *log_alpha, int64_t blank, const char *reduction, bool zero_infinity);
+EsCTCLossV2Output EsCTCLossV2(EsbTensor *log_probs, EsbTensor *targets, EsbTensor *input_lengths,
+                              EsbTensor *target_lengths, int64_t blank, const char *reduction, bool zero_infinity);
+EsbTensor *EsCTCLossV2Grad(EsbTensor *grad_out, EsbTensor *log_probs, EsbTensor *targets, EsbTensor *input_lengths,
+                           EsbTensor *target_lengths, EsbTensor *neg_log_likelihood, EsbTensor *log_alpha,
+                           int64_t blank, const char *reduction, bool zero_infinity);
 
 typedef struct {
   EsbTensor *swap_in_id;
@@ -803,7 +1008,8 @@ typedef struct {
   EsbTensor *buckets_limit;
   EsbTensor *buckets_offset;
 } EsCalcBucketsLimitAndOffsetOutput;
-EsCalcBucketsLimitAndOffsetOutput EsCalcBucketsLimitAndOffset(EsbTensor *bucket_list, EsbTensor *ivf_counts, EsbTensor *ivf_offset, int64_t total_limit);
+EsCalcBucketsLimitAndOffsetOutput EsCalcBucketsLimitAndOffset(EsbTensor *bucket_list, EsbTensor *ivf_counts,
+                                                              EsbTensor *ivf_offset, int64_t total_limit);
 EsbTensor *EsCaseCondition(EsbTensor *x, const char *algorithm);
 EsbTensor *EsCast(EsbTensor *x, int64_t dst_type);
 EsbTensor *EsCastLike(EsbTensor *x, EsbTensor *target);
@@ -826,21 +1032,27 @@ typedef struct {
   EsbTensor *grad_xyz1;
   EsbTensor *grad_xyz2;
 } EsChamferDistanceGradOutput;
-EsChamferDistanceGradOutput EsChamferDistanceGrad(EsbTensor *xyz1, EsbTensor *xyz2, EsbTensor *idx1, EsbTensor *idx2, EsbTensor *grad_dist1, EsbTensor *grad_dist2);
+EsChamferDistanceGradOutput EsChamferDistanceGrad(EsbTensor *xyz1, EsbTensor *xyz2, EsbTensor *idx1, EsbTensor *idx2,
+                                                  EsbTensor *grad_dist1, EsbTensor *grad_dist2);
 EsbTensor *EsCheckNumerics(EsbTensor *x, const char *message);
 EsbTensor *EsCheckValid(EsbTensor *bbox_tensor, EsbTensor *img_metas);
 EsbTensor *EsCholesky(EsbTensor *x);
 EsbTensor *EsCholeskyGrad(EsbTensor *x, EsbTensor *grad);
 EsbTensor *EsClipBoxes(EsbTensor *boxes_input, EsbTensor *img_size);
 EsbTensor *EsClipBoxesD(EsbTensor *boxes_input, const int64_t *img_size, int64_t img_size_num);
-EsbTensor *EsClipByNormNoDivSum(EsbTensor *x, EsbTensor *greater_zeros, EsbTensor *select_ones, EsbTensor *maximum_ones);
+EsbTensor *EsClipByNormNoDivSum(EsbTensor *x, EsbTensor *greater_zeros, EsbTensor *select_ones,
+                                EsbTensor *maximum_ones);
 EsbTensor *EsClipByValue(EsbTensor *x, EsbTensor *clip_value_min, EsbTensor *clip_value_max);
 EsbTensor *EsClipByValueV2(EsbTensor *x, EsbTensor *clip_value_min, EsbTensor *clip_value_max);
 
 // Cmo does not produce an output, so the returned EsTensor cannot be used to connect edges.
 EsbTensor *EsCmo(EsbTensor *src, int64_t max_size, int64_t type, int64_t offset);
-EsbTensor *EsCol2ImV2(EsbTensor *x, EsbTensor *output_size, EsbTensor *kernel_size, const int64_t *dilation, int64_t dilation_num, const int64_t *padding, int64_t padding_num, const int64_t *stride, int64_t stride_num);
-EsbTensor *EsCol2im(EsbTensor *x, EsbTensor *output_size, const int64_t *kernel_size, int64_t kernel_size_num, const int64_t *dilation, int64_t dilation_num, const int64_t *padding, int64_t padding_num, const int64_t *stride, int64_t stride_num);
+EsbTensor *EsCol2ImV2(EsbTensor *x, EsbTensor *output_size, EsbTensor *kernel_size, const int64_t *dilation,
+                      int64_t dilation_num, const int64_t *padding, int64_t padding_num, const int64_t *stride,
+                      int64_t stride_num);
+EsbTensor *EsCol2im(EsbTensor *x, EsbTensor *output_size, const int64_t *kernel_size, int64_t kernel_size_num,
+                    const int64_t *dilation, int64_t dilation_num, const int64_t *padding, int64_t padding_num,
+                    const int64_t *stride, int64_t stride_num);
 EsbTensor *EsCombinations(EsbTensor *x, int64_t r, bool with_replacement);
 
 typedef struct {
@@ -849,7 +1061,11 @@ typedef struct {
   EsbTensor *nmsed_classes;
   EsbTensor *valid_detections;
 } EsCombinedNonMaxSuppressionOutput;
-EsCombinedNonMaxSuppressionOutput EsCombinedNonMaxSuppression(EsbTensor *boxes, EsbTensor *scores, EsbTensor *max_output_size_per_class, EsbTensor *max_total_size, EsbTensor *iou_threshold, EsbTensor *score_threshold, bool pad_per_class, bool clip_boxes);
+EsCombinedNonMaxSuppressionOutput EsCombinedNonMaxSuppression(EsbTensor *boxes, EsbTensor *scores,
+                                                              EsbTensor *max_output_size_per_class,
+                                                              EsbTensor *max_total_size, EsbTensor *iou_threshold,
+                                                              EsbTensor *score_threshold, bool pad_per_class,
+                                                              bool clip_boxes);
 EsbTensor *EsCompareAndBitpack(EsbTensor *x, EsbTensor *threshold);
 EsbTensor *EsComplex(EsbTensor *real, EsbTensor *imag, int64_t Tout);
 EsbTensor *EsComplexAbs(EsbTensor *x, af::DataType Tout);
@@ -865,23 +1081,25 @@ typedef struct {
   EsbTensor *compress_index;
   EsbTensor *compress_info;
 } EsCompressFcOpOutput;
-EsCompressFcOpOutput EsCompressFcOp(EsbTensor *weight, const int64_t *compress_parameters, int64_t compress_parameters_num);
+EsCompressFcOpOutput EsCompressFcOp(EsbTensor *weight, const int64_t *compress_parameters,
+                                    int64_t compress_parameters_num);
 
 typedef struct {
   EsbTensor *indices;
   EsbTensor *ids;
   EsbTensor *weights;
 } EsComputeAccidentalHitsOutput;
-EsComputeAccidentalHitsOutput EsComputeAccidentalHits(EsbTensor *true_classes, EsbTensor *sampled_candidates, int64_t num_true, int64_t seed, int64_t seed2);
+EsComputeAccidentalHitsOutput EsComputeAccidentalHits(EsbTensor *true_classes, EsbTensor *sampled_candidates,
+                                                      int64_t num_true, int64_t seed, int64_t seed2);
 EsbTensor *EsConcat(EsbTensor *concat_dim, EsbTensor **x, int64_t x_num, int64_t N);
 EsbTensor *EsConcatD(EsbTensor **x, int64_t x_num, int64_t concat_dim, int64_t N);
 EsbTensor *EsConcatFromSequence(EsbTensor *handle, int64_t axis, int64_t new_axis);
 EsbTensor *EsConcatV2(EsbTensor **x, int64_t x_num, EsbTensor *concat_dim, int64_t N);
 EsbTensor *EsConcatV2D(EsbTensor **x, int64_t x_num, int64_t concat_dim, int64_t N);
 
-std::vector<EsbTensor*> EsSplit(EsbTensor *split_dim, EsbTensor *x, int64_t x_num);
-std::vector<EsbTensor*> EsSplitD(EsbTensor *x, int64_t split_dim, int64_t x_num);
-std::vector<EsbTensor*> EsSplitV(EsbTensor *x, EsbTensor *size_splits, EsbTensor *split_dim, int64_t num_split);
+std::vector<EsbTensor *> EsSplit(EsbTensor *split_dim, EsbTensor *x, int64_t x_num);
+std::vector<EsbTensor *> EsSplitD(EsbTensor *x, int64_t split_dim, int64_t x_num);
+std::vector<EsbTensor *> EsSplitV(EsbTensor *x, EsbTensor *size_splits, EsbTensor *split_dim, int64_t num_split);
 
 typedef struct {
   EsbTensor *out_data;
@@ -889,48 +1107,130 @@ typedef struct {
   EsbTensor *valid_num;
 } EsCondTakeOutput;
 EsCondTakeOutput EsCondTake(EsbTensor *data, EsbTensor *mask, const char *mode, float val, float eps);
-EsbTensor *EsConditionCalc(EsbTensor **x, int64_t x_num, const char *cond_func, const int64_t *x_dependency, int64_t x_dependency_num);
-EsbTensor *EsConditionalAccumulator(EsbGraph *owner_graph, af::DataType dtype, const int64_t *shape, int64_t shape_num, const char *container, const char *shared_name, const char *reduction_type);
-EsbTensor *EsConfusionMatrix(EsbTensor *labels, EsbTensor *predictions, EsbTensor *weights, int64_t num_classes, const char *dtype);
+EsbTensor *EsConditionCalc(EsbTensor **x, int64_t x_num, const char *cond_func, const int64_t *x_dependency,
+                           int64_t x_dependency_num);
+EsbTensor *EsConditionalAccumulator(EsbGraph *owner_graph, af::DataType dtype, const int64_t *shape, int64_t shape_num,
+                                    const char *container, const char *shared_name, const char *reduction_type);
+EsbTensor *EsConfusionMatrix(EsbTensor *labels, EsbTensor *predictions, EsbTensor *weights, int64_t num_classes,
+                             const char *dtype);
 
 typedef struct {
   EsbTensor *output0;
   EsbTensor *output1;
 } EsConfusionMulGradOutput;
-EsConfusionMulGradOutput EsConfusionMulGrad(EsbTensor *input0, EsbTensor *input1, EsbTensor *input2, const int64_t *axes, int64_t axes_num, bool keep_dims);
+EsConfusionMulGradOutput EsConfusionMulGrad(EsbTensor *input0, EsbTensor *input1, EsbTensor *input2,
+                                            const int64_t *axes, int64_t axes_num, bool keep_dims);
 EsbTensor *EsConfusionSoftmaxGrad(EsbTensor *grad, EsbTensor *x);
-EsbTensor *EsConfusionTranspose(EsbTensor *x, EsbTensor *shape, const int64_t *perm, int64_t perm_num, bool transpose_first);
-EsbTensor *EsConfusionTransposeD(EsbTensor *x, const int64_t *perm, int64_t perm_num, const int64_t *shape, int64_t shape_num, bool transpose_first);
+EsbTensor *EsConfusionTranspose(EsbTensor *x, EsbTensor *shape, const int64_t *perm, int64_t perm_num,
+                                bool transpose_first);
+EsbTensor *EsConfusionTransposeD(EsbTensor *x, const int64_t *perm, int64_t perm_num, const int64_t *shape,
+                                 int64_t shape_num, bool transpose_first);
 EsbTensor *EsConj(EsbTensor *input);
 EsbTensor *EsConjugateTranspose(EsbTensor *x, EsbTensor *perm);
 EsbTensor *EsContinuationIndicator(EsbGraph *owner_graph, int64_t time_step, int64_t batch_size);
 
 // ControlTrigger does not produce an output, so the returned EsTensor cannot be used to connect edges.
 EsbTensor *EsControlTrigger(EsbGraph *owner_graph);
-EsbTensor *EsConv2D(EsbTensor *x, EsbTensor *filter, EsbTensor *bias, EsbTensor *offset_w, const int64_t *strides, int64_t strides_num, const int64_t *pads, int64_t pads_num, const int64_t *dilations, int64_t dilations_num, int64_t groups, const char *data_format, int64_t offset_x);
-EsbTensor *EsConv2DBackpropFilter(EsbTensor *x, EsbTensor *filter_size, EsbTensor *out_backprop, const int64_t *strides, int64_t strides_num, const int64_t *pads, int64_t pads_num, const int64_t *dilations, int64_t dilations_num, int64_t groups, const char *data_format);
-EsbTensor *EsConv2DBackpropFilterD(EsbTensor *x, EsbTensor *out_backprop, const int64_t *filter_size, int64_t filter_size_num, const int64_t *strides, int64_t strides_num, const int64_t *pads, int64_t pads_num, const int64_t *dilations, int64_t dilations_num, int64_t groups, const char *data_format);
-EsbTensor *EsConv2DBackpropFilterV2(EsbTensor *x, EsbTensor *filter_size, EsbTensor *out_backprop, const int64_t *strides, int64_t strides_num, const int64_t *pads, int64_t pads_num, const int64_t *dilations, int64_t dilations_num, int64_t groups, const char *data_format);
-EsbTensor *EsConv2DBackpropFilterV3(EsbTensor *x, EsbTensor *filter_size, EsbTensor *out_backprop, const int64_t *strides, int64_t strides_num, const int64_t *pads, int64_t pads_num, const int64_t *dilations, int64_t dilations_num, int64_t groups, const char *data_format);
-EsbTensor *EsConv2DBackpropInput(EsbTensor *input_size, EsbTensor *filter, EsbTensor *out_backprop, const int64_t *strides, int64_t strides_num, const int64_t *pads, int64_t pads_num, const int64_t *dilations, int64_t dilations_num, int64_t groups, const char *data_format);
-EsbTensor *EsConv2DBackpropInputD(EsbTensor *filter, EsbTensor *out_backprop, const int64_t *input_size, int64_t input_size_num, const int64_t *strides, int64_t strides_num, const int64_t *pads, int64_t pads_num, const int64_t *dilations, int64_t dilations_num, int64_t groups, const char *data_format);
-EsbTensor *EsConv2DBackpropInputV2(EsbTensor *input_size, EsbTensor *filter, EsbTensor *out_backprop, const int64_t *strides, int64_t strides_num, const int64_t *pads, int64_t pads_num, const int64_t *dilations, int64_t dilations_num, int64_t groups, const char *data_format);
-EsbTensor *EsConv2DCompress(EsbTensor *x, EsbTensor *filter_compress, EsbTensor *compress_index, EsbTensor *bias, EsbTensor *offset_w, const int64_t *strides, int64_t strides_num, const int64_t *pads, int64_t pads_num, const int64_t *dilations, int64_t dilations_num, int64_t groups, const char *data_format, int64_t offset_x, const char *alg);
-EsbTensor *EsConv2DTranspose(EsbTensor *input_size, EsbTensor *x, EsbTensor *filter, EsbTensor *bias, EsbTensor *offset_w, const int64_t *strides, int64_t strides_num, const int64_t *pads, int64_t pads_num, const int64_t *dilations, int64_t dilations_num, int64_t groups, const char *data_format, const int64_t *output_padding, int64_t output_padding_num, int64_t offset_x);
-EsbTensor *EsConv2DTransposeD(EsbTensor *x, EsbTensor *filter, EsbTensor *bias, EsbTensor *offset_w, const int64_t *input_size, int64_t input_size_num, const int64_t *strides, int64_t strides_num, const int64_t *pads, int64_t pads_num, const int64_t *dilations, int64_t dilations_num, int64_t groups, const char *data_format, const int64_t *output_padding, int64_t output_padding_num, int64_t offset_x);
-EsbTensor *EsConv2DTransposeDCompress(EsbTensor *x, EsbTensor *filter_compress, EsbTensor *compress_index, EsbTensor *bias, EsbTensor *offset_w, const int64_t *input_size, int64_t input_size_num, const int64_t *strides, int64_t strides_num, const int64_t *pads, int64_t pads_num, const int64_t *dilations, int64_t dilations_num, int64_t groups, const char *data_format, const int64_t *output_padding, int64_t output_padding_num, int64_t offset_x, const char *alg);
-EsbTensor *EsConv2DTransposeV2(EsbTensor *input_size, EsbTensor *x, EsbTensor *filter, EsbTensor *bias, EsbTensor *offset_w, const int64_t *strides, int64_t strides_num, const int64_t *pads, int64_t pads_num, const int64_t *dilations, int64_t dilations_num, int64_t groups, const char *data_format, const int64_t *output_padding, int64_t output_padding_num, int64_t offset_x);
-EsbTensor *EsConv3D(EsbTensor *x, EsbTensor *filter, EsbTensor *bias, EsbTensor *offset_w, const int64_t *strides, int64_t strides_num, const int64_t *pads, int64_t pads_num, const int64_t *dilations, int64_t dilations_num, int64_t groups, const char *data_format, int64_t offset_x);
-EsbTensor *EsConv3DBackpropFilter(EsbTensor *x, EsbTensor *filter_size, EsbTensor *out_backprop, const int64_t *strides, int64_t strides_num, const int64_t *pads, int64_t pads_num, const int64_t *dilations, int64_t dilations_num, int64_t groups, const char *data_format);
-EsbTensor *EsConv3DBackpropFilterD(EsbTensor *x, EsbTensor *out_backprop, const int64_t *filter_size, int64_t filter_size_num, const int64_t *strides, int64_t strides_num, const int64_t *pads, int64_t pads_num, const int64_t *dilations, int64_t dilations_num, int64_t groups, const char *data_format);
-EsbTensor *EsConv3DBackpropFilterV2(EsbTensor *x, EsbTensor *filter_size, EsbTensor *out_backprop, const int64_t *strides, int64_t strides_num, const int64_t *pads, int64_t pads_num, const int64_t *dilations, int64_t dilations_num, int64_t groups, const char *data_format);
-EsbTensor *EsConv3DBackpropInput(EsbTensor *input_size, EsbTensor *filter, EsbTensor *out_backprop, const int64_t *strides, int64_t strides_num, const int64_t *pads, int64_t pads_num, const int64_t *dilations, int64_t dilations_num, int64_t groups, const char *data_format);
-EsbTensor *EsConv3DBackpropInputD(EsbTensor *filter, EsbTensor *out_backprop, const int64_t *input_size, int64_t input_size_num, const int64_t *strides, int64_t strides_num, const int64_t *pads, int64_t pads_num, const int64_t *dilations, int64_t dilations_num, int64_t groups, const char *data_format);
-EsbTensor *EsConv3DBackpropInputV2(EsbTensor *input_size, EsbTensor *filter, EsbTensor *out_backprop, const int64_t *strides, int64_t strides_num, const int64_t *pads, int64_t pads_num, const int64_t *dilations, int64_t dilations_num, int64_t groups, const char *data_format);
-EsbTensor *EsConv3DTranspose(EsbTensor *input_size, EsbTensor *x, EsbTensor *filter, EsbTensor *bias, EsbTensor *offset_w, const int64_t *strides, int64_t strides_num, const int64_t *pads, int64_t pads_num, const int64_t *dilations, int64_t dilations_num, int64_t groups, const char *data_format, const int64_t *output_padding, int64_t output_padding_num, int64_t offset_x);
-EsbTensor *EsConv3DTransposeD(EsbTensor *x, EsbTensor *filter, EsbTensor *bias, EsbTensor *offset_w, const int64_t *input_size, int64_t input_size_num, const int64_t *strides, int64_t strides_num, const int64_t *pads, int64_t pads_num, const int64_t *dilations, int64_t dilations_num, int64_t groups, const char *data_format, const int64_t *output_padding, int64_t output_padding_num, int64_t offset_x);
-EsbTensor *EsConv3DTransposeV2(EsbTensor *input_size, EsbTensor *x, EsbTensor *filter, EsbTensor *bias, EsbTensor *offset_w, const int64_t *strides, int64_t strides_num, const int64_t *pads, int64_t pads_num, const int64_t *dilations, int64_t dilations_num, int64_t groups, const char *data_format, const int64_t *output_padding, int64_t output_padding_num, int64_t offset_x);
-EsbTensor *EsConv3DV2(EsbTensor *x, EsbTensor *filter, EsbTensor *bias, EsbTensor *offset_w, const int64_t *strides, int64_t strides_num, const int64_t *pads, int64_t pads_num, const int64_t *dilations, int64_t dilations_num, int64_t groups, const char *data_format, int64_t offset_x);
+EsbTensor *EsConv2D(EsbTensor *x, EsbTensor *filter, EsbTensor *bias, EsbTensor *offset_w, const int64_t *strides,
+                    int64_t strides_num, const int64_t *pads, int64_t pads_num, const int64_t *dilations,
+                    int64_t dilations_num, int64_t groups, const char *data_format, int64_t offset_x);
+EsbTensor *EsConv2DBackpropFilter(EsbTensor *x, EsbTensor *filter_size, EsbTensor *out_backprop, const int64_t *strides,
+                                  int64_t strides_num, const int64_t *pads, int64_t pads_num, const int64_t *dilations,
+                                  int64_t dilations_num, int64_t groups, const char *data_format);
+EsbTensor *EsConv2DBackpropFilterD(EsbTensor *x, EsbTensor *out_backprop, const int64_t *filter_size,
+                                   int64_t filter_size_num, const int64_t *strides, int64_t strides_num,
+                                   const int64_t *pads, int64_t pads_num, const int64_t *dilations,
+                                   int64_t dilations_num, int64_t groups, const char *data_format);
+EsbTensor *EsConv2DBackpropFilterV2(EsbTensor *x, EsbTensor *filter_size, EsbTensor *out_backprop,
+                                    const int64_t *strides, int64_t strides_num, const int64_t *pads, int64_t pads_num,
+                                    const int64_t *dilations, int64_t dilations_num, int64_t groups,
+                                    const char *data_format);
+EsbTensor *EsConv2DBackpropFilterV3(EsbTensor *x, EsbTensor *filter_size, EsbTensor *out_backprop,
+                                    const int64_t *strides, int64_t strides_num, const int64_t *pads, int64_t pads_num,
+                                    const int64_t *dilations, int64_t dilations_num, int64_t groups,
+                                    const char *data_format);
+EsbTensor *EsConv2DBackpropInput(EsbTensor *input_size, EsbTensor *filter, EsbTensor *out_backprop,
+                                 const int64_t *strides, int64_t strides_num, const int64_t *pads, int64_t pads_num,
+                                 const int64_t *dilations, int64_t dilations_num, int64_t groups,
+                                 const char *data_format);
+EsbTensor *EsConv2DBackpropInputD(EsbTensor *filter, EsbTensor *out_backprop, const int64_t *input_size,
+                                  int64_t input_size_num, const int64_t *strides, int64_t strides_num,
+                                  const int64_t *pads, int64_t pads_num, const int64_t *dilations,
+                                  int64_t dilations_num, int64_t groups, const char *data_format);
+EsbTensor *EsConv2DBackpropInputV2(EsbTensor *input_size, EsbTensor *filter, EsbTensor *out_backprop,
+                                   const int64_t *strides, int64_t strides_num, const int64_t *pads, int64_t pads_num,
+                                   const int64_t *dilations, int64_t dilations_num, int64_t groups,
+                                   const char *data_format);
+EsbTensor *EsConv2DCompress(EsbTensor *x, EsbTensor *filter_compress, EsbTensor *compress_index, EsbTensor *bias,
+                            EsbTensor *offset_w, const int64_t *strides, int64_t strides_num, const int64_t *pads,
+                            int64_t pads_num, const int64_t *dilations, int64_t dilations_num, int64_t groups,
+                            const char *data_format, int64_t offset_x, const char *alg);
+EsbTensor *EsConv2DTranspose(EsbTensor *input_size, EsbTensor *x, EsbTensor *filter, EsbTensor *bias,
+                             EsbTensor *offset_w, const int64_t *strides, int64_t strides_num, const int64_t *pads,
+                             int64_t pads_num, const int64_t *dilations, int64_t dilations_num, int64_t groups,
+                             const char *data_format, const int64_t *output_padding, int64_t output_padding_num,
+                             int64_t offset_x);
+EsbTensor *EsConv2DTransposeD(EsbTensor *x, EsbTensor *filter, EsbTensor *bias, EsbTensor *offset_w,
+                              const int64_t *input_size, int64_t input_size_num, const int64_t *strides,
+                              int64_t strides_num, const int64_t *pads, int64_t pads_num, const int64_t *dilations,
+                              int64_t dilations_num, int64_t groups, const char *data_format,
+                              const int64_t *output_padding, int64_t output_padding_num, int64_t offset_x);
+EsbTensor *EsConv2DTransposeDCompress(EsbTensor *x, EsbTensor *filter_compress, EsbTensor *compress_index,
+                                      EsbTensor *bias, EsbTensor *offset_w, const int64_t *input_size,
+                                      int64_t input_size_num, const int64_t *strides, int64_t strides_num,
+                                      const int64_t *pads, int64_t pads_num, const int64_t *dilations,
+                                      int64_t dilations_num, int64_t groups, const char *data_format,
+                                      const int64_t *output_padding, int64_t output_padding_num, int64_t offset_x,
+                                      const char *alg);
+EsbTensor *EsConv2DTransposeV2(EsbTensor *input_size, EsbTensor *x, EsbTensor *filter, EsbTensor *bias,
+                               EsbTensor *offset_w, const int64_t *strides, int64_t strides_num, const int64_t *pads,
+                               int64_t pads_num, const int64_t *dilations, int64_t dilations_num, int64_t groups,
+                               const char *data_format, const int64_t *output_padding, int64_t output_padding_num,
+                               int64_t offset_x);
+EsbTensor *EsConv3D(EsbTensor *x, EsbTensor *filter, EsbTensor *bias, EsbTensor *offset_w, const int64_t *strides,
+                    int64_t strides_num, const int64_t *pads, int64_t pads_num, const int64_t *dilations,
+                    int64_t dilations_num, int64_t groups, const char *data_format, int64_t offset_x);
+EsbTensor *EsConv3DBackpropFilter(EsbTensor *x, EsbTensor *filter_size, EsbTensor *out_backprop, const int64_t *strides,
+                                  int64_t strides_num, const int64_t *pads, int64_t pads_num, const int64_t *dilations,
+                                  int64_t dilations_num, int64_t groups, const char *data_format);
+EsbTensor *EsConv3DBackpropFilterD(EsbTensor *x, EsbTensor *out_backprop, const int64_t *filter_size,
+                                   int64_t filter_size_num, const int64_t *strides, int64_t strides_num,
+                                   const int64_t *pads, int64_t pads_num, const int64_t *dilations,
+                                   int64_t dilations_num, int64_t groups, const char *data_format);
+EsbTensor *EsConv3DBackpropFilterV2(EsbTensor *x, EsbTensor *filter_size, EsbTensor *out_backprop,
+                                    const int64_t *strides, int64_t strides_num, const int64_t *pads, int64_t pads_num,
+                                    const int64_t *dilations, int64_t dilations_num, int64_t groups,
+                                    const char *data_format);
+EsbTensor *EsConv3DBackpropInput(EsbTensor *input_size, EsbTensor *filter, EsbTensor *out_backprop,
+                                 const int64_t *strides, int64_t strides_num, const int64_t *pads, int64_t pads_num,
+                                 const int64_t *dilations, int64_t dilations_num, int64_t groups,
+                                 const char *data_format);
+EsbTensor *EsConv3DBackpropInputD(EsbTensor *filter, EsbTensor *out_backprop, const int64_t *input_size,
+                                  int64_t input_size_num, const int64_t *strides, int64_t strides_num,
+                                  const int64_t *pads, int64_t pads_num, const int64_t *dilations,
+                                  int64_t dilations_num, int64_t groups, const char *data_format);
+EsbTensor *EsConv3DBackpropInputV2(EsbTensor *input_size, EsbTensor *filter, EsbTensor *out_backprop,
+                                   const int64_t *strides, int64_t strides_num, const int64_t *pads, int64_t pads_num,
+                                   const int64_t *dilations, int64_t dilations_num, int64_t groups,
+                                   const char *data_format);
+EsbTensor *EsConv3DTranspose(EsbTensor *input_size, EsbTensor *x, EsbTensor *filter, EsbTensor *bias,
+                             EsbTensor *offset_w, const int64_t *strides, int64_t strides_num, const int64_t *pads,
+                             int64_t pads_num, const int64_t *dilations, int64_t dilations_num, int64_t groups,
+                             const char *data_format, const int64_t *output_padding, int64_t output_padding_num,
+                             int64_t offset_x);
+EsbTensor *EsConv3DTransposeD(EsbTensor *x, EsbTensor *filter, EsbTensor *bias, EsbTensor *offset_w,
+                              const int64_t *input_size, int64_t input_size_num, const int64_t *strides,
+                              int64_t strides_num, const int64_t *pads, int64_t pads_num, const int64_t *dilations,
+                              int64_t dilations_num, int64_t groups, const char *data_format,
+                              const int64_t *output_padding, int64_t output_padding_num, int64_t offset_x);
+EsbTensor *EsConv3DTransposeV2(EsbTensor *input_size, EsbTensor *x, EsbTensor *filter, EsbTensor *bias,
+                               EsbTensor *offset_w, const int64_t *strides, int64_t strides_num, const int64_t *pads,
+                               int64_t pads_num, const int64_t *dilations, int64_t dilations_num, int64_t groups,
+                               const char *data_format, const int64_t *output_padding, int64_t output_padding_num,
+                               int64_t offset_x);
+EsbTensor *EsConv3DV2(EsbTensor *x, EsbTensor *filter, EsbTensor *bias, EsbTensor *offset_w, const int64_t *strides,
+                      int64_t strides_num, const int64_t *pads, int64_t pads_num, const int64_t *dilations,
+                      int64_t dilations_num, int64_t groups, const char *data_format, int64_t offset_x);
 
 typedef struct {
   EsbTensor *row;
@@ -938,7 +1238,8 @@ typedef struct {
   EsbTensor *n;
 } EsCoordinates1DTo2DOutput;
 EsCoordinates1DTo2DOutput EsCoordinates1DTo2D(EsbTensor *x, EsbTensor *shape);
-EsbTensor *EsCorrectBBox(EsbTensor *x, EsbTensor *grid, EsbTensor *anchor_grid, int64_t stride, const char *yolo_version);
+EsbTensor *EsCorrectBBox(EsbTensor *x, EsbTensor *grid, EsbTensor *anchor_grid, int64_t stride,
+                         const char *yolo_version);
 EsbTensor *EsCorrelation(EsbTensor *filter, EsbTensor *x, int64_t groups);
 EsbTensor *EsCos(EsbTensor *x);
 EsbTensor *EsCosh(EsbTensor *x);
@@ -946,11 +1247,16 @@ EsbTensor *EsCosineEmbeddingLoss(EsbTensor *x1, EsbTensor *x2, EsbTensor *target
 EsbTensor *EsCosineSimilarity(EsbTensor *input_x1, EsbTensor *input_x2, int64_t dim, float eps);
 EsbTensor *EsCountUpTo(EsbTensor *ref, int64_t limit);
 EsbTensor *EsCrop(EsbTensor *x, EsbTensor *size, const int64_t *offsets, int64_t offsets_num, int64_t axis);
-EsbTensor *EsCropAndResize(EsbTensor *x, EsbTensor *boxes, EsbTensor *box_index, EsbTensor *crop_size, float extrapolation_value, const char *method);
-EsbTensor *EsCropAndResizeD(EsbTensor *x, EsbTensor *boxes, EsbTensor *box_index, const int64_t *crop_size, int64_t crop_size_num, float extrapolation_value, const char *method);
-EsbTensor *EsCropAndResizeGradBoxes(EsbTensor *grads, EsbTensor *images, EsbTensor *boxes, EsbTensor *box_index, const char *method);
-EsbTensor *EsCropAndResizeGradImage(EsbTensor *grads, EsbTensor *boxes, EsbTensor *box_index, EsbTensor *image_size, af::DataType T, const char *method);
-EsbTensor *EsCropAndResizeV2(EsbTensor *x, EsbTensor *boxes, EsbTensor *box_index, EsbTensor *crop_size, float extrapolation_value, const char *method, af::DataType dtype);
+EsbTensor *EsCropAndResize(EsbTensor *x, EsbTensor *boxes, EsbTensor *box_index, EsbTensor *crop_size,
+                           float extrapolation_value, const char *method);
+EsbTensor *EsCropAndResizeD(EsbTensor *x, EsbTensor *boxes, EsbTensor *box_index, const int64_t *crop_size,
+                            int64_t crop_size_num, float extrapolation_value, const char *method);
+EsbTensor *EsCropAndResizeGradBoxes(EsbTensor *grads, EsbTensor *images, EsbTensor *boxes, EsbTensor *box_index,
+                                    const char *method);
+EsbTensor *EsCropAndResizeGradImage(EsbTensor *grads, EsbTensor *boxes, EsbTensor *box_index, EsbTensor *image_size,
+                                    af::DataType T, const char *method);
+EsbTensor *EsCropAndResizeV2(EsbTensor *x, EsbTensor *boxes, EsbTensor *box_index, EsbTensor *crop_size,
+                             float extrapolation_value, const char *method, af::DataType dtype);
 EsbTensor *EsCross(EsbTensor *x1, EsbTensor *x2, int64_t dim);
 
 typedef struct {
@@ -976,31 +1282,46 @@ typedef struct {
   EsbTensor *dbboxes;
   EsbTensor *dgtboxes;
 } EsDIoUGradOutput;
-EsDIoUGradOutput EsDIoUGrad(EsbTensor *dy, EsbTensor *bboxes, EsbTensor *gtboxes, bool trans, bool is_cross, const char *mode);
-EsbTensor *EsDSAGenBitMask(EsbTensor *count, EsbTensor *seed, EsbTensor *dropout, const char *random_algorithm, const char *output_dtype);
-EsbTensor *EsDSARandomNormal(EsbTensor *count, EsbTensor *seed, EsbTensor *mean, EsbTensor *stdev, const char *random_algorithm);
-EsbTensor *EsDSARandomTruncatedNormal(EsbTensor *count, EsbTensor *seed, EsbTensor *mean, EsbTensor *stdev, const char *random_algorithm);
-EsbTensor *EsDSARandomUniform(EsbTensor *count, EsbTensor *seed, EsbTensor *low, EsbTensor *high, const char *random_algorithm);
-EsbTensor *EsDSAStatelessGenBitMask(EsbTensor *count, EsbTensor *seed, EsbTensor *dropout, EsbTensor *offset, const char *random_algorithm, const char *output_dtype);
-EsbTensor *EsDSAStatelessRandomNormal(EsbTensor *count, EsbTensor *seed, EsbTensor *mean, EsbTensor *stdev, EsbTensor *counter, const char *random_algorithm);
-EsbTensor *EsDSAStatelessRandomTruncatedNormal(EsbTensor *count, EsbTensor *seed, EsbTensor *mean, EsbTensor *stdev, EsbTensor *counter, const char *random_algorithm);
-EsbTensor *EsDSAStatelessRandomUniform(EsbTensor *count, EsbTensor *seed, EsbTensor *low, EsbTensor *high, EsbTensor *counter, const char *random_algorithm);
+EsDIoUGradOutput EsDIoUGrad(EsbTensor *dy, EsbTensor *bboxes, EsbTensor *gtboxes, bool trans, bool is_cross,
+                            const char *mode);
+EsbTensor *EsDSAGenBitMask(EsbTensor *count, EsbTensor *seed, EsbTensor *dropout, const char *random_algorithm,
+                           const char *output_dtype);
+EsbTensor *EsDSARandomNormal(EsbTensor *count, EsbTensor *seed, EsbTensor *mean, EsbTensor *stdev,
+                             const char *random_algorithm);
+EsbTensor *EsDSARandomTruncatedNormal(EsbTensor *count, EsbTensor *seed, EsbTensor *mean, EsbTensor *stdev,
+                                      const char *random_algorithm);
+EsbTensor *EsDSARandomUniform(EsbTensor *count, EsbTensor *seed, EsbTensor *low, EsbTensor *high,
+                              const char *random_algorithm);
+EsbTensor *EsDSAStatelessGenBitMask(EsbTensor *count, EsbTensor *seed, EsbTensor *dropout, EsbTensor *offset,
+                                    const char *random_algorithm, const char *output_dtype);
+EsbTensor *EsDSAStatelessRandomNormal(EsbTensor *count, EsbTensor *seed, EsbTensor *mean, EsbTensor *stdev,
+                                      EsbTensor *counter, const char *random_algorithm);
+EsbTensor *EsDSAStatelessRandomTruncatedNormal(EsbTensor *count, EsbTensor *seed, EsbTensor *mean, EsbTensor *stdev,
+                                               EsbTensor *counter, const char *random_algorithm);
+EsbTensor *EsDSAStatelessRandomUniform(EsbTensor *count, EsbTensor *seed, EsbTensor *low, EsbTensor *high,
+                                       EsbTensor *counter, const char *random_algorithm);
 EsbTensor *EsDataCompare(EsbTensor *x1, EsbTensor *x2, float atol, float rtol);
 EsbTensor *EsDataFormatDimMap(EsbTensor *x, const char *src_format, const char *dst_format);
 EsbTensor *EsDataFormatVecPermute(EsbTensor *x, const char *src_format, const char *dst_format);
 EsbTensor *EsDawsn(EsbTensor *x);
-EsbTensor *EsDecodeAndCropJpeg(EsbTensor *contents, EsbTensor *crop_window, int64_t channels, int64_t ratio, bool fancy_upscaling, bool try_recover_truncated, float acceptable_fraction, const char *dct_method, const char *dst_img_format);
+EsbTensor *EsDecodeAndCropJpeg(EsbTensor *contents, EsbTensor *crop_window, int64_t channels, int64_t ratio,
+                               bool fancy_upscaling, bool try_recover_truncated, float acceptable_fraction,
+                               const char *dct_method, const char *dst_img_format);
 EsbTensor *EsDecodeBase64(EsbTensor *x);
 EsbTensor *EsDecodeBbox(EsbTensor *box_predictions, EsbTensor *anchors, float decode_clip);
-EsbTensor *EsDecodeBboxV2(EsbTensor *boxes, EsbTensor *anchors, const float *scales, int64_t scales_num, float decode_clip, bool reversed_box);
+EsbTensor *EsDecodeBboxV2(EsbTensor *boxes, EsbTensor *anchors, const float *scales, int64_t scales_num,
+                          float decode_clip, bool reversed_box);
 EsbTensor *EsDecodeBmp(EsbTensor *contents, int64_t channels);
 EsbTensor *EsDecodeBoundariesTarget(EsbTensor *boundary_predictions, EsbTensor *anchors);
 EsbTensor *EsDecodeCornerpointsTargetBG(EsbTensor *keypoints_prediction, EsbTensor *anchors);
 EsbTensor *EsDecodeCornerpointsTargetWrtCenterV1(EsbTensor *keypoints_prediction, EsbTensor *anchors);
 EsbTensor *EsDecodeGif(EsbTensor *contents);
 EsbTensor *EsDecodeImage(EsbTensor *contents, int64_t channels, af::DataType dtype, bool expand_animations);
-EsbTensor *EsDecodeJpeg(EsbTensor *contents, int64_t channels, int64_t ratio, bool fancy_upscaling, bool try_recover_truncated, float acceptable_fraction, const char *dct_method, const char *dst_img_format);
-EsbTensor *EsDecodeJpegPre(EsbTensor *contents, const int64_t *w_range, int64_t w_range_num, const int64_t *h_range, int64_t h_range_num);
+EsbTensor *EsDecodeJpeg(EsbTensor *contents, int64_t channels, int64_t ratio, bool fancy_upscaling,
+                        bool try_recover_truncated, float acceptable_fraction, const char *dct_method,
+                        const char *dst_img_format);
+EsbTensor *EsDecodeJpegPre(EsbTensor *contents, const int64_t *w_range, int64_t w_range_num, const int64_t *h_range,
+                           int64_t h_range_num);
 EsbTensor *EsDecodePng(EsbTensor *contents, af::DataType dtype, int64_t channels);
 EsbTensor *EsDecodeRaw(EsbTensor *bytes, af::DataType out_type, bool little_endian);
 
@@ -1010,7 +1331,10 @@ typedef struct {
 } EsDecodeWavOutput;
 EsDecodeWavOutput EsDecodeWav(EsbTensor *contents, int64_t desired_channels, int64_t desired_samples);
 EsbTensor *EsDecodeWheelsTarget(EsbTensor *boundary_predictions, EsbTensor *anchors);
-EsbTensor *EsDeconvolution(EsbTensor *x, EsbTensor *filter, EsbTensor *bias, EsbTensor *offset_w, const int64_t *strides, int64_t strides_num, const int64_t *pads, int64_t pads_num, const int64_t *dilations, int64_t dilations_num, int64_t groups, const char *data_format, int64_t offset_x);
+EsbTensor *EsDeconvolution(EsbTensor *x, EsbTensor *filter, EsbTensor *bias, EsbTensor *offset_w,
+                           const int64_t *strides, int64_t strides_num, const int64_t *pads, int64_t pads_num,
+                           const int64_t *dilations, int64_t dilations_num, int64_t groups, const char *data_format,
+                           int64_t offset_x);
 
 typedef struct {
   EsbTensor *mean;
@@ -1025,22 +1349,37 @@ typedef struct {
   EsbTensor *dbeta;
   EsbTensor *dgamma;
 } EsDeepNormGradOutput;
-EsDeepNormGradOutput EsDeepNormGrad(EsbTensor *dy, EsbTensor *x, EsbTensor *gx, EsbTensor *gamma, EsbTensor *mean, EsbTensor *rstd, float alpha);
-EsbTensor *EsDeformableConv2D(EsbTensor *x, EsbTensor *filter, EsbTensor *offsets, EsbTensor *bias, const int64_t *strides, int64_t strides_num, const int64_t *pads, int64_t pads_num, const int64_t *dilations, int64_t dilations_num, int64_t groups, const char *data_format, int64_t deformable_groups, bool modulated);
-EsbTensor *EsDeformableOffsets(EsbTensor *x, EsbTensor *offsets, const int64_t *strides, int64_t strides_num, const int64_t *pads, int64_t pads_num, const int64_t *ksize, int64_t ksize_num, const int64_t *dilations, int64_t dilations_num, const char *data_format, int64_t deformable_groups, bool modulated);
+EsDeepNormGradOutput EsDeepNormGrad(EsbTensor *dy, EsbTensor *x, EsbTensor *gx, EsbTensor *gamma, EsbTensor *mean,
+                                    EsbTensor *rstd, float alpha);
+EsbTensor *EsDeformableConv2D(EsbTensor *x, EsbTensor *filter, EsbTensor *offsets, EsbTensor *bias,
+                              const int64_t *strides, int64_t strides_num, const int64_t *pads, int64_t pads_num,
+                              const int64_t *dilations, int64_t dilations_num, int64_t groups, const char *data_format,
+                              int64_t deformable_groups, bool modulated);
+EsbTensor *EsDeformableOffsets(EsbTensor *x, EsbTensor *offsets, const int64_t *strides, int64_t strides_num,
+                               const int64_t *pads, int64_t pads_num, const int64_t *ksize, int64_t ksize_num,
+                               const int64_t *dilations, int64_t dilations_num, const char *data_format,
+                               int64_t deformable_groups, bool modulated);
 
 typedef struct {
   EsbTensor *grad_x;
   EsbTensor *grad_offsets;
 } EsDeformableOffsetsGradOutput;
-EsDeformableOffsetsGradOutput EsDeformableOffsetsGrad(EsbTensor *grad, EsbTensor *x, EsbTensor *offsets, const int64_t *strides, int64_t strides_num, const int64_t *pads, int64_t pads_num, const int64_t *ksize, int64_t ksize_num, const int64_t *dilations, int64_t dilations_num, const char *data_format, int64_t deformable_groups, bool modulated);
-EsbTensor *EsDeformableRoiPool(EsbTensor *x, EsbTensor *rois, EsbTensor *offset, const int64_t *output_size, int64_t output_size_num, float spatial_scale, int64_t sampling_ratio, float gamma);
+EsDeformableOffsetsGradOutput EsDeformableOffsetsGrad(EsbTensor *grad, EsbTensor *x, EsbTensor *offsets,
+                                                      const int64_t *strides, int64_t strides_num, const int64_t *pads,
+                                                      int64_t pads_num, const int64_t *ksize, int64_t ksize_num,
+                                                      const int64_t *dilations, int64_t dilations_num,
+                                                      const char *data_format, int64_t deformable_groups,
+                                                      bool modulated);
+EsbTensor *EsDeformableRoiPool(EsbTensor *x, EsbTensor *rois, EsbTensor *offset, const int64_t *output_size,
+                               int64_t output_size_num, float spatial_scale, int64_t sampling_ratio, float gamma);
 
 typedef struct {
   EsbTensor *grad_x;
   EsbTensor *grad_offset;
 } EsDeformableRoiPoolGradOutput;
-EsDeformableRoiPoolGradOutput EsDeformableRoiPoolGrad(EsbTensor *grad, EsbTensor *x, EsbTensor *rois, EsbTensor *offset, const int64_t *output_size, int64_t output_size_num, float spatial_scale, int64_t sampling_ratio, float gamma);
+EsDeformableRoiPoolGradOutput EsDeformableRoiPoolGrad(EsbTensor *grad, EsbTensor *x, EsbTensor *rois, EsbTensor *offset,
+                                                      const int64_t *output_size, int64_t output_size_num,
+                                                      float spatial_scale, int64_t sampling_ratio, float gamma);
 
 // DeinitEmbeddingHashmapV2 does not produce an output, so the returned EsTensor cannot be used to connect edges.
 EsbTensor *EsDeinitEmbeddingHashmapV2(EsbTensor *table_id);
@@ -1054,7 +1393,8 @@ typedef struct {
   EsbTensor *output_values;
   EsbTensor *output_dense_shape;
 } EsDenseCountSparseOutputOutput;
-EsDenseCountSparseOutputOutput EsDenseCountSparseOutput(EsbTensor *values, EsbTensor *weights, bool binary_output, int64_t minlength, int64_t maxlength);
+EsDenseCountSparseOutputOutput EsDenseCountSparseOutput(EsbTensor *values, EsbTensor *weights, bool binary_output,
+                                                        int64_t minlength, int64_t maxlength);
 EsbTensor *EsDenseImageWarp(EsbTensor *image, EsbTensor *flow);
 
 typedef struct {
@@ -1068,24 +1408,43 @@ typedef struct {
   EsbTensor *y_values;
   EsbTensor *y_shape;
 } EsDenseToDenseSetOperationOutput;
-EsDenseToDenseSetOperationOutput EsDenseToDenseSetOperation(EsbTensor *x1, EsbTensor *x2, const char *set_operation, bool validate_indices);
+EsDenseToDenseSetOperationOutput EsDenseToDenseSetOperation(EsbTensor *x1, EsbTensor *x2, const char *set_operation,
+                                                            bool validate_indices);
 
 typedef struct {
   EsbTensor *y_indices;
   EsbTensor *y_values;
   EsbTensor *y_shape;
 } EsDenseToSparseSetOperationOutput;
-EsDenseToSparseSetOperationOutput EsDenseToSparseSetOperation(EsbTensor *x1, EsbTensor *x2_indices, EsbTensor *x2_values, EsbTensor *x2_shape, const char *set_operation, bool validate_indices);
+EsDenseToSparseSetOperationOutput EsDenseToSparseSetOperation(EsbTensor *x1, EsbTensor *x2_indices,
+                                                              EsbTensor *x2_values, EsbTensor *x2_shape,
+                                                              const char *set_operation, bool validate_indices);
 EsbTensor *EsDepthToSpace(EsbTensor *x, int64_t block_size, const char *mode, const char *data_format);
-EsbTensor *EsDepthwiseConv2D(EsbTensor *x, EsbTensor *filter, EsbTensor *bias, EsbTensor *offset_w, const int64_t *strides, int64_t strides_num, const int64_t *pads, int64_t pads_num, const int64_t *dilations, int64_t dilations_num, const char *data_format, int64_t offset_x);
-EsbTensor *EsDepthwiseConv2DBackpropFilter(EsbTensor *input, EsbTensor *filter_size, EsbTensor *out_backprop, const int64_t *strides, int64_t strides_num, const int64_t *pads, int64_t pads_num, const int64_t *dilations, int64_t dilations_num, const char *data_format);
-EsbTensor *EsDepthwiseConv2DBackpropFilterD(EsbTensor *input, EsbTensor *out_backprop, const int64_t *filter_size, int64_t filter_size_num, const int64_t *strides, int64_t strides_num, const int64_t *pads, int64_t pads_num, const int64_t *dilations, int64_t dilations_num, const char *data_format);
-EsbTensor *EsDepthwiseConv2DBackpropInput(EsbTensor *input_size, EsbTensor *filter, EsbTensor *out_backprop, const int64_t *strides, int64_t strides_num, const int64_t *pads, int64_t pads_num, const int64_t *dilations, int64_t dilations_num, const char *data_format);
-EsbTensor *EsDepthwiseConv2DBackpropInputD(EsbTensor *filter, EsbTensor *out_backprop, const int64_t *input_size, int64_t input_size_num, const int64_t *strides, int64_t strides_num, const int64_t *pads, int64_t pads_num, const int64_t *dilations, int64_t dilations_num, const char *data_format);
+EsbTensor *EsDepthwiseConv2D(EsbTensor *x, EsbTensor *filter, EsbTensor *bias, EsbTensor *offset_w,
+                             const int64_t *strides, int64_t strides_num, const int64_t *pads, int64_t pads_num,
+                             const int64_t *dilations, int64_t dilations_num, const char *data_format,
+                             int64_t offset_x);
+EsbTensor *EsDepthwiseConv2DBackpropFilter(EsbTensor *input, EsbTensor *filter_size, EsbTensor *out_backprop,
+                                           const int64_t *strides, int64_t strides_num, const int64_t *pads,
+                                           int64_t pads_num, const int64_t *dilations, int64_t dilations_num,
+                                           const char *data_format);
+EsbTensor *EsDepthwiseConv2DBackpropFilterD(EsbTensor *input, EsbTensor *out_backprop, const int64_t *filter_size,
+                                            int64_t filter_size_num, const int64_t *strides, int64_t strides_num,
+                                            const int64_t *pads, int64_t pads_num, const int64_t *dilations,
+                                            int64_t dilations_num, const char *data_format);
+EsbTensor *EsDepthwiseConv2DBackpropInput(EsbTensor *input_size, EsbTensor *filter, EsbTensor *out_backprop,
+                                          const int64_t *strides, int64_t strides_num, const int64_t *pads,
+                                          int64_t pads_num, const int64_t *dilations, int64_t dilations_num,
+                                          const char *data_format);
+EsbTensor *EsDepthwiseConv2DBackpropInputD(EsbTensor *filter, EsbTensor *out_backprop, const int64_t *input_size,
+                                           int64_t input_size_num, const int64_t *strides, int64_t strides_num,
+                                           const int64_t *pads, int64_t pads_num, const int64_t *dilations,
+                                           int64_t dilations_num, const char *data_format);
 EsbTensor *EsDepthwiseWeight4DTo6D(EsbTensor *x);
 EsbTensor *EsDepthwiseWeight6DTo4D(EsbTensor *x, int64_t channel_size);
 EsbTensor *EsDequantize(EsbTensor *x, EsbTensor *min_range, EsbTensor *max_range, const char *mode);
-EsbTensor *EsDequeue(EsbTensor *queue_id, af::DataType output_type, const int64_t *output_shape, int64_t output_shape_num, const char *queue_name);
+EsbTensor *EsDequeue(EsbTensor *queue_id, af::DataType output_type, const int64_t *output_shape,
+                     int64_t output_shape_num, const char *queue_name);
 
 typedef struct {
   EsbTensor *indices;
@@ -1108,7 +1467,12 @@ typedef struct {
   EsbTensor *softmax_out;
   EsbTensor *attention_out;
 } EsDetectFlashAttentionScoreOutput;
-EsDetectFlashAttentionScoreOutput EsDetectFlashAttentionScore(EsbTensor *query, EsbTensor *key, EsbTensor *value, EsbTensor *real_shift, EsbTensor *drop_mask, EsbTensor *padding_mask, EsbTensor *atten_mask, EsbTensor *prefix, EsbTensor *actual_seq_qlen, EsbTensor *actual_seq_kvlen, EsbTensor *q_start_idx, EsbTensor *kv_start_idx, int64_t head_num, const char *input_layout, float scale_value, float keep_prob, int64_t pre_tockens, int64_t next_tockens, int64_t inner_precise, int64_t sparse_mode, int64_t pse_type);
+EsDetectFlashAttentionScoreOutput EsDetectFlashAttentionScore(
+    EsbTensor *query, EsbTensor *key, EsbTensor *value, EsbTensor *real_shift, EsbTensor *drop_mask,
+    EsbTensor *padding_mask, EsbTensor *atten_mask, EsbTensor *prefix, EsbTensor *actual_seq_qlen,
+    EsbTensor *actual_seq_kvlen, EsbTensor *q_start_idx, EsbTensor *kv_start_idx, int64_t head_num,
+    const char *input_layout, float scale_value, float keep_prob, int64_t pre_tockens, int64_t next_tockens,
+    int64_t inner_precise, int64_t sparse_mode, int64_t pse_type);
 
 typedef struct {
   EsbTensor *dq;
@@ -1116,7 +1480,13 @@ typedef struct {
   EsbTensor *dv;
   EsbTensor *dpse;
 } EsDetectFlashAttentionScoreGradOutput;
-EsDetectFlashAttentionScoreGradOutput EsDetectFlashAttentionScoreGrad(EsbTensor *query, EsbTensor *key, EsbTensor *value, EsbTensor *dy, EsbTensor *pse_shift, EsbTensor *drop_mask, EsbTensor *padding_mask, EsbTensor *atten_mask, EsbTensor *softmax_max, EsbTensor *softmax_sum, EsbTensor *softmax_in, EsbTensor *attention_in, EsbTensor *prefix, EsbTensor *actual_seq_qlen, EsbTensor *actual_seq_kvlen, EsbTensor *q_start_idx, EsbTensor *kv_start_idx, int64_t head_num, const char *input_layout, float scale_value, float keep_prob, int64_t pre_tockens, int64_t next_tockens, int64_t inner_precise, int64_t sparse_mode, int64_t pse_type);
+EsDetectFlashAttentionScoreGradOutput EsDetectFlashAttentionScoreGrad(
+    EsbTensor *query, EsbTensor *key, EsbTensor *value, EsbTensor *dy, EsbTensor *pse_shift, EsbTensor *drop_mask,
+    EsbTensor *padding_mask, EsbTensor *atten_mask, EsbTensor *softmax_max, EsbTensor *softmax_sum,
+    EsbTensor *softmax_in, EsbTensor *attention_in, EsbTensor *prefix, EsbTensor *actual_seq_qlen,
+    EsbTensor *actual_seq_kvlen, EsbTensor *q_start_idx, EsbTensor *kv_start_idx, int64_t head_num,
+    const char *input_layout, float scale_value, float keep_prob, int64_t pre_tockens, int64_t next_tockens,
+    int64_t inner_precise, int64_t sparse_mode, int64_t pse_type);
 EsbTensor *EsDiag(EsbTensor *x);
 EsbTensor *EsDiagD(EsbTensor *x, EsbTensor *assist);
 EsbTensor *EsDiagFlat(EsbTensor *x, int64_t diagonal);
@@ -1124,10 +1494,19 @@ EsbTensor *EsDiagPart(EsbTensor *x);
 EsbTensor *EsDiagPartD(EsbTensor *x, EsbTensor *assist);
 EsbTensor *EsDiagV2(EsbTensor *x, int64_t diagonal);
 EsbTensor *EsDigamma(EsbTensor *x);
-EsbTensor *EsDilation(EsbTensor *x, const int64_t *dilations, int64_t dilations_num, const int64_t *pads, int64_t pads_num, float padding_value);
-EsbTensor *EsDilation2D(EsbTensor *x, EsbTensor *filter, const int64_t *strides, int64_t strides_num, const int64_t *rates, int64_t rates_num, const char *padding_mode, const int64_t *pads, int64_t pads_num, bool ceil_mode, const char *data_format);
-EsbTensor *EsDilation2DBackpropFilter(EsbTensor *x, EsbTensor *filter, EsbTensor *out_backprop, const int64_t *strides, int64_t strides_num, const int64_t *rates, int64_t rates_num, const char *padding_mode, const int64_t *pads, int64_t pads_num, bool ceil_mode, const char *data_format);
-EsbTensor *EsDilation2DBackpropInput(EsbTensor *x, EsbTensor *filter, EsbTensor *out_backprop, const int64_t *strides, int64_t strides_num, const int64_t *rates, int64_t rates_num, const char *padding_mode, const int64_t *pads, int64_t pads_num, bool ceil_mode, const char *data_format);
+EsbTensor *EsDilation(EsbTensor *x, const int64_t *dilations, int64_t dilations_num, const int64_t *pads,
+                      int64_t pads_num, float padding_value);
+EsbTensor *EsDilation2D(EsbTensor *x, EsbTensor *filter, const int64_t *strides, int64_t strides_num,
+                        const int64_t *rates, int64_t rates_num, const char *padding_mode, const int64_t *pads,
+                        int64_t pads_num, bool ceil_mode, const char *data_format);
+EsbTensor *EsDilation2DBackpropFilter(EsbTensor *x, EsbTensor *filter, EsbTensor *out_backprop, const int64_t *strides,
+                                      int64_t strides_num, const int64_t *rates, int64_t rates_num,
+                                      const char *padding_mode, const int64_t *pads, int64_t pads_num, bool ceil_mode,
+                                      const char *data_format);
+EsbTensor *EsDilation2DBackpropInput(EsbTensor *x, EsbTensor *filter, EsbTensor *out_backprop, const int64_t *strides,
+                                     int64_t strides_num, const int64_t *rates, int64_t rates_num,
+                                     const char *padding_mode, const int64_t *pads, int64_t pads_num, bool ceil_mode,
+                                     const char *data_format);
 EsbTensor *EsDiv(EsbTensor *x1, EsbTensor *x2);
 EsbTensor *EsDivNoNan(EsbTensor *x1, EsbTensor *x2);
 EsbTensor *EsDot(EsbTensor *input_x, EsbTensor *input_y);
@@ -1147,14 +1526,19 @@ typedef struct {
   EsbTensor *seed;
 } EsDropoutV2Output;
 EsDropoutV2Output EsDropoutV2(EsbTensor *x, EsbTensor *seed, float p);
-EsbTensor *EsDropoutWithMulsAndSoftmaxGrad(EsbTensor *y_grad, EsbTensor *mask, EsbTensor *softmax_output, float input_keep_prob, float alpha, const int64_t *axes, int64_t axes_num);
+EsbTensor *EsDropoutWithMulsAndSoftmaxGrad(EsbTensor *y_grad, EsbTensor *mask, EsbTensor *softmax_output,
+                                           float input_keep_prob, float alpha, const int64_t *axes, int64_t axes_num);
 
 typedef struct {
   EsbTensor *y1;
   EsbTensor *y2;
   EsbTensor *x;
 } EsDuaQuantizeAddLayerNormOutput;
-EsDuaQuantizeAddLayerNormOutput EsDuaQuantizeAddLayerNorm(EsbTensor *x1, EsbTensor *x2, EsbTensor *gamma, EsbTensor *beta, EsbTensor *bias, EsbTensor *scales1, EsbTensor *scales2, EsbTensor *zero_points1, EsbTensor *zero_points2, int64_t dtype, int64_t axis, float epsilon, bool additional_output);
+EsDuaQuantizeAddLayerNormOutput EsDuaQuantizeAddLayerNorm(EsbTensor *x1, EsbTensor *x2, EsbTensor *gamma,
+                                                          EsbTensor *beta, EsbTensor *bias, EsbTensor *scales1,
+                                                          EsbTensor *scales2, EsbTensor *zero_points1,
+                                                          EsbTensor *zero_points2, int64_t dtype, int64_t axis,
+                                                          float epsilon, bool additional_output);
 EsbTensor *EsDummySeedGenerator(EsbGraph *owner_graph);
 EsbTensor *EsDynSeqOuter(EsbTensor *x1, EsbTensor *x2, EsbTensor *seq_len1, EsbTensor *seq_len2);
 
@@ -1167,7 +1551,11 @@ typedef struct {
   EsbTensor *out_new;
   EsbTensor *hidden_new;
 } EsDynamicAUGRUOutput;
-EsDynamicAUGRUOutput EsDynamicAUGRU(EsbTensor *x, EsbTensor *weight_input, EsbTensor *weight_hidden, EsbTensor *weight_att, EsbTensor *bias_input, EsbTensor *bias_hidden, EsbTensor *seq_length, EsbTensor *init_h, const char *direction, int64_t cell_depth, float keep_prob, float cell_clip, int64_t num_proj, bool time_major, const char *activation, const char *gate_order, bool reset_after, bool is_training);
+EsDynamicAUGRUOutput EsDynamicAUGRU(EsbTensor *x, EsbTensor *weight_input, EsbTensor *weight_hidden,
+                                    EsbTensor *weight_att, EsbTensor *bias_input, EsbTensor *bias_hidden,
+                                    EsbTensor *seq_length, EsbTensor *init_h, const char *direction, int64_t cell_depth,
+                                    float keep_prob, float cell_clip, int64_t num_proj, bool time_major,
+                                    const char *activation, const char *gate_order, bool reset_after, bool is_training);
 
 typedef struct {
   EsbTensor *dw_input;
@@ -1178,10 +1566,17 @@ typedef struct {
   EsbTensor *dh_prev;
   EsbTensor *dw_att;
 } EsDynamicAUGRUGradOutput;
-EsDynamicAUGRUGradOutput EsDynamicAUGRUGrad(EsbTensor *x, EsbTensor *weight_input, EsbTensor *weight_hidden, EsbTensor *weight_att, EsbTensor *y, EsbTensor *init_h, EsbTensor *h, EsbTensor *dy, EsbTensor *dh, EsbTensor *update, EsbTensor *update_att, EsbTensor *reset, EsbTensor *in_new, EsbTensor *hidden_new, EsbTensor *seq_length, EsbTensor *mask, const char *direction, int64_t cell_depth, float keep_prob, float cell_clip, int64_t num_proj, bool time_major, const char *gate_order, bool reset_after);
+EsDynamicAUGRUGradOutput EsDynamicAUGRUGrad(EsbTensor *x, EsbTensor *weight_input, EsbTensor *weight_hidden,
+                                            EsbTensor *weight_att, EsbTensor *y, EsbTensor *init_h, EsbTensor *h,
+                                            EsbTensor *dy, EsbTensor *dh, EsbTensor *update, EsbTensor *update_att,
+                                            EsbTensor *reset, EsbTensor *in_new, EsbTensor *hidden_new,
+                                            EsbTensor *seq_length, EsbTensor *mask, const char *direction,
+                                            int64_t cell_depth, float keep_prob, float cell_clip, int64_t num_proj,
+                                            bool time_major, const char *gate_order, bool reset_after);
 
 // DynamicAtomicAddrClean does not produce an output, so the returned EsTensor cannot be used to connect edges.
-EsbTensor *EsDynamicAtomicAddrClean(EsbGraph *owner_graph, const int64_t *automic_add_mem_size, int64_t automic_add_mem_size_num);
+EsbTensor *EsDynamicAtomicAddrClean(EsbGraph *owner_graph, const int64_t *automic_add_mem_size,
+                                    int64_t automic_add_mem_size_num);
 
 typedef struct {
   EsbTensor *y;
@@ -1190,14 +1585,20 @@ typedef struct {
   EsbTensor *i;
   EsbTensor *n;
 } EsDynamicGRUOutput;
-EsDynamicGRUOutput EsDynamicGRU(EsbTensor *x, EsbTensor *w, EsbTensor *b, EsbTensor *cw, EsbTensor *cb, EsbTensor *seq_length, EsbTensor *init_h, const char *direction, int64_t cell_depth, float keep_prob, float cell_clip, int64_t num_proj, bool time_major, const char *activation, bool is_training);
+EsDynamicGRUOutput EsDynamicGRU(EsbTensor *x, EsbTensor *w, EsbTensor *b, EsbTensor *cw, EsbTensor *cb,
+                                EsbTensor *seq_length, EsbTensor *init_h, const char *direction, int64_t cell_depth,
+                                float keep_prob, float cell_clip, int64_t num_proj, bool time_major,
+                                const char *activation, bool is_training);
 
 typedef struct {
   EsbTensor *dh_prev;
   EsbTensor *dgate_h;
   EsbTensor *dnt_x;
 } EsDynamicGRUCellGradOutput;
-EsDynamicGRUCellGradOutput EsDynamicGRUCellGrad(EsbTensor *dh_pre_t, EsbTensor *h, EsbTensor *dy, EsbTensor *dh, EsbTensor *update, EsbTensor *reset, EsbTensor *in_new, EsbTensor *hidden_new, EsbTensor *init_h, EsbTensor *t_state, EsbTensor *seq_length, const char *gate_order);
+EsDynamicGRUCellGradOutput EsDynamicGRUCellGrad(EsbTensor *dh_pre_t, EsbTensor *h, EsbTensor *dy, EsbTensor *dh,
+                                                EsbTensor *update, EsbTensor *reset, EsbTensor *in_new,
+                                                EsbTensor *hidden_new, EsbTensor *init_h, EsbTensor *t_state,
+                                                EsbTensor *seq_length, const char *gate_order);
 
 typedef struct {
   EsbTensor *y;
@@ -1207,7 +1608,11 @@ typedef struct {
   EsbTensor *out_new;
   EsbTensor *hidden_new;
 } EsDynamicGRUV2Output;
-EsDynamicGRUV2Output EsDynamicGRUV2(EsbTensor *x, EsbTensor *weight_input, EsbTensor *weight_hidden, EsbTensor *bias_input, EsbTensor *bias_hidden, EsbTensor *seq_length, EsbTensor *init_h, const char *direction, int64_t cell_depth, float keep_prob, float cell_clip, int64_t num_proj, bool time_major, const char *activation, const char *gate_order, bool reset_after, bool is_training);
+EsDynamicGRUV2Output EsDynamicGRUV2(EsbTensor *x, EsbTensor *weight_input, EsbTensor *weight_hidden,
+                                    EsbTensor *bias_input, EsbTensor *bias_hidden, EsbTensor *seq_length,
+                                    EsbTensor *init_h, const char *direction, int64_t cell_depth, float keep_prob,
+                                    float cell_clip, int64_t num_proj, bool time_major, const char *activation,
+                                    const char *gate_order, bool reset_after, bool is_training);
 
 typedef struct {
   EsbTensor *dw_input;
@@ -1217,7 +1622,13 @@ typedef struct {
   EsbTensor *dx;
   EsbTensor *dh_prev;
 } EsDynamicGRUV2GradOutput;
-EsDynamicGRUV2GradOutput EsDynamicGRUV2Grad(EsbTensor *x, EsbTensor *weight_input, EsbTensor *weight_hidden, EsbTensor *y, EsbTensor *init_h, EsbTensor *h, EsbTensor *dy, EsbTensor *dh, EsbTensor *update, EsbTensor *reset, EsbTensor *in_new, EsbTensor *hidden_new, EsbTensor *seq_length, EsbTensor *mask, const char *direction, int64_t cell_depth, float keep_prob, float cell_clip, int64_t num_proj, bool time_major, const char *gate_order, bool reset_after);
+EsDynamicGRUV2GradOutput EsDynamicGRUV2Grad(EsbTensor *x, EsbTensor *weight_input, EsbTensor *weight_hidden,
+                                            EsbTensor *y, EsbTensor *init_h, EsbTensor *h, EsbTensor *dy, EsbTensor *dh,
+                                            EsbTensor *update, EsbTensor *reset, EsbTensor *in_new,
+                                            EsbTensor *hidden_new, EsbTensor *seq_length, EsbTensor *mask,
+                                            const char *direction, int64_t cell_depth, float keep_prob, float cell_clip,
+                                            int64_t num_proj, bool time_major, const char *gate_order,
+                                            bool reset_after);
 
 typedef struct {
   EsbTensor *y;
@@ -1227,7 +1638,12 @@ typedef struct {
   EsbTensor *out_new;
   EsbTensor *hidden_new;
 } EsDynamicGRUV2HiddenOutput;
-EsDynamicGRUV2HiddenOutput EsDynamicGRUV2Hidden(EsbTensor *x_weight_input, EsbTensor *weight_hidden, EsbTensor *bias_hidden, EsbTensor *seq_length, EsbTensor *init_h, const char *direction, int64_t cell_depth, float keep_prob, float cell_clip, int64_t num_proj, bool time_major, const char *activation, const char *gate_order, bool reset_after, bool is_training);
+EsDynamicGRUV2HiddenOutput EsDynamicGRUV2Hidden(EsbTensor *x_weight_input, EsbTensor *weight_hidden,
+                                                EsbTensor *bias_hidden, EsbTensor *seq_length, EsbTensor *init_h,
+                                                const char *direction, int64_t cell_depth, float keep_prob,
+                                                float cell_clip, int64_t num_proj, bool time_major,
+                                                const char *activation, const char *gate_order, bool reset_after,
+                                                bool is_training);
 EsbTensor *EsDynamicLSTM(EsbTensor *x, EsbTensor *w, EsbTensor *b);
 
 typedef struct {
@@ -1237,7 +1653,10 @@ typedef struct {
   EsbTensor *last_output_h;
   EsbTensor *last_output_c;
 } EsDynamicLSTMV2Output;
-EsDynamicLSTMV2Output EsDynamicLSTMV2(EsbTensor *x, EsbTensor *w, EsbTensor *b, EsbTensor *cont, EsbTensor *w_xc_x_static, EsbTensor *h0, EsbTensor *c0, EsbTensor *wci, EsbTensor *wcf, EsbTensor *wco, EsbTensor *mask, int64_t num_output, bool expose_hidden, bool need_output_last, float forget_bias);
+EsDynamicLSTMV2Output EsDynamicLSTMV2(EsbTensor *x, EsbTensor *w, EsbTensor *b, EsbTensor *cont,
+                                      EsbTensor *w_xc_x_static, EsbTensor *h0, EsbTensor *c0, EsbTensor *wci,
+                                      EsbTensor *wcf, EsbTensor *wco, EsbTensor *mask, int64_t num_output,
+                                      bool expose_hidden, bool need_output_last, float forget_bias);
 
 typedef struct {
   EsbTensor *y;
@@ -1249,14 +1668,17 @@ typedef struct {
   EsbTensor *var;
   EsbTensor *var_scale;
 } EsDynamicQuantUpdateScatterOutput;
-EsDynamicQuantUpdateScatterOutput EsDynamicQuantUpdateScatter(EsbTensor *var, EsbTensor *var_scale, EsbTensor *indices, EsbTensor *updates, EsbTensor *smooth_scales, const char *reduce, int64_t axis);
+EsDynamicQuantUpdateScatterOutput EsDynamicQuantUpdateScatter(EsbTensor *var, EsbTensor *var_scale, EsbTensor *indices,
+                                                              EsbTensor *updates, EsbTensor *smooth_scales,
+                                                              const char *reduce, int64_t axis);
 
 typedef struct {
   EsbTensor *y;
   EsbTensor *scale;
   EsbTensor *offset;
 } EsDynamicQuantV2Output;
-EsDynamicQuantV2Output EsDynamicQuantV2(EsbTensor *x, EsbTensor *smooth_scales, EsbTensor *group_index, int64_t dst_type);
+EsDynamicQuantV2Output EsDynamicQuantV2(EsbTensor *x, EsbTensor *smooth_scales, EsbTensor *group_index,
+                                        int64_t dst_type);
 
 typedef struct {
   EsbTensor *y;
@@ -1268,7 +1690,11 @@ typedef struct {
   EsbTensor *o;
   EsbTensor *tanhc;
 } EsDynamicRNNOutput;
-EsDynamicRNNOutput EsDynamicRNN(EsbTensor *x, EsbTensor *w, EsbTensor *b, EsbTensor *seq_length, EsbTensor *init_h, EsbTensor *init_c, EsbTensor *wci, EsbTensor *wcf, EsbTensor *wco, EsbTensor *mask, const char *cell_type, const char *direction, int64_t cell_depth, bool use_peephole, float keep_prob, float cell_clip, int64_t num_proj, bool time_major, const char *activation, float forget_bias, const char *gate_order, bool is_training);
+EsDynamicRNNOutput EsDynamicRNN(EsbTensor *x, EsbTensor *w, EsbTensor *b, EsbTensor *seq_length, EsbTensor *init_h,
+                                EsbTensor *init_c, EsbTensor *wci, EsbTensor *wcf, EsbTensor *wco, EsbTensor *mask,
+                                const char *cell_type, const char *direction, int64_t cell_depth, bool use_peephole,
+                                float keep_prob, float cell_clip, int64_t num_proj, bool time_major,
+                                const char *activation, float forget_bias, const char *gate_order, bool is_training);
 
 typedef struct {
   EsbTensor *y;
@@ -1280,7 +1706,13 @@ typedef struct {
   EsbTensor *o;
   EsbTensor *tanhc;
 } EsDynamicRNNV2Output;
-EsDynamicRNNV2Output EsDynamicRNNV2(EsbTensor *x, EsbTensor *weight_input, EsbTensor *weight_hidden, EsbTensor *b, EsbTensor *seq_length, EsbTensor *init_h, EsbTensor *init_c, EsbTensor *wci, EsbTensor *wcf, EsbTensor *wco, EsbTensor *mask, const char *cell_type, const char *direction, int64_t cell_depth, bool use_peephole, float keep_prob, float cell_clip, int64_t num_proj, bool time_major, const char *activation, const char *recurrent_activation, float forget_bias, const char *gate_order, bool stateful, const char *merge_mode, bool is_training);
+EsDynamicRNNV2Output EsDynamicRNNV2(EsbTensor *x, EsbTensor *weight_input, EsbTensor *weight_hidden, EsbTensor *b,
+                                    EsbTensor *seq_length, EsbTensor *init_h, EsbTensor *init_c, EsbTensor *wci,
+                                    EsbTensor *wcf, EsbTensor *wco, EsbTensor *mask, const char *cell_type,
+                                    const char *direction, int64_t cell_depth, bool use_peephole, float keep_prob,
+                                    float cell_clip, int64_t num_proj, bool time_major, const char *activation,
+                                    const char *recurrent_activation, float forget_bias, const char *gate_order,
+                                    bool stateful, const char *merge_mode, bool is_training);
 
 typedef struct {
   EsbTensor *y;
@@ -1292,20 +1724,64 @@ typedef struct {
   EsbTensor *o;
   EsbTensor *tanhc;
 } EsDynamicRNNV3Output;
-EsDynamicRNNV3Output EsDynamicRNNV3(EsbTensor *x, EsbTensor *w, EsbTensor *b, EsbTensor *seq_length, EsbTensor *init_h, EsbTensor *init_c, EsbTensor *wci, EsbTensor *wcf, EsbTensor *wco, EsbTensor *mask, EsbTensor *real_mask, EsbTensor *project, const char *cell_type, const char *direction, int64_t cell_depth, bool use_peephole, float keep_prob, float cell_clip, int64_t num_proj, bool time_major, const char *activation, float forget_bias, bool is_training);
+EsDynamicRNNV3Output EsDynamicRNNV3(EsbTensor *x, EsbTensor *w, EsbTensor *b, EsbTensor *seq_length, EsbTensor *init_h,
+                                    EsbTensor *init_c, EsbTensor *wci, EsbTensor *wcf, EsbTensor *wco, EsbTensor *mask,
+                                    EsbTensor *real_mask, EsbTensor *project, const char *cell_type,
+                                    const char *direction, int64_t cell_depth, bool use_peephole, float keep_prob,
+                                    float cell_clip, int64_t num_proj, bool time_major, const char *activation,
+                                    float forget_bias, bool is_training);
 EsbTensor *EsDynamicStitch(EsbTensor **indices, int64_t indices_num, EsbTensor **x, int64_t x_num, int64_t N);
-EsbTensor *EsEditDistance(EsbTensor *hypothesis_indices, EsbTensor *hypothesis_values, EsbTensor *hypothesis_shape, EsbTensor *truth_indices, EsbTensor *truth_values, EsbTensor *truth_shape, bool normalize);
+EsbTensor *EsEditDistance(EsbTensor *hypothesis_indices, EsbTensor *hypothesis_values, EsbTensor *hypothesis_shape,
+                          EsbTensor *truth_indices, EsbTensor *truth_values, EsbTensor *truth_shape, bool normalize);
 EsbTensor *EsEinsum(EsbTensor **x, int64_t x_num, const char *equation, int64_t N);
 EsbTensor *EsEltwise(EsbTensor **x, int64_t x_num, int64_t N, int64_t mode, const float *coeff, int64_t coeff_num);
 EsbTensor *EsElu(EsbTensor *x, float alpha, float scale, float input_scale);
 EsbTensor *EsEluGrad(EsbTensor *grads, EsbTensor *activations);
-EsbTensor *EsEluGradV2(EsbTensor *grads, EsbTensor *activations, float alpha, float scale, float input_scale, bool is_result);
-EsbTensor *EsEmbeddingApplyAdaGrad(EsbTensor *var_handle, EsbTensor *lr, EsbTensor *grad, EsbTensor *keys, EsbTensor *global_step, const int64_t *embedding_dim, int64_t embedding_dim_num, const int64_t *mask_zero, int64_t mask_zero_num, const int64_t *padding_key, int64_t padding_key_num, const int64_t *padding_key_mask, int64_t padding_key_mask_num, const int64_t *completion_key, int64_t completion_key_num, const int64_t *completion_key_mask, int64_t completion_key_mask_num);
-EsbTensor *EsEmbeddingApplyAdam(EsbTensor *var_handle, EsbTensor *beta1_power, EsbTensor *beta2_power, EsbTensor *lr, EsbTensor *beta1, EsbTensor *beta2, EsbTensor *epsilon, EsbTensor *grad, EsbTensor *keys, EsbTensor *global_step, const int64_t *embedding_dim, int64_t embedding_dim_num, const int64_t *mask_zero, int64_t mask_zero_num, const int64_t *padding_key, int64_t padding_key_num, const int64_t *padding_key_mask, int64_t padding_key_mask_num, const int64_t *completion_key, int64_t completion_key_num, const int64_t *completion_key_mask, int64_t completion_key_mask_num);
-EsbTensor *EsEmbeddingApplyAdamW(EsbTensor *var_handle, EsbTensor *beta1_power, EsbTensor *beta2_power, EsbTensor *lr, EsbTensor *weight_decay, EsbTensor *beta1, EsbTensor *beta2, EsbTensor *epsilon, EsbTensor *grad, EsbTensor *keys, EsbTensor *max_grad_norm, EsbTensor *global_step, const int64_t *embedding_dim, int64_t embedding_dim_num, const int64_t *amsgrad, int64_t amsgrad_num, const int64_t *maximize, int64_t maximize_num, const int64_t *mask_zero, int64_t mask_zero_num, const int64_t *padding_key, int64_t padding_key_num, const int64_t *padding_key_mask, int64_t padding_key_mask_num, const int64_t *completion_key, int64_t completion_key_num, const int64_t *completion_key_mask, int64_t completion_key_mask_num);
-EsbTensor *EsEmbeddingApplyFtrl(EsbTensor *var_handle, EsbTensor *lr, EsbTensor *lr_power, EsbTensor *lambda1, EsbTensor *lambda2, EsbTensor *grad, EsbTensor *keys, EsbTensor *global_step, const int64_t *embedding_dim, int64_t embedding_dim_num, const int64_t *mask_zero, int64_t mask_zero_num, const int64_t *padding_key, int64_t padding_key_num, const int64_t *padding_key_mask, int64_t padding_key_mask_num, const int64_t *completion_key, int64_t completion_key_num, const int64_t *completion_key_mask, int64_t completion_key_mask_num);
-EsbTensor *EsEmbeddingApplyRmsprop(EsbTensor *var_handle, EsbTensor *lr, EsbTensor *rho, EsbTensor *momentum, EsbTensor *epsilon, EsbTensor *grad, EsbTensor *keys, EsbTensor *global_step, const int64_t *embedding_dim, int64_t embedding_dim_num, const int64_t *mask_zero, int64_t mask_zero_num, const int64_t *padding_key, int64_t padding_key_num, const int64_t *padding_key_mask, int64_t padding_key_mask_num, const int64_t *completion_key, int64_t completion_key_num, const int64_t *completion_key_mask, int64_t completion_key_mask_num);
-EsbTensor *EsEmbeddingApplySgd(EsbTensor *var_handle, EsbTensor *lr, EsbTensor *grad, EsbTensor *keys, EsbTensor *global_step, const int64_t *embedding_dim, int64_t embedding_dim_num, const int64_t *mask_zero, int64_t mask_zero_num, const int64_t *padding_key, int64_t padding_key_num, const int64_t *padding_key_mask, int64_t padding_key_mask_num, const int64_t *completion_key, int64_t completion_key_num, const int64_t *completion_key_mask, int64_t completion_key_mask_num);
+EsbTensor *EsEluGradV2(EsbTensor *grads, EsbTensor *activations, float alpha, float scale, float input_scale,
+                       bool is_result);
+EsbTensor *EsEmbeddingApplyAdaGrad(EsbTensor *var_handle, EsbTensor *lr, EsbTensor *grad, EsbTensor *keys,
+                                   EsbTensor *global_step, const int64_t *embedding_dim, int64_t embedding_dim_num,
+                                   const int64_t *mask_zero, int64_t mask_zero_num, const int64_t *padding_key,
+                                   int64_t padding_key_num, const int64_t *padding_key_mask,
+                                   int64_t padding_key_mask_num, const int64_t *completion_key,
+                                   int64_t completion_key_num, const int64_t *completion_key_mask,
+                                   int64_t completion_key_mask_num);
+EsbTensor *EsEmbeddingApplyAdam(EsbTensor *var_handle, EsbTensor *beta1_power, EsbTensor *beta2_power, EsbTensor *lr,
+                                EsbTensor *beta1, EsbTensor *beta2, EsbTensor *epsilon, EsbTensor *grad,
+                                EsbTensor *keys, EsbTensor *global_step, const int64_t *embedding_dim,
+                                int64_t embedding_dim_num, const int64_t *mask_zero, int64_t mask_zero_num,
+                                const int64_t *padding_key, int64_t padding_key_num, const int64_t *padding_key_mask,
+                                int64_t padding_key_mask_num, const int64_t *completion_key, int64_t completion_key_num,
+                                const int64_t *completion_key_mask, int64_t completion_key_mask_num);
+EsbTensor *EsEmbeddingApplyAdamW(EsbTensor *var_handle, EsbTensor *beta1_power, EsbTensor *beta2_power, EsbTensor *lr,
+                                 EsbTensor *weight_decay, EsbTensor *beta1, EsbTensor *beta2, EsbTensor *epsilon,
+                                 EsbTensor *grad, EsbTensor *keys, EsbTensor *max_grad_norm, EsbTensor *global_step,
+                                 const int64_t *embedding_dim, int64_t embedding_dim_num, const int64_t *amsgrad,
+                                 int64_t amsgrad_num, const int64_t *maximize, int64_t maximize_num,
+                                 const int64_t *mask_zero, int64_t mask_zero_num, const int64_t *padding_key,
+                                 int64_t padding_key_num, const int64_t *padding_key_mask, int64_t padding_key_mask_num,
+                                 const int64_t *completion_key, int64_t completion_key_num,
+                                 const int64_t *completion_key_mask, int64_t completion_key_mask_num);
+EsbTensor *EsEmbeddingApplyFtrl(EsbTensor *var_handle, EsbTensor *lr, EsbTensor *lr_power, EsbTensor *lambda1,
+                                EsbTensor *lambda2, EsbTensor *grad, EsbTensor *keys, EsbTensor *global_step,
+                                const int64_t *embedding_dim, int64_t embedding_dim_num, const int64_t *mask_zero,
+                                int64_t mask_zero_num, const int64_t *padding_key, int64_t padding_key_num,
+                                const int64_t *padding_key_mask, int64_t padding_key_mask_num,
+                                const int64_t *completion_key, int64_t completion_key_num,
+                                const int64_t *completion_key_mask, int64_t completion_key_mask_num);
+EsbTensor *EsEmbeddingApplyRmsprop(EsbTensor *var_handle, EsbTensor *lr, EsbTensor *rho, EsbTensor *momentum,
+                                   EsbTensor *epsilon, EsbTensor *grad, EsbTensor *keys, EsbTensor *global_step,
+                                   const int64_t *embedding_dim, int64_t embedding_dim_num, const int64_t *mask_zero,
+                                   int64_t mask_zero_num, const int64_t *padding_key, int64_t padding_key_num,
+                                   const int64_t *padding_key_mask, int64_t padding_key_mask_num,
+                                   const int64_t *completion_key, int64_t completion_key_num,
+                                   const int64_t *completion_key_mask, int64_t completion_key_mask_num);
+EsbTensor *EsEmbeddingApplySgd(EsbTensor *var_handle, EsbTensor *lr, EsbTensor *grad, EsbTensor *keys,
+                               EsbTensor *global_step, const int64_t *embedding_dim, int64_t embedding_dim_num,
+                               const int64_t *mask_zero, int64_t mask_zero_num, const int64_t *padding_key,
+                               int64_t padding_key_num, const int64_t *padding_key_mask, int64_t padding_key_mask_num,
+                               const int64_t *completion_key, int64_t completion_key_num,
+                               const int64_t *completion_key_mask, int64_t completion_key_mask_num);
 
 typedef struct {
   EsbTensor *y;
@@ -1313,23 +1789,40 @@ typedef struct {
   EsbTensor *bag_size;
   EsbTensor *max_indices;
 } EsEmbeddingBagOutput;
-EsEmbeddingBagOutput EsEmbeddingBag(EsbTensor *weight, EsbTensor *indices, EsbTensor *offsets, EsbTensor *per_sample_weights, const char *mode, bool scale_grad_by_freq, bool sparse, bool include_last_offset, int64_t padding_idx);
-EsbTensor *EsEmbeddingDenseGrad(EsbTensor *grad, EsbTensor *indices, int64_t num_weights, int64_t padding_idx, bool scale_grad_by_freq);
-EsbTensor *EsEmbeddingDenseGradV2(EsbTensor *grad, EsbTensor *sort_indices, EsbTensor *pos_idx, int64_t num_weights, int64_t padding_idx, bool scale_grad_by_freq);
+EsEmbeddingBagOutput EsEmbeddingBag(EsbTensor *weight, EsbTensor *indices, EsbTensor *offsets,
+                                    EsbTensor *per_sample_weights, const char *mode, bool scale_grad_by_freq,
+                                    bool sparse, bool include_last_offset, int64_t padding_idx);
+EsbTensor *EsEmbeddingDenseGrad(EsbTensor *grad, EsbTensor *indices, int64_t num_weights, int64_t padding_idx,
+                                bool scale_grad_by_freq);
+EsbTensor *EsEmbeddingDenseGradV2(EsbTensor *grad, EsbTensor *sort_indices, EsbTensor *pos_idx, int64_t num_weights,
+                                  int64_t padding_idx, bool scale_grad_by_freq);
 EsbTensor *EsEmbeddingFeatureMapping(EsbTensor *feature_id);
 
 // EmbeddingFeatureMappingExport does not produce an output, so the returned EsTensor cannot be used to connect edges.
-EsbTensor *EsEmbeddingFeatureMappingExport(EsbTensor *file_path, EsbTensor *table_name, EsbTensor *global_step, EsbTensor *values, EsbTensor **feature_id, int64_t feature_id_num, EsbTensor **offset_id, int64_t offset_id_num, const int64_t *embedding_dim, int64_t embedding_dim_num);
-EsbTensor *EsEmbeddingFeatureMappingFileSize(EsbTensor *file_path, EsbTensor *table_name, EsbTensor *global_step, const int64_t *embedding_dim, int64_t embedding_dim_num, bool only_offset_flag);
+EsbTensor *EsEmbeddingFeatureMappingExport(EsbTensor *file_path, EsbTensor *table_name, EsbTensor *global_step,
+                                           EsbTensor *values, EsbTensor **feature_id, int64_t feature_id_num,
+                                           EsbTensor **offset_id, int64_t offset_id_num, const int64_t *embedding_dim,
+                                           int64_t embedding_dim_num);
+EsbTensor *EsEmbeddingFeatureMappingFileSize(EsbTensor *file_path, EsbTensor *table_name, EsbTensor *global_step,
+                                             const int64_t *embedding_dim, int64_t embedding_dim_num,
+                                             bool only_offset_flag);
 
 // EmbeddingFeatureMappingInsert does not produce an output, so the returned EsTensor cannot be used to connect edges.
-EsbTensor *EsEmbeddingFeatureMappingInsert(EsbTensor *table_name, EsbTensor **feature_id, int64_t feature_id_num, EsbTensor **offset_id, int64_t offset_id_num);
+EsbTensor *EsEmbeddingFeatureMappingInsert(EsbTensor *table_name, EsbTensor **feature_id, int64_t feature_id_num,
+                                           EsbTensor **offset_id, int64_t offset_id_num);
 EsbTensor *EsEmbeddingFeatureMappingTableSize(EsbTensor *table_name);
-EsbTensor *EsEmbeddingFeatureMappingV2(EsbTensor *table_name, EsbTensor *feature_id, const int64_t *table_total_size, int64_t table_total_size_num, const int64_t *table_actual_size, int64_t table_actual_size_num);
+EsbTensor *EsEmbeddingFeatureMappingV2(EsbTensor *table_name, EsbTensor *feature_id, const int64_t *table_total_size,
+                                       int64_t table_total_size_num, const int64_t *table_actual_size,
+                                       int64_t table_actual_size_num);
 
 // EmbeddingHashmapExport does not produce an output, so the returned EsTensor cannot be used to connect edges.
-EsbTensor *EsEmbeddingHashmapExport(EsbTensor *file_path, EsbTensor *table_ids, EsbTensor *table_names, EsbTensor *global_step, EsbTensor **keys, int64_t keys_num, EsbTensor **counters, int64_t counters_num, EsbTensor **filter_flags, int64_t filter_flags_num, EsbTensor **values, int64_t values_num);
-EsbTensor *EsEmbeddingHashmapFileSize(EsbTensor *file_path, EsbTensor *table_ids, EsbTensor *table_names, EsbTensor *global_step, const int64_t *embedding_dims, int64_t embedding_dims_num);
+EsbTensor *EsEmbeddingHashmapExport(EsbTensor *file_path, EsbTensor *table_ids, EsbTensor *table_names,
+                                    EsbTensor *global_step, EsbTensor **keys, int64_t keys_num, EsbTensor **counters,
+                                    int64_t counters_num, EsbTensor **filter_flags, int64_t filter_flags_num,
+                                    EsbTensor **values, int64_t values_num);
+EsbTensor *EsEmbeddingHashmapFileSize(EsbTensor *file_path, EsbTensor *table_ids, EsbTensor *table_names,
+                                      EsbTensor *global_step, const int64_t *embedding_dims,
+                                      int64_t embedding_dims_num);
 EsbTensor *EsEmbeddingHashmapSize(EsbTensor *table_ids, bool filter_export_flag, const char *export_mode);
 
 typedef struct {
@@ -1337,17 +1830,21 @@ typedef struct {
   EsbTensor *nums;
   EsbTensor *recover_idx;
 } EsEmbeddingLocalIndexOutput;
-EsEmbeddingLocalIndexOutput EsEmbeddingLocalIndex(EsbTensor *addr_table, EsbTensor *index, int64_t row_memory, const char *mode);
+EsEmbeddingLocalIndexOutput EsEmbeddingLocalIndex(EsbTensor *addr_table, EsbTensor *index, int64_t row_memory,
+                                                  const char *mode);
 EsbTensor *EsEmbeddingRankId(EsbTensor *addr_table, EsbTensor *index, int64_t row_memory, const char *mode);
 
 // EmbeddingTableEvict does not produce an output, so the returned EsTensor cannot be used to connect edges.
 EsbTensor *EsEmbeddingTableEvict(EsbTensor *var_handle, EsbTensor *global_step, int64_t steps_to_live);
-EsbTensor *EsEmbeddingTableFind(EsbTensor *table_id, EsbTensor *keys, const int64_t *embedding_dim, int64_t embedding_dim_num, const float *default_value, int64_t default_value_num);
+EsbTensor *EsEmbeddingTableFind(EsbTensor *table_id, EsbTensor *keys, const int64_t *embedding_dim,
+                                int64_t embedding_dim_num, const float *default_value, int64_t default_value_num);
 EsbTensor *EsEmpty(EsbTensor *shape, int64_t dtype, bool init);
 EsbTensor *EsEmptyTensorList(EsbTensor *element_shape, EsbTensor *max_num_elements, af::DataType element_dtype);
 EsbTensor *EsEmptyTensorMap(EsbGraph *owner_graph);
 EsbTensor *EsEncodeBase64(EsbTensor *x, bool pad);
-EsbTensor *EsEncodeJpeg(EsbTensor *image, const char *format, int64_t quality, bool progressive, bool optimize_size, bool chroma_downsampling, const char *density_unit, int64_t x_density, int64_t y_density, const char *xmp_metadata);
+EsbTensor *EsEncodeJpeg(EsbTensor *image, const char *format, int64_t quality, bool progressive, bool optimize_size,
+                        bool chroma_downsampling, const char *density_unit, int64_t x_density, int64_t y_density,
+                        const char *xmp_metadata);
 EsbTensor *EsEncodeJpegVariableQuality(EsbTensor *images, EsbTensor *quality);
 EsbTensor *EsEncodePng(EsbTensor *image, int64_t compression);
 EsbTensor *EsEncodeWav(EsbTensor *audio, EsbTensor *sample_rate);
@@ -1369,14 +1866,24 @@ EsbTensor *EsExpandDims(EsbTensor *x, EsbTensor *axis);
 EsbTensor *EsExpint(EsbTensor *x);
 EsbTensor *EsExpm1(EsbTensor *x);
 EsbTensor *EsExponential(EsbTensor *x, float lambda, int64_t seed);
-EsbTensor *EsExponentialDecayLR(EsbTensor *var_handle, EsbTensor *initial_learning_rate, EsbTensor *decay_rate, EsbTensor *decay_steps, EsbTensor *global_step, bool staircase);
-EsbTensor *EsExtractGlimpse(EsbTensor *x, EsbTensor *size, EsbTensor *offsets, bool centered, bool normalized, bool uniform_noise, const char *noise);
-EsbTensor *EsExtractGlimpseV2(EsbTensor *input, EsbTensor *size, EsbTensor *offsets, bool centered, bool normalized, bool uniform_noise, const char *noise);
-EsbTensor *EsExtractImagePatches(EsbTensor *x, const int64_t *ksizes, int64_t ksizes_num, const int64_t *strides, int64_t strides_num, const int64_t *rates, int64_t rates_num, const char *padding);
+EsbTensor *EsExponentialDecayLR(EsbTensor *var_handle, EsbTensor *initial_learning_rate, EsbTensor *decay_rate,
+                                EsbTensor *decay_steps, EsbTensor *global_step, bool staircase);
+EsbTensor *EsExtractGlimpse(EsbTensor *x, EsbTensor *size, EsbTensor *offsets, bool centered, bool normalized,
+                            bool uniform_noise, const char *noise);
+EsbTensor *EsExtractGlimpseV2(EsbTensor *input, EsbTensor *size, EsbTensor *offsets, bool centered, bool normalized,
+                              bool uniform_noise, const char *noise);
+EsbTensor *EsExtractImagePatches(EsbTensor *x, const int64_t *ksizes, int64_t ksizes_num, const int64_t *strides,
+                                 int64_t strides_num, const int64_t *rates, int64_t rates_num, const char *padding);
 EsbTensor *EsExtractJpegShape(EsbTensor *contents, af::DataType output_type);
-EsbTensor *EsExtractVolumePatches(EsbTensor *x, const int64_t *ksizes, int64_t ksizes_num, const int64_t *strides, int64_t strides_num, const char *padding);
-EsbTensor *EsEye(EsbGraph *owner_graph, int64_t num_rows, int64_t num_columns, const int64_t *batch_shape, int64_t batch_shape_num, int64_t dtype);
-EsbTensor *EsFFN(EsbTensor *x, EsbTensor *weight1, EsbTensor *weight2, EsbTensor *expert_tokens, EsbTensor *bias1, EsbTensor *bias2, EsbTensor *scale, EsbTensor *offset, EsbTensor *deq_scale1, EsbTensor *deq_scale2, EsbTensor *antiquant_scale1, EsbTensor *antiquant_scale2, EsbTensor *antiquant_offset1, EsbTensor *antiquant_offset2, const char *activation, int64_t inner_precise, int64_t output_dtype, bool tokens_index_flag);
+EsbTensor *EsExtractVolumePatches(EsbTensor *x, const int64_t *ksizes, int64_t ksizes_num, const int64_t *strides,
+                                  int64_t strides_num, const char *padding);
+EsbTensor *EsEye(EsbGraph *owner_graph, int64_t num_rows, int64_t num_columns, const int64_t *batch_shape,
+                 int64_t batch_shape_num, int64_t dtype);
+EsbTensor *EsFFN(EsbTensor *x, EsbTensor *weight1, EsbTensor *weight2, EsbTensor *expert_tokens, EsbTensor *bias1,
+                 EsbTensor *bias2, EsbTensor *scale, EsbTensor *offset, EsbTensor *deq_scale1, EsbTensor *deq_scale2,
+                 EsbTensor *antiquant_scale1, EsbTensor *antiquant_scale2, EsbTensor *antiquant_offset1,
+                 EsbTensor *antiquant_offset2, const char *activation, int64_t inner_precise, int64_t output_dtype,
+                 bool tokens_index_flag);
 EsbTensor *EsFFT(EsbTensor *x);
 EsbTensor *EsFFT2D(EsbTensor *x);
 
@@ -1384,15 +1891,19 @@ typedef struct {
   EsbTensor *actual_bbox_num;
   EsbTensor *box;
 } EsFSRDetectionOutputOutput;
-EsFSRDetectionOutputOutput EsFSRDetectionOutput(EsbTensor *rois, EsbTensor *bbox_delta, EsbTensor *score, EsbTensor *im_info, EsbTensor *actual_rois_num, int64_t num_classes, float score_threshold, float iou_threshold, int64_t batch_rois);
+EsFSRDetectionOutputOutput EsFSRDetectionOutput(EsbTensor *rois, EsbTensor *bbox_delta, EsbTensor *score,
+                                                EsbTensor *im_info, EsbTensor *actual_rois_num, int64_t num_classes,
+                                                float score_threshold, float iou_threshold, int64_t batch_rois);
 
 typedef struct {
   EsbTensor *y;
   EsbTensor *mask;
 } EsFakeQuantAffineCachemaskOutput;
-EsFakeQuantAffineCachemaskOutput EsFakeQuantAffineCachemask(EsbTensor *x, EsbTensor *scale, EsbTensor *zero_point, int64_t axis, int64_t quant_min, int64_t quant_max);
+EsFakeQuantAffineCachemaskOutput EsFakeQuantAffineCachemask(EsbTensor *x, EsbTensor *scale, EsbTensor *zero_point,
+                                                            int64_t axis, int64_t quant_min, int64_t quant_max);
 EsbTensor *EsFakeQuantWithMinMaxArgs(EsbTensor *x, float min, float max, int64_t num_bits, bool narrow_range);
-EsbTensor *EsFakeQuantWithMinMaxArgsGradient(EsbTensor *gradients, EsbTensor *x, float min, float max, int64_t num_bits, bool narrow_range);
+EsbTensor *EsFakeQuantWithMinMaxArgsGradient(EsbTensor *gradients, EsbTensor *x, float min, float max, int64_t num_bits,
+                                             bool narrow_range);
 EsbTensor *EsFakeQuantWithMinMaxVars(EsbTensor *x, EsbTensor *min, EsbTensor *max, int64_t num_bits, bool narrow_range);
 
 typedef struct {
@@ -1400,15 +1911,19 @@ typedef struct {
   EsbTensor *backprops_wrt_min;
   EsbTensor *backprops_wrt_max;
 } EsFakeQuantWithMinMaxVarsGradientOutput;
-EsFakeQuantWithMinMaxVarsGradientOutput EsFakeQuantWithMinMaxVarsGradient(EsbTensor *gradients, EsbTensor *x, EsbTensor *min, EsbTensor *max, int64_t num_bits, bool narrow_range);
-EsbTensor *EsFakeQuantWithMinMaxVarsPerChannel(EsbTensor *x, EsbTensor *min, EsbTensor *max, int64_t num_bits, bool narrow_range);
+EsFakeQuantWithMinMaxVarsGradientOutput EsFakeQuantWithMinMaxVarsGradient(EsbTensor *gradients, EsbTensor *x,
+                                                                          EsbTensor *min, EsbTensor *max,
+                                                                          int64_t num_bits, bool narrow_range);
+EsbTensor *EsFakeQuantWithMinMaxVarsPerChannel(EsbTensor *x, EsbTensor *min, EsbTensor *max, int64_t num_bits,
+                                               bool narrow_range);
 
 typedef struct {
   EsbTensor *backprops_wrt_x;
   EsbTensor *backprops_wrt_min;
   EsbTensor *backprops_wrt_max;
 } EsFakeQuantWithMinMaxVarsPerChannelGradientOutput;
-EsFakeQuantWithMinMaxVarsPerChannelGradientOutput EsFakeQuantWithMinMaxVarsPerChannelGradient(EsbTensor *gradients, EsbTensor *x, EsbTensor *min, EsbTensor *max, int64_t num_bits, bool narrow_range);
+EsFakeQuantWithMinMaxVarsPerChannelGradientOutput EsFakeQuantWithMinMaxVarsPerChannelGradient(
+    EsbTensor *gradients, EsbTensor *x, EsbTensor *min, EsbTensor *max, int64_t num_bits, bool narrow_range);
 EsbTensor *EsFakeQueue(EsbTensor *resource);
 EsbTensor *EsFastGelu(EsbTensor *x);
 EsbTensor *EsFastGeluGrad(EsbTensor *dy, EsbTensor *x);
@@ -1419,9 +1934,11 @@ typedef struct {
   EsbTensor *sorted_scores;
   EsbTensor *sorted_classes;
 } EsFastrcnnPredictionsOutput;
-EsFastrcnnPredictionsOutput EsFastrcnnPredictions(EsbTensor *rois, EsbTensor *score, float nms_threshold, float score_threshold, int64_t k);
+EsFastrcnnPredictionsOutput EsFastrcnnPredictions(EsbTensor *rois, EsbTensor *score, float nms_threshold,
+                                                  float score_threshold, int64_t k);
 EsbTensor *EsFeedsRepeat(EsbTensor *feeds, EsbTensor *feeds_repeat_times, int64_t output_feeds_size);
-EsbTensor *EsFileConstant(EsbGraph *owner_graph, const int64_t *shape, int64_t shape_num, af::DataType dtype, const char *file_path, const char *file_id);
+EsbTensor *EsFileConstant(EsbGraph *owner_graph, const int64_t *shape, int64_t shape_num, af::DataType dtype,
+                          const char *file_path, const char *file_id);
 EsbTensor *EsFill(EsbTensor *dims, EsbTensor *value);
 EsbTensor *EsFillD(EsbTensor *value, const int64_t *dims, int64_t dims_num);
 EsbTensor *EsFillDiagonal(EsbTensor *x, float fill_value, bool wrap);
@@ -1436,7 +1953,12 @@ typedef struct {
   EsbTensor *true_expected_count;
   EsbTensor *sampled_expected_count;
 } EsFixedUnigramCandidateSamplerOutput;
-EsFixedUnigramCandidateSamplerOutput EsFixedUnigramCandidateSampler(EsbTensor *true_classes, const float *unigrams, int64_t unigrams_num, int64_t num_true, int64_t num_sampled, bool unique, int64_t range_max, const char *vocab_file, float distortion, int64_t num_reserved_ids, int64_t num_shards, int64_t shard, int64_t seed, int64_t seed2);
+EsFixedUnigramCandidateSamplerOutput EsFixedUnigramCandidateSampler(EsbTensor *true_classes, const float *unigrams,
+                                                                    int64_t unigrams_num, int64_t num_true,
+                                                                    int64_t num_sampled, bool unique, int64_t range_max,
+                                                                    const char *vocab_file, float distortion,
+                                                                    int64_t num_reserved_ids, int64_t num_shards,
+                                                                    int64_t shard, int64_t seed, int64_t seed2);
 
 typedef struct {
   EsbTensor *softmax_max;
@@ -1444,7 +1966,14 @@ typedef struct {
   EsbTensor *softmax_out;
   EsbTensor *attention_out;
 } EsFlashAttentionScoreOutput;
-EsFlashAttentionScoreOutput EsFlashAttentionScore(EsbTensor *query, EsbTensor *key, EsbTensor *value, EsbTensor *real_shift, EsbTensor *drop_mask, EsbTensor *padding_mask, EsbTensor *atten_mask, EsbTensor *prefix, EsbTensor *actual_seq_qlen, EsbTensor *actual_seq_kvlen, EsbTensor *q_start_idx, EsbTensor *kv_start_idx, int64_t head_num, const char *input_layout, float scale_value, float keep_prob, int64_t pre_tockens, int64_t next_tockens, int64_t inner_precise, int64_t sparse_mode, int64_t pse_type);
+EsFlashAttentionScoreOutput EsFlashAttentionScore(EsbTensor *query, EsbTensor *key, EsbTensor *value,
+                                                  EsbTensor *real_shift, EsbTensor *drop_mask, EsbTensor *padding_mask,
+                                                  EsbTensor *atten_mask, EsbTensor *prefix, EsbTensor *actual_seq_qlen,
+                                                  EsbTensor *actual_seq_kvlen, EsbTensor *q_start_idx,
+                                                  EsbTensor *kv_start_idx, int64_t head_num, const char *input_layout,
+                                                  float scale_value, float keep_prob, int64_t pre_tockens,
+                                                  int64_t next_tockens, int64_t inner_precise, int64_t sparse_mode,
+                                                  int64_t pse_type);
 
 typedef struct {
   EsbTensor *dq;
@@ -1452,7 +1981,13 @@ typedef struct {
   EsbTensor *dv;
   EsbTensor *dpse;
 } EsFlashAttentionScoreGradOutput;
-EsFlashAttentionScoreGradOutput EsFlashAttentionScoreGrad(EsbTensor *query, EsbTensor *key, EsbTensor *value, EsbTensor *dy, EsbTensor *pse_shift, EsbTensor *drop_mask, EsbTensor *padding_mask, EsbTensor *atten_mask, EsbTensor *softmax_max, EsbTensor *softmax_sum, EsbTensor *softmax_in, EsbTensor *attention_in, EsbTensor *prefix, EsbTensor *actual_seq_qlen, EsbTensor *actual_seq_kvlen, EsbTensor *q_start_idx, EsbTensor *kv_start_idx, int64_t head_num, const char *input_layout, float scale_value, float keep_prob, int64_t pre_tockens, int64_t next_tockens, int64_t inner_precise, int64_t sparse_mode, int64_t pse_type);
+EsFlashAttentionScoreGradOutput EsFlashAttentionScoreGrad(
+    EsbTensor *query, EsbTensor *key, EsbTensor *value, EsbTensor *dy, EsbTensor *pse_shift, EsbTensor *drop_mask,
+    EsbTensor *padding_mask, EsbTensor *atten_mask, EsbTensor *softmax_max, EsbTensor *softmax_sum,
+    EsbTensor *softmax_in, EsbTensor *attention_in, EsbTensor *prefix, EsbTensor *actual_seq_qlen,
+    EsbTensor *actual_seq_kvlen, EsbTensor *q_start_idx, EsbTensor *kv_start_idx, int64_t head_num,
+    const char *input_layout, float scale_value, float keep_prob, int64_t pre_tockens, int64_t next_tockens,
+    int64_t inner_precise, int64_t sparse_mode, int64_t pse_type);
 EsbTensor *EsFlatten(EsbTensor *x, int64_t axis);
 EsbTensor *EsFlattenV2(EsbTensor *x, int64_t axis, int64_t end_axis);
 EsbTensor *EsFloor(EsbTensor *x);
@@ -1481,16 +2016,20 @@ EsbTensor *EsForeachAddScalarInplace(EsbTensor **x, int64_t x_num, EsbTensor *sc
 EsbTensor *EsForeachAddScalarListInplace(EsbTensor **x, int64_t x_num, EsbTensor *scalars);
 
 // ForeachAddcdivListInplace does not produce an output, so the returned EsTensor cannot be used to connect edges.
-EsbTensor *EsForeachAddcdivListInplace(EsbTensor **x1, int64_t x1_num, EsbTensor **x2, int64_t x2_num, EsbTensor **x3, int64_t x3_num, EsbTensor *scalars);
+EsbTensor *EsForeachAddcdivListInplace(EsbTensor **x1, int64_t x1_num, EsbTensor **x2, int64_t x2_num, EsbTensor **x3,
+                                       int64_t x3_num, EsbTensor *scalars);
 
 // ForeachAddcdivScalarInplace does not produce an output, so the returned EsTensor cannot be used to connect edges.
-EsbTensor *EsForeachAddcdivScalarInplace(EsbTensor **x1, int64_t x1_num, EsbTensor **x2, int64_t x2_num, EsbTensor **x3, int64_t x3_num, EsbTensor *scalars);
+EsbTensor *EsForeachAddcdivScalarInplace(EsbTensor **x1, int64_t x1_num, EsbTensor **x2, int64_t x2_num, EsbTensor **x3,
+                                         int64_t x3_num, EsbTensor *scalars);
 
 // ForeachAddcmulListInplace does not produce an output, so the returned EsTensor cannot be used to connect edges.
-EsbTensor *EsForeachAddcmulListInplace(EsbTensor **x1, int64_t x1_num, EsbTensor **x2, int64_t x2_num, EsbTensor **x3, int64_t x3_num, EsbTensor *scalars);
+EsbTensor *EsForeachAddcmulListInplace(EsbTensor **x1, int64_t x1_num, EsbTensor **x2, int64_t x2_num, EsbTensor **x3,
+                                       int64_t x3_num, EsbTensor *scalars);
 
 // ForeachAddcmulScalarInplace does not produce an output, so the returned EsTensor cannot be used to connect edges.
-EsbTensor *EsForeachAddcmulScalarInplace(EsbTensor **x1, int64_t x1_num, EsbTensor **x2, int64_t x2_num, EsbTensor **x3, int64_t x3_num, EsbTensor *scalar);
+EsbTensor *EsForeachAddcmulScalarInplace(EsbTensor **x1, int64_t x1_num, EsbTensor **x2, int64_t x2_num, EsbTensor **x3,
+                                         int64_t x3_num, EsbTensor *scalar);
 
 // ForeachCosInplace does not produce an output, so the returned EsTensor cannot be used to connect edges.
 EsbTensor *EsForeachCosInplace(EsbTensor **x, int64_t x_num);
@@ -1517,7 +2056,8 @@ EsbTensor *EsForeachExpm1Inplace(EsbTensor **x, int64_t x_num);
 EsbTensor *EsForeachLerpListInplace(EsbTensor **x1, int64_t x1_num, EsbTensor **x2, int64_t x2_num, EsbTensor *weights);
 
 // ForeachLerpScalarInplace does not produce an output, so the returned EsTensor cannot be used to connect edges.
-EsbTensor *EsForeachLerpScalarInplace(EsbTensor **x1, int64_t x1_num, EsbTensor **x2, int64_t x2_num, EsbTensor *weight);
+EsbTensor *EsForeachLerpScalarInplace(EsbTensor **x1, int64_t x1_num, EsbTensor **x2, int64_t x2_num,
+                                      EsbTensor *weight);
 
 // ForeachLog10Inplace does not produce an output, so the returned EsTensor cannot be used to connect edges.
 EsbTensor *EsForeachLog10Inplace(EsbTensor **x, int64_t x_num);
@@ -1562,7 +2102,8 @@ EsbTensor *EsForeachMulScalarListInplace(EsbTensor **x, int64_t x_num, EsbTensor
 EsbTensor *EsForeachNegInplace(EsbTensor **x, int64_t x_num);
 
 // ForeachNonFiniteCheckAndUnscale does not produce an output, so the returned EsTensor cannot be used to connect edges.
-EsbTensor *EsForeachNonFiniteCheckAndUnscale(EsbTensor **scaled_grads, int64_t scaled_grads_num, EsbTensor *found_inf, EsbTensor *inv_scale);
+EsbTensor *EsForeachNonFiniteCheckAndUnscale(EsbTensor **scaled_grads, int64_t scaled_grads_num, EsbTensor *found_inf,
+                                             EsbTensor *inv_scale);
 
 // ForeachPowListInplace does not produce an output, so the returned EsTensor cannot be used to connect edges.
 EsbTensor *EsForeachPowListInplace(EsbTensor **x1, int64_t x1_num, EsbTensor **x2, int64_t x2_num);
@@ -1617,20 +2158,29 @@ typedef struct {
   EsbTensor *row_pooling_sequence;
   EsbTensor *col_pooling_sequence;
 } EsFractionalAvgPoolOutput;
-EsFractionalAvgPoolOutput EsFractionalAvgPool(EsbTensor *x, const float *pooling_ratio, int64_t pooling_ratio_num, bool pseudo_random, bool overlapping, bool deterministic, int64_t seed, int64_t seed2);
-EsbTensor *EsFractionalAvgPoolGrad(EsbTensor *orig_input_tensor_shape, EsbTensor *out_backprop, EsbTensor *row_pooling_sequence, EsbTensor *col_pooling_sequence, bool overlapping);
+EsFractionalAvgPoolOutput EsFractionalAvgPool(EsbTensor *x, const float *pooling_ratio, int64_t pooling_ratio_num,
+                                              bool pseudo_random, bool overlapping, bool deterministic, int64_t seed,
+                                              int64_t seed2);
+EsbTensor *EsFractionalAvgPoolGrad(EsbTensor *orig_input_tensor_shape, EsbTensor *out_backprop,
+                                   EsbTensor *row_pooling_sequence, EsbTensor *col_pooling_sequence, bool overlapping);
 
 typedef struct {
   EsbTensor *y;
   EsbTensor *row_pooling_sequence;
   EsbTensor *col_pooling_sequence;
 } EsFractionalMaxPoolOutput;
-EsFractionalMaxPoolOutput EsFractionalMaxPool(EsbTensor *x, const float *pooling_ratio, int64_t pooling_ratio_num, bool pseudo_random, bool overlapping, bool deterministic, int64_t seed, int64_t seed2);
-EsbTensor *EsFractionalMaxPoolGrad(EsbTensor *orig_input, EsbTensor *orig_output, EsbTensor *out_backprop, EsbTensor *row_pooling_sequence, EsbTensor *col_pooling_sequence, bool overlapping);
+EsFractionalMaxPoolOutput EsFractionalMaxPool(EsbTensor *x, const float *pooling_ratio, int64_t pooling_ratio_num,
+                                              bool pseudo_random, bool overlapping, bool deterministic, int64_t seed,
+                                              int64_t seed2);
+EsbTensor *EsFractionalMaxPoolGrad(EsbTensor *orig_input, EsbTensor *orig_output, EsbTensor *out_backprop,
+                                   EsbTensor *row_pooling_sequence, EsbTensor *col_pooling_sequence, bool overlapping);
 EsbTensor *EsFresnelCos(EsbTensor *x);
 EsbTensor *EsFresnelSin(EsbTensor *x);
-EsbTensor *EsFullyConnection(EsbTensor *x, EsbTensor *w, EsbTensor *b, EsbTensor *offset_w, int64_t num_output, bool transpose, int64_t axis, int64_t offset_x);
-EsbTensor *EsFullyConnectionCompress(EsbTensor *x, EsbTensor *w, EsbTensor *comress_index, EsbTensor *b, EsbTensor *offset_w, int64_t num_output, bool transpose, int64_t axis, int64_t offset_x);
+EsbTensor *EsFullyConnection(EsbTensor *x, EsbTensor *w, EsbTensor *b, EsbTensor *offset_w, int64_t num_output,
+                             bool transpose, int64_t axis, int64_t offset_x);
+EsbTensor *EsFullyConnectionCompress(EsbTensor *x, EsbTensor *w, EsbTensor *comress_index, EsbTensor *b,
+                                     EsbTensor *offset_w, int64_t num_output, bool transpose, int64_t axis,
+                                     int64_t offset_x);
 
 typedef struct {
   EsbTensor *y;
@@ -1639,7 +2189,9 @@ typedef struct {
   EsbTensor *reserve_space_1;
   EsbTensor *reserve_space_2;
 } EsFusedBatchNormV2Output;
-EsFusedBatchNormV2Output EsFusedBatchNormV2(EsbTensor *x, EsbTensor *scale, EsbTensor *offset, EsbTensor *mean, EsbTensor *variance, float epsilon, const char *data_format, bool is_training, float exponential_avg_factor);
+EsFusedBatchNormV2Output EsFusedBatchNormV2(EsbTensor *x, EsbTensor *scale, EsbTensor *offset, EsbTensor *mean,
+                                            EsbTensor *variance, float epsilon, const char *data_format,
+                                            bool is_training, float exponential_avg_factor);
 EsbTensor *EsFusedBiasLeakyRelu(EsbTensor *x, EsbTensor *bias, float negative_slope, float scale);
 EsbTensor *EsFusedBiasLeakyReluGrad(EsbTensor *y_grad, EsbTensor *features, float negative_slope, float scale);
 
@@ -1647,7 +2199,17 @@ typedef struct {
   EsbTensor *attention_out;
   EsbTensor *softmax_lse;
 } EsFusedInferAttentionScoreOutput;
-EsFusedInferAttentionScoreOutput EsFusedInferAttentionScore(EsbTensor *query, EsbTensor **key, int64_t key_num, EsbTensor **value, int64_t value_num, EsbTensor *pse_shift, EsbTensor *atten_mask, EsbTensor *actual_seq_lengths, EsbTensor *actual_seq_lengths_kv, EsbTensor *dequant_scale1, EsbTensor *quant_scale1, EsbTensor *dequant_scale2, EsbTensor *quant_scale2, EsbTensor *quant_offset2, EsbTensor *antiquant_scale, EsbTensor *antiquant_offset, EsbTensor *block_table, EsbTensor *query_padding_size, EsbTensor *kv_padding_size, EsbTensor *key_antiquant_scale, EsbTensor *key_antiquant_offset, EsbTensor *value_antiquant_scale, EsbTensor *value_antiquant_offset, EsbTensor *key_shared_prefix, EsbTensor *value_shared_prefix, EsbTensor *actual_shared_prefix_len, int64_t num_heads, float scale, int64_t pre_tokens, int64_t next_tokens, const char *input_layout, int64_t num_key_value_heads, int64_t sparse_mode, int64_t inner_precise, int64_t block_size, int64_t antiquant_mode, bool softmax_lse_flag, int64_t key_antiquant_mode, int64_t value_antiquant_mode);
+EsFusedInferAttentionScoreOutput EsFusedInferAttentionScore(
+    EsbTensor *query, EsbTensor **key, int64_t key_num, EsbTensor **value, int64_t value_num, EsbTensor *pse_shift,
+    EsbTensor *atten_mask, EsbTensor *actual_seq_lengths, EsbTensor *actual_seq_lengths_kv, EsbTensor *dequant_scale1,
+    EsbTensor *quant_scale1, EsbTensor *dequant_scale2, EsbTensor *quant_scale2, EsbTensor *quant_offset2,
+    EsbTensor *antiquant_scale, EsbTensor *antiquant_offset, EsbTensor *block_table, EsbTensor *query_padding_size,
+    EsbTensor *kv_padding_size, EsbTensor *key_antiquant_scale, EsbTensor *key_antiquant_offset,
+    EsbTensor *value_antiquant_scale, EsbTensor *value_antiquant_offset, EsbTensor *key_shared_prefix,
+    EsbTensor *value_shared_prefix, EsbTensor *actual_shared_prefix_len, int64_t num_heads, float scale,
+    int64_t pre_tokens, int64_t next_tokens, const char *input_layout, int64_t num_key_value_heads, int64_t sparse_mode,
+    int64_t inner_precise, int64_t block_size, int64_t antiquant_mode, bool softmax_lse_flag,
+    int64_t key_antiquant_mode, int64_t value_antiquant_mode);
 EsbTensor *EsFusedMulAdd(EsbTensor *x1, EsbTensor *x2, EsbTensor *x3);
 EsbTensor *EsFusedMulAddAdd(EsbTensor *x1, EsbTensor *x2, EsbTensor *x3, EsbTensor *x4);
 EsbTensor *EsFusedMulAddN(EsbTensor *x1, EsbTensor *x2, EsbTensor *x3);
@@ -1662,28 +2224,37 @@ typedef struct {
   EsbTensor *var;
   EsbTensor *accum;
 } EsFusedMulApplyKerasMomentumOutput;
-EsFusedMulApplyKerasMomentumOutput EsFusedMulApplyKerasMomentum(EsbTensor *var, EsbTensor *accum, EsbTensor *lr, EsbTensor *x1, EsbTensor *momentum, EsbTensor *x2, bool use_locking, bool use_nesterov);
+EsFusedMulApplyKerasMomentumOutput EsFusedMulApplyKerasMomentum(EsbTensor *var, EsbTensor *accum, EsbTensor *lr,
+                                                                EsbTensor *x1, EsbTensor *momentum, EsbTensor *x2,
+                                                                bool use_locking, bool use_nesterov);
 
 typedef struct {
   EsbTensor *var;
   EsbTensor *accum;
 } EsFusedMulApplyMomentumOutput;
-EsFusedMulApplyMomentumOutput EsFusedMulApplyMomentum(EsbTensor *var, EsbTensor *accum, EsbTensor *lr, EsbTensor *x1, EsbTensor *momentum, EsbTensor *x2, bool use_nesterov, bool use_locking);
+EsFusedMulApplyMomentumOutput EsFusedMulApplyMomentum(EsbTensor *var, EsbTensor *accum, EsbTensor *lr, EsbTensor *x1,
+                                                      EsbTensor *momentum, EsbTensor *x2, bool use_nesterov,
+                                                      bool use_locking);
 
 typedef struct {
   EsbTensor *var;
   EsbTensor *var_copy;
   EsbTensor *accum;
 } EsFusedMulApplyMomentumExternOutput;
-EsFusedMulApplyMomentumExternOutput EsFusedMulApplyMomentumExtern(EsbTensor *var, EsbTensor *accum, EsbTensor *lr, EsbTensor *x1, EsbTensor *momentum, EsbTensor *x2, EsbTensor *var_copy, bool use_nesterov, bool use_locking);
-EsbTensor *EsGEMM(EsbTensor *a, EsbTensor *b, EsbTensor *c, EsbTensor *alpha, EsbTensor *beta, bool transpose_a, bool transpose_b);
+EsFusedMulApplyMomentumExternOutput EsFusedMulApplyMomentumExtern(EsbTensor *var, EsbTensor *accum, EsbTensor *lr,
+                                                                  EsbTensor *x1, EsbTensor *momentum, EsbTensor *x2,
+                                                                  EsbTensor *var_copy, bool use_nesterov,
+                                                                  bool use_locking);
+EsbTensor *EsGEMM(EsbTensor *a, EsbTensor *b, EsbTensor *c, EsbTensor *alpha, EsbTensor *beta, bool transpose_a,
+                  bool transpose_b);
 EsbTensor *EsGIoU(EsbTensor *bboxes, EsbTensor *gtboxes, bool trans, bool is_cross, const char *mode);
 
 typedef struct {
   EsbTensor *dbboxes;
   EsbTensor *dgtboxes;
 } EsGIoUGradOutput;
-EsGIoUGradOutput EsGIoUGrad(EsbTensor *dy, EsbTensor *bboxes, EsbTensor *gtboxes, bool trans, bool is_cross, const char *mode);
+EsGIoUGradOutput EsGIoUGrad(EsbTensor *dy, EsbTensor *bboxes, EsbTensor *gtboxes, bool trans, bool is_cross,
+                            const char *mode);
 EsbTensor *EsGLU(EsbTensor *x, int64_t dim);
 EsbTensor *EsGLUGrad(EsbTensor *y_grad, EsbTensor *x, int64_t dim);
 
@@ -1698,22 +2269,31 @@ typedef struct {
   EsbTensor *batch_mean;
   EsbTensor *batch_variance;
 } EsGNTrainingUpdateOutput;
-EsGNTrainingUpdateOutput EsGNTrainingUpdate(EsbTensor *x, EsbTensor *sum, EsbTensor *square_sum, EsbTensor *scale, EsbTensor *offset, EsbTensor *mean, EsbTensor *variance, int64_t num_groups, float epsilon);
+EsGNTrainingUpdateOutput EsGNTrainingUpdate(EsbTensor *x, EsbTensor *sum, EsbTensor *square_sum, EsbTensor *scale,
+                                            EsbTensor *offset, EsbTensor *mean, EsbTensor *variance, int64_t num_groups,
+                                            float epsilon);
 
 typedef struct {
   EsbTensor *dh_prev;
   EsbTensor *dgate_h;
   EsbTensor *dnt_x;
 } EsGRUV2HiddenGradCellOutput;
-EsGRUV2HiddenGradCellOutput EsGRUV2HiddenGradCell(EsbTensor *dh_pre_t, EsbTensor *h, EsbTensor *dy, EsbTensor *dh, EsbTensor *update, EsbTensor *reset, EsbTensor *in_new, EsbTensor *hidden_new, EsbTensor *seq_length, int64_t t_state, const char *gate_order);
-EsbTensor *EsGather(EsbTensor *x, EsbTensor *indices, bool validate_indices, int64_t batch_dims, bool is_preprocessed, bool negative_index_support);
+EsGRUV2HiddenGradCellOutput EsGRUV2HiddenGradCell(EsbTensor *dh_pre_t, EsbTensor *h, EsbTensor *dy, EsbTensor *dh,
+                                                  EsbTensor *update, EsbTensor *reset, EsbTensor *in_new,
+                                                  EsbTensor *hidden_new, EsbTensor *seq_length, int64_t t_state,
+                                                  const char *gate_order);
+EsbTensor *EsGather(EsbTensor *x, EsbTensor *indices, bool validate_indices, int64_t batch_dims, bool is_preprocessed,
+                    bool negative_index_support);
 EsbTensor *EsGatherElements(EsbTensor *x, EsbTensor *index, int64_t dim);
 EsbTensor *EsGatherNd(EsbTensor *x, EsbTensor *indices, bool negative_index_support);
-EsbTensor *EsGatherV2(EsbTensor *x, EsbTensor *indices, EsbTensor *axis, int64_t batch_dims, bool is_preprocessed, bool negative_index_support);
+EsbTensor *EsGatherV2(EsbTensor *x, EsbTensor *indices, EsbTensor *axis, int64_t batch_dims, bool is_preprocessed,
+                      bool negative_index_support);
 EsbTensor *EsGatherV2D(EsbTensor *x, EsbTensor *indices, int64_t axis);
-EsbTensor *EsGaussianBlur(EsbTensor *x, const int64_t *kernel_size, int64_t kernel_size_num, const float *sigma, int64_t sigma_num, const char *padding_mode);
+EsbTensor *EsGaussianBlur(EsbTensor *x, const int64_t *kernel_size, int64_t kernel_size_num, const float *sigma,
+                          int64_t sigma_num, const char *padding_mode);
 EsbTensor *EsGcd(EsbTensor *x1, EsbTensor *x2);
-EsbTensor *EsGeGluGradV2(EsbTensor *dy, EsbTensor *x, EsbTensor *gelu, int64_t dim, int64_t approximate, bool activate_left);
+EsbTensor *EsGeGluGradV2(EsbTensor *dy, EsbTensor *x, EsbTensor *gelu, int64_t dim, int64_t approximate,
+                         bool activate_left);
 
 typedef struct {
   EsbTensor *y;
@@ -1728,40 +2308,57 @@ typedef struct {
   EsbTensor *y;
   EsbTensor *out_scale;
 } EsGeluQuantOutput;
-EsGeluQuantOutput EsGeluQuant(EsbTensor *x, EsbTensor *input_scale, EsbTensor *input_offset, const char *approximate, const char *quant_mode);
+EsGeluQuantOutput EsGeluQuant(EsbTensor *x, EsbTensor *input_scale, EsbTensor *input_offset, const char *approximate,
+                              const char *quant_mode);
 EsbTensor *EsGeluV2(EsbTensor *x, const char *approximate);
-EsbTensor *EsGemmV2(EsbTensor *a, EsbTensor *b, EsbTensor *alpha, EsbTensor *beta, EsbTensor *c, bool transpose_a, bool transpose_b);
-EsbTensor *EsGenADC(EsbTensor *query, EsbTensor *code_book, EsbTensor *centroids, EsbTensor *bucket_list, const char *distance_type);
+EsbTensor *EsGemmV2(EsbTensor *a, EsbTensor *b, EsbTensor *alpha, EsbTensor *beta, EsbTensor *c, bool transpose_a,
+                    bool transpose_b);
+EsbTensor *EsGenADC(EsbTensor *query, EsbTensor *code_book, EsbTensor *centroids, EsbTensor *bucket_list,
+                    const char *distance_type);
 
 typedef struct {
   EsbTensor *rois;
   EsbTensor *rois_probabilities;
 } EsGenerateBoundingBoxProposalsOutput;
-EsGenerateBoundingBoxProposalsOutput EsGenerateBoundingBoxProposals(EsbTensor *scores, EsbTensor *bbox_deltas, EsbTensor *image_info, EsbTensor *anchors, EsbTensor *nms_threshold, EsbTensor *pre_nms_topn, EsbTensor *min_size, int64_t post_nms_topn);
+EsGenerateBoundingBoxProposalsOutput EsGenerateBoundingBoxProposals(EsbTensor *scores, EsbTensor *bbox_deltas,
+                                                                    EsbTensor *image_info, EsbTensor *anchors,
+                                                                    EsbTensor *nms_threshold, EsbTensor *pre_nms_topn,
+                                                                    EsbTensor *min_size, int64_t post_nms_topn);
 EsbTensor *EsGeometric(EsbTensor *x, float p, int64_t seed);
 EsbTensor *EsGer(EsbTensor *x1, EsbTensor *x2);
-EsbTensor *EsGetDynamicDims(EsbTensor **input, int64_t input_num, const int64_t *shape_info, int64_t shape_info_num, int64_t N);
+EsbTensor *EsGetDynamicDims(EsbTensor **input, int64_t input_num, const int64_t *shape_info, int64_t shape_info_num,
+                            int64_t N);
 EsbTensor *EsGetShape(EsbTensor **x, int64_t x_num);
 EsbTensor *EsGlobalAveragePool(EsbTensor *x);
 EsbTensor *EsGlobalLpPool(EsbTensor *x, float p);
 EsbTensor *EsGreater(EsbTensor *x1, EsbTensor *x2);
 EsbTensor *EsGreaterEqual(EsbTensor *x1, EsbTensor *x2);
-EsbTensor *EsGridAssignPositive(EsbTensor *assigned_gt_inds, EsbTensor *overlaps, EsbTensor *box_responsible_flags, EsbTensor *max_overlaps, EsbTensor *argmax_overlaps, EsbTensor *gt_max_overlaps, EsbTensor *gt_argmax_overlaps, EsbTensor *num_gts, float pos_iou_thr, float min_pos_iou, bool gt_max_assign_all);
-EsbTensor *EsGridSample(EsbTensor *x, EsbTensor *grid, const char *interpolation_mode, const char *padding_mode, bool align_corners, bool channel_last, int64_t scheduler_mode);
-EsbTensor *EsGridSampler2D(EsbTensor *x, EsbTensor *grid, const char *interpolation_mode, const char *padding_mode, bool align_corners);
+EsbTensor *EsGridAssignPositive(EsbTensor *assigned_gt_inds, EsbTensor *overlaps, EsbTensor *box_responsible_flags,
+                                EsbTensor *max_overlaps, EsbTensor *argmax_overlaps, EsbTensor *gt_max_overlaps,
+                                EsbTensor *gt_argmax_overlaps, EsbTensor *num_gts, float pos_iou_thr, float min_pos_iou,
+                                bool gt_max_assign_all);
+EsbTensor *EsGridSample(EsbTensor *x, EsbTensor *grid, const char *interpolation_mode, const char *padding_mode,
+                        bool align_corners, bool channel_last, int64_t scheduler_mode);
+EsbTensor *EsGridSampler2D(EsbTensor *x, EsbTensor *grid, const char *interpolation_mode, const char *padding_mode,
+                           bool align_corners);
 
 typedef struct {
   EsbTensor *dx;
   EsbTensor *dgrid;
 } EsGridSampler2DGradOutput;
-EsGridSampler2DGradOutput EsGridSampler2DGrad(EsbTensor *grad, EsbTensor *x, EsbTensor *grid, const char *interpolation_mode, const char *padding_mode, bool align_corners);
-EsbTensor *EsGridSampler3D(EsbTensor *x, EsbTensor *grid, const char *interpolation_mode, const char *padding_mode, const char *data_format, bool align_corners);
+EsGridSampler2DGradOutput EsGridSampler2DGrad(EsbTensor *grad, EsbTensor *x, EsbTensor *grid,
+                                              const char *interpolation_mode, const char *padding_mode,
+                                              bool align_corners);
+EsbTensor *EsGridSampler3D(EsbTensor *x, EsbTensor *grid, const char *interpolation_mode, const char *padding_mode,
+                           const char *data_format, bool align_corners);
 
 typedef struct {
   EsbTensor *dx;
   EsbTensor *dgrid;
 } EsGridSampler3DGradOutput;
-EsGridSampler3DGradOutput EsGridSampler3DGrad(EsbTensor *grad, EsbTensor *x, EsbTensor *grid, const char *interpolation_mode, const char *padding_mode, bool align_corners);
+EsGridSampler3DGradOutput EsGridSampler3DGrad(EsbTensor *grad, EsbTensor *x, EsbTensor *grid,
+                                              const char *interpolation_mode, const char *padding_mode,
+                                              bool align_corners);
 
 typedef struct {
   EsbTensor *diff;
@@ -1774,14 +2371,17 @@ typedef struct {
   EsbTensor *mean;
   EsbTensor *variance;
 } EsGroupNormOutput;
-EsGroupNormOutput EsGroupNorm(EsbTensor *x, EsbTensor *gamma, EsbTensor *beta, int64_t num_groups, const char *data_format, float eps, bool is_training);
+EsGroupNormOutput EsGroupNorm(EsbTensor *x, EsbTensor *gamma, EsbTensor *beta, int64_t num_groups,
+                              const char *data_format, float eps, bool is_training);
 
 typedef struct {
   EsbTensor *dx;
   EsbTensor *dgamma;
   EsbTensor *dbeta;
 } EsGroupNormGradOutput;
-EsGroupNormGradOutput EsGroupNormGrad(EsbTensor *dy, EsbTensor *mean, EsbTensor *rstd, EsbTensor *x, EsbTensor *gamma, int64_t num_groups, const char *data_format, bool dx_is_require, bool dgamma_is_require, bool dbeta_is_require);
+EsGroupNormGradOutput EsGroupNormGrad(EsbTensor *dy, EsbTensor *mean, EsbTensor *rstd, EsbTensor *x, EsbTensor *gamma,
+                                      int64_t num_groups, const char *data_format, bool dx_is_require,
+                                      bool dgamma_is_require, bool dbeta_is_require);
 EsbTensor *EsGroupNormRelu(EsbTensor *x, EsbTensor *gamma, EsbTensor *beta, int64_t num_groups, float eps);
 
 typedef struct {
@@ -1789,28 +2389,34 @@ typedef struct {
   EsbTensor *mean;
   EsbTensor *rstd;
 } EsGroupNormSiluOutput;
-EsGroupNormSiluOutput EsGroupNormSilu(EsbTensor *x, EsbTensor *gamma, EsbTensor *beta, int64_t num_groups, float eps, bool activate_silu);
+EsGroupNormSiluOutput EsGroupNormSilu(EsbTensor *x, EsbTensor *gamma, EsbTensor *beta, int64_t num_groups, float eps,
+                                      bool activate_silu);
 
 typedef struct {
   EsbTensor *y;
   EsbTensor *mean;
   EsbTensor *rstd;
 } EsGroupNormSwishOutput;
-EsGroupNormSwishOutput EsGroupNormSwish(EsbTensor *x, EsbTensor *gamma, EsbTensor *beta, int64_t num_groups, const char *data_format, float eps, bool activate_swish, float swish_scale);
+EsGroupNormSwishOutput EsGroupNormSwish(EsbTensor *x, EsbTensor *gamma, EsbTensor *beta, int64_t num_groups,
+                                        const char *data_format, float eps, bool activate_swish, float swish_scale);
 
 typedef struct {
   EsbTensor *dx;
   EsbTensor *dgamma;
   EsbTensor *dbeta;
 } EsGroupNormSwishGradOutput;
-EsGroupNormSwishGradOutput EsGroupNormSwishGrad(EsbTensor *dy, EsbTensor *mean, EsbTensor *rstd, EsbTensor *x, EsbTensor *gamma, EsbTensor *beta, int64_t num_groups, const char *data_format, float swish_scale, bool dgamma_is_require, bool dbeta_is_require);
+EsGroupNormSwishGradOutput EsGroupNormSwishGrad(EsbTensor *dy, EsbTensor *mean, EsbTensor *rstd, EsbTensor *x,
+                                                EsbTensor *gamma, EsbTensor *beta, int64_t num_groups,
+                                                const char *data_format, float swish_scale, bool dgamma_is_require,
+                                                bool dbeta_is_require);
 
 typedef struct {
   EsbTensor *y;
   EsbTensor *mean;
   EsbTensor *rstd;
 } EsGroupNormV2Output;
-EsGroupNormV2Output EsGroupNormV2(EsbTensor *x, EsbTensor *gamma, EsbTensor *beta, int64_t num_groups, const char *data_format, float eps, bool is_training);
+EsGroupNormV2Output EsGroupNormV2(EsbTensor *x, EsbTensor *gamma, EsbTensor *beta, int64_t num_groups,
+                                  const char *data_format, float eps, bool is_training);
 EsbTensor *EsGroupQuant(EsbTensor *x, EsbTensor *scale, EsbTensor *group_index, EsbTensor *offset, int64_t dst_type);
 EsbTensor *EsGroupedBiasAddGrad(EsbTensor *grad_y, EsbTensor *group_idx, int64_t group_idx_type);
 EsbTensor *EsGuaranteeConst(EsbTensor *x);
@@ -1823,13 +2429,17 @@ EsbTensor *EsHardSigmoidGrad(EsbTensor *grads, EsbTensor *input_x, float alpha, 
 EsbTensor *EsHardSwish(EsbTensor *x);
 EsbTensor *EsHardSwishGrad(EsbTensor *grad, EsbTensor *x);
 EsbTensor *EsHardtanhGrad(EsbTensor *result, EsbTensor *grad, float min_val, float max_val);
-EsbTensor *EsHashTable(EsbGraph *owner_graph, af::DataType key_dtype, af::DataType value_dtype, const char *container, const char *shared_name, bool use_node_name_sharing);
+EsbTensor *EsHashTable(EsbGraph *owner_graph, af::DataType key_dtype, af::DataType value_dtype, const char *container,
+                       const char *shared_name, bool use_node_name_sharing);
 EsbTensor *EsHcomAllGather(EsbTensor *x, int64_t rank_size, const char *group, int64_t fusion, int64_t fusion_id);
 EsbTensor *EsHcomAllReduce(EsbTensor *x, const char *reduction, const char *group, int64_t fusion, int64_t fusion_id);
 EsbTensor *EsHcomAllToAll(EsbTensor *x, const char *group);
-EsbTensor *EsHcomAllToAllV(EsbTensor *send_data, EsbTensor *send_counts, EsbTensor *send_displacements, EsbTensor *recv_counts, EsbTensor *recv_displacements, const char *group);
-EsbTensor *EsHcomAllToAllVC(EsbTensor *send_data, EsbTensor *send_count_matrix, int64_t rank, const char *group, int64_t fusion, int64_t fusion_id);
-EsbTensor *EsHcomCollRemoteLookup(EsbTensor *table_id, EsbTensor *keys, int64_t tag, int64_t max_num, int64_t embedding_dim, int64_t insert_option, const char *group, int64_t flags);
+EsbTensor *EsHcomAllToAllV(EsbTensor *send_data, EsbTensor *send_counts, EsbTensor *send_displacements,
+                           EsbTensor *recv_counts, EsbTensor *recv_displacements, const char *group);
+EsbTensor *EsHcomAllToAllVC(EsbTensor *send_data, EsbTensor *send_count_matrix, int64_t rank, const char *group,
+                            int64_t fusion, int64_t fusion_id);
+EsbTensor *EsHcomCollRemoteLookup(EsbTensor *table_id, EsbTensor *keys, int64_t tag, int64_t max_num,
+                                  int64_t embedding_dim, int64_t insert_option, const char *group, int64_t flags);
 
 typedef struct {
   EsbTensor *values;
@@ -1838,7 +2448,10 @@ typedef struct {
   EsbTensor *ps_segments;
   EsbTensor *ps_segments_num;
 } EsHcomCollRemoteLookupPairedOutput;
-EsHcomCollRemoteLookupPairedOutput EsHcomCollRemoteLookupPaired(EsbTensor *table_id, EsbTensor *keys, int64_t tag, int64_t max_num, int64_t embedding_dim, int64_t insert_option, const char *group, int64_t flags);
+EsHcomCollRemoteLookupPairedOutput EsHcomCollRemoteLookupPaired(EsbTensor *table_id, EsbTensor *keys, int64_t tag,
+                                                                int64_t max_num, int64_t embedding_dim,
+                                                                int64_t insert_option, const char *group,
+                                                                int64_t flags);
 
 typedef struct {
   EsbTensor *values;
@@ -1847,24 +2460,36 @@ typedef struct {
   EsbTensor *ps_segments;
   EsbTensor *ps_segments_num;
 } EsHcomCollRemoteLookupUniquedAndPairedOutput;
-EsHcomCollRemoteLookupUniquedAndPairedOutput EsHcomCollRemoteLookupUniquedAndPaired(EsbTensor *table_id, EsbTensor *keys, EsbTensor *key_num_input, EsbTensor *unique_indices, EsbTensor *key_count, int64_t tag, int64_t max_num, int64_t embedding_dim, int64_t flags, int64_t insert_option, const char *group);
+EsHcomCollRemoteLookupUniquedAndPairedOutput EsHcomCollRemoteLookupUniquedAndPaired(
+    EsbTensor *table_id, EsbTensor *keys, EsbTensor *key_num_input, EsbTensor *unique_indices, EsbTensor *key_count,
+    int64_t tag, int64_t max_num, int64_t embedding_dim, int64_t flags, int64_t insert_option, const char *group);
 
 // HcomCollRemoteUpdate does not produce an output, so the returned EsTensor cannot be used to connect edges.
-EsbTensor *EsHcomCollRemoteUpdate(EsbTensor *table_id, EsbTensor *keys, EsbTensor *values, int64_t tag, int64_t max_num, int64_t embedding_dim, const char *group);
+EsbTensor *EsHcomCollRemoteUpdate(EsbTensor *table_id, EsbTensor *keys, EsbTensor *values, int64_t tag, int64_t max_num,
+                                  int64_t embedding_dim, const char *group);
 
 // HcomCollRemoteUpdatePaired does not produce an output, so the returned EsTensor cannot be used to connect edges.
-EsbTensor *EsHcomCollRemoteUpdatePaired(EsbTensor *table_id, EsbTensor *keys, EsbTensor *values, EsbTensor *indices, EsbTensor *num_uniqued, EsbTensor *ps_segments, EsbTensor *ps_segments_num, EsbTensor *global_step, int64_t tag, int64_t max_num, int64_t embedding_dim, const char *group, int64_t padding_key, int64_t flags);
+EsbTensor *EsHcomCollRemoteUpdatePaired(EsbTensor *table_id, EsbTensor *keys, EsbTensor *values, EsbTensor *indices,
+                                        EsbTensor *num_uniqued, EsbTensor *ps_segments, EsbTensor *ps_segments_num,
+                                        EsbTensor *global_step, int64_t tag, int64_t max_num, int64_t embedding_dim,
+                                        const char *group, int64_t padding_key, int64_t flags);
 EsbTensor *EsHcomGather(EsbTensor *x, int64_t root_rank, const char *group, int64_t rank_size);
 
 typedef struct {
   EsbTensor *recv_data;
   EsbTensor *gathered;
 } EsHcomGatherAllToAllVOutput;
-EsHcomGatherAllToAllVOutput EsHcomGatherAllToAllV(EsbTensor *addrinfo, EsbTensor *addrinfo_count_per_rank, EsbTensor *recv_counts, EsbTensor *recv_displacements, const char *group, af::DataType dtype, int64_t addr_length);
-EsbTensor *EsHcomReceive(EsbGraph *owner_graph, const char *group, int64_t sr_tag, int64_t src_rank, const int64_t *shape, int64_t shape_num, af::DataType dtype);
-EsbTensor *EsHcomReduce(EsbTensor *x, int64_t root_rank, const char *reduction, const char *group, int64_t fusion, int64_t fusion_id);
-EsbTensor *EsHcomReduceScatter(EsbTensor *x, const char *reduction, const char *group, int64_t rank_size, int64_t fusion, int64_t fusion_id);
-EsbTensor *EsHcomRemoteLookup(EsbTensor *keys, EsbTensor *table_id, int64_t tag, int64_t max_num, int64_t embedding_dim, int64_t insert_option);
+EsHcomGatherAllToAllVOutput EsHcomGatherAllToAllV(EsbTensor *addrinfo, EsbTensor *addrinfo_count_per_rank,
+                                                  EsbTensor *recv_counts, EsbTensor *recv_displacements,
+                                                  const char *group, af::DataType dtype, int64_t addr_length);
+EsbTensor *EsHcomReceive(EsbGraph *owner_graph, const char *group, int64_t sr_tag, int64_t src_rank,
+                         const int64_t *shape, int64_t shape_num, af::DataType dtype);
+EsbTensor *EsHcomReduce(EsbTensor *x, int64_t root_rank, const char *reduction, const char *group, int64_t fusion,
+                        int64_t fusion_id);
+EsbTensor *EsHcomReduceScatter(EsbTensor *x, const char *reduction, const char *group, int64_t rank_size,
+                               int64_t fusion, int64_t fusion_id);
+EsbTensor *EsHcomRemoteLookup(EsbTensor *keys, EsbTensor *table_id, int64_t tag, int64_t max_num, int64_t embedding_dim,
+                              int64_t insert_option);
 EsbTensor *EsHcomRemoteRead(EsbTensor *remote, af::DataType dtype);
 EsbTensor *EsHcomRemoteRefRead(EsbTensor *remote, EsbTensor *cache_var, EsbTensor *local_offset, af::DataType dtype);
 
@@ -1890,7 +2515,9 @@ typedef struct {
   EsbTensor *scale;
   EsbTensor *offset;
 } EsIFMROutput;
-EsIFMROutput EsIFMR(EsbTensor *data, EsbTensor *data_min, EsbTensor *data_max, EsbTensor *cumsum, float min_percentile, float max_percentile, const float *search_range, int64_t search_range_num, float search_step, bool with_offset, int64_t quant_bits);
+EsIFMROutput EsIFMR(EsbTensor *data, EsbTensor *data_min, EsbTensor *data_max, EsbTensor *cumsum, float min_percentile,
+                    float max_percentile, const float *search_range, int64_t search_range_num, float search_step,
+                    bool with_offset, int64_t quant_bits);
 EsbTensor *EsIMGWarp(EsbTensor *img, EsbTensor *warp_offset);
 EsbTensor *EsIMGWarpOffsets(EsbTensor *images, EsbTensor *offsets);
 EsbTensor *EsIMGWarpResize(EsbTensor *img, EsbTensor *warp_index);
@@ -1900,15 +2527,18 @@ typedef struct {
   EsbTensor *batch_mean;
   EsbTensor *batch_variance;
 } EsINInferV2Output;
-EsINInferV2Output EsINInferV2(EsbTensor *x, EsbTensor *gamma, EsbTensor *beta, EsbTensor *mean, EsbTensor *variance, float epsilon);
+EsINInferV2Output EsINInferV2(EsbTensor *x, EsbTensor *gamma, EsbTensor *beta, EsbTensor *mean, EsbTensor *variance,
+                              float epsilon);
 
 typedef struct {
   EsbTensor *y;
   EsbTensor *batch_mean;
   EsbTensor *batch_variance;
 } EsINInferV2DOutput;
-EsINInferV2DOutput EsINInferV2D(EsbTensor *x, EsbTensor *gamma, EsbTensor *beta, EsbTensor *mean, EsbTensor *variance, EsbTensor *variance_sqrt);
-EsbTensor *EsINTrainingReduceGrad(EsbTensor *dy, EsbTensor *x, EsbTensor *variance, EsbTensor *mean, EsbTensor *res_gamma, EsbTensor *res_beta, EsbTensor *gamma);
+EsINInferV2DOutput EsINInferV2D(EsbTensor *x, EsbTensor *gamma, EsbTensor *beta, EsbTensor *mean, EsbTensor *variance,
+                                EsbTensor *variance_sqrt);
+EsbTensor *EsINTrainingReduceGrad(EsbTensor *dy, EsbTensor *x, EsbTensor *variance, EsbTensor *mean,
+                                  EsbTensor *res_gamma, EsbTensor *res_beta, EsbTensor *gamma);
 
 typedef struct {
   EsbTensor *sum;
@@ -1933,38 +2563,64 @@ typedef struct {
   EsbTensor *batch_mean;
   EsbTensor *batch_variance;
 } EsINTrainingUpdateV2Output;
-EsINTrainingUpdateV2Output EsINTrainingUpdateV2(EsbTensor *x, EsbTensor *sum, EsbTensor *square_sum, EsbTensor *gamma, EsbTensor *beta, EsbTensor *mean, EsbTensor *variance, float momentum, float epsilon);
+EsINTrainingUpdateV2Output EsINTrainingUpdateV2(EsbTensor *x, EsbTensor *sum, EsbTensor *square_sum, EsbTensor *gamma,
+                                                EsbTensor *beta, EsbTensor *mean, EsbTensor *variance, float momentum,
+                                                float epsilon);
 EsbTensor *EsIRFFT(EsbTensor *x, EsbTensor *fft_length);
 EsbTensor *EsIdentity(EsbTensor *x);
 EsbTensor *EsIgamma(EsbTensor *a, EsbTensor *x);
 EsbTensor *EsIgammaGradA(EsbTensor *a, EsbTensor *x);
 EsbTensor *EsIgammac(EsbTensor *a, EsbTensor *x);
-EsbTensor *EsIm2col(EsbTensor *x, const int64_t *ksizes, int64_t ksizes_num, const int64_t *strides, int64_t strides_num, const int64_t *dilations, int64_t dilations_num, const char *padding_mode, const int64_t *pads, int64_t pads_num);
+EsbTensor *EsIm2col(EsbTensor *x, const int64_t *ksizes, int64_t ksizes_num, const int64_t *strides,
+                    int64_t strides_num, const int64_t *dilations, int64_t dilations_num, const char *padding_mode,
+                    const int64_t *pads, int64_t pads_num);
 EsbTensor *EsImag(EsbTensor *input, af::DataType Tout);
-EsbTensor *EsImageProjectiveTransform(EsbTensor *images, EsbTensor *transforms, EsbTensor *output_shape, const char *interpolation, const char *fill_mode);
-EsbTensor *EsImageProjectiveTransformV2(EsbTensor *images, EsbTensor *transforms, EsbTensor *output_shape, EsbTensor *fill_value, const char *interpolation, const char *fill_mode);
+EsbTensor *EsImageProjectiveTransform(EsbTensor *images, EsbTensor *transforms, EsbTensor *output_shape,
+                                      const char *interpolation, const char *fill_mode);
+EsbTensor *EsImageProjectiveTransformV2(EsbTensor *images, EsbTensor *transforms, EsbTensor *output_shape,
+                                        EsbTensor *fill_value, const char *interpolation, const char *fill_mode);
 EsbTensor *EsImageUnfold(EsbTensor *x, EsbTensor *position, const char *padding_mode);
 EsbTensor *EsImgCrop(EsbTensor *x, EsbTensor *boxes, EsbTensor *box_index, const char *data_format);
-EsbTensor *EsImgRawDecodePostHandle(EsbTensor *img_channel_0, EsbTensor *img_channel_1, EsbTensor *img_channel_2, EsbTensor *img_channel_3, EsbTensor *img_size, EsbTensor *gamma, const char *bayer_pattern);
-EsbTensor *EsImgRawDecodePostHandleV2(EsbTensor *img_channel_0, EsbTensor *img_channel_1, EsbTensor *img_channel_2, EsbTensor *img_channel_3, EsbTensor *gamma, EsbTensor *bayer_coordinate, EsbTensor *bayer_params, EsbTensor *bayer_ptn);
+EsbTensor *EsImgRawDecodePostHandle(EsbTensor *img_channel_0, EsbTensor *img_channel_1, EsbTensor *img_channel_2,
+                                    EsbTensor *img_channel_3, EsbTensor *img_size, EsbTensor *gamma,
+                                    const char *bayer_pattern);
+EsbTensor *EsImgRawDecodePostHandleV2(EsbTensor *img_channel_0, EsbTensor *img_channel_1, EsbTensor *img_channel_2,
+                                      EsbTensor *img_channel_3, EsbTensor *gamma, EsbTensor *bayer_coordinate,
+                                      EsbTensor *bayer_params, EsbTensor *bayer_ptn);
 EsbTensor *EsImgToTensor(EsbTensor *x);
 EsbTensor *EsInTopK(EsbTensor *x1, EsbTensor *x2, EsbTensor *k);
 EsbTensor *EsInTopKD(EsbTensor *x1, EsbTensor *x2, int64_t k);
 EsbTensor *EsInTopKV2(EsbTensor *predictions, EsbTensor *targets, EsbTensor *k);
-EsbTensor *EsIncreFlashAttention(EsbTensor *query, EsbTensor **key, int64_t key_num, EsbTensor **value, int64_t value_num, EsbTensor *pse_shift, EsbTensor *atten_mask, EsbTensor *actual_seq_lengths, EsbTensor *dequant_scale1, EsbTensor *quant_scale1, EsbTensor *dequant_scale2, EsbTensor *quant_scale2, EsbTensor *quant_offset2, EsbTensor *antiquant_scale, EsbTensor *antiquant_offset, EsbTensor *block_table, EsbTensor *kv_padding_size, int64_t num_heads, float scale_value, const char *input_layout, int64_t num_key_value_heads, int64_t block_size, int64_t inner_precise);
-EsbTensor *EsIndex(EsbTensor *x, EsbTensor *indexed_sizes, EsbTensor *indexed_strides, EsbTensor **indices, int64_t indices_num);
+EsbTensor *EsIncreFlashAttention(EsbTensor *query, EsbTensor **key, int64_t key_num, EsbTensor **value,
+                                 int64_t value_num, EsbTensor *pse_shift, EsbTensor *atten_mask,
+                                 EsbTensor *actual_seq_lengths, EsbTensor *dequant_scale1, EsbTensor *quant_scale1,
+                                 EsbTensor *dequant_scale2, EsbTensor *quant_scale2, EsbTensor *quant_offset2,
+                                 EsbTensor *antiquant_scale, EsbTensor *antiquant_offset, EsbTensor *block_table,
+                                 EsbTensor *kv_padding_size, int64_t num_heads, float scale_value,
+                                 const char *input_layout, int64_t num_key_value_heads, int64_t block_size,
+                                 int64_t inner_precise);
+EsbTensor *EsIndex(EsbTensor *x, EsbTensor *indexed_sizes, EsbTensor *indexed_strides, EsbTensor **indices,
+                   int64_t indices_num);
 EsbTensor *EsIndexAdd(EsbTensor *var, EsbTensor *indices, EsbTensor *updates, int64_t axis);
 EsbTensor *EsIndexFillD(EsbTensor *x, EsbTensor *assist1, EsbTensor *assist2, int64_t dim);
 EsbTensor *EsIndexPut(EsbTensor *x1, EsbTensor *x2, const int64_t *indices, int64_t indices_num, int64_t accumulate);
-EsbTensor *EsIndexPutV2(EsbTensor *x, EsbTensor *value, EsbTensor *indexed_sizes, EsbTensor *indexed_strides, EsbTensor **indices, int64_t indices_num, bool accumulate);
-EsbTensor *EsIndexToAddr(EsbTensor *base_addr, EsbTensor *x, const int64_t *ori_shape, int64_t ori_shape_num, const int64_t *block_size, int64_t block_size_num, const char *ori_storage_mode, const char *block_storage_mode, int64_t rank_id, af::DataType dtype);
+EsbTensor *EsIndexPutV2(EsbTensor *x, EsbTensor *value, EsbTensor *indexed_sizes, EsbTensor *indexed_strides,
+                        EsbTensor **indices, int64_t indices_num, bool accumulate);
+EsbTensor *EsIndexToAddr(EsbTensor *base_addr, EsbTensor *x, const int64_t *ori_shape, int64_t ori_shape_num,
+                         const int64_t *block_size, int64_t block_size_num, const char *ori_storage_mode,
+                         const char *block_storage_mode, int64_t rank_id, af::DataType dtype);
 
 // InitData does not produce an output, so the returned EsTensor cannot be used to connect edges.
 EsbTensor *EsInitData(EsbGraph *owner_graph, const char *channel_name);
 
 // InitEmbeddingHashmap does not produce an output, so the returned EsTensor cannot be used to connect edges.
-EsbTensor *EsInitEmbeddingHashmap(EsbTensor *table_id, int64_t value_total_len, int64_t embedding_dim, int64_t bucket_size, af::DataType dtype, const char *initializer_mode, float constant_value, float min, float max, float mu, float sigma, int64_t seed, int64_t seed2, const char *filter_mode, const char *optimizer_mode, const float *optimizer_params, int64_t optimizer_params_num);
-EsbTensor *EsInitEmbeddingHashmapV2(EsbTensor *table_id, int64_t bucket_size, int64_t load_factor, int64_t embedding_dim, af::DataType dtype);
+EsbTensor *EsInitEmbeddingHashmap(EsbTensor *table_id, int64_t value_total_len, int64_t embedding_dim,
+                                  int64_t bucket_size, af::DataType dtype, const char *initializer_mode,
+                                  float constant_value, float min, float max, float mu, float sigma, int64_t seed,
+                                  int64_t seed2, const char *filter_mode, const char *optimizer_mode,
+                                  const float *optimizer_params, int64_t optimizer_params_num);
+EsbTensor *EsInitEmbeddingHashmapV2(EsbTensor *table_id, int64_t bucket_size, int64_t load_factor,
+                                    int64_t embedding_dim, af::DataType dtype);
 
 // InitPartitionMap does not produce an output, so the returned EsTensor cannot be used to connect edges.
 EsbTensor *EsInitPartitionMap(EsbTensor *ps_num, EsbTensor *ps_ids, int64_t partition_num);
@@ -1980,7 +2636,8 @@ typedef struct {
   EsbTensor *rstd;
   EsbTensor *x2;
 } EsInplaceAddLayerNormOutput;
-EsInplaceAddLayerNormOutput EsInplaceAddLayerNorm(EsbTensor *x1, EsbTensor *x2, EsbTensor *gamma, EsbTensor *beta, EsbTensor *bias, float epsilon, bool additional_output);
+EsInplaceAddLayerNormOutput EsInplaceAddLayerNorm(EsbTensor *x1, EsbTensor *x2, EsbTensor *gamma, EsbTensor *beta,
+                                                  EsbTensor *bias, float epsilon, bool additional_output);
 
 typedef struct {
   EsbTensor *x1;
@@ -1994,12 +2651,16 @@ typedef struct {
   EsbTensor *residual;
   EsbTensor *norm_out;
 } EsInplaceMatmulAllReduceAddRmsNormOutput;
-EsInplaceMatmulAllReduceAddRmsNormOutput EsInplaceMatmulAllReduceAddRmsNorm(EsbTensor *x1, EsbTensor *x2, EsbTensor *bias, EsbTensor *residual, EsbTensor *gamma, EsbTensor *antiquant_scale, EsbTensor *antiquant_offset, EsbTensor *dequant_scale, const char *group, const char *reduce_op, bool is_trans_a, bool is_trans_b, int64_t comm_turn, int64_t antiquant_group_size, float epsilon);
+EsInplaceMatmulAllReduceAddRmsNormOutput EsInplaceMatmulAllReduceAddRmsNorm(
+    EsbTensor *x1, EsbTensor *x2, EsbTensor *bias, EsbTensor *residual, EsbTensor *gamma, EsbTensor *antiquant_scale,
+    EsbTensor *antiquant_offset, EsbTensor *dequant_scale, const char *group, const char *reduce_op, bool is_trans_a,
+    bool is_trans_b, int64_t comm_turn, int64_t antiquant_group_size, float epsilon);
 EsbTensor *EsInplaceSub(EsbTensor *x, EsbTensor *indices, EsbTensor *v);
 EsbTensor *EsInplaceSubD(EsbTensor *x, EsbTensor *v, const int64_t *indices, int64_t indices_num);
 
 // InplaceTopKDistance does not produce an output, so the returned EsTensor cannot be used to connect edges.
-EsbTensor *EsInplaceTopKDistance(EsbTensor *topk_pq_distance, EsbTensor *topk_pq_index, EsbTensor *topk_pq_ivf, EsbTensor *pq_distance, EsbTensor *pq_index, EsbTensor *pq_ivf, const char *order);
+EsbTensor *EsInplaceTopKDistance(EsbTensor *topk_pq_distance, EsbTensor *topk_pq_index, EsbTensor *topk_pq_ivf,
+                                 EsbTensor *pq_distance, EsbTensor *pq_index, EsbTensor *pq_ivf, const char *order);
 EsbTensor *EsInplaceUpdate(EsbTensor *x, EsbTensor *indices, EsbTensor *v);
 EsbTensor *EsInplaceUpdateD(EsbTensor *x, EsbTensor *v, const int64_t *indices, int64_t indices_num);
 
@@ -2008,21 +2669,24 @@ typedef struct {
   EsbTensor *mean;
   EsbTensor *variance;
 } EsInstanceNormOutput;
-EsInstanceNormOutput EsInstanceNorm(EsbTensor *x, EsbTensor *gamma, EsbTensor *beta, const char *data_format, float epsilon);
+EsInstanceNormOutput EsInstanceNorm(EsbTensor *x, EsbTensor *gamma, EsbTensor *beta, const char *data_format,
+                                    float epsilon);
 
 typedef struct {
   EsbTensor *pd_x;
   EsbTensor *pd_gamma;
   EsbTensor *pd_beta;
 } EsInstanceNormGradOutput;
-EsInstanceNormGradOutput EsInstanceNormGrad(EsbTensor *dy, EsbTensor *x, EsbTensor *variance, EsbTensor *mean, EsbTensor *gamma);
+EsInstanceNormGradOutput EsInstanceNormGrad(EsbTensor *dy, EsbTensor *x, EsbTensor *variance, EsbTensor *mean,
+                                            EsbTensor *gamma);
 
 typedef struct {
   EsbTensor *y;
   EsbTensor *batch_mean;
   EsbTensor *batch_variance;
 } EsInstanceNormV2Output;
-EsInstanceNormV2Output EsInstanceNormV2(EsbTensor *x, EsbTensor *gamma, EsbTensor *beta, EsbTensor *mean, EsbTensor *variance, bool is_training, float momentum, float epsilon);
+EsInstanceNormV2Output EsInstanceNormV2(EsbTensor *x, EsbTensor *gamma, EsbTensor *beta, EsbTensor *mean,
+                                        EsbTensor *variance, bool is_training, float momentum, float epsilon);
 EsbTensor *EsInternalDataMove(EsbTensor *x, const char *src_buf, const char *dst_buf);
 EsbTensor *EsInv(EsbTensor *x);
 EsbTensor *EsInvGrad(EsbTensor *x, EsbTensor *grad);
@@ -2051,9 +2715,12 @@ typedef struct {
   EsbTensor *segment_count;
   EsbTensor *kmean_total_sum;
 } EsKMeansCentroidsOutput;
-EsKMeansCentroidsOutput EsKMeansCentroids(EsbTensor *x, EsbTensor *y, EsbTensor *sum_square_y, EsbTensor *sum_square_x, bool use_actual_distance);
-EsbTensor *EsKeepRatioResizeBilinear(EsbTensor *images, int64_t min_dimension, int64_t max_dimension, bool align_corners, bool half_pixel_centers);
-EsbTensor *EsKlDivLossGrad(EsbTensor *grad, EsbTensor *input, EsbTensor *target, const char *reduction, bool log_target);
+EsKMeansCentroidsOutput EsKMeansCentroids(EsbTensor *x, EsbTensor *y, EsbTensor *sum_square_y, EsbTensor *sum_square_x,
+                                          bool use_actual_distance);
+EsbTensor *EsKeepRatioResizeBilinear(EsbTensor *images, int64_t min_dimension, int64_t max_dimension,
+                                     bool align_corners, bool half_pixel_centers);
+EsbTensor *EsKlDivLossGrad(EsbTensor *grad, EsbTensor *input, EsbTensor *target, const char *reduction,
+                           bool log_target);
 EsbTensor *EsL1LossGrad(EsbTensor *grads, EsbTensor *predict, EsbTensor *label, const char *reduction);
 EsbTensor *EsL2Loss(EsbTensor *x);
 EsbTensor *EsL2Normalize(EsbTensor *x, const int64_t *axis, int64_t axis_num, float eps);
@@ -2066,9 +2733,11 @@ typedef struct {
   EsbTensor *pd_gamma;
   EsbTensor *pd_beta;
 } EsLNDropoutGradOutput;
-EsLNDropoutGradOutput EsLNDropoutGrad(EsbTensor *dy, EsbTensor *x, EsbTensor *variance, EsbTensor *mean, EsbTensor *gamma, EsbTensor *mask, float keep_prob);
+EsLNDropoutGradOutput EsLNDropoutGrad(EsbTensor *dy, EsbTensor *x, EsbTensor *variance, EsbTensor *mean,
+                                      EsbTensor *gamma, EsbTensor *mask, float keep_prob);
 EsbTensor *EsLRN(EsbTensor *x, int64_t depth_radius, float bias, float alpha, float beta, const char *norm_region);
-EsbTensor *EsLRNGrad(EsbTensor *grads, EsbTensor *x, EsbTensor *y, int64_t depth_radius, float bias, float alpha, float beta);
+EsbTensor *EsLRNGrad(EsbTensor *grads, EsbTensor *x, EsbTensor *y, int64_t depth_radius, float bias, float alpha,
+                     float beta);
 
 typedef struct {
   EsbTensor *data;
@@ -2078,14 +2747,16 @@ typedef struct {
   EsbTensor *not_in_cache_index_list;
   EsbTensor *not_in_cache_number;
 } EsLRUCacheV2Output;
-EsLRUCacheV2Output EsLRUCacheV2(EsbTensor *index_list, EsbTensor *data, EsbTensor *cache, EsbTensor *tag, EsbTensor *is_last_call, int64_t pre_route_count);
+EsLRUCacheV2Output EsLRUCacheV2(EsbTensor *index_list, EsbTensor *data, EsbTensor *cache, EsbTensor *tag,
+                                EsbTensor *is_last_call, int64_t pre_route_count);
 
 typedef struct {
   EsbTensor *h;
   EsbTensor *h_t;
   EsbTensor *c_t;
 } EsLSTMOutput;
-EsLSTMOutput EsLSTM(EsbTensor *x, EsbTensor *cont, EsbTensor *w_x, EsbTensor *bias, EsbTensor *w_h, EsbTensor *x_static, EsbTensor *h_0, EsbTensor *c_0, EsbTensor *w_x_static, int64_t num_output, bool expose_hidden);
+EsLSTMOutput EsLSTM(EsbTensor *x, EsbTensor *cont, EsbTensor *w_x, EsbTensor *bias, EsbTensor *w_h, EsbTensor *x_static,
+                    EsbTensor *h_0, EsbTensor *c_0, EsbTensor *w_x_static, int64_t num_output, bool expose_hidden);
 
 typedef struct {
   EsbTensor *dx;
@@ -2093,14 +2764,17 @@ typedef struct {
   EsbTensor *dc_prev;
   EsbTensor *dgate;
 } EsLSTMInputGradOutput;
-EsLSTMInputGradOutput EsLSTMInputGrad(EsbTensor *w, EsbTensor *init_c, EsbTensor *c, EsbTensor *dy, EsbTensor *dh, EsbTensor *dc, EsbTensor *i, EsbTensor *j, EsbTensor *f, EsbTensor *o, EsbTensor *tanhct);
+EsLSTMInputGradOutput EsLSTMInputGrad(EsbTensor *w, EsbTensor *init_c, EsbTensor *c, EsbTensor *dy, EsbTensor *dh,
+                                      EsbTensor *dc, EsbTensor *i, EsbTensor *j, EsbTensor *f, EsbTensor *o,
+                                      EsbTensor *tanhct);
 
 typedef struct {
   EsbTensor *y;
   EsbTensor *output_h;
   EsbTensor *output_c;
 } EsLSTMPOutput;
-EsLSTMPOutput EsLSTMP(EsbTensor *x, EsbTensor *wx, EsbTensor *bias, EsbTensor *wr, EsbTensor *project, EsbTensor *real_mask, EsbTensor *init_h, EsbTensor *init_c, bool time_major);
+EsLSTMPOutput EsLSTMP(EsbTensor *x, EsbTensor *wx, EsbTensor *bias, EsbTensor *wr, EsbTensor *project,
+                      EsbTensor *real_mask, EsbTensor *init_h, EsbTensor *init_c, bool time_major);
 EsbTensor *EsLUT3D(EsbTensor *img, EsbTensor *lut_table);
 
 typedef struct {
@@ -2108,8 +2782,13 @@ typedef struct {
   EsbTensor *inputv;
   EsbTensor *inputm;
 } EsLambApplyOptimizerAssignOutput;
-EsLambApplyOptimizerAssignOutput EsLambApplyOptimizerAssign(EsbTensor *grad, EsbTensor *inputv, EsbTensor *inputm, EsbTensor *input3, EsbTensor *mul0_x, EsbTensor *mul1_x, EsbTensor *mul2_x, EsbTensor *mul3_x, EsbTensor *add2_y, EsbTensor *steps, EsbTensor *do_use_weight, EsbTensor *weight_decay_rate);
-EsbTensor *EsLambApplyWeightAssign(EsbTensor *input0, EsbTensor *input1, EsbTensor *input2, EsbTensor *input3, EsbTensor *input_param);
+EsLambApplyOptimizerAssignOutput EsLambApplyOptimizerAssign(EsbTensor *grad, EsbTensor *inputv, EsbTensor *inputm,
+                                                            EsbTensor *input3, EsbTensor *mul0_x, EsbTensor *mul1_x,
+                                                            EsbTensor *mul2_x, EsbTensor *mul3_x, EsbTensor *add2_y,
+                                                            EsbTensor *steps, EsbTensor *do_use_weight,
+                                                            EsbTensor *weight_decay_rate);
+EsbTensor *EsLambApplyWeightAssign(EsbTensor *input0, EsbTensor *input1, EsbTensor *input2, EsbTensor *input3,
+                                   EsbTensor *input_param);
 
 typedef struct {
   EsbTensor *y1;
@@ -2117,7 +2796,10 @@ typedef struct {
   EsbTensor *y3;
   EsbTensor *y4;
 } EsLambNextMVOutput;
-EsLambNextMVOutput EsLambNextMV(EsbTensor *input_mul3, EsbTensor *input_mul2, EsbTensor *input_realdiv1, EsbTensor *input_mul1, EsbTensor *input_mul0, EsbTensor *input_realdiv0, EsbTensor *input_mul4, EsbTensor *mul0_x, EsbTensor *mul1_sub, EsbTensor *mul2_x, EsbTensor *mul3_sub1, EsbTensor *mul4_x, EsbTensor *add2_y);
+EsLambNextMVOutput EsLambNextMV(EsbTensor *input_mul3, EsbTensor *input_mul2, EsbTensor *input_realdiv1,
+                                EsbTensor *input_mul1, EsbTensor *input_mul0, EsbTensor *input_realdiv0,
+                                EsbTensor *input_mul4, EsbTensor *mul0_x, EsbTensor *mul1_sub, EsbTensor *mul2_x,
+                                EsbTensor *mul3_sub1, EsbTensor *mul4_x, EsbTensor *add2_y);
 
 typedef struct {
   EsbTensor *y1;
@@ -2125,78 +2807,102 @@ typedef struct {
   EsbTensor *y3;
   EsbTensor *y4;
 } EsLambNextMVWithDecayOutput;
-EsLambNextMVWithDecayOutput EsLambNextMVWithDecay(EsbTensor *input_mul3, EsbTensor *input_mul2, EsbTensor *input_realdiv1, EsbTensor *input_mul1, EsbTensor *input_mul0, EsbTensor *input_realdiv0, EsbTensor *input_mul4, EsbTensor *mul0_x, EsbTensor *mul1_sub, EsbTensor *mul2_x, EsbTensor *mul3_sub1, EsbTensor *mul4_x, EsbTensor *add2_y);
+EsLambNextMVWithDecayOutput EsLambNextMVWithDecay(EsbTensor *input_mul3, EsbTensor *input_mul2,
+                                                  EsbTensor *input_realdiv1, EsbTensor *input_mul1,
+                                                  EsbTensor *input_mul0, EsbTensor *input_realdiv0,
+                                                  EsbTensor *input_mul4, EsbTensor *mul0_x, EsbTensor *mul1_sub,
+                                                  EsbTensor *mul2_x, EsbTensor *mul3_sub1, EsbTensor *mul4_x,
+                                                  EsbTensor *add2_y);
 
 typedef struct {
   EsbTensor *y1;
   EsbTensor *y2;
 } EsLambNextRightOutput;
-EsLambNextRightOutput EsLambNextRight(EsbTensor *input_square, EsbTensor *input_mul2, EsbTensor *mul2_x, EsbTensor *mul3_x, EsbTensor *truediv1_recip, EsbTensor *add2_y);
-EsbTensor *EsLambUpdateWithLr(EsbTensor *input_greater1, EsbTensor *input_greater_realdiv, EsbTensor *input_realdiv, EsbTensor *input_mul0, EsbTensor *input_mul1, EsbTensor *input_sub, EsbTensor *greater_y, EsbTensor *select_e, EsbTensor *minimum_y);
-EsbTensor *EsLambUpdateWithLrV2(EsbTensor *x1, EsbTensor *x2, EsbTensor *x3, EsbTensor *x4, EsbTensor *x5, EsbTensor *greater_y, EsbTensor *select_e);
-EsbTensor *EsLarsV2(EsbTensor *w, EsbTensor *g, EsbTensor *weight_decay, EsbTensor *learning_rate, float hyperpara, float epsilon, bool use_clip);
-EsbTensor *EsLarsV2Update(EsbTensor *w, EsbTensor *g, EsbTensor *w_square_sum, EsbTensor *g_square_sum, EsbTensor *weight_decay, EsbTensor *learning_rate, float hyperpara, float epsilon, bool use_clip);
+EsLambNextRightOutput EsLambNextRight(EsbTensor *input_square, EsbTensor *input_mul2, EsbTensor *mul2_x,
+                                      EsbTensor *mul3_x, EsbTensor *truediv1_recip, EsbTensor *add2_y);
+EsbTensor *EsLambUpdateWithLr(EsbTensor *input_greater1, EsbTensor *input_greater_realdiv, EsbTensor *input_realdiv,
+                              EsbTensor *input_mul0, EsbTensor *input_mul1, EsbTensor *input_sub, EsbTensor *greater_y,
+                              EsbTensor *select_e, EsbTensor *minimum_y);
+EsbTensor *EsLambUpdateWithLrV2(EsbTensor *x1, EsbTensor *x2, EsbTensor *x3, EsbTensor *x4, EsbTensor *x5,
+                                EsbTensor *greater_y, EsbTensor *select_e);
+EsbTensor *EsLarsV2(EsbTensor *w, EsbTensor *g, EsbTensor *weight_decay, EsbTensor *learning_rate, float hyperpara,
+                    float epsilon, bool use_clip);
+EsbTensor *EsLarsV2Update(EsbTensor *w, EsbTensor *g, EsbTensor *w_square_sum, EsbTensor *g_square_sum,
+                          EsbTensor *weight_decay, EsbTensor *learning_rate, float hyperpara, float epsilon,
+                          bool use_clip);
 
 typedef struct {
   EsbTensor *y;
   EsbTensor *mean;
   EsbTensor *variance;
 } EsLayerNormOutput;
-EsLayerNormOutput EsLayerNorm(EsbTensor *x, EsbTensor *gamma, EsbTensor *beta, int64_t begin_norm_axis, int64_t begin_params_axis, float epsilon);
+EsLayerNormOutput EsLayerNorm(EsbTensor *x, EsbTensor *gamma, EsbTensor *beta, int64_t begin_norm_axis,
+                              int64_t begin_params_axis, float epsilon);
 
 typedef struct {
   EsbTensor *pd_gamma;
   EsbTensor *pd_beta;
 } EsLayerNormBetaGammaBackpropOutput;
-EsLayerNormBetaGammaBackpropOutput EsLayerNormBetaGammaBackprop(EsbTensor *dy, EsbTensor *x, EsbTensor *variance, EsbTensor *mean, const int64_t *shape_gamma, int64_t shape_gamma_num);
+EsLayerNormBetaGammaBackpropOutput EsLayerNormBetaGammaBackprop(EsbTensor *dy, EsbTensor *x, EsbTensor *variance,
+                                                                EsbTensor *mean, const int64_t *shape_gamma,
+                                                                int64_t shape_gamma_num);
 
 typedef struct {
   EsbTensor *pd_gamma;
   EsbTensor *pd_beta;
 } EsLayerNormBetaGammaBackpropV2Output;
-EsLayerNormBetaGammaBackpropV2Output EsLayerNormBetaGammaBackpropV2(EsbTensor *dy, EsbTensor *res_for_gamma, const int64_t *shape_gamma, int64_t shape_gamma_num);
+EsLayerNormBetaGammaBackpropV2Output EsLayerNormBetaGammaBackpropV2(EsbTensor *dy, EsbTensor *res_for_gamma,
+                                                                    const int64_t *shape_gamma,
+                                                                    int64_t shape_gamma_num);
 
 typedef struct {
   EsbTensor *pd_x;
   EsbTensor *pd_gamma;
   EsbTensor *pd_beta;
 } EsLayerNormGradOutput;
-EsLayerNormGradOutput EsLayerNormGrad(EsbTensor *dy, EsbTensor *x, EsbTensor *variance, EsbTensor *mean, EsbTensor *gamma);
+EsLayerNormGradOutput EsLayerNormGrad(EsbTensor *dy, EsbTensor *x, EsbTensor *variance, EsbTensor *mean,
+                                      EsbTensor *gamma);
 
 typedef struct {
   EsbTensor *pd_x;
   EsbTensor *pd_gamma;
   EsbTensor *pd_beta;
 } EsLayerNormGradV3Output;
-EsLayerNormGradV3Output EsLayerNormGradV3(EsbTensor *dy, EsbTensor *x, EsbTensor *rstd, EsbTensor *mean, EsbTensor *gamma);
-EsbTensor *EsLayerNormUpdate(EsbTensor *x1, EsbTensor *beta, EsbTensor *gamma, EsbTensor *sum, EsbTensor *square_sum, float epsilon);
+EsLayerNormGradV3Output EsLayerNormGradV3(EsbTensor *dy, EsbTensor *x, EsbTensor *rstd, EsbTensor *mean,
+                                          EsbTensor *gamma);
+EsbTensor *EsLayerNormUpdate(EsbTensor *x1, EsbTensor *beta, EsbTensor *gamma, EsbTensor *sum, EsbTensor *square_sum,
+                             float epsilon);
 
 typedef struct {
   EsbTensor *y;
   EsbTensor *mean;
   EsbTensor *rstd;
 } EsLayerNormV3Output;
-EsLayerNormV3Output EsLayerNormV3(EsbTensor *x, EsbTensor *gamma, EsbTensor *beta, int64_t begin_norm_axis, int64_t begin_params_axis, float epsilon);
+EsLayerNormV3Output EsLayerNormV3(EsbTensor *x, EsbTensor *gamma, EsbTensor *beta, int64_t begin_norm_axis,
+                                  int64_t begin_params_axis, float epsilon);
 
 typedef struct {
   EsbTensor *y;
   EsbTensor *mean;
   EsbTensor *rstd;
 } EsLayerNormV4Output;
-EsLayerNormV4Output EsLayerNormV4(EsbTensor *x, EsbTensor *normalized_shape, EsbTensor *gamma, EsbTensor *beta, float epsilon);
+EsLayerNormV4Output EsLayerNormV4(EsbTensor *x, EsbTensor *normalized_shape, EsbTensor *gamma, EsbTensor *beta,
+                                  float epsilon);
 EsbTensor *EsLayerNormXBackprop(EsbTensor *dy, EsbTensor *x, EsbTensor *variance, EsbTensor *mean, EsbTensor *gamma);
 
 typedef struct {
   EsbTensor *pd_x;
   EsbTensor *res_for_gamma;
 } EsLayerNormXBackpropV2Output;
-EsLayerNormXBackpropV2Output EsLayerNormXBackpropV2(EsbTensor *dy, EsbTensor *x, EsbTensor *variance, EsbTensor *mean, EsbTensor *gamma);
+EsLayerNormXBackpropV2Output EsLayerNormXBackpropV2(EsbTensor *dy, EsbTensor *x, EsbTensor *variance, EsbTensor *mean,
+                                                    EsbTensor *gamma);
 
 typedef struct {
   EsbTensor *pd_x;
   EsbTensor *res_for_gamma;
 } EsLayerNormXBackpropV3Output;
-EsLayerNormXBackpropV3Output EsLayerNormXBackpropV3(EsbTensor *dy, EsbTensor *x, EsbTensor *rstd, EsbTensor *mean, EsbTensor *gamma);
+EsLayerNormXBackpropV3Output EsLayerNormXBackpropV3(EsbTensor *dy, EsbTensor *x, EsbTensor *rstd, EsbTensor *mean,
+                                                    EsbTensor *gamma);
 EsbTensor *EsLeakyRelu(EsbTensor *x, float negative_slope);
 EsbTensor *EsLeakyReluGrad(EsbTensor *gradients, EsbTensor *features, float negative_slope);
 
@@ -2205,7 +2911,9 @@ typedef struct {
   EsbTensor *true_expected_count;
   EsbTensor *sampled_expected_count;
 } EsLearnedUnigramCandidateSamplerOutput;
-EsLearnedUnigramCandidateSamplerOutput EsLearnedUnigramCandidateSampler(EsbTensor *true_classes, int64_t num_true, int64_t num_sampled, bool unique, int64_t range_max, int64_t seed, int64_t seed2);
+EsLearnedUnigramCandidateSamplerOutput EsLearnedUnigramCandidateSampler(EsbTensor *true_classes, int64_t num_true,
+                                                                        int64_t num_sampled, bool unique,
+                                                                        int64_t range_max, int64_t seed, int64_t seed2);
 EsbTensor *EsLeftShift(EsbTensor *x, EsbTensor *y);
 EsbTensor *EsLerp(EsbTensor *start, EsbTensor *end, EsbTensor *weight);
 EsbTensor *EsLess(EsbTensor *x1, EsbTensor *x2);
@@ -2239,7 +2947,9 @@ typedef struct {
   EsbTensor *true_expected_count;
   EsbTensor *sampled_expected_count;
 } EsLogUniformCandidateSamplerOutput;
-EsLogUniformCandidateSamplerOutput EsLogUniformCandidateSampler(EsbTensor *true_classes, int64_t num_true, int64_t num_sampled, bool unique, int64_t range_max, int64_t seed, int64_t seed2);
+EsLogUniformCandidateSamplerOutput EsLogUniformCandidateSampler(EsbTensor *true_classes, int64_t num_true,
+                                                                int64_t num_sampled, bool unique, int64_t range_max,
+                                                                int64_t seed, int64_t seed2);
 EsbTensor *EsLogicalAnd(EsbTensor *x1, EsbTensor *x2);
 EsbTensor *EsLogicalNot(EsbTensor *x);
 EsbTensor *EsLogicalOr(EsbTensor *x1, EsbTensor *x2);
@@ -2269,7 +2979,8 @@ EsbTensor *EsLpNormReduceV2(EsbTensor *x, float p, const int64_t *axes, int64_t 
 EsbTensor *EsLpNormUpdate(EsbTensor *x, int64_t p, float epsilon);
 EsbTensor *EsLpNormUpdateV2(EsbTensor *x, float p, float epsilon);
 EsbTensor *EsLpNormV2(EsbTensor *x, float p, const int64_t *axes, int64_t axes_num, bool keepdim, float epsilon);
-EsbTensor *EsLruCache(EsbGraph *owner_graph, af::DataType dtype, const char *container, const char *shared_name, int64_t cache_size, float load_factor);
+EsbTensor *EsLruCache(EsbGraph *owner_graph, af::DataType dtype, const char *container, const char *shared_name,
+                      int64_t cache_size, float load_factor);
 
 typedef struct {
   EsbTensor *lu;
@@ -2279,34 +2990,53 @@ EsLuOutput EsLu(EsbTensor *input, af::DataType output_idx_type);
 EsbTensor *EsMVN(EsbTensor *x, bool normalize_variance, bool across_channels, float eps);
 EsbTensor *EsMVNV2(EsbTensor *x, float eps, const int64_t *axes, int64_t axes_num);
 EsbTensor *EsMapIndex(EsbTensor *x, EsbTensor *data_seq, EsbTensor *level_index);
-EsbTensor *EsMask2Argmax(EsbTensor *x, EsbTensor *mask, const int64_t *ksize, int64_t ksize_num, const int64_t *strides, int64_t strides_num, const char *padding, const int64_t *originshape, int64_t originshape_num);
+EsbTensor *EsMask2Argmax(EsbTensor *x, EsbTensor *mask, const int64_t *ksize, int64_t ksize_num, const int64_t *strides,
+                         int64_t strides_num, const char *padding, const int64_t *originshape, int64_t originshape_num);
 EsbTensor *EsMaskedFill(EsbTensor *x, EsbTensor *mask, EsbTensor *value);
 EsbTensor *EsMaskedFillRange(EsbTensor *x, EsbTensor *start, EsbTensor *end, EsbTensor *value, int64_t axis);
 EsbTensor *EsMaskedScale(EsbTensor *x, EsbTensor *mask, float value);
 EsbTensor *EsMaskedScatter(EsbTensor *x, EsbTensor *mask, EsbTensor *updates);
 EsbTensor *EsMaskedSelect(EsbTensor *x, EsbTensor *mask);
 EsbTensor *EsMaskedSelectV2(EsbTensor *x, EsbTensor *mask);
-EsbTensor *EsMaskedSoftmaxWithRelPosBias(EsbTensor *x, EsbTensor *atten_mask, EsbTensor *relative_pos_bias, float scale_value, int64_t inner_precision_mode);
+EsbTensor *EsMaskedSoftmaxWithRelPosBias(EsbTensor *x, EsbTensor *atten_mask, EsbTensor *relative_pos_bias,
+                                         float scale_value, int64_t inner_precision_mode);
 EsbTensor *EsMatMul(EsbTensor *x1, EsbTensor *x2, EsbTensor *bias, bool transpose_x1, bool transpose_x2);
-EsbTensor *EsMatMulV2(EsbTensor *x1, EsbTensor *x2, EsbTensor *bias, EsbTensor *offset_w, bool transpose_x1, bool transpose_x2, int64_t offset_x);
-EsbTensor *EsMatMulV2Compress(EsbTensor *x1, EsbTensor *x2, EsbTensor *compress_index, EsbTensor *bias, EsbTensor *offset_w, bool transpose_x1, bool transpose_x2, int64_t offset_x, const char *alg);
-EsbTensor *EsMatMulV2CompressDequant(EsbTensor *x1, EsbTensor *x2, EsbTensor *compress_index, EsbTensor *deq_scale, EsbTensor *bias, EsbTensor *offset_w, bool transpose_x1, bool transpose_x2, const int64_t *compress_info, int64_t compress_info_num, int64_t offset_x, const char *alg);
-EsbTensor *EsMatMulV3(EsbTensor *x1, EsbTensor *x2, EsbTensor *bias, EsbTensor *offset_w, bool transpose_x1, bool transpose_x2, int64_t offset_x, bool enable_hf32);
-EsbTensor *EsMatmulAllReduce(EsbTensor *x1, EsbTensor *x2, EsbTensor *bias, EsbTensor *x3, EsbTensor *antiquant_scale, EsbTensor *antiquant_offset, EsbTensor *dequant_scale, EsbTensor *pertoken_scale, EsbTensor *comm_quant_scale_1, EsbTensor *comm_quant_scale_2, const char *group, const char *reduce_op, bool is_trans_a, bool is_trans_b, int64_t comm_turn, int64_t antiquant_group_size);
+EsbTensor *EsMatMulV2(EsbTensor *x1, EsbTensor *x2, EsbTensor *bias, EsbTensor *offset_w, bool transpose_x1,
+                      bool transpose_x2, int64_t offset_x);
+EsbTensor *EsMatMulV2Compress(EsbTensor *x1, EsbTensor *x2, EsbTensor *compress_index, EsbTensor *bias,
+                              EsbTensor *offset_w, bool transpose_x1, bool transpose_x2, int64_t offset_x,
+                              const char *alg);
+EsbTensor *EsMatMulV2CompressDequant(EsbTensor *x1, EsbTensor *x2, EsbTensor *compress_index, EsbTensor *deq_scale,
+                                     EsbTensor *bias, EsbTensor *offset_w, bool transpose_x1, bool transpose_x2,
+                                     const int64_t *compress_info, int64_t compress_info_num, int64_t offset_x,
+                                     const char *alg);
+EsbTensor *EsMatMulV3(EsbTensor *x1, EsbTensor *x2, EsbTensor *bias, EsbTensor *offset_w, bool transpose_x1,
+                      bool transpose_x2, int64_t offset_x, bool enable_hf32);
+EsbTensor *EsMatmulAllReduce(EsbTensor *x1, EsbTensor *x2, EsbTensor *bias, EsbTensor *x3, EsbTensor *antiquant_scale,
+                             EsbTensor *antiquant_offset, EsbTensor *dequant_scale, EsbTensor *pertoken_scale,
+                             EsbTensor *comm_quant_scale_1, EsbTensor *comm_quant_scale_2, const char *group,
+                             const char *reduce_op, bool is_trans_a, bool is_trans_b, int64_t comm_turn,
+                             int64_t antiquant_group_size);
 
 typedef struct {
   EsbTensor *y;
   EsbTensor *norm_out;
 } EsMatmulAllReduceAddRmsNormOutput;
-EsMatmulAllReduceAddRmsNormOutput EsMatmulAllReduceAddRmsNorm(EsbTensor *x1, EsbTensor *x2, EsbTensor *bias, EsbTensor *residual, EsbTensor *gamma, EsbTensor *antiquant_scale, EsbTensor *antiquant_offset, EsbTensor *dequant_scale, const char *group, const char *reduce_op, bool is_trans_a, bool is_trans_b, int64_t comm_turn, int64_t antiquant_group_size, float epsilon);
+EsMatmulAllReduceAddRmsNormOutput EsMatmulAllReduceAddRmsNorm(
+    EsbTensor *x1, EsbTensor *x2, EsbTensor *bias, EsbTensor *residual, EsbTensor *gamma, EsbTensor *antiquant_scale,
+    EsbTensor *antiquant_offset, EsbTensor *dequant_scale, const char *group, const char *reduce_op, bool is_trans_a,
+    bool is_trans_b, int64_t comm_turn, int64_t antiquant_group_size, float epsilon);
 
 typedef struct {
   EsbTensor *x2;
   EsbTensor *sum;
   EsbTensor *square_sum;
 } EsMatmulLayerNormReduceOutput;
-EsMatmulLayerNormReduceOutput EsMatmulLayerNormReduce(EsbTensor *x1, EsbTensor *weight, EsbTensor *bias, EsbTensor *x2, EsbTensor *x3);
-EsbTensor *EsMatmulReduceScatter(EsbTensor *x1, EsbTensor *x2, EsbTensor *bias, const char *group, const char *reduce_op, bool is_trans_a, bool is_trans_b, int64_t comm_turn, int64_t rank_size);
+EsMatmulLayerNormReduceOutput EsMatmulLayerNormReduce(EsbTensor *x1, EsbTensor *weight, EsbTensor *bias, EsbTensor *x2,
+                                                      EsbTensor *x3);
+EsbTensor *EsMatmulReduceScatter(EsbTensor *x1, EsbTensor *x2, EsbTensor *bias, const char *group,
+                                 const char *reduce_op, bool is_trans_a, bool is_trans_b, int64_t comm_turn,
+                                 int64_t rank_size);
 EsbTensor *EsMatrixBandPart(EsbTensor *x, EsbTensor *num_lower, EsbTensor *num_upper);
 EsbTensor *EsMatrixDeterminant(EsbTensor *x);
 EsbTensor *EsMatrixDiag(EsbTensor *x);
@@ -2315,8 +3045,10 @@ EsbTensor *EsMatrixDiagPart(EsbTensor *x);
 EsbTensor *EsMatrixDiagPartD(EsbTensor *x, EsbTensor *assist);
 EsbTensor *EsMatrixDiagPartV2(EsbTensor *input, EsbTensor *k, EsbTensor *padding_value);
 EsbTensor *EsMatrixDiagPartV3(EsbTensor *x, EsbTensor *k, EsbTensor *padding_value, const char *align);
-EsbTensor *EsMatrixDiagV2(EsbTensor *diagonal, EsbTensor *k, EsbTensor *num_rows, EsbTensor *num_cols, EsbTensor *padding_value);
-EsbTensor *EsMatrixDiagV3(EsbTensor *x, EsbTensor *k, EsbTensor *num_rows, EsbTensor *num_cols, EsbTensor *padding_value, const char *align);
+EsbTensor *EsMatrixDiagV2(EsbTensor *diagonal, EsbTensor *k, EsbTensor *num_rows, EsbTensor *num_cols,
+                          EsbTensor *padding_value);
+EsbTensor *EsMatrixDiagV3(EsbTensor *x, EsbTensor *k, EsbTensor *num_rows, EsbTensor *num_cols,
+                          EsbTensor *padding_value, const char *align);
 EsbTensor *EsMatrixInverse(EsbTensor *x, bool adjoint);
 EsbTensor *EsMatrixSetDiag(EsbTensor *x, EsbTensor *diagonal);
 EsbTensor *EsMatrixSetDiagD(EsbTensor *x, EsbTensor *diagonal, EsbTensor *assist);
@@ -2327,44 +3059,80 @@ EsbTensor *EsMatrixSolveLs(EsbTensor *matrix, EsbTensor *rhs, EsbTensor *l2, boo
 EsbTensor *EsMatrixSquareRoot(EsbTensor *input);
 EsbTensor *EsMatrixTriangularSolve(EsbTensor *matrix, EsbTensor *rhs, bool lower, bool adjoint);
 EsbTensor *EsMaxN(EsbTensor **x, int64_t x_num);
-EsbTensor *EsMaxPool(EsbTensor *x, const int64_t *ksize, int64_t ksize_num, const int64_t *strides, int64_t strides_num, const char *padding, const char *data_format);
-EsbTensor *EsMaxPool3D(EsbTensor *x, const int64_t *ksize, int64_t ksize_num, const int64_t *strides, int64_t strides_num, const char *padding, const int64_t *pads, int64_t pads_num, const int64_t *dilation, int64_t dilation_num, int64_t ceil_mode, const char *data_format);
-EsbTensor *EsMaxPool3DGrad(EsbTensor *orig_x, EsbTensor *orig_y, EsbTensor *grads, const int64_t *ksize, int64_t ksize_num, const int64_t *strides, int64_t strides_num, const int64_t *pads, int64_t pads_num, const char *padding, const char *data_format);
-EsbTensor *EsMaxPool3DGradGrad(EsbTensor *orig_x, EsbTensor *orig_y, EsbTensor *grads, const int64_t *ksize, int64_t ksize_num, const int64_t *strides, int64_t strides_num, const int64_t *pads, int64_t pads_num, const char *data_format);
+EsbTensor *EsMaxPool(EsbTensor *x, const int64_t *ksize, int64_t ksize_num, const int64_t *strides, int64_t strides_num,
+                     const char *padding, const char *data_format);
+EsbTensor *EsMaxPool3D(EsbTensor *x, const int64_t *ksize, int64_t ksize_num, const int64_t *strides,
+                       int64_t strides_num, const char *padding, const int64_t *pads, int64_t pads_num,
+                       const int64_t *dilation, int64_t dilation_num, int64_t ceil_mode, const char *data_format);
+EsbTensor *EsMaxPool3DGrad(EsbTensor *orig_x, EsbTensor *orig_y, EsbTensor *grads, const int64_t *ksize,
+                           int64_t ksize_num, const int64_t *strides, int64_t strides_num, const int64_t *pads,
+                           int64_t pads_num, const char *padding, const char *data_format);
+EsbTensor *EsMaxPool3DGradGrad(EsbTensor *orig_x, EsbTensor *orig_y, EsbTensor *grads, const int64_t *ksize,
+                               int64_t ksize_num, const int64_t *strides, int64_t strides_num, const int64_t *pads,
+                               int64_t pads_num, const char *data_format);
 
 typedef struct {
   EsbTensor *y;
   EsbTensor *argmax;
 } EsMaxPool3DWithArgmaxOutput;
-EsMaxPool3DWithArgmaxOutput EsMaxPool3DWithArgmax(EsbTensor *x, const int64_t *ksize, int64_t ksize_num, const int64_t *strides, int64_t strides_num, const int64_t *pads, int64_t pads_num, const int64_t *dilation, int64_t dilation_num, bool ceil_mode, const char *data_format, const char *argmax_type);
-EsbTensor *EsMaxPoolExt2(EsbTensor *x, const int64_t *ksize, int64_t ksize_num, const int64_t *strides, int64_t strides_num, const char *padding, const char *data_format);
-EsbTensor *EsMaxPoolGrad(EsbTensor *x1, EsbTensor *x2, EsbTensor *grad, const int64_t *ksize, int64_t ksize_num, const int64_t *strides, int64_t strides_num, const char *padding, const char *data_format);
-EsbTensor *EsMaxPoolGradGrad(EsbTensor *x1, EsbTensor *x2, EsbTensor *grad, const int64_t *ksize, int64_t ksize_num, const int64_t *strides, int64_t strides_num, const char *padding, const char *data_format);
-EsbTensor *EsMaxPoolGradGradWithArgmax(EsbTensor *x, EsbTensor *grad, EsbTensor *argmax, const int64_t *ksize, int64_t ksize_num, const int64_t *strides, int64_t strides_num, const char *padding);
-EsbTensor *EsMaxPoolGradWithArgmax(EsbTensor *x, EsbTensor *grad, EsbTensor *argmax, const int64_t *ksize, int64_t ksize_num, const int64_t *strides, int64_t strides_num, const char *padding);
-EsbTensor *EsMaxPoolGradWithArgmaxV1(EsbTensor *x, EsbTensor *grad, EsbTensor *argmax, const int64_t *ksize, int64_t ksize_num, const int64_t *strides, int64_t strides_num, const int64_t *pads, int64_t pads_num, int64_t dtype, const int64_t *dilation, int64_t dilation_num, bool ceil_mode);
-EsbTensor *EsMaxPoolGradWithArgmaxV2(EsbTensor *x, EsbTensor *grad, EsbTensor *argmax, const int64_t *ksize, int64_t ksize_num, const int64_t *strides, int64_t strides_num, const int64_t *pads, int64_t pads_num, int64_t dtype, const int64_t *dilation, int64_t dilation_num, bool ceil_mode);
-EsbTensor *EsMaxPoolV2(EsbTensor *x, EsbTensor *ksize, EsbTensor *strides, const char *padding, const char *data_format);
-EsbTensor *EsMaxPoolV3(EsbTensor *x, const int64_t *ksize, int64_t ksize_num, const int64_t *strides, int64_t strides_num, const char *padding_mode, const int64_t *pads, int64_t pads_num, const char *data_format, bool global_pooling, bool ceil_mode);
-EsbTensor *EsMaxPoolV3Grad(EsbTensor *orig_input, EsbTensor *orig_output, EsbTensor *grad, const int64_t *ksize, int64_t ksize_num, const int64_t *strides, int64_t strides_num, const char *padding_mode, const int64_t *pads, int64_t pads_num, const char *data_format, bool global_pooling, bool ceil_mode);
+EsMaxPool3DWithArgmaxOutput EsMaxPool3DWithArgmax(EsbTensor *x, const int64_t *ksize, int64_t ksize_num,
+                                                  const int64_t *strides, int64_t strides_num, const int64_t *pads,
+                                                  int64_t pads_num, const int64_t *dilation, int64_t dilation_num,
+                                                  bool ceil_mode, const char *data_format, const char *argmax_type);
+EsbTensor *EsMaxPoolExt2(EsbTensor *x, const int64_t *ksize, int64_t ksize_num, const int64_t *strides,
+                         int64_t strides_num, const char *padding, const char *data_format);
+EsbTensor *EsMaxPoolGrad(EsbTensor *x1, EsbTensor *x2, EsbTensor *grad, const int64_t *ksize, int64_t ksize_num,
+                         const int64_t *strides, int64_t strides_num, const char *padding, const char *data_format);
+EsbTensor *EsMaxPoolGradGrad(EsbTensor *x1, EsbTensor *x2, EsbTensor *grad, const int64_t *ksize, int64_t ksize_num,
+                             const int64_t *strides, int64_t strides_num, const char *padding, const char *data_format);
+EsbTensor *EsMaxPoolGradGradWithArgmax(EsbTensor *x, EsbTensor *grad, EsbTensor *argmax, const int64_t *ksize,
+                                       int64_t ksize_num, const int64_t *strides, int64_t strides_num,
+                                       const char *padding);
+EsbTensor *EsMaxPoolGradWithArgmax(EsbTensor *x, EsbTensor *grad, EsbTensor *argmax, const int64_t *ksize,
+                                   int64_t ksize_num, const int64_t *strides, int64_t strides_num, const char *padding);
+EsbTensor *EsMaxPoolGradWithArgmaxV1(EsbTensor *x, EsbTensor *grad, EsbTensor *argmax, const int64_t *ksize,
+                                     int64_t ksize_num, const int64_t *strides, int64_t strides_num,
+                                     const int64_t *pads, int64_t pads_num, int64_t dtype, const int64_t *dilation,
+                                     int64_t dilation_num, bool ceil_mode);
+EsbTensor *EsMaxPoolGradWithArgmaxV2(EsbTensor *x, EsbTensor *grad, EsbTensor *argmax, const int64_t *ksize,
+                                     int64_t ksize_num, const int64_t *strides, int64_t strides_num,
+                                     const int64_t *pads, int64_t pads_num, int64_t dtype, const int64_t *dilation,
+                                     int64_t dilation_num, bool ceil_mode);
+EsbTensor *EsMaxPoolV2(EsbTensor *x, EsbTensor *ksize, EsbTensor *strides, const char *padding,
+                       const char *data_format);
+EsbTensor *EsMaxPoolV3(EsbTensor *x, const int64_t *ksize, int64_t ksize_num, const int64_t *strides,
+                       int64_t strides_num, const char *padding_mode, const int64_t *pads, int64_t pads_num,
+                       const char *data_format, bool global_pooling, bool ceil_mode);
+EsbTensor *EsMaxPoolV3Grad(EsbTensor *orig_input, EsbTensor *orig_output, EsbTensor *grad, const int64_t *ksize,
+                           int64_t ksize_num, const int64_t *strides, int64_t strides_num, const char *padding_mode,
+                           const int64_t *pads, int64_t pads_num, const char *data_format, bool global_pooling,
+                           bool ceil_mode);
 
 typedef struct {
   EsbTensor *y;
   EsbTensor *argmax;
 } EsMaxPoolWithArgmaxOutput;
-EsMaxPoolWithArgmaxOutput EsMaxPoolWithArgmax(EsbTensor *x, const int64_t *ksize, int64_t ksize_num, const int64_t *strides, int64_t strides_num, const char *padding, int64_t Targmax);
+EsMaxPoolWithArgmaxOutput EsMaxPoolWithArgmax(EsbTensor *x, const int64_t *ksize, int64_t ksize_num,
+                                              const int64_t *strides, int64_t strides_num, const char *padding,
+                                              int64_t Targmax);
 
 typedef struct {
   EsbTensor *y;
   EsbTensor *argmax;
 } EsMaxPoolWithArgmaxV1Output;
-EsMaxPoolWithArgmaxV1Output EsMaxPoolWithArgmaxV1(EsbTensor *x, const int64_t *ksize, int64_t ksize_num, const int64_t *strides, int64_t strides_num, const int64_t *pads, int64_t pads_num, int64_t dtype, const int64_t *dilation, int64_t dilation_num, bool ceil_mode);
+EsMaxPoolWithArgmaxV1Output EsMaxPoolWithArgmaxV1(EsbTensor *x, const int64_t *ksize, int64_t ksize_num,
+                                                  const int64_t *strides, int64_t strides_num, const int64_t *pads,
+                                                  int64_t pads_num, int64_t dtype, const int64_t *dilation,
+                                                  int64_t dilation_num, bool ceil_mode);
 
 typedef struct {
   EsbTensor *y;
   EsbTensor *argmax;
 } EsMaxPoolWithArgmaxV2Output;
-EsMaxPoolWithArgmaxV2Output EsMaxPoolWithArgmaxV2(EsbTensor *x, const int64_t *ksize, int64_t ksize_num, const int64_t *strides, int64_t strides_num, const int64_t *pads, int64_t pads_num, int64_t dtype, const int64_t *dilation, int64_t dilation_num, bool ceil_mode);
+EsMaxPoolWithArgmaxV2Output EsMaxPoolWithArgmaxV2(EsbTensor *x, const int64_t *ksize, int64_t ksize_num,
+                                                  const int64_t *strides, int64_t strides_num, const int64_t *pads,
+                                                  int64_t pads_num, int64_t dtype, const int64_t *dilation,
+                                                  int64_t dilation_num, bool ceil_mode);
 EsbTensor *EsMaximum(EsbTensor *x1, EsbTensor *x2);
 
 typedef struct {
@@ -2378,7 +3146,8 @@ typedef struct {
   EsbTensor *value_index;
 } EsMergeOutput;
 EsMergeOutput EsMerge(EsbTensor **x, int64_t x_num);
-EsbTensor *EsMfcc(EsbTensor *spectrogram, EsbTensor *sample_rate, float upper_frequency_limit, float lower_frequency_limit, int64_t filterbank_channel_count, int64_t dct_coefficient_count);
+EsbTensor *EsMfcc(EsbTensor *spectrogram, EsbTensor *sample_rate, float upper_frequency_limit,
+                  float lower_frequency_limit, int64_t filterbank_channel_count, int64_t dct_coefficient_count);
 EsbTensor *EsMinAreaPolygons(EsbTensor *pointsets);
 EsbTensor *EsMinimum(EsbTensor *x1, EsbTensor *x2);
 
@@ -2393,14 +3162,20 @@ EsbTensor *EsMish(EsbTensor *x);
 EsbTensor *EsMishGrad(EsbTensor *grad, EsbTensor *x, EsbTensor *tanhx);
 EsbTensor *EsMod(EsbTensor *x1, EsbTensor *x2);
 EsbTensor *EsMoeComputeExpertTokens(EsbTensor *sorted_experts, int64_t num_experts);
-EsbTensor *EsMoeFinalizeRouting(EsbTensor *expanded_x, EsbTensor *x1, EsbTensor *x2, EsbTensor *bias, EsbTensor *scales, EsbTensor *expanded_row_idx, EsbTensor *expanded_expert_idx);
-EsbTensor *EsMoeFinalizeRoutingV2(EsbTensor *expanded_x, EsbTensor *expanded_row_idx, EsbTensor *x1, EsbTensor *x2, EsbTensor *bias, EsbTensor *scales, EsbTensor *expert_idx, int64_t drop_pad_mode);
+EsbTensor *EsMoeFinalizeRouting(EsbTensor *expanded_x, EsbTensor *x1, EsbTensor *x2, EsbTensor *bias, EsbTensor *scales,
+                                EsbTensor *expanded_row_idx, EsbTensor *expanded_expert_idx);
+EsbTensor *EsMoeFinalizeRoutingV2(EsbTensor *expanded_x, EsbTensor *expanded_row_idx, EsbTensor *x1, EsbTensor *x2,
+                                  EsbTensor *bias, EsbTensor *scales, EsbTensor *expert_idx, int64_t drop_pad_mode);
 
 typedef struct {
   EsbTensor *grad_expanded_x;
   EsbTensor *grad_scales;
 } EsMoeFinalizeRoutingV2GradOutput;
-EsMoeFinalizeRoutingV2GradOutput EsMoeFinalizeRoutingV2Grad(EsbTensor *grad_y, EsbTensor *expanded_row_idx, EsbTensor *expanded_x, EsbTensor *scales, EsbTensor *expert_idx, EsbTensor *bias, int64_t drop_pad_mode, int64_t active_num, int64_t expert_num, int64_t expert_capacity);
+EsMoeFinalizeRoutingV2GradOutput EsMoeFinalizeRoutingV2Grad(EsbTensor *grad_y, EsbTensor *expanded_row_idx,
+                                                            EsbTensor *expanded_x, EsbTensor *scales,
+                                                            EsbTensor *expert_idx, EsbTensor *bias,
+                                                            int64_t drop_pad_mode, int64_t active_num,
+                                                            int64_t expert_num, int64_t expert_capacity);
 
 typedef struct {
   EsbTensor *y;
@@ -2414,7 +3189,8 @@ typedef struct {
   EsbTensor *expert_idx;
   EsbTensor *softmax_result;
 } EsMoeGatingTopKSoftmaxV2Output;
-EsMoeGatingTopKSoftmaxV2Output EsMoeGatingTopKSoftmaxV2(EsbTensor *x, EsbTensor *finished, int64_t k, int64_t renorm, bool output_softmax_result_flag);
+EsMoeGatingTopKSoftmaxV2Output EsMoeGatingTopKSoftmaxV2(EsbTensor *x, EsbTensor *finished, int64_t k, int64_t renorm,
+                                                        bool output_softmax_result_flag);
 
 typedef struct {
   EsbTensor *expanded_x;
@@ -2428,7 +3204,8 @@ typedef struct {
   EsbTensor *expanded_row_idx;
   EsbTensor *expanded_expert_idx;
 } EsMoeInitRoutingQuantOutput;
-EsMoeInitRoutingQuantOutput EsMoeInitRoutingQuant(EsbTensor *x, EsbTensor *row_idx, EsbTensor *expert_idx, int64_t active_num, float scale, float offset);
+EsMoeInitRoutingQuantOutput EsMoeInitRoutingQuant(EsbTensor *x, EsbTensor *row_idx, EsbTensor *expert_idx,
+                                                  int64_t active_num, float scale, float offset);
 
 typedef struct {
   EsbTensor *expanded_x;
@@ -2437,8 +3214,13 @@ typedef struct {
   EsbTensor *expert_tokens_before_capacity;
   EsbTensor *dynamic_quant_scale;
 } EsMoeInitRoutingQuantV2Output;
-EsMoeInitRoutingQuantV2Output EsMoeInitRoutingQuantV2(EsbTensor *x, EsbTensor *expert_idx, EsbTensor *scale, EsbTensor *offset, int64_t active_num, int64_t expert_capacity, int64_t expert_num, int64_t drop_pad_mode, int64_t expert_tokens_count_or_cumsum_flag, bool expert_tokens_before_capacity_flag, int64_t quant_mode);
-EsbTensor *EsMoeInitRoutingV2Grad(EsbTensor *grad_expanded_x, EsbTensor *expanded_row_idx, int64_t top_k, int64_t drop_pad_mode, int64_t active_num);
+EsMoeInitRoutingQuantV2Output EsMoeInitRoutingQuantV2(EsbTensor *x, EsbTensor *expert_idx, EsbTensor *scale,
+                                                      EsbTensor *offset, int64_t active_num, int64_t expert_capacity,
+                                                      int64_t expert_num, int64_t drop_pad_mode,
+                                                      int64_t expert_tokens_count_or_cumsum_flag,
+                                                      bool expert_tokens_before_capacity_flag, int64_t quant_mode);
+EsbTensor *EsMoeInitRoutingV2Grad(EsbTensor *grad_expanded_x, EsbTensor *expanded_row_idx, int64_t top_k,
+                                  int64_t drop_pad_mode, int64_t active_num);
 EsbTensor *EsMovingSumWithSigmoid(EsbTensor *alpha, EsbTensor *energy, EsbTensor *offset, int64_t ksize);
 EsbTensor *EsMseLoss(EsbTensor *predict, EsbTensor *label, const char *reduction);
 EsbTensor *EsMseLossGrad(EsbTensor *predict, EsbTensor *label, EsbTensor *dout, const char *reduction);
@@ -2456,7 +3238,13 @@ typedef struct {
   EsbTensor *attn_res;
   EsbTensor *context;
 } EsMultiHeadAttentionOutput;
-EsMultiHeadAttentionOutput EsMultiHeadAttention(EsbTensor *query, EsbTensor *key, EsbTensor *value, EsbTensor *query_weight, EsbTensor *key_weight, EsbTensor *value_weight, EsbTensor *attn_mask, EsbTensor *out_proj_weight, EsbTensor *query_bias, EsbTensor *key_bias, EsbTensor *value_bias, EsbTensor *out_proj_bias, EsbTensor *dropout_mask_input, int64_t attn_head_num, int64_t attn_dim_per_head, int64_t src_len, int64_t tgt_len, float keep_prob, bool softmax_use_float);
+EsMultiHeadAttentionOutput EsMultiHeadAttention(EsbTensor *query, EsbTensor *key, EsbTensor *value,
+                                                EsbTensor *query_weight, EsbTensor *key_weight, EsbTensor *value_weight,
+                                                EsbTensor *attn_mask, EsbTensor *out_proj_weight, EsbTensor *query_bias,
+                                                EsbTensor *key_bias, EsbTensor *value_bias, EsbTensor *out_proj_bias,
+                                                EsbTensor *dropout_mask_input, int64_t attn_head_num,
+                                                int64_t attn_dim_per_head, int64_t src_len, int64_t tgt_len,
+                                                float keep_prob, bool softmax_use_float);
 
 typedef struct {
   EsbTensor *query_weight_grad;
@@ -2471,13 +3259,22 @@ typedef struct {
   EsbTensor *value_bias_grad;
   EsbTensor *out_proj_bias_grad;
 } EsMultiHeadAttentionGradOutput;
-EsMultiHeadAttentionGradOutput EsMultiHeadAttentionGrad(EsbTensor *query, EsbTensor *key, EsbTensor *value, EsbTensor *query_weight, EsbTensor *key_weight, EsbTensor *value_weight, EsbTensor *out_proj_weight, EsbTensor *query_res, EsbTensor *key_res, EsbTensor *value_res, EsbTensor *attn_scores, EsbTensor *attn_res, EsbTensor *context, EsbTensor *y_grad, EsbTensor *dropout_mask, int64_t attn_head_num, int64_t attn_dim_per_head, int64_t src_len, int64_t tgt_len, float keep_prob, bool softmax_use_float, const bool *bias_grad_mask, int64_t bias_grad_mask_num);
+EsMultiHeadAttentionGradOutput EsMultiHeadAttentionGrad(
+    EsbTensor *query, EsbTensor *key, EsbTensor *value, EsbTensor *query_weight, EsbTensor *key_weight,
+    EsbTensor *value_weight, EsbTensor *out_proj_weight, EsbTensor *query_res, EsbTensor *key_res, EsbTensor *value_res,
+    EsbTensor *attn_scores, EsbTensor *attn_res, EsbTensor *context, EsbTensor *y_grad, EsbTensor *dropout_mask,
+    int64_t attn_head_num, int64_t attn_dim_per_head, int64_t src_len, int64_t tgt_len, float keep_prob,
+    bool softmax_use_float, const bool *bias_grad_mask, int64_t bias_grad_mask_num);
 
 typedef struct {
   EsbTensor *softmax_out;
   EsbTensor *attention_out;
 } EsMultiHeadAttentionScoreOutput;
-EsMultiHeadAttentionScoreOutput EsMultiHeadAttentionScore(EsbTensor *query, EsbTensor *key, EsbTensor *value, EsbTensor *pse_shift, EsbTensor *drop_mask, EsbTensor *padding_mask, EsbTensor *atten_mask, int64_t head_num, const char *input_layout, float scale_value, float keep_prob, int64_t pre_tockens, int64_t next_tockens);
+EsMultiHeadAttentionScoreOutput EsMultiHeadAttentionScore(EsbTensor *query, EsbTensor *key, EsbTensor *value,
+                                                          EsbTensor *pse_shift, EsbTensor *drop_mask,
+                                                          EsbTensor *padding_mask, EsbTensor *atten_mask,
+                                                          int64_t head_num, const char *input_layout, float scale_value,
+                                                          float keep_prob, int64_t pre_tockens, int64_t next_tockens);
 
 typedef struct {
   EsbTensor *dq;
@@ -2485,7 +3282,10 @@ typedef struct {
   EsbTensor *dv;
   EsbTensor *dpse;
 } EsMultiHeadAttentionScoreGradOutput;
-EsMultiHeadAttentionScoreGradOutput EsMultiHeadAttentionScoreGrad(EsbTensor *query, EsbTensor *key, EsbTensor *value, EsbTensor *dy, EsbTensor *pse_shift, EsbTensor *drop_mask, EsbTensor *padding_mask, EsbTensor *atten_mask, EsbTensor *softmax_in, EsbTensor *attention_in, int64_t head_num, const char *input_layout, float scale_value, float keep_prob, int64_t pre_tockens, int64_t next_tockens);
+EsMultiHeadAttentionScoreGradOutput EsMultiHeadAttentionScoreGrad(
+    EsbTensor *query, EsbTensor *key, EsbTensor *value, EsbTensor *dy, EsbTensor *pse_shift, EsbTensor *drop_mask,
+    EsbTensor *padding_mask, EsbTensor *atten_mask, EsbTensor *softmax_in, EsbTensor *attention_in, int64_t head_num,
+    const char *input_layout, float scale_value, float keep_prob, int64_t pre_tockens, int64_t next_tockens);
 
 typedef struct {
   EsbTensor *output_proposal;
@@ -2498,8 +3298,12 @@ typedef struct {
   EsbTensor *grad_sampling_locations;
   EsbTensor *grad_attention_weights;
 } EsMultiScaleDeformableAttentionGradOutput;
-EsMultiScaleDeformableAttentionGradOutput EsMultiScaleDeformableAttentionGrad(EsbTensor *value, EsbTensor *value_spatial_shapes, EsbTensor *value_level_start_index, EsbTensor *sampling_locations, EsbTensor *attention_weights, EsbTensor *grad_output);
-EsbTensor *EsMultiScaleDeformableAttnFunction(EsbTensor *value, EsbTensor *value_spatial_shapes, EsbTensor *value_level_start_index, EsbTensor *sampling_locations, EsbTensor *attention_weights);
+EsMultiScaleDeformableAttentionGradOutput EsMultiScaleDeformableAttentionGrad(
+    EsbTensor *value, EsbTensor *value_spatial_shapes, EsbTensor *value_level_start_index,
+    EsbTensor *sampling_locations, EsbTensor *attention_weights, EsbTensor *grad_output);
+EsbTensor *EsMultiScaleDeformableAttnFunction(EsbTensor *value, EsbTensor *value_spatial_shapes,
+                                              EsbTensor *value_level_start_index, EsbTensor *sampling_locations,
+                                              EsbTensor *attention_weights);
 
 typedef struct {
   EsbTensor *y;
@@ -2515,17 +3319,26 @@ typedef struct {
 } EsMultinomialAliasSetupOutput;
 EsMultinomialAliasSetupOutput EsMultinomialAliasSetup(EsbTensor *probs);
 EsbTensor *EsMultinomialFuss(EsbTensor *x, int64_t dtype, int64_t sample_size, float seed);
-EsbTensor *EsMultinomialWithReplacement(EsbTensor *x, EsbTensor *seed, EsbTensor *offset, int64_t numsamples, bool replacement);
-EsbTensor *EsMutableDenseHashTable(EsbTensor *empty_key, EsbTensor *deleted_key, af::DataType value_dtype, const char *container, const char *shared_name, bool use_node_name_sharing, const int64_t *value_shape, int64_t value_shape_num, int64_t initial_num_buckets, float max_load_factor);
-EsbTensor *EsMutableHashTable(EsbGraph *owner_graph, af::DataType key_dtype, af::DataType value_dtype, const char *container, const char *shared_name, bool use_node_name_sharing);
-EsbTensor *EsMutableHashTableOfTensors(EsbGraph *owner_graph, af::DataType key_dtype, af::DataType value_dtype, const char *container, const char *shared_name, bool use_node_name_sharing, const int64_t *value_shape, int64_t value_shape_num);
+EsbTensor *EsMultinomialWithReplacement(EsbTensor *x, EsbTensor *seed, EsbTensor *offset, int64_t numsamples,
+                                        bool replacement);
+EsbTensor *EsMutableDenseHashTable(EsbTensor *empty_key, EsbTensor *deleted_key, af::DataType value_dtype,
+                                   const char *container, const char *shared_name, bool use_node_name_sharing,
+                                   const int64_t *value_shape, int64_t value_shape_num, int64_t initial_num_buckets,
+                                   float max_load_factor);
+EsbTensor *EsMutableHashTable(EsbGraph *owner_graph, af::DataType key_dtype, af::DataType value_dtype,
+                              const char *container, const char *shared_name, bool use_node_name_sharing);
+EsbTensor *EsMutableHashTableOfTensors(EsbGraph *owner_graph, af::DataType key_dtype, af::DataType value_dtype,
+                                       const char *container, const char *shared_name, bool use_node_name_sharing,
+                                       const int64_t *value_shape, int64_t value_shape_num);
 
 typedef struct {
   EsbTensor *y;
   EsbTensor *total_weight;
 } EsNLLLossOutput;
-EsNLLLossOutput EsNLLLoss(EsbTensor *x, EsbTensor *target, EsbTensor *weight, const char *reduction, int64_t ignore_index);
-EsbTensor *EsNLLLossGrad(EsbTensor *x, EsbTensor *y_grad, EsbTensor *target, EsbTensor *weight, EsbTensor *total_weight, const char *reduction, int64_t ignore_index);
+EsNLLLossOutput EsNLLLoss(EsbTensor *x, EsbTensor *target, EsbTensor *weight, const char *reduction,
+                          int64_t ignore_index);
+EsbTensor *EsNLLLossGrad(EsbTensor *x, EsbTensor *y_grad, EsbTensor *target, EsbTensor *weight, EsbTensor *total_weight,
+                         const char *reduction, int64_t ignore_index);
 
 typedef struct {
   EsbTensor *selected_boxes;
@@ -2564,25 +3377,40 @@ typedef struct {
   EsbTensor *output_nmsed_score;
   EsbTensor *output_nmsed_class;
 } EsNonMaxSuppressionBucketizeOutput;
-EsNonMaxSuppressionBucketizeOutput EsNonMaxSuppressionBucketize(EsbTensor *input_nmsed_boxes, EsbTensor *input_nmsed_score, EsbTensor *input_nmsed_class, EsbTensor *input_nmsed_num);
-EsbTensor *EsNonMaxSuppressionV2(EsbTensor *boxes, EsbTensor *scores, EsbTensor *max_output_size, EsbTensor *iou_threshold);
-EsbTensor *EsNonMaxSuppressionV3(EsbTensor *boxes, EsbTensor *scores, EsbTensor *max_output_size, EsbTensor *iou_threshold, EsbTensor *score_threshold, int64_t offset);
+EsNonMaxSuppressionBucketizeOutput EsNonMaxSuppressionBucketize(EsbTensor *input_nmsed_boxes,
+                                                                EsbTensor *input_nmsed_score,
+                                                                EsbTensor *input_nmsed_class,
+                                                                EsbTensor *input_nmsed_num);
+EsbTensor *EsNonMaxSuppressionV2(EsbTensor *boxes, EsbTensor *scores, EsbTensor *max_output_size,
+                                 EsbTensor *iou_threshold);
+EsbTensor *EsNonMaxSuppressionV3(EsbTensor *boxes, EsbTensor *scores, EsbTensor *max_output_size,
+                                 EsbTensor *iou_threshold, EsbTensor *score_threshold, int64_t offset);
 
 typedef struct {
   EsbTensor *selected_indices;
   EsbTensor *valid_outputs;
 } EsNonMaxSuppressionV4Output;
-EsNonMaxSuppressionV4Output EsNonMaxSuppressionV4(EsbTensor *boxes, EsbTensor *scores, EsbTensor *max_output_size, EsbTensor *iou_threshold, EsbTensor *score_threshold, bool pad_to_max_output_size);
+EsNonMaxSuppressionV4Output EsNonMaxSuppressionV4(EsbTensor *boxes, EsbTensor *scores, EsbTensor *max_output_size,
+                                                  EsbTensor *iou_threshold, EsbTensor *score_threshold,
+                                                  bool pad_to_max_output_size);
 
 typedef struct {
   EsbTensor *selected_indices;
   EsbTensor *selected_scores;
   EsbTensor *valid_outputs;
 } EsNonMaxSuppressionV5Output;
-EsNonMaxSuppressionV5Output EsNonMaxSuppressionV5(EsbTensor *boxes, EsbTensor *scores, EsbTensor *max_output_size, EsbTensor *iou_threshold, EsbTensor *score_threshold, EsbTensor *soft_nms_sigma, af::DataType T, bool pad_to_max_output_size);
-EsbTensor *EsNonMaxSuppressionV6(EsbTensor *boxes, EsbTensor *scores, EsbTensor *max_output_size, EsbTensor *iou_threshold, EsbTensor *score_threshold, int64_t center_point_box, int64_t max_boxes_size);
-EsbTensor *EsNonMaxSuppressionV7(EsbTensor *boxes, EsbTensor *scores, EsbTensor *max_output_size, EsbTensor *iou_threshold, EsbTensor *score_threshold, EsbTensor *index_id, int64_t center_point_box, int64_t max_boxes_size);
-EsbTensor *EsNonMaxSuppressionWithOverlaps(EsbTensor *overlaps, EsbTensor *scores, EsbTensor *max_output_size, EsbTensor *overlap_threshold, EsbTensor *score_threshold);
+EsNonMaxSuppressionV5Output EsNonMaxSuppressionV5(EsbTensor *boxes, EsbTensor *scores, EsbTensor *max_output_size,
+                                                  EsbTensor *iou_threshold, EsbTensor *score_threshold,
+                                                  EsbTensor *soft_nms_sigma, af::DataType T,
+                                                  bool pad_to_max_output_size);
+EsbTensor *EsNonMaxSuppressionV6(EsbTensor *boxes, EsbTensor *scores, EsbTensor *max_output_size,
+                                 EsbTensor *iou_threshold, EsbTensor *score_threshold, int64_t center_point_box,
+                                 int64_t max_boxes_size);
+EsbTensor *EsNonMaxSuppressionV7(EsbTensor *boxes, EsbTensor *scores, EsbTensor *max_output_size,
+                                 EsbTensor *iou_threshold, EsbTensor *score_threshold, EsbTensor *index_id,
+                                 int64_t center_point_box, int64_t max_boxes_size);
+EsbTensor *EsNonMaxSuppressionWithOverlaps(EsbTensor *overlaps, EsbTensor *scores, EsbTensor *max_output_size,
+                                           EsbTensor *overlap_threshold, EsbTensor *score_threshold);
 EsbTensor *EsNonZero(EsbTensor *x, bool transpose, af::DataType dtype);
 
 typedef struct {
@@ -2617,7 +3445,8 @@ typedef struct {
   EsbTensor *imgs_size;
   EsbTensor *rect_points;
 } EsOCRDetectionPostHandleOutput;
-EsOCRDetectionPostHandleOutput EsOCRDetectionPostHandle(EsbTensor *img, EsbTensor *polys_data, EsbTensor *polys_offset, EsbTensor *polys_size, const char *data_format);
+EsOCRDetectionPostHandleOutput EsOCRDetectionPostHandle(EsbTensor *img, EsbTensor *polys_data, EsbTensor *polys_offset,
+                                                        EsbTensor *polys_size, const char *data_format);
 
 typedef struct {
   EsbTensor *resized_img;
@@ -2632,7 +3461,8 @@ typedef struct {
   EsbTensor *polys_size;
 } EsOCRFindContoursOutput;
 EsOCRFindContoursOutput EsOCRFindContours(EsbTensor *img, int64_t value_mode);
-EsbTensor *EsOCRIdentifyPreHandle(EsbTensor *imgs_data, EsbTensor *imgs_offset, EsbTensor *imgs_size, const int64_t *size, int64_t size_num, const char *data_format);
+EsbTensor *EsOCRIdentifyPreHandle(EsbTensor *imgs_data, EsbTensor *imgs_offset, EsbTensor *imgs_size,
+                                  const int64_t *size, int64_t size_num, const char *data_format);
 
 typedef struct {
   EsbTensor *imgs;
@@ -2640,7 +3470,10 @@ typedef struct {
   EsbTensor *imgs_lang;
   EsbTensor *imgs_piece_fillers;
 } EsOCRRecognitionPreHandleOutput;
-EsOCRRecognitionPreHandleOutput EsOCRRecognitionPreHandle(EsbTensor *imgs_data, EsbTensor *imgs_offset, EsbTensor *imgs_size, EsbTensor *langs, EsbTensor *langs_score, int64_t batch_size, const char *data_format, const char *pad_mode);
+EsOCRRecognitionPreHandleOutput EsOCRRecognitionPreHandle(EsbTensor *imgs_data, EsbTensor *imgs_offset,
+                                                          EsbTensor *imgs_size, EsbTensor *langs,
+                                                          EsbTensor *langs_score, int64_t batch_size,
+                                                          const char *data_format, const char *pad_mode);
 EsbTensor *EsOneHot(EsbTensor *x, EsbTensor *depth, EsbTensor *on_value, EsbTensor *off_value, int64_t axis);
 EsbTensor *EsOneHotD(EsbTensor *x, EsbTensor *on_value, EsbTensor *off_value, int64_t depth, int64_t axis);
 EsbTensor *EsOnesLike(EsbTensor *x);
@@ -2651,13 +3484,15 @@ typedef struct {
   EsbTensor *block_dim;
   EsbTensor *tiling_cond;
 } EsOpTilingOutput;
-EsOpTilingOutput EsOpTiling(EsbTensor **x, int64_t x_num, EsbTensor **output_shape, int64_t output_shape_num, const char *tiling_node, const char *op_type);
+EsOpTilingOutput EsOpTiling(EsbTensor **x, int64_t x_num, EsbTensor **output_shape, int64_t output_shape_num,
+                            const char *tiling_node, const char *op_type);
 
 // OutfeedEnqueueOp does not produce an output, so the returned EsTensor cannot be used to connect edges.
 EsbTensor *EsOutfeedEnqueueOp(EsbTensor **x, int64_t x_num, const char *channel_name);
 
 // OutfeedEnqueueOpV2 does not produce an output, so the returned EsTensor cannot be used to connect edges.
-EsbTensor *EsOutfeedEnqueueOpV2(EsbTensor **x, int64_t x_num, EsbTensor *tensor_name, const char *channel_name, int64_t slice_size, int64_t wait_time, bool slice_sync);
+EsbTensor *EsOutfeedEnqueueOpV2(EsbTensor **x, int64_t x_num, EsbTensor *tensor_name, const char *channel_name,
+                                int64_t slice_size, int64_t wait_time, bool slice_sync);
 EsbTensor *EsPRelu(EsbTensor *x, EsbTensor *weight);
 
 typedef struct {
@@ -2665,32 +3500,43 @@ typedef struct {
   EsbTensor *da;
 } EsPReluGradOutput;
 EsPReluGradOutput EsPReluGrad(EsbTensor *grads, EsbTensor *features, EsbTensor *weights);
-EsbTensor *EsPSAMask(EsbTensor *x, int64_t psa_type, int64_t num, int64_t h_feature, int64_t w_feature, int64_t h_mask, int64_t w_mask, int64_t half_h_mask, int64_t half_w_mask);
-EsbTensor *EsPSAMaskGrad(EsbTensor *y_grad, int64_t psa_type, int64_t num, int64_t h_feature, int64_t w_feature, int64_t h_mask, int64_t w_mask, int64_t half_h_mask, int64_t half_w_mask);
+EsbTensor *EsPSAMask(EsbTensor *x, int64_t psa_type, int64_t num, int64_t h_feature, int64_t w_feature, int64_t h_mask,
+                     int64_t w_mask, int64_t half_h_mask, int64_t half_w_mask);
+EsbTensor *EsPSAMaskGrad(EsbTensor *y_grad, int64_t psa_type, int64_t num, int64_t h_feature, int64_t w_feature,
+                         int64_t h_mask, int64_t w_mask, int64_t half_h_mask, int64_t half_w_mask);
 EsbTensor *EsPSROIPooling(EsbTensor *x, EsbTensor *rois, int64_t output_dim, int64_t group_size, float spatial_scale);
-EsbTensor *EsPSROIPoolingGradV2D(EsbTensor *x, EsbTensor *rois, float spatial_scale, int64_t output_dim, int64_t group_size, const int64_t *input_size, int64_t input_size_num);
+EsbTensor *EsPSROIPoolingGradV2D(EsbTensor *x, EsbTensor *rois, float spatial_scale, int64_t output_dim,
+                                 int64_t group_size, const int64_t *input_size, int64_t input_size_num);
 EsbTensor *EsPSROIPoolingV2(EsbTensor *x, EsbTensor *rois, float spatial_scale, int64_t output_dim, int64_t group_size);
 EsbTensor *EsPack(EsbTensor **x, int64_t x_num, int64_t axis, int64_t N);
 EsbTensor *EsPad(EsbTensor *x, EsbTensor *paddings);
 EsbTensor *EsPadV2(EsbTensor *x, EsbTensor *paddings, EsbTensor *constant_values);
-EsbTensor *EsPadV3(EsbTensor *x, EsbTensor *paddings, EsbTensor *constant_values, const char *mode, bool paddings_contiguous);
+EsbTensor *EsPadV3(EsbTensor *x, EsbTensor *paddings, EsbTensor *constant_values, const char *mode,
+                   bool paddings_contiguous);
 EsbTensor *EsPadV3Grad(EsbTensor *x, EsbTensor *paddings, const char *mode, bool paddings_contiguous);
 EsbTensor *EsParallelConcat(EsbTensor **values, int64_t values_num, const int64_t *shape, int64_t shape_num, int64_t N);
 EsbTensor *EsParallelDynamicStitch(EsbTensor **indices, int64_t indices_num, EsbTensor **x, int64_t x_num, int64_t N);
-EsbTensor *EsParameterizedTruncatedNormal(EsbTensor *shape, EsbTensor *means, EsbTensor *stdevs, EsbTensor *min, EsbTensor *max, int64_t seed, int64_t seed2);
+EsbTensor *EsParameterizedTruncatedNormal(EsbTensor *shape, EsbTensor *means, EsbTensor *stdevs, EsbTensor *min,
+                                          EsbTensor *max, int64_t seed, int64_t seed2);
 EsbTensor *EsParseTensor(EsbTensor *serialized, af::DataType out_type);
 EsbTensor *EsPassThrough(EsbTensor *x, int64_t stride, bool reverse);
-EsbTensor *EsPasteSubImg(EsbTensor *patch_img, EsbTensor *patch_coord, EsbTensor *core_area_coord, EsbTensor *combine_img, float scale);
+EsbTensor *EsPasteSubImg(EsbTensor *patch_img, EsbTensor *patch_coord, EsbTensor *core_area_coord,
+                         EsbTensor *combine_img, float scale);
 EsbTensor *EsPdist(EsbTensor *x, float p);
 EsbTensor *EsPermute(EsbTensor *x, const int64_t *order, int64_t order_num);
-EsbTensor *EsPhonyConcat(EsbTensor **x, int64_t x_num, const int64_t *concat_dim, int64_t concat_dim_num, const int64_t *N, int64_t N_num, bool keep_input_offset);
+EsbTensor *EsPhonyConcat(EsbTensor **x, int64_t x_num, const int64_t *concat_dim, int64_t concat_dim_num,
+                         const int64_t *N, int64_t N_num, bool keep_input_offset);
 EsbTensor *EsPinverse(EsbTensor *x, float rcond);
-EsbTensor *EsPlaceHolder(EsbTensor *x, int64_t peerIndex, const char *parentId, const char *parentOpType, int64_t anchorIndex);
+EsbTensor *EsPlaceHolder(EsbTensor *x, int64_t peerIndex, const char *parentId, const char *parentOpType,
+                         int64_t anchorIndex);
 EsbTensor *EsPlaceholderWithDefault(EsbTensor *x, const int64_t *shape, int64_t shape_num);
 EsbTensor *EsPointsInPolygons(EsbTensor *points, EsbTensor *polygons);
 EsbTensor *EsPoisson(EsbTensor *x, int64_t seed);
-EsbTensor *EsPoissonNllLoss(EsbTensor *input_x, EsbTensor *target, bool log_input, bool full, float eps, const char *reduction);
-EsbTensor *EsPooling(EsbTensor *x, int64_t mode, bool global_pooling, const int64_t *window, int64_t window_num, const int64_t *stride, int64_t stride_num, const int64_t *pad, int64_t pad_num, const int64_t *dilation, int64_t dilation_num, int64_t ceil_mode, const char *data_format);
+EsbTensor *EsPoissonNllLoss(EsbTensor *input_x, EsbTensor *target, bool log_input, bool full, float eps,
+                            const char *reduction);
+EsbTensor *EsPooling(EsbTensor *x, int64_t mode, bool global_pooling, const int64_t *window, int64_t window_num,
+                     const int64_t *stride, int64_t stride_num, const int64_t *pad, int64_t pad_num,
+                     const int64_t *dilation, int64_t dilation_num, int64_t ceil_mode, const char *data_format);
 EsbTensor *EsPopulationCount(EsbTensor *x);
 EsbTensor *EsPow(EsbTensor *x1, EsbTensor *x2);
 EsbTensor *EsPower(EsbTensor *x, float power, float scale, float shift);
@@ -2702,10 +3548,19 @@ EsbTensor *EsPrint(EsbTensor **x, int64_t x_num);
 
 // PrintV2 does not produce an output, so the returned EsTensor cannot be used to connect edges.
 EsbTensor *EsPrintV2(EsbTensor *x, const char *output_stream);
-EsbTensor *EsPrintV3(EsbTensor *x, EsbTensor **data, int64_t data_num, const char *message, int64_t first_n, int64_t summarize);
-EsbTensor *EsPriorBox(EsbTensor *x, EsbTensor *img, const float *min_size, int64_t min_size_num, const float *max_size, int64_t max_size_num, const float *aspect_ratio, int64_t aspect_ratio_num, int64_t img_h, int64_t img_w, float step_h, float step_w, bool flip, bool clip, float offset, const float *variance, int64_t variance_num);
-EsbTensor *EsPriorBoxD(EsbTensor *x, EsbTensor *img, EsbTensor *data_h, EsbTensor *data_w, EsbTensor *box_height, EsbTensor *box_width, const float *min_size, int64_t min_size_num, const float *max_size, int64_t max_size_num, int64_t img_h, int64_t img_w, float step_h, float step_w, bool flip, bool clip, float offset, const float *variance, int64_t variance_num);
-EsbTensor *EsPriorBoxDV2(EsbTensor *x, EsbTensor *img, EsbTensor *boxes, const float *min_size, int64_t min_size_num, const float *max_size, int64_t max_size_num, int64_t img_h, int64_t img_w, float step_h, float step_w, bool flip, bool clip, float offset, const float *variance, int64_t variance_num);
+EsbTensor *EsPrintV3(EsbTensor *x, EsbTensor **data, int64_t data_num, const char *message, int64_t first_n,
+                     int64_t summarize);
+EsbTensor *EsPriorBox(EsbTensor *x, EsbTensor *img, const float *min_size, int64_t min_size_num, const float *max_size,
+                      int64_t max_size_num, const float *aspect_ratio, int64_t aspect_ratio_num, int64_t img_h,
+                      int64_t img_w, float step_h, float step_w, bool flip, bool clip, float offset,
+                      const float *variance, int64_t variance_num);
+EsbTensor *EsPriorBoxD(EsbTensor *x, EsbTensor *img, EsbTensor *data_h, EsbTensor *data_w, EsbTensor *box_height,
+                       EsbTensor *box_width, const float *min_size, int64_t min_size_num, const float *max_size,
+                       int64_t max_size_num, int64_t img_h, int64_t img_w, float step_h, float step_w, bool flip,
+                       bool clip, float offset, const float *variance, int64_t variance_num);
+EsbTensor *EsPriorBoxDV2(EsbTensor *x, EsbTensor *img, EsbTensor *boxes, const float *min_size, int64_t min_size_num,
+                         const float *max_size, int64_t max_size_num, int64_t img_h, int64_t img_w, float step_h,
+                         float step_w, bool flip, bool clip, float offset, const float *variance, int64_t variance_num);
 
 typedef struct {
   EsbTensor *descrpt;
@@ -2713,13 +3568,19 @@ typedef struct {
   EsbTensor *rij;
   EsbTensor *nlist;
 } EsProdEnvMatAOutput;
-EsProdEnvMatAOutput EsProdEnvMatA(EsbTensor *coord, EsbTensor *type, EsbTensor *natoms, EsbTensor *box, EsbTensor *mesh, EsbTensor *davg, EsbTensor *dstd, float rcut_a, float rcut_r, float rcut_r_smth, const int64_t *sel_a, int64_t sel_a_num, const int64_t *sel_r, int64_t sel_r_num);
+EsProdEnvMatAOutput EsProdEnvMatA(EsbTensor *coord, EsbTensor *type, EsbTensor *natoms, EsbTensor *box, EsbTensor *mesh,
+                                  EsbTensor *davg, EsbTensor *dstd, float rcut_a, float rcut_r, float rcut_r_smth,
+                                  const int64_t *sel_a, int64_t sel_a_num, const int64_t *sel_r, int64_t sel_r_num);
 
 typedef struct {
   EsbTensor *descrpt;
   EsbTensor *descrpt_deriv;
 } EsProdEnvMatACalcDescrptOutput;
-EsProdEnvMatACalcDescrptOutput EsProdEnvMatACalcDescrpt(EsbTensor *distance, EsbTensor *rij_x, EsbTensor *rij_y, EsbTensor *rij_z, EsbTensor *type, EsbTensor *natoms, EsbTensor *mesh, EsbTensor *davg, EsbTensor *dstd, float rcut_a, float rcut_r, float rcut_r_smth, const int64_t *sel_a, int64_t sel_a_num, const int64_t *sel_r, int64_t sel_r_num);
+EsProdEnvMatACalcDescrptOutput EsProdEnvMatACalcDescrpt(EsbTensor *distance, EsbTensor *rij_x, EsbTensor *rij_y,
+                                                        EsbTensor *rij_z, EsbTensor *type, EsbTensor *natoms,
+                                                        EsbTensor *mesh, EsbTensor *davg, EsbTensor *dstd, float rcut_a,
+                                                        float rcut_r, float rcut_r_smth, const int64_t *sel_a,
+                                                        int64_t sel_a_num, const int64_t *sel_r, int64_t sel_r_num);
 
 typedef struct {
   EsbTensor *rij;
@@ -2729,27 +3590,44 @@ typedef struct {
   EsbTensor *rij_y;
   EsbTensor *rij_z;
 } EsProdEnvMatACalcRijOutput;
-EsProdEnvMatACalcRijOutput EsProdEnvMatACalcRij(EsbTensor *coord, EsbTensor *type, EsbTensor *natoms, EsbTensor *box, EsbTensor *mesh, float rcut_a, float rcut_r, float rcut_r_smth, const int64_t *sel_a, int64_t sel_a_num, const int64_t *sel_r, int64_t sel_r_num);
-EsbTensor *EsProdForceSeA(EsbTensor *net_deriv, EsbTensor *in_deriv, EsbTensor *nlist, EsbTensor *natoms, int64_t n_a_sel, int64_t n_r_sel);
+EsProdEnvMatACalcRijOutput EsProdEnvMatACalcRij(EsbTensor *coord, EsbTensor *type, EsbTensor *natoms, EsbTensor *box,
+                                                EsbTensor *mesh, float rcut_a, float rcut_r, float rcut_r_smth,
+                                                const int64_t *sel_a, int64_t sel_a_num, const int64_t *sel_r,
+                                                int64_t sel_r_num);
+EsbTensor *EsProdForceSeA(EsbTensor *net_deriv, EsbTensor *in_deriv, EsbTensor *nlist, EsbTensor *natoms,
+                          int64_t n_a_sel, int64_t n_r_sel);
 
 typedef struct {
   EsbTensor *virial;
   EsbTensor *atom_virial;
 } EsProdVirialSeAOutput;
-EsProdVirialSeAOutput EsProdVirialSeA(EsbTensor *net_deriv, EsbTensor *in_deriv, EsbTensor *rij, EsbTensor *nlist, EsbTensor *natoms, int64_t n_a_sel, int64_t n_r_sel);
-EsbTensor *EsPromptFlashAttention(EsbTensor *query, EsbTensor *key, EsbTensor *value, EsbTensor *pse_shift, EsbTensor *atten_mask, EsbTensor *actual_seq_lengths, EsbTensor *actual_seq_lengths_kv, EsbTensor *deq_scale1, EsbTensor *quant_scale1, EsbTensor *deq_scale2, EsbTensor *quant_scale2, EsbTensor *quant_offset2, int64_t num_heads, float scale_value, int64_t pre_tokens, int64_t next_tokens, const char *input_layout, int64_t num_key_value_heads, int64_t sparse_mode, int64_t inner_precise);
+EsProdVirialSeAOutput EsProdVirialSeA(EsbTensor *net_deriv, EsbTensor *in_deriv, EsbTensor *rij, EsbTensor *nlist,
+                                      EsbTensor *natoms, int64_t n_a_sel, int64_t n_r_sel);
+EsbTensor *EsPromptFlashAttention(EsbTensor *query, EsbTensor *key, EsbTensor *value, EsbTensor *pse_shift,
+                                  EsbTensor *atten_mask, EsbTensor *actual_seq_lengths,
+                                  EsbTensor *actual_seq_lengths_kv, EsbTensor *deq_scale1, EsbTensor *quant_scale1,
+                                  EsbTensor *deq_scale2, EsbTensor *quant_scale2, EsbTensor *quant_offset2,
+                                  int64_t num_heads, float scale_value, int64_t pre_tokens, int64_t next_tokens,
+                                  const char *input_layout, int64_t num_key_value_heads, int64_t sparse_mode,
+                                  int64_t inner_precise);
 
 typedef struct {
   EsbTensor *rois;
   EsbTensor *actual_rois_num;
 } EsProposalOutput;
-EsProposalOutput EsProposal(EsbTensor *cls_prob, EsbTensor *bbox_delta, EsbTensor *im_info, float feat_stride, float base_size, float min_size, const float *ratio, int64_t ratio_num, const float *scale, int64_t scale_num, int64_t pre_nms_topn, int64_t post_nms_topn, float iou_threshold, bool output_actual_rois_num);
+EsProposalOutput EsProposal(EsbTensor *cls_prob, EsbTensor *bbox_delta, EsbTensor *im_info, float feat_stride,
+                            float base_size, float min_size, const float *ratio, int64_t ratio_num, const float *scale,
+                            int64_t scale_num, int64_t pre_nms_topn, int64_t post_nms_topn, float iou_threshold,
+                            bool output_actual_rois_num);
 
 typedef struct {
   EsbTensor *rois;
   EsbTensor *actual_rois_num;
 } EsProposalDOutput;
-EsProposalDOutput EsProposalD(EsbTensor *cls_prob, EsbTensor *bbox_delta, EsbTensor *im_info, EsbTensor *rpn_bbox, float feat_stride, float base_size, float min_size, const float *ratio, int64_t ratio_num, const float *scale, int64_t scale_num, int64_t pre_nms_topn, int64_t post_nms_topn, float iou_threshold, bool output_actual_rois_num);
+EsProposalDOutput EsProposalD(EsbTensor *cls_prob, EsbTensor *bbox_delta, EsbTensor *im_info, EsbTensor *rpn_bbox,
+                              float feat_stride, float base_size, float min_size, const float *ratio, int64_t ratio_num,
+                              const float *scale, int64_t scale_num, int64_t pre_nms_topn, int64_t post_nms_topn,
+                              float iou_threshold, bool output_actual_rois_num);
 EsbTensor *EsPtIou(EsbTensor *bboxes, EsbTensor *gtboxes, const char *mode);
 
 typedef struct {
@@ -2757,24 +3635,34 @@ typedef struct {
   EsbTensor *r;
 } EsQrOutput;
 EsQrOutput EsQr(EsbTensor *x, bool full_matrices);
-EsbTensor *EsQuantBatchMatmul(EsbTensor *x1, EsbTensor *x2, EsbTensor *deq_scale, EsbTensor *bias, bool adj_x1, bool adj_x2);
-EsbTensor *EsQuantBatchMatmulV3(EsbTensor *x1, EsbTensor *x2, EsbTensor *scale, EsbTensor *offset, EsbTensor *bias, EsbTensor *pertoken_scale, int64_t dtype, bool transpose_x1, bool transpose_x2);
-EsbTensor *EsQuantConv2D(EsbTensor *x, EsbTensor *filter, EsbTensor *scale, EsbTensor *bias, EsbTensor *offset, int64_t dtype, const int64_t *strides, int64_t strides_num, const int64_t *pads, int64_t pads_num, const int64_t *dilations, int64_t dilations_num, int64_t groups, const char *data_format, int64_t offset_x, const char *round_mode);
-EsbTensor *EsQuantUpdateScatter(EsbTensor *var, EsbTensor *indices, EsbTensor *updates, EsbTensor *quant_scales, EsbTensor *quant_zero_points, const char *reduce, int64_t axis, int64_t quant_axis, bool reciprocal_scale);
+EsbTensor *EsQuantBatchMatmul(EsbTensor *x1, EsbTensor *x2, EsbTensor *deq_scale, EsbTensor *bias, bool adj_x1,
+                              bool adj_x2);
+EsbTensor *EsQuantBatchMatmulV3(EsbTensor *x1, EsbTensor *x2, EsbTensor *scale, EsbTensor *offset, EsbTensor *bias,
+                                EsbTensor *pertoken_scale, int64_t dtype, bool transpose_x1, bool transpose_x2);
+EsbTensor *EsQuantConv2D(EsbTensor *x, EsbTensor *filter, EsbTensor *scale, EsbTensor *bias, EsbTensor *offset,
+                         int64_t dtype, const int64_t *strides, int64_t strides_num, const int64_t *pads,
+                         int64_t pads_num, const int64_t *dilations, int64_t dilations_num, int64_t groups,
+                         const char *data_format, int64_t offset_x, const char *round_mode);
+EsbTensor *EsQuantUpdateScatter(EsbTensor *var, EsbTensor *indices, EsbTensor *updates, EsbTensor *quant_scales,
+                                EsbTensor *quant_zero_points, const char *reduce, int64_t axis, int64_t quant_axis,
+                                bool reciprocal_scale);
 EsbTensor *EsQuantize(EsbTensor *x, EsbTensor *scales, EsbTensor *zero_points, const char *dtype, int64_t axis);
 
 typedef struct {
   EsbTensor *y;
   EsbTensor *x;
 } EsQuantizeAddLayerNormOutput;
-EsQuantizeAddLayerNormOutput EsQuantizeAddLayerNorm(EsbTensor *x1, EsbTensor *x2, EsbTensor *gamma, EsbTensor *beta, EsbTensor *bias, EsbTensor *scales, EsbTensor *zero_points, int64_t dtype, int64_t axis, float epsilon, bool additional_output);
+EsQuantizeAddLayerNormOutput EsQuantizeAddLayerNorm(EsbTensor *x1, EsbTensor *x2, EsbTensor *gamma, EsbTensor *beta,
+                                                    EsbTensor *bias, EsbTensor *scales, EsbTensor *zero_points,
+                                                    int64_t dtype, int64_t axis, float epsilon, bool additional_output);
 
 typedef struct {
   EsbTensor *resized_images;
   EsbTensor *y_min;
   EsbTensor *y_max;
 } EsQuantizedResizeBilinearOutput;
-EsQuantizedResizeBilinearOutput EsQuantizedResizeBilinear(EsbTensor *images, EsbTensor *size, EsbTensor *min, EsbTensor *max, bool align_corners, bool half_pixel_centers);
+EsQuantizedResizeBilinearOutput EsQuantizedResizeBilinear(EsbTensor *images, EsbTensor *size, EsbTensor *min,
+                                                          EsbTensor *max, bool align_corners, bool half_pixel_centers);
 
 // QueueClose does not produce an output, so the returned EsTensor cannot be used to connect edges.
 EsbTensor *EsQueueClose(EsbTensor *handle, bool cancel_pending_enqueues);
@@ -2794,25 +3682,36 @@ typedef struct {
   EsbTensor *o;
   EsbTensor *h_t;
 } EsRNNOutput;
-EsRNNOutput EsRNN(EsbTensor *x, EsbTensor *cont, EsbTensor *x_static, EsbTensor *h_0, EsbTensor *w_xh, EsbTensor *bias_h, EsbTensor *w_sh, EsbTensor *w_hh, EsbTensor *w_ho, EsbTensor *bias_o, int64_t num_output, bool expose_hidden);
+EsRNNOutput EsRNN(EsbTensor *x, EsbTensor *cont, EsbTensor *x_static, EsbTensor *h_0, EsbTensor *w_xh,
+                  EsbTensor *bias_h, EsbTensor *w_sh, EsbTensor *w_hh, EsbTensor *w_ho, EsbTensor *bias_o,
+                  int64_t num_output, bool expose_hidden);
 
 typedef struct {
   EsbTensor *costs;
   EsbTensor *grads;
 } EsRNNTLossOutput;
-EsRNNTLossOutput EsRNNTLoss(EsbTensor *acts, EsbTensor *labels, EsbTensor *input_lengths, EsbTensor *label_lengths, int64_t blank_label);
-EsbTensor *EsROIAlign(EsbTensor *features, EsbTensor *rois, EsbTensor *rois_n, float spatial_scale, int64_t pooled_height, int64_t pooled_width, int64_t sample_num, int64_t roi_end_mode, const char *pool_mode);
-EsbTensor *EsROIAlignGrad(EsbTensor *ydiff, EsbTensor *rois, EsbTensor *rois_n, const int64_t *xdiff_shape, int64_t xdiff_shape_num, int64_t pooled_width, int64_t pooled_height, float spatial_scale, int64_t sample_num, int64_t roi_end_mode);
-EsbTensor *EsROIPooling(EsbTensor *x, EsbTensor *rois, EsbTensor *roi_actual_num, int64_t pooled_h, int64_t pooled_w, float spatial_scale_h, float spatial_scale_w);
-EsbTensor *EsRaggedBinCount(EsbTensor *splits, EsbTensor *values, EsbTensor *size, EsbTensor *weights, bool binary_output);
-EsbTensor *EsRaggedBincount(EsbTensor *splits, EsbTensor *values, EsbTensor *size, EsbTensor *weights, bool binary_output);
+EsRNNTLossOutput EsRNNTLoss(EsbTensor *acts, EsbTensor *labels, EsbTensor *input_lengths, EsbTensor *label_lengths,
+                            int64_t blank_label);
+EsbTensor *EsROIAlign(EsbTensor *features, EsbTensor *rois, EsbTensor *rois_n, float spatial_scale,
+                      int64_t pooled_height, int64_t pooled_width, int64_t sample_num, int64_t roi_end_mode,
+                      const char *pool_mode);
+EsbTensor *EsROIAlignGrad(EsbTensor *ydiff, EsbTensor *rois, EsbTensor *rois_n, const int64_t *xdiff_shape,
+                          int64_t xdiff_shape_num, int64_t pooled_width, int64_t pooled_height, float spatial_scale,
+                          int64_t sample_num, int64_t roi_end_mode);
+EsbTensor *EsROIPooling(EsbTensor *x, EsbTensor *rois, EsbTensor *roi_actual_num, int64_t pooled_h, int64_t pooled_w,
+                        float spatial_scale_h, float spatial_scale_w);
+EsbTensor *EsRaggedBinCount(EsbTensor *splits, EsbTensor *values, EsbTensor *size, EsbTensor *weights,
+                            bool binary_output);
+EsbTensor *EsRaggedBincount(EsbTensor *splits, EsbTensor *values, EsbTensor *size, EsbTensor *weights,
+                            bool binary_output);
 
 typedef struct {
   EsbTensor *output_indices;
   EsbTensor *output_values;
   EsbTensor *output_dense_shape;
 } EsRaggedCountSparseOutputOutput;
-EsRaggedCountSparseOutputOutput EsRaggedCountSparseOutput(EsbTensor *splits, EsbTensor *values, EsbTensor *weights, bool binary_output, int64_t minlength, int64_t maxlength);
+EsRaggedCountSparseOutputOutput EsRaggedCountSparseOutput(EsbTensor *splits, EsbTensor *values, EsbTensor *weights,
+                                                          bool binary_output, int64_t minlength, int64_t maxlength);
 
 typedef struct {
   EsbTensor *rt_nested_splits;
@@ -2825,7 +3724,9 @@ typedef struct {
   EsbTensor *sparse_values;
   EsbTensor *sparse_dense_shape;
 } EsRaggedTensorToSparseOutput;
-EsRaggedTensorToSparseOutput EsRaggedTensorToSparse(EsbTensor **rt_nested_splits, int64_t rt_nested_splits_num, EsbTensor *rt_dense_values, int64_t RAGGED_RANK, af::DataType Tsplits);
+EsRaggedTensorToSparseOutput EsRaggedTensorToSparse(EsbTensor **rt_nested_splits, int64_t rt_nested_splits_num,
+                                                    EsbTensor *rt_dense_values, int64_t RAGGED_RANK,
+                                                    af::DataType Tsplits);
 
 typedef struct {
   EsbTensor *y;
@@ -2849,7 +3750,9 @@ EsbTensor *EsReal(EsbTensor *input, int64_t Tout);
 EsbTensor *EsRealDiv(EsbTensor *x1, EsbTensor *x2);
 EsbTensor *EsReciprocal(EsbTensor *x);
 EsbTensor *EsReciprocalGrad(EsbTensor *y, EsbTensor *dy);
-EsbTensor *EsRecordInput(EsbGraph *owner_graph, const char *file_pattern, int64_t file_random_seed, float file_shuffle_shift_ratio, int64_t file_buffer_size, int64_t file_parallelism, int64_t batch_size, const char *compression_type);
+EsbTensor *EsRecordInput(EsbGraph *owner_graph, const char *file_pattern, int64_t file_random_seed,
+                         float file_shuffle_shift_ratio, int64_t file_buffer_size, int64_t file_parallelism,
+                         int64_t batch_size, const char *compression_type);
 EsbTensor *EsReduceAll(EsbTensor *x, EsbTensor *axes, bool keep_dims);
 EsbTensor *EsReduceAllD(EsbTensor *x, const int64_t *axes, int64_t axes_num, bool keep_dims);
 EsbTensor *EsReduceAny(EsbTensor *x, EsbTensor *axes, bool keep_dims);
@@ -2860,14 +3763,16 @@ EsbTensor *EsReduceLogSumExp(EsbTensor *x, EsbTensor *axes, bool keep_dims);
 EsbTensor *EsReduceMax(EsbTensor *x, EsbTensor *axes, bool keep_dims);
 EsbTensor *EsReduceMaxD(EsbTensor *x, const int64_t *axes, int64_t axes_num, bool keep_dims);
 EsbTensor *EsReduceMean(EsbTensor *x, EsbTensor *axes, bool keep_dims, bool noop_with_empty_axes);
-EsbTensor *EsReduceMeanD(EsbTensor *x, const int64_t *axes, int64_t axes_num, bool keep_dims, bool noop_with_empty_axes);
+EsbTensor *EsReduceMeanD(EsbTensor *x, const int64_t *axes, int64_t axes_num, bool keep_dims,
+                         bool noop_with_empty_axes);
 
 typedef struct {
   EsbTensor *mean;
   EsbTensor *variance;
 } EsReduceMeanVarianceOutput;
 EsReduceMeanVarianceOutput EsReduceMeanVariance(EsbTensor *x, const int64_t *axes, int64_t axes_num, bool keep_dims);
-EsbTensor *EsReduceMeanWithCount(EsbTensor *x, EsbTensor *count, EsbTensor *count_sum, const int64_t *axes, int64_t axes_num, bool keep_dims);
+EsbTensor *EsReduceMeanWithCount(EsbTensor *x, EsbTensor *count, EsbTensor *count_sum, const int64_t *axes,
+                                 int64_t axes_num, bool keep_dims);
 EsbTensor *EsReduceMin(EsbTensor *x, EsbTensor *axes, bool keep_dims);
 EsbTensor *EsReduceMinD(EsbTensor *x, const int64_t *axes, int64_t axes_num, bool keep_dims);
 EsbTensor *EsReduceNansum(EsbTensor *x, EsbTensor *axes, bool keep_dims);
@@ -2879,8 +3784,10 @@ typedef struct {
   EsbTensor *y2;
 } EsReduceStdOutput;
 EsReduceStdOutput EsReduceStd(EsbTensor *x, const int64_t *dim, int64_t dim_num, bool unbiased, bool keepdim);
-EsbTensor *EsReduceStdV2Update(EsbTensor *x, EsbTensor *mean, const int64_t *dim, int64_t dim_num, bool if_std, bool unbiased, bool keepdim, int64_t correction);
-EsbTensor *EsReduceStdWithMean(EsbTensor *x, EsbTensor *mean, const int64_t *dim, int64_t dim_num, bool unbiased, bool keepdim, bool invert, float epsilon, int64_t correction);
+EsbTensor *EsReduceStdV2Update(EsbTensor *x, EsbTensor *mean, const int64_t *dim, int64_t dim_num, bool if_std,
+                               bool unbiased, bool keepdim, int64_t correction);
+EsbTensor *EsReduceStdWithMean(EsbTensor *x, EsbTensor *mean, const int64_t *dim, int64_t dim_num, bool unbiased,
+                               bool keepdim, bool invert, float epsilon, int64_t correction);
 EsbTensor *EsReduceSum(EsbTensor *x, EsbTensor *axes, bool keep_dims);
 EsbTensor *EsReduceSumD(EsbTensor *x, const int64_t *axes, int64_t axes_num, bool keep_dims);
 EsbTensor *EsReduction(EsbTensor *x, int64_t operation, int64_t axis, float coeff);
@@ -2918,7 +3825,9 @@ EsbTensor *EsRenorm(EsbTensor *x, float p, int64_t dim, float maxnorm);
 EsbTensor *EsRepeatInterleave(EsbTensor *x, EsbTensor *repeats, int64_t axis);
 EsbTensor *EsRepeatInterleaveGrad(EsbTensor *y_grad, EsbTensor *repeats, int64_t axis);
 EsbTensor *EsReshape(EsbTensor *x, EsbTensor *shape, int64_t axis, int64_t num_axes);
-EsbTensor *EsResize(EsbTensor *x, EsbTensor *roi, EsbTensor *scales, EsbTensor *sizes, const char *coordinate_transformation_mode, float cubic_coeff_a, int64_t exclude_outside, float extrapolation_value, const char *mode, const char *nearest_mode);
+EsbTensor *EsResize(EsbTensor *x, EsbTensor *roi, EsbTensor *scales, EsbTensor *sizes,
+                    const char *coordinate_transformation_mode, float cubic_coeff_a, int64_t exclude_outside,
+                    float extrapolation_value, const char *mode, const char *nearest_mode);
 
 typedef struct {
   EsbTensor *clipped_polys_data;
@@ -2926,31 +3835,54 @@ typedef struct {
   EsbTensor *clipped_polys_size;
   EsbTensor *clipped_polys_num;
 } EsResizeAndClipPolysOutput;
-EsResizeAndClipPolysOutput EsResizeAndClipPolys(EsbTensor *polys_data, EsbTensor *polys_offset, EsbTensor *polys_size, EsbTensor *h_scale, EsbTensor *w_scale, EsbTensor *img_h, EsbTensor *img_w);
+EsResizeAndClipPolysOutput EsResizeAndClipPolys(EsbTensor *polys_data, EsbTensor *polys_offset, EsbTensor *polys_size,
+                                                EsbTensor *h_scale, EsbTensor *w_scale, EsbTensor *img_h,
+                                                EsbTensor *img_w);
 EsbTensor *EsResizeArea(EsbTensor *images, EsbTensor *size, bool align_corners);
-EsbTensor *EsResizeBicubic(EsbTensor *images, EsbTensor *size, bool align_corners, bool half_pixel_centers, af::DataType dtype);
-EsbTensor *EsResizeBicubicGrad(EsbTensor *grads, EsbTensor *original_image, bool align_corners, bool half_pixel_centers);
-EsbTensor *EsResizeBilinearV2(EsbTensor *x, EsbTensor *size, bool align_corners, bool half_pixel_centers, af::DataType dtype);
-EsbTensor *EsResizeBilinearV2D(EsbTensor *x, const int64_t *size, int64_t size_num, bool align_corners, bool half_pixel_centers);
-EsbTensor *EsResizeBilinearV2Grad(EsbTensor *grads, EsbTensor *original_image, bool align_corners, bool half_pixel_centers);
-EsbTensor *EsResizeD(EsbTensor *x, const int64_t *sizes, int64_t sizes_num, const float *scales, int64_t scales_num, const int64_t *roi, int64_t roi_num, const char *coordinate_transformation_mode, float cubic_coeff_a, int64_t exclude_outside, float extrapolation_value, const char *mode, const char *nearest_mode, const char *data_format);
-EsbTensor *EsResizeGrad(EsbTensor *grads, EsbTensor *roi, EsbTensor *scales, EsbTensor *original_size, const char *coordinate_transformation_mode, float cubic_coeff_a, int64_t exclude_outside, float extrapolation_value, const char *mode, const char *nearest_mode);
-EsbTensor *EsResizeGradD(EsbTensor *grads, const int64_t *original_size, int64_t original_size_num, const int64_t *roi, int64_t roi_num, const float *scales, int64_t scales_num, const char *coordinate_transformation_mode, float cubic_coeff_a, int64_t exclude_outside, float extrapolation_value, const char *mode, const char *nearest_mode, const char *data_format);
+EsbTensor *EsResizeBicubic(EsbTensor *images, EsbTensor *size, bool align_corners, bool half_pixel_centers,
+                           af::DataType dtype);
+EsbTensor *EsResizeBicubicGrad(EsbTensor *grads, EsbTensor *original_image, bool align_corners,
+                               bool half_pixel_centers);
+EsbTensor *EsResizeBilinearV2(EsbTensor *x, EsbTensor *size, bool align_corners, bool half_pixel_centers,
+                              af::DataType dtype);
+EsbTensor *EsResizeBilinearV2D(EsbTensor *x, const int64_t *size, int64_t size_num, bool align_corners,
+                               bool half_pixel_centers);
+EsbTensor *EsResizeBilinearV2Grad(EsbTensor *grads, EsbTensor *original_image, bool align_corners,
+                                  bool half_pixel_centers);
+EsbTensor *EsResizeD(EsbTensor *x, const int64_t *sizes, int64_t sizes_num, const float *scales, int64_t scales_num,
+                     const int64_t *roi, int64_t roi_num, const char *coordinate_transformation_mode,
+                     float cubic_coeff_a, int64_t exclude_outside, float extrapolation_value, const char *mode,
+                     const char *nearest_mode, const char *data_format);
+EsbTensor *EsResizeGrad(EsbTensor *grads, EsbTensor *roi, EsbTensor *scales, EsbTensor *original_size,
+                        const char *coordinate_transformation_mode, float cubic_coeff_a, int64_t exclude_outside,
+                        float extrapolation_value, const char *mode, const char *nearest_mode);
+EsbTensor *EsResizeGradD(EsbTensor *grads, const int64_t *original_size, int64_t original_size_num, const int64_t *roi,
+                         int64_t roi_num, const float *scales, int64_t scales_num,
+                         const char *coordinate_transformation_mode, float cubic_coeff_a, int64_t exclude_outside,
+                         float extrapolation_value, const char *mode, const char *nearest_mode,
+                         const char *data_format);
 EsbTensor *EsResizeNearestNeighborV2(EsbTensor *x, EsbTensor *size, bool align_corners, bool half_pixel_centers);
-EsbTensor *EsResizeNearestNeighborV2D(EsbTensor *x, const int64_t *size, int64_t size_num, bool align_corners, bool half_pixel_centers);
-EsbTensor *EsResizeNearestNeighborV2Grad(EsbTensor *grads, EsbTensor *size, bool align_corners, bool half_pixel_centers);
-EsbTensor *EsResizeNearestNeighborV2GradD(EsbTensor *grads, const int64_t *size, int64_t size_num, bool align_corners, bool half_pixel_centers);
+EsbTensor *EsResizeNearestNeighborV2D(EsbTensor *x, const int64_t *size, int64_t size_num, bool align_corners,
+                                      bool half_pixel_centers);
+EsbTensor *EsResizeNearestNeighborV2Grad(EsbTensor *grads, EsbTensor *size, bool align_corners,
+                                         bool half_pixel_centers);
+EsbTensor *EsResizeNearestNeighborV2GradD(EsbTensor *grads, const int64_t *size, int64_t size_num, bool align_corners,
+                                          bool half_pixel_centers);
 EsbTensor *EsResizeTrilinear(EsbTensor *x, EsbTensor *size, bool align_corners, bool half_pixel_centers);
 EsbTensor *EsResizeV2(EsbTensor *x, EsbTensor *dst_size, const char *interpolation, const char *data_format);
 
-// ResourceAccumulatorApplyGradient does not produce an output, so the returned EsTensor cannot be used to connect edges.
+// ResourceAccumulatorApplyGradient does not produce an output, so the returned EsTensor cannot be used to connect
+// edges.
 EsbTensor *EsResourceAccumulatorApplyGradient(EsbTensor *handle, EsbTensor *local_step, EsbTensor *gradient);
 EsbTensor *EsResourceAccumulatorNumAccumulated(EsbTensor *handle);
 
-// ResourceAccumulatorSetGlobalStep does not produce an output, so the returned EsTensor cannot be used to connect edges.
+// ResourceAccumulatorSetGlobalStep does not produce an output, so the returned EsTensor cannot be used to connect
+// edges.
 EsbTensor *EsResourceAccumulatorSetGlobalStep(EsbTensor *handle, EsbTensor *new_global_step);
 EsbTensor *EsResourceAccumulatorTakeGradient(EsbTensor *handle, EsbTensor *num_required, af::DataType dtype);
-EsbTensor *EsResourceConditionalAccumulator(EsbGraph *owner_graph, af::DataType dtype, const int64_t *shape, int64_t shape_num, const char *container, const char *shared_name, const char *reduction_type);
+EsbTensor *EsResourceConditionalAccumulator(EsbGraph *owner_graph, af::DataType dtype, const int64_t *shape,
+                                            int64_t shape_num, const char *container, const char *shared_name,
+                                            const char *reduction_type);
 EsbTensor *EsReverseSequence(EsbTensor *x, EsbTensor *seq_lengths, int64_t seq_dim, int64_t batch_dim);
 EsbTensor *EsReverseV2(EsbTensor *x, EsbTensor *axis);
 EsbTensor *EsReverseV2D(EsbTensor *x, const int64_t *axis, int64_t axis_num);
@@ -2962,7 +3894,10 @@ typedef struct {
   EsbTensor *softmax_max;
   EsbTensor *softmax_sum;
 } EsRingAttentionUpdateOutput;
-EsRingAttentionUpdateOutput EsRingAttentionUpdate(EsbTensor *prev_attn_out, EsbTensor *prev_softmax_max, EsbTensor *prev_softmax_sum, EsbTensor *cur_attn_out, EsbTensor *cur_softmax_max, EsbTensor *cur_softmax_sum, EsbTensor *actual_seq_qlen, const char *input_layout);
+EsRingAttentionUpdateOutput EsRingAttentionUpdate(EsbTensor *prev_attn_out, EsbTensor *prev_softmax_max,
+                                                  EsbTensor *prev_softmax_sum, EsbTensor *cur_attn_out,
+                                                  EsbTensor *cur_softmax_max, EsbTensor *cur_softmax_sum,
+                                                  EsbTensor *actual_seq_qlen, const char *input_layout);
 EsbTensor *EsRint(EsbTensor *x);
 
 typedef struct {
@@ -2982,15 +3917,24 @@ EsbTensor *EsRngReadAndSkipV2(EsbTensor *value, EsbTensor *algorithm, EsbTensor 
 EsbTensor *EsRngSkip(EsbTensor *x, EsbTensor *algorithm, EsbTensor *delta);
 EsbTensor *EsRnnGenMask(EsbTensor *seq_length, int64_t num_step, int64_t hidden_size);
 EsbTensor *EsRnnGenMaskV2(EsbTensor *seq_length, EsbTensor *x, int64_t hidden_size);
-EsbTensor *EsRoiAlignRotatedGrad(EsbTensor *x_grad, EsbTensor *rois, const int64_t *y_grad_shape, int64_t y_grad_shape_num, int64_t pooled_h, int64_t pooled_w, float spatial_scale, int64_t sampling_ratio, bool aligned, bool clockwise);
-EsbTensor *EsRoiExtractor(EsbTensor **features, int64_t features_num, EsbTensor *rois, EsbTensor *index, int64_t finest_scale, float roi_scale_factor, const float *spatial_scale, int64_t spatial_scale_num, int64_t pooled_height, int64_t pooled_width, int64_t sample_num, const char *pool_mode, bool aligned);
-EsbTensor *EsRoiPoolingGradWithArgMax(EsbTensor *grad, EsbTensor *x, EsbTensor *rois, EsbTensor *roi_actual_num, EsbTensor *argmax, int64_t pooled_h, int64_t pooled_w, float spatial_scale_h, float spatial_scale_w, int64_t pool_channel);
+EsbTensor *EsRoiAlignRotatedGrad(EsbTensor *x_grad, EsbTensor *rois, const int64_t *y_grad_shape,
+                                 int64_t y_grad_shape_num, int64_t pooled_h, int64_t pooled_w, float spatial_scale,
+                                 int64_t sampling_ratio, bool aligned, bool clockwise);
+EsbTensor *EsRoiExtractor(EsbTensor **features, int64_t features_num, EsbTensor *rois, EsbTensor *index,
+                          int64_t finest_scale, float roi_scale_factor, const float *spatial_scale,
+                          int64_t spatial_scale_num, int64_t pooled_height, int64_t pooled_width, int64_t sample_num,
+                          const char *pool_mode, bool aligned);
+EsbTensor *EsRoiPoolingGradWithArgMax(EsbTensor *grad, EsbTensor *x, EsbTensor *rois, EsbTensor *roi_actual_num,
+                                      EsbTensor *argmax, int64_t pooled_h, int64_t pooled_w, float spatial_scale_h,
+                                      float spatial_scale_w, int64_t pool_channel);
 
 typedef struct {
   EsbTensor *y;
   EsbTensor *argmax;
 } EsRoiPoolingWithArgMaxOutput;
-EsRoiPoolingWithArgMaxOutput EsRoiPoolingWithArgMax(EsbTensor *x, EsbTensor *rois, EsbTensor *roi_actual_num, int64_t pooled_h, int64_t pooled_w, float spatial_scale_h, float spatial_scale_w, int64_t pool_channel);
+EsRoiPoolingWithArgMaxOutput EsRoiPoolingWithArgMax(EsbTensor *x, EsbTensor *rois, EsbTensor *roi_actual_num,
+                                                    int64_t pooled_h, int64_t pooled_w, float spatial_scale_h,
+                                                    float spatial_scale_w, int64_t pool_channel);
 EsbTensor *EsRoll(EsbTensor *x, const int64_t *shifts, int64_t shifts_num, const int64_t *dims, int64_t dims_num);
 EsbTensor *EsRollV2(EsbTensor *input, EsbTensor *shift, EsbTensor *axes);
 
@@ -3001,7 +3945,10 @@ typedef struct {
   EsbTensor *k_cache;
   EsbTensor *v_cache;
 } EsRopeQuantKvcacheOutput;
-EsRopeQuantKvcacheOutput EsRopeQuantKvcache(EsbTensor *qkv, EsbTensor *cos, EsbTensor *sin, EsbTensor *quant_scale, EsbTensor *quant_offset, EsbTensor *k_cache, EsbTensor *v_cache, EsbTensor *indice, const int64_t *size_splits, int64_t size_splits_num, const char *layout, bool kv_output);
+EsRopeQuantKvcacheOutput EsRopeQuantKvcache(EsbTensor *qkv, EsbTensor *cos, EsbTensor *sin, EsbTensor *quant_scale,
+                                            EsbTensor *quant_offset, EsbTensor *k_cache, EsbTensor *v_cache,
+                                            EsbTensor *indice, const int64_t *size_splits, int64_t size_splits_num,
+                                            const char *layout, bool kv_output);
 EsbTensor *EsRotaryMul(EsbTensor *x, EsbTensor *r1, EsbTensor *r2);
 
 typedef struct {
@@ -3017,54 +3964,83 @@ typedef struct {
   EsbTensor *dcos;
   EsbTensor *dsin;
 } EsRotaryPositionEmbeddingGradOutput;
-EsRotaryPositionEmbeddingGradOutput EsRotaryPositionEmbeddingGrad(EsbTensor *dy, EsbTensor *cos, EsbTensor *sin, EsbTensor *x, int64_t mode);
-EsbTensor *EsRotate(EsbTensor *x, float angle, const int64_t *center, int64_t center_num, bool expand, const char *interpolation, const char *padding_mode, float padding_value, const char *data_format);
+EsRotaryPositionEmbeddingGradOutput EsRotaryPositionEmbeddingGrad(EsbTensor *dy, EsbTensor *cos, EsbTensor *sin,
+                                                                  EsbTensor *x, int64_t mode);
+EsbTensor *EsRotate(EsbTensor *x, float angle, const int64_t *center, int64_t center_num, bool expand,
+                    const char *interpolation, const char *padding_mode, float padding_value, const char *data_format);
 EsbTensor *EsRotatedBoxDecode(EsbTensor *anchor_box, EsbTensor *deltas, const float *weight, int64_t weight_num);
 EsbTensor *EsRotatedBoxEncode(EsbTensor *anchor_box, EsbTensor *gt_box, const float *weight, int64_t weight_num);
 EsbTensor *EsRotatedFeatureAlign(EsbTensor *x, EsbTensor *bboxes, float spatial_scale, int64_t points);
 EsbTensor *EsRotatedFeatureAlignGrad(EsbTensor *dy, EsbTensor *bboxes, float spatial_scale, int64_t points);
-EsbTensor *EsRotatedIou(EsbTensor *boxes, EsbTensor *query_boxes, bool trans, const char *mode, bool is_cross, float v_threshold, float e_threshold);
+EsbTensor *EsRotatedIou(EsbTensor *boxes, EsbTensor *query_boxes, bool trans, const char *mode, bool is_cross,
+                        float v_threshold, float e_threshold);
 
 typedef struct {
   EsbTensor *selected_detections;
   EsbTensor *keep_indices;
 } EsRotatedNMSOutput;
-EsRotatedNMSOutput EsRotatedNMS(EsbTensor *boxes, EsbTensor *scores, EsbTensor *labels, float iou_threshold, bool is_angle);
+EsRotatedNMSOutput EsRotatedNMS(EsbTensor *boxes, EsbTensor *scores, EsbTensor *labels, float iou_threshold,
+                                bool is_angle);
 EsbTensor *EsRotatedOverlaps(EsbTensor *boxes, EsbTensor *query_boxes, bool trans);
 EsbTensor *EsRound(EsbTensor *x, int64_t decimals);
-EsbTensor *EsRpnProposalPostProcessing(EsbTensor *sorted_proposal, EsbTensor *proposal_num, const int64_t *img_size, int64_t img_size_num, float score_threshold, int64_t k, float min_size, float nms_threshold, int64_t post_nms_num, bool box_filter, int64_t core_max_num);
-EsbTensor *EsRpnProposals(EsbTensor *rois, EsbTensor *cls_bg_prob, EsbTensor *img_size, float score_threshold, int64_t k, float min_size, float nms_threshold, int64_t post_nms_num, bool score_filter, bool box_filter, bool score_sigmoid);
-EsbTensor *EsRpnProposalsD(EsbTensor *rois, EsbTensor *cls_bg_prob, const int64_t *img_size, int64_t img_size_num, float score_threshold, int64_t k, float min_size, float nms_threshold, int64_t post_nms_num, bool score_filter, bool box_filter, bool score_sigmoid);
+EsbTensor *EsRpnProposalPostProcessing(EsbTensor *sorted_proposal, EsbTensor *proposal_num, const int64_t *img_size,
+                                       int64_t img_size_num, float score_threshold, int64_t k, float min_size,
+                                       float nms_threshold, int64_t post_nms_num, bool box_filter,
+                                       int64_t core_max_num);
+EsbTensor *EsRpnProposals(EsbTensor *rois, EsbTensor *cls_bg_prob, EsbTensor *img_size, float score_threshold,
+                          int64_t k, float min_size, float nms_threshold, int64_t post_nms_num, bool score_filter,
+                          bool box_filter, bool score_sigmoid);
+EsbTensor *EsRpnProposalsD(EsbTensor *rois, EsbTensor *cls_bg_prob, const int64_t *img_size, int64_t img_size_num,
+                           float score_threshold, int64_t k, float min_size, float nms_threshold, int64_t post_nms_num,
+                           bool score_filter, bool box_filter, bool score_sigmoid);
 EsbTensor *EsRsqrt(EsbTensor *x);
 EsbTensor *EsRsqrtGrad(EsbTensor *y, EsbTensor *dy);
-EsbTensor *EsSGD(EsbTensor *parameters, EsbTensor *gradient, EsbTensor *learning_rate, EsbTensor *accum, EsbTensor *momentum, EsbTensor *stat, float dampening, float weight_decay, bool nesterov);
+EsbTensor *EsSGD(EsbTensor *parameters, EsbTensor *gradient, EsbTensor *learning_rate, EsbTensor *accum,
+                 EsbTensor *momentum, EsbTensor *stat, float dampening, float weight_decay, bool nesterov);
 EsbTensor *EsSPP(EsbTensor *x, int64_t pyramid_height, int64_t pool_method);
 
 typedef struct {
   EsbTensor *out_boxnum;
   EsbTensor *y;
 } EsSSDDetectionOutputOutput;
-EsSSDDetectionOutputOutput EsSSDDetectionOutput(EsbTensor *bbox_delta, EsbTensor *score, EsbTensor *anchors, int64_t num_classes, bool share_location, int64_t background_label_id, float iou_threshold, int64_t top_k, float eta, bool variance_encoded_in_target, int64_t code_type, int64_t keep_top_k, float confidence_threshold);
-EsbTensor *EsSTFT(EsbTensor *x, EsbTensor *window, int64_t n_fft, int64_t hop_length, int64_t win_length, bool normalized, bool onesided, bool return_complex);
+EsSSDDetectionOutputOutput EsSSDDetectionOutput(EsbTensor *bbox_delta, EsbTensor *score, EsbTensor *anchors,
+                                                int64_t num_classes, bool share_location, int64_t background_label_id,
+                                                float iou_threshold, int64_t top_k, float eta,
+                                                bool variance_encoded_in_target, int64_t code_type, int64_t keep_top_k,
+                                                float confidence_threshold);
+EsbTensor *EsSTFT(EsbTensor *x, EsbTensor *window, int64_t n_fft, int64_t hop_length, int64_t win_length,
+                  bool normalized, bool onesided, bool return_complex);
 
 typedef struct {
   EsbTensor *begin;
   EsbTensor *size;
   EsbTensor *bboxes;
 } EsSampleDistortedBoundingBoxOutput;
-EsSampleDistortedBoundingBoxOutput EsSampleDistortedBoundingBox(EsbTensor *image_size, EsbTensor *bounding_boxes, int64_t seed, int64_t seed2, float min_object_covered, const float *aspect_ratio_range, int64_t aspect_ratio_range_num, const float *area_range, int64_t area_range_num, int64_t max_attempts, bool use_image_if_no_bounding_boxes);
+EsSampleDistortedBoundingBoxOutput EsSampleDistortedBoundingBox(EsbTensor *image_size, EsbTensor *bounding_boxes,
+                                                                int64_t seed, int64_t seed2, float min_object_covered,
+                                                                const float *aspect_ratio_range,
+                                                                int64_t aspect_ratio_range_num, const float *area_range,
+                                                                int64_t area_range_num, int64_t max_attempts,
+                                                                bool use_image_if_no_bounding_boxes);
 
 typedef struct {
   EsbTensor *begin;
   EsbTensor *size;
   EsbTensor *bboxes;
 } EsSampleDistortedBoundingBoxExt2Output;
-EsSampleDistortedBoundingBoxExt2Output EsSampleDistortedBoundingBoxExt2(EsbTensor *image_size, EsbTensor *bounding_boxes, EsbTensor *min_object_covered, int64_t seed, int64_t seed2, const float *aspect_ratio_range, int64_t aspect_ratio_range_num, const float *area_range, int64_t area_range_num, int64_t max_attempts, bool use_image_if_no_bounding_boxes);
-EsbTensor *EsScale(EsbTensor *x, EsbTensor *scale, EsbTensor *bias, int64_t axis, int64_t num_axes, bool scale_from_blob);
-EsbTensor *EsScaleAndTranslate(EsbTensor *images, EsbTensor *size, EsbTensor *scale, EsbTensor *translation, const char *kernel_type, bool antialias);
-EsbTensor *EsScaleAndTranslateGrad(EsbTensor *grads, EsbTensor *original_image, EsbTensor *scale, EsbTensor *translation, const char *kernel_type, bool antialias);
+EsSampleDistortedBoundingBoxExt2Output EsSampleDistortedBoundingBoxExt2(
+    EsbTensor *image_size, EsbTensor *bounding_boxes, EsbTensor *min_object_covered, int64_t seed, int64_t seed2,
+    const float *aspect_ratio_range, int64_t aspect_ratio_range_num, const float *area_range, int64_t area_range_num,
+    int64_t max_attempts, bool use_image_if_no_bounding_boxes);
+EsbTensor *EsScale(EsbTensor *x, EsbTensor *scale, EsbTensor *bias, int64_t axis, int64_t num_axes,
+                   bool scale_from_blob);
+EsbTensor *EsScaleAndTranslate(EsbTensor *images, EsbTensor *size, EsbTensor *scale, EsbTensor *translation,
+                               const char *kernel_type, bool antialias);
+EsbTensor *EsScaleAndTranslateGrad(EsbTensor *grads, EsbTensor *original_image, EsbTensor *scale,
+                                   EsbTensor *translation, const char *kernel_type, bool antialias);
 EsbTensor *EsScaledMaskedSoftmax(EsbTensor *x, EsbTensor *mask, float scale, bool fixed_triu_mask);
-EsbTensor *EsScaledMaskedSoftmaxGrad(EsbTensor *y_grad, EsbTensor *y, EsbTensor *mask, float scale, bool fixed_triu_mask);
+EsbTensor *EsScaledMaskedSoftmaxGrad(EsbTensor *y_grad, EsbTensor *y, EsbTensor *mask, float scale,
+                                     bool fixed_triu_mask);
 
 typedef struct {
   EsbTensor *actual_count;
@@ -3073,7 +4049,10 @@ typedef struct {
   EsbTensor *pq_ivf;
   EsbTensor *pq_index;
 } EsScanPQCodesOutput;
-EsScanPQCodesOutput EsScanPQCodes(EsbTensor *ivf, EsbTensor *bucket_list, EsbTensor *bucket_base_distance, EsbTensor *bucket_limits, EsbTensor *bucket_offsets, EsbTensor *adc_tables, int64_t total_limit, int64_t group_size, int64_t extreme_mode, int64_t split_count, int64_t split_index);
+EsScanPQCodesOutput EsScanPQCodes(EsbTensor *ivf, EsbTensor *bucket_list, EsbTensor *bucket_base_distance,
+                                  EsbTensor *bucket_limits, EsbTensor *bucket_offsets, EsbTensor *adc_tables,
+                                  int64_t total_limit, int64_t group_size, int64_t extreme_mode, int64_t split_count,
+                                  int64_t split_index);
 
 typedef struct {
   EsbTensor *actual_count;
@@ -3082,13 +4061,17 @@ typedef struct {
   EsbTensor *sq_ivf;
   EsbTensor *sq_index;
 } EsScanSQCodesOutput;
-EsScanSQCodesOutput EsScanSQCodes(EsbTensor *ivf, EsbTensor *query, EsbTensor *bucket_list, EsbTensor *bucket_limits, EsbTensor *bucket_offsets, EsbTensor *vmin, EsbTensor *vdiff, int64_t total_limit, int64_t group_size, int64_t extreme_mode);
+EsScanSQCodesOutput EsScanSQCodes(EsbTensor *ivf, EsbTensor *query, EsbTensor *bucket_list, EsbTensor *bucket_limits,
+                                  EsbTensor *bucket_offsets, EsbTensor *vmin, EsbTensor *vdiff, int64_t total_limit,
+                                  int64_t group_size, int64_t extreme_mode);
 EsbTensor *EsScatter(EsbTensor *var, EsbTensor *indices, EsbTensor *updates, const char *reduce, int64_t axis);
 EsbTensor *EsScatterAdd(EsbTensor *var, EsbTensor *indices, EsbTensor *updates, bool use_locking);
 EsbTensor *EsScatterAddWithAxis(EsbTensor *var, EsbTensor *indices, EsbTensor *updates, int64_t axis);
 EsbTensor *EsScatterDiv(EsbTensor *var, EsbTensor *indices, EsbTensor *updates, bool use_locking);
-EsbTensor *EsScatterElements(EsbTensor *data, EsbTensor *indices, EsbTensor *updates, int64_t axis, const char *reduction);
-EsbTensor *EsScatterElementsV2(EsbTensor *var, EsbTensor *indices, EsbTensor *updates, int64_t axis, const char *reduction);
+EsbTensor *EsScatterElements(EsbTensor *data, EsbTensor *indices, EsbTensor *updates, int64_t axis,
+                             const char *reduction);
+EsbTensor *EsScatterElementsV2(EsbTensor *var, EsbTensor *indices, EsbTensor *updates, int64_t axis,
+                               const char *reduction);
 EsbTensor *EsScatterMax(EsbTensor *var, EsbTensor *indices, EsbTensor *updates, bool use_locking);
 
 typedef struct {
@@ -3109,7 +4092,8 @@ EsbTensor *EsScatterNonAliasingAdd(EsbTensor *x, EsbTensor *indices, EsbTensor *
 EsbTensor *EsScatterSub(EsbTensor *var, EsbTensor *indices, EsbTensor *updates, bool use_locking);
 EsbTensor *EsScatterUpdate(EsbTensor *var, EsbTensor *indices, EsbTensor *updates, bool use_locking);
 EsbTensor *EsSearchN(EsbTensor *x, EsbTensor *scale_d, EsbTensor *scale_w);
-EsbTensor *EsSearchSorted(EsbTensor *sorted_sequence, EsbTensor *values, EsbTensor *sorter, af::DataType dtype, bool right);
+EsbTensor *EsSearchSorted(EsbTensor *sorted_sequence, EsbTensor *values, EsbTensor *sorter, af::DataType dtype,
+                          bool right);
 EsbTensor *EsSegmentMax(EsbTensor *x, EsbTensor *segment_ids);
 EsbTensor *EsSegmentMaxD(EsbTensor *x, const int64_t *segment_ids, int64_t segment_ids_num);
 EsbTensor *EsSegmentSort(EsbTensor *input_data, EsbTensor *input_index, int64_t k_num, bool largest);
@@ -3139,10 +4123,14 @@ EsbTensor *EsShuffleChannel(EsbTensor *x, int64_t group);
 EsbTensor *EsSigmoid(EsbTensor *x);
 EsbTensor *EsSigmoidCrossEntropyWithLogits(EsbTensor *predict, EsbTensor *target);
 EsbTensor *EsSigmoidCrossEntropyWithLogitsGrad(EsbTensor *predict, EsbTensor *target, EsbTensor *dout);
-EsbTensor *EsSigmoidCrossEntropyWithLogitsGradV2(EsbTensor *predict, EsbTensor *target, EsbTensor *dout, EsbTensor *weight, EsbTensor *pos_weight, const char *reduction);
-EsbTensor *EsSigmoidCrossEntropyWithLogitsV2(EsbTensor *predict, EsbTensor *target, EsbTensor *weight, EsbTensor *pos_weight, const char *reduction);
-EsbTensor *EsSigmoidFocalLoss(EsbTensor *pred, EsbTensor *target, EsbTensor *weight, float gamma, float alpha, const char *reduction);
-EsbTensor *EsSigmoidFocalLossGrad(EsbTensor *pred, EsbTensor *target, EsbTensor *dout, EsbTensor *weight, float alpha, float gamma, const char *reduction);
+EsbTensor *EsSigmoidCrossEntropyWithLogitsGradV2(EsbTensor *predict, EsbTensor *target, EsbTensor *dout,
+                                                 EsbTensor *weight, EsbTensor *pos_weight, const char *reduction);
+EsbTensor *EsSigmoidCrossEntropyWithLogitsV2(EsbTensor *predict, EsbTensor *target, EsbTensor *weight,
+                                             EsbTensor *pos_weight, const char *reduction);
+EsbTensor *EsSigmoidFocalLoss(EsbTensor *pred, EsbTensor *target, EsbTensor *weight, float gamma, float alpha,
+                              const char *reduction);
+EsbTensor *EsSigmoidFocalLossGrad(EsbTensor *pred, EsbTensor *target, EsbTensor *dout, EsbTensor *weight, float alpha,
+                                  float gamma, const char *reduction);
 EsbTensor *EsSigmoidGrad(EsbTensor *y, EsbTensor *dy, bool complex_conj);
 EsbTensor *EsSign(EsbTensor *x);
 EsbTensor *EsSignBitsPack(EsbTensor *x, int64_t size);
@@ -3155,7 +4143,9 @@ typedef struct {
   EsbTensor *max_val;
   EsbTensor *result;
 } EsSilentCheckOutput;
-EsSilentCheckOutput EsSilentCheck(EsbTensor *val, EsbTensor *input_grad, EsbTensor *pre_val, EsbTensor *min_val, EsbTensor *max_val, EsbTensor *val_counter, int64_t c_min_steps, float c_thresh_l1, float c_coeff_l1, float c_thresh_l2, float c_coeff_l2);
+EsSilentCheckOutput EsSilentCheck(EsbTensor *val, EsbTensor *input_grad, EsbTensor *pre_val, EsbTensor *min_val,
+                                  EsbTensor *max_val, EsbTensor *val_counter, int64_t c_min_steps, float c_thresh_l1,
+                                  float c_coeff_l1, float c_thresh_l2, float c_coeff_l2);
 
 typedef struct {
   EsbTensor *input_grad;
@@ -3163,7 +4153,9 @@ typedef struct {
   EsbTensor *step;
   EsbTensor *result;
 } EsSilentCheckV2Output;
-EsSilentCheckV2Output EsSilentCheckV2(EsbTensor *val, EsbTensor *input_grad, EsbTensor *sfda, EsbTensor *step, int64_t c_min_steps, float c_thresh_l1, float c_coeff_l1, float c_thresh_l2, float c_coeff_l2, int64_t npu_asd_detect);
+EsSilentCheckV2Output EsSilentCheckV2(EsbTensor *val, EsbTensor *input_grad, EsbTensor *sfda, EsbTensor *step,
+                                      int64_t c_min_steps, float c_thresh_l1, float c_coeff_l1, float c_thresh_l2,
+                                      float c_coeff_l2, int64_t npu_asd_detect);
 
 typedef struct {
   EsbTensor *avg;
@@ -3171,7 +4163,10 @@ typedef struct {
   EsbTensor *step;
   EsbTensor *result;
 } EsSilentCheckV3Output;
-EsSilentCheckV3Output EsSilentCheckV3(EsbTensor *val, EsbTensor *max, EsbTensor *avg, EsbTensor *input_grad, EsbTensor *step, EsbTensor *dst_size, EsbTensor *dst_stride, EsbTensor *dst_offset, float c_thresh_l1, float c_thresh_l2, float beta1, int64_t npu_asd_detect);
+EsSilentCheckV3Output EsSilentCheckV3(EsbTensor *val, EsbTensor *max, EsbTensor *avg, EsbTensor *input_grad,
+                                      EsbTensor *step, EsbTensor *dst_size, EsbTensor *dst_stride,
+                                      EsbTensor *dst_offset, float c_thresh_l1, float c_thresh_l2, float beta1,
+                                      int64_t npu_asd_detect);
 EsbTensor *EsSiluGrad(EsbTensor *dy, EsbTensor *x);
 EsbTensor *EsSin(EsbTensor *x);
 
@@ -3196,7 +4191,8 @@ typedef struct {
 EsSlogdetOutput EsSlogdet(EsbTensor *x);
 EsbTensor *EsSmoothL1Loss(EsbTensor *predict, EsbTensor *label, float sigma);
 EsbTensor *EsSmoothL1LossGrad(EsbTensor *predict, EsbTensor *label, EsbTensor *dout, float sigma);
-EsbTensor *EsSmoothL1LossGradV2(EsbTensor *predict, EsbTensor *label, EsbTensor *dout, float sigma, const char *reduction);
+EsbTensor *EsSmoothL1LossGradV2(EsbTensor *predict, EsbTensor *label, EsbTensor *dout, float sigma,
+                                const char *reduction);
 EsbTensor *EsSmoothL1LossV2(EsbTensor *predict, EsbTensor *label, float sigma, const char *reduction);
 EsbTensor *EsSnapshot(EsbTensor *x);
 EsbTensor *EsSobolSample(EsbTensor *dim, EsbTensor *num_results, EsbTensor *skip, af::DataType dtype);
@@ -3209,15 +4205,18 @@ typedef struct {
   EsbTensor *loss;
   EsbTensor *log_prop;
 } EsSoftmaxCrossEntropyLossOutput;
-EsSoftmaxCrossEntropyLossOutput EsSoftmaxCrossEntropyLoss(EsbTensor *scores, EsbTensor *labels, EsbTensor *weights, int64_t ignore_index, const char *reduction);
+EsSoftmaxCrossEntropyLossOutput EsSoftmaxCrossEntropyLoss(EsbTensor *scores, EsbTensor *labels, EsbTensor *weights,
+                                                          int64_t ignore_index, const char *reduction);
 
 typedef struct {
   EsbTensor *loss;
   EsbTensor *backprop;
 } EsSoftmaxCrossEntropyWithLogitsOutput;
 EsSoftmaxCrossEntropyWithLogitsOutput EsSoftmaxCrossEntropyWithLogits(EsbTensor *features, EsbTensor *labels);
-EsbTensor *EsSoftmaxFocalLoss(EsbTensor *pred, EsbTensor *target, EsbTensor *weight, float gamma, float alpha, const char *reduction);
-EsbTensor *EsSoftmaxFocalLossGrad(EsbTensor *pred, EsbTensor *target, EsbTensor *dout, EsbTensor *weight, float alpha, float gamma, const char *reduction);
+EsbTensor *EsSoftmaxFocalLoss(EsbTensor *pred, EsbTensor *target, EsbTensor *weight, float gamma, float alpha,
+                              const char *reduction);
+EsbTensor *EsSoftmaxFocalLossGrad(EsbTensor *pred, EsbTensor *target, EsbTensor *dout, EsbTensor *weight, float alpha,
+                                  float gamma, const char *reduction);
 EsbTensor *EsSoftmaxGrad(EsbTensor *softmax, EsbTensor *grad_softmax, const int64_t *axes, int64_t axes_num);
 EsbTensor *EsSoftmaxGradExt(EsbTensor *grad, EsbTensor *x1, EsbTensor *x2, int64_t axes, bool keep_dims);
 EsbTensor *EsSoftmaxV2(EsbTensor *x, const int64_t *axes, int64_t axes_num, bool half_to_float);
@@ -3226,7 +4225,8 @@ typedef struct {
   EsbTensor *y1;
   EsbTensor *y2;
 } EsSoftmaxV2WithDropOutDoMaskV3DOutput;
-EsSoftmaxV2WithDropOutDoMaskV3DOutput EsSoftmaxV2WithDropOutDoMaskV3D(EsbTensor *x, EsbTensor *mask, float keep_prob, const int64_t *axes, int64_t axes_num);
+EsSoftmaxV2WithDropOutDoMaskV3DOutput EsSoftmaxV2WithDropOutDoMaskV3D(EsbTensor *x, EsbTensor *mask, float keep_prob,
+                                                                      const int64_t *axes, int64_t axes_num);
 EsbTensor *EsSoftplus(EsbTensor *x);
 EsbTensor *EsSoftplusGrad(EsbTensor *gradients, EsbTensor *features);
 EsbTensor *EsSoftplusV2(EsbTensor *x, float beta, float threshold);
@@ -3240,150 +4240,192 @@ typedef struct {
 } EsSortOutput;
 EsSortOutput EsSort(EsbTensor *x, int64_t axis, bool descending, bool stable);
 EsbTensor *EsSortV2(EsbTensor *x, int64_t axis, bool descending);
-EsbTensor *EsSortedNMS(EsbTensor *boxes, EsbTensor *sorted_scores, EsbTensor *input_indices, EsbTensor *max_output_size, EsbTensor *iou_threshold, EsbTensor *score_threshold, int64_t offset);
+EsbTensor *EsSortedNMS(EsbTensor *boxes, EsbTensor *sorted_scores, EsbTensor *input_indices, EsbTensor *max_output_size,
+                       EsbTensor *iou_threshold, EsbTensor *score_threshold, int64_t offset);
 EsbTensor *EsSpaceToBatch(EsbTensor *x, EsbTensor *paddings, int64_t block_size);
 EsbTensor *EsSpaceToBatchD(EsbTensor *x, int64_t block_size, const int64_t *paddings, int64_t paddings_num);
 EsbTensor *EsSpaceToBatchND(EsbTensor *x, EsbTensor *block_shape, EsbTensor *paddings);
-EsbTensor *EsSpaceToBatchNDD(EsbTensor *x, const int64_t *block_shape, int64_t block_shape_num, const int64_t *paddings, int64_t paddings_num);
+EsbTensor *EsSpaceToBatchNDD(EsbTensor *x, const int64_t *block_shape, int64_t block_shape_num, const int64_t *paddings,
+                             int64_t paddings_num);
 EsbTensor *EsSpaceToDepth(EsbTensor *x, int64_t block_size, const char *data_format);
 
 // SparseAccumulatorApplyGradient does not produce an output, so the returned EsTensor cannot be used to connect edges.
-EsbTensor *EsSparseAccumulatorApplyGradient(EsbTensor *handle, EsbTensor *local_step, EsbTensor *indices, EsbTensor *values, EsbTensor *shape, bool has_known_shape, af::DataType dtype);
+EsbTensor *EsSparseAccumulatorApplyGradient(EsbTensor *handle, EsbTensor *local_step, EsbTensor *indices,
+                                            EsbTensor *values, EsbTensor *shape, bool has_known_shape,
+                                            af::DataType dtype);
 
 typedef struct {
   EsbTensor *indices;
   EsbTensor *values;
   EsbTensor *shape;
 } EsSparseAccumulatorTakeGradientOutput;
-EsSparseAccumulatorTakeGradientOutput EsSparseAccumulatorTakeGradient(EsbTensor *handle, EsbTensor *num_required, af::DataType dtype);
+EsSparseAccumulatorTakeGradientOutput EsSparseAccumulatorTakeGradient(EsbTensor *handle, EsbTensor *num_required,
+                                                                      af::DataType dtype);
 
 typedef struct {
   EsbTensor *sum_indices;
   EsbTensor *sum_values;
   EsbTensor *sum_shape;
 } EsSparseAddOutput;
-EsSparseAddOutput EsSparseAdd(EsbTensor *x1_indices, EsbTensor *x1_values, EsbTensor *x1_shape, EsbTensor *x2_indices, EsbTensor *x2_values, EsbTensor *x2_shape, EsbTensor *thresh);
+EsSparseAddOutput EsSparseAdd(EsbTensor *x1_indices, EsbTensor *x1_values, EsbTensor *x1_shape, EsbTensor *x2_indices,
+                              EsbTensor *x2_values, EsbTensor *x2_shape, EsbTensor *thresh);
 
 typedef struct {
   EsbTensor *x1_val_grad;
   EsbTensor *x2_val_grad;
 } EsSparseAddGradOutput;
-EsSparseAddGradOutput EsSparseAddGrad(EsbTensor *backprop_val_grad, EsbTensor *x1_indices, EsbTensor *x2_indices, EsbTensor *sum_indices);
+EsSparseAddGradOutput EsSparseAddGrad(EsbTensor *backprop_val_grad, EsbTensor *x1_indices, EsbTensor *x2_indices,
+                                      EsbTensor *sum_indices);
 
 typedef struct {
   EsbTensor *var;
   EsbTensor *accum;
   EsbTensor *accum_update;
 } EsSparseApplyAdadeltaOutput;
-EsSparseApplyAdadeltaOutput EsSparseApplyAdadelta(EsbTensor *var, EsbTensor *accum, EsbTensor *accum_update, EsbTensor *lr, EsbTensor *rho, EsbTensor *epsilon, EsbTensor *grad, EsbTensor *indices, bool use_locking);
+EsSparseApplyAdadeltaOutput EsSparseApplyAdadelta(EsbTensor *var, EsbTensor *accum, EsbTensor *accum_update,
+                                                  EsbTensor *lr, EsbTensor *rho, EsbTensor *epsilon, EsbTensor *grad,
+                                                  EsbTensor *indices, bool use_locking);
 
 typedef struct {
   EsbTensor *var;
   EsbTensor *accum;
   EsbTensor *accum_update;
 } EsSparseApplyAdadeltaDOutput;
-EsSparseApplyAdadeltaDOutput EsSparseApplyAdadeltaD(EsbTensor *var, EsbTensor *accum, EsbTensor *accum_update, EsbTensor *lr, EsbTensor *rho, EsbTensor *grad, EsbTensor *indices, float epsilon, bool use_locking);
+EsSparseApplyAdadeltaDOutput EsSparseApplyAdadeltaD(EsbTensor *var, EsbTensor *accum, EsbTensor *accum_update,
+                                                    EsbTensor *lr, EsbTensor *rho, EsbTensor *grad, EsbTensor *indices,
+                                                    float epsilon, bool use_locking);
 
 typedef struct {
   EsbTensor *var;
   EsbTensor *accum;
 } EsSparseApplyAdagradOutput;
-EsSparseApplyAdagradOutput EsSparseApplyAdagrad(EsbTensor *var, EsbTensor *accum, EsbTensor *lr, EsbTensor *grad, EsbTensor *indices, bool use_locking, bool update_slots);
+EsSparseApplyAdagradOutput EsSparseApplyAdagrad(EsbTensor *var, EsbTensor *accum, EsbTensor *lr, EsbTensor *grad,
+                                                EsbTensor *indices, bool use_locking, bool update_slots);
 
 typedef struct {
   EsbTensor *var;
   EsbTensor *accum;
 } EsSparseApplyAdagradDOutput;
-EsSparseApplyAdagradDOutput EsSparseApplyAdagradD(EsbTensor *var, EsbTensor *accum, EsbTensor *grad, EsbTensor *indices, float lr, bool use_locking, bool update_slots);
+EsSparseApplyAdagradDOutput EsSparseApplyAdagradD(EsbTensor *var, EsbTensor *accum, EsbTensor *grad, EsbTensor *indices,
+                                                  float lr, bool use_locking, bool update_slots);
 
 typedef struct {
   EsbTensor *var;
   EsbTensor *accum;
 } EsSparseApplyAdagradV2Output;
-EsSparseApplyAdagradV2Output EsSparseApplyAdagradV2(EsbTensor *var, EsbTensor *accum, EsbTensor *lr, EsbTensor *epsilon, EsbTensor *grad, EsbTensor *indices, bool use_locking, bool update_slots);
+EsSparseApplyAdagradV2Output EsSparseApplyAdagradV2(EsbTensor *var, EsbTensor *accum, EsbTensor *lr, EsbTensor *epsilon,
+                                                    EsbTensor *grad, EsbTensor *indices, bool use_locking,
+                                                    bool update_slots);
 
 typedef struct {
   EsbTensor *var;
   EsbTensor *accum;
 } EsSparseApplyAdagradV2DOutput;
-EsSparseApplyAdagradV2DOutput EsSparseApplyAdagradV2D(EsbTensor *var, EsbTensor *accum, EsbTensor *grad, EsbTensor *indices, float lr, float epsilon, bool use_locking, bool update_slots);
+EsSparseApplyAdagradV2DOutput EsSparseApplyAdagradV2D(EsbTensor *var, EsbTensor *accum, EsbTensor *grad,
+                                                      EsbTensor *indices, float lr, float epsilon, bool use_locking,
+                                                      bool update_slots);
 
 typedef struct {
   EsbTensor *var;
   EsbTensor *accum;
   EsbTensor *linear;
 } EsSparseApplyFtrlOutput;
-EsSparseApplyFtrlOutput EsSparseApplyFtrl(EsbTensor *var, EsbTensor *accum, EsbTensor *linear, EsbTensor *grad, EsbTensor *indices, EsbTensor *lr, EsbTensor *l1, EsbTensor *l2, EsbTensor *lr_power, bool use_locking);
+EsSparseApplyFtrlOutput EsSparseApplyFtrl(EsbTensor *var, EsbTensor *accum, EsbTensor *linear, EsbTensor *grad,
+                                          EsbTensor *indices, EsbTensor *lr, EsbTensor *l1, EsbTensor *l2,
+                                          EsbTensor *lr_power, bool use_locking);
 
 typedef struct {
   EsbTensor *var;
   EsbTensor *accum;
   EsbTensor *linear;
 } EsSparseApplyFtrlDOutput;
-EsSparseApplyFtrlDOutput EsSparseApplyFtrlD(EsbTensor *var, EsbTensor *accum, EsbTensor *linear, EsbTensor *grad, EsbTensor *indices, float lr, float l1, float l2, float lr_power, bool use_locking);
+EsSparseApplyFtrlDOutput EsSparseApplyFtrlD(EsbTensor *var, EsbTensor *accum, EsbTensor *linear, EsbTensor *grad,
+                                            EsbTensor *indices, float lr, float l1, float l2, float lr_power,
+                                            bool use_locking);
 
 typedef struct {
   EsbTensor *var;
   EsbTensor *accum;
   EsbTensor *linear;
 } EsSparseApplyFtrlV2Output;
-EsSparseApplyFtrlV2Output EsSparseApplyFtrlV2(EsbTensor *var, EsbTensor *accum, EsbTensor *linear, EsbTensor *grad, EsbTensor *indices, EsbTensor *lr, EsbTensor *l1, EsbTensor *l2, EsbTensor *l2_shrinkage, EsbTensor *lr_power, bool use_locking);
+EsSparseApplyFtrlV2Output EsSparseApplyFtrlV2(EsbTensor *var, EsbTensor *accum, EsbTensor *linear, EsbTensor *grad,
+                                              EsbTensor *indices, EsbTensor *lr, EsbTensor *l1, EsbTensor *l2,
+                                              EsbTensor *l2_shrinkage, EsbTensor *lr_power, bool use_locking);
 
 typedef struct {
   EsbTensor *var;
   EsbTensor *accum;
   EsbTensor *linear;
 } EsSparseApplyFtrlV2DOutput;
-EsSparseApplyFtrlV2DOutput EsSparseApplyFtrlV2D(EsbTensor *var, EsbTensor *accum, EsbTensor *linear, EsbTensor *grad, EsbTensor *indices, float lr, float l1, float l2, float l2_shrinkage, float lr_power, bool use_locking);
+EsSparseApplyFtrlV2DOutput EsSparseApplyFtrlV2D(EsbTensor *var, EsbTensor *accum, EsbTensor *linear, EsbTensor *grad,
+                                                EsbTensor *indices, float lr, float l1, float l2, float l2_shrinkage,
+                                                float lr_power, bool use_locking);
 
 typedef struct {
   EsbTensor *var;
   EsbTensor *accum;
 } EsSparseApplyProximalAdagradOutput;
-EsSparseApplyProximalAdagradOutput EsSparseApplyProximalAdagrad(EsbTensor *var, EsbTensor *accum, EsbTensor *lr, EsbTensor *l1, EsbTensor *l2, EsbTensor *grad, EsbTensor *indices, bool use_locking);
+EsSparseApplyProximalAdagradOutput EsSparseApplyProximalAdagrad(EsbTensor *var, EsbTensor *accum, EsbTensor *lr,
+                                                                EsbTensor *l1, EsbTensor *l2, EsbTensor *grad,
+                                                                EsbTensor *indices, bool use_locking);
 
 typedef struct {
   EsbTensor *var;
   EsbTensor *accum;
 } EsSparseApplyProximalAdagradDOutput;
-EsSparseApplyProximalAdagradDOutput EsSparseApplyProximalAdagradD(EsbTensor *var, EsbTensor *accum, EsbTensor *lr, EsbTensor *l1, EsbTensor *l2, EsbTensor *grad, EsbTensor *indices, bool use_locking);
+EsSparseApplyProximalAdagradDOutput EsSparseApplyProximalAdagradD(EsbTensor *var, EsbTensor *accum, EsbTensor *lr,
+                                                                  EsbTensor *l1, EsbTensor *l2, EsbTensor *grad,
+                                                                  EsbTensor *indices, bool use_locking);
 
 typedef struct {
   EsbTensor *var;
   EsbTensor *ms;
   EsbTensor *mom;
 } EsSparseApplyRMSPropOutput;
-EsSparseApplyRMSPropOutput EsSparseApplyRMSProp(EsbTensor *var, EsbTensor *ms, EsbTensor *mom, EsbTensor *lr, EsbTensor *rho, EsbTensor *momentum, EsbTensor *epsilon, EsbTensor *grad, EsbTensor *indices, bool use_locking);
+EsSparseApplyRMSPropOutput EsSparseApplyRMSProp(EsbTensor *var, EsbTensor *ms, EsbTensor *mom, EsbTensor *lr,
+                                                EsbTensor *rho, EsbTensor *momentum, EsbTensor *epsilon,
+                                                EsbTensor *grad, EsbTensor *indices, bool use_locking);
 
 typedef struct {
   EsbTensor *var;
   EsbTensor *ms;
   EsbTensor *mom;
 } EsSparseApplyRMSPropDOutput;
-EsSparseApplyRMSPropDOutput EsSparseApplyRMSPropD(EsbTensor *var, EsbTensor *ms, EsbTensor *mom, EsbTensor *lr, EsbTensor *grad, EsbTensor *indices, float rho, float momentum, float epsilon, bool use_locking);
-EsbTensor *EsSparseBincount(EsbTensor *indices, EsbTensor *values, EsbTensor *dense_shape, EsbTensor *size, EsbTensor *weights, bool binary_output);
+EsSparseApplyRMSPropDOutput EsSparseApplyRMSPropD(EsbTensor *var, EsbTensor *ms, EsbTensor *mom, EsbTensor *lr,
+                                                  EsbTensor *grad, EsbTensor *indices, float rho, float momentum,
+                                                  float epsilon, bool use_locking);
+EsbTensor *EsSparseBincount(EsbTensor *indices, EsbTensor *values, EsbTensor *dense_shape, EsbTensor *size,
+                            EsbTensor *weights, bool binary_output);
 
 typedef struct {
   EsbTensor *y_indices;
   EsbTensor *y_values;
   EsbTensor *y_shape;
 } EsSparseConcatOutput;
-EsSparseConcatOutput EsSparseConcat(EsbTensor **indices, int64_t indices_num, EsbTensor **values, int64_t values_num, EsbTensor **shapes, int64_t shapes_num, int64_t concat_dim, int64_t N);
-EsbTensor *EsSparseConditionalAccumulator(EsbGraph *owner_graph, const int64_t *shape, int64_t shape_num, af::DataType dtype, const char *container, const char *shared_name, const char *reduction_type);
+EsSparseConcatOutput EsSparseConcat(EsbTensor **indices, int64_t indices_num, EsbTensor **values, int64_t values_num,
+                                    EsbTensor **shapes, int64_t shapes_num, int64_t concat_dim, int64_t N);
+EsbTensor *EsSparseConditionalAccumulator(EsbGraph *owner_graph, const int64_t *shape, int64_t shape_num,
+                                          af::DataType dtype, const char *container, const char *shared_name,
+                                          const char *reduction_type);
 
 typedef struct {
   EsbTensor *output_indices;
   EsbTensor *output_values;
   EsbTensor *output_dense_shape;
 } EsSparseCountSparseOutputOutput;
-EsSparseCountSparseOutputOutput EsSparseCountSparseOutput(EsbTensor *indices, EsbTensor *values, EsbTensor *dense_shape, EsbTensor *weights, bool binary_output, int64_t minlength, int64_t maxlength);
+EsSparseCountSparseOutputOutput EsSparseCountSparseOutput(EsbTensor *indices, EsbTensor *values, EsbTensor *dense_shape,
+                                                          EsbTensor *weights, bool binary_output, int64_t minlength,
+                                                          int64_t maxlength);
 
 typedef struct {
   EsbTensor *output_indices;
   EsbTensor *output_values;
   EsbTensor *output_shape;
 } EsSparseCrossOutput;
-EsSparseCrossOutput EsSparseCross(EsbTensor **indices, int64_t indices_num, EsbTensor **values, int64_t values_num, EsbTensor **shapes, int64_t shapes_num, EsbTensor **dense_inputs, int64_t dense_inputs_num, bool hashed_output, int64_t hash_key, af::DataType out_type, af::DataType internal_type, int64_t N, int64_t num_buckets);
+EsSparseCrossOutput EsSparseCross(EsbTensor **indices, int64_t indices_num, EsbTensor **values, int64_t values_num,
+                                  EsbTensor **shapes, int64_t shapes_num, EsbTensor **dense_inputs,
+                                  int64_t dense_inputs_num, bool hashed_output, int64_t hash_key, af::DataType out_type,
+                                  af::DataType internal_type, int64_t N, int64_t num_buckets);
 EsbTensor *EsSparseDenseCwiseAdd(EsbTensor *x1_indices, EsbTensor *x1_values, EsbTensor *x1_shape, EsbTensor *x2);
 EsbTensor *EsSparseDenseCwiseDiv(EsbTensor *x1_indices, EsbTensor *x1_values, EsbTensor *x1_shape, EsbTensor *x2);
 EsbTensor *EsSparseDenseCwiseMul(EsbTensor *x1_indices, EsbTensor *x1_values, EsbTensor *x1_shape, EsbTensor *x2);
@@ -3394,29 +4436,34 @@ typedef struct {
   EsbTensor *empty_row_indicator;
   EsbTensor *reverse_index_map;
 } EsSparseFillEmptyRowsOutput;
-EsSparseFillEmptyRowsOutput EsSparseFillEmptyRows(EsbTensor *indices, EsbTensor *values, EsbTensor *dense_shape, EsbTensor *default_value);
+EsSparseFillEmptyRowsOutput EsSparseFillEmptyRows(EsbTensor *indices, EsbTensor *values, EsbTensor *dense_shape,
+                                                  EsbTensor *default_value);
 
 typedef struct {
   EsbTensor *y_value;
   EsbTensor *y_default_value;
 } EsSparseFillEmptyRowsGradOutput;
 EsSparseFillEmptyRowsGradOutput EsSparseFillEmptyRowsGrad(EsbTensor *reverse_index_map, EsbTensor *grad_values);
-EsbTensor *EsSparseReduceMax(EsbTensor *x_indices, EsbTensor *x_values, EsbTensor *x_shape, EsbTensor *reduction_axes, bool keep_dims);
+EsbTensor *EsSparseReduceMax(EsbTensor *x_indices, EsbTensor *x_values, EsbTensor *x_shape, EsbTensor *reduction_axes,
+                             bool keep_dims);
 
 typedef struct {
   EsbTensor *y_indices;
   EsbTensor *y_values;
   EsbTensor *y_shape;
 } EsSparseReduceMaxSparseOutput;
-EsSparseReduceMaxSparseOutput EsSparseReduceMaxSparse(EsbTensor *x_indices, EsbTensor *x_values, EsbTensor *x_shape, EsbTensor *reduction_axes, bool keep_dims);
-EsbTensor *EsSparseReduceSum(EsbTensor *x_indices, EsbTensor *x_values, EsbTensor *x_shape, EsbTensor *reduction_axes, bool keep_dims);
+EsSparseReduceMaxSparseOutput EsSparseReduceMaxSparse(EsbTensor *x_indices, EsbTensor *x_values, EsbTensor *x_shape,
+                                                      EsbTensor *reduction_axes, bool keep_dims);
+EsbTensor *EsSparseReduceSum(EsbTensor *x_indices, EsbTensor *x_values, EsbTensor *x_shape, EsbTensor *reduction_axes,
+                             bool keep_dims);
 
 typedef struct {
   EsbTensor *y_indices;
   EsbTensor *y_values;
   EsbTensor *y_shape;
 } EsSparseReduceSumSparseOutput;
-EsSparseReduceSumSparseOutput EsSparseReduceSumSparse(EsbTensor *x_indices, EsbTensor *x_values, EsbTensor *x_shape, EsbTensor *reduction_axes, bool keep_dims);
+EsSparseReduceSumSparseOutput EsSparseReduceSumSparse(EsbTensor *x_indices, EsbTensor *x_values, EsbTensor *x_shape,
+                                                      EsbTensor *reduction_axes, bool keep_dims);
 
 typedef struct {
   EsbTensor *y_indices;
@@ -3439,39 +4486,53 @@ typedef struct {
   EsbTensor *y_values;
   EsbTensor *y_shape;
 } EsSparseSliceOutput;
-EsSparseSliceOutput EsSparseSlice(EsbTensor *indices, EsbTensor *values, EsbTensor *shape, EsbTensor *start, EsbTensor *size);
-EsbTensor *EsSparseSliceGrad(EsbTensor *backprop_val_grad, EsbTensor *indices, EsbTensor *start, EsbTensor *new_indices);
+EsSparseSliceOutput EsSparseSlice(EsbTensor *indices, EsbTensor *values, EsbTensor *shape, EsbTensor *start,
+                                  EsbTensor *size);
+EsbTensor *EsSparseSliceGrad(EsbTensor *backprop_val_grad, EsbTensor *indices, EsbTensor *start,
+                             EsbTensor *new_indices);
 EsbTensor *EsSparseSoftmax(EsbTensor *indices, EsbTensor *values, EsbTensor *shape);
 
 typedef struct {
   EsbTensor *loss;
   EsbTensor *backprop;
 } EsSparseSoftmaxCrossEntropyWithLogitsOutput;
-EsSparseSoftmaxCrossEntropyWithLogitsOutput EsSparseSoftmaxCrossEntropyWithLogits(EsbTensor *features, EsbTensor *labels);
+EsSparseSoftmaxCrossEntropyWithLogitsOutput EsSparseSoftmaxCrossEntropyWithLogits(EsbTensor *features,
+                                                                                  EsbTensor *labels);
 
 typedef struct {
   EsbTensor *y_indices;
   EsbTensor *y_values;
 } EsSparseSparseMaximumOutput;
-EsSparseSparseMaximumOutput EsSparseSparseMaximum(EsbTensor *x1_indices, EsbTensor *x1_values, EsbTensor *x1_shape, EsbTensor *x2_indices, EsbTensor *x2_values, EsbTensor *x2_shape);
+EsSparseSparseMaximumOutput EsSparseSparseMaximum(EsbTensor *x1_indices, EsbTensor *x1_values, EsbTensor *x1_shape,
+                                                  EsbTensor *x2_indices, EsbTensor *x2_values, EsbTensor *x2_shape);
 
 typedef struct {
   EsbTensor *y_indices;
   EsbTensor *y_values;
 } EsSparseSparseMinimumOutput;
-EsSparseSparseMinimumOutput EsSparseSparseMinimum(EsbTensor *x1_indices, EsbTensor *x1_values, EsbTensor *x1_shape, EsbTensor *x2_indices, EsbTensor *x2_values, EsbTensor *x2_shape);
+EsSparseSparseMinimumOutput EsSparseSparseMinimum(EsbTensor *x1_indices, EsbTensor *x1_values, EsbTensor *x1_shape,
+                                                  EsbTensor *x2_indices, EsbTensor *x2_values, EsbTensor *x2_shape);
 EsbTensor *EsSparseTensorDenseAdd(EsbTensor *x1_indices, EsbTensor *x1_values, EsbTensor *x1_shape, EsbTensor *x2);
-EsbTensor *EsSparseTensorDenseMatMul(EsbTensor *x1_indices, EsbTensor *x1_values, EsbTensor *x1_shape, EsbTensor *x2, bool adjoint_a, bool adjoint_b);
-EsbTensor *EsSparseToDense(EsbTensor *indices, EsbTensor *output_shape, EsbTensor *values, EsbTensor *default_value, bool validate_indices);
+EsbTensor *EsSparseTensorDenseMatMul(EsbTensor *x1_indices, EsbTensor *x1_values, EsbTensor *x1_shape, EsbTensor *x2,
+                                     bool adjoint_a, bool adjoint_b);
+EsbTensor *EsSparseToDense(EsbTensor *indices, EsbTensor *output_shape, EsbTensor *values, EsbTensor *default_value,
+                           bool validate_indices);
 
 typedef struct {
   EsbTensor *y_indices;
   EsbTensor *y_values;
   EsbTensor *y_shape;
 } EsSparseToSparseSetOperationOutput;
-EsSparseToSparseSetOperationOutput EsSparseToSparseSetOperation(EsbTensor *x1_indices, EsbTensor *x1_values, EsbTensor *x1_shape, EsbTensor *x2_indices, EsbTensor *x2_values, EsbTensor *x2_shape, const char *set_operation, bool validate_indices);
-EsbTensor *EsSpatialTransformer(EsbTensor *x, EsbTensor *theta, const int64_t *output_size, int64_t output_size_num, const float *default_theta, int64_t default_theta_num, bool align_corners, const int64_t *use_default_theta, int64_t use_default_theta_num);
-EsbTensor *EsSpatialTransformerD(EsbTensor *x, EsbTensor *theta, const int64_t *output_size, int64_t output_size_num, const float *default_theta, int64_t default_theta_num, bool align_corners, const bool *use_default_theta, int64_t use_default_theta_num);
+EsSparseToSparseSetOperationOutput EsSparseToSparseSetOperation(EsbTensor *x1_indices, EsbTensor *x1_values,
+                                                                EsbTensor *x1_shape, EsbTensor *x2_indices,
+                                                                EsbTensor *x2_values, EsbTensor *x2_shape,
+                                                                const char *set_operation, bool validate_indices);
+EsbTensor *EsSpatialTransformer(EsbTensor *x, EsbTensor *theta, const int64_t *output_size, int64_t output_size_num,
+                                const float *default_theta, int64_t default_theta_num, bool align_corners,
+                                const int64_t *use_default_theta, int64_t use_default_theta_num);
+EsbTensor *EsSpatialTransformerD(EsbTensor *x, EsbTensor *theta, const int64_t *output_size, int64_t output_size_num,
+                                 const float *default_theta, int64_t default_theta_num, bool align_corners,
+                                 const bool *use_default_theta, int64_t use_default_theta_num);
 EsbTensor *EsSpence(EsbTensor *x);
 EsbTensor *EsSplitToSequence(EsbTensor *x, EsbTensor *split, int64_t axis, bool keepdims);
 EsbTensor *EsSqrt(EsbTensor *x);
@@ -3495,28 +4556,38 @@ EsbTensor *EsSqueeze(EsbTensor *x, const int64_t *axis, int64_t axis_num);
 EsbTensor *EsSqueezeV2(EsbTensor *x, const int64_t *axis, int64_t axis_num);
 EsbTensor *EsSqueezeV3(EsbTensor *x, EsbTensor *axes);
 EsbTensor *EsStack(EsbTensor *max_size, af::DataType elem_type, const char *stack_name);
-EsbTensor *EsStackBallQuery(EsbTensor *xyz, EsbTensor *center_xyz, EsbTensor *xyz_batch_cnt, EsbTensor *center_xyz_batch_cnt, float max_radius, int64_t sample_num);
+EsbTensor *EsStackBallQuery(EsbTensor *xyz, EsbTensor *center_xyz, EsbTensor *xyz_batch_cnt,
+                            EsbTensor *center_xyz_batch_cnt, float max_radius, int64_t sample_num);
 
 // StackClose does not produce an output, so the returned EsTensor cannot be used to connect edges.
 EsbTensor *EsStackClose(EsbTensor *handle);
-EsbTensor *EsStackGroupPoints(EsbTensor *features, EsbTensor *features_batch_cnt, EsbTensor *indices, EsbTensor *indices_batch_cnt);
+EsbTensor *EsStackGroupPoints(EsbTensor *features, EsbTensor *features_batch_cnt, EsbTensor *indices,
+                              EsbTensor *indices_batch_cnt);
 EsbTensor *EsStackPop(EsbTensor *handle, af::DataType elem_type);
 EsbTensor *EsStackPush(EsbTensor *handle, EsbTensor *element, bool swap_memory);
 
 // Stage does not produce an output, so the returned EsTensor cannot be used to connect edges.
-EsbTensor *EsStage(EsbTensor **values, int64_t values_num, int64_t capacity, int64_t memory_limit, const char *container, const char *shared_name);
-EsbTensor *EsStatefulRandomBinomial(EsbTensor *x, EsbTensor *algorithm, EsbTensor *shape, EsbTensor *counts, EsbTensor *probs, af::DataType dtype);
+EsbTensor *EsStage(EsbTensor **values, int64_t values_num, int64_t capacity, int64_t memory_limit,
+                   const char *container, const char *shared_name);
+EsbTensor *EsStatefulRandomBinomial(EsbTensor *x, EsbTensor *algorithm, EsbTensor *shape, EsbTensor *counts,
+                                    EsbTensor *probs, af::DataType dtype);
 EsbTensor *EsStatefulStandardNormalV2(EsbTensor *x, EsbTensor *algorithm, EsbTensor *shape);
 EsbTensor *EsStatefulTruncatedNormal(EsbTensor *x, EsbTensor *algorithm, EsbTensor *shape);
 EsbTensor *EsStatefulUniform(EsbTensor *x, EsbTensor *algorithm, EsbTensor *shape);
 EsbTensor *EsStatefulUniformFullInt(EsbTensor *x, EsbTensor *algorithm, EsbTensor *shape);
-EsbTensor *EsStatefulUniformInt(EsbTensor *x, EsbTensor *algorithm, EsbTensor *shape, EsbTensor *minval, EsbTensor *maxval);
-EsbTensor *EsStatelessBernoulli(EsbTensor *shape, EsbTensor *prob, EsbTensor *seed, EsbTensor *offset, af::DataType dtype);
+EsbTensor *EsStatefulUniformInt(EsbTensor *x, EsbTensor *algorithm, EsbTensor *shape, EsbTensor *minval,
+                                EsbTensor *maxval);
+EsbTensor *EsStatelessBernoulli(EsbTensor *shape, EsbTensor *prob, EsbTensor *seed, EsbTensor *offset,
+                                af::DataType dtype);
 EsbTensor *EsStatelessBernoulliV2(EsbTensor *x, EsbTensor *seed, EsbTensor *offset, af::DataType dtype);
-EsbTensor *EsStatelessDropOutGenMask(EsbTensor *shape, EsbTensor *prob, EsbTensor *seed, EsbTensor *seed1, EsbTensor *offset);
-EsbTensor *EsStatelessMultinomial(EsbTensor *logits, EsbTensor *num_samples, EsbTensor *seed, af::DataType output_dtype);
-EsbTensor *EsStatelessParameterizedTruncatedNormal(EsbTensor *shape, EsbTensor *seed, EsbTensor *means, EsbTensor *stdevs, EsbTensor *min, EsbTensor *max);
-EsbTensor *EsStatelessRandomBinomial(EsbTensor *shape, EsbTensor *seed, EsbTensor *counts, EsbTensor *probs, af::DataType dtype);
+EsbTensor *EsStatelessDropOutGenMask(EsbTensor *shape, EsbTensor *prob, EsbTensor *seed, EsbTensor *seed1,
+                                     EsbTensor *offset);
+EsbTensor *EsStatelessMultinomial(EsbTensor *logits, EsbTensor *num_samples, EsbTensor *seed,
+                                  af::DataType output_dtype);
+EsbTensor *EsStatelessParameterizedTruncatedNormal(EsbTensor *shape, EsbTensor *seed, EsbTensor *means,
+                                                   EsbTensor *stdevs, EsbTensor *min, EsbTensor *max);
+EsbTensor *EsStatelessRandomBinomial(EsbTensor *shape, EsbTensor *seed, EsbTensor *counts, EsbTensor *probs,
+                                     af::DataType dtype);
 EsbTensor *EsStatelessRandomGammaV2(EsbTensor *shape, EsbTensor *seed, EsbTensor *alpha);
 EsbTensor *EsStatelessRandomGetAlg(EsbGraph *owner_graph);
 
@@ -3532,13 +4603,17 @@ typedef struct {
   EsbTensor *alg;
 } EsStatelessRandomGetKeyCounterAlgOutput;
 EsStatelessRandomGetKeyCounterAlgOutput EsStatelessRandomGetKeyCounterAlg(EsbTensor *seed);
-EsbTensor *EsStatelessRandomNormalV2(EsbTensor *shape, EsbTensor *key, EsbTensor *counter, EsbTensor *alg, af::DataType dtype);
+EsbTensor *EsStatelessRandomNormalV2(EsbTensor *shape, EsbTensor *key, EsbTensor *counter, EsbTensor *alg,
+                                     af::DataType dtype);
 EsbTensor *EsStatelessRandomPoisson(EsbTensor *shape, EsbTensor *seed, EsbTensor *lam, af::DataType dtype);
 EsbTensor *EsStatelessRandomUniformFullInt(EsbTensor *shape, EsbTensor *seed, af::DataType dtype);
-EsbTensor *EsStatelessRandomUniformFullIntV2(EsbTensor *shape, EsbTensor *key, EsbTensor *counter, EsbTensor *alg, af::DataType dtype);
+EsbTensor *EsStatelessRandomUniformFullIntV2(EsbTensor *shape, EsbTensor *key, EsbTensor *counter, EsbTensor *alg,
+                                             af::DataType dtype);
 EsbTensor *EsStatelessRandomUniformInt(EsbTensor *shape, EsbTensor *seed, EsbTensor *minval, EsbTensor *maxval);
-EsbTensor *EsStatelessRandomUniformIntV2(EsbTensor *shape, EsbTensor *key, EsbTensor *counter, EsbTensor *alg, EsbTensor *minval, EsbTensor *maxval);
-EsbTensor *EsStatelessRandomUniformV2(EsbTensor *shape, EsbTensor *key, EsbTensor *counter, EsbTensor *alg, af::DataType dtype);
+EsbTensor *EsStatelessRandomUniformIntV2(EsbTensor *shape, EsbTensor *key, EsbTensor *counter, EsbTensor *alg,
+                                         EsbTensor *minval, EsbTensor *maxval);
+EsbTensor *EsStatelessRandomUniformV2(EsbTensor *shape, EsbTensor *key, EsbTensor *counter, EsbTensor *alg,
+                                      af::DataType dtype);
 EsbTensor *EsStatelessRandperm(EsbTensor *n, EsbTensor *seed, EsbTensor *offset, int64_t layout, af::DataType dtype);
 
 typedef struct {
@@ -3546,24 +4621,45 @@ typedef struct {
   EsbTensor *size;
   EsbTensor *bboxes;
 } EsStatelessSampleDistortedBoundingBoxOutput;
-EsStatelessSampleDistortedBoundingBoxOutput EsStatelessSampleDistortedBoundingBox(EsbTensor *image_size, EsbTensor *bounding_boxes, EsbTensor *min_object_covered, EsbTensor *seed, const float *aspect_ratio_range, int64_t aspect_ratio_range_num, const float *area_range, int64_t area_range_num, int64_t max_attempts, bool use_image_if_no_bounding_boxes);
-EsbTensor *EsStatelessTruncatedNormalV2(EsbTensor *shape, EsbTensor *key, EsbTensor *counter, EsbTensor *alg, af::DataType dtype);
+EsStatelessSampleDistortedBoundingBoxOutput EsStatelessSampleDistortedBoundingBox(
+    EsbTensor *image_size, EsbTensor *bounding_boxes, EsbTensor *min_object_covered, EsbTensor *seed,
+    const float *aspect_ratio_range, int64_t aspect_ratio_range_num, const float *area_range, int64_t area_range_num,
+    int64_t max_attempts, bool use_image_if_no_bounding_boxes);
+EsbTensor *EsStatelessTruncatedNormalV2(EsbTensor *shape, EsbTensor *key, EsbTensor *counter, EsbTensor *alg,
+                                        af::DataType dtype);
 EsbTensor *EsStaticRegexFullMatch(EsbTensor *input, const char *pattern);
 EsbTensor *EsStaticRegexReplace(EsbTensor *input, const char *pattern, const char *rewrite, bool replace_global);
 EsbTensor *EsStopGradient(EsbTensor *x);
 EsbTensor *EsStrideAdd(EsbTensor *x1, EsbTensor *x2, int64_t x1_c1_offset, int64_t x2_c1_offset, int64_t c1_len);
 EsbTensor *EsStridedRead(EsbTensor *x, int64_t axis, int64_t stride);
-EsbTensor *EsStridedSlice(EsbTensor *x, EsbTensor *begin, EsbTensor *end, EsbTensor *strides, int64_t begin_mask, int64_t end_mask, int64_t ellipsis_mask, int64_t new_axis_mask, int64_t shrink_axis_mask);
-EsbTensor *EsStridedSliceAssign(EsbTensor *var, EsbTensor *begin, EsbTensor *end, EsbTensor *strides, EsbTensor *input_value, int64_t begin_mask, int64_t end_mask, int64_t ellipsis_mask, int64_t new_axis_mask, int64_t shrink_axis_mask);
-EsbTensor *EsStridedSliceAssignD(EsbTensor *var, EsbTensor *input_value, const int64_t *begin, int64_t begin_num, const int64_t *end, int64_t end_num, const int64_t *strides, int64_t strides_num, int64_t begin_mask, int64_t end_mask, int64_t ellipsis_mask, int64_t new_axis_mask, int64_t shrink_axis_mask);
-EsbTensor *EsStridedSliceAssignV2(EsbTensor *var, EsbTensor *input_value, EsbTensor *begin, EsbTensor *end, EsbTensor *strides, EsbTensor *axes);
-EsbTensor *EsStridedSliceD(EsbTensor *x, const int64_t *begin, int64_t begin_num, const int64_t *end, int64_t end_num, const int64_t *strides, int64_t strides_num, int64_t begin_mask, int64_t end_mask, int64_t ellipsis_mask, int64_t new_axis_mask, int64_t shrink_axis_mask);
-EsbTensor *EsStridedSliceGrad(EsbTensor *shape, EsbTensor *begin, EsbTensor *end, EsbTensor *strides, EsbTensor *dy, int64_t begin_mask, int64_t end_mask, int64_t ellipsis_mask, int64_t new_axis_mask, int64_t shrink_axis_mask);
-EsbTensor *EsStridedSliceGradD(EsbTensor *dy, const int64_t *shape, int64_t shape_num, const int64_t *begin, int64_t begin_num, const int64_t *end, int64_t end_num, const int64_t *strides, int64_t strides_num, int64_t begin_mask, int64_t end_mask, int64_t ellipsis_mask, int64_t new_axis_mask, int64_t shrink_axis_mask);
-EsbTensor *EsStridedSliceV2(EsbTensor *x, EsbTensor *begin, EsbTensor *end, EsbTensor *axes, EsbTensor *strides, int64_t begin_mask, int64_t end_mask, int64_t ellipsis_mask, int64_t new_axis_mask, int64_t shrink_axis_mask);
+EsbTensor *EsStridedSlice(EsbTensor *x, EsbTensor *begin, EsbTensor *end, EsbTensor *strides, int64_t begin_mask,
+                          int64_t end_mask, int64_t ellipsis_mask, int64_t new_axis_mask, int64_t shrink_axis_mask);
+EsbTensor *EsStridedSliceAssign(EsbTensor *var, EsbTensor *begin, EsbTensor *end, EsbTensor *strides,
+                                EsbTensor *input_value, int64_t begin_mask, int64_t end_mask, int64_t ellipsis_mask,
+                                int64_t new_axis_mask, int64_t shrink_axis_mask);
+EsbTensor *EsStridedSliceAssignD(EsbTensor *var, EsbTensor *input_value, const int64_t *begin, int64_t begin_num,
+                                 const int64_t *end, int64_t end_num, const int64_t *strides, int64_t strides_num,
+                                 int64_t begin_mask, int64_t end_mask, int64_t ellipsis_mask, int64_t new_axis_mask,
+                                 int64_t shrink_axis_mask);
+EsbTensor *EsStridedSliceAssignV2(EsbTensor *var, EsbTensor *input_value, EsbTensor *begin, EsbTensor *end,
+                                  EsbTensor *strides, EsbTensor *axes);
+EsbTensor *EsStridedSliceD(EsbTensor *x, const int64_t *begin, int64_t begin_num, const int64_t *end, int64_t end_num,
+                           const int64_t *strides, int64_t strides_num, int64_t begin_mask, int64_t end_mask,
+                           int64_t ellipsis_mask, int64_t new_axis_mask, int64_t shrink_axis_mask);
+EsbTensor *EsStridedSliceGrad(EsbTensor *shape, EsbTensor *begin, EsbTensor *end, EsbTensor *strides, EsbTensor *dy,
+                              int64_t begin_mask, int64_t end_mask, int64_t ellipsis_mask, int64_t new_axis_mask,
+                              int64_t shrink_axis_mask);
+EsbTensor *EsStridedSliceGradD(EsbTensor *dy, const int64_t *shape, int64_t shape_num, const int64_t *begin,
+                               int64_t begin_num, const int64_t *end, int64_t end_num, const int64_t *strides,
+                               int64_t strides_num, int64_t begin_mask, int64_t end_mask, int64_t ellipsis_mask,
+                               int64_t new_axis_mask, int64_t shrink_axis_mask);
+EsbTensor *EsStridedSliceV2(EsbTensor *x, EsbTensor *begin, EsbTensor *end, EsbTensor *axes, EsbTensor *strides,
+                            int64_t begin_mask, int64_t end_mask, int64_t ellipsis_mask, int64_t new_axis_mask,
+                            int64_t shrink_axis_mask);
 EsbTensor *EsStridedSliceV3(EsbTensor *x, EsbTensor *begin, EsbTensor *end, EsbTensor *axes, EsbTensor *strides);
 EsbTensor *EsStridedWrite(EsbTensor *x, int64_t axis, int64_t stride);
-EsbTensor *EsStringFormat(EsbTensor **x, int64_t x_num, const char *attr_template, const char *placeholder, int64_t summarize);
+EsbTensor *EsStringFormat(EsbTensor **x, int64_t x_num, const char *attr_template, const char *placeholder,
+                          int64_t summarize);
 EsbTensor *EsStringJoin(EsbTensor **x, int64_t x_num, int64_t N, const char *separator);
 EsbTensor *EsStringLength(EsbTensor *x, const char *unit);
 EsbTensor *EsStringLower(EsbTensor *input, const char *encoding);
@@ -3572,7 +4668,10 @@ typedef struct {
   EsbTensor *ngrams;
   EsbTensor *ngrams_splits;
 } EsStringNGramsOutput;
-EsStringNGramsOutput EsStringNGrams(EsbTensor *data, EsbTensor *data_splits, const char *separator, const char *left_pad, const char *right_pad, int64_t pad_width, bool preserve_short_sequences, const int64_t *ngram_widths, int64_t ngram_widths_num);
+EsStringNGramsOutput EsStringNGrams(EsbTensor *data, EsbTensor *data_splits, const char *separator,
+                                    const char *left_pad, const char *right_pad, int64_t pad_width,
+                                    bool preserve_short_sequences, const int64_t *ngram_widths,
+                                    int64_t ngram_widths_num);
 
 typedef struct {
   EsbTensor *indices;
@@ -3595,7 +4694,8 @@ EsbTensor *EsStringToNumber(EsbTensor *x, af::DataType out_type);
 EsbTensor *EsStringUpper(EsbTensor *input, const char *encoding);
 EsbTensor *EsSub(EsbTensor *x1, EsbTensor *x2);
 EsbTensor *EsSubSample(EsbTensor *labels, int64_t batch_size_per_images, float positive_fraction);
-EsbTensor *EsSubSampleLabels(EsbTensor *labels, EsbTensor *shuffle_matrix, int64_t batch_size_per_images, float positive_fraction);
+EsbTensor *EsSubSampleLabels(EsbTensor *labels, EsbTensor *shuffle_matrix, int64_t batch_size_per_images,
+                             float positive_fraction);
 EsbTensor *EsSubstr(EsbTensor *input, EsbTensor *pos, EsbTensor *len);
 
 // Summary does not produce an output, so the returned EsTensor cannot be used to connect edges.
@@ -3607,28 +4707,44 @@ typedef struct {
   EsbTensor *v;
 } EsSvdOutput;
 EsSvdOutput EsSvd(EsbTensor *x, bool compute_uv, bool full_matrices);
-EsbTensor *EsSwinAttentionFFN(EsbTensor *x1, EsbTensor *x2, EsbTensor *bias, EsbTensor *x3, const int64_t *shifts, int64_t shifts_num);
+EsbTensor *EsSwinAttentionFFN(EsbTensor *x1, EsbTensor *x2, EsbTensor *bias, EsbTensor *x3, const int64_t *shifts,
+                              int64_t shifts_num);
 
 typedef struct {
   EsbTensor *attention_score;
   EsbTensor *softmax;
 } EsSwinAttentionScoreOutput;
-EsSwinAttentionScoreOutput EsSwinAttentionScore(EsbTensor *query, EsbTensor *key, EsbTensor *value, EsbTensor *padding_mask1, EsbTensor *padding_mask2, EsbTensor *scale, EsbTensor *drop_mask, float keep_prob, bool query_transpose, bool key_transpose, bool bmm_score_transpose_a, bool bmm_score_transpose_b, const int64_t *softmax_axes, int64_t softmax_axes_num);
-EsbTensor *EsSwinAttentionScoreQuant(EsbTensor *query, EsbTensor *key, EsbTensor *value, EsbTensor *scale_quant, EsbTensor *scale_dequant1, EsbTensor *scale_dequant2, EsbTensor *bias_quant, EsbTensor *bias_dequant1, EsbTensor *bias_dequant2, EsbTensor *padding_mask1, EsbTensor *padding_mask2, bool query_transpose, bool key_transpose, bool value_transpose, int64_t softmax_axes);
+EsSwinAttentionScoreOutput EsSwinAttentionScore(EsbTensor *query, EsbTensor *key, EsbTensor *value,
+                                                EsbTensor *padding_mask1, EsbTensor *padding_mask2, EsbTensor *scale,
+                                                EsbTensor *drop_mask, float keep_prob, bool query_transpose,
+                                                bool key_transpose, bool bmm_score_transpose_a,
+                                                bool bmm_score_transpose_b, const int64_t *softmax_axes,
+                                                int64_t softmax_axes_num);
+EsbTensor *EsSwinAttentionScoreQuant(EsbTensor *query, EsbTensor *key, EsbTensor *value, EsbTensor *scale_quant,
+                                     EsbTensor *scale_dequant1, EsbTensor *scale_dequant2, EsbTensor *bias_quant,
+                                     EsbTensor *bias_dequant1, EsbTensor *bias_dequant2, EsbTensor *padding_mask1,
+                                     EsbTensor *padding_mask2, bool query_transpose, bool key_transpose,
+                                     bool value_transpose, int64_t softmax_axes);
 
 typedef struct {
   EsbTensor *query_output;
   EsbTensor *key_output;
   EsbTensor *value_output;
 } EsSwinTransformerLnQKVOutput;
-EsSwinTransformerLnQKVOutput EsSwinTransformerLnQKV(EsbTensor *x, EsbTensor *gamma, EsbTensor *beta, EsbTensor *weight, EsbTensor *bias, int64_t head_num, int64_t head_dim, int64_t seq_length, const int64_t *shifts, int64_t shifts_num, float epsilon);
+EsSwinTransformerLnQKVOutput EsSwinTransformerLnQKV(EsbTensor *x, EsbTensor *gamma, EsbTensor *beta, EsbTensor *weight,
+                                                    EsbTensor *bias, int64_t head_num, int64_t head_dim,
+                                                    int64_t seq_length, const int64_t *shifts, int64_t shifts_num,
+                                                    float epsilon);
 
 typedef struct {
   EsbTensor *query_output;
   EsbTensor *key_output;
   EsbTensor *value_output;
 } EsSwinTransformerLnQkvQuantOutput;
-EsSwinTransformerLnQkvQuantOutput EsSwinTransformerLnQkvQuant(EsbTensor *x, EsbTensor *gamma, EsbTensor *beta, EsbTensor *weight, EsbTensor *bias, EsbTensor *quant_scale, EsbTensor *quant_offset, EsbTensor *dequant_scale, int64_t head_num, int64_t seq_length, float epsilon, int64_t ori_height, int64_t ori_weight, int64_t h_win_szie, int64_t w_win_size, bool weight_transpose);
+EsSwinTransformerLnQkvQuantOutput EsSwinTransformerLnQkvQuant(
+    EsbTensor *x, EsbTensor *gamma, EsbTensor *beta, EsbTensor *weight, EsbTensor *bias, EsbTensor *quant_scale,
+    EsbTensor *quant_offset, EsbTensor *dequant_scale, int64_t head_num, int64_t seq_length, float epsilon,
+    int64_t ori_height, int64_t ori_weight, int64_t h_win_szie, int64_t w_win_size, bool weight_transpose);
 EsbTensor *EsSwish(EsbTensor *x, float scale);
 EsbTensor *EsSwishGrad(EsbTensor *grad, EsbTensor *x, EsbTensor *y, float scale);
 
@@ -3642,13 +4758,16 @@ EsSwitchOutput EsSwitch(EsbTensor *data, EsbTensor *pred);
 EsbTensor *EsSwitchByIndex(EsbTensor *x1, EsbTensor *x2);
 EsbTensor *EsSxpy(EsbTensor *x1, EsbTensor *x2, EsbTensor *alpha);
 EsbTensor *EsSyncBNTrainingUpdate(EsbTensor *mean, EsbTensor *running_mean, float momentum);
-EsbTensor *EsSyncBatchNormBackwardElemt(EsbTensor *grad_output, EsbTensor *save_input, EsbTensor *mean, EsbTensor *invstd, EsbTensor *weight, EsbTensor *mean_dy, EsbTensor *mean_dy_xmu);
+EsbTensor *EsSyncBatchNormBackwardElemt(EsbTensor *grad_output, EsbTensor *save_input, EsbTensor *mean,
+                                        EsbTensor *invstd, EsbTensor *weight, EsbTensor *mean_dy,
+                                        EsbTensor *mean_dy_xmu);
 
 typedef struct {
   EsbTensor *sum_dy_xmu;
   EsbTensor *y;
 } EsSyncBatchNormBackwardReduceOutput;
-EsSyncBatchNormBackwardReduceOutput EsSyncBatchNormBackwardReduce(EsbTensor *sum_dy, EsbTensor *sum_dy_dx_pad, EsbTensor *mean, EsbTensor *invert_std);
+EsSyncBatchNormBackwardReduceOutput EsSyncBatchNormBackwardReduce(EsbTensor *sum_dy, EsbTensor *sum_dy_dx_pad,
+                                                                  EsbTensor *mean, EsbTensor *invert_std);
 
 typedef struct {
   EsbTensor *batch_mean;
@@ -3656,42 +4775,59 @@ typedef struct {
   EsbTensor *mean;
   EsbTensor *variance;
 } EsSyncBatchNormGatherStatsOutput;
-EsSyncBatchNormGatherStatsOutput EsSyncBatchNormGatherStats(EsbTensor *total_sum, EsbTensor *total_square_sum, EsbTensor *sample_count, EsbTensor *mean, EsbTensor *variance, float momentum, float eps);
+EsSyncBatchNormGatherStatsOutput EsSyncBatchNormGatherStats(EsbTensor *total_sum, EsbTensor *total_square_sum,
+                                                            EsbTensor *sample_count, EsbTensor *mean,
+                                                            EsbTensor *variance, float momentum, float eps);
 
 typedef struct {
   EsbTensor *invert_std;
   EsbTensor *running_var_update;
 } EsSyncBatchNormGatherStatsWithCountsOutput;
-EsSyncBatchNormGatherStatsWithCountsOutput EsSyncBatchNormGatherStatsWithCounts(EsbTensor *mean_all, EsbTensor *invert_std_all, EsbTensor *count_all, EsbTensor *mean_broadcast, EsbTensor *count_sum, EsbTensor *running_var, float momentum, float epsilon);
-EsbTensor *EsSyncResizeBilinearV2(EsbTensor *x, EsbTensor *size, const int64_t *ori_image_size, int64_t ori_image_size_num, const int64_t *split_size, int64_t split_size_num, int64_t src_start_w, int64_t dst_start_w, bool align_corners, bool half_pixel_centers);
-EsbTensor *EsSyncResizeBilinearV2Grad(EsbTensor *grads, EsbTensor *original_image, const int64_t *size, int64_t size_num, const int64_t *ori_image_size, int64_t ori_image_size_num, int64_t src_start_w, int64_t dst_start_w, bool align_corners, bool half_pixel_centers);
+EsSyncBatchNormGatherStatsWithCountsOutput EsSyncBatchNormGatherStatsWithCounts(
+    EsbTensor *mean_all, EsbTensor *invert_std_all, EsbTensor *count_all, EsbTensor *mean_broadcast,
+    EsbTensor *count_sum, EsbTensor *running_var, float momentum, float epsilon);
+EsbTensor *EsSyncResizeBilinearV2(EsbTensor *x, EsbTensor *size, const int64_t *ori_image_size,
+                                  int64_t ori_image_size_num, const int64_t *split_size, int64_t split_size_num,
+                                  int64_t src_start_w, int64_t dst_start_w, bool align_corners,
+                                  bool half_pixel_centers);
+EsbTensor *EsSyncResizeBilinearV2Grad(EsbTensor *grads, EsbTensor *original_image, const int64_t *size,
+                                      int64_t size_num, const int64_t *ori_image_size, int64_t ori_image_size_num,
+                                      int64_t src_start_w, int64_t dst_start_w, bool align_corners,
+                                      bool half_pixel_centers);
 EsbTensor *EsTableToResource(EsbTensor *table_id);
 EsbTensor *EsTableToResourceV2(EsbTensor *table_id);
-EsbTensor *EsTabulateFusion(EsbTensor *table, EsbTensor *table_info, EsbTensor *em_x, EsbTensor *em, int64_t last_layer_size);
+EsbTensor *EsTabulateFusion(EsbTensor *table, EsbTensor *table_info, EsbTensor *em_x, EsbTensor *em,
+                            int64_t last_layer_size);
 
 typedef struct {
   EsbTensor *dy_dem_x;
   EsbTensor *dy_dem;
 } EsTabulateFusionGradOutput;
-EsTabulateFusionGradOutput EsTabulateFusionGrad(EsbTensor *table, EsbTensor *table_info, EsbTensor *em_x, EsbTensor *em, EsbTensor *dy, EsbTensor *descriptor);
+EsTabulateFusionGradOutput EsTabulateFusionGrad(EsbTensor *table, EsbTensor *table_info, EsbTensor *em_x, EsbTensor *em,
+                                                EsbTensor *dy, EsbTensor *descriptor);
 
 typedef struct {
   EsbTensor *indices;
   EsbTensor *values;
   EsbTensor *shape;
 } EsTakeManySparseFromTensorsMapOutput;
-EsTakeManySparseFromTensorsMapOutput EsTakeManySparseFromTensorsMap(EsbTensor *handles, af::DataType dtype, const char *container, const char *shared_name);
+EsTakeManySparseFromTensorsMapOutput EsTakeManySparseFromTensorsMap(EsbTensor *handles, af::DataType dtype,
+                                                                    const char *container, const char *shared_name);
 EsbTensor *EsTan(EsbTensor *x);
 EsbTensor *EsTanh(EsbTensor *x);
 EsbTensor *EsTanhGrad(EsbTensor *y, EsbTensor *dy, bool complex_conj);
-EsbTensor *EsTargetCropAndResize(EsbTensor *x, EsbTensor *boxes, EsbTensor *box_index, int64_t output_h, int64_t output_w, const char *input_format);
-EsbTensor *EsTemporaryVariable(EsbGraph *owner_graph, const int64_t *shape, int64_t shape_num, int64_t dtype, const char *var_name);
+EsbTensor *EsTargetCropAndResize(EsbTensor *x, EsbTensor *boxes, EsbTensor *box_index, int64_t output_h,
+                                 int64_t output_w, const char *input_format);
+EsbTensor *EsTemporaryVariable(EsbGraph *owner_graph, const int64_t *shape, int64_t shape_num, int64_t dtype,
+                               const char *var_name);
 
 typedef struct {
   EsbTensor *handle;
   EsbTensor *flow;
 } EsTensorArrayOutput;
-EsTensorArrayOutput EsTensorArray(EsbTensor *size, af::DataType dtype, const int64_t *element_shape, int64_t element_shape_num, bool dynamic_size, bool clear_after_read, bool identical_element_shapes, const char *tensor_array_name);
+EsTensorArrayOutput EsTensorArray(EsbTensor *size, af::DataType dtype, const int64_t *element_shape,
+                                  int64_t element_shape_num, bool dynamic_size, bool clear_after_read,
+                                  bool identical_element_shapes, const char *tensor_array_name);
 
 // TensorArrayClose does not produce an output, so the returned EsTensor cannot be used to connect edges.
 EsbTensor *EsTensorArrayClose(EsbTensor *handle);
@@ -3700,8 +4836,10 @@ typedef struct {
   EsbTensor *value;
   EsbTensor *lengths;
 } EsTensorArrayConcatOutput;
-EsTensorArrayConcatOutput EsTensorArrayConcat(EsbTensor *handle, EsbTensor *flow_in, af::DataType dtype, const int64_t *element_shape_except0, int64_t element_shape_except0_num);
-EsbTensor *EsTensorArrayGather(EsbTensor *handle, EsbTensor *indices, EsbTensor *flow_in, af::DataType dtype, const int64_t *element_shape, int64_t element_shape_num);
+EsTensorArrayConcatOutput EsTensorArrayConcat(EsbTensor *handle, EsbTensor *flow_in, af::DataType dtype,
+                                              const int64_t *element_shape_except0, int64_t element_shape_except0_num);
+EsbTensor *EsTensorArrayGather(EsbTensor *handle, EsbTensor *indices, EsbTensor *flow_in, af::DataType dtype,
+                               const int64_t *element_shape, int64_t element_shape_num);
 
 typedef struct {
   EsbTensor *grad_handle;
@@ -3713,7 +4851,8 @@ typedef struct {
   EsbTensor *grad_handle;
   EsbTensor *flow_out;
 } EsTensorArrayGradWithShapeOutput;
-EsTensorArrayGradWithShapeOutput EsTensorArrayGradWithShape(EsbTensor *handle, EsbTensor *flow_in, EsbTensor *shape_to_prepend, const char *source);
+EsTensorArrayGradWithShapeOutput EsTensorArrayGradWithShape(EsbTensor *handle, EsbTensor *flow_in,
+                                                            EsbTensor *shape_to_prepend, const char *source);
 EsbTensor *EsTensorArrayRead(EsbTensor *handle, EsbTensor *index, EsbTensor *flow_in, af::DataType dtype);
 EsbTensor *EsTensorArrayScatter(EsbTensor *handle, EsbTensor *indices, EsbTensor *value, EsbTensor *flow_in);
 EsbTensor *EsTensorArraySize(EsbTensor *handle, EsbTensor *flow_in);
@@ -3726,27 +4865,36 @@ typedef struct {
   EsbTensor *tensor;
   EsbTensor *lengths;
 } EsTensorListConcatV2Output;
-EsTensorListConcatV2Output EsTensorListConcatV2(EsbTensor *input_handle, EsbTensor *element_shape, EsbTensor *leading_dims, af::DataType element_dtype);
+EsTensorListConcatV2Output EsTensorListConcatV2(EsbTensor *input_handle, EsbTensor *element_shape,
+                                                EsbTensor *leading_dims, af::DataType element_dtype);
 EsbTensor *EsTensorListElementShape(EsbTensor *input_handle, af::DataType shape_type);
 EsbTensor *EsTensorListFromTensor(EsbTensor *tensor, EsbTensor *element_shape, af::DataType element_dtype);
-EsbTensor *EsTensorListGather(EsbTensor *input_handle, EsbTensor *indices, EsbTensor *element_shape, af::DataType element_dtype);
-EsbTensor *EsTensorListGetItem(EsbTensor *input_handle, EsbTensor *index, EsbTensor *element_shape, af::DataType element_dtype);
+EsbTensor *EsTensorListGather(EsbTensor *input_handle, EsbTensor *indices, EsbTensor *element_shape,
+                              af::DataType element_dtype);
+EsbTensor *EsTensorListGetItem(EsbTensor *input_handle, EsbTensor *index, EsbTensor *element_shape,
+                               af::DataType element_dtype);
 EsbTensor *EsTensorListLength(EsbTensor *input_handle);
 
 typedef struct {
   EsbTensor *output_handle;
   EsbTensor *tensor;
 } EsTensorListPopBackOutput;
-EsTensorListPopBackOutput EsTensorListPopBack(EsbTensor *input_handle, EsbTensor *element_shape, af::DataType element_dtype);
+EsTensorListPopBackOutput EsTensorListPopBack(EsbTensor *input_handle, EsbTensor *element_shape,
+                                              af::DataType element_dtype);
 EsbTensor *EsTensorListPushBack(EsbTensor *input_handle, EsbTensor *tensor, af::DataType element_dtype);
 EsbTensor *EsTensorListPushBackBatch(EsbTensor *input_handles, EsbTensor *tensor, af::DataType element_dtype);
-EsbTensor *EsTensorListReserve(EsbTensor *element_shape, EsbTensor *num_elements, af::DataType element_dtype, af::DataType shape_type);
+EsbTensor *EsTensorListReserve(EsbTensor *element_shape, EsbTensor *num_elements, af::DataType element_dtype,
+                               af::DataType shape_type);
 EsbTensor *EsTensorListResize(EsbTensor *input_handle, EsbTensor *size);
-EsbTensor *EsTensorListScatterIntoExistingList(EsbTensor *input_handle, EsbTensor *tensor, EsbTensor *indices, af::DataType element_dtype);
-EsbTensor *EsTensorListScatterV2(EsbTensor *tensor, EsbTensor *indices, EsbTensor *element_shape, EsbTensor *num_elements, af::DataType element_dtype);
+EsbTensor *EsTensorListScatterIntoExistingList(EsbTensor *input_handle, EsbTensor *tensor, EsbTensor *indices,
+                                               af::DataType element_dtype);
+EsbTensor *EsTensorListScatterV2(EsbTensor *tensor, EsbTensor *indices, EsbTensor *element_shape,
+                                 EsbTensor *num_elements, af::DataType element_dtype);
 EsbTensor *EsTensorListSetItem(EsbTensor *input_handle, EsbTensor *index, EsbTensor *item, af::DataType element_dtype);
-EsbTensor *EsTensorListSplit(EsbTensor *tensor, EsbTensor *element_shape, EsbTensor *lengths, af::DataType element_dtype);
-EsbTensor *EsTensorListStack(EsbTensor *input_handle, EsbTensor *element_shape, af::DataType element_dtype, int64_t num_elements);
+EsbTensor *EsTensorListSplit(EsbTensor *tensor, EsbTensor *element_shape, EsbTensor *lengths,
+                             af::DataType element_dtype);
+EsbTensor *EsTensorListStack(EsbTensor *input_handle, EsbTensor *element_shape, af::DataType element_dtype,
+                             int64_t num_elements);
 EsbTensor *EsTensorMapErase(EsbTensor *input_handle, EsbTensor *key);
 EsbTensor *EsTensorMapHasKey(EsbTensor *input_handle, EsbTensor *key);
 EsbTensor *EsTensorMapInsert(EsbTensor *input_handle, EsbTensor *key, EsbTensor *value);
@@ -3766,7 +4914,10 @@ typedef struct {
   EsbTensor *true_expected_count;
   EsbTensor *sampled_expected_count;
 } EsThreadUnsafeUnigramCandidateSamplerOutput;
-EsThreadUnsafeUnigramCandidateSamplerOutput EsThreadUnsafeUnigramCandidateSampler(EsbTensor *true_classes, int64_t num_true, int64_t num_sampled, bool unique, int64_t range_max, int64_t seed, int64_t seed2);
+EsThreadUnsafeUnigramCandidateSamplerOutput EsThreadUnsafeUnigramCandidateSampler(EsbTensor *true_classes,
+                                                                                  int64_t num_true, int64_t num_sampled,
+                                                                                  bool unique, int64_t range_max,
+                                                                                  int64_t seed, int64_t seed2);
 EsbTensor *EsThreeInterpolate(EsbTensor *features, EsbTensor *idx, EsbTensor *weight);
 EsbTensor *EsThreeInterpolateBackward(EsbTensor *grad_x, EsbTensor *idx, EsbTensor *weight, int64_t m);
 
@@ -3792,8 +4943,10 @@ typedef struct {
   EsbTensor *unreduce_token_b;
   EsbTensor *unreduce_count;
 } EsTomeMergeOutput;
-EsTomeMergeOutput EsTomeMerge(EsbTensor *token_a, EsbTensor *token_b, EsbTensor *topk_indice, EsbTensor *arg_max, float top_rate);
-EsbTensor *EsTomeUnmerge(EsbTensor *attention, EsbTensor *ori_index_a, EsbTensor *ori_index_b, EsbTensor *topk_indice, EsbTensor *arg_max, float top_rate);
+EsTomeMergeOutput EsTomeMerge(EsbTensor *token_a, EsbTensor *token_b, EsbTensor *topk_indice, EsbTensor *arg_max,
+                              float top_rate);
+EsbTensor *EsTomeUnmerge(EsbTensor *attention, EsbTensor *ori_index_a, EsbTensor *ori_index_b, EsbTensor *topk_indice,
+                         EsbTensor *arg_max, float top_rate);
 
 typedef struct {
   EsbTensor *values;
@@ -3812,20 +4965,26 @@ typedef struct {
   EsbTensor *topk_ivf;
   EsbTensor *topk_index;
 } EsTopKPQDistanceOutput;
-EsTopKPQDistanceOutput EsTopKPQDistance(EsbTensor **actual_count, int64_t actual_count_num, EsbTensor **pq_distance, int64_t pq_distance_num, EsbTensor **grouped_extreme_distance, int64_t grouped_extreme_distance_num, EsbTensor **pq_ivf, int64_t pq_ivf_num, EsbTensor **pq_index, int64_t pq_index_num, int64_t k, int64_t group_size, const char *order);
+EsTopKPQDistanceOutput EsTopKPQDistance(EsbTensor **actual_count, int64_t actual_count_num, EsbTensor **pq_distance,
+                                        int64_t pq_distance_num, EsbTensor **grouped_extreme_distance,
+                                        int64_t grouped_extreme_distance_num, EsbTensor **pq_ivf, int64_t pq_ivf_num,
+                                        EsbTensor **pq_index, int64_t pq_index_num, int64_t k, int64_t group_size,
+                                        const char *order);
 
 typedef struct {
   EsbTensor *topk_distance;
   EsbTensor *topk_ivf;
   EsbTensor *topk_index;
 } EsTopKPQDistanceMergeOutput;
-EsTopKPQDistanceMergeOutput EsTopKPQDistanceMerge(EsbTensor *sorted_distance, EsbTensor *pq_ivf, EsbTensor *pq_index, int64_t k);
+EsTopKPQDistanceMergeOutput EsTopKPQDistanceMerge(EsbTensor *sorted_distance, EsbTensor *pq_ivf, EsbTensor *pq_index,
+                                                  int64_t k);
 
 typedef struct {
   EsbTensor *topk_distance;
   EsbTensor *topk_index;
 } EsTopKPQDistanceV2Output;
-EsTopKPQDistanceV2Output EsTopKPQDistanceV2(EsbTensor *pq_distance, EsbTensor *grouped_extreme_distance, int64_t k, int64_t group_size, const char *order);
+EsTopKPQDistanceV2Output EsTopKPQDistanceV2(EsbTensor *pq_distance, EsbTensor *grouped_extreme_distance, int64_t k,
+                                            int64_t group_size, const char *order);
 
 typedef struct {
   EsbTensor *values;
@@ -3846,12 +5005,16 @@ typedef struct {
 EsTopKV3Output EsTopKV3(EsbTensor *x, EsbTensor *k, bool sorted, int64_t dim, bool largest);
 EsbTensor *EsTrace(EsbTensor *x);
 EsbTensor *EsTransArgb(EsbTensor *x);
-EsbTensor *EsTransData(EsbTensor *src, const char *src_format, const char *dst_format, int64_t src_subformat, int64_t dst_subformat, int64_t groups);
-EsbTensor *EsTransDataRNN(EsbTensor *src, const char *src_format, const char *dst_format, int64_t input_size, int64_t hidden_size);
+EsbTensor *EsTransData(EsbTensor *src, const char *src_format, const char *dst_format, int64_t src_subformat,
+                       int64_t dst_subformat, int64_t groups);
+EsbTensor *EsTransDataRNN(EsbTensor *src, const char *src_format, const char *dst_format, int64_t input_size,
+                          int64_t hidden_size);
 EsbTensor *EsTransQuantParamV2(EsbTensor *scale, EsbTensor *offset);
 EsbTensor *EsTransShape(EsbTensor *x, const int64_t *outShape, int64_t outShape_num);
 EsbTensor *EsTranspose(EsbTensor *x, EsbTensor *perm);
-EsbTensor *EsTransposeBatchMatMul(EsbTensor *x1, EsbTensor *x2, EsbTensor *bias, EsbTensor *offset_w, const int64_t *perm_x1, int64_t perm_x1_num, const int64_t *perm_x2, int64_t perm_x2_num, const int64_t *perm_y, int64_t perm_y_num, int64_t offset_x);
+EsbTensor *EsTransposeBatchMatMul(EsbTensor *x1, EsbTensor *x2, EsbTensor *bias, EsbTensor *offset_w,
+                                  const int64_t *perm_x1, int64_t perm_x1_num, const int64_t *perm_x2,
+                                  int64_t perm_x2_num, const int64_t *perm_y, int64_t perm_y_num, int64_t offset_x);
 EsbTensor *EsTransposeD(EsbTensor *x, const int64_t *perm, int64_t perm_num);
 EsbTensor *EsTridiagonalSolve(EsbTensor *diagonals, EsbTensor *rhs, bool partial_pivoting);
 EsbTensor *EsTril(EsbTensor *x, int64_t diagonal);
@@ -3860,24 +5023,31 @@ EsbTensor *EsTrunc(EsbTensor *input_x);
 EsbTensor *EsTruncateDiv(EsbTensor *x1, EsbTensor *x2);
 EsbTensor *EsTruncateMod(EsbTensor *x1, EsbTensor *x2);
 EsbTensor *EsTruncatedNormal(EsbTensor *shape, int64_t seed, int64_t seed2, af::DataType dtype);
-EsbTensor *EsUnbatch(EsbTensor *x_tensor, EsbTensor *index, EsbTensor *id, int64_t timeout_micros, const char *container, const char *shared_name);
-EsbTensor *EsUnbatchGrad(EsbTensor *x_input, EsbTensor *index, EsbTensor *grad, EsbTensor *id, const char *container, const char *shared_name);
+EsbTensor *EsUnbatch(EsbTensor *x_tensor, EsbTensor *index, EsbTensor *id, int64_t timeout_micros,
+                     const char *container, const char *shared_name);
+EsbTensor *EsUnbatchGrad(EsbTensor *x_input, EsbTensor *index, EsbTensor *grad, EsbTensor *id, const char *container,
+                         const char *shared_name);
 
 typedef struct {
   EsbTensor *row_splits;
   EsbTensor *char_values;
 } EsUnicodeDecodeOutput;
-EsUnicodeDecodeOutput EsUnicodeDecode(EsbTensor *input, const char *input_encoding, const char *errors, int64_t replacement_char, bool replace_control_characters, af::DataType Tsplits);
+EsUnicodeDecodeOutput EsUnicodeDecode(EsbTensor *input, const char *input_encoding, const char *errors,
+                                      int64_t replacement_char, bool replace_control_characters, af::DataType Tsplits);
 
 typedef struct {
   EsbTensor *row_splits;
   EsbTensor *char_values;
   EsbTensor *char_to_byte_starts;
 } EsUnicodeDecodeWithOffsetsOutput;
-EsUnicodeDecodeWithOffsetsOutput EsUnicodeDecodeWithOffsets(EsbTensor *input, const char *input_encoding, const char *errors, int64_t replacement_char, bool replace_control_characters, af::DataType Tsplits);
-EsbTensor *EsUnicodeEncode(EsbTensor *input_values, EsbTensor *input_splits, const char *errors, const char *output_encoding, int64_t replacement_char);
+EsUnicodeDecodeWithOffsetsOutput EsUnicodeDecodeWithOffsets(EsbTensor *input, const char *input_encoding,
+                                                            const char *errors, int64_t replacement_char,
+                                                            bool replace_control_characters, af::DataType Tsplits);
+EsbTensor *EsUnicodeEncode(EsbTensor *input_values, EsbTensor *input_splits, const char *errors,
+                           const char *output_encoding, int64_t replacement_char);
 EsbTensor *EsUnicodeScript(EsbTensor *x);
-EsbTensor *EsUnicodeTranscode(EsbTensor *input, const char *input_encoding, const char *output_encoding, const char *errors, int64_t replacement_char, bool replace_control_characters);
+EsbTensor *EsUnicodeTranscode(EsbTensor *input, const char *input_encoding, const char *output_encoding,
+                              const char *errors, int64_t replacement_char, bool replace_control_characters);
 EsbTensor *EsUniform(EsbTensor *x, float from, float to);
 
 typedef struct {
@@ -3885,7 +5055,9 @@ typedef struct {
   EsbTensor *true_expected_count;
   EsbTensor *sampled_expected_count;
 } EsUniformCandidateSamplerOutput;
-EsUniformCandidateSamplerOutput EsUniformCandidateSampler(EsbTensor *true_classes, int64_t num_true, int64_t num_sampled, bool unique, int64_t range_max, int64_t seed, int64_t seed2);
+EsUniformCandidateSamplerOutput EsUniformCandidateSampler(EsbTensor *true_classes, int64_t num_true,
+                                                          int64_t num_sampled, bool unique, int64_t range_max,
+                                                          int64_t seed, int64_t seed2);
 
 // UninitEmbeddingHashmap does not produce an output, so the returned EsTensor cannot be used to connect edges.
 EsbTensor *EsUninitEmbeddingHashmap(EsbTensor *table_id);
@@ -3924,7 +5096,8 @@ typedef struct {
   EsbTensor *indices;
   EsbTensor *counts;
 } EsUniqueWithCountsAndSortingOutput;
-EsUniqueWithCountsAndSortingOutput EsUniqueWithCountsAndSorting(EsbTensor *x, bool return_inverse, bool return_counts, bool sorted);
+EsUniqueWithCountsAndSortingOutput EsUniqueWithCountsAndSorting(EsbTensor *x, bool return_inverse, bool return_counts,
+                                                                bool sorted);
 
 typedef struct {
   EsbTensor *y;
@@ -3932,16 +5105,19 @@ typedef struct {
   EsbTensor *count;
   EsbTensor *inverse_idx;
 } EsUniqueWithCountsExt2Output;
-EsUniqueWithCountsExt2Output EsUniqueWithCountsExt2(EsbTensor *x, EsbTensor *axis, af::DataType out_idx, bool sorted, bool return_inverse);
+EsUniqueWithCountsExt2Output EsUniqueWithCountsExt2(EsbTensor *x, EsbTensor *axis, af::DataType out_idx, bool sorted,
+                                                    bool return_inverse);
 EsbTensor *EsUnravelIndex(EsbTensor *indices, EsbTensor *dims);
-EsbTensor *EsUnsortedSegmentJoin(EsbTensor *input, EsbTensor *segment_ids, EsbTensor *num_segments, const char *separator);
+EsbTensor *EsUnsortedSegmentJoin(EsbTensor *input, EsbTensor *segment_ids, EsbTensor *num_segments,
+                                 const char *separator);
 EsbTensor *EsUnsortedSegmentMax(EsbTensor *x, EsbTensor *segment_ids, EsbTensor *num_segments);
 EsbTensor *EsUnsortedSegmentMaxD(EsbTensor *x, EsbTensor *segment_ids, int64_t num_segments);
 EsbTensor *EsUnsortedSegmentMin(EsbTensor *x, EsbTensor *segment_ids, EsbTensor *num_segments);
 EsbTensor *EsUnsortedSegmentMinD(EsbTensor *x, EsbTensor *segment_ids, int64_t num_segments);
 EsbTensor *EsUnsortedSegmentProd(EsbTensor *x, EsbTensor *segment_ids, EsbTensor *num_segments);
 EsbTensor *EsUnsortedSegmentProdD(EsbTensor *x, EsbTensor *segment_ids, int64_t num_segments);
-EsbTensor *EsUnsortedSegmentSum(EsbTensor *x, EsbTensor *segment_ids, EsbTensor *num_segments, bool is_preprocessed, bool check_ids);
+EsbTensor *EsUnsortedSegmentSum(EsbTensor *x, EsbTensor *segment_ids, EsbTensor *num_segments, bool is_preprocessed,
+                                bool check_ids);
 EsbTensor *EsUnsortedSegmentSumD(EsbTensor *x, EsbTensor *segment_ids, int64_t num_segments);
 EsbTensor *EsUnsqueeze(EsbTensor *x, const int64_t *axes, int64_t axes_num);
 EsbTensor *EsUnsqueezeV2(EsbTensor *x, const int64_t *axis, int64_t axis_num);
@@ -3949,17 +5125,31 @@ EsbTensor *EsUnsqueezeV3(EsbTensor *x, EsbTensor *axes);
 EsbTensor *EsUpdateTensorDesc(EsbTensor *x, const int64_t *shape, int64_t shape_num);
 EsbTensor *EsUpperBound(EsbTensor *sorted_x, EsbTensor *values, af::DataType out_type);
 EsbTensor *EsUpsample(EsbTensor *x, float scale, int64_t stride_h, int64_t stride_w);
-EsbTensor *EsUpsampleNearest1d(EsbTensor *x, const int64_t *output_size, int64_t output_size_num, const float *scales, int64_t scales_num);
-EsbTensor *EsUpsampleNearest1dGrad(EsbTensor *grad_output, const int64_t *input_size, int64_t input_size_num, const int64_t *output_size, int64_t output_size_num, const float *scales, int64_t scales_num);
-EsbTensor *EsUpsampleNearest3d(EsbTensor *x, const int64_t *output_size, int64_t output_size_num, const float *scales, int64_t scales_num);
-EsbTensor *EsUpsampleNearest3dGrad(EsbTensor *grad_output, const int64_t *input_size, int64_t input_size_num, const int64_t *output_size, int64_t output_size_num, const float *scales, int64_t scales_num);
-EsbTensor *EsUpsampleNearestExact3d(EsbTensor *x, const int64_t *output_size, int64_t output_size_num, const float *scales, int64_t scales_num);
-EsbTensor *EsUpsampleNearestExact3dGrad(EsbTensor *grad_output, const int64_t *input_size, int64_t input_size_num, const int64_t *output_size, int64_t output_size_num, const float *scales, int64_t scales_num);
-EsbTensor *EsUpsampleTrilinear3d(EsbTensor *x, const int64_t *output_size, int64_t output_size_num, const float *scales, int64_t scales_num, bool align_corners);
-EsbTensor *EsUpsampleTrilinear3dGrad(EsbTensor *grad_output, const int64_t *input_size, int64_t input_size_num, const int64_t *output_size, int64_t output_size_num, const float *scales, int64_t scales_num, bool align_corners);
-EsbTensor *EsVarHandleOp(EsbGraph *owner_graph, af::DataType dtype, const char *container, const char *shared_name, const int64_t *shape, int64_t shape_num);
+EsbTensor *EsUpsampleNearest1d(EsbTensor *x, const int64_t *output_size, int64_t output_size_num, const float *scales,
+                               int64_t scales_num);
+EsbTensor *EsUpsampleNearest1dGrad(EsbTensor *grad_output, const int64_t *input_size, int64_t input_size_num,
+                                   const int64_t *output_size, int64_t output_size_num, const float *scales,
+                                   int64_t scales_num);
+EsbTensor *EsUpsampleNearest3d(EsbTensor *x, const int64_t *output_size, int64_t output_size_num, const float *scales,
+                               int64_t scales_num);
+EsbTensor *EsUpsampleNearest3dGrad(EsbTensor *grad_output, const int64_t *input_size, int64_t input_size_num,
+                                   const int64_t *output_size, int64_t output_size_num, const float *scales,
+                                   int64_t scales_num);
+EsbTensor *EsUpsampleNearestExact3d(EsbTensor *x, const int64_t *output_size, int64_t output_size_num,
+                                    const float *scales, int64_t scales_num);
+EsbTensor *EsUpsampleNearestExact3dGrad(EsbTensor *grad_output, const int64_t *input_size, int64_t input_size_num,
+                                        const int64_t *output_size, int64_t output_size_num, const float *scales,
+                                        int64_t scales_num);
+EsbTensor *EsUpsampleTrilinear3d(EsbTensor *x, const int64_t *output_size, int64_t output_size_num, const float *scales,
+                                 int64_t scales_num, bool align_corners);
+EsbTensor *EsUpsampleTrilinear3dGrad(EsbTensor *grad_output, const int64_t *input_size, int64_t input_size_num,
+                                     const int64_t *output_size, int64_t output_size_num, const float *scales,
+                                     int64_t scales_num, bool align_corners);
+EsbTensor *EsVarHandleOp(EsbGraph *owner_graph, af::DataType dtype, const char *container, const char *shared_name,
+                         const int64_t *shape, int64_t shape_num);
 EsbTensor *EsVarIsInitializedOp(EsbTensor *x);
-EsbTensor *EsViewCopy(EsbTensor *dst, EsbTensor *dst_size, EsbTensor *dst_stride, EsbTensor *dst_storage_offset, EsbTensor *src, EsbTensor *src_size, EsbTensor *src_stride, EsbTensor *src_storage_offset);
+EsbTensor *EsViewCopy(EsbTensor *dst, EsbTensor *dst_size, EsbTensor *dst_stride, EsbTensor *dst_storage_offset,
+                      EsbTensor *src, EsbTensor *src_size, EsbTensor *src_stride, EsbTensor *src_storage_offset);
 
 typedef struct {
   EsbTensor *voxels;
@@ -3967,13 +5157,25 @@ typedef struct {
   EsbTensor *num_points_per_voxel;
   EsbTensor *voxel_num;
 } EsVoxelizationOutput;
-EsVoxelizationOutput EsVoxelization(EsbTensor *points, EsbTensor *voxel_size, EsbTensor *coors_range, int64_t max_points, int64_t max_voxels, bool deterministic);
-EsbTensor *EsWarpAffine(EsbTensor *x, EsbTensor *matrix, int64_t out_height, int64_t out_width, const char *interpolation_mode, const char *padding_mode, int64_t padding_value);
-EsbTensor *EsWarpAffineV2(EsbTensor *x, EsbTensor *matrix, EsbTensor *dst_size, const char *interpolation, const char *border_type, float border_value, const char *data_format);
-EsbTensor *EsWarpPerspective(EsbTensor *x, EsbTensor *matrix, int64_t out_height, int64_t out_width, const char *interpolation_mode, const char *border_type, float constant, const char *data_format);
-EsbTensor *EsWeightQuantBatchMatmulV2(EsbTensor *x, EsbTensor *weight, EsbTensor *antiquant_scale, EsbTensor *antiquant_offset, EsbTensor *quant_scale, EsbTensor *quant_offset, EsbTensor *bias, bool transpose_x, bool transpose_weight, int64_t antiquant_group_size, int64_t dtype, int64_t inner_precise);
-EsbTensor *EsWeightQuantBatchmatmul(EsbTensor *input_x, EsbTensor *input_y, EsbTensor *diagonal_matrix, EsbTensor *q_bias, EsbTensor *deq_scale, EsbTensor *bias, bool adj_x1, bool adj_x2);
-EsbTensor *EsWeightQuantBatchmatmulV3(EsbTensor *input_x, EsbTensor *input_y, EsbTensor *diagonal_matrix, EsbTensor *q_bias, EsbTensor *deq_scale, EsbTensor *mul_scale, EsbTensor *add_offset, EsbTensor *bias, bool adj_x1, bool adj_x2, float scale, float offset);
+EsVoxelizationOutput EsVoxelization(EsbTensor *points, EsbTensor *voxel_size, EsbTensor *coors_range,
+                                    int64_t max_points, int64_t max_voxels, bool deterministic);
+EsbTensor *EsWarpAffine(EsbTensor *x, EsbTensor *matrix, int64_t out_height, int64_t out_width,
+                        const char *interpolation_mode, const char *padding_mode, int64_t padding_value);
+EsbTensor *EsWarpAffineV2(EsbTensor *x, EsbTensor *matrix, EsbTensor *dst_size, const char *interpolation,
+                          const char *border_type, float border_value, const char *data_format);
+EsbTensor *EsWarpPerspective(EsbTensor *x, EsbTensor *matrix, int64_t out_height, int64_t out_width,
+                             const char *interpolation_mode, const char *border_type, float constant,
+                             const char *data_format);
+EsbTensor *EsWeightQuantBatchMatmulV2(EsbTensor *x, EsbTensor *weight, EsbTensor *antiquant_scale,
+                                      EsbTensor *antiquant_offset, EsbTensor *quant_scale, EsbTensor *quant_offset,
+                                      EsbTensor *bias, bool transpose_x, bool transpose_weight,
+                                      int64_t antiquant_group_size, int64_t dtype, int64_t inner_precise);
+EsbTensor *EsWeightQuantBatchmatmul(EsbTensor *input_x, EsbTensor *input_y, EsbTensor *diagonal_matrix,
+                                    EsbTensor *q_bias, EsbTensor *deq_scale, EsbTensor *bias, bool adj_x1, bool adj_x2);
+EsbTensor *EsWeightQuantBatchmatmulV3(EsbTensor *input_x, EsbTensor *input_y, EsbTensor *diagonal_matrix,
+                                      EsbTensor *q_bias, EsbTensor *deq_scale, EsbTensor *mul_scale,
+                                      EsbTensor *add_offset, EsbTensor *bias, bool adj_x1, bool adj_x2, float scale,
+                                      float offset);
 EsbTensor *EsWhere(EsbTensor *x);
 EsbTensor *EsWriteSelect(EsbTensor *x);
 EsbTensor *EsWtsARQ(EsbTensor *w, EsbTensor *w_min, EsbTensor *w_max, int64_t num_bits, bool offset_flag);
@@ -3988,63 +5190,108 @@ typedef struct {
   EsbTensor *obj_prob;
   EsbTensor *classes_prob;
 } EsYoloOutput;
-EsYoloOutput EsYolo(EsbTensor *x, int64_t boxes, int64_t coords, int64_t classes, const char *yolo_version, bool softmax, bool background, bool softmaxtree);
-EsbTensor *EsYoloBoxesEncode(EsbTensor *anchor_boxes, EsbTensor *gt_bboxes, EsbTensor *stride, const char *performance_mode);
+EsYoloOutput EsYolo(EsbTensor *x, int64_t boxes, int64_t coords, int64_t classes, const char *yolo_version,
+                    bool softmax, bool background, bool softmaxtree);
+EsbTensor *EsYoloBoxesEncode(EsbTensor *anchor_boxes, EsbTensor *gt_bboxes, EsbTensor *stride,
+                             const char *performance_mode);
 
 typedef struct {
   EsbTensor *coord_data;
   EsbTensor *obj_prob;
   EsbTensor *classes_prob;
 } EsYoloPreDetectionOutput;
-EsYoloPreDetectionOutput EsYoloPreDetection(EsbTensor *x, int64_t boxes, int64_t coords, int64_t classes, const char *yolo_version, bool softmax, bool background, bool softmaxtree);
+EsYoloPreDetectionOutput EsYoloPreDetection(EsbTensor *x, int64_t boxes, int64_t coords, int64_t classes,
+                                            const char *yolo_version, bool softmax, bool background, bool softmaxtree);
 
 typedef struct {
   EsbTensor *box_out;
   EsbTensor *box_out_num;
 } EsYoloV2DetectionOutputOutput;
-EsYoloV2DetectionOutputOutput EsYoloV2DetectionOutput(EsbTensor *coord_data, EsbTensor *obj_prob, EsbTensor *classes_prob, EsbTensor *img_info, const float *biases, int64_t biases_num, int64_t boxes, int64_t coords, int64_t classes, bool relative, float obj_threshold, int64_t post_nms_topn, float score_threshold, float iou_threshold, int64_t pre_nms_topn);
+EsYoloV2DetectionOutputOutput EsYoloV2DetectionOutput(EsbTensor *coord_data, EsbTensor *obj_prob,
+                                                      EsbTensor *classes_prob, EsbTensor *img_info, const float *biases,
+                                                      int64_t biases_num, int64_t boxes, int64_t coords,
+                                                      int64_t classes, bool relative, float obj_threshold,
+                                                      int64_t post_nms_topn, float score_threshold, float iou_threshold,
+                                                      int64_t pre_nms_topn);
 
 typedef struct {
   EsbTensor *box_out;
   EsbTensor *box_out_num;
 } EsYoloV2DetectionOutputDOutput;
-EsYoloV2DetectionOutputDOutput EsYoloV2DetectionOutputD(EsbTensor *coord_data, EsbTensor *obj_prob, EsbTensor *classes_prob, EsbTensor *img_info, EsbTensor *windex, EsbTensor *hindex, const float *biases, int64_t biases_num, int64_t boxes, int64_t coords, int64_t classes, bool relative, float obj_threshold, int64_t post_nms_topn, float score_threshold, float iou_threshold, int64_t pre_nms_topn);
+EsYoloV2DetectionOutputDOutput EsYoloV2DetectionOutputD(EsbTensor *coord_data, EsbTensor *obj_prob,
+                                                        EsbTensor *classes_prob, EsbTensor *img_info, EsbTensor *windex,
+                                                        EsbTensor *hindex, const float *biases, int64_t biases_num,
+                                                        int64_t boxes, int64_t coords, int64_t classes, bool relative,
+                                                        float obj_threshold, int64_t post_nms_topn,
+                                                        float score_threshold, float iou_threshold,
+                                                        int64_t pre_nms_topn);
 
 typedef struct {
   EsbTensor *box_out;
   EsbTensor *box_out_num;
 } EsYoloV3DetectionOutputOutput;
-EsYoloV3DetectionOutputOutput EsYoloV3DetectionOutput(EsbTensor *coord_data_low, EsbTensor *coord_data_mid, EsbTensor *coord_data_high, EsbTensor *obj_prob_low, EsbTensor *obj_prob_mid, EsbTensor *obj_prob_high, EsbTensor *classes_prob_low, EsbTensor *classes_prob_mid, EsbTensor *classes_prob_high, EsbTensor *img_info, const float *biases_low, int64_t biases_low_num, const float *biases_mid, int64_t biases_mid_num, const float *biases_high, int64_t biases_high_num, int64_t boxes, int64_t coords, int64_t classes, bool relative, float obj_threshold, int64_t post_nms_topn, float score_threshold, float iou_threshold, int64_t pre_nms_topn);
+EsYoloV3DetectionOutputOutput EsYoloV3DetectionOutput(
+    EsbTensor *coord_data_low, EsbTensor *coord_data_mid, EsbTensor *coord_data_high, EsbTensor *obj_prob_low,
+    EsbTensor *obj_prob_mid, EsbTensor *obj_prob_high, EsbTensor *classes_prob_low, EsbTensor *classes_prob_mid,
+    EsbTensor *classes_prob_high, EsbTensor *img_info, const float *biases_low, int64_t biases_low_num,
+    const float *biases_mid, int64_t biases_mid_num, const float *biases_high, int64_t biases_high_num, int64_t boxes,
+    int64_t coords, int64_t classes, bool relative, float obj_threshold, int64_t post_nms_topn, float score_threshold,
+    float iou_threshold, int64_t pre_nms_topn);
 
 typedef struct {
   EsbTensor *box_out;
   EsbTensor *box_out_num;
 } EsYoloV3DetectionOutputDOutput;
-EsYoloV3DetectionOutputDOutput EsYoloV3DetectionOutputD(EsbTensor *coord_data_low, EsbTensor *coord_data_mid, EsbTensor *coord_data_high, EsbTensor *obj_prob_low, EsbTensor *obj_prob_mid, EsbTensor *obj_prob_high, EsbTensor *classes_prob_low, EsbTensor *classes_prob_mid, EsbTensor *classes_prob_high, EsbTensor *img_info, EsbTensor *windex1, EsbTensor *windex2, EsbTensor *windex3, EsbTensor *hindex1, EsbTensor *hindex2, EsbTensor *hindex3, const float *biases_low, int64_t biases_low_num, const float *biases_mid, int64_t biases_mid_num, const float *biases_high, int64_t biases_high_num, int64_t boxes, int64_t coords, int64_t classes, bool relative, float obj_threshold, int64_t post_nms_topn, float score_threshold, float iou_threshold, int64_t pre_nms_topn);
+EsYoloV3DetectionOutputDOutput EsYoloV3DetectionOutputD(
+    EsbTensor *coord_data_low, EsbTensor *coord_data_mid, EsbTensor *coord_data_high, EsbTensor *obj_prob_low,
+    EsbTensor *obj_prob_mid, EsbTensor *obj_prob_high, EsbTensor *classes_prob_low, EsbTensor *classes_prob_mid,
+    EsbTensor *classes_prob_high, EsbTensor *img_info, EsbTensor *windex1, EsbTensor *windex2, EsbTensor *windex3,
+    EsbTensor *hindex1, EsbTensor *hindex2, EsbTensor *hindex3, const float *biases_low, int64_t biases_low_num,
+    const float *biases_mid, int64_t biases_mid_num, const float *biases_high, int64_t biases_high_num, int64_t boxes,
+    int64_t coords, int64_t classes, bool relative, float obj_threshold, int64_t post_nms_topn, float score_threshold,
+    float iou_threshold, int64_t pre_nms_topn);
 
 typedef struct {
   EsbTensor *box_out;
   EsbTensor *box_out_num;
 } EsYoloV3DetectionOutputV2Output;
-EsYoloV3DetectionOutputV2Output EsYoloV3DetectionOutputV2(EsbTensor **x, int64_t x_num, const float *biases, int64_t biases_num, int64_t boxes, int64_t coords, int64_t classes, bool relative, float obj_threshold, int64_t post_nms_topn, float score_threshold, float iou_threshold, int64_t pre_nms_topn, int64_t N, bool resize_origin_img_to_net, int64_t out_box_dim);
+EsYoloV3DetectionOutputV2Output EsYoloV3DetectionOutputV2(EsbTensor **x, int64_t x_num, const float *biases,
+                                                          int64_t biases_num, int64_t boxes, int64_t coords,
+                                                          int64_t classes, bool relative, float obj_threshold,
+                                                          int64_t post_nms_topn, float score_threshold,
+                                                          float iou_threshold, int64_t pre_nms_topn, int64_t N,
+                                                          bool resize_origin_img_to_net, int64_t out_box_dim);
 
 typedef struct {
   EsbTensor *box_out;
   EsbTensor *box_out_num;
 } EsYoloV3DetectionOutputV2DOutput;
-EsYoloV3DetectionOutputV2DOutput EsYoloV3DetectionOutputV2D(EsbTensor **x, int64_t x_num, EsbTensor **windex, int64_t windex_num, EsbTensor **hindex, int64_t hindex_num, const float *biases, int64_t biases_num, int64_t boxes, int64_t coords, int64_t classes, bool relative, float obj_threshold, int64_t post_nms_topn, float score_threshold, float iou_threshold, int64_t pre_nms_topn, int64_t N, bool resize_origin_img_to_net, int64_t out_box_dim);
+EsYoloV3DetectionOutputV2DOutput EsYoloV3DetectionOutputV2D(
+    EsbTensor **x, int64_t x_num, EsbTensor **windex, int64_t windex_num, EsbTensor **hindex, int64_t hindex_num,
+    const float *biases, int64_t biases_num, int64_t boxes, int64_t coords, int64_t classes, bool relative,
+    float obj_threshold, int64_t post_nms_topn, float score_threshold, float iou_threshold, int64_t pre_nms_topn,
+    int64_t N, bool resize_origin_img_to_net, int64_t out_box_dim);
 
 typedef struct {
   EsbTensor *box_out;
   EsbTensor *box_out_num;
 } EsYoloV5DetectionOutputOutput;
-EsYoloV5DetectionOutputOutput EsYoloV5DetectionOutput(EsbTensor **x, int64_t x_num, const float *biases, int64_t biases_num, int64_t boxes, int64_t coords, int64_t classes, bool relative, float obj_threshold, int64_t post_nms_topn, float score_threshold, float iou_threshold, int64_t pre_nms_topn, int64_t N, bool resize_origin_img_to_net, int64_t out_box_dim, float alpha);
+EsYoloV5DetectionOutputOutput EsYoloV5DetectionOutput(EsbTensor **x, int64_t x_num, const float *biases,
+                                                      int64_t biases_num, int64_t boxes, int64_t coords,
+                                                      int64_t classes, bool relative, float obj_threshold,
+                                                      int64_t post_nms_topn, float score_threshold, float iou_threshold,
+                                                      int64_t pre_nms_topn, int64_t N, bool resize_origin_img_to_net,
+                                                      int64_t out_box_dim, float alpha);
 
 typedef struct {
   EsbTensor *box_out;
   EsbTensor *box_out_num;
 } EsYoloV5DetectionOutputDOutput;
-EsYoloV5DetectionOutputDOutput EsYoloV5DetectionOutputD(EsbTensor **x, int64_t x_num, EsbTensor **windex, int64_t windex_num, EsbTensor **hindex, int64_t hindex_num, const float *biases, int64_t biases_num, int64_t boxes, int64_t coords, int64_t classes, bool relative, float obj_threshold, int64_t post_nms_topn, float score_threshold, float iou_threshold, int64_t pre_nms_topn, int64_t N, bool resize_origin_img_to_net, int64_t out_box_dim, float alpha);
+EsYoloV5DetectionOutputDOutput EsYoloV5DetectionOutputD(
+    EsbTensor **x, int64_t x_num, EsbTensor **windex, int64_t windex_num, EsbTensor **hindex, int64_t hindex_num,
+    const float *biases, int64_t biases_num, int64_t boxes, int64_t coords, int64_t classes, bool relative,
+    float obj_threshold, int64_t post_nms_topn, float score_threshold, float iou_threshold, int64_t pre_nms_topn,
+    int64_t N, bool resize_origin_img_to_net, int64_t out_box_dim, float alpha);
 EsbTensor *EsYoloxBoundingBoxDecode(EsbTensor *priors, EsbTensor *bboxes);
 EsbTensor *EsZerosLike(EsbTensor *x);
 EsbTensor *EsZeta(EsbTensor *x, EsbTensor *q);

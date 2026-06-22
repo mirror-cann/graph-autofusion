@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -18,15 +18,14 @@ using namespace AscendC;
 #include "test_api_utils.h"
 #include "argmax.h"
 
-class TestApiArgmax : public testing::Test, public testing::WithParamInterface<std::vector<int>> {
-};
+class TestApiArgmax : public testing::Test, public testing::WithParamInterface<std::vector<int>> {};
 
 TEST_P(TestApiArgmax, Test_argmax_float_ar) {
   // 构造测试输入和预期结果
   int a = this->GetParam()[0];
   int b = this->GetParam()[1];
-  auto *x = (float*)AscendC::GmAlloc(sizeof(float) * a * b);
-  auto *y = (int64_t*)AscendC::GmAlloc(sizeof(int64_t) * a);
+  auto *x = (float *)AscendC::GmAlloc(sizeof(float) * a * b);
+  auto *y = (int64_t *)AscendC::GmAlloc(sizeof(int64_t) * a);
   int64_t expect[a];
 
   for (int i = 0; i < a; i++) {
@@ -84,8 +83,8 @@ TEST_P(TestApiArgmax, Test_argmax_int32_ar) {
   // 构造测试输入和预期结果
   int a = this->GetParam()[0];
   int b = this->GetParam()[1];
-  auto *x = (int32_t*)AscendC::GmAlloc(sizeof(int32_t) * a * b);
-  auto *y = (int64_t*)AscendC::GmAlloc(sizeof(int64_t) * a);
+  auto *x = (int32_t *)AscendC::GmAlloc(sizeof(int32_t) * a * b);
+  auto *y = (int64_t *)AscendC::GmAlloc(sizeof(int64_t) * a);
   int64_t expect[a];
 
   for (int i = 0; i < a; i++) {
@@ -140,16 +139,14 @@ TEST_P(TestApiArgmax, Test_argmax_int32_ar) {
 }
 
 INSTANTIATE_TEST_SUITE_P(CalcWithDifferentShape, TestApiArgmax,
-    ::testing::Values(std::vector<int>{16, 32},
-                      std::vector<int>{32, 64},
-                      std::vector<int>{8, 128},
-                      std::vector<int>{4, 72}));
+                         ::testing::Values(std::vector<int>{16, 32}, std::vector<int>{32, 64}, std::vector<int>{8, 128},
+                                           std::vector<int>{4, 72}));
 
 TEST(TestApiArgmaxRA, Test_argmax_float_ra) {
   // 构造测试输入和预期结果
   uint32_t a = 16, b = 64;
-  auto *x = (float*)AscendC::GmAlloc(sizeof(float) * a * b);
-  auto *y = (int64_t*)AscendC::GmAlloc(sizeof(int64_t) * b);
+  auto *x = (float *)AscendC::GmAlloc(sizeof(float) * a * b);
+  auto *y = (int64_t *)AscendC::GmAlloc(sizeof(int64_t) * b);
   int64_t expect[b];
 
   for (uint32_t i = 0; i < a * b; i++) {
@@ -210,8 +207,8 @@ TEST(TestApiArgmaxRA, Test_argmax_float_ra) {
 TEST(TestApiArgmaxRA, Test_argmax_int32_ra) {
   // 构造测试输入和预期结果
   uint32_t a = 16, b = 64;
-  auto *x = (int32_t*)AscendC::GmAlloc(sizeof(int32_t) * a * b);
-  auto *y = (int64_t*)AscendC::GmAlloc(sizeof(int64_t) * b);
+  auto *x = (int32_t *)AscendC::GmAlloc(sizeof(int32_t) * a * b);
+  auto *y = (int64_t *)AscendC::GmAlloc(sizeof(int64_t) * b);
   int64_t expect[b];
 
   for (uint32_t i = 0; i < a * b; i++) {
@@ -272,8 +269,8 @@ TEST(TestApiArgmaxRA, Test_argmax_int32_ra) {
 TEST(TestApiArgmaxLE64, Test_argmax_float_le64) {
   // 构造测试输入和预期结果 - 测试last维度小于等于64的情况
   uint32_t a = 32, b = 32;
-  auto *x = (float*)AscendC::GmAlloc(sizeof(float) * a * b);
-  auto *y = (int64_t*)AscendC::GmAlloc(sizeof(int64_t) * a);
+  auto *x = (float *)AscendC::GmAlloc(sizeof(float) * a * b);
+  auto *y = (int64_t *)AscendC::GmAlloc(sizeof(int64_t) * a);
   int64_t expect[a];
 
   for (uint32_t i = 0; i < a; i++) {
@@ -330,8 +327,8 @@ TEST(TestApiArgmaxLE64, Test_argmax_float_le64) {
 TEST(TestApiArgmaxLE64, Test_argmax_int32_le64) {
   // 构造测试输入和预期结果 - 测试last维度小于等于64的情况
   uint32_t a = 32, b = 32;
-  auto *x = (int32_t*)AscendC::GmAlloc(sizeof(int32_t) * a * b);
-  auto *y = (int64_t*)AscendC::GmAlloc(sizeof(int64_t) * a);
+  auto *x = (int32_t *)AscendC::GmAlloc(sizeof(int32_t) * a * b);
+  auto *y = (int64_t *)AscendC::GmAlloc(sizeof(int64_t) * a);
   int64_t expect[a];
 
   for (uint32_t i = 0; i < a; i++) {

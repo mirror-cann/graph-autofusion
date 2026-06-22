@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -21,8 +21,8 @@ BinaryHolder::BinaryHolder(const BinaryHolder &other) {
     data_len_ = other.GetDataLen();
     holder_ = ComGraphMakeUnique<uint8_t[]>(data_len_);
     GE_CHECK_NOTNULL_JUST_RETURN(holder_);
-    const auto mem_ret = memcpy_s(holder_.get(), data_len_,
-                                  ge::PtrToPtr<const uint8_t, const void>(other.GetDataPtr()), data_len_);
+    const auto mem_ret =
+        memcpy_s(holder_.get(), data_len_, ge::PtrToPtr<const uint8_t, const void>(other.GetDataPtr()), data_len_);
     if (mem_ret != EOK) {
       data_len_ = 0U;
       holder_ = nullptr;
@@ -36,8 +36,7 @@ BinaryHolder::BinaryHolder(const uint8_t *const data, const size_t data_len) {
     data_len_ = data_len;
     holder_ = ComGraphMakeUnique<uint8_t[]>(data_len_);
     GE_CHECK_NOTNULL_JUST_RETURN(holder_);
-    const auto mem_ret = memcpy_s(holder_.get(), data_len_,
-                                  ge::PtrToPtr<const uint8_t, const void>(data), data_len_);
+    const auto mem_ret = memcpy_s(holder_.get(), data_len_, ge::PtrToPtr<const uint8_t, const void>(data), data_len_);
     if (mem_ret != EOK) {
       data_len_ = 0U;
       holder_ = nullptr;
@@ -54,8 +53,8 @@ BinaryHolder &BinaryHolder::operator=(const BinaryHolder &other) {
       GELOGE(ge::GRAPH_FAILED, "[BinaryHolder] make unique failed.");
       return *this;
     }
-    const auto mem_ret = memcpy_s(holder_.get(), data_len_,
-                                  ge::PtrToPtr<const uint8_t, const void>(other.GetDataPtr()), data_len_);
+    const auto mem_ret =
+        memcpy_s(holder_.get(), data_len_, ge::PtrToPtr<const uint8_t, const void>(other.GetDataPtr()), data_len_);
     if (mem_ret != EOK) {
       data_len_ = 0U;
       holder_ = nullptr;
@@ -104,8 +103,7 @@ bool BinaryHolder::operator!=(const BinaryHolder &second) const {
   }
   const auto this_data = this->GetDataPtr();
   const auto second_data = second.GetDataPtr();
-  if (((this_data == nullptr) && (second_data != nullptr)) ||
-      ((this_data != nullptr) && (second_data == nullptr))) {
+  if (((this_data == nullptr) && (second_data != nullptr)) || ((this_data != nullptr) && (second_data == nullptr))) {
     return true;
   }
   if ((this_data == nullptr) && (second_data == nullptr)) {
@@ -161,21 +159,20 @@ void TensorInfoArgs::SetShapeRange(const std::vector<std::pair<int64_t, int64_t>
 }
 
 bool TensorInfoArgs::IsUnknownShape() const {
-  return std::any_of(shape_.begin(), shape_.end(), [](const int64_t &dim) {
-      return (dim == UNKNOWN_DIM) || (dim == UNKNOWN_DIM_NUM);
-      });
+  return std::any_of(shape_.begin(), shape_.end(),
+                     [](const int64_t &dim) { return (dim == UNKNOWN_DIM) || (dim == UNKNOWN_DIM_NUM); });
 }
 
 bool TensorInfoArgs::operator!=(const TensorInfoArgs &second) const {
   const bool ret = (this->format_ != second.format_) || (this->origin_format_ != second.origin_format_) ||
-      (this->data_type_ != second.data_type_) || (this->shape_ != second.shape_) ||
-          (this->origin_shape_ != second.origin_shape_) || (this->shape_range_ != second.shape_range_);
+                   (this->data_type_ != second.data_type_) || (this->shape_ != second.shape_) ||
+                   (this->origin_shape_ != second.origin_shape_) || (this->shape_range_ != second.shape_range_);
   return ret;
 }
 
 bool TensorInfoArgs::IsTensorInfoMatch(const TensorInfoArgs &other) const {
   const bool is_same = (this->format_ == other.format_) && (this->origin_format_ == other.origin_format_) &&
-      (this->data_type_ == other.data_type_);
+                       (this->data_type_ == other.data_type_);
   if (!is_same) {
     GELOGD("format or origin format or datatype is not matched");
     return false;
@@ -190,8 +187,8 @@ bool TensorInfoArgs::IsShapeInRange(const TensorInfoArgs &other) const {
     return true;
   }
   // check rank
-  const bool is_same_rank = (this->shape_.size() == other.shape_.size()) &&
-      (this->origin_shape_.size() == other.origin_shape_.size());
+  const bool is_same_rank =
+      (this->shape_.size() == other.shape_.size()) && (this->origin_shape_.size() == other.origin_shape_.size());
   if (!is_same_rank) {
     GELOGD("shape or origin shape is not same rank");
     return false;
@@ -205,7 +202,7 @@ bool TensorInfoArgs::IsShapeInRange(const TensorInfoArgs &other) const {
     for (size_t i = 0U; i < this->shape_range_.size(); ++i) {
       if (this->shape_range_[i].first > other.shape_[i]) {
         GELOGD("shape range is not match, first is %" PRId64 ", other is %" PRId64 ", index is %zu",
-            this->shape_range_[i].first, other.shape_[i], i);
+               this->shape_range_[i].first, other.shape_[i], i);
         return false;
       }
       // -1 means infinity great
@@ -215,7 +212,7 @@ bool TensorInfoArgs::IsShapeInRange(const TensorInfoArgs &other) const {
       }
       if (this->shape_range_[i].second < other.shape_[i]) {
         GELOGD("shape range is not match, second is %" PRId64 ", other is %" PRId64 ", index is %zu",
-            this->shape_range_[i].second, other.shape_[i], i);
+               this->shape_range_[i].second, other.shape_[i], i);
         return false;
       }
     }
@@ -259,16 +256,15 @@ void CompileCacheDesc::AddTensorInfo(const TensorInfoArgs &tensor_info) {
 }
 
 void CompileCacheDesc::SetScopeId(const std::initializer_list<uint64_t> scope_id) {
-  scope_id_= scope_id;
+  scope_id_ = scope_id;
   return;
 }
 
 bool CompileCacheDesc::CheckWithoutTensorInfo(const CompileCacheDesc *first, const CompileCacheDesc *second) const {
   if ((first->op_type_ != second->op_type_) ||
       (first->tensor_info_args_vec_.size() != second->tensor_info_args_vec_.size())) {
-    GELOGD("op_type_ %s, %s is not match or size %zu %zu is not match",
-           first->op_type_.c_str(), second->op_type_.c_str(),
-           first->tensor_info_args_vec_.size(), second->tensor_info_args_vec_.size());
+    GELOGD("op_type_ %s, %s is not match or size %zu %zu is not match", first->op_type_.c_str(),
+           second->op_type_.c_str(), first->tensor_info_args_vec_.size(), second->tensor_info_args_vec_.size());
     return false;
   }
   if (first->scope_id_ != second->scope_id_) {
@@ -281,15 +277,15 @@ bool CompileCacheDesc::CheckWithoutTensorInfo(const CompileCacheDesc *first, con
   }
   for (size_t i = 0U; i < first->other_desc_.size(); ++i) {
     if (first->other_desc_[i].GetDataLen() != second->other_desc_[i].GetDataLen()) {
-      GELOGD("other_desc_ mem size %zu, %zu is not match ",
-          first->other_desc_[i].GetDataLen(), second->other_desc_[i].GetDataLen());
+      GELOGD("other_desc_ mem size %zu, %zu is not match ", first->other_desc_[i].GetDataLen(),
+             second->other_desc_[i].GetDataLen());
       return false;
     }
     if ((first->other_desc_[i].GetDataPtr() == nullptr) || (second->other_desc_[i].GetDataPtr() == nullptr)) {
       return false;
     }
-    const auto cmp_ret = memcmp(first->other_desc_[i].GetDataPtr(),
-        second->other_desc_[i].GetDataPtr(), second->other_desc_[i].GetDataLen());
+    const auto cmp_ret = memcmp(first->other_desc_[i].GetDataPtr(), second->other_desc_[i].GetDataPtr(),
+                                second->other_desc_[i].GetDataLen());
     if (cmp_ret != 0) {
       GELOGD("mem compare fail");
       return false;
@@ -342,4 +338,4 @@ CacheHashKey CompileCacheDesc::GetCacheDescHash() const {
   hash_key = HashUtils::MultiHash(op_type_, hash_key);
   return hash_key;
 }
-}  // namespace ge
+}  // namespace af

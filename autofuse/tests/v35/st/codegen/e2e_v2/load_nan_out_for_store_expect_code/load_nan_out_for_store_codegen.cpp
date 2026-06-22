@@ -7,13 +7,13 @@
 #include "runtime_stub.h"
 #include "common/platform_context.h"
 
-std::vector<std::string> splitString(const std::string& input, char delimiter) {
+std::vector<std::string> splitString(const std::string &input, char delimiter) {
   std::vector<std::string> result;
   std::stringstream ss(input);
   std::string token;
 
   while (std::getline(ss, token, delimiter)) {
-      result.push_back(token);
+    result.push_back(token);
   }
 
   return result;
@@ -40,7 +40,7 @@ TEST_F(LoadNanOutForStoreTest, LoadNanOutForStoreCodegen) {
 #define REGISTER_TILING_DEFAULT(tiling)
 #define GET_TILING_DATA(t, tiling)  AutofuseTilingData t = *(AutofuseTilingData*)tiling;
 )";
-  
+
   LoadNanOutForStore_BeforeAutofuse(test_graph);
   LoadNanOutForStore_AfterInferOutput(test_graph);
   std::vector<af::AscGraph> test_impl_graphs = {af::AscGraph("load_nan_out_for_store_general_0_nil_0_nil")};
@@ -49,13 +49,14 @@ TEST_F(LoadNanOutForStoreTest, LoadNanOutForStoreCodegen) {
   LoadNanOutForStore_AfterScheduler(test_impl_graphs[0]);
   LoadNanOutForStore_AfterQueBufAlloc(test_impl_graphs[0]);
   std::vector<std::string> parts = splitString(KERNEL_SRC_LIST, ':');
-  std::string kernel_src_file_name = parts[0];      // load_nan_out_for_store_kernel.cpp
-  std::string tiling_src_file_name = parts[1];      // load_nan_out_for_store_tiling.cpp
-  std::string tiling_data_src_file_name = parts[2]; // autofuse_tiling_data.h
+  std::string kernel_src_file_name = parts[0];       // load_nan_out_for_store_kernel.cpp
+  std::string tiling_src_file_name = parts[1];       // load_nan_out_for_store_tiling.cpp
+  std::string tiling_data_src_file_name = parts[2];  // autofuse_tiling_data.h
 
   try {
-    auto codegen = codegen::Codegen(codegen::CodegenOptions{
-        .tiling_lib_path = ATT_SO_NAME, .tiling_lib_codegen_symbol = "CodegenTiling", .using_att_calc_qbt_size = false});
+    auto codegen = codegen::Codegen(codegen::CodegenOptions{.tiling_lib_path = ATT_SO_NAME,
+                                                            .tiling_lib_codegen_symbol = "CodegenTiling",
+                                                            .using_att_calc_qbt_size = false});
 
     std::fstream kernel_file(kernel_src_file_name, std::ios::out);
     std::fstream tiling_file(tiling_src_file_name, std::ios::out);
@@ -72,10 +73,9 @@ TEST_F(LoadNanOutForStoreTest, LoadNanOutForStoreCodegen) {
     kernel_file << tilig_stub << RemoveSubDirInclude(result.kernel);
     tiling_file << result.tiling;
     tiling_data_file << result.tiling_data;
-  }
-  catch (...) {
+  } catch (...) {
     gen_success = false;
   }
-  
+
   EXPECT_EQ(gen_success, true);
 }

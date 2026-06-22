@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -43,15 +43,17 @@ class TestBackendMatmulEleBrc : public testing::Test {
 };
 
 TEST_F(TestBackendMatmulEleBrc, MatmulEleBrcCodegen) {
-  bool gen_success= true;
+  bool gen_success = true;
   const std::map<std::string, std::string> shape_info;
   auto graph = ascir::ShareGraph::LoadMatmulElewiseBrcFusedGraph();
 
-  std::cout<<"KERNEL_SRC_LIST="<<KERNEL_SRC_LIST<<std::endl;
+  std::cout << "KERNEL_SRC_LIST=" << KERNEL_SRC_LIST << std::endl;
   std::vector<std::string> parts = splitString(KERNEL_SRC_LIST, ':');
-  std::string kernel_src_file_name = "matmul_elemwise_brc_test_kernel_ub.cpp";   // matmul_elemwise_brc_test_kernel_ub.cpp
-  std::string tiling_src_file_name = "matmul_elemwise_brc_test_tiling_ub.cpp";   // matmul_elemwise_brc_test_tiling_ub.cpp
-  std::string tiling_data_src_file_name = parts[2]; // autofuse_tiling_data.h
+  std::string kernel_src_file_name =
+      "matmul_elemwise_brc_test_kernel_ub.cpp";  // matmul_elemwise_brc_test_kernel_ub.cpp
+  std::string tiling_src_file_name =
+      "matmul_elemwise_brc_test_tiling_ub.cpp";      // matmul_elemwise_brc_test_tiling_ub.cpp
+  std::string tiling_data_src_file_name = parts[2];  // autofuse_tiling_data.h
 
   try {
     optimize::Optimizer optimizer(optimize::OptimizerOptions{});
@@ -76,45 +78,43 @@ TEST_F(TestBackendMatmulEleBrc, MatmulEleBrcCodegen) {
     }
 
     // 分别生成ub和common模板的kernel和tiling
-    EXPECT_EQ(codegen.Generate(shape_info, ub_schedule_result, result),0);
+    EXPECT_EQ(codegen.Generate(shape_info, ub_schedule_result, result), 0);
     kernel_file << RemoveSubDirInclude(result.kernel);
     tiling_file << result.tiling;
     tiling_data_file << result.tiling_data;
 
     // 校验RemoveSubDirInclude(result.kernel)中是否包含IncludeMatmulHeadFiles方法返回的所有头文件内容
-    std::vector<std::string> expected_headers = {
-        "#include \"arch35/mat_mul_v3_tiling_key_public.h\"",
-        "#include \"arch35/mat_mul_tiling_data.h\"",
-        "#include \"mat_mul_v3_common.h\"",
-        "#include \"arch35/mat_mul_asw_block.h\"",
-        "#include \"arch35/mat_mul_asw_kernel.h\"",
-        "#include \"arch35/mat_mul_stream_k_block.h\"",
-        "#include \"arch35/mat_mul_stream_k_kernel.h\"",
-        "#include \"arch35/mat_mul_v3_full_load_kernel_helper.h\"",
-        "#include \"arch35/mat_mul_full_load.h\"",
-        "#include \"arch35/mm_extension_interface/mm_copy_cube_out.h\"",
-        "#include \"arch35/mm_extension_interface/mm_custom_mm_policy.h\"",
-        "#include \"arch35/mat_mul_fixpipe_opti.h\"",
-        "#include \"arch35/block_scheduler_aswt.h\"",
-        "#include \"arch35/block_scheduler_streamk.h\"",
-        "#include \"arch35/mat_mul_streamk_basic_cmct.h\"",
-        "#include \"arch35/mat_mul_fixpipe_opti_basic_cmct.h\"",
-        "#include \"arch35/mat_mul_input_k_eq_zero_clear_output.h\""
-    };
+    std::vector<std::string> expected_headers = {"#include \"arch35/mat_mul_v3_tiling_key_public.h\"",
+                                                 "#include \"arch35/mat_mul_tiling_data.h\"",
+                                                 "#include \"mat_mul_v3_common.h\"",
+                                                 "#include \"arch35/mat_mul_asw_block.h\"",
+                                                 "#include \"arch35/mat_mul_asw_kernel.h\"",
+                                                 "#include \"arch35/mat_mul_stream_k_block.h\"",
+                                                 "#include \"arch35/mat_mul_stream_k_kernel.h\"",
+                                                 "#include \"arch35/mat_mul_v3_full_load_kernel_helper.h\"",
+                                                 "#include \"arch35/mat_mul_full_load.h\"",
+                                                 "#include \"arch35/mm_extension_interface/mm_copy_cube_out.h\"",
+                                                 "#include \"arch35/mm_extension_interface/mm_custom_mm_policy.h\"",
+                                                 "#include \"arch35/mat_mul_fixpipe_opti.h\"",
+                                                 "#include \"arch35/block_scheduler_aswt.h\"",
+                                                 "#include \"arch35/block_scheduler_streamk.h\"",
+                                                 "#include \"arch35/mat_mul_streamk_basic_cmct.h\"",
+                                                 "#include \"arch35/mat_mul_fixpipe_opti_basic_cmct.h\"",
+                                                 "#include \"arch35/mat_mul_input_k_eq_zero_clear_output.h\""};
 
-    for (const auto& header : expected_headers) {
+    for (const auto &header : expected_headers) {
       EXPECT_NE(RemoveSubDirInclude(result.kernel).find(header), std::string::npos)
           << "Expected header not found in kernel: " << header;
     }
 
-    kernel_src_file_name = "matmul_elemwise_brc_test_kernel_common.cpp";   // matmul_elemwise_brc_test_kernel_common.cpp
-    tiling_src_file_name = "matmul_elemwise_brc_test_tiling_common.cpp";   // matmul_elemwise_brc_test_tiling_common.cpp
-    tiling_data_src_file_name = parts[2]; // autofuse_tiling_data.h
+    kernel_src_file_name = "matmul_elemwise_brc_test_kernel_common.cpp";  // matmul_elemwise_brc_test_kernel_common.cpp
+    tiling_src_file_name = "matmul_elemwise_brc_test_tiling_common.cpp";  // matmul_elemwise_brc_test_tiling_common.cpp
+    tiling_data_src_file_name = parts[2];                                 // autofuse_tiling_data.h
     std::fstream kernel_file_common(kernel_src_file_name, std::ios::out);
     std::fstream tiling_file_common(tiling_src_file_name, std::ios::out);
     std::fstream tiling_data_file_common(tiling_data_src_file_name, std::ios::out);
     codegen::CodegenResult result_common;
-    EXPECT_EQ(codegen.Generate(shape_info, common_schedule_result, result_common),0);
+    EXPECT_EQ(codegen.Generate(shape_info, common_schedule_result, result_common), 0);
     kernel_file_common << RemoveSubDirInclude(result_common.kernel);
     tiling_file_common << result_common.tiling;
     tiling_data_file_common << result_common.tiling_data;

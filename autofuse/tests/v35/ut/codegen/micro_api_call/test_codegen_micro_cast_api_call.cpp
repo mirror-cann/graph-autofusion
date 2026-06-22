@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -143,7 +143,8 @@ TEST(CodegenKernel, CastMicroApiCall_float_2_int64) {
 
   std::string result;
   vf_cast.Generate(tensor_mng, tpipe, cp, result);
-  EXPECT_EQ(result, std::string{"AscendC::MicroAPI::Cast<int64_t, float, cast_trait_float_2_int64>(vreg_1, vreg_0, p_reg);\n"});
+  EXPECT_EQ(result,
+            std::string{"AscendC::MicroAPI::Cast<int64_t, float, cast_trait_float_2_int64>(vreg_1, vreg_0, p_reg);\n"});
 }
 
 TEST(CodegenKernel, CastMicroApiCall_float_2_half) {
@@ -264,7 +265,8 @@ TEST(CodegenKernel, CastMicroApiCall_float_2_half) {
 
   std::string result;
   vf_cast.Generate(tensor_mng, tpipe, cp, result);
-  EXPECT_EQ(result, std::string{"AscendC::MicroAPI::Cast<half, float, cast_trait_float_2_half>(vreg_1, vreg_0, p_reg);\n"});
+  EXPECT_EQ(result,
+            std::string{"AscendC::MicroAPI::Cast<half, float, cast_trait_float_2_half>(vreg_1, vreg_0, p_reg);\n"});
 }
 
 TEST(CodegenKernel, CastMicroApiCall_half_2_float) {
@@ -385,5 +387,6 @@ TEST(CodegenKernel, CastMicroApiCall_half_2_float) {
 
   std::string result;
   vf_cast.Generate(tensor_mng, tpipe, cp, result);
-  EXPECT_EQ(result, std::string{"AscendC::MicroAPI::Cast<float, half, cast_trait_bf16_2_float>(vreg_1, vreg_0, p_reg);\n"});
+  EXPECT_EQ(result,
+            std::string{"AscendC::MicroAPI::Cast<float, half, cast_trait_bf16_2_float>(vreg_1, vreg_0, p_reg);\n"});
 }

@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -12,7 +12,7 @@
 #define __ASCENDC_API_REGBASE_CONCAT_H__
 
 namespace concat {
-template<size_t INPUT_NUM>
+template <size_t INPUT_NUM>
 struct ConcatTiling {
   uint32_t num_rows;
   uint32_t num_dst_cols;
@@ -25,7 +25,7 @@ struct ConcatByGatherTiling {
   uint32_t num_src_cols;
 };
 
-template<size_t INPUT_NUM>
+template <size_t INPUT_NUM>
 struct ConcatTilingPadded {
   uint32_t num_rows;
   uint32_t num_dst_cols;
@@ -35,7 +35,7 @@ struct ConcatTilingPadded {
   uint32_t gather_mask_dim_sizes[INPUT_NUM];
 };
 
-template<size_t INPUT_NUM>
+template <size_t INPUT_NUM>
 struct ConcatTilingOneAxis {
   uint32_t src_col_sizes[INPUT_NUM];
   uint32_t dst_col_offsets[INPUT_NUM];
@@ -50,25 +50,24 @@ __aicore__ inline uint32_t NumSrcCols(const ConcatTiling<INPUT_NUM> &tiling) {
   return tiling.num_srcs_cols[0];
 }
 
-template<typename T>
-struct ArangeTypeGet {
-};
+template <typename T>
+struct ArangeTypeGet {};
 
-template<>
+template <>
 struct ArangeTypeGet<uint32_t> {
   using T = int32_t;
 };
 
-template<>
+template <>
 struct ArangeTypeGet<uint16_t> {
   using T = int16_t;
 };
 
-template<typename U>
+template <typename U>
 __aicore__ inline void GenSequence(__ubuf__ U *seq_addr) {
   uint32_t kVfLen = AscendC::VECTOR_REG_WIDTH / sizeof(U);
   using SeqType = typename ArangeTypeGet<U>::T;
-  auto seq_buf_addr = (__ubuf__ SeqType *) seq_addr;
+  auto seq_buf_addr = (__ubuf__ SeqType *)seq_addr;
   __VEC_SCOPE__ {
     AscendC::MicroAPI::RegTensor<SeqType> reg_seq;
     AscendC::MicroAPI::Arange(reg_seq, 0);
@@ -78,11 +77,8 @@ __aicore__ inline void GenSequence(__ubuf__ U *seq_addr) {
   }
 }
 
-template<typename T>
-__aicore__ inline void Copy(__ubuf__ T *dst_addr_base,
-                            __ubuf__ T *src_addr_base,
-                            uint32_t rows,
-                            uint32_t cols,
+template <typename T>
+__aicore__ inline void Copy(__ubuf__ T *dst_addr_base, __ubuf__ T *src_addr_base, uint32_t rows, uint32_t cols,
                             uint32_t row_stride) {
   constexpr uint32_t kVfLen = AscendC::VECTOR_REG_WIDTH / sizeof(T);
   auto num_rows = static_cast<uint16_t>(rows);
@@ -90,7 +86,7 @@ __aicore__ inline void Copy(__ubuf__ T *dst_addr_base,
   uint32_t tail_cols = cols - repeat_times * kVfLen;
 
   auto src_addr = src_addr_base;
-  __VEC_SCOPE__{
+  __VEC_SCOPE__ {
     AscendC::MicroAPI::UnalignReg u0;
     AscendC::MicroAPI::UnalignReg u_reg;
     AscendC::MicroAPI::RegTensor<T> vd0;
@@ -109,20 +105,16 @@ __aicore__ inline void Copy(__ubuf__ T *dst_addr_base,
   }
 }
 
-template<typename T>
-__aicore__ inline void CopyPadded(__ubuf__ T *dst_addr_base,
-                                  __ubuf__ T *src_addr_base,
-                                  uint32_t rows,
-                                  uint32_t src_row_stride,
-                                  uint32_t row_stride,
-                                  uint32_t gather_mask_repeat_stride,
+template <typename T>
+__aicore__ inline void CopyPadded(__ubuf__ T *dst_addr_base, __ubuf__ T *src_addr_base, uint32_t rows,
+                                  uint32_t src_row_stride, uint32_t row_stride, uint32_t gather_mask_repeat_stride,
                                   uint32_t gather_mask_dim_size) {
   constexpr uint32_t kVfLen = AscendC::VECTOR_REG_WIDTH / sizeof(T);
   auto num_rows = static_cast<uint16_t>(rows);
   uint16_t repeat_times = src_row_stride / gather_mask_repeat_stride;
   uint16_t sub_repeat_times = gather_mask_dim_size / kVfLen;
   uint16_t sub_tail_cols = gather_mask_dim_size - sub_repeat_times * kVfLen;
-  __VEC_SCOPE__{
+  __VEC_SCOPE__ {
     AscendC::MicroAPI::UnalignReg u0;
     AscendC::MicroAPI::UnalignReg u_reg;
     AscendC::MicroAPI::RegTensor<T> vd0;
@@ -145,23 +137,20 @@ __aicore__ inline void CopyPadded(__ubuf__ T *dst_addr_base,
   }
 }
 
-template<typename U>
-__aicore__ inline void GenScatterIndex(uint32_t src_cols,
-                                       uint32_t dst_cols,
-                                       uint32_t dst_col_offset,
-                                       __ubuf__ U *seq_addr,
-                                       __ubuf__ U *index_addr) {
+template <typename U>
+__aicore__ inline void GenScatterIndex(uint32_t src_cols, uint32_t dst_cols, uint32_t dst_col_offset,
+                                       __ubuf__ U *seq_addr, __ubuf__ U *index_addr) {
   constexpr uint32_t kVfLen = AscendC::VECTOR_REG_WIDTH / sizeof(U);
-  __VEC_SCOPE__{
+  __VEC_SCOPE__ {
     AscendC::MicroAPI::RegTensor<U> v0, v1, v2, v3;
     AscendC::MicroAPI::RegTensor<U> vd0, vd2, vd3, vd6, vd7, vd10;
 
     auto num = kVfLen;
     AscendC::MicroAPI::MaskReg p0 = AscendC::MicroAPI::UpdateMask<U>(num);
     AscendC::MicroAPI::DataCopy(v0, seq_addr);
-    AscendC::MicroAPI::Duplicate(v1, (U) src_cols, p0);
-    AscendC::MicroAPI::Duplicate(v2, (U) dst_col_offset, p0);
-    AscendC::MicroAPI::Duplicate(v3, (U) dst_cols, p0);
+    AscendC::MicroAPI::Duplicate(v1, (U)src_cols, p0);
+    AscendC::MicroAPI::Duplicate(v2, (U)dst_col_offset, p0);
+    AscendC::MicroAPI::Duplicate(v3, (U)dst_cols, p0);
     AscendC::MicroAPI::Div(vd2, v0, v1, p0);
     AscendC::MicroAPI::Mul(vd6, vd2, v1, p0);
     AscendC::MicroAPI::Sub(vd7, v0, vd6, p0);
@@ -173,8 +162,7 @@ __aicore__ inline void GenScatterIndex(uint32_t src_cols,
 }
 
 template <typename U>
-__aicore__ inline void GenGatherIndex(uint32_t src_cols, uint32_t dst_cols,
-                                      uint32_t stride, __ubuf__ U *index_addr) {
+__aicore__ inline void GenGatherIndex(uint32_t src_cols, uint32_t dst_cols, uint32_t stride, __ubuf__ U *index_addr) {
   constexpr uint32_t kVfLen = AscendC::VECTOR_REG_WIDTH / sizeof(U);
   __VEC_SCOPE__ {
     using SeqType = typename ArangeTypeGet<U>::T;
@@ -208,19 +196,15 @@ __aicore__ inline void GenGatherIndex(uint32_t src_cols, uint32_t dst_cols,
   }
 }
 
-template<typename T, typename U>
-__aicore__ inline void ScatterInput(__ubuf__ T *dst_addr,
-                                    __ubuf__ T *src_addr,
-                                    __ubuf__ U *index_addr,
-                                    uint32_t rows,
-                                    uint32_t dst_cols,
-                                    uint32_t src_cols) {
+template <typename T, typename U>
+__aicore__ inline void ScatterInput(__ubuf__ T *dst_addr, __ubuf__ T *src_addr, __ubuf__ U *index_addr, uint32_t rows,
+                                    uint32_t dst_cols, uint32_t src_cols) {
   constexpr uint32_t kVfLen = AscendC::VECTOR_REG_WIDTH / sizeof(U);
   auto rows_per_loop = static_cast<uint16_t>(kVfLen / src_cols);
   auto loop_times = static_cast<uint16_t>(rows / rows_per_loop);
   uint16_t tail_rows = rows - loop_times * rows_per_loop;
 
-  __VEC_SCOPE__{
+  __VEC_SCOPE__ {
     AscendC::MicroAPI::RegTensor<T> vd2;
     AscendC::MicroAPI::RegTensor<T> src;
     AscendC::MicroAPI::RegTensor<T> tmp;
@@ -261,8 +245,7 @@ __aicore__ inline void ScatterInput(__ubuf__ T *dst_addr,
 }
 
 template <typename U>
-__aicore__ inline AscendC::MicroAPI::MaskReg GenMaskReg(uint32_t block_size,
-                                                        uint32_t gather_mask_repeat_stride,
+__aicore__ inline AscendC::MicroAPI::MaskReg GenMaskReg(uint32_t block_size, uint32_t gather_mask_repeat_stride,
                                                         uint32_t gather_mask_dim_size, __ubuf__ uint32_t *index_addr) {
   constexpr uint32_t kVfLen = VECTOR_REG_WIDTH / sizeof(U);
   constexpr uint16_t kDataBlockSize = 32 / sizeof(U);
@@ -566,7 +549,7 @@ __aicore__ inline void ConcatExtendDyn(T *dst_addr, T *src_addrs[INPUT_NUM], Asc
   }
 }
 
-template<typename T>
+template <typename T>
 __aicore__ inline void CopyOneAxis(__ubuf__ T *dst_addr, __ubuf__ T *src_addr, uint32_t size) {
   __VEC_SCOPE__ {
     AscendC::MicroAPI::UnalignReg u0;
@@ -578,35 +561,30 @@ __aicore__ inline void CopyOneAxis(__ubuf__ T *dst_addr, __ubuf__ T *src_addr, u
 }
 
 template <typename T, size_t INPUT_NUM, size_t... Is>
-inline __aicore__ void ConcatOneAxisUnroll(T *dst_addr,
-                                           T *src_addrs[INPUT_NUM],
-                                           const ConcatTilingOneAxis<INPUT_NUM> &tiling,
-                                           std::index_sequence<Is...>) {
+inline __aicore__ void ConcatOneAxisUnroll(T *dst_addr, T *src_addrs[INPUT_NUM],
+                                           const ConcatTilingOneAxis<INPUT_NUM> &tiling, std::index_sequence<Is...>) {
   ((CopyOneAxis((__ubuf__ T *)((uint64_t)dst_addr + tiling.dst_col_offsets[Is] * sizeof(T)),
-                (__ubuf__ T *)(uint64_t)src_addrs[Is],
-                tiling.src_col_sizes[Is])), ...);
+                (__ubuf__ T *)(uint64_t)src_addrs[Is], tiling.src_col_sizes[Is])),
+   ...);
 }
 
 template <typename T, size_t INPUT_NUM>
-inline __aicore__ void ConcatOneAxis(T *dst_addr,
-                                     T *src_addrs[INPUT_NUM],
+inline __aicore__ void ConcatOneAxis(T *dst_addr, T *src_addrs[INPUT_NUM],
                                      const ConcatTilingOneAxis<INPUT_NUM> &tiling) {
   ConcatOneAxisUnroll(dst_addr, src_addrs, tiling, std::make_index_sequence<INPUT_NUM>{});
 }
 }  // namespace concat
 
-template<size_t INPUT_NUM>
+template <size_t INPUT_NUM>
 struct ConcatTilingAllAligned {
   uint32_t dst_col_size;
   uint32_t src_col_sizes[INPUT_NUM];
   uint32_t dst_offsets[INPUT_NUM];
 };
 
-template<typename T, uint32_t INPUT_NUM>
-inline __aicore__ void ConcatAllAligned(uint32_t num_rows,
-                                        const ConcatTilingAllAligned<INPUT_NUM> &tiling,
-                                        LocalTensor<T> &dst_tensor,
-                                        LocalTensor<T> (&src_tensors)[INPUT_NUM]) {
+template <typename T, uint32_t INPUT_NUM>
+inline __aicore__ void ConcatAllAligned(uint32_t num_rows, const ConcatTilingAllAligned<INPUT_NUM> &tiling,
+                                        LocalTensor<T> &dst_tensor, LocalTensor<T> (&src_tensors)[INPUT_NUM]) {
   constexpr uint32_t kDataBlockSize = 32U;
   constexpr auto align_size = static_cast<uint16_t>(kDataBlockSize / sizeof(T));
 #pragma unroll

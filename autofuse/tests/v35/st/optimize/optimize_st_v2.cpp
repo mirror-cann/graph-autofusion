@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -164,14 +164,14 @@ TEST_F(OptimizerStV2, ElewiseAndBrcCanMerge) {
 // 使用 AscGraphBuilder 重写
 TEST_F(OptimizerStV2, ReduceNeedAlignment) {
   auto graph = AscGraphBuilder("ReduceNeedAlignment")
-    .Loops({7, 8, 9, 10})
-    .Data("arg4_1", 0, af::DT_FLOAT)
-    .Load("b0_load", "arg4_1")
-    .Abs("abs", "b0_load")
-    .Max("b0_max", "abs", {0, 2})  // reduce on axis 0 and 2
-    .Store("b3_store", "b0_max")
-    .Output("buf3", "b3_store", 0, af::DT_FLOAT)
-    .Build();
+                   .Loops({7, 8, 9, 10})
+                   .Data("arg4_1", 0, af::DT_FLOAT)
+                   .Load("b0_load", "arg4_1")
+                   .Abs("abs", "b0_load")
+                   .Max("b0_max", "abs", {0, 2})  // reduce on axis 0 and 2
+                   .Store("b3_store", "b0_max")
+                   .Output("buf3", "b3_store", 0, af::DT_FLOAT)
+                   .Build();
 
   ::ascir::FusedScheduledResult fused_scheduled_result;
   Status res = optimizer.Optimize(graph, fused_scheduled_result);
@@ -195,23 +195,24 @@ TEST_F(OptimizerStV2, NotRemovePad) {
   auto s0 = Symbol(2);
   auto s1 = Symbol(3);
   auto s2 = Symbol(3);
-  auto graph = AscGraphBuilder("Autoschedule_autoschedule_removepad_broadcast")
-    .Loops({s0, s1, s2})
-    .Data("data0", 0, {af::ops::One, s1, s2}, {af::sym::kSymbolZero, s2, af::sym::kSymbolOne}, af::DT_FLOAT16)
-    .Load("load0", "data0", {af::ops::One, s1, s2}, {af::sym::kSymbolZero, s2, af::sym::kSymbolOne})
-    .Broadcast("brc0", "load0", {s0, s1, s2})
-    .Data("data1", 1, {s0, s1, s2}, {s1 * s2, s2, af::sym::kSymbolOne}, af::DT_FLOAT16)
-    .Load("load1", "data1")
-    .Add("add0", "brc0", "load1")
-    .Store("store0", "add0")
-    .Output("y0", "store0", 0, af::DT_FLOAT16)
-    .Data("data2", 2, {af::ops::One, s1, s2}, {af::sym::kSymbolZero, s2, af::sym::kSymbolOne}, af::DT_FLOAT16)
-    .Load("load2", "data2", {af::ops::One, s1, s2}, {af::sym::kSymbolZero, s2, af::sym::kSymbolOne})
-    .Broadcast("brc2", "load2", {s0, s1, s2})
-    .Mul("mul0", "load1", "brc2")
-    .Store("store1", "mul0")
-    .Output("y1", "store1", 1, af::DT_FLOAT16)
-    .Build();
+  auto graph =
+      AscGraphBuilder("Autoschedule_autoschedule_removepad_broadcast")
+          .Loops({s0, s1, s2})
+          .Data("data0", 0, {af::ops::One, s1, s2}, {af::sym::kSymbolZero, s2, af::sym::kSymbolOne}, af::DT_FLOAT16)
+          .Load("load0", "data0", {af::ops::One, s1, s2}, {af::sym::kSymbolZero, s2, af::sym::kSymbolOne})
+          .Broadcast("brc0", "load0", {s0, s1, s2})
+          .Data("data1", 1, {s0, s1, s2}, {s1 * s2, s2, af::sym::kSymbolOne}, af::DT_FLOAT16)
+          .Load("load1", "data1")
+          .Add("add0", "brc0", "load1")
+          .Store("store0", "add0")
+          .Output("y0", "store0", 0, af::DT_FLOAT16)
+          .Data("data2", 2, {af::ops::One, s1, s2}, {af::sym::kSymbolZero, s2, af::sym::kSymbolOne}, af::DT_FLOAT16)
+          .Load("load2", "data2", {af::ops::One, s1, s2}, {af::sym::kSymbolZero, s2, af::sym::kSymbolOne})
+          .Broadcast("brc2", "load2", {s0, s1, s2})
+          .Mul("mul0", "load1", "brc2")
+          .Store("store1", "mul0")
+          .Output("y1", "store1", 1, af::DT_FLOAT16)
+          .Build();
 
   ::ascir::FusedScheduledResult fused_scheduled_result;
   Status res = optimizer.Optimize(graph, fused_scheduled_result);
@@ -244,7 +245,8 @@ TEST_F(OptimizerStV2, ContinuesBroadcastOptimization_3Brc) {
 
   // Load with padding: shape {One, One, One, s3}, strides {Zero, Zero, Zero, One}
   std::vector<Expression> load0_shape = {af::sym::kSymbolOne, af::sym::kSymbolOne, af::sym::kSymbolOne, s3};
-  std::vector<Expression> load0_strides = {af::sym::kSymbolZero, af::sym::kSymbolZero, af::sym::kSymbolZero, af::sym::kSymbolOne};
+  std::vector<Expression> load0_strides = {af::sym::kSymbolZero, af::sym::kSymbolZero, af::sym::kSymbolZero,
+                                           af::sym::kSymbolOne};
 
   // Broadcast 0: shape {One, One, s2, s3}, strides {Zero, Zero, s3, One}
   std::vector<Expression> brc0_shape = {af::sym::kSymbolOne, af::sym::kSymbolOne, s2, s3};
@@ -262,18 +264,18 @@ TEST_F(OptimizerStV2, ContinuesBroadcastOptimization_3Brc) {
   std::vector<Expression> store_strides = {s1 * s2 * s3, s2 * s3, s3, af::sym::kSymbolOne};
 
   auto graph = AscGraphBuilder("Continues_3Broadcast_Optimization_graph")
-    .Loops({s0, s1, s2, s3})
-    .Data("data0", 0, af::DT_FLOAT16)
-    .Load("load0", "data0", load0_shape, load0_strides)
-    .Broadcast("brc0", "load0", brc0_shape)
-    .Broadcast("brc1", "brc0", brc1_shape)
-    .Broadcast("brc2", "brc1", brc2_shape)
-    .Data("data1", 0, af::DT_FLOAT16)
-    .Load("load1", "data1")
-    .Add("add", "brc2", "load1")
-    .Store("store", "add", {}, store_strides)
-    .Output("y", "store", 0, af::DT_FLOAT16)
-    .Build();
+                   .Loops({s0, s1, s2, s3})
+                   .Data("data0", 0, af::DT_FLOAT16)
+                   .Load("load0", "data0", load0_shape, load0_strides)
+                   .Broadcast("brc0", "load0", brc0_shape)
+                   .Broadcast("brc1", "brc0", brc1_shape)
+                   .Broadcast("brc2", "brc1", brc2_shape)
+                   .Data("data1", 0, af::DT_FLOAT16)
+                   .Load("load1", "data1")
+                   .Add("add", "brc2", "load1")
+                   .Store("store", "add", {}, store_strides)
+                   .Output("y", "store", 0, af::DT_FLOAT16)
+                   .Build();
 
   ::ascir::FusedScheduledResult fused_scheduled_result;
   Status res = optimizer.Optimize(graph, fused_scheduled_result);
@@ -303,7 +305,8 @@ TEST_F(OptimizerStV2, ContinuesBroadcastOptimization_BABAB) {
 
   // Load 1 with padding: shape {One, s1, One, s3, One}, strides {Zero, s3, Zero, One, Zero}
   std::vector<Expression> load1_shape = {af::sym::kSymbolOne, s1, af::sym::kSymbolOne, s3, af::sym::kSymbolOne};
-  std::vector<Expression> load1_strides = {af::sym::kSymbolZero, s3, af::sym::kSymbolZero, af::sym::kSymbolOne, af::sym::kSymbolZero};
+  std::vector<Expression> load1_strides = {af::sym::kSymbolZero, s3, af::sym::kSymbolZero, af::sym::kSymbolOne,
+                                           af::sym::kSymbolZero};
 
   // Broadcast 0: shape {s0, s1, One, s3, One}, strides {s1*s3, s3, Zero, One, Zero}
   std::vector<Expression> brc0_shape = {s0, s1, af::sym::kSymbolOne, s3, af::sym::kSymbolOne};
@@ -321,20 +324,20 @@ TEST_F(OptimizerStV2, ContinuesBroadcastOptimization_BABAB) {
   std::vector<Expression> store_strides = {s1 * s2 * s3 * s4, s2 * s3 * s4, s3 * s4, s4, af::sym::kSymbolOne};
 
   auto graph = AscGraphBuilder("Continues_3Broadcast_Optimization_graph")
-    .Loops({s0, s1, s2, s3, s4})
-    .Data("x0", 0, af::DT_FLOAT)
-    .Load("load0", "x0")
-    .Data("x1", 1, af::DT_FLOAT)
-    .Load("load1", "x1", load1_shape, load1_strides)
-    .Broadcast("brc0", "load1", brc0_shape)
-    .Broadcast("brc1", "brc0", brc1_shape)
-    .Broadcast("brc2", "brc1", brc2_shape)
-    .Store("store1", "brc2", {}, store_strides)
-    .Output("y1", "store1", 1, af::DT_FLOAT)
-    .Add("add0", "load0", "brc2")
-    .Store("store", "add0", {}, store_strides)
-    .Output("y", "store", 0, af::DT_FLOAT)
-    .Build();
+                   .Loops({s0, s1, s2, s3, s4})
+                   .Data("x0", 0, af::DT_FLOAT)
+                   .Load("load0", "x0")
+                   .Data("x1", 1, af::DT_FLOAT)
+                   .Load("load1", "x1", load1_shape, load1_strides)
+                   .Broadcast("brc0", "load1", brc0_shape)
+                   .Broadcast("brc1", "brc0", brc1_shape)
+                   .Broadcast("brc2", "brc1", brc2_shape)
+                   .Store("store1", "brc2", {}, store_strides)
+                   .Output("y1", "store1", 1, af::DT_FLOAT)
+                   .Add("add0", "load0", "brc2")
+                   .Store("store", "add0", {}, store_strides)
+                   .Output("y", "store", 0, af::DT_FLOAT)
+                   .Build();
 
   ::ascir::FusedScheduledResult fused_scheduled_result;
   Status res = optimizer.Optimize(graph, fused_scheduled_result);
@@ -379,16 +382,16 @@ TEST_F(OptimizerStV2, NddmaCaseBrcOutputWithMultiRef) {
   std::vector<Expression> load_strides = {af::sym::kSymbolOne, af::sym::kSymbolOne};
 
   auto graph = AscGraphBuilder("gen_nddma")
-    .Loops({s0, s1})
-    .Data("data0", 0, af::DT_FLOAT)
-    .Load("load0", "data0", load_shape, load_strides)
-    .Broadcast("broadcast", "load0", {0, 1})  // broadcast on both axes
-    .Exp("exp0", "broadcast")
-    .Abs("abs0", "broadcast")
-    .Mul("mul0", "exp0", "abs0")
-    .Store("store", "mul0")
-    .Output("output", "store", 8, af::DT_FLOAT)
-    .Build();
+                   .Loops({s0, s1})
+                   .Data("data0", 0, af::DT_FLOAT)
+                   .Load("load0", "data0", load_shape, load_strides)
+                   .Broadcast("broadcast", "load0", {0, 1})  // broadcast on both axes
+                   .Exp("exp0", "broadcast")
+                   .Abs("abs0", "broadcast")
+                   .Mul("mul0", "exp0", "abs0")
+                   .Store("store", "mul0")
+                   .Output("output", "store", 8, af::DT_FLOAT)
+                   .Build();
 
   ::ascir::FusedScheduledResult fused_scheduled_result;
   EXPECT_EQ(optimizer.Optimize(graph, fused_scheduled_result), 0);
@@ -581,16 +584,16 @@ TEST_F(OptimizerStV2, NddmaCaseLargeTailBrcScoreFunc) {
   std::vector<Expression> load0_strides = {af::sym::kSymbolOne, af::sym::kSymbolZero};
 
   auto graph = AscGraphBuilder("gen_nddma")
-    .Loops({s0, s1})
-    .Data("data0", 0, af::DT_FLOAT)
-    .Load("load0", "data0", load0_shape, load0_strides)
-    .Broadcast("broadcast", "load0", {1})  // broadcast on axis 1
-    .Exp("exp0", "broadcast")
-    .Abs("abs0", "broadcast")
-    .Mul("mul0", "exp0", "abs0")
-    .Store("store", "mul0")
-    .Output("output", "store", 8, af::DT_FLOAT)
-    .Build();
+                   .Loops({s0, s1})
+                   .Data("data0", 0, af::DT_FLOAT)
+                   .Load("load0", "data0", load0_shape, load0_strides)
+                   .Broadcast("broadcast", "load0", {1})  // broadcast on axis 1
+                   .Exp("exp0", "broadcast")
+                   .Abs("abs0", "broadcast")
+                   .Mul("mul0", "exp0", "abs0")
+                   .Store("store", "mul0")
+                   .Output("output", "store", 8, af::DT_FLOAT)
+                   .Build();
 
   ::ascir::FusedScheduledResult fused_scheduled_result;
   EXPECT_EQ(optimizer.Optimize(graph, fused_scheduled_result), 0);
@@ -606,7 +609,6 @@ TEST_F(OptimizerStV2, NddmaCaseLargeTailBrcScoreFunc) {
   EXPECT_EQ(score_func_iter->second, res);
 }
 
-
 TEST_F(OptimizerStV2, NddmaCaseLargeTailBrc_Dynamic) {
   const Expression s0 = af::Symbol("s0");
   const Expression s1 = af::Symbol("s1");
@@ -616,16 +618,16 @@ TEST_F(OptimizerStV2, NddmaCaseLargeTailBrc_Dynamic) {
   std::vector<Expression> load0_strides = {af::sym::kSymbolOne, af::sym::kSymbolZero};
 
   auto graph = AscGraphBuilder("gen_nddma")
-    .Loops({s0, s1})
-    .Data("data0", 0, af::DT_FLOAT)
-    .Load("load0", "data0", load0_shape, load0_strides)
-    .Broadcast("broadcast", "load0", {1})  // broadcast on axis 1
-    .Exp("exp0", "broadcast")
-    .Abs("abs0", "broadcast")
-    .Mul("mul0", "exp0", "abs0")
-    .Store("store", "mul0")
-    .Output("output", "store", 8, af::DT_FLOAT)
-    .Build();
+                   .Loops({s0, s1})
+                   .Data("data0", 0, af::DT_FLOAT)
+                   .Load("load0", "data0", load0_shape, load0_strides)
+                   .Broadcast("broadcast", "load0", {1})  // broadcast on axis 1
+                   .Exp("exp0", "broadcast")
+                   .Abs("abs0", "broadcast")
+                   .Mul("mul0", "exp0", "abs0")
+                   .Store("store", "mul0")
+                   .Output("output", "store", 8, af::DT_FLOAT)
+                   .Build();
 
   ::ascir::FusedScheduledResult fused_scheduled_result;
   EXPECT_EQ(optimizer.Optimize(graph, fused_scheduled_result), 0);
@@ -659,17 +661,17 @@ TEST_F(OptimizerStV2, NddmaCaseWithMultiNddma) {
   std::vector<Expression> load1_strides = {af::sym::kSymbolOne, af::sym::kSymbolZero};
 
   auto graph = AscGraphBuilder("gen_nddma")
-    .Loops({s0, s1})
-    .Data("data0", 0, af::DT_FLOAT)
-    .Data("data1", 1, af::DT_FLOAT)
-    .Load("load0", "data0", load0_shape, load0_strides)
-    .Broadcast("broadcast0", "load0", {0})  // broadcast on axis 0
-    .Load("load1", "data1", load1_shape, load1_strides)
-    .Broadcast("broadcast1", "load1", {1})  // broadcast on axis 1
-    .Mul("mul0", "broadcast0", "broadcast1")
-    .Store("store", "mul0")
-    .Output("output", "store", 8, af::DT_FLOAT)
-    .Build();
+                   .Loops({s0, s1})
+                   .Data("data0", 0, af::DT_FLOAT)
+                   .Data("data1", 1, af::DT_FLOAT)
+                   .Load("load0", "data0", load0_shape, load0_strides)
+                   .Broadcast("broadcast0", "load0", {0})  // broadcast on axis 0
+                   .Load("load1", "data1", load1_shape, load1_strides)
+                   .Broadcast("broadcast1", "load1", {1})  // broadcast on axis 1
+                   .Mul("mul0", "broadcast0", "broadcast1")
+                   .Store("store", "mul0")
+                   .Output("output", "store", 8, af::DT_FLOAT)
+                   .Build();
 
   ::ascir::FusedScheduledResult fused_scheduled_result;
   EXPECT_EQ(optimizer.Optimize(graph, fused_scheduled_result), 0);
@@ -815,17 +817,17 @@ TEST_F(OptimizerStV2, LoadToNddmaCase) {
   std::vector<Expression> sum_strides = {s3, af::sym::kSymbolZero, af::sym::kSymbolZero, af::sym::kSymbolOne};
 
   auto graph = AscGraphBuilder("gen_load_to_nddma")
-    .Loops({s0, s1, s2, s3})
-    .Data("data0", 0, af::DT_FLOAT)
-    .Data("data1", 1, af::DT_FLOAT)
-    .Load("load0", "data0")
-    .Load("load1", "data1", load1_shape, load1_strides)
-    .Broadcast("broadcast1", "load1", {3})  // broadcast on axis 3
-    .Mul("mul0", "load0", "broadcast1")
-    .Sum("sum0", "mul0", {1, 2})  // reduce on axis 1 and 2
-    .Store("store", "sum0", sum_shape, sum_strides)
-    .Output("output", "store", 8, af::DT_FLOAT)
-    .Build();
+                   .Loops({s0, s1, s2, s3})
+                   .Data("data0", 0, af::DT_FLOAT)
+                   .Data("data1", 1, af::DT_FLOAT)
+                   .Load("load0", "data0")
+                   .Load("load1", "data1", load1_shape, load1_strides)
+                   .Broadcast("broadcast1", "load1", {3})  // broadcast on axis 3
+                   .Mul("mul0", "load0", "broadcast1")
+                   .Sum("sum0", "mul0", {1, 2})  // reduce on axis 1 and 2
+                   .Store("store", "sum0", sum_shape, sum_strides)
+                   .Output("output", "store", 8, af::DT_FLOAT)
+                   .Build();
 
   ::ascir::FusedScheduledResult fused_scheduled_result;
   EXPECT_EQ(optimizer.Optimize(graph, fused_scheduled_result), 0);
@@ -862,17 +864,17 @@ TEST_F(OptimizerStV2, LoadCastBrcCase) {
   std::vector<Expression> load1_strides = {s1, af::sym::kSymbolOne, af::sym::kSymbolZero};
 
   auto graph = AscGraphBuilder("gen_nddma")
-    .Loops({s0, s1, s2})
-    .Data("data0", 0, af::DT_FLOAT)
-    .Data("data1", 1, af::DT_UINT8)
-    .Load("load0", "data0")
-    .Load("load1", "data1", load1_shape, load1_strides)
-    .Cast("cast1", "load1", af::DT_FLOAT)
-    .Broadcast("broadcast1", "cast1", {2})  // broadcast on axis 2
-    .Mul("mul0", "load0", "broadcast1")
-    .Store("store", "mul0")
-    .Output("output", "store", 8, af::DT_FLOAT)
-    .Build();
+                   .Loops({s0, s1, s2})
+                   .Data("data0", 0, af::DT_FLOAT)
+                   .Data("data1", 1, af::DT_UINT8)
+                   .Load("load0", "data0")
+                   .Load("load1", "data1", load1_shape, load1_strides)
+                   .Cast("cast1", "load1", af::DT_FLOAT)
+                   .Broadcast("broadcast1", "cast1", {2})  // broadcast on axis 2
+                   .Mul("mul0", "load0", "broadcast1")
+                   .Store("store", "mul0")
+                   .Output("output", "store", 8, af::DT_FLOAT)
+                   .Build();
 
   ::ascir::FusedScheduledResult fused_scheduled_result;
   EXPECT_EQ(optimizer.Optimize(graph, fused_scheduled_result), 0);
@@ -899,18 +901,18 @@ TEST_F(OptimizerStV2, LoadCastAndTailAxisBrcCase) {
   std::vector<Expression> load1_strides = {af::sym::kSymbolOne, af::sym::kSymbolZero, af::sym::kSymbolZero};
 
   auto graph = AscGraphBuilder("gen_nddma")
-    .Loops({s0, s1, s2})
-    .Data("data0", 0, af::DT_FLOAT)
-    .Data("data1", 1, af::DT_UINT8)
-    .Load("load0", "data0", load0_shape, load0_strides)
-    .Load("load1", "data1", load1_shape, load1_strides)
-    .Cast("cast1", "load1", af::DT_FLOAT)
-    .Broadcast("broadcast1", "cast1", {1})  // broadcast on axis 1
-    .Mul("mul0", "load0", "broadcast1")
-    .Broadcast("broadcast2", "mul0", {2})  // broadcast on axis 2
-    .Store("store", "broadcast2")
-    .Output("output", "store", 8, af::DT_FLOAT)
-    .Build();
+                   .Loops({s0, s1, s2})
+                   .Data("data0", 0, af::DT_FLOAT)
+                   .Data("data1", 1, af::DT_UINT8)
+                   .Load("load0", "data0", load0_shape, load0_strides)
+                   .Load("load1", "data1", load1_shape, load1_strides)
+                   .Cast("cast1", "load1", af::DT_FLOAT)
+                   .Broadcast("broadcast1", "cast1", {1})  // broadcast on axis 1
+                   .Mul("mul0", "load0", "broadcast1")
+                   .Broadcast("broadcast2", "mul0", {2})  // broadcast on axis 2
+                   .Store("store", "broadcast2")
+                   .Output("output", "store", 8, af::DT_FLOAT)
+                   .Build();
 
   ::ascir::FusedScheduledResult fused_scheduled_result;
   EXPECT_EQ(optimizer.Optimize(graph, fused_scheduled_result), 0);
@@ -1026,7 +1028,8 @@ TEST_F(OptimizerStV2, LoadCastBrcMulMinCase) {
   ::ascir::FusedScheduledResult fused_scheduled_result;
   EXPECT_EQ(optimizer.Optimize(graph, fused_scheduled_result), 0);
 
-  for (const auto &node : fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs[2].GetAllNodes()) {
+  for (const auto &node :
+       fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs[2].GetAllNodes()) {
     if (node->GetOpDesc()->GetId() == 1) {
       EXPECT_EQ(node->GetOpDesc()->GetType(), "Nddma");
     }
@@ -1039,22 +1042,23 @@ TEST_F(OptimizerStV2, LoadCastBrcMulMinCase) {
 TEST_F(OptimizerStV2, LoadOpSequenceAdjustCase) {
   auto s0 = Symbol(64);
   auto s1 = Symbol(64);
-  auto graph = AscGraphBuilder("reorder_load_op")
-    .Loops({s0, s1})
-    .Data("data0", 0, {af::ops::One, af::ops::One}, {af::sym::kSymbolZero, af::sym::kSymbolZero}, af::DT_FLOAT)
-    .Load("load0", "data0", {af::ops::One, af::ops::One}, {af::sym::kSymbolZero, af::sym::kSymbolZero})
-    .Broadcast("broadcast0", "load0", {s0, s1})
-    .Data("data1", 1)
-    .Load("load1", "data1")
-    .template Op<af::ascir_op::Abs>("abs", {"load1"}, {s0, s1}, {s1, af::ops::One}, af::DT_FLOAT16)
-    .Data("data2", 2, {af::ops::One, af::ops::One}, {af::sym::kSymbolZero, af::sym::kSymbolZero}, af::DT_FLOAT)
-    .Load("load2", "data2", {af::ops::One, af::ops::One}, {af::sym::kSymbolZero, af::sym::kSymbolZero})
-    .Broadcast("broadcast1", "load2", {s0, s1})
-    .Add("add", "abs", "broadcast1")
-    .Mul("mul", "broadcast0", "add")
-    .Store("store", "mul")
-    .Output("output", "store", 8)
-    .Build();
+  auto graph =
+      AscGraphBuilder("reorder_load_op")
+          .Loops({s0, s1})
+          .Data("data0", 0, {af::ops::One, af::ops::One}, {af::sym::kSymbolZero, af::sym::kSymbolZero}, af::DT_FLOAT)
+          .Load("load0", "data0", {af::ops::One, af::ops::One}, {af::sym::kSymbolZero, af::sym::kSymbolZero})
+          .Broadcast("broadcast0", "load0", {s0, s1})
+          .Data("data1", 1)
+          .Load("load1", "data1")
+          .template Op<af::ascir_op::Abs>("abs", {"load1"}, {s0, s1}, {s1, af::ops::One}, af::DT_FLOAT16)
+          .Data("data2", 2, {af::ops::One, af::ops::One}, {af::sym::kSymbolZero, af::sym::kSymbolZero}, af::DT_FLOAT)
+          .Load("load2", "data2", {af::ops::One, af::ops::One}, {af::sym::kSymbolZero, af::sym::kSymbolZero})
+          .Broadcast("broadcast1", "load2", {s0, s1})
+          .Add("add", "abs", "broadcast1")
+          .Mul("mul", "broadcast0", "add")
+          .Store("store", "mul")
+          .Output("output", "store", 8)
+          .Build();
 
   ::ascir::FusedScheduledResult fused_scheduled_result;
   EXPECT_EQ(optimizer.Optimize(graph, fused_scheduled_result), 0);
@@ -1143,12 +1147,12 @@ TEST_F(OptimizerStV2, OneAxisSliceNoNeedAlign) {
   std::vector<Expression> store_strides = {s1 * s2, s2};
 
   auto graph = af::testing::AscGraphBuilder("shorten_load")
-    .Loops({s0, s1})
-    .Data("x0", 0)
-    .Load("load0", "x0", load_shape, load_strides)
-    .Store("store5", "load0", {}, store_strides)
-    .Output("output5", "store5", 0)
-    .Build();
+                   .Loops({s0, s1})
+                   .Data("x0", 0)
+                   .Load("load0", "x0", load_shape, load_strides)
+                   .Store("store5", "load0", {}, store_strides)
+                   .Output("output5", "store5", 0)
+                   .Build();
 
   ::ascir::FusedScheduledResult fused_scheduled;
   int res = optimizer.Optimize(graph, fused_scheduled);
@@ -1175,12 +1179,12 @@ TEST_F(OptimizerStV2, TwoAxisSliceNeedAlign) {
   std::vector<Expression> store_strides = {s1 * s2 * s3, s2};
 
   auto graph = af::testing::AscGraphBuilder("shorten_load")
-    .Loops({s0, s1})
-    .Data("x0", 0)
-    .Load("load0", "x0", load_shape, load_strides)
-    .Store("store5", "load0", {}, store_strides)
-    .Output("output5", "store5", 0)
-    .Build();
+                   .Loops({s0, s1})
+                   .Data("x0", 0)
+                   .Load("load0", "x0", load_shape, load_strides)
+                   .Store("store5", "load0", {}, store_strides)
+                   .Output("output5", "store5", 0)
+                   .Build();
 
   ::ascir::FusedScheduledResult fused_scheduled;
   int res = optimizer.Optimize(graph, fused_scheduled);
@@ -1207,14 +1211,14 @@ TEST_F(OptimizerStV2, NoNeedAlign_AABToARA) {
   std::vector<Expression> max_strides = {s0, af::sym::kSymbolZero, af::sym::kSymbolOne};
 
   auto graph = AscGraphBuilder("shorten_load")
-    .Loops({s0, s0, s0})
-    .Data("x0", 0)
-    .Load("load0", "x0", load_shape, load_strides)
-    .Broadcast("brc", "load0", {2})  // broadcast on axis 2
-    .Max("max", "brc", {1})  // Max reduce on axis 1
-    .Store("store5", "max", max_shape, max_strides)
-    .Output("output5", "store5", 0)
-    .Build();
+                   .Loops({s0, s0, s0})
+                   .Data("x0", 0)
+                   .Load("load0", "x0", load_shape, load_strides)
+                   .Broadcast("brc", "load0", {2})  // broadcast on axis 2
+                   .Max("max", "brc", {1})          // Max reduce on axis 1
+                   .Store("store5", "max", max_shape, max_strides)
+                   .Output("output5", "store5", 0)
+                   .Build();
 
   ::ascir::FusedScheduledResult fused_scheduled;
   int res = optimizer.Optimize(graph, fused_scheduled);
@@ -1237,13 +1241,13 @@ TEST_F(OptimizerStV2, NddmaCaseTranspose021OutputWithSingleRef) {
   std::vector<Expression> transpose_strides = {s2 * s1, s1, af::sym::kSymbolOne};
 
   auto graph = AscGraphBuilder("Transpose_gen_nddma")
-    .Loops({s0, s1, s2})
-    .Data("data0", 0, af::DT_FLOAT)
-    .Load("load0", "data0")
-    .Transpose("transpose", "load0", {0, 2, 1})  // transpose axes: {0, 2, 1}
-    .Store("store", "transpose", {}, transpose_strides)
-    .Output("output", "store", 8, af::DT_FLOAT)
-    .Build();
+                   .Loops({s0, s1, s2})
+                   .Data("data0", 0, af::DT_FLOAT)
+                   .Load("load0", "data0")
+                   .Transpose("transpose", "load0", {0, 2, 1})  // transpose axes: {0, 2, 1}
+                   .Store("store", "transpose", {}, transpose_strides)
+                   .Output("output", "store", 8, af::DT_FLOAT)
+                   .Build();
 
   ::ascir::FusedScheduledResult fused_scheduled_result;
   EXPECT_EQ(optimizer.Optimize(graph, fused_scheduled_result), 0);
@@ -1263,14 +1267,14 @@ TEST_F(OptimizerStV2, LoadCastTransposeCase) {
   std::vector<Expression> transpose_strides = {s0, af::sym::kSymbolOne};
 
   auto graph = AscGraphBuilder("gen_nddma")
-    .Loops({s0, s1})
-    .Data("data0", 0, af::DT_FLOAT16)
-    .Load("load0", "data0")
-    .Cast("cast1", "load0", af::DT_FLOAT)
-    .Transpose("transpose", "cast1", {1, 0})  // transpose axes: {1, 0}
-    .Store("store", "transpose", {}, transpose_strides)
-    .Output("output", "store", 5, af::DT_FLOAT)
-    .Build();
+                   .Loops({s0, s1})
+                   .Data("data0", 0, af::DT_FLOAT16)
+                   .Load("load0", "data0")
+                   .Cast("cast1", "load0", af::DT_FLOAT)
+                   .Transpose("transpose", "cast1", {1, 0})  // transpose axes: {1, 0}
+                   .Store("store", "transpose", {}, transpose_strides)
+                   .Output("output", "store", 5, af::DT_FLOAT)
+                   .Build();
 
   ::ascir::FusedScheduledResult fused_scheduled_result;
   EXPECT_EQ(optimizer.Optimize(graph, fused_scheduled_result), 0);
@@ -1288,17 +1292,19 @@ TEST_F(OptimizerStV2, LoadGEWhereTransposeCase) {
   auto s2 = Symbol(38);
   auto s3 = Symbol(55);
   auto graph = AscGraphBuilder("gen_nddma")
-    .Loops({s0, s1, s2, s3})
-    .Data("data0", 0)
-    .Load("load0", "data0")
-    .Data("data1", 1)
-    .Load("load1", "data1")
-    .template Op<af::ascir_op::Ge>("ge", {"load0", "load1"}, {s0, s1, s2, s3}, {s1 * s2 * s3, s2 * s3, s3, af::ops::One}, af::DT_UINT8)
-    .template Op<af::ascir_op::Where>("where", {"ge", "load1"}, {s0, s1, s2, s3}, {s1 * s2 * s3, s2 * s3, s3, af::ops::One}, af::DT_FLOAT)
-    .Transpose("transpose", "where", {0, 3, 1, 2})
-    .Store("store", "transpose")
-    .Output("output", "store", 8)
-    .Build();
+                   .Loops({s0, s1, s2, s3})
+                   .Data("data0", 0)
+                   .Load("load0", "data0")
+                   .Data("data1", 1)
+                   .Load("load1", "data1")
+                   .template Op<af::ascir_op::Ge>("ge", {"load0", "load1"}, {s0, s1, s2, s3},
+                                                  {s1 * s2 * s3, s2 * s3, s3, af::ops::One}, af::DT_UINT8)
+                   .template Op<af::ascir_op::Where>("where", {"ge", "load1"}, {s0, s1, s2, s3},
+                                                     {s1 * s2 * s3, s2 * s3, s3, af::ops::One}, af::DT_FLOAT)
+                   .Transpose("transpose", "where", {0, 3, 1, 2})
+                   .Store("store", "transpose")
+                   .Output("output", "store", 8)
+                   .Build();
   ::ascir::FusedScheduledResult fused_scheduled_result;
   EXPECT_EQ(optimizer.Optimize(graph, fused_scheduled_result), 0);
   for (const auto &node :
@@ -1306,7 +1312,7 @@ TEST_F(OptimizerStV2, LoadGEWhereTransposeCase) {
     if (node->GetOpDesc()->GetId() == 2) {
       EXPECT_EQ(node->GetOpDesc()->GetType(), "Nddma");
     }
-       }
+  }
 }
 
 TEST_F(OptimizerStV2, SliceConcat) {
@@ -1365,26 +1371,27 @@ TEST_F(OptimizerStV2, SliceConcat) {
 }
 
 TEST_F(OptimizerStV2, SplitAndFirstDimConcat) {
+  using af::ops::One;
   using af::testing::AscGraphBuilder;
   using af::testing::Sym;
-  using af::ops::One;
 
   auto s0 = Sym(16);
   auto s1 = Sym(32);
   auto s1_0 = Sym(16);
 
   auto graph = AscGraphBuilder("slice_concat")
-    .Loops({s0, s1})
-    .Data("data0", 0)
-    .Load("load0", "data0", {s0, s1}, {s1, One})
-    .Split("split", "load0", {
-      AscGraphBuilder::SplitOutput{af::DT_FLOAT, {}, {s0, s1_0}, {s1_0, One}},
-      AscGraphBuilder::SplitOutput{af::DT_FLOAT, {}, {s0, s1_0}, {s1_0, One}},
-    })
-    .Concat("concat", {"split:0", "split:1"}, /* concat_dim */ 0)
-    .Store("store", "concat")
-    .Output("output", "store", 0)
-    .Build();
+                   .Loops({s0, s1})
+                   .Data("data0", 0)
+                   .Load("load0", "data0", {s0, s1}, {s1, One})
+                   .Split("split", "load0",
+                          {
+                              AscGraphBuilder::SplitOutput{af::DT_FLOAT, {}, {s0, s1_0}, {s1_0, One}},
+                              AscGraphBuilder::SplitOutput{af::DT_FLOAT, {}, {s0, s1_0}, {s1_0, One}},
+                          })
+                   .Concat("concat", {"split:0", "split:1"}, /* concat_dim */ 0)
+                   .Store("store", "concat")
+                   .Output("output", "store", 0)
+                   .Build();
   ::optimize::AscGraphInfoComplete::CompleteApiInfo(graph);
 
   ::ascir::FusedScheduledResult fused_scheduled_result;
@@ -1409,17 +1416,17 @@ TEST_F(OptimizerStV2, TransposeTwoAxisSplitCaseNeedInputAlign) {
   std::vector<Expression> load1_strides = {s3, af::sym::kSymbolZero, af::sym::kSymbolOne};
 
   auto graph = AscGraphBuilder("test")
-    .Loops({s0, s2, s3})
-    .Data("data0", 0, af::DT_FLOAT)
-    .Load("load0", "data0", {}, load0_strides)  // loads with transpose axis {z0, z3, z2}
-    .Transpose("transpose0", "load0", {0, 2, 1})  // transpose axes: {z0, z3, z2} -> {z0, z2, z3}
-    .Data("data1", 1, af::DT_FLOAT)
-    .Load("load1", "data1", load1_shape, load1_strides)
-    .Broadcast("brc0", "load1", {1})  // broadcast on axis 1
-    .Mul("mul0", "brc0", "transpose0")
-    .Store("store0", "mul0")
-    .Output("output", "store0", 0, af::DT_FLOAT)
-    .Build();
+                   .Loops({s0, s2, s3})
+                   .Data("data0", 0, af::DT_FLOAT)
+                   .Load("load0", "data0", {}, load0_strides)    // loads with transpose axis {z0, z3, z2}
+                   .Transpose("transpose0", "load0", {0, 2, 1})  // transpose axes: {z0, z3, z2} -> {z0, z2, z3}
+                   .Data("data1", 1, af::DT_FLOAT)
+                   .Load("load1", "data1", load1_shape, load1_strides)
+                   .Broadcast("brc0", "load1", {1})  // broadcast on axis 1
+                   .Mul("mul0", "brc0", "transpose0")
+                   .Store("store0", "mul0")
+                   .Output("output", "store0", 0, af::DT_FLOAT)
+                   .Build();
 
   ::ascir::FusedScheduledResult fused_scheduled_result;
   EXPECT_EQ(optimizer.Optimize(graph, fused_scheduled_result), af::SUCCESS);
@@ -1427,26 +1434,27 @@ TEST_F(OptimizerStV2, TransposeTwoAxisSplitCaseNeedInputAlign) {
 }
 
 TEST_F(OptimizerStV2, FirstDimSplitAndConcat) {
+  using af::ops::One;
   using af::testing::AscGraphBuilder;
   using af::testing::Sym;
-  using af::ops::One;
 
   auto s0 = Sym(16);
   auto s1 = Sym(32);
   auto s0_0 = Sym(8);
 
   auto graph = AscGraphBuilder("slice_concat")
-    .Loops({s0, s1})
-    .Data("data0", 0)
-    .Load("load0", "data0", {s0, s1}, {s1, One})
-    .Split("split", "load0", {
-      AscGraphBuilder::SplitOutput{af::DT_FLOAT, {}, {s0_0, s1}, {s1, One}},
-      AscGraphBuilder::SplitOutput{af::DT_FLOAT, {}, {s0_0, s1}, {s1, One}},
-    })
-    .Concat("concat", {"split:0", "split:1"}, /* concat_dim */ 1)
-    .Store("store", "concat")
-    .Output("output", "store", 0)
-    .Build();
+                   .Loops({s0, s1})
+                   .Data("data0", 0)
+                   .Load("load0", "data0", {s0, s1}, {s1, One})
+                   .Split("split", "load0",
+                          {
+                              AscGraphBuilder::SplitOutput{af::DT_FLOAT, {}, {s0_0, s1}, {s1, One}},
+                              AscGraphBuilder::SplitOutput{af::DT_FLOAT, {}, {s0_0, s1}, {s1, One}},
+                          })
+                   .Concat("concat", {"split:0", "split:1"}, /* concat_dim */ 1)
+                   .Store("store", "concat")
+                   .Output("output", "store", 0)
+                   .Build();
   ::optimize::AscGraphInfoComplete::CompleteApiInfo(graph);
 
   ::ascir::FusedScheduledResult fused_scheduled_result;
@@ -1461,36 +1469,36 @@ af::AscGraph CreatNestingLoadGraph(const std::string &name) {
   auto s0 = Sym("s0");
   auto s1 = Sym("s1");
   return AscGraphBuilder(name)
-    .Loops({s0, s1 + s1 + s1 + s1})
-    .Data("data0", 0, {s0, s1}, {s1, af::sym::kSymbolOne})
-    .Load("load0", "data0", {s0, s1}, {s1, af::sym::kSymbolOne})
-    .Data("data1", 1, {s0, s1}, {s1, af::sym::kSymbolOne})
-    .Load("load1", "data1", {s0, s1}, {s1, af::sym::kSymbolOne})
-    .Add("add0", "load0", "load1")
-    .Data("data2", 2, {s0, s1}, {s1, af::sym::kSymbolOne})
-    .Load("load2", "data2", {s0, s1}, {s1, af::sym::kSymbolOne})
-    .Add("add1", "add0", "load2")
-    .Data("data3", 3, {s0, s1}, {s1, af::sym::kSymbolOne})
-    .Load("load3", "data3", {s0, s1}, {s1, af::sym::kSymbolOne})
-    .Add("add2", "add1", "load3")
-    .Data("data4", 4, {s0, s1}, {s1, af::sym::kSymbolOne})
-    .Load("load4", "data4", {s0, s1}, {s1, af::sym::kSymbolOne})
-    .Add("add3", "add2", "load4")
-    .Data("data5", 5, {s0, s1}, {s1, af::sym::kSymbolOne})
-    .Load("load5", "data5", {s0, s1}, {s1, af::sym::kSymbolOne})
-    .Add("add4", "add3", "load5")
-    .Data("data6", 6, {s0, s1}, {s1, af::sym::kSymbolOne})
-    .Load("load6", "data6", {s0, s1}, {s1, af::sym::kSymbolOne})
-    .Add("add5", "add4", "load6")
-    .Add("add6", "add5", "load5")
-    .Add("add7", "add6", "load4")
-    .Add("add8", "add7", "load3")
-    .Add("add9", "add8", "load2")
-    .Add("add10", "add9", "load1")
-    .Add("add11", "add10", "load0")
-    .Store("store", "add11")
-    .Output("output", "store", 0, af::DT_FLOAT16)
-    .Build();
+      .Loops({s0, s1 + s1 + s1 + s1})
+      .Data("data0", 0, {s0, s1}, {s1, af::sym::kSymbolOne})
+      .Load("load0", "data0", {s0, s1}, {s1, af::sym::kSymbolOne})
+      .Data("data1", 1, {s0, s1}, {s1, af::sym::kSymbolOne})
+      .Load("load1", "data1", {s0, s1}, {s1, af::sym::kSymbolOne})
+      .Add("add0", "load0", "load1")
+      .Data("data2", 2, {s0, s1}, {s1, af::sym::kSymbolOne})
+      .Load("load2", "data2", {s0, s1}, {s1, af::sym::kSymbolOne})
+      .Add("add1", "add0", "load2")
+      .Data("data3", 3, {s0, s1}, {s1, af::sym::kSymbolOne})
+      .Load("load3", "data3", {s0, s1}, {s1, af::sym::kSymbolOne})
+      .Add("add2", "add1", "load3")
+      .Data("data4", 4, {s0, s1}, {s1, af::sym::kSymbolOne})
+      .Load("load4", "data4", {s0, s1}, {s1, af::sym::kSymbolOne})
+      .Add("add3", "add2", "load4")
+      .Data("data5", 5, {s0, s1}, {s1, af::sym::kSymbolOne})
+      .Load("load5", "data5", {s0, s1}, {s1, af::sym::kSymbolOne})
+      .Add("add4", "add3", "load5")
+      .Data("data6", 6, {s0, s1}, {s1, af::sym::kSymbolOne})
+      .Load("load6", "data6", {s0, s1}, {s1, af::sym::kSymbolOne})
+      .Add("add5", "add4", "load6")
+      .Add("add6", "add5", "load5")
+      .Add("add7", "add6", "load4")
+      .Add("add8", "add7", "load3")
+      .Add("add9", "add8", "load2")
+      .Add("add10", "add9", "load1")
+      .Add("add11", "add10", "load0")
+      .Store("store", "add11")
+      .Output("output", "store", 0, af::DT_FLOAT16)
+      .Build();
 }
 
 TEST_F(OptimizerStV2, TestNoNeedToShortenLoadLifeTime) {
@@ -1512,20 +1520,20 @@ TEST_F(OptimizerStV2, PowerScalar) {
   auto s0 = Sym("s0");
   auto s1 = Sym("s1");
   auto graph = AscGraphBuilder("PowRemove")
-    .Loops({s0, s1})
-    .Data("data0", 0)
-    .Load("load0", "data0")
-    .Scalar("pow_input", "2.00000000000000000000e+00")
-    .Broadcast("brc0", "pow_input", {af::ops::One, s1})
-    .Broadcast("brc1", "brc0", {s0, s1})
-    .template Op<af::ascir_op::Pow>("pow", {"load0", "brc1"})
-    .Scalar("pow_input1", "1")
-    .template Op<af::ascir_op::Pow>("pow1", {"pow", "pow_input1"})
-    .Scalar("pow_input2", "0.00000000000000000")
-    .template Op<af::ascir_op::Pow>("pow2", {"pow1", "pow_input2"})
-    .Store("store", "pow2")
-    .Output("y", "store", 0, af::DT_FLOAT16)
-    .Build();
+                   .Loops({s0, s1})
+                   .Data("data0", 0)
+                   .Load("load0", "data0")
+                   .Scalar("pow_input", "2.00000000000000000000e+00")
+                   .Broadcast("brc0", "pow_input", {af::ops::One, s1})
+                   .Broadcast("brc1", "brc0", {s0, s1})
+                   .template Op<af::ascir_op::Pow>("pow", {"load0", "brc1"})
+                   .Scalar("pow_input1", "1")
+                   .template Op<af::ascir_op::Pow>("pow1", {"pow", "pow_input1"})
+                   .Scalar("pow_input2", "0.00000000000000000")
+                   .template Op<af::ascir_op::Pow>("pow2", {"pow1", "pow_input2"})
+                   .Store("store", "pow2")
+                   .Output("y", "store", 0, af::DT_FLOAT16)
+                   .Build();
   ::ascir::FusedScheduledResult fused_scheduled_result;
   EXPECT_EQ(optimizer.Optimize(graph, fused_scheduled_result), af::SUCCESS);
 }
@@ -3059,7 +3067,7 @@ TEST_F(OptimizerStV2, MatmulAndBroadcastAdd) {
   data0.y.dtype = af::DT_FLOAT;
   *data0.y.axis = {z0.id, z1.id};
   data0.attr.api.compute_type = ComputeType::kComputeInvalid;
-  *data0.y.strides = {s1 ,af::ops::One};
+  *data0.y.strides = {s1, af::ops::One};
   *data0.y.repeats = {s0, s1};
   data0.ir_attr.SetIndex(0);
 
@@ -3068,7 +3076,7 @@ TEST_F(OptimizerStV2, MatmulAndBroadcastAdd) {
   load0.x = data0.y;
   *load0.y.axis = {z0.id, z1.id};
   load0.y.dtype = af::DT_FLOAT;
-  *load0.y.strides = {s1 ,af::ops::One};
+  *load0.y.strides = {s1, af::ops::One};
   *load0.y.repeats = {s0, s1};
 
   Data data1("data1", graph);
@@ -3102,7 +3110,7 @@ TEST_F(OptimizerStV2, MatmulAndBroadcastAdd) {
   load2.attr.sched.axis = {z0.id, z1.id, z2.id};
   load2.y.dtype = af::DT_FLOAT;
   *load2.y.axis = {z0.id, z1.id, z2.id};
-  *load2.y.strides = {s1*s2, s2, af::ops::One};
+  *load2.y.strides = {s1 * s2, s2, af::ops::One};
   *load2.y.repeats = {s0, s1, s2};
 
   MatMul matmul("matmul");
@@ -3120,7 +3128,7 @@ TEST_F(OptimizerStV2, MatmulAndBroadcastAdd) {
   brc.y.dtype = af::DT_FLOAT;
   *brc.y.axis = {z0.id, z1.id, z2.id};
   *brc.y.repeats = {s0, s1, s2};
-  *brc.y.strides = {s1*s2, s2, af::ops::One};
+  *brc.y.strides = {s1 * s2, s2, af::ops::One};
 
   af::ascir_op::Add add_op("add");
   add_op.attr.sched.axis = {z0.id, z1.id, z2.id};
@@ -3128,7 +3136,7 @@ TEST_F(OptimizerStV2, MatmulAndBroadcastAdd) {
   add_op.x2 = load2.y;
   add_op.y.dtype = af::DT_FLOAT;
   *add_op.y.axis = {z0.id, z1.id, z2.id};
-  *add_op.y.strides = {s1*s2, s2, af::ops::One};
+  *add_op.y.strides = {s1 * s2, s2, af::ops::One};
   *add_op.y.repeats = {s0, s1, s2};
 
   Store store_op("store");
@@ -3136,7 +3144,7 @@ TEST_F(OptimizerStV2, MatmulAndBroadcastAdd) {
   store_op.x = add_op.y;
   *store_op.y.axis = {z0.id, z1.id, z2.id};
   store_op.y.dtype = af::DT_FLOAT;
-  *store_op.y.strides = {s1*s2, s2, af::ops::One};
+  *store_op.y.strides = {s1 * s2, s2, af::ops::One};
   *store_op.y.repeats = {s0, s1, s2};
 
   Output output_op("output");
@@ -3157,12 +3165,14 @@ TEST_F(OptimizerStV2, MatmulAndBroadcastAdd) {
             "matmul_1_ub_Y3_non_db_S0G0C0");
   EXPECT_EQ(fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs[1].GetName(),
             "matmul_1_ub_Y3_S0G0C1");
-  for (const auto &node : fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[1].impl_graphs[0].GetAllNodes()) {
+  for (const auto &node :
+       fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[1].impl_graphs[0].GetAllNodes()) {
     if (node->GetOpDesc()->GetId() == 4) {
       EXPECT_EQ(node->GetOpDesc()->GetType(), "MatMul");
     }
   }
-  for (const auto &node : fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs[0].GetAllNodes()) {
+  for (const auto &node :
+       fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs[0].GetAllNodes()) {
     if (node->GetOpDesc()->GetId() == 4) {
       EXPECT_EQ(node->GetOpDesc()->GetType(), "Add");
     }
@@ -3184,7 +3194,7 @@ TEST_F(OptimizerStV2, MatmulAndCastBroadcastAdd) {
   data0.y.dtype = af::DT_FLOAT;
   *data0.y.axis = {z0.id, z1.id};
   data0.attr.api.compute_type = ComputeType::kComputeInvalid;
-  *data0.y.strides = {s1 ,af::ops::One};
+  *data0.y.strides = {s1, af::ops::One};
   *data0.y.repeats = {s0, s1};
   data0.ir_attr.SetIndex(0);
 
@@ -3193,7 +3203,7 @@ TEST_F(OptimizerStV2, MatmulAndCastBroadcastAdd) {
   load0.x = data0.y;
   *load0.y.axis = {z0.id, z1.id};
   load0.y.dtype = af::DT_FLOAT;
-  *load0.y.strides = {s1 ,af::ops::One};
+  *load0.y.strides = {s1, af::ops::One};
   *load0.y.repeats = {s0, s1};
 
   Data data1("data1", graph);
@@ -3227,7 +3237,7 @@ TEST_F(OptimizerStV2, MatmulAndCastBroadcastAdd) {
   load2.attr.sched.axis = {z0.id, z1.id, z2.id};
   load2.y.dtype = af::DT_FLOAT16;
   *load2.y.axis = {z0.id, z1.id, z2.id};
-  *load2.y.strides = {s1*s2, s2, af::ops::One};
+  *load2.y.strides = {s1 * s2, s2, af::ops::One};
   *load2.y.repeats = {s0, s1, s2};
 
   MatMul matmul("matmul");
@@ -3253,7 +3263,7 @@ TEST_F(OptimizerStV2, MatmulAndCastBroadcastAdd) {
   brc.y.dtype = af::DT_FLOAT16;
   *brc.y.axis = {z0.id, z1.id, z2.id};
   *brc.y.repeats = {s0, s1, s2};
-  *brc.y.strides = {s1*s2, s2, af::ops::One};
+  *brc.y.strides = {s1 * s2, s2, af::ops::One};
 
   af::ascir_op::Add add_op("add");
   add_op.attr.sched.axis = {z0.id, z1.id, z2.id};
@@ -3261,7 +3271,7 @@ TEST_F(OptimizerStV2, MatmulAndCastBroadcastAdd) {
   add_op.x2 = load2.y;
   add_op.y.dtype = af::DT_FLOAT16;
   *add_op.y.axis = {z0.id, z1.id, z2.id};
-  *add_op.y.strides = {s1*s2, s2, af::ops::One};
+  *add_op.y.strides = {s1 * s2, s2, af::ops::One};
   *add_op.y.repeats = {s0, s1, s2};
 
   Store store_op("store");
@@ -3269,7 +3279,7 @@ TEST_F(OptimizerStV2, MatmulAndCastBroadcastAdd) {
   store_op.x = add_op.y;
   *store_op.y.axis = {z0.id, z1.id, z2.id};
   store_op.y.dtype = af::DT_FLOAT16;
-  *store_op.y.strides = {s1*s2, s2, af::ops::One};
+  *store_op.y.strides = {s1 * s2, s2, af::ops::One};
   *store_op.y.repeats = {s0, s1, s2};
 
   Output output_op("output");
@@ -3290,12 +3300,14 @@ TEST_F(OptimizerStV2, MatmulAndCastBroadcastAdd) {
             "matmul_1_ub_Y3_non_db_S0G0C0");
   EXPECT_EQ(fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs[1].GetName(),
             "matmul_1_ub_Y3_S0G0C1");
-  for (const auto &node : fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[1].impl_graphs[0].GetAllNodes()) {
+  for (const auto &node :
+       fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[1].impl_graphs[0].GetAllNodes()) {
     if (node->GetOpDesc()->GetId() == 4) {
       EXPECT_EQ(node->GetOpDesc()->GetType(), "MatMul");
     }
   }
-  for (const auto &node : fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs[0].GetAllNodes()) {
+  for (const auto &node :
+       fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs[0].GetAllNodes()) {
     if (node->GetOpDesc()->GetId() == 5) {
       EXPECT_EQ(node->GetOpDesc()->GetType(), "Add");
     }
@@ -3307,18 +3319,20 @@ TEST_F(OptimizerStV2, TailAxisSliceWithMultiAxisSlice) {
   auto s1 = af::Symbol(7);
   auto s2 = af::Symbol(15);
   auto s3 = af::Symbol(72);
-  auto graph = AscGraphBuilder("slice_graph")
-    .Loops({s0, s1, s2, s3})
-    .Data("data0", 0)
-    .Load("load0", "data0", {af::ops::One, s1, s2, af::ops::One}, {af::sym::kSymbolZero, af::Symbol(4941), af::Symbol(61), af::sym::kSymbolZero})
-    .Broadcast("brc0", "load0", {s0, s1, s2, s3})
-    .Data("data1", 1)
-    .Load("load1", "data1", {s0, af::ops::One, s2, s3}, {s2 * s3, af::sym::kSymbolZero, s3, af::ops::One})
-    .Broadcast("brc1", "load1", {s0, s1, s2, s3})
-    .Add("add0", "brc0", "brc1")
-    .Store("store0", "add0")
-    .Output("out0", "store0", 0)
-    .Build();
+  auto graph =
+      AscGraphBuilder("slice_graph")
+          .Loops({s0, s1, s2, s3})
+          .Data("data0", 0)
+          .Load("load0", "data0", {af::ops::One, s1, s2, af::ops::One},
+                {af::sym::kSymbolZero, af::Symbol(4941), af::Symbol(61), af::sym::kSymbolZero})
+          .Broadcast("brc0", "load0", {s0, s1, s2, s3})
+          .Data("data1", 1)
+          .Load("load1", "data1", {s0, af::ops::One, s2, s3}, {s2 * s3, af::sym::kSymbolZero, s3, af::ops::One})
+          .Broadcast("brc1", "load1", {s0, s1, s2, s3})
+          .Add("add0", "brc0", "brc1")
+          .Store("store0", "add0")
+          .Output("out0", "store0", 0)
+          .Build();
   ::ascir::FusedScheduledResult fused_scheduled_result;
   EXPECT_EQ(optimizer.Optimize(graph, fused_scheduled_result), af::SUCCESS);
   EXPECT_EQ(fused_scheduled_result.node_idx_to_scheduled_results.size(), 1UL);
@@ -3347,7 +3361,7 @@ TEST_F(OptimizerStV2, MatmulAddExpAddAdd) {
   data0.y.dtype = af::DT_FLOAT16;
   *data0.y.axis = {z0.id, z1.id};
   data0.attr.api.compute_type = ComputeType::kComputeInvalid;
-  *data0.y.strides = {s1 ,af::ops::One};
+  *data0.y.strides = {s1, af::ops::One};
   *data0.y.repeats = {s0, s1};
   data0.ir_attr.SetIndex(0);
 
@@ -3356,7 +3370,7 @@ TEST_F(OptimizerStV2, MatmulAddExpAddAdd) {
   load0.x = data0.y;
   *load0.y.axis = {z0.id, z1.id};
   load0.y.dtype = af::DT_FLOAT16;
-  *load0.y.strides = {s1 ,af::ops::One};
+  *load0.y.strides = {s1, af::ops::One};
   *load0.y.repeats = {s0, s1};
 
   Data data1("data1", graph);
@@ -3390,7 +3404,7 @@ TEST_F(OptimizerStV2, MatmulAddExpAddAdd) {
   load2.attr.sched.axis = {z0.id, z1.id, z2.id};
   load2.y.dtype = af::DT_FLOAT16;
   *load2.y.axis = {z0.id, z1.id, z2.id};
-  *load2.y.strides = {s1*s2, s2, af::ops::One};
+  *load2.y.strides = {s1 * s2, s2, af::ops::One};
   *load2.y.repeats = {s0, s1, s2};
 
   Data data3("data3", graph);
@@ -3407,7 +3421,7 @@ TEST_F(OptimizerStV2, MatmulAddExpAddAdd) {
   load3.attr.sched.axis = {z0.id, z1.id, z2.id};
   load3.y.dtype = af::DT_FLOAT16;
   *load3.y.axis = {z0.id, z1.id, z2.id};
-  *load3.y.strides = {s1*s2, s2, af::ops::One};
+  *load3.y.strides = {s1 * s2, s2, af::ops::One};
   *load3.y.repeats = {s0, s1, s2};
 
   MatMul matmul("matmul");
@@ -3425,7 +3439,7 @@ TEST_F(OptimizerStV2, MatmulAddExpAddAdd) {
   add_op.x2 = load2.y;
   add_op.y.dtype = af::DT_FLOAT16;
   *add_op.y.axis = {z0.id, z1.id, z2.id};
-  *add_op.y.strides = {s1*s2, s2, af::ops::One};
+  *add_op.y.strides = {s1 * s2, s2, af::ops::One};
   *add_op.y.repeats = {s0, s1, s2};
 
   af::ascir_op::Exp exp1("exp");
@@ -3433,7 +3447,7 @@ TEST_F(OptimizerStV2, MatmulAddExpAddAdd) {
   exp1.x = add_op.y;
   exp1.y.dtype = af::DT_FLOAT16;
   *exp1.y.axis = {z0.id, z1.id, z2.id};
-  *exp1.y.strides = {s1*s2, s2, af::ops::One};
+  *exp1.y.strides = {s1 * s2, s2, af::ops::One};
   *exp1.y.repeats = {s0, s1, s2};
 
   af::ascir_op::Add add_op1("add1");
@@ -3442,7 +3456,7 @@ TEST_F(OptimizerStV2, MatmulAddExpAddAdd) {
   add_op1.x2 = load3.y;
   add_op1.y.dtype = af::DT_FLOAT16;
   *add_op1.y.axis = {z0.id, z1.id, z2.id};
-  *add_op1.y.strides = {s1*s2, s2, af::ops::One};
+  *add_op1.y.strides = {s1 * s2, s2, af::ops::One};
   *add_op1.y.repeats = {s0, s1, s2};
 
   af::ascir_op::Add add_op2("add2");
@@ -3451,7 +3465,7 @@ TEST_F(OptimizerStV2, MatmulAddExpAddAdd) {
   add_op2.x2 = add_op1.y;
   add_op2.y.dtype = af::DT_FLOAT16;
   *add_op2.y.axis = {z0.id, z1.id, z2.id};
-  *add_op2.y.strides = {s1*s2, s2, af::ops::One};
+  *add_op2.y.strides = {s1 * s2, s2, af::ops::One};
   *add_op2.y.repeats = {s0, s1, s2};
 
   Store store_op("store");
@@ -3459,7 +3473,7 @@ TEST_F(OptimizerStV2, MatmulAddExpAddAdd) {
   store_op.x = add_op2.y;
   *store_op.y.axis = {z0.id, z1.id, z2.id};
   store_op.y.dtype = af::DT_FLOAT16;
-  *store_op.y.strides = {s1*s2, s2, af::ops::One};
+  *store_op.y.strides = {s1 * s2, s2, af::ops::One};
   *store_op.y.repeats = {s0, s1, s2};
 
   Output output_op("output");
@@ -3499,7 +3513,7 @@ TEST_F(OptimizerStV2, MatmulAndCastAdd) {
   data0.y.dtype = af::DT_FLOAT;
   *data0.y.axis = {z0.id, z1.id};
   data0.attr.api.compute_type = ComputeType::kComputeInvalid;
-  *data0.y.strides = {s1 ,af::ops::One};
+  *data0.y.strides = {s1, af::ops::One};
   *data0.y.repeats = {s0, s1};
   data0.ir_attr.SetIndex(0);
 
@@ -3508,7 +3522,7 @@ TEST_F(OptimizerStV2, MatmulAndCastAdd) {
   load0.x = data0.y;
   *load0.y.axis = {z0.id, z1.id};
   load0.y.dtype = af::DT_FLOAT;
-  *load0.y.strides = {s1 ,af::ops::One};
+  *load0.y.strides = {s1, af::ops::One};
   *load0.y.repeats = {s0, s1};
 
   Data data1("data1", graph);
@@ -3542,7 +3556,7 @@ TEST_F(OptimizerStV2, MatmulAndCastAdd) {
   load2.attr.sched.axis = {z0.id, z1.id, z2.id};
   load2.y.dtype = af::DT_FLOAT16;
   *load2.y.axis = {z0.id, z1.id, z2.id};
-  *load2.y.strides = {s1*s2, s2, af::ops::One};
+  *load2.y.strides = {s1 * s2, s2, af::ops::One};
   *load2.y.repeats = {s0, s1, s2};
 
   MatMul matmul("matmul");
@@ -3568,7 +3582,7 @@ TEST_F(OptimizerStV2, MatmulAndCastAdd) {
   add_op.x2 = load2.y;
   add_op.y.dtype = af::DT_FLOAT16;
   *add_op.y.axis = {z0.id, z1.id, z2.id};
-  *add_op.y.strides = {s1*s2, s2, af::ops::One};
+  *add_op.y.strides = {s1 * s2, s2, af::ops::One};
   *add_op.y.repeats = {s0, s1, s2};
 
   Store store_op("store");
@@ -3576,7 +3590,7 @@ TEST_F(OptimizerStV2, MatmulAndCastAdd) {
   store_op.x = add_op.y;
   *store_op.y.axis = {z0.id, z1.id, z2.id};
   store_op.y.dtype = af::DT_FLOAT16;
-  *store_op.y.strides = {s1*s2, s2, af::ops::One};
+  *store_op.y.strides = {s1 * s2, s2, af::ops::One};
   *store_op.y.repeats = {s0, s1, s2};
 
   Output output_op("output");
@@ -3601,12 +3615,14 @@ TEST_F(OptimizerStV2, MatmulAndCastAdd) {
             "matmul_1_ub_Y3_S0G0C2");
   EXPECT_EQ(fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs[3].GetName(),
             "matmul_1_ub_Y2_S0G0C3");
-  for (const auto &node : fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[1].impl_graphs[0].GetAllNodes()) {
+  for (const auto &node :
+       fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[1].impl_graphs[0].GetAllNodes()) {
     if (node->GetOpDesc()->GetId() == 4) {
       EXPECT_EQ(node->GetOpDesc()->GetType(), "MatMul");
     }
   }
-  for (const auto &node : fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs[0].GetAllNodes()) {
+  for (const auto &node :
+       fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs[0].GetAllNodes()) {
     if (node->GetOpDesc()->GetId() == 5) {
       EXPECT_EQ(node->GetOpDesc()->GetType(), "VectorFunc");
     }
@@ -3628,7 +3644,7 @@ TEST_F(OptimizerStV2, MatmulAndCastMultiRefsAdd) {
   data0.y.dtype = af::DT_FLOAT;
   *data0.y.axis = {z0.id, z1.id};
   data0.attr.api.compute_type = ComputeType::kComputeInvalid;
-  *data0.y.strides = {s1 ,af::ops::One};
+  *data0.y.strides = {s1, af::ops::One};
   *data0.y.repeats = {s0, s1};
   data0.ir_attr.SetIndex(0);
 
@@ -3637,7 +3653,7 @@ TEST_F(OptimizerStV2, MatmulAndCastMultiRefsAdd) {
   load0.x = data0.y;
   *load0.y.axis = {z0.id, z1.id};
   load0.y.dtype = af::DT_FLOAT;
-  *load0.y.strides = {s1 ,af::ops::One};
+  *load0.y.strides = {s1, af::ops::One};
   *load0.y.repeats = {s0, s1};
 
   Data data1("data1", graph);
@@ -3680,7 +3696,7 @@ TEST_F(OptimizerStV2, MatmulAndCastMultiRefsAdd) {
   add_op.x2 = cast.y;
   add_op.y.dtype = af::DT_FLOAT16;
   *add_op.y.axis = {z0.id, z1.id, z2.id};
-  *add_op.y.strides = {s1*s2, s2, af::ops::One};
+  *add_op.y.strides = {s1 * s2, s2, af::ops::One};
   *add_op.y.repeats = {s0, s1, s2};
 
   Store store_op("store");
@@ -3688,7 +3704,7 @@ TEST_F(OptimizerStV2, MatmulAndCastMultiRefsAdd) {
   store_op.x = add_op.y;
   *store_op.y.axis = {z0.id, z1.id, z2.id};
   store_op.y.dtype = af::DT_FLOAT16;
-  *store_op.y.strides = {s1*s2, s2, af::ops::One};
+  *store_op.y.strides = {s1 * s2, s2, af::ops::One};
   *store_op.y.repeats = {s0, s1, s2};
 
   Output output_op("output");
@@ -3713,12 +3729,14 @@ TEST_F(OptimizerStV2, MatmulAndCastMultiRefsAdd) {
             "matmul_1_ub_Y2_S0G0C3");
   EXPECT_EQ(fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[1].impl_graphs[0].GetName(),
             "matmul_0_ub_S0G1C0");
-  for (const auto &node : fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[1].impl_graphs[0].GetAllNodes()) {
+  for (const auto &node :
+       fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[1].impl_graphs[0].GetAllNodes()) {
     if (node->GetOpDesc()->GetId() == 4) {
       EXPECT_EQ(node->GetOpDesc()->GetType(), "MatMul");
     }
   }
-  for (const auto &node : fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs[0].GetAllNodes()) {
+  for (const auto &node :
+       fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs[0].GetAllNodes()) {
     if (node->GetOpDesc()->GetId() == 3) {
       EXPECT_EQ(node->GetOpDesc()->GetType(), "Add");
     }
@@ -3740,7 +3758,7 @@ TEST_F(OptimizerStV2, MatmulAndBrcLoadMultiRefsAdd) {
   data0.y.dtype = af::DT_FLOAT;
   *data0.y.axis = {z0.id, z1.id};
   data0.attr.api.compute_type = ComputeType::kComputeInvalid;
-  *data0.y.strides = {s1 ,af::ops::One};
+  *data0.y.strides = {s1, af::ops::One};
   *data0.y.repeats = {s0, s1};
   data0.ir_attr.SetIndex(0);
 
@@ -3749,7 +3767,7 @@ TEST_F(OptimizerStV2, MatmulAndBrcLoadMultiRefsAdd) {
   load0.x = data0.y;
   *load0.y.axis = {z0.id, z1.id};
   load0.y.dtype = af::DT_FLOAT;
-  *load0.y.strides = {s1 ,af::ops::One};
+  *load0.y.strides = {s1, af::ops::One};
   *load0.y.repeats = {s0, s1};
 
   Data data1("data1", graph);
@@ -3783,7 +3801,7 @@ TEST_F(OptimizerStV2, MatmulAndBrcLoadMultiRefsAdd) {
   load2.attr.sched.axis = {z0.id, z1.id, z2.id};
   load2.y.dtype = af::DT_FLOAT;
   *load2.y.axis = {z0.id, z1.id, z2.id};
-  *load2.y.strides = {s1*s2, s2, af::ops::One};
+  *load2.y.strides = {s1 * s2, s2, af::ops::One};
   *load2.y.repeats = {s0, s1, s2};
 
   MatMul matmul("matmul");
@@ -3808,7 +3826,7 @@ TEST_F(OptimizerStV2, MatmulAndBrcLoadMultiRefsAdd) {
   abs.attr.sched.axis = {z0.id, z1.id, z2.id};
   abs.y.dtype = af::DT_FLOAT;
   *abs.y.axis = {z0.id, z1.id, z2.id};
-  *abs.y.strides = {s1*s2, s2, af::ops::One};
+  *abs.y.strides = {s1 * s2, s2, af::ops::One};
   *abs.y.repeats = {s0, s1, s2};
 
   af::ascir_op::Add add_op("add");
@@ -3817,7 +3835,7 @@ TEST_F(OptimizerStV2, MatmulAndBrcLoadMultiRefsAdd) {
   add_op.x2 = abs.y;
   add_op.y.dtype = af::DT_FLOAT;
   *add_op.y.axis = {z0.id, z1.id, z2.id};
-  *add_op.y.strides = {s1*s2, s2, af::ops::One};
+  *add_op.y.strides = {s1 * s2, s2, af::ops::One};
   *add_op.y.repeats = {s0, s1, s2};
 
   af::ascir_op::Add add_op1("add1");
@@ -3826,7 +3844,7 @@ TEST_F(OptimizerStV2, MatmulAndBrcLoadMultiRefsAdd) {
   add_op1.x2 = load2.y;
   add_op1.y.dtype = af::DT_FLOAT;
   *add_op1.y.axis = {z0.id, z1.id, z2.id};
-  *add_op1.y.strides = {s1*s2, s2, af::ops::One};
+  *add_op1.y.strides = {s1 * s2, s2, af::ops::One};
   *add_op1.y.repeats = {s0, s1, s2};
 
   Store store_op("store");
@@ -3834,7 +3852,7 @@ TEST_F(OptimizerStV2, MatmulAndBrcLoadMultiRefsAdd) {
   store_op.x = add_op1.y;
   *store_op.y.axis = {z0.id, z1.id, z2.id};
   store_op.y.dtype = af::DT_FLOAT;
-  *store_op.y.strides = {s1*s2, s2, af::ops::One};
+  *store_op.y.strides = {s1 * s2, s2, af::ops::One};
   *store_op.y.repeats = {s0, s1, s2};
 
   Output output_op("output");
@@ -3855,18 +3873,19 @@ TEST_F(OptimizerStV2, MatmulAndBrcLoadMultiRefsAdd) {
             "matmul_1_ub_Y3_non_db_S0G0C0");
   EXPECT_EQ(fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs[1].GetName(),
             "matmul_1_ub_Y3_S0G0C1");
-  for (const auto &node : fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[1].impl_graphs[0].GetAllNodes()) {
+  for (const auto &node :
+       fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[1].impl_graphs[0].GetAllNodes()) {
     if (node->GetOpDesc()->GetId() == 4) {
       EXPECT_EQ(node->GetOpDesc()->GetType(), "MatMul");
     }
   }
-  for (const auto &node : fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs[0].GetAllNodes()) {
+  for (const auto &node :
+       fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs[0].GetAllNodes()) {
     if (node->GetOpDesc()->GetId() == 4) {
       EXPECT_EQ(node->GetOpDesc()->GetType(), "VectorFunc");
     }
   }
 }
-
 
 TEST_F(OptimizerStV2, MatmulAndCastBrcMultiRefsAdd) {
   af::AscGraph graph("matmul");
@@ -3883,7 +3902,7 @@ TEST_F(OptimizerStV2, MatmulAndCastBrcMultiRefsAdd) {
   data0.y.dtype = af::DT_FLOAT;
   *data0.y.axis = {z0.id, z1.id};
   data0.attr.api.compute_type = ComputeType::kComputeInvalid;
-  *data0.y.strides = {s1 ,af::ops::One};
+  *data0.y.strides = {s1, af::ops::One};
   *data0.y.repeats = {s0, s1};
   data0.ir_attr.SetIndex(0);
 
@@ -3892,7 +3911,7 @@ TEST_F(OptimizerStV2, MatmulAndCastBrcMultiRefsAdd) {
   load0.x = data0.y;
   *load0.y.axis = {z0.id, z1.id};
   load0.y.dtype = af::DT_FLOAT;
-  *load0.y.strides = {s1 ,af::ops::One};
+  *load0.y.strides = {s1, af::ops::One};
   *load0.y.repeats = {s0, s1};
 
   Data data1("data1", graph);
@@ -3942,7 +3961,7 @@ TEST_F(OptimizerStV2, MatmulAndCastBrcMultiRefsAdd) {
   abs.attr.sched.axis = {z0.id, z1.id, z2.id};
   abs.y.dtype = af::DT_FLOAT;
   *abs.y.axis = {z0.id, z1.id, z2.id};
-  *abs.y.strides = {s1*s2, s2, af::ops::One};
+  *abs.y.strides = {s1 * s2, s2, af::ops::One};
   *abs.y.repeats = {s0, s1, s2};
 
   af::ascir_op::Add add_op("add");
@@ -3951,7 +3970,7 @@ TEST_F(OptimizerStV2, MatmulAndCastBrcMultiRefsAdd) {
   add_op.x2 = abs.y;
   add_op.y.dtype = af::DT_FLOAT;
   *add_op.y.axis = {z0.id, z1.id, z2.id};
-  *add_op.y.strides = {s1*s2, s2, af::ops::One};
+  *add_op.y.strides = {s1 * s2, s2, af::ops::One};
   *add_op.y.repeats = {s0, s1, s2};
 
   Store store_op("store");
@@ -3959,7 +3978,7 @@ TEST_F(OptimizerStV2, MatmulAndCastBrcMultiRefsAdd) {
   store_op.x = add_op.y;
   *store_op.y.axis = {z0.id, z1.id, z2.id};
   store_op.y.dtype = af::DT_FLOAT;
-  *store_op.y.strides = {s1*s2, s2, af::ops::One};
+  *store_op.y.strides = {s1 * s2, s2, af::ops::One};
   *store_op.y.repeats = {s0, s1, s2};
 
   Output output_op("output");
@@ -3974,9 +3993,12 @@ TEST_F(OptimizerStV2, MatmulAndCastBrcMultiRefsAdd) {
   EXPECT_EQ(fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups.size(), 2UL);
   EXPECT_EQ(fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs.size(), 2UL);
   EXPECT_EQ(fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[1].impl_graphs.size(), 1UL);
-  EXPECT_EQ("matmul_0_S0G1C0", fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[1].impl_graphs[0].GetName());
-  EXPECT_EQ("matmul_1_Y0_S0G0C0", fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs[0].GetName());
-  EXPECT_EQ("matmul_1_Y1_S0G0C1", fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs[1].GetName());
+  EXPECT_EQ("matmul_0_S0G1C0",
+            fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[1].impl_graphs[0].GetName());
+  EXPECT_EQ("matmul_1_Y0_S0G0C0",
+            fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs[0].GetName());
+  EXPECT_EQ("matmul_1_Y1_S0G0C1",
+            fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs[1].GetName());
 }
 
 TEST_F(OptimizerStV2, MatmulStoreAddExpAddAdd) {
@@ -3991,7 +4013,7 @@ TEST_F(OptimizerStV2, MatmulStoreAddExpAddAdd) {
   data0.y.dtype = af::DT_FLOAT16;
   *data0.y.axis = {z0.id, z1.id};
   data0.attr.api.compute_type = ComputeType::kComputeInvalid;
-  *data0.y.strides = {s1 ,af::ops::One};
+  *data0.y.strides = {s1, af::ops::One};
   *data0.y.repeats = {s0, s1};
   data0.ir_attr.SetIndex(0);
 
@@ -4000,7 +4022,7 @@ TEST_F(OptimizerStV2, MatmulStoreAddExpAddAdd) {
   load0.x = data0.y;
   *load0.y.axis = {z0.id, z1.id};
   load0.y.dtype = af::DT_FLOAT16;
-  *load0.y.strides = {s1 ,af::ops::One};
+  *load0.y.strides = {s1, af::ops::One};
   *load0.y.repeats = {s0, s1};
 
   Data data1("data1", graph);
@@ -4269,7 +4291,7 @@ TEST_F(OptimizerStV2, MatmulAndBrcLoadScalarAdd) {
   data0.y.dtype = af::DT_FLOAT;
   *data0.y.axis = {z0.id, z1.id};
   data0.attr.api.compute_type = ComputeType::kComputeInvalid;
-  *data0.y.strides = {s1 ,af::ops::One};
+  *data0.y.strides = {s1, af::ops::One};
   *data0.y.repeats = {s0, s1};
   data0.ir_attr.SetIndex(0);
 
@@ -4278,7 +4300,7 @@ TEST_F(OptimizerStV2, MatmulAndBrcLoadScalarAdd) {
   load0.x = data0.y;
   *load0.y.axis = {z0.id, z1.id};
   load0.y.dtype = af::DT_FLOAT;
-  *load0.y.strides = {s1 ,af::ops::One};
+  *load0.y.strides = {s1, af::ops::One};
   *load0.y.repeats = {s0, s1};
 
   Data data1("data1", graph);
@@ -4332,7 +4354,7 @@ TEST_F(OptimizerStV2, MatmulAndBrcLoadScalarAdd) {
   abs.attr.sched.axis = {z0.id, z1.id, z2.id};
   abs.y.dtype = af::DT_FLOAT;
   *abs.y.axis = {z0.id, z1.id, z2.id};
-  *abs.y.strides = {s1*s2, s2, af::ops::One};
+  *abs.y.strides = {s1 * s2, s2, af::ops::One};
   *abs.y.repeats = {s0, s1, s2};
 
   af::ascir_op::Add add_op("add");
@@ -4341,7 +4363,7 @@ TEST_F(OptimizerStV2, MatmulAndBrcLoadScalarAdd) {
   add_op.x2 = abs.y;
   add_op.y.dtype = af::DT_FLOAT;
   *add_op.y.axis = {z0.id, z1.id, z2.id};
-  *add_op.y.strides = {s1*s2, s2, af::ops::One};
+  *add_op.y.strides = {s1 * s2, s2, af::ops::One};
   *add_op.y.repeats = {s0, s1, s2};
 
   Store store_op("store");
@@ -4349,7 +4371,7 @@ TEST_F(OptimizerStV2, MatmulAndBrcLoadScalarAdd) {
   store_op.x = add_op.y;
   *store_op.y.axis = {z0.id, z1.id, z2.id};
   store_op.y.dtype = af::DT_FLOAT;
-  *store_op.y.strides = {s1*s2, s2, af::ops::One};
+  *store_op.y.strides = {s1 * s2, s2, af::ops::One};
   *store_op.y.repeats = {s0, s1, s2};
 
   Output output_op("output");
@@ -4369,12 +4391,14 @@ TEST_F(OptimizerStV2, MatmulAndBrcLoadScalarAdd) {
             "matmul_1_ub_Y3_non_db_S0G0C0");
   EXPECT_EQ(fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs[1].GetName(),
             "matmul_1_ub_Y3_S0G0C1");
-  for (const auto &node : fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[1].impl_graphs[0].GetAllNodes()) {
+  for (const auto &node :
+       fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[1].impl_graphs[0].GetAllNodes()) {
     if (node->GetOpDesc()->GetId() == 4) {
       EXPECT_EQ(node->GetOpDesc()->GetType(), "MatMul");
     }
   }
-  for (const auto &node : fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs[0].GetAllNodes()) {
+  for (const auto &node :
+       fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs[0].GetAllNodes()) {
     if (node->GetOpDesc()->GetId() == 1) {
       EXPECT_EQ(node->GetOpDesc()->GetType(), "Nddma");
     }
@@ -4395,7 +4419,7 @@ TEST_F(OptimizerStV2, MatmulAndLoadMultiBrcAdd) {
   data0.y.dtype = af::DT_FLOAT;
   *data0.y.axis = {z0.id, z1.id};
   data0.attr.api.compute_type = ComputeType::kComputeInvalid;
-  *data0.y.strides = {s1 ,af::ops::One};
+  *data0.y.strides = {s1, af::ops::One};
   *data0.y.repeats = {s0, s1};
   data0.ir_attr.SetIndex(0);
 
@@ -4404,7 +4428,7 @@ TEST_F(OptimizerStV2, MatmulAndLoadMultiBrcAdd) {
   load0.x = data0.y;
   *load0.y.axis = {z0.id, z1.id};
   load0.y.dtype = af::DT_FLOAT;
-  *load0.y.strides = {s1 ,af::ops::One};
+  *load0.y.strides = {s1, af::ops::One};
   *load0.y.repeats = {s0, s1};
 
   Data data1("data1", graph);
@@ -4471,7 +4495,7 @@ TEST_F(OptimizerStV2, MatmulAndLoadMultiBrcAdd) {
   abs.attr.sched.axis = {z0.id, z1.id, z2.id};
   abs.y.dtype = af::DT_FLOAT;
   *abs.y.axis = {z0.id, z1.id, z2.id};
-  *abs.y.strides = {s1*s2, s2, af::ops::One};
+  *abs.y.strides = {s1 * s2, s2, af::ops::One};
   *abs.y.repeats = {s0, s1, s2};
 
   af::ascir_op::Add add_op("add");
@@ -4480,7 +4504,7 @@ TEST_F(OptimizerStV2, MatmulAndLoadMultiBrcAdd) {
   add_op.x2 = abs.y;
   add_op.y.dtype = af::DT_FLOAT;
   *add_op.y.axis = {z0.id, z1.id, z2.id};
-  *add_op.y.strides = {s1*s2, s2, af::ops::One};
+  *add_op.y.strides = {s1 * s2, s2, af::ops::One};
   *add_op.y.repeats = {s0, s1, s2};
 
   Store store_op("store");
@@ -4488,7 +4512,7 @@ TEST_F(OptimizerStV2, MatmulAndLoadMultiBrcAdd) {
   store_op.x = add_op.y;
   *store_op.y.axis = {z0.id, z1.id, z2.id};
   store_op.y.dtype = af::DT_FLOAT;
-  *store_op.y.strides = {s1*s2, s2, af::ops::One};
+  *store_op.y.strides = {s1 * s2, s2, af::ops::One};
   *store_op.y.repeats = {s0, s1, s2};
 
   Output output_op("output");
@@ -4508,12 +4532,14 @@ TEST_F(OptimizerStV2, MatmulAndLoadMultiBrcAdd) {
             "matmul_1_ub_Y3_non_db_S0G0C0");
   EXPECT_EQ(fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs[1].GetName(),
             "matmul_1_ub_Y3_S0G0C1");
-  for (const auto &node : fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[1].impl_graphs[0].GetAllNodes()) {
+  for (const auto &node :
+       fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[1].impl_graphs[0].GetAllNodes()) {
     if (node->GetOpDesc()->GetId() == 4) {
       EXPECT_EQ(node->GetOpDesc()->GetType(), "MatMul");
     }
   }
-  for (const auto &node : fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs[0].GetAllNodes()) {
+  for (const auto &node :
+       fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs[0].GetAllNodes()) {
     if (node->GetOpDesc()->GetId() == 1) {
       EXPECT_EQ(node->GetOpDesc()->GetType(), "Nddma");
     }
@@ -4537,7 +4563,7 @@ TEST_F(OptimizerStV2, MatmulAndLoadBrcAndAbsBrcAdd) {
   data0.y.dtype = af::DT_FLOAT;
   *data0.y.axis = {z0.id, z1.id};
   data0.attr.api.compute_type = ComputeType::kComputeInvalid;
-  *data0.y.strides = {s1 ,af::ops::One};
+  *data0.y.strides = {s1, af::ops::One};
   *data0.y.repeats = {s0, s1};
   data0.ir_attr.SetIndex(0);
 
@@ -4546,7 +4572,7 @@ TEST_F(OptimizerStV2, MatmulAndLoadBrcAndAbsBrcAdd) {
   load0.x = data0.y;
   *load0.y.axis = {z0.id, z1.id};
   load0.y.dtype = af::DT_FLOAT;
-  *load0.y.strides = {s1 ,af::ops::One};
+  *load0.y.strides = {s1, af::ops::One};
   *load0.y.repeats = {s0, s1};
 
   Data data1("data1", graph);
@@ -4622,7 +4648,7 @@ TEST_F(OptimizerStV2, MatmulAndLoadBrcAndAbsBrcAdd) {
   add_op.x2 = brc1.y;
   add_op.y.dtype = af::DT_FLOAT;
   *add_op.y.axis = {z0.id, z1.id, z2.id};
-  *add_op.y.strides = {s1*s2, s2, af::ops::One};
+  *add_op.y.strides = {s1 * s2, s2, af::ops::One};
   *add_op.y.repeats = {s0, s1, s2};
 
   Store store_op("store");
@@ -4630,7 +4656,7 @@ TEST_F(OptimizerStV2, MatmulAndLoadBrcAndAbsBrcAdd) {
   store_op.x = add_op.y;
   *store_op.y.axis = {z0.id, z1.id, z2.id};
   store_op.y.dtype = af::DT_FLOAT;
-  *store_op.y.strides = {s1*s2, s2, af::ops::One};
+  *store_op.y.strides = {s1 * s2, s2, af::ops::One};
   *store_op.y.repeats = {s0, s1, s2};
 
   Output output_op("output");
@@ -4648,12 +4674,14 @@ TEST_F(OptimizerStV2, MatmulAndLoadBrcAndAbsBrcAdd) {
             "matmul_0_S0G1C0");
   EXPECT_EQ(fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs[0].GetName(),
             "matmul_1_Y0_S0G0C0");
-  for (const auto &node : fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[1].impl_graphs[0].GetAllNodes()) {
+  for (const auto &node :
+       fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[1].impl_graphs[0].GetAllNodes()) {
     if (node->GetOpDesc()->GetId() == 4) {
       EXPECT_EQ(node->GetOpDesc()->GetType(), "MatMul");
     }
   }
-  for (const auto &node : fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs[0].GetAllNodes()) {
+  for (const auto &node :
+       fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs[0].GetAllNodes()) {
     if (node->GetOpDesc()->GetId() == 4) {
       EXPECT_EQ(node->GetOpDesc()->GetType(), "Broadcast");
     }

@@ -70,13 +70,16 @@ void LogMissingAscirNodeParams(const ReduceShadowCheckContext &ctx) {
   const auto node_name = node->GetName();
   const auto node_type = node->GetType();
   const auto graph_name = owner_graph == nullptr ? std::string("<null>") : owner_graph->GetName();
-  GELOGW("[ASCIR_PARAM_TRACE] Codegen missing api[%s], node[%s], type[%s], graph[%s], node_ptr[%p], "
-         "op_desc_ptr[%p], owner_graph_ptr[%p].",
-         ctx.api_name.c_str(), node_name.c_str(), node_type.c_str(), graph_name.c_str(),
-         static_cast<void *>(node.get()), static_cast<void *>(op_desc.get()), static_cast<void *>(owner_graph.get()));
+  GELOGW(
+      "[ASCIR_PARAM_TRACE] Codegen missing api[%s], node[%s], type[%s], graph[%s], node_ptr[%p], "
+      "op_desc_ptr[%p], owner_graph_ptr[%p].",
+      ctx.api_name.c_str(), node_name.c_str(), node_type.c_str(), graph_name.c_str(), static_cast<void *>(node.get()),
+      static_cast<void *>(op_desc.get()), static_cast<void *>(owner_graph.get()));
 }
 
-std::string BoolToString(bool value) { return value ? "true" : "false"; }
+std::string BoolToString(bool value) {
+  return value ? "true" : "false";
+}
 
 std::string ExprToString(const ge::Expression &expr) {
   return expr.IsValid() ? std::string(expr.Str().get()) : std::string("<invalid>");
@@ -111,8 +114,7 @@ std::string ReduceMergeModeToString(codegen::ReduceMergeMode mode) {
 }
 
 void AddMismatchDetail(const std::string &field, const std::string &lhs_name, const std::string &lhs_value,
-                       const std::string &rhs_name, const std::string &rhs_value,
-                       ReduceShadowCheckResult &result) {
+                       const std::string &rhs_name, const std::string &rhs_value, ReduceShadowCheckResult &result) {
   std::stringstream ss;
   ss << field << "{" << lhs_name << "=" << lhs_value << "," << rhs_name << "=" << rhs_value << "}";
   result.mismatch_details.emplace_back(ss.str());
@@ -306,8 +308,7 @@ void CompareReduceLegacyBehavior(const codegen::ReduceSpecificParams &parser_par
 }  // namespace
 
 // 用于将代码中的"first"和"last"相互替换
-static void ReplaceSS(std::string& str, const std::string& oldSubStr, const std::string& newSubStr)
-{
+static void ReplaceSS(std::string &str, const std::string &oldSubStr, const std::string &newSubStr) {
   size_t pos = 0;
   while ((pos = str.find(oldSubStr, pos)) != std::string::npos) {
     str.replace(pos, oldSubStr.length(), newSubStr);
@@ -316,8 +317,8 @@ static void ReplaceSS(std::string& str, const std::string& oldSubStr, const std:
   return;
 }
 
-static void ReplaceSSWithSwappingFirstAndLast(std::string firstAndFirst_actual, std::string lastAndLast_actual, const bool &isAllAxisReduce, std::stringstream &ss)
-{
+static void ReplaceSSWithSwappingFirstAndLast(std::string firstAndFirst_actual, std::string lastAndLast_actual,
+                                              const bool &isAllAxisReduce, std::stringstream &ss) {
   if (isAllAxisReduce) {
     ReplaceSS(firstAndFirst_actual, "first", "last");
     ReplaceSS(lastAndLast_actual, "last", "first");
@@ -326,8 +327,7 @@ static void ReplaceSSWithSwappingFirstAndLast(std::string firstAndFirst_actual, 
   return;
 }
 
-size_t GetAxesNumExceptZeroTail(const Tensor &src, const Tensor &dst)
-{
+size_t GetAxesNumExceptZeroTail(const Tensor &src, const Tensor &dst) {
   size_t num_axes = src.vectorized_axis.size();
   for (; num_axes > 0; num_axes--) {
     if (src.vectorized_strides[num_axes - 1] != 0 || dst.vectorized_strides[num_axes - 1] != 0) {
@@ -354,21 +354,24 @@ void ReduceMergedSizeCodeGen(const TPipe &tpipe, std::stringstream &ss, const Te
   std::string dtype_name;
   Tensor::DtypeName(src.dtype, dtype_name);
   bool is_first = true;
-  const size_t num_axes = GetAxesNumExceptZeroTail(src, dst); // 从后往前过滤无效轴，防止{R, 1} + {A, B}水平融合时没有尾轴对齐
+  const size_t num_axes =
+      GetAxesNumExceptZeroTail(src, dst);  // 从后往前过滤无效轴，防止{R, 1} + {A, B}水平融合时没有尾轴对齐
   ascir::SizeExpr lastNonZeroStride = Zero;
   size_t last_not_1_axis_size_index = 0xFFFFFFFF;
   bool isAllAxisReduce = true;
   for (size_t i = 0; i < num_axes; ++i) {
     isAllAxisReduce = isAllAxisReduce && (dst.vectorized_strides[i] == 0);
-    const auto axis      = tpipe.tiler.GetAxis(src.vectorized_axis[i]);
+    const auto axis = tpipe.tiler.GetAxis(src.vectorized_axis[i]);
     const auto axis_size = tpipe.tiler.AxisSize(src.vectorized_axis[i]);
     if (i == num_axes - 1U) {
       if (is_first && !isAllAxisReduce) {
         last << " * " << KernelUtils::SizeAlign() << "(" << axis_size << ", 32/sizeof(" << dtype_name << "))";
-        last_actual << " * " << KernelUtils::SizeAlign() << "(" << axis.actual_size << ", 32/sizeof(" << dtype_name << "))";
-      } else if (is_first && isAllAxisReduce) { // 这种情况最后会统一替换为last
+        last_actual << " * " << KernelUtils::SizeAlign() << "(" << axis.actual_size << ", 32/sizeof(" << dtype_name
+                    << "))";
+      } else if (is_first && isAllAxisReduce) {  // 这种情况最后会统一替换为last
         first << " * " << KernelUtils::SizeAlign() << "(" << axis_size << ", 32/sizeof(" << dtype_name << "))";
-        first_actual << " * " << KernelUtils::SizeAlign() << "(" << axis.actual_size << ", 32/sizeof(" << dtype_name << "))";
+        first_actual << " * " << KernelUtils::SizeAlign() << "(" << axis.actual_size << ", 32/sizeof(" << dtype_name
+                     << "))";
       } else {
         last << " * " << tpipe.tiler.Size(lastNonZeroStride);
         last_actual << " * " << tpipe.tiler.Size(lastNonZeroStride);
@@ -380,7 +383,7 @@ void ReduceMergedSizeCodeGen(const TPipe &tpipe, std::stringstream &ss, const Te
     }
     if (is_first && last_not_1_axis_size_index != 0xFFFFFFFF) {
       is_first = !((dst.vectorized_strides[i] == 0 && dst.vectorized_strides[last_not_1_axis_size_index] != 0) ||
-                (dst.vectorized_strides[i] != 0 && dst.vectorized_strides[last_not_1_axis_size_index] == 0));
+                   (dst.vectorized_strides[i] != 0 && dst.vectorized_strides[last_not_1_axis_size_index] == 0));
     }
     if (!is_first) {
       if (src.vectorized_strides[i] != Zero) {
@@ -394,20 +397,22 @@ void ReduceMergedSizeCodeGen(const TPipe &tpipe, std::stringstream &ss, const Te
       last_not_1_axis_size_index = i;
     }
   }
-  ReplaceSSWithSwappingFirstAndLast(first.str() + ";\n" + first_actual.str(), last.str() + ";\n" + last_actual.str(), isAllAxisReduce, ss);
+  ReplaceSSWithSwappingFirstAndLast(first.str() + ";\n" + first_actual.str(), last.str() + ";\n" + last_actual.str(),
+                                    isAllAxisReduce, ss);
 }
 
 bool IsNeedMultiReduce(const Tiler &tiler, const Tensor &input, const Tensor &output, ascir::AxisId axis_id) {
   int64_t total_count = 0;
   int64_t valid_count = 0;
-  std::function<void(ascir::AxisId)> recursive_functor = [&tiler, &input, &output, &total_count,
-                                                          &valid_count, &recursive_functor](ascir::AxisId id) {
+  std::function<void(ascir::AxisId)> recursive_functor = [&tiler, &input, &output, &total_count, &valid_count,
+                                                          &recursive_functor](ascir::AxisId id) {
     Axis axis = tiler.GetAxis(id);
     auto pos = std::find(output.axis.begin(), output.axis.end(), id);
     if (pos != output.axis.end()) {
       size_t diff = pos - output.axis.begin();
       total_count++;
-      valid_count = output.axis_strides[diff] == Zero && input.axis_strides[diff] != Zero ? valid_count + 1 : valid_count;
+      valid_count =
+          output.axis_strides[diff] == Zero && input.axis_strides[diff] != Zero ? valid_count + 1 : valid_count;
       return;
     }
     for (size_t i = 0; i < axis.from.size(); i++) {
@@ -417,7 +422,8 @@ bool IsNeedMultiReduce(const Tiler &tiler, const Tensor &input, const Tensor &ou
       if (pos != output.axis.end()) {
         size_t diff = pos - output.axis.begin();
         total_count++;
-        valid_count = output.axis_strides[diff] == Zero && input.axis_strides[diff] != Zero ? valid_count + 1 : valid_count;
+        valid_count =
+            output.axis_strides[diff] == Zero && input.axis_strides[diff] != Zero ? valid_count + 1 : valid_count;
         return;
       }
       if (need_recursive) {
@@ -436,9 +442,10 @@ void ReduceMeanCodeGen(std::string &dtype_name, const TPipe &tpipe, const Tensor
   std::set<ascir::AxisId> r_from_axis;
   for (size_t i = 0; i < dst.axis_strides.size(); i++) {
     if ((src.axis_strides[i] != 0 || src.axis_size[i] != 1) && dst.axis_strides[i] == 0) {  // 如果目标张量的轴步长为0
-      auto axis_id = dst.axis[i];  // 获取当前轴ID
+      auto axis_id = dst.axis[i];                                                           // 获取当前轴ID
       // 定义递归函数用于收集原始轴
-      std::function<void(int)> collect_original_axes = [&tpipe, &r_from_axis, &collect_original_axes](int current_axis_id) {
+      std::function<void(int)> collect_original_axes = [&tpipe, &r_from_axis,
+                                                        &collect_original_axes](int current_axis_id) {
         auto axis = tpipe.tiler.GetAxis(current_axis_id);  // 获取当前轴对象
         if (axis.type == ascir::Axis::Type::kAxisTypeOriginal) {
           r_from_axis.insert(current_axis_id);  // 如果是原始轴则加入集合
@@ -462,12 +469,12 @@ void ReduceMeanCodeGen(std::string &dtype_name, const TPipe &tpipe, const Tensor
     }
   }
   ss << ");" << std::endl;
-  ss << "Muls(" << dst << ", " << dst << ", " << "dimr_recip, " << KernelUtils::SizeAlign() << "(" << "reduce_dim_a" << ", 32 / sizeof(" << dtype_name << ")));" << std::endl;
+  ss << "Muls(" << dst << ", " << dst << ", " << "dimr_recip, " << KernelUtils::SizeAlign() << "(" << "reduce_dim_a"
+     << ", 32 / sizeof(" << dtype_name << ")));" << std::endl;
   return;
 }
 
-void GetIsArAndPattern(const Tensor &y, bool &isAr, std::string &reduce_pattern)
-{
+void GetIsArAndPattern(const Tensor &y, bool &isAr, std::string &reduce_pattern) {
   isAr = (y.vectorized_strides.back() == 0);
   std::unordered_map<bool, std::string> reduce_pattern_map = {{true, "AscendC::Pattern::Reduce::AR"},
                                                               {false, "AscendC::Pattern::Reduce::RA"}};
@@ -517,21 +524,20 @@ bool IsTilerLastReduceAxis(const Tensor &tensor) {
   return count == 1;
 }
 
-void ReduceInitCodeGen(const Tensor &x, const Tensor &y, const int &type_value, std::stringstream &ss, const TPipe &tpipe, const std::string &dtype_name)
-{
+void ReduceInitCodeGen(const Tensor &x, const Tensor &y, const int &type_value, std::stringstream &ss,
+                       const TPipe &tpipe, const std::string &dtype_name) {
   if (x.isAr) {
     std::string is_last_axis_str = IsTilerLastReduceAxis(y) ? "true" : "false";
-    ss << "ReduceInit<" << dtype_name << ", " << type_value << ", " << is_last_axis_str << ">("
-      << x << ", " << "first_actual" << ", last" << ", last_actual, " << tpipe.tiler.GetAxis(x.vectorized_axis.back()).actual_size
-      << ");" << std::endl;
+    ss << "ReduceInit<" << dtype_name << ", " << type_value << ", " << is_last_axis_str << ">(" << x << ", "
+       << "first_actual" << ", last" << ", last_actual, " << tpipe.tiler.GetAxis(x.vectorized_axis.back()).actual_size
+       << ");" << std::endl;
 
     ss << "AscendC::PipeBarrier<PIPE_V>();" << std::endl;
   }
   return;
 }
 
-void ReduceDimACodeGen(const Tensor &x, const std::string &apiName, std::stringstream &ss)
-{
+void ReduceDimACodeGen(const Tensor &x, const std::string &apiName, std::stringstream &ss) {
   if (apiName == "Mean") {
     if (x.isAr) {
       ss << "reduce_dim_a = first_actual;" << std::endl;
@@ -542,8 +548,7 @@ void ReduceDimACodeGen(const Tensor &x, const std::string &apiName, std::strings
   return;
 }
 
-void GenLastTwoRAxisSizeProductCode(const Tensor &x, const Tensor &y,
-                                    const TPipe &tpipe, std::stringstream &ss) {
+void GenLastTwoRAxisSizeProductCode(const Tensor &x, const Tensor &y, const TPipe &tpipe, std::stringstream &ss) {
   // 收集所有R轴
   std::vector<std::pair<ascir::AxisId, size_t>> r_axes;
 
@@ -555,17 +560,14 @@ void GenLastTwoRAxisSizeProductCode(const Tensor &x, const Tensor &y,
   }
 
   // 根据R轴数量生成不同的代码
-  if (r_axes.size() >= 2) { // 如果有2个以上的R轴，则R轴块大小为最后2个R轴的乘积
+  if (r_axes.size() >= 2) {  // 如果有2个以上的R轴，则R轴块大小为最后2个R轴的乘积
     // 有至少两个R轴，使用最后两个R轴
     ascir::AxisId last_r_axis = r_axes[r_axes.size() - 1].first;
     ascir::AxisId second_last_r_axis = r_axes[r_axes.size() - 2].first;
 
     ss << "// 最后两个R轴大小的乘积，作为每个核处理的R轴块大小" << std::endl;
-    ss << "int64_t r_axis_block_size = "
-       << tpipe.tiler.AxisSize(last_r_axis)
-       << " * "
-       << tpipe.tiler.AxisSize(second_last_r_axis)
-       << ";" << std::endl;
+    ss << "int64_t r_axis_block_size = " << tpipe.tiler.AxisSize(last_r_axis) << " * "
+       << tpipe.tiler.AxisSize(second_last_r_axis) << ";" << std::endl;
   } else if (r_axes.size() == 1) {
     // 只有一个R轴
     ss << "// 只有一个R轴，使用其大小作为块大小" << std::endl;
@@ -581,9 +583,11 @@ Status GetDtypeNameForReduce(const std::string &api_name, const Tensor &x, const
   // ArgMax系列算子（ArgMax、ArgMaxMultiRPhase1、ArgMaxMultiRPhase2）需要使用value的类型作为模板参数
   // 而不是index的类型，因此统一使用x（inputs[0]）的dtype
   if (api_name == "ArgMax" || api_name == "ArgMaxMultiRPhase1" || api_name == "ArgMaxMultiRPhase2") {
-    GE_CHK_STATUS_RET(Tensor::DtypeName(x.dtype, dtype_name), "Codegen get data type:%d failed", static_cast<int32_t>(x.dtype));
+    GE_CHK_STATUS_RET(Tensor::DtypeName(x.dtype, dtype_name), "Codegen get data type:%d failed",
+                      static_cast<int32_t>(x.dtype));
   } else {
-    GE_CHK_STATUS_RET(Tensor::DtypeName(y.dtype, dtype_name), "Codegen get data type:%d failed", static_cast<int32_t>(y.dtype));
+    GE_CHK_STATUS_RET(Tensor::DtypeName(y.dtype, dtype_name), "Codegen get data type:%d failed",
+                      static_cast<int32_t>(y.dtype));
   }
   return ge::SUCCESS;
 }

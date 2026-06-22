@@ -16,7 +16,7 @@
 
 using namespace AscendC;
 
-namespace af{
+namespace af {
 
 template <typename T>
 struct SquareInputParam {
@@ -88,7 +88,8 @@ class TestRegbaseApiSquareUT : public testing::Test {
   }
 };
 
-// ============ Tensor - Tensor 测试 (支持的数据类型: DT_FLOAT, DT_FLOAT16, DT_INT32, DT_INT16, DT_UINT16, DT_UINT32, DT_INT64, DT_UINT64, DT_BF16) ============
+// ============ Tensor - Tensor 测试 (支持的数据类型: DT_FLOAT, DT_FLOAT16, DT_INT32, DT_INT16, DT_UINT16, DT_UINT32,
+// DT_INT64, DT_UINT64, DT_BF16) ============
 TEST_F(TestRegbaseApiSquareUT, Square_TensorTensor_Test) {
   // float
   SquareTensorTensorTest<float>(ONE_BLK_SIZE / sizeof(float));
@@ -163,4 +164,4 @@ TEST_F(TestRegbaseApiSquareUT, Square_TensorTensor_Test) {
   SquareTensorTensorTest<uint64_t>((MAX_REPEAT_NUM - 1) * ONE_REPEAT_BYTE_SIZE / 2 / sizeof(uint64_t));
 }
 
-}  // namespace ge
+}  // namespace af

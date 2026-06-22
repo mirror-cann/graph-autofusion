@@ -1,17 +1,17 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
 
 /*!
-* \file test_isfinite.cpp
-* \brief
-*/
+ * \file test_isfinite.cpp
+ * \brief
+ */
 
 #include <cmath>
 #include "gtest/gtest.h"
@@ -24,14 +24,13 @@
 
 using namespace AscendC;
 
-
 constexpr int gen_index_two = 2;
 constexpr int gen_index_three = 3;
 constexpr int gen_index_five = 5;
 constexpr int gen_index_div = 1000;
 constexpr float gen_float_suffix = 0.12;
 
-template<typename InT, typename OutT>
+template <typename InT, typename OutT>
 void CastExtendCalc(InT *x, OutT *y, int size) {
   TPipe tpipe;
   TBuf<TPosition::VECCALC> xbuf, ybuf, tmp;
@@ -51,13 +50,12 @@ void CastExtendCalc(InT *x, OutT *y, int size) {
   UbToGm(y, l_y, size);
 }
 
-template<typename InT, typename OutT>
-void CastExtendTest(int size, std::function<OutT(int index, InT src)> expectGen,
-  std::function<InT(int index)> srcGen, std::function<bool(OutT a, OutT b)> compare
-) {
+template <typename InT, typename OutT>
+void CastExtendTest(int size, std::function<OutT(int index, InT src)> expectGen, std::function<InT(int index)> srcGen,
+                    std::function<bool(OutT a, OutT b)> compare) {
   // 构造测试输入和预期结果
-  auto *x = (InT*)AscendC::GmAlloc(sizeof(InT) * size);
-  auto *y = (OutT*)AscendC::GmAlloc(sizeof(OutT) * size);
+  auto *x = (InT *)AscendC::GmAlloc(sizeof(InT) * size);
+  auto *y = (OutT *)AscendC::GmAlloc(sizeof(OutT) * size);
 
   OutT expect[size];
 
@@ -69,9 +67,7 @@ void CastExtendTest(int size, std::function<OutT(int index, InT src)> expectGen,
   }
 
   // 构造Api调用函数
-  auto kernel = [](int size, InT *x, OutT *y) {
-    CastExtendCalc<InT, OutT>(x, y, size);
-  };
+  auto kernel = [](int size, InT *x, OutT *y) { CastExtendCalc<InT, OutT>(x, y, size); };
 
   // 调用kernel
   AscendC::SetKernelMode(KernelMode::AIV_MODE);
@@ -107,8 +103,7 @@ constexpr float ExpectGenU82F32(const int index, const float x) {
   return (float)(index % gen_index_two);
 }
 
-class TestApiCastUint8 : public ::testing::Test, public testing::WithParamInterface<size_t> {
-};
+class TestApiCastUint8 : public ::testing::Test, public testing::WithParamInterface<size_t> {};
 
 TEST_P(TestApiCastUint8, Calc) {
   const int size = this->GetParam();
@@ -117,15 +112,16 @@ TEST_P(TestApiCastUint8, Calc) {
 
 INSTANTIATE_TEST_SUITE_P(DiffLength, TestApiCastUint8,
                          ::testing::Values(
-                           /* 1 block */ ONE_BLK_SIZE / sizeof(float),
-                           /* 1 repeat */ ONE_REPEAT_BYTE_SIZE / sizeof(float),
-                           /* max repeat */ MAX_REPEAT_NUM *ONE_REPEAT_BYTE_SIZE / sizeof(float),
-                           /* less than 1 block */ (ONE_BLK_SIZE - sizeof(float)) / sizeof(float),
-                           /* less than 1 repeat */ (ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) / sizeof(float),
-                           /* less than max repeat */ (MAX_REPEAT_NUM - 1) * ONE_REPEAT_BYTE_SIZE / sizeof(float),
-                           /* mix block, repeat, max repeat*/
-                           ((MAX_REPEAT_NUM - 1) * ONE_REPEAT_BYTE_SIZE + (ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) +
-                             (ONE_BLK_SIZE - sizeof(float))) / sizeof(float)));
+                             /* 1 block */ ONE_BLK_SIZE / sizeof(float),
+                             /* 1 repeat */ ONE_REPEAT_BYTE_SIZE / sizeof(float),
+                             /* max repeat */ MAX_REPEAT_NUM *ONE_REPEAT_BYTE_SIZE / sizeof(float),
+                             /* less than 1 block */ (ONE_BLK_SIZE - sizeof(float)) / sizeof(float),
+                             /* less than 1 repeat */ (ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) / sizeof(float),
+                             /* less than max repeat */ (MAX_REPEAT_NUM - 1) * ONE_REPEAT_BYTE_SIZE / sizeof(float),
+                             /* mix block, repeat, max repeat*/
+                             ((MAX_REPEAT_NUM - 1) * ONE_REPEAT_BYTE_SIZE + (ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) +
+                              (ONE_BLK_SIZE - sizeof(float))) /
+                                 sizeof(float)));
 
 constexpr int64_t CastGenS642U8(const int index) {
   return index % gen_index_div;
@@ -144,8 +140,7 @@ constexpr uint8_t ExpectGenS642U8(const int index, const uint8_t x) {
   }
 }
 
-class TestApiCastS642U8 : public ::testing::Test, public testing::WithParamInterface<size_t> {
-};
+class TestApiCastS642U8 : public ::testing::Test, public testing::WithParamInterface<size_t> {};
 
 TEST_P(TestApiCastS642U8, Calc) {
   const int size = this->GetParam();
@@ -154,15 +149,16 @@ TEST_P(TestApiCastS642U8, Calc) {
 
 INSTANTIATE_TEST_SUITE_P(DiffLength, TestApiCastS642U8,
                          ::testing::Values(
-                           /* 1 block */ ONE_BLK_SIZE / sizeof(int64_t),
-                           /* 1 repeat */ ONE_REPEAT_BYTE_SIZE / sizeof(int64_t),
-                           /* max repeat */ MAX_REPEAT_NUM *ONE_REPEAT_BYTE_SIZE / sizeof(int64_t),
-                           /* less than 1 block */ (ONE_BLK_SIZE - sizeof(int64_t)) / sizeof(int64_t),
-                           /* less than 1 repeat */ (ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) / sizeof(int64_t),
-                           /* less than max repeat */ (MAX_REPEAT_NUM - 1) * ONE_REPEAT_BYTE_SIZE / sizeof(int64_t),
-                           /* mix block, repeat, max repeat*/
-                           ((MAX_REPEAT_NUM - 1) * ONE_REPEAT_BYTE_SIZE + (ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) +
-                             (ONE_BLK_SIZE - sizeof(int64_t))) / sizeof(int64_t)));
+                             /* 1 block */ ONE_BLK_SIZE / sizeof(int64_t),
+                             /* 1 repeat */ ONE_REPEAT_BYTE_SIZE / sizeof(int64_t),
+                             /* max repeat */ MAX_REPEAT_NUM *ONE_REPEAT_BYTE_SIZE / sizeof(int64_t),
+                             /* less than 1 block */ (ONE_BLK_SIZE - sizeof(int64_t)) / sizeof(int64_t),
+                             /* less than 1 repeat */ (ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) / sizeof(int64_t),
+                             /* less than max repeat */ (MAX_REPEAT_NUM - 1) * ONE_REPEAT_BYTE_SIZE / sizeof(int64_t),
+                             /* mix block, repeat, max repeat*/
+                             ((MAX_REPEAT_NUM - 1) * ONE_REPEAT_BYTE_SIZE + (ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) +
+                              (ONE_BLK_SIZE - sizeof(int64_t))) /
+                                 sizeof(int64_t)));
 
 constexpr int64_t CastGenS642F16(const int index) {
   return index % gen_index_div;
@@ -180,8 +176,7 @@ constexpr double ExpectGenS642F16(const int index, const uint8_t x) {
   return double(index % gen_index_div);
 }
 
-class TestApiCastS642F16 : public ::testing::Test, public testing::WithParamInterface<size_t> {
-};
+class TestApiCastS642F16 : public ::testing::Test, public testing::WithParamInterface<size_t> {};
 
 TEST_P(TestApiCastS642F16, Calc) {
   const int size = this->GetParam();
@@ -190,15 +185,16 @@ TEST_P(TestApiCastS642F16, Calc) {
 
 INSTANTIATE_TEST_SUITE_P(DiffLength, TestApiCastS642F16,
                          ::testing::Values(
-                           /* 1 block */ ONE_BLK_SIZE / sizeof(int64_t),
-                           /* 1 repeat */ ONE_REPEAT_BYTE_SIZE / sizeof(int64_t),
-                           /* max repeat */ MAX_REPEAT_NUM *ONE_REPEAT_BYTE_SIZE / sizeof(int64_t),
-                           /* less than 1 block */ (ONE_BLK_SIZE - sizeof(int64_t)) / sizeof(int64_t),
-                           /* less than 1 repeat */ (ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) / sizeof(int64_t),
-                           /* less than max repeat */ (MAX_REPEAT_NUM - 1) * ONE_REPEAT_BYTE_SIZE / sizeof(int64_t),
-                           /* mix block, repeat, max repeat*/
-                           ((MAX_REPEAT_NUM - 1) * ONE_REPEAT_BYTE_SIZE + (ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) +
-                             (ONE_BLK_SIZE - sizeof(int64_t))) / sizeof(int64_t)));
+                             /* 1 block */ ONE_BLK_SIZE / sizeof(int64_t),
+                             /* 1 repeat */ ONE_REPEAT_BYTE_SIZE / sizeof(int64_t),
+                             /* max repeat */ MAX_REPEAT_NUM *ONE_REPEAT_BYTE_SIZE / sizeof(int64_t),
+                             /* less than 1 block */ (ONE_BLK_SIZE - sizeof(int64_t)) / sizeof(int64_t),
+                             /* less than 1 repeat */ (ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) / sizeof(int64_t),
+                             /* less than max repeat */ (MAX_REPEAT_NUM - 1) * ONE_REPEAT_BYTE_SIZE / sizeof(int64_t),
+                             /* mix block, repeat, max repeat*/
+                             ((MAX_REPEAT_NUM - 1) * ONE_REPEAT_BYTE_SIZE + (ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) +
+                              (ONE_BLK_SIZE - sizeof(int64_t))) /
+                                 sizeof(int64_t)));
 
 constexpr float CastGenF162S64(const int index) {
   if (index % gen_index_two == 0) {
@@ -219,13 +215,12 @@ constexpr int64_t ExpectGenF162S64(const int index, const float x) {
     return int64_t(index / gen_index_div + gen_float_suffix);
   }
   if (index % gen_index_three == 0) {
-    return int64_t((index / gen_index_div + gen_float_suffix) * - 1);
+    return int64_t((index / gen_index_div + gen_float_suffix) * -1);
   }
   return int64_t(index / gen_index_div);
 }
 
-class TestApiCastF162S64 : public ::testing::Test, public testing::WithParamInterface<size_t> {
-};
+class TestApiCastF162S64 : public ::testing::Test, public testing::WithParamInterface<size_t> {};
 
 TEST_P(TestApiCastF162S64, Calc) {
   const int size = this->GetParam();
@@ -234,22 +229,23 @@ TEST_P(TestApiCastF162S64, Calc) {
 
 INSTANTIATE_TEST_SUITE_P(DiffLength, TestApiCastF162S64,
                          ::testing::Values(
-                           /* 1 block */ ONE_BLK_SIZE / sizeof(int64_t),
-                           /* 1 repeat */ ONE_REPEAT_BYTE_SIZE / sizeof(int64_t),
-                           /* max repeat */ MAX_REPEAT_NUM *ONE_REPEAT_BYTE_SIZE / sizeof(int64_t),
-                           /* less than 1 block */ (ONE_BLK_SIZE - sizeof(int64_t)) / sizeof(int64_t),
-                           /* less than 1 repeat */ (ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) / sizeof(int64_t),
-                           /* less than max repeat */ (MAX_REPEAT_NUM - 1) * ONE_REPEAT_BYTE_SIZE / sizeof(int64_t),
-                           /* mix block, repeat, max repeat*/
-                           ((MAX_REPEAT_NUM - 1) * ONE_REPEAT_BYTE_SIZE + (ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) +
-                             (ONE_BLK_SIZE - sizeof(int64_t))) / sizeof(int64_t)));
+                             /* 1 block */ ONE_BLK_SIZE / sizeof(int64_t),
+                             /* 1 repeat */ ONE_REPEAT_BYTE_SIZE / sizeof(int64_t),
+                             /* max repeat */ MAX_REPEAT_NUM *ONE_REPEAT_BYTE_SIZE / sizeof(int64_t),
+                             /* less than 1 block */ (ONE_BLK_SIZE - sizeof(int64_t)) / sizeof(int64_t),
+                             /* less than 1 repeat */ (ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) / sizeof(int64_t),
+                             /* less than max repeat */ (MAX_REPEAT_NUM - 1) * ONE_REPEAT_BYTE_SIZE / sizeof(int64_t),
+                             /* mix block, repeat, max repeat*/
+                             ((MAX_REPEAT_NUM - 1) * ONE_REPEAT_BYTE_SIZE + (ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) +
+                              (ONE_BLK_SIZE - sizeof(int64_t))) /
+                                 sizeof(int64_t)));
 
 constexpr uint32_t CastGenUint2Int(const int index) {
   if (index % gen_index_two == 0) {
     return (uint32_t)0xFFFFFF85;
   }
   if (index % gen_index_three == 0) {
-    return uint32_t((index / gen_index_div) * 100 -1);
+    return uint32_t((index / gen_index_div) * 100 - 1);
   }
   return uint32_t(index / gen_index_div);
 }
@@ -263,13 +259,12 @@ constexpr int32_t ExpectGenUint2Int(const int index, const uint32_t x) {
     return int32_t(0xFFFFFF85);
   }
   if (index % gen_index_three == 0) {
-    return int32_t((index / gen_index_div) * 100 -1);
+    return int32_t((index / gen_index_div) * 100 - 1);
   }
   return int32_t(index / gen_index_div);
 }
 
-class TestApiCastUint2Int : public ::testing::Test, public testing::WithParamInterface<size_t> {
-};
+class TestApiCastUint2Int : public ::testing::Test, public testing::WithParamInterface<size_t> {};
 
 TEST_P(TestApiCastUint2Int, Calc) {
   const int size = this->GetParam();
@@ -278,22 +273,23 @@ TEST_P(TestApiCastUint2Int, Calc) {
 
 INSTANTIATE_TEST_SUITE_P(DiffLength, TestApiCastUint2Int,
                          ::testing::Values(
-                           /* 1 block */ ONE_BLK_SIZE / sizeof(int32_t),
-                           /* 1 repeat */ ONE_REPEAT_BYTE_SIZE / sizeof(int32_t),
-                           /* max repeat */ MAX_REPEAT_NUM *ONE_REPEAT_BYTE_SIZE / sizeof(int32_t),
-                           /* less than 1 block */ (ONE_BLK_SIZE - sizeof(int32_t)) / sizeof(int32_t),
-                           /* less than 1 repeat */ (ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) / sizeof(int32_t),
-                           /* less than max repeat */ (MAX_REPEAT_NUM - 1) * ONE_REPEAT_BYTE_SIZE / sizeof(int32_t),
-                           /* mix block, repeat, max repeat*/
-                           ((MAX_REPEAT_NUM - 1) * ONE_REPEAT_BYTE_SIZE + (ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) +
-                             (ONE_BLK_SIZE - sizeof(int32_t))) / sizeof(int32_t)));
+                             /* 1 block */ ONE_BLK_SIZE / sizeof(int32_t),
+                             /* 1 repeat */ ONE_REPEAT_BYTE_SIZE / sizeof(int32_t),
+                             /* max repeat */ MAX_REPEAT_NUM *ONE_REPEAT_BYTE_SIZE / sizeof(int32_t),
+                             /* less than 1 block */ (ONE_BLK_SIZE - sizeof(int32_t)) / sizeof(int32_t),
+                             /* less than 1 repeat */ (ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) / sizeof(int32_t),
+                             /* less than max repeat */ (MAX_REPEAT_NUM - 1) * ONE_REPEAT_BYTE_SIZE / sizeof(int32_t),
+                             /* mix block, repeat, max repeat*/
+                             ((MAX_REPEAT_NUM - 1) * ONE_REPEAT_BYTE_SIZE + (ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) +
+                              (ONE_BLK_SIZE - sizeof(int32_t))) /
+                                 sizeof(int32_t)));
 
 constexpr int64_t CastGenS642U64(const int index) {
   if (index % gen_index_two == 0) {
     return (int64_t)0xFFFFFF85;
   }
   if (index % gen_index_three == 0) {
-    return int64_t((index / gen_index_div) * 100 -1);
+    return int64_t((index / gen_index_div) * 100 - 1);
   }
   return int64_t(index / gen_index_div);
 }
@@ -307,13 +303,12 @@ constexpr uint64_t ExpectGenS642U64(const int index, const int64_t x) {
     return uint64_t(0xFFFFFF85);
   }
   if (index % gen_index_three == 0) {
-    return uint64_t((index / gen_index_div) * 100 -1);
+    return uint64_t((index / gen_index_div) * 100 - 1);
   }
   return uint64_t(index / gen_index_div);
 }
 
-class TestApiCastS642U64 : public ::testing::Test, public testing::WithParamInterface<size_t> {
-};
+class TestApiCastS642U64 : public ::testing::Test, public testing::WithParamInterface<size_t> {};
 
 TEST_P(TestApiCastS642U64, Calc) {
   const int size = this->GetParam();
@@ -322,12 +317,13 @@ TEST_P(TestApiCastS642U64, Calc) {
 
 INSTANTIATE_TEST_SUITE_P(DiffLength, TestApiCastS642U64,
                          ::testing::Values(
-                           /* 1 block */ ONE_BLK_SIZE / sizeof(int64_t),
-                           /* 1 repeat */ ONE_REPEAT_BYTE_SIZE / sizeof(int64_t),
-                           /* max repeat */ MAX_REPEAT_NUM *ONE_REPEAT_BYTE_SIZE / sizeof(int64_t),
-                           /* less than 1 block */ (ONE_BLK_SIZE - sizeof(int64_t)) / sizeof(int64_t),
-                           /* less than 1 repeat */ (ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) / sizeof(int64_t),
-                           /* less than max repeat */ (MAX_REPEAT_NUM - 1) * ONE_REPEAT_BYTE_SIZE / sizeof(int64_t),
-                           /* mix block, repeat, max repeat*/
-                           ((MAX_REPEAT_NUM - 1) * ONE_REPEAT_BYTE_SIZE + (ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) +
-                             (ONE_BLK_SIZE - sizeof(int64_t))) / sizeof(int64_t)));
+                             /* 1 block */ ONE_BLK_SIZE / sizeof(int64_t),
+                             /* 1 repeat */ ONE_REPEAT_BYTE_SIZE / sizeof(int64_t),
+                             /* max repeat */ MAX_REPEAT_NUM *ONE_REPEAT_BYTE_SIZE / sizeof(int64_t),
+                             /* less than 1 block */ (ONE_BLK_SIZE - sizeof(int64_t)) / sizeof(int64_t),
+                             /* less than 1 repeat */ (ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) / sizeof(int64_t),
+                             /* less than max repeat */ (MAX_REPEAT_NUM - 1) * ONE_REPEAT_BYTE_SIZE / sizeof(int64_t),
+                             /* mix block, repeat, max repeat*/
+                             ((MAX_REPEAT_NUM - 1) * ONE_REPEAT_BYTE_SIZE + (ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) +
+                              (ONE_BLK_SIZE - sizeof(int64_t))) /
+                                 sizeof(int64_t)));

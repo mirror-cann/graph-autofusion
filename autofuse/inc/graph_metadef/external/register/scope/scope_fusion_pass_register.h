@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -156,6 +156,7 @@ class GE_FUNC_HOST_VISIBILITY GE_FUNC_DEV_VISIBILITY FusionScopesResult {
     ATTRIBUTED_DEPRECATED(ge::graphStatus GetOutputs(std::vector<std::pair<AscendString, int32_t>> &) const)
     std::vector<std::pair<std::string, int32_t>> GetOutputs() const;
     ge::graphStatus GetOutputs(std::vector<std::pair<AscendString, int32_t>> &outputs) const;
+
    private:
     class InnerNodeInfoImpl;
     std::unique_ptr<InnerNodeInfoImpl> impl_;
@@ -241,7 +242,7 @@ class GE_FUNC_HOST_VISIBILITY GE_FUNC_DEV_VISIBILITY ScopeBaseFeature {
   ScopeBaseFeature &operator=(const ScopeBaseFeature &) = delete;
   ScopeBaseFeature(ScopeBaseFeature &&) = delete;
   ScopeBaseFeature &operator=(ScopeBaseFeature &&) = delete;
-  virtual ~ScopeBaseFeature()= default;
+  virtual ~ScopeBaseFeature() = default;
 };
 
 class GE_FUNC_HOST_VISIBILITY GE_FUNC_DEV_VISIBILITY NodeOpTypeFeature : ScopeBaseFeature {
@@ -262,10 +263,8 @@ class GE_FUNC_HOST_VISIBILITY GE_FUNC_DEV_VISIBILITY NodeOpTypeFeature : ScopeBa
 class GE_FUNC_HOST_VISIBILITY GE_FUNC_DEV_VISIBILITY NodeAttrFeature : ScopeBaseFeature {
  public:
   ATTRIBUTED_DEPRECATED(NodeAttrFeature(const char_t *, const char_t *, ge::DataType, ScopeAttrValue &))
-  NodeAttrFeature(std::string nodeType, std::string attr_name,
-                  ge::DataType datatype, ScopeAttrValue &attr_value);
-  NodeAttrFeature(const char_t *node_type, const char_t *attr_name,
-                  ge::DataType data_type, ScopeAttrValue &attr_value);
+  NodeAttrFeature(std::string nodeType, std::string attr_name, ge::DataType datatype, ScopeAttrValue &attr_value);
+  NodeAttrFeature(const char_t *node_type, const char_t *attr_name, ge::DataType data_type, ScopeAttrValue &attr_value);
   NodeAttrFeature(NodeAttrFeature const &feature);
   NodeAttrFeature &operator=(NodeAttrFeature const &feature);
   ~NodeAttrFeature() override;
@@ -279,10 +278,10 @@ class GE_FUNC_HOST_VISIBILITY GE_FUNC_DEV_VISIBILITY NodeAttrFeature : ScopeBase
 class GE_FUNC_HOST_VISIBILITY GE_FUNC_DEV_VISIBILITY ScopeFeature : ScopeBaseFeature {
  public:
   ATTRIBUTED_DEPRECATED(ScopeFeature(const char_t *, int32_t, const char_t *, const char_t *, int))
-  ScopeFeature(std::string sub_type, int32_t num, std::string suffix = "",
-               std::string sub_scope_mask = "", int32_t step = 0);
-  ScopeFeature(const char_t *sub_type, int32_t num, const char_t *suffix,
-               const char_t *sub_scope_mask, int32_t step = 0);
+  ScopeFeature(std::string sub_type, int32_t num, std::string suffix = "", std::string sub_scope_mask = "",
+               int32_t step = 0);
+  ScopeFeature(const char_t *sub_type, int32_t num, const char_t *suffix, const char_t *sub_scope_mask,
+               int32_t step = 0);
   ScopeFeature(ScopeFeature const &feature);
   ScopeFeature &operator=(ScopeFeature const &feature);
   ~ScopeFeature() override;
@@ -358,7 +357,7 @@ class GE_FUNC_HOST_VISIBILITY GE_FUNC_DEV_VISIBILITY ScopeFusionPassRegistry {
   using CreateFn = ScopeBasePass *(*)();
   ~ScopeFusionPassRegistry();
 
-  static ScopeFusionPassRegistry& GetInstance();
+  static ScopeFusionPassRegistry &GetInstance();
 
   ATTRIBUTED_DEPRECATED(void RegisterScopeFusionPass(const char_t *, CreateFn, bool))
   void RegisterScopeFusionPass(const std::string &pass_name, CreateFn create_fn, bool is_general);
@@ -387,7 +386,7 @@ class GE_FUNC_HOST_VISIBILITY GE_FUNC_DEV_VISIBILITY ScopeFusionPassRegistrar {
   ScopeFusionPassRegistrar(const char_t *pass_name, ScopeBasePass *(*create_fn)(), bool is_general);
   ~ScopeFusionPassRegistrar() = default;
 };
-}  // namespace ge
+}  // namespace af
 #define REGISTER_SCOPE_FUSION_PASS(pass_name, scope_pass, is_general) \
   REGISTER_SCOPE_FUSION_PASS_UNIQ_HELPER(__COUNTER__, (pass_name), scope_pass, (is_general))
 
@@ -399,4 +398,3 @@ class GE_FUNC_HOST_VISIBILITY GE_FUNC_DEV_VISIBILITY ScopeFusionPassRegistrar {
       ::ge::ScopeFusionPassRegistrar(                                                             \
           (pass_name), []() -> ::ge::ScopeBasePass * { return new (std::nothrow) scope_pass(); }, (is_general))
 #endif  // EXTERNAL_REGISTER_SCOPE_SCOPE_FUSION_PASS_REGISTER_H_
-

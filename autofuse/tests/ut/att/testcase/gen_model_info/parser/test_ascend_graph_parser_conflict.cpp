@@ -21,8 +21,12 @@ using namespace att;
 
 class TestAscendGraphParserConflict : public testing::Test {
  public:
-  static void TearDownTestCase() { std::cout << "Test end." << std::endl; }
-  static void SetUpTestCase() { std::cout << "Test begin." << std::endl; }
+  static void TearDownTestCase() {
+    std::cout << "Test end." << std::endl;
+  }
+  static void SetUpTestCase() {
+    std::cout << "Test begin." << std::endl;
+  }
   void SetUp() override {
     tuning_space = std::make_shared<att::TuningSpace>();
     EXPECT_NE(tuning_space, nullptr);

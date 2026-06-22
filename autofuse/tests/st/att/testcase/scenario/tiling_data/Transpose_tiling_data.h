@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2026 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -92,19 +92,19 @@ TILING_DATA_FIELD_DEF_STRUCT(ConfusionTransposeTiling, transpose_tilingData_0)
 
 END_TILING_DATA_DEF
 REGISTER_TILING_DATA_CLASS(Transpose, graph_normalTilingData)
-using AutofuseTilingData =  graph_normalTilingData;
+using AutofuseTilingData = graph_normalTilingData;
 
 struct AutofuseTilingDataPerf {
   AutofuseTilingData tiling_data;
   double best_perf;
 };
-typedef long int (*ProfilingCallback)(
-void* stream, uint32_t workspaceSize, AutofuseTilingData* tiling_data, double* cost_time);
-typedef long int (*ProfilingBatchCallback)(
-void* stream, uint32_t workspaceSize, std::vector<AutofuseTilingDataPerf> *profiles);
+typedef long int (*ProfilingCallback)(void *stream, uint32_t workspaceSize, AutofuseTilingData *tiling_data,
+                                      double *cost_time);
+typedef long int (*ProfilingBatchCallback)(void *stream, uint32_t workspaceSize,
+                                           std::vector<AutofuseTilingDataPerf> *profiles);
 class PgoConfig {
-public:
-  static PgoConfig& Instance() {
+ public:
+  static PgoConfig &Instance() {
     static PgoConfig instance;
     return instance;
   }
@@ -116,7 +116,8 @@ public:
   constexpr static size_t pgo_threshold_list_size = 5;
   std::array<double, pgo_threshold_list_size> pgo_ub_threshold_list{0.2, 0.1, 0, 0.05, 0.1};
   std::array<double, pgo_threshold_list_size> pgo_corenum_threshold_list{0.4, 0.4, 1, 1, 0.8};
-private:
+
+ private:
   PgoConfig() = default;
   ~PgoConfig() = default;
   PgoConfig(const PgoConfig &) = delete;
@@ -125,5 +126,7 @@ private:
 bool GetTiling(graph_normalTilingData &tiling_data, int32_t tilingCaseId = -1);
 }  // namespace optiling
 using optiling::AutofuseTilingData;
-static uint32_t GetWorkspaceSize(const AutofuseTilingData &tiling_data) {return 0;}
+static uint32_t GetWorkspaceSize(const AutofuseTilingData &tiling_data) {
+  return 0;
+}
 #endif

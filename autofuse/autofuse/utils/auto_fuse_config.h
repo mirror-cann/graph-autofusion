@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -113,12 +113,12 @@ inline std::unordered_set<std::string> ReadImprovePrecisionBlacklist(std::string
 inline std::unordered_set<std::string> ReadImprovePrecisionBlacklist(const char *env_name) {
   std::string input = ReadStringEnv(env_name, "");
   std::unordered_set<std::string> tokens;
-  
+
   // 移除末尾的标点符号（如果存在）
   if (!input.empty() && std::ispunct(input.back())) {
     input.pop_back();
   }
-  
+
   // 使用 stringstream 分割字符串
   size_t start = 0;
   size_t end = input.find(',');
@@ -138,29 +138,24 @@ inline void Trim(std::string &str) {
   str.erase(str.find_last_not_of(" \t\r\n") + 1);
 }
 
-inline void ParseSkipNodeNamesConfig(const std::string &config_path, 
-                                    std::unordered_set<std::string> &skip_node_types,
-                                    std::unordered_set<std::string> &skip_node_names) {
+inline void ParseSkipNodeNamesConfig(const std::string &config_path, std::unordered_set<std::string> &skip_node_types,
+                                     std::unordered_set<std::string> &skip_node_names) {
   std::ifstream file(config_path);
   if (!file.is_open()) {
     GELOGW("Failed to open skip node names config file: %s", config_path.c_str());
     return;
   }
-  
+
   std::string line;
-  enum class ParseSection {
-    NONE,
-    BY_NODE_TYPE,
-    BY_NODE_NAME
-  };
+  enum class ParseSection { NONE, BY_NODE_TYPE, BY_NODE_NAME };
   ParseSection current_section = ParseSection::NONE;
-  
+
   while (std::getline(file, line)) {
     Trim(line);
     if (line.empty() || line[0] == '#') {
       continue;
     }
-    
+
     if (line[0] == '[' && line.back() == ']') {
       std::string section_name = line.substr(1, line.length() - 2);
       Trim(section_name);
@@ -173,7 +168,7 @@ inline void ParseSkipNodeNamesConfig(const std::string &config_path,
       }
       continue;
     }
-    
+
     if (current_section == ParseSection::BY_NODE_TYPE) {
       skip_node_types.insert(line);
       GELOGD("Add skip node type: %s", line.c_str());
@@ -182,10 +177,10 @@ inline void ParseSkipNodeNamesConfig(const std::string &config_path,
       GELOGD("Add skip node name: %s", line.c_str());
     }
   }
-  
+
   file.close();
-  GELOGI("Loaded skip node config from %s, skip types: %zu, skip names: %zu", 
-         config_path.c_str(), skip_node_types.size(), skip_node_names.size());
+  GELOGI("Loaded skip node config from %s, skip types: %zu, skip names: %zu", config_path.c_str(),
+         skip_node_types.size(), skip_node_names.size());
 }
 
 class AutoFuseConfig {
@@ -204,8 +199,8 @@ class AutoFuseConfig {
   };
 
   struct LoweringStrategyConfig {
-    uint64_t max_fused_loop_ops{64U};   // loop融合循环节点的最大loop ops数
-    size_t max_buffer_readers{4U};    // kernel box最大允许的读取node数量，超过该数量则会终止融合
+    uint64_t max_fused_loop_ops{64U};  // loop融合循环节点的最大loop ops数
+    size_t max_buffer_readers{4U};     // kernel box最大允许的读取node数量，超过该数量则会终止融合
     size_t max_k_for_vectorize_mm{32U};  // 在n=1时，k小于等于该值，则触发将mm转换为mul+reduce的vector计算
     size_t recomputation_threshold{1U};  // 单输出节点重计算阈值，节点输出output个数大于该值将realize
     bool experimental_lowering_reduce{false};
@@ -217,8 +212,8 @@ class AutoFuseConfig {
     bool experimental_lowering_matmul{false};
     bool experimental_lowering_conv{false};
     bool experimental_disable_lifting{false};
-    std::unordered_set<std::string> skip_node_types;     // 需要跳过lowering的节点类型
-    std::unordered_set<std::string> skip_node_names;     // 需要跳过lowering的节点名称
+    std::unordered_set<std::string> skip_node_types;  // 需要跳过lowering的节点类型
+    std::unordered_set<std::string> skip_node_names;  // 需要跳过lowering的节点名称
     bool enable_subgraph_recover{false};  // 是否使能融合子图还原落盘（--subgraph_recover=true）
   };
 
@@ -285,7 +280,7 @@ class AutoFuseConfig {
   }
 
   void LoweringRecomputationThresholdConfigUpdate(size_t &recomputation_threshold,
-    const std::unordered_map<std::string, std::string> &all_flags) const {
+                                                  const std::unordered_map<std::string, std::string> &all_flags) const {
     constexpr int64_t recomputation_max = 255L;
     auto recomputation_threshold_flag = all_flags.find("--recomputation_threshold");
     if (recomputation_threshold_flag != all_flags.end()) {
@@ -395,11 +390,10 @@ class AutoFuseConfig {
     bool enable_subgraph_recover =
         all_flags.find("--subgraph_recover") != all_flags.end() && all_flags["--subgraph_recover"] == "true";
     this->lowering_strategy_config_.enable_subgraph_recover = enable_subgraph_recover;
-    
+
     auto skip_node_names_cfg = all_flags.find("--skip_node_names_cfg");
     if (skip_node_names_cfg != all_flags.end()) {
-      ParseSkipNodeNamesConfig(skip_node_names_cfg->second, 
-                               this->lowering_strategy_config_.skip_node_types,
+      ParseSkipNodeNamesConfig(skip_node_names_cfg->second, this->lowering_strategy_config_.skip_node_types,
                                this->lowering_strategy_config_.skip_node_names);
     }
     return;
@@ -407,7 +401,7 @@ class AutoFuseConfig {
   LoweringStrategyConfig lowering_strategy_config_;
   FusionStrategySolverConfig fusion_strategy_solver_;
 };
-} // namespace autofuse
+}  // namespace autofuse
 }  // namespace ge
 
 #endif  // AIR_CXX_COMPILER_GRAPH_OPTIMIZE_AUTOFUSE_UTILS_AUTO_FUSE_CONFIG_H_

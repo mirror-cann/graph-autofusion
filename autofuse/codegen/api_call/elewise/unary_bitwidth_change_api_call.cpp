@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -26,8 +26,7 @@ using namespace af::ops;
 using namespace af::ascir_op;
 using namespace ascgen_utils;
 
-Status UnaryBitWidthChangeApiCall::Generate(const TPipe &tpipe,
-                                            const std::vector<ascir::AxisId> &current_axis,
+Status UnaryBitWidthChangeApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
                                             const std::vector<std::reference_wrapper<const Tensor>> &inputs,
                                             const std::vector<std::reference_wrapper<const Tensor>> &outputs,
                                             std::string &result) const {
@@ -54,17 +53,21 @@ Status UnaryBitWidthChangeApiCall::Generate(const TPipe &tpipe,
   SaveApiLoopAxisParams(merge_info, param);
   stringstream ss;
   if (param.outer_repeats.size() == 0) {
-    (void)RegisterBasicDumpParam(this->api_name_, inputs, outputs, CombinedExprFactory::SymbolVar(x.actual_size.Str()), tpipe.tmp_buf.name + "_" + std::to_string(id));
+    (void)RegisterBasicDumpParam(this->api_name_, inputs, outputs, CombinedExprFactory::SymbolVar(x.actual_size.Str()),
+                                 tpipe.tmp_buf.name + "_" + std::to_string(id));
     ss << this->api_name_ << "(" << y << "[" << tpipe.tiler.TensorVectorizedOffset(current_axis, y) << "], " << x << "["
        << tpipe.tiler.TensorVectorizedOffset(current_axis, x) << "], " << tpipe.tmp_buf << "_" << std::to_string(id)
        << ", " << x.actual_size << ");" << std::endl;
   } else {
-    (void)RegisterBasicDumpParam(this->api_name_, inputs, outputs, CombinedExprFactory::SymbolVar(tpipe.tiler.ActualSize(param.cal_count)), tpipe.tmp_buf.name + "_" + std::to_string(id));
+    (void)RegisterBasicDumpParam(this->api_name_, inputs, outputs,
+                                 CombinedExprFactory::SymbolVar(tpipe.tiler.ActualSize(param.cal_count)),
+                                 tpipe.tmp_buf.name + "_" + std::to_string(id));
     std::string input_inner_offset = CalcInnerOffset(tpipe, param.inputs_strides[0]);
     std::string output_inner_offset = CalcInnerOffset(tpipe, param.outputs_strides[0]);
     std::stringstream ss1;
     ss1 << this->api_name_ << "(" << y << "[" << output_inner_offset << "], " << x << "[" << input_inner_offset << "], "
-        << tpipe.tmp_buf << "_" << std::to_string(id) << ", " << tpipe.tiler.ActualSize(param.cal_count) << ");" << std::endl;
+        << tpipe.tmp_buf << "_" << std::to_string(id) << ", " << tpipe.tiler.ActualSize(param.cal_count) << ");"
+        << std::endl;
     CreateComputeNodeOuterFor(param.outer_repeats, ss1, ss, 0);
   }
 
@@ -75,4 +78,4 @@ Status UnaryBitWidthChangeApiCall::Generate(const TPipe &tpipe,
 static ApiCallRegister<UnaryBitWidthChangeApiCall> register_unary_bitwidth_change_api_call(
     "UnaryBitWidthChangeApiCall");
 
-} // namespace codegen
+}  // namespace codegen

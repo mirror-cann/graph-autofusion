@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -53,11 +53,11 @@ class AttrString {
 
  private:
   static std::string ToString(const int64_t value, const bool skip_empty = false) {
-    (void) skip_empty;
+    (void)skip_empty;
     return std::to_string(value);
   }
   static std::string ToString(const float value, const bool skip_empty = false) {
-    (void) skip_empty;
+    (void)skip_empty;
     return std::to_string(value);
   }
   static std::string ToString(const std::string &value, const bool skip_empty = false) {
@@ -67,11 +67,11 @@ class AttrString {
     return "\"" + value + "\"";
   }
   static std::string ToString(const bool value, const bool skip_empty = false) {
-    (void) skip_empty;
+    (void)skip_empty;
     return value != 0U ? "true" : "false";
   }
   static std::string ToString(const ge::DataType value, const bool skip_empty = false) {
-    (void) skip_empty;
+    (void)skip_empty;
     auto dt_str = TypeUtils::DataTypeToSerialString(value);
     if (dt_str == "UNDEFINED") {
       throw std::runtime_error("Unexpected data type: " + std::to_string(static_cast<int>(value)));
@@ -79,7 +79,7 @@ class AttrString {
     return "ge::" + dt_str;
   }
   static std::string ToString(const af::ConstGeTensorPtr &value, const bool skip_empty = false) {
-    (void) skip_empty;
+    (void)skip_empty;
     if (value == nullptr) {
       return "";
     }
@@ -112,18 +112,19 @@ class AttrString {
     return ss.str();
   }
 
-#define GetFunc(AttrUtilType, CppType)                                                           \
-  static std::string Get##AttrUtilType(const OpDescPtr &op_desc, const std::string &attr_name, const bool skip_empty) { \
-    CppType default_value;                                                                       \
-    if (!AttrUtils::Get##AttrUtilType(op_desc, attr_name, default_value)) {                      \
-      throw std::runtime_error("Failed to get default value of attr: " + attr_name);             \
-    }                                                                                            \
-    return ToString(default_value, skip_empty);                                                  \
+#define GetFunc(AttrUtilType, CppType)                                                         \
+  static std::string Get##AttrUtilType(const OpDescPtr &op_desc, const std::string &attr_name, \
+                                       const bool skip_empty) {                                \
+    CppType default_value;                                                                     \
+    if (!AttrUtils::Get##AttrUtilType(op_desc, attr_name, default_value)) {                    \
+      throw std::runtime_error("Failed to get default value of attr: " + attr_name);           \
+    }                                                                                          \
+    return ToString(default_value, skip_empty);                                                \
   }
   GetFunc(Int, int64_t);
   GetFunc(Float, float);
   static std::string GetStr(const OpDescPtr &op_desc, const std::string &attr_name, const bool skip_empty) {
-    const std::string *ptr = AttrUtils::GetStr(op_desc, attr_name); 
+    const std::string *ptr = AttrUtils::GetStr(op_desc, attr_name);
     if (ptr == nullptr) {
       throw std::runtime_error("Failed to get default value of attr: " + attr_name);
     }
@@ -142,5 +143,5 @@ class AttrString {
 
 #undef GetFunc
 };
-}  // namespace ge
+}  // namespace af
 #endif  // __INC_METADEF_DEFAULT_ATTR_UTILS_H

@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -22,7 +22,7 @@
 #include "ascir/ascir_codegen_v2.h"
 
 namespace codegen {
-using MicroApiCallCreatorFun = std::function<MicroApiCall*(const std::string&)>;
+using MicroApiCallCreatorFun = std::function<MicroApiCall *(const std::string &)>;
 
 class MicroApiCallFactory {
  public:
@@ -42,12 +42,12 @@ class MicroApiCallFactory {
     return func(micro_api_name);
   }
 
-  MicroApiCallFactory(const MicroApiCallFactory&) = delete;
-  MicroApiCallFactory& operator=(const MicroApiCallFactory&) = delete;
+  MicroApiCallFactory(const MicroApiCallFactory &) = delete;
+  MicroApiCallFactory &operator=(const MicroApiCallFactory &) = delete;
 
   class Register {
    public:
-    Register(const std::string& class_name, const MicroApiCallCreatorFun &func) noexcept {
+    Register(const std::string &class_name, const MicroApiCallCreatorFun &func) noexcept {
       MicroApiCallFactory::Instance().RegisterCreator(class_name, func);
     }
 
@@ -59,7 +59,7 @@ class MicroApiCallFactory {
   MicroApiCallFactory() = default;
 
   ~MicroApiCallFactory() = default;
-  void RegisterCreator(const std::string& class_name, const MicroApiCallCreatorFun &func) {
+  void RegisterCreator(const std::string &class_name, const MicroApiCallCreatorFun &func) {
     std::lock_guard<std::mutex> lock(mutex_);
     const auto iter = creator_map_.find(class_name);
     if (iter != creator_map_.end()) {
@@ -77,9 +77,9 @@ template <typename T>
 class MicroApiCallRegister {
  public:
   // 构造函数：自动注册类
-  explicit MicroApiCallRegister(const std::string& className) {
+  explicit MicroApiCallRegister(const std::string &className) {
     // 正确用法：使用模板参数T创建对象，而非字符串className
-    MicroApiCallCreatorFun creator = [](const std::string& name) {
+    MicroApiCallCreatorFun creator = [](const std::string &name) {
       return new (std::nothrow) T(name);  // 直接使用模板类型T
     };
     MicroApiCallFactory::Register(className, creator);
@@ -94,10 +94,9 @@ inline MicroApiCall *CreateMicroApiCallObject(const ascir::NodeView &node) {
   }
 
   GELOGD("create micro api call, type:%s, micro_api_call_name:%s, micro_api_name:%s.", node->GetTypePtr(),
-         impl->GetMicroApiCallName().c_str(),
-         impl->GetMicroApiName().c_str());
+         impl->GetMicroApiCallName().c_str(), impl->GetMicroApiName().c_str());
   return MicroApiCallFactory::Instance().Create(impl->GetMicroApiCallName(), impl->GetMicroApiName());
 }
 
 }  // namespace codegen
-#endif // __AUTOFUSE_MICRO_API_CALL_FACTORY_H__
+#endif  // __AUTOFUSE_MICRO_API_CALL_FACTORY_H__

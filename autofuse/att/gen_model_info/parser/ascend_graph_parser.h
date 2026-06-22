@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -16,21 +16,21 @@
 
 namespace att {
 struct ScheduleAttr {
-  std::vector<af::AxisPtr> sched_axis_info; // sched axis info
-  std::vector<int64_t> block_out_dim_info; // block outer axis ids
+  std::vector<af::AxisPtr> sched_axis_info;  // sched axis info
+  std::vector<int64_t> block_out_dim_info;   // block outer axis ids
   int64_t exe_order;
   int64_t loop_axis_id;
   af::ExecuteCondition exec_condition{af::ExecuteCondition::kNoCache};
 };
 
 class AscendGraphParser {
-public:
+ public:
   explicit AscendGraphParser(TuningSpacePtr tuning_space) : tuning_space_(tuning_space) {}
   virtual ~AscendGraphParser() = default;
 
   af::Status GraphParser(const af::AscGraph &graph);
 
-private:
+ private:
   // 获取所有轴对应的原始轴id
   af::Status ParserOriginAxis(const af::AscGraph &graph);
 
@@ -38,7 +38,8 @@ private:
   af::Status ParserSchedInfo(const af::AscGraph &graph);
 
   // 创建求解器需要的轴信息
-  af::Status ParseInputTensor(const af::AscNodePtr &ge_node, const NodeInfo &node_info, size_t in_id, TensorPtr &tensor);
+  af::Status ParseInputTensor(const af::AscNodePtr &ge_node, const NodeInfo &node_info, size_t in_id,
+                              TensorPtr &tensor);
   af::Status AddSubAxisInfo(af::AxisPtr &axis_info);
   af::Status CreateSubAxisInfo(const af::AscGraph &graph);
 
@@ -53,7 +54,7 @@ private:
   af::Status ConstructBufferContainer(const af::AscTensorAttr &ascir_tensor_info);
   af::Status ConstructGlobalContainer(const af::AscTensorAttr &ascir_tensor_info);
   af::Status ParseTensorMemInfo(const af::AscTensorAttr &ascir_tensor_info, std::string &node_type,
-                           const TensorPtr &tensor);
+                                const TensorPtr &tensor);
 
   void ParseTensorOrigIdx(TensorPtr &tensor) const;
 
@@ -64,8 +65,7 @@ private:
   af::Status GetTensorAxes(TensorPtr &tensor, af::AscTensorAttr &tensor_attr);
 
   // 获取tensor属性信息
-  af::Status GetTensorAttrs(const af::AscNodePtr &node, const TensorPtr &tensor,
-                        size_t id, bool input);
+  af::Status GetTensorAttrs(const af::AscNodePtr &node, const TensorPtr &tensor, size_t id, bool input);
 
   // 设置遍历轴优先级和默认值
   af::Status SetAxisPriority(const af::AscGraph &graph);
@@ -74,14 +74,12 @@ private:
   af::Status ParseWorkspaceNode(const af::AscNodePtr &ge_node);
 
   // 解析node output tensors
-  af::Status ParserNodeOutputInfos(const af::AscNodePtr &ge_node, const af::AscGraph &graph,
-                               NodeInfo &node_info);
+  af::Status ParserNodeOutputInfos(const af::AscNodePtr &ge_node, const af::AscGraph &graph, NodeInfo &node_info);
 
   void UpdateTensorLocType(const af::AscNodePtr &ge_node, size_t &in_id, TensorPtr &tensor) const;
 
   // 解析node input tensors
-  af::Status ParserNodeInputInfos(const af::AscNodePtr &ge_node, const af::AscGraph &graph,
-                              NodeInfo &node_info);
+  af::Status ParserNodeInputInfos(const af::AscNodePtr &ge_node, const af::AscGraph &graph, NodeInfo &node_info);
   // 解析block outer信息
   af::Status ParserBlockDimInfo();
 
@@ -136,21 +134,22 @@ private:
   // 辅助方法：检查并标记轴是否为 Broadcast 分核轴
   bool CheckAndMarkBroadcastSplitAxis(SubAxis *axis, const std::set<std::string> &broadcast_axis_orig_names) const;
 
-private:
-  std::map<std::string, TensorPtr> tensor_info_; // 记录所有tensor信息，目前未用到
-  std::map<size_t, SubAxisPtr> sub_axes_info_; // 轴id到att处理过的轴信息, sub axis ptr owner
-  std::map<size_t, af::AscNodePtr> topo_order_node_; // <算子执行拓扑序，执行node>
-  std::map<int64_t, af::AxisPtr> axes_info_; // 记录图上的所有轴信息
-  std::map<int32_t, ContainerPtr> queue_containers_; // 图上的queue信息
-  std::map<int32_t, ContainerPtr> buf_containers_; // 图上的buf信息
-  std::map<HardwareDef, ContainerPtr> global_containers_; // 图上的global信息
-  std::unordered_map<int64_t, std::vector<int64_t>> orig_axes_info_; // 获取所有轴对应的原始轴id
-  std::unordered_map<int64_t, std::vector<int64_t>> parent_axes_info_; // 获取所有轴对应父轴id
-  std::unordered_map<int64_t, int64_t> orig_to_first_vec_id_; // 一个原始轴出现在第一个vectorized轴id（稀疏场景）
-  std::map<ContainerPtr, std::map<int32_t, std::vector<TensorPtr>>> combined_tensors_; // 一个container里面的tensor是否共存
-  std::map<af::AscNodePtr, ScheduleAttr> graph_sched_info_; // node的调度信息
+ private:
+  std::map<std::string, TensorPtr> tensor_info_;           // 记录所有tensor信息，目前未用到
+  std::map<size_t, SubAxisPtr> sub_axes_info_;             // 轴id到att处理过的轴信息, sub axis ptr owner
+  std::map<size_t, af::AscNodePtr> topo_order_node_;       // <算子执行拓扑序，执行node>
+  std::map<int64_t, af::AxisPtr> axes_info_;               // 记录图上的所有轴信息
+  std::map<int32_t, ContainerPtr> queue_containers_;       // 图上的queue信息
+  std::map<int32_t, ContainerPtr> buf_containers_;         // 图上的buf信息
+  std::map<HardwareDef, ContainerPtr> global_containers_;  // 图上的global信息
+  std::unordered_map<int64_t, std::vector<int64_t>> orig_axes_info_;    // 获取所有轴对应的原始轴id
+  std::unordered_map<int64_t, std::vector<int64_t>> parent_axes_info_;  // 获取所有轴对应父轴id
+  std::unordered_map<int64_t, int64_t> orig_to_first_vec_id_;  // 一个原始轴出现在第一个vectorized轴id（稀疏场景）
+  std::map<ContainerPtr, std::map<int32_t, std::vector<TensorPtr>>>
+      combined_tensors_;                                     // 一个container里面的tensor是否共存
+  std::map<af::AscNodePtr, ScheduleAttr> graph_sched_info_;  // node的调度信息
   TuningSpacePtr tuning_space_;
 };
-} // namespace att
+}  // namespace att
 
-#endif // PARSER_ASCEND_GRAPH_PARSER_H_
+#endif  // PARSER_ASCEND_GRAPH_PARSER_H_

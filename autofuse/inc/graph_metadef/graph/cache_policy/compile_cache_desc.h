@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -55,9 +55,7 @@ class BinaryHolder {
 class TensorInfoArgs {
  public:
   TensorInfoArgs(const Format format, const Format origin_format, const DataType data_type)
-    : format_(format),
-      origin_format_(origin_format),
-      data_type_(data_type) {}
+      : format_(format), origin_format_(origin_format), data_type_(data_type) {}
 
   ~TensorInfoArgs() = default;
 
@@ -85,6 +83,7 @@ class TensorInfoArgs {
 
 class CompileCacheDesc : public CacheDesc {
   friend class CacheHasher;
+
  public:
   CompileCacheDesc() = default;
   ~CompileCacheDesc() override = default;
@@ -101,15 +100,15 @@ class CompileCacheDesc : public CacheDesc {
 
  private:
   bool CheckWithoutTensorInfo(const CompileCacheDesc *first, const CompileCacheDesc *second) const;
-  std::string op_type_; // op type
-  SmallVector<uint64_t, kDefaultMaxInputNum> scope_id_; // graph_id and session_id
-  SmallVector<TensorInfoArgs, kDefaultMaxInputNum> tensor_info_args_vec_; // input tensordescs
-  SmallVector<BinaryHolder, kDefaultMaxInputNum> other_desc_; // attrs float float size
+  std::string op_type_;                                                    // op type
+  SmallVector<uint64_t, kDefaultMaxInputNum> scope_id_;                    // graph_id and session_id
+  SmallVector<TensorInfoArgs, kDefaultMaxInputNum> tensor_info_args_vec_;  // input tensordescs
+  SmallVector<BinaryHolder, kDefaultMaxInputNum> other_desc_;              // attrs float float size
 };
-}  // namespace ge
+}  // namespace af
 
 namespace std {
-template<>
+template <>
 struct hash<af::BinaryHolder> {
   size_t operator()(const af::BinaryHolder &value) const {
     GE_CHECK_NOTNULL(value.GetDataPtr());

@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -25,11 +25,9 @@
 #include <string>
 #include <sstream>
 
-class TestBackendSubTransposeAbsE2e : public testing::Test {
-};
+class TestBackendSubTransposeAbsE2e : public testing::Test {};
 
 TEST_F(TestBackendSubTransposeAbsE2e, SubTransposeAbsE2eCodegen) {
-
   bool gen_success = true;
   std::string tilig_stub = R"(
 #define REGISTER_TILING_DEFAULT(tiling)
@@ -37,20 +35,18 @@ TEST_F(TestBackendSubTransposeAbsE2e, SubTransposeAbsE2eCodegen) {
 )";
 
   // shape_info 和 SubTransposeAbsFusedGraph入参dims_size匹配（个数相同，命名规则为s开头、编号从0开始）
-  std::map<std::string, std::string> shape_info(
-        { {"s0", "stub_s0"}, {"s1", "stub_s1"}, {"s2", "stub_s2"} }
-    );
+  std::map<std::string, std::string> shape_info({{"s0", "stub_s0"}, {"s1", "stub_s1"}, {"s2", "stub_s2"}});
   auto shape_env = ge::ShapeEnvAttr(ge::ShapeEnvSetting(false, ge::DynamicMode::kDynamic));
   SetCurShapeEnvContext(&shape_env);
   auto s0 = shape_env.CreateSymbol(32, ge::MakeShared<ge::GraphInputShapeSourceStub>(0, 0));
   auto s1 = shape_env.CreateSymbol(64, ge::MakeShared<ge::GraphInputShapeSourceStub>(0, 1));
   auto s2 = shape_env.CreateSymbol(512, ge::MakeShared<ge::GraphInputShapeSourceStub>(0, 2));
   auto graph = ascir::ShareGraph::SubTransposeAbsFusedGraph(3, {1, 0, 2});
-  std::cout<<"KERNEL_SRC_LIST="<<KERNEL_SRC_LIST<<std::endl;
+  std::cout << "KERNEL_SRC_LIST=" << KERNEL_SRC_LIST << std::endl;
   std::vector<std::string> parts = splitString(KERNEL_SRC_LIST, ':');
-  std::string kernel_src_file_name = parts[0];      // sub_transpose_abs_test_tiling.cpp
-  std::string tiling_src_file_name = parts[1];      // sub_transpose_abs_test_kernel.cpp
-  std::string tiling_data_src_file_name = parts[2]; // autofuse_tiling_data.h
+  std::string kernel_src_file_name = parts[0];       // sub_transpose_abs_test_tiling.cpp
+  std::string tiling_src_file_name = parts[1];       // sub_transpose_abs_test_kernel.cpp
+  std::string tiling_data_src_file_name = parts[2];  // autofuse_tiling_data.h
 
   try {
     optimize::Optimizer optimizer(optimize::OptimizerOptions{});
@@ -69,8 +65,7 @@ TEST_F(TestBackendSubTransposeAbsE2e, SubTransposeAbsE2eCodegen) {
     kernel_file << tilig_stub << RemoveSubDirInclude(result.kernel);
     tiling_file << result.tiling;
     tiling_data_file << result.tiling_data;
-  }
-  catch (...) {
+  } catch (...) {
     gen_success = false;
   }
 

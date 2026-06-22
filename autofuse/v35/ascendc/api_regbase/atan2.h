@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2026 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -36,7 +36,7 @@ constexpr float ATAN2_HALF_NAN = 0x7e00;
 */
 
 template <typename T>
-__aicore__ inline void AtanPostProcess(__ubuf__ T* dst, __ubuf__ T* src0, __ubuf__ T* src1, __ubuf__ T* src_atan,
+__aicore__ inline void AtanPostProcess(__ubuf__ T *dst, __ubuf__ T *src0, __ubuf__ T *src1, __ubuf__ T *src_atan,
                                        uint32_t calc_cnt) {
   uint32_t vl_size = static_cast<uint32_t>(GetVecLen() / sizeof(T));
   uint16_t repeat_time = static_cast<uint16_t>(AscendC::CeilDivision(calc_cnt, vl_size));
@@ -91,11 +91,11 @@ __aicore__ inline void AtanPostProcess(__ubuf__ T* dst, __ubuf__ T* src0, __ubuf
 }
 
 template <typename T>
-__aicore__ inline void Atan2Extend(const LocalTensor<T>& dst, const LocalTensor<T>& src0, const LocalTensor<T>& src1,
+__aicore__ inline void Atan2Extend(const LocalTensor<T> &dst, const LocalTensor<T> &src0, const LocalTensor<T> &src1,
                                    AscendC::LocalTensor<uint8_t> &tmp_buf, const uint32_t calc_cnt) {
   AscendC::Div(dst, src1, src0, calc_cnt);
   AscendC::Atan(dst, dst, tmp_buf, calc_cnt);
-  VF_CALL<AtanPostProcess<T>>((__ubuf__ T*)dst.GetPhyAddr(), (__ubuf__ T*)src0.GetPhyAddr(),
-                              (__ubuf__ T*)src1.GetPhyAddr(), (__ubuf__ T*)dst.GetPhyAddr(), calc_cnt);
+  VF_CALL<AtanPostProcess<T>>((__ubuf__ T *)dst.GetPhyAddr(), (__ubuf__ T *)src0.GetPhyAddr(),
+                              (__ubuf__ T *)src1.GetPhyAddr(), (__ubuf__ T *)dst.GetPhyAddr(), calc_cnt);
 }
 #endif

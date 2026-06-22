@@ -12,44 +12,47 @@
 #define __ASCENDC_API_REGBASE_SHIFTED_CHEBYSHEV_POLYNOMIAL_UTILS_H__
 
 template <typename T, int64_t N, int64_t curN = 2>
-__simd_callee__ inline void ShiftedChebyshevPolynomialCalByTemplateExpansion(
-    AscendC::Reg::RegTensor<T>& res, AscendC::Reg::RegTensor<T>& coef, AscendC::Reg::RegTensor<T>& temp1,
-    AscendC::Reg::RegTensor<T>& temp2, AscendC::Reg::MaskReg& mask)
-{
+__simd_callee__ inline void ShiftedChebyshevPolynomialCalByTemplateExpansion(AscendC::Reg::RegTensor<T> &res,
+                                                                             AscendC::Reg::RegTensor<T> &coef,
+                                                                             AscendC::Reg::RegTensor<T> &temp1,
+                                                                             AscendC::Reg::RegTensor<T> &temp2,
+                                                                             AscendC::Reg::MaskReg &mask) {
+  AscendC::Reg::Move(temp2, res);
+  AscendC::Reg::Mul(res, coef, res, mask);
+  AscendC::Reg::Sub(res, res, temp1, mask);
+  AscendC::Reg::Move(temp1, temp2);
+
+  if constexpr (curN < N) {
+    ShiftedChebyshevPolynomialCalByTemplateExpansion<T, N, curN + 1>(res, coef, temp1, temp2, mask);
+  }
+}
+
+template <typename T, int64_t N>
+__simd_callee__ inline void ShiftedChebyshevPolynomialCalByLoop(AscendC::Reg::RegTensor<T> &res,
+                                                                AscendC::Reg::RegTensor<T> &coef,
+                                                                AscendC::Reg::RegTensor<T> &temp1,
+                                                                AscendC::Reg::RegTensor<T> &temp2,
+                                                                AscendC::Reg::MaskReg &mask) {
+  for (int k = 2; k <= N; k++) {
     AscendC::Reg::Move(temp2, res);
     AscendC::Reg::Mul(res, coef, res, mask);
     AscendC::Reg::Sub(res, res, temp1, mask);
     AscendC::Reg::Move(temp1, temp2);
-    
-    if constexpr (curN < N) {
-        ShiftedChebyshevPolynomialCalByTemplateExpansion<T, N, curN+1>(res, coef, temp1, temp2, mask);
-    }
-}
-
-template<typename T, int64_t N>
-__simd_callee__ inline void ShiftedChebyshevPolynomialCalByLoop(
-    AscendC::Reg::RegTensor<T>& res, AscendC::Reg::RegTensor<T>& coef, AscendC::Reg::RegTensor<T>& temp1,
-    AscendC::Reg::RegTensor<T>& temp2, AscendC::Reg::MaskReg& mask)
-{
-    for (int k = 2; k <= N; k++) {
-        AscendC::Reg::Move(temp2, res);
-        AscendC::Reg::Mul(res, coef, res, mask);
-        AscendC::Reg::Sub(res, res, temp1, mask);
-        AscendC::Reg::Move(temp1, temp2);
-    }
+  }
 }
 
 template <typename T, int64_t N>
-__simd_callee__ inline void ShiftedChebyshevPolynomialCal(
-    AscendC::Reg::RegTensor<T>& res, AscendC::Reg::RegTensor<T>& coef, AscendC::Reg::RegTensor<T>& temp1,
-    AscendC::Reg::RegTensor<T>& temp2, AscendC::Reg::MaskReg& mask)
-{
-    // 模板展开栈过深编译过程中会爆栈
-    if constexpr (N <= 1000) {
-        ShiftedChebyshevPolynomialCalByTemplateExpansion<T, N>(res, coef, temp1, temp2, mask);
-    } else {
-        ShiftedChebyshevPolynomialCalByLoop<T, N>(res, coef, temp1, temp2, mask);
-    }
+__simd_callee__ inline void ShiftedChebyshevPolynomialCal(AscendC::Reg::RegTensor<T> &res,
+                                                          AscendC::Reg::RegTensor<T> &coef,
+                                                          AscendC::Reg::RegTensor<T> &temp1,
+                                                          AscendC::Reg::RegTensor<T> &temp2,
+                                                          AscendC::Reg::MaskReg &mask) {
+  // 模板展开栈过深编译过程中会爆栈
+  if constexpr (N <= 1000) {
+    ShiftedChebyshevPolynomialCalByTemplateExpansion<T, N>(res, coef, temp1, temp2, mask);
+  } else {
+    ShiftedChebyshevPolynomialCalByLoop<T, N>(res, coef, temp1, temp2, mask);
+  }
 }
 
 #endif

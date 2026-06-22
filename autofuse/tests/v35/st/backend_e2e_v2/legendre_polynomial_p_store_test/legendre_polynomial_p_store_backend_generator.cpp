@@ -49,9 +49,9 @@ TEST_F(TestBackendLegendrePolynomialPStoreE2e, LegendrePolynomialPStoreE2eCodege
   std::map<std::string, std::string> legendre_shape_info({{"s0", "stub_s0"}, {"s1", "stub_s1"}});
   auto graph = ascir::ShareGraph::LegendrePolynomialPStoreFusedGraph(2);
   std::vector<std::string> legendre_parts = splitString(KERNEL_SRC_LIST, ':');
-  const std::string& kernel_src_file_name = legendre_parts[0];
-  const std::string& tiling_src_file_name = legendre_parts[1];
-  const std::string& tiling_data_src_file_name = legendre_parts[2];
+  const std::string &kernel_src_file_name = legendre_parts[0];
+  const std::string &tiling_src_file_name = legendre_parts[1];
+  const std::string &tiling_data_src_file_name = legendre_parts[2];
 
   try {
     optimize::Optimizer legendre_optimizer(optimize::OptimizerOptions{});

@@ -20,25 +20,25 @@ bool OnlySecondInputSupportScalar(const std::vector<bool> &is_scalar_list) {
   return !is_scalar_list[0] && is_scalar_list[1];
 }
 
-[[nodiscard]] std::pair<std::vector<ge::DataType>, std::vector<ge::DataType>>
-GetConversionFromDtypeMap(const AscNode &node, const std::map<ge::DataType, ge::DataType> &dtype_conversion_map) {
+[[nodiscard]] std::pair<std::vector<ge::DataType>, std::vector<ge::DataType>> GetConversionFromDtypeMap(
+    const AscNode &node, const std::map<ge::DataType, ge::DataType> &dtype_conversion_map) {
   std::pair<std::vector<ge::DataType>, std::vector<ge::DataType>> conversion_dtype;
   AscNodeInputs node_inputs = node.inputs;
   AscNodeOutputs node_outputs = node.outputs;
   for (size_t i = 0; i < node_inputs().size(); i++) {
     auto it = dtype_conversion_map.find(node_inputs[i].attr.dtype);
     if (it != dtype_conversion_map.end()) {
-        conversion_dtype.first.emplace_back(it->second);  // 使用迭代器访问
+      conversion_dtype.first.emplace_back(it->second);  // 使用迭代器访问
     } else {
-        conversion_dtype.first.emplace_back(node_inputs[i].attr.dtype);
+      conversion_dtype.first.emplace_back(node_inputs[i].attr.dtype);
     }
   }
   for (size_t i = 0; i < node_outputs().size(); i++) {
     auto it = dtype_conversion_map.find(node_outputs[i].attr.dtype);
     if (it != dtype_conversion_map.end()) {
-        conversion_dtype.second.emplace_back(it->second);  // 使用迭代器访问
+      conversion_dtype.second.emplace_back(it->second);  // 使用迭代器访问
     } else {
-        conversion_dtype.second.emplace_back(node_outputs[i].attr.dtype);
+      conversion_dtype.second.emplace_back(node_outputs[i].attr.dtype);
     }
   }
   return conversion_dtype;
@@ -96,8 +96,7 @@ bool IsUBScalarTensor(const AscTensor &tensor) {
   return true;
 }
 
-bool IsVectorizedAxisSupportBrc(const AscNode &node, size_t input_id,
-                                const BroadcastCapability &broadcast_capability) {
+bool IsVectorizedAxisSupportBrc(const AscNode &node, size_t input_id, const BroadcastCapability &broadcast_capability) {
   // 如果是vectorized_axis轴存在不相等，则必须是ub_scalar或node支持brc_inline，且input_id在support_brc_list中才认为合法。
   AscNodeInputs node_inputs = node.inputs;
   if ((IsUBScalarTensor(node_inputs[input_id]) || broadcast_capability.support_inline_brc) &&
@@ -115,26 +114,30 @@ Status ValidateInputTensorLoopAxis(const AscNode &node, size_t input_id, size_t 
   auto output_attr = node_outputs[0].attr;
 
   auto it = std::find(output_attr.axis.begin(), output_attr.axis.end(), input_attr.axis[input_axis_id]);
-  GE_ASSERT_TRUE(it != output_attr.axis.end(), "Node %s[%s]: input tensor %zu loop axis %zu is not in output tensor "
-                 "axis", node.GetTypePtr(), node.GetNamePtr(), input_id, input_axis_id);
+  GE_ASSERT_TRUE(it != output_attr.axis.end(),
+                 "Node %s[%s]: input tensor %zu loop axis %zu is not in output tensor "
+                 "axis",
+                 node.GetTypePtr(), node.GetNamePtr(), input_id, input_axis_id);
   auto output_axis_id = static_cast<uint64_t>(std::distance(output_attr.axis.begin(), it));
   if ((SymbolicUtils::StaticCheckEq(output_attr.repeats[output_axis_id], input_attr.repeats[input_axis_id]) ==
-      TriBool::kTrue) || (SymbolicUtils::StaticCheckEq(input_attr.repeats[input_axis_id], Symbol(1)) ==
-      TriBool::kTrue)) {
+       TriBool::kTrue) ||
+      (SymbolicUtils::StaticCheckEq(input_attr.repeats[input_axis_id], Symbol(1)) == TriBool::kTrue)) {
     return ge::SUCCESS;
   } else if (SymbolicUtils::StaticCheckEq(output_attr.repeats[output_axis_id], input_attr.repeats[input_axis_id]) ==
              TriBool::kUnknown) {
-    GELOGW("Node %s[%s]: input tensor %zu loop axis %zu repeat %s and output tensor 0 loop axis %zu repeat %s may not "
-           "be equal or broadcastable(relation cannot be determined)", node.GetTypePtr(), node.GetNamePtr(), input_id,
-           input_axis_id, input_attr.repeats[input_axis_id].Str().get(), output_axis_id,
-           output_attr.repeats[output_axis_id].Str().get());
+    GELOGW(
+        "Node %s[%s]: input tensor %zu loop axis %zu repeat %s and output tensor 0 loop axis %zu repeat %s may not "
+        "be equal or broadcastable(relation cannot be determined)",
+        node.GetTypePtr(), node.GetNamePtr(), input_id, input_axis_id, input_attr.repeats[input_axis_id].Str().get(),
+        output_axis_id, output_attr.repeats[output_axis_id].Str().get());
     return ge::SUCCESS;
   }
 
-  GELOGE(ge::FAILED, "Node %s[%s]: input tensor %zu loop axis %zu repeat %s and output tensor 0 loop axis %zu repeat "
-         "%s are not equal or broadcastable", node.GetTypePtr(), node.GetNamePtr(), input_id, input_axis_id,
-         input_attr.repeats[input_axis_id].Str().get(), output_axis_id,
-         output_attr.repeats[output_axis_id].Str().get());
+  GELOGE(ge::FAILED,
+         "Node %s[%s]: input tensor %zu loop axis %zu repeat %s and output tensor 0 loop axis %zu repeat "
+         "%s are not equal or broadcastable",
+         node.GetTypePtr(), node.GetNamePtr(), input_id, input_axis_id, input_attr.repeats[input_axis_id].Str().get(),
+         output_axis_id, output_attr.repeats[output_axis_id].Str().get());
   return ge::FAILED;
 }
 
@@ -146,30 +149,34 @@ Status ValidateInputTensorVectorizedAxis(const AscNode &node, size_t input_id, s
   auto output_attr = node_outputs[0].attr;
 
   auto it = std::find(output_attr.axis.begin(), output_attr.axis.end(), input_attr.axis[input_axis_id]);
-  GE_ASSERT_TRUE(it != output_attr.axis.end(), "Node %s[%s]: input tensor %zu vectorized_axis %zu is not in output "
-                 "tensor axis", node.GetTypePtr(), node.GetNamePtr(), input_id, input_axis_id);
+  GE_ASSERT_TRUE(it != output_attr.axis.end(),
+                 "Node %s[%s]: input tensor %zu vectorized_axis %zu is not in output "
+                 "tensor axis",
+                 node.GetTypePtr(), node.GetNamePtr(), input_id, input_axis_id);
   auto output_axis_id = static_cast<uint64_t>(std::distance(output_attr.axis.begin(), it));
   if ((SymbolicUtils::StaticCheckEq(output_attr.repeats[output_axis_id], input_attr.repeats[input_axis_id]) ==
-      TriBool::kTrue) || IsVectorizedAxisSupportBrc(node, input_id, broadcast_capability)) {
+       TriBool::kTrue) ||
+      IsVectorizedAxisSupportBrc(node, input_id, broadcast_capability)) {
     return ge::SUCCESS;
   } else if (SymbolicUtils::StaticCheckEq(output_attr.repeats[output_axis_id], input_attr.repeats[input_axis_id]) ==
              TriBool::kUnknown) {
-    GELOGW("Node %s[%s]: input tensor %zu vectorized_axis %zu repeat: %s and output tensor 0 vectorized_axis %zu "
-           "repeat: %s may not be equal or broadcastable(relation cannot be determined)", node.GetTypePtr(),
-           node.GetNamePtr(), input_id, input_axis_id, input_attr.repeats[input_axis_id].Str().get(), output_axis_id,
-           output_attr.repeats[output_axis_id].Str().get());
+    GELOGW(
+        "Node %s[%s]: input tensor %zu vectorized_axis %zu repeat: %s and output tensor 0 vectorized_axis %zu "
+        "repeat: %s may not be equal or broadcastable(relation cannot be determined)",
+        node.GetTypePtr(), node.GetNamePtr(), input_id, input_axis_id, input_attr.repeats[input_axis_id].Str().get(),
+        output_axis_id, output_attr.repeats[output_axis_id].Str().get());
     return ge::SUCCESS;
   }
 
-  GELOGE(ge::FAILED, "Node %s[%s]: input tensor %zu vectorized_axis %zu repeat: %s and output tensor 0 vectorized_axis "
-         "%zu repeat: %s are not equal or broadcastable", node.GetTypePtr(), node.GetNamePtr(), input_id, input_axis_id,
-         input_attr.repeats[input_axis_id].Str().get(), output_axis_id,
-         output_attr.repeats[output_axis_id].Str().get());
+  GELOGE(ge::FAILED,
+         "Node %s[%s]: input tensor %zu vectorized_axis %zu repeat: %s and output tensor 0 vectorized_axis "
+         "%zu repeat: %s are not equal or broadcastable",
+         node.GetTypePtr(), node.GetNamePtr(), input_id, input_axis_id, input_attr.repeats[input_axis_id].Str().get(),
+         output_axis_id, output_attr.repeats[output_axis_id].Str().get());
   return ge::FAILED;
 }
 
-Status ValidateShapeConsistencyWithSingleOutput(const AscNode &node,
-                                                const BroadcastCapability &broadcast_capability) {
+Status ValidateShapeConsistencyWithSingleOutput(const AscNode &node, const BroadcastCapability &broadcast_capability) {
   AscNodeInputs node_inputs = node.inputs;
   AscNodeOutputs node_outputs = node.outputs;
   GE_ASSERT_TRUE(!(node_outputs().size() != 1), "Node %s[%s]: output tensor size is not equal with 1",
@@ -188,13 +195,15 @@ Status ValidateShapeConsistencyWithSingleOutput(const AscNode &node,
     for (size_t j = 0; j < input.attr.repeats.size(); j++) {
       if (std::find(input.attr.vectorized_axis.begin(), input.attr.vectorized_axis.end(), input.attr.axis[j]) !=
           input.attr.vectorized_axis.end()) {
-        GE_ASSERT_SUCCESS(ValidateInputTensorVectorizedAxis(node, i, j, broadcast_capability), "Node %s[%s]: input "
-                          "tensor %zu axis %zu validate vectorized_axis consistency failed", node.GetTypePtr(),
-                          node.GetNamePtr(), i, j);
+        GE_ASSERT_SUCCESS(ValidateInputTensorVectorizedAxis(node, i, j, broadcast_capability),
+                          "Node %s[%s]: input "
+                          "tensor %zu axis %zu validate vectorized_axis consistency failed",
+                          node.GetTypePtr(), node.GetNamePtr(), i, j);
       } else {
-        GE_ASSERT_SUCCESS(ValidateInputTensorLoopAxis(node, i, j), "Node %s[%s]: input tensor %zu "
-                          "%zu axis %zu validate loop axis consistency failed", node.GetTypePtr(),
-                          node.GetNamePtr(), i, j);
+        GE_ASSERT_SUCCESS(ValidateInputTensorLoopAxis(node, i, j),
+                          "Node %s[%s]: input tensor %zu "
+                          "%zu axis %zu validate loop axis consistency failed",
+                          node.GetTypePtr(), node.GetNamePtr(), i, j);
       }
     }
   }
@@ -214,5 +223,5 @@ bool IsNodeHasScalarInput(const AscNode &node) {
 bool IsNodeFirstInputScalar(const AscNode &node) {
   return node.GetInDataNodes().at(0)->GetType() == "Scalar";
 }
-} // namespace ascir
-} // namespace af
+}  // namespace ascir
+}  // namespace af

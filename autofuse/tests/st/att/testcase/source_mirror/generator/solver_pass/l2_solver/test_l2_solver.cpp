@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2026 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -19,7 +19,7 @@
 using namespace att;
 
 class MockStL2TileSolver : public L2TileSolver {
-public:
+ public:
   MockStL2TileSolver() {}
   explicit MockStL2TileSolver(L2TileInput input) : L2TileSolver(input) {};
   uint64_t GetL2Use() override {
@@ -30,14 +30,13 @@ public:
     return l2Use;
   }
   bool IsClash(uint32_t idx) override {
-    if (used_corenum_ <= 1 || used_corenum_ % 2 !=0) {
+    if (used_corenum_ <= 1 || used_corenum_ % 2 != 0) {
       return false;
     }
     if (blocknum_per_tile_[idx] % (used_corenum_ / 2) == 0) {
       return true;
     }
-    auto blockNumTail =
-        total_blocknum_[idx] - (tilenum_[idx] - 1) * blocknum_per_tile_[idx];
+    auto blockNumTail = total_blocknum_[idx] - (tilenum_[idx] - 1) * blocknum_per_tile_[idx];
     if (blocknum_per_tile_[idx] % (used_corenum_ / 2) == 0) {
       return true;
     }
@@ -48,14 +47,13 @@ public:
 class TestL2SolverSt : public ::testing::Test {
  public:
   void TearDown() override {
-     // 清理测试生成的临时文件
+    // 清理测试生成的临时文件
     autofuse::test::CleanupTestArtifacts();
-     // before the destructor).
+    // before the destructor).
   }
 };
 
-TEST_F(TestL2SolverSt, TEST_CASE_01)
-{
+TEST_F(TestL2SolverSt, TEST_CASE_01) {
   L2TileInput input;
   L2Var tilem;
   L2Var tilen;
@@ -80,8 +78,7 @@ TEST_F(TestL2SolverSt, TEST_CASE_01)
   delete[] input.l2_vars;
 }
 
-TEST_F(TestL2SolverSt, TEST_CASE_02)
-{
+TEST_F(TestL2SolverSt, TEST_CASE_02) {
   L2TileInput input;
   L2Var tilem;
   L2Var tilen;
@@ -106,8 +103,7 @@ TEST_F(TestL2SolverSt, TEST_CASE_02)
   delete[] input.l2_vars;
 }
 
-TEST_F(TestL2SolverSt, TEST_CASE_03)
-{
+TEST_F(TestL2SolverSt, TEST_CASE_03) {
   L2TileInput input;
   L2Var tilem;
   L2Var tilen;

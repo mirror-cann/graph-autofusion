@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -29,7 +29,7 @@ class Type : public Code {
  public:
   const std::string name;
 
-  explicit Type(const std::string& type_name);
+  explicit Type(const std::string &type_name);
   std::string Str() const override;
 };
 
@@ -42,7 +42,7 @@ const Type kHalfT{"half"};
 const Type kGmAddrT{"GM_ADDR"};
 
 class Variable : public Code {
-public:
+ public:
   const Type type;
   const std::string name;
 
@@ -88,7 +88,7 @@ class Axis : public ascir::Axis, public Variable {
   ascir::SizeExpr actual_size_expr;
   af::Expression size_expr;
 
-  bool is_split_b { false };
+  bool is_split_b{false};
 
   bool IsOuter() const;
   bool IsInner() const;
@@ -123,7 +123,7 @@ class Tensor : public Variable {
   Uint32 que_share_offset;
   std::string share_pre_size{"0"}; /* 共用场景，前一个size */
 
-  std::string const_value; /** Constant node value */
+  std::string const_value;          /** Constant node value */
   ascir::SizeExpr const_value_expr; /** Constant node value */
   uint32_t que_depth_value;
   uint32_t que_buf_num_value;
@@ -131,7 +131,7 @@ class Tensor : public Variable {
   ascir::MergeScopeId merge_scope;
   bool is_constant{false};
   bool is_ub_scalar{false};
-  bool is_load_link_store_and_vec{false}; // 该tensor 是load 直连store, load连vec的场景
+  bool is_load_link_store_and_vec{false};  // 该tensor 是load 直连store, load连vec的场景
   bool need_gen_get_value_of_ub_scalar{false};
   bool need_duplicate_value_of_ub_scalar{false};
 
@@ -142,21 +142,23 @@ class Tensor : public Variable {
   Status InitUbScalar(std::string &result) const;
   Status GenDuplicateValueOfUbScalar(std::string &result) const;
   Status DefineUbScalar(std::string &result) const;
-  explicit Tensor(const ascir::TensorAttr& tensor, std::string &dtype_name, const std::string& tensor_name = "");
-  explicit Tensor(const ascir::TensorAttr& tensor, std::string &dtype_name, const ascir::SizeExpr& value, const std::string& tensor_name = "");
-  explicit Tensor(const std::string& value, const ascir::TensorAttr& tensor, std::string &dtype_name, const std::string& tensor_name = "");
+  explicit Tensor(const ascir::TensorAttr &tensor, std::string &dtype_name, const std::string &tensor_name = "");
+  explicit Tensor(const ascir::TensorAttr &tensor, std::string &dtype_name, const ascir::SizeExpr &value,
+                  const std::string &tensor_name = "");
+  explicit Tensor(const std::string &value, const ascir::TensorAttr &tensor, std::string &dtype_name,
+                  const std::string &tensor_name = "");
   Status Init();
 
   // For GlobalTensor
-  Status SetGlobalBuffer(Variable global, const std::string& offset, std::string &result) const;
+  Status SetGlobalBuffer(Variable global, const std::string &offset, std::string &result) const;
 
   bool IsUbScalar() const {
     return is_ub_scalar && need_gen_get_value_of_ub_scalar;
   }
-  bool IsConstScalar() const  {
+  bool IsConstScalar() const {
     return is_constant;
   }
-  bool IsAnyScalar() const  {
+  bool IsAnyScalar() const {
     return IsUbScalar() || IsConstScalar();
   }
   std::string GetScalarValue() const {
@@ -203,9 +205,7 @@ class TQue : public Variable {
   bool is_cv_ub_fusion{false};
 
   TQue(ascir::QueId que_id, ascir::Position pos, std::string &position_name);
-  TQue(ascir::QueId que_id,
-       ascir::Position src_position,
-       const std::string &src_position_name,
+  TQue(ascir::QueId que_id, ascir::Position src_position, const std::string &src_position_name,
        const std::string &dst_position_name);
   std::string AllocBuf(const bool with_define = true) const;
   std::string EnqueBuf() const;
@@ -257,17 +257,17 @@ class Tiler : public Code {
 
   // generate
   std::string Str() const override;
-  std::string Size(const ascir::SizeExpr& size, bool using_int_tiling_data=false) const;
-  std::string ActualSize(const ascir::SizeExpr& size, bool using_int_tiling_data=false) const;
+  std::string Size(const ascir::SizeExpr &size, bool using_int_tiling_data = false) const;
+  std::string ActualSize(const ascir::SizeExpr &size, bool using_int_tiling_data = false) const;
   std::string Offset(const std::vector<ascir::AxisId> &current_axis, const std::vector<ascir::AxisId> &axis,
                      const std::vector<ascir::SizeExpr> &strides) const;
   std::string TensorVectorizedOffset(const std::vector<ascir::AxisId> &current_axis, const Tensor &tensor) const;
   std::string TensorVectorizedSize(const Tensor &tensor) const;
   std::string ShareTensorVectorizedSize(const Tensor &tensor) const;
   std::string TensorActualSize(const Tensor &tensor) const;
-  const Axis& GetAxis(const ascir::AxisId id) const;
+  const Axis &GetAxis(const ascir::AxisId id) const;
   std::string AxisSize(const ascir::AxisId id) const;
-  std::string AxisSize(const Axis& axis) const;
+  std::string AxisSize(const Axis &axis) const;
   std::string AxisName(const ascir::AxisId axis_id) const;
 
   /**
@@ -287,7 +287,7 @@ class Tiler : public Code {
 
 class TPipe : public Variable {
  public:
-  const Tiler& tiler;
+  const Tiler &tiler;
   Variable tmp_buf;
   map<ascir::TensorId, Tensor> tensors;
   map<ascir::MergeScopeId, MergeScope> merge_scopes;
@@ -304,26 +304,28 @@ class TPipe : public Variable {
 
   TPipe(const std::string &tpipe_name, const Tiler &tpipe_tiler);
   Status AddTensor(const Tensor &tensor);
-  Status AddTensor(const ascir::TensorAttr &tensor_attr, const std::string& tensor_name = "");
-  Status AddTensor(const std::string& const_value, const ascir::TensorAttr &tensor_attr, const std::string& tensor_name = "");
-  Status AddTensor(const ascir::TensorAttr &tensor_attr, const ascir::SizeExpr& const_value, const std::string& tensor_name = "");
+  Status AddTensor(const ascir::TensorAttr &tensor_attr, const std::string &tensor_name = "");
+  Status AddTensor(const std::string &const_value, const ascir::TensorAttr &tensor_attr,
+                   const std::string &tensor_name = "");
+  Status AddTensor(const ascir::TensorAttr &tensor_attr, const ascir::SizeExpr &const_value,
+                   const std::string &tensor_name = "");
 
   const TQue *GetQue(const ascir::QueId id) const;
   const TBuf &GetBuf(const ascir::BufId id) const;
-  const Tensor* GetTensor(ascir::TensorId id) const;
-  Tensor* GetTensor(ascir::TensorId id);
+  const Tensor *GetTensor(ascir::TensorId id) const;
+  Tensor *GetTensor(ascir::TensorId id);
 
   Status InitTQueBuffers(const TQue &que, std::string &result) const;
   Status InitTBufBuffer(const TBuf &buf, std::string &result) const;
 
-  Status TensorAlloc(const Tensor& tensor, std::string &result) const;
+  Status TensorAlloc(const Tensor &tensor, std::string &result) const;
   std::string TensorSizeCalc() const;
   std::string TensorActualSizeCalc(const ascir::TensorId id) const;
   Status MergeScopeSizeCalc(std::string &result) const;
   Status LocalTBufAlloc(const TBuf &buf, std::string &result, const bool with_define = true) const;
   Status LocalTBufAllocLoopTwice(std::string &result, const bool with_define = true) const;
   std::string AllocTmpBuf(const TBuf &buf, const bool with_define = true) const;
-  std::string GenDuplicateBufAlloc(const std::set<std::pair<std::string, std::string>>& pre_api_extract_dup) const;
+  std::string GenDuplicateBufAlloc(const std::set<std::pair<std::string, std::string>> &pre_api_extract_dup) const;
   Status LocalTQueAlloc(std::string &result) const;
   Status LocalTensorQueBufAlloc(std::string &result) const;
   std::string SyncMte3ToMte2(const Tensor in_tensor) const;
@@ -332,7 +334,7 @@ class TPipe : public Variable {
   void AddBlkTensor(const ascir::TensorId &tensorid) {
     need_gen_blk_tensors.emplace_back(tensorid);
   }
-  bool IsNeedGenBlkTensor(const ascir::TensorId& tensorid) const {
+  bool IsNeedGenBlkTensor(const ascir::TensorId &tensorid) const {
     return std::find(need_gen_blk_tensors.begin(), need_gen_blk_tensors.end(), tensorid) != need_gen_blk_tensors.end();
   }
   Status BlkTensorAllocAndInit(std::string &result) const;
@@ -342,20 +344,21 @@ class TPipe : public Variable {
   Status LocalTensorDefine(std::string &result) const;
   std::string TensorSizeDefine() const;
   Status TensorSizeAssign(std::string dtype_name, std::string &result) const;
-  std::string GenDuplicateBufDefine(const std::set<std::pair<std::string, std::string>>& pre_api_extract_dup) const;
-  std::string GenDuplicateBufAssign(const std::set<std::pair<std::string, std::string>>& pre_api_extract_dup) const;
+  std::string GenDuplicateBufDefine(const std::set<std::pair<std::string, std::string>> &pre_api_extract_dup) const;
+  std::string GenDuplicateBufAssign(const std::set<std::pair<std::string, std::string>> &pre_api_extract_dup) const;
   Status BlkTensorDefine(std::string &result) const;
   Status BlkTensorAssign(std::string &result) const;
+
  private:
-  Status ParseTBufReuse(TBuf buf, std::string& reuse_dtype_name, bool& is_buf_reuse,
-                        std::vector<const Tensor *>& reuse_buf_tensors, std::stringstream &tensor_size_max) const;
+  Status ParseTBufReuse(TBuf buf, std::string &reuse_dtype_name, bool &is_buf_reuse,
+                        std::vector<const Tensor *> &reuse_buf_tensors, std::stringstream &tensor_size_max) const;
   bool using_att_calc_qbt_size_ = true;
   bool using_global_tpipe_ = false;
 };
 
 struct CodegenConfig {
   bool is_inductor;
-  bool using_att_calc_qbt_size; // 是否使用att计算tque/tbuf/tmpbuf
+  bool using_att_calc_qbt_size;  // 是否使用att计算tque/tbuf/tmpbuf
 };
 
 class KernelUtils {
@@ -369,8 +372,8 @@ class KernelUtils {
 };
 
 struct TilingFuncCall {
-  TilingFuncCall(std::string func_call, bool has_workspace_node, bool need_sync_all) :
-        func_call_(std::move(func_call)), has_workspace_node_(has_workspace_node), need_sync_all_(need_sync_all) {}
+  TilingFuncCall(std::string func_call, bool has_workspace_node, bool need_sync_all)
+      : func_call_(std::move(func_call)), has_workspace_node_(has_workspace_node), need_sync_all_(need_sync_all) {}
   std::string func_call_;
   bool has_workspace_node_;
   bool need_sync_all_;
@@ -396,10 +399,11 @@ class Kernel {
   TPipe tpipe;
   Loop root_loop;
 
-  explicit Kernel(const std::string& kernel_name);
+  explicit Kernel(const std::string &kernel_name);
   ~Kernel();
 
-  static Status ParseGraph(const ascir::ImplGraph &graph, const ascir::FusedScheduledResult& fused_schedule_result, Kernel &kernel);
+  static Status ParseGraph(const ascir::ImplGraph &graph, const ascir::FusedScheduledResult &fused_schedule_result,
+                           Kernel &kernel);
   Status Generate(const std::string &impl_graph_name, const std::string &tiling_data, std::string &result,
                   const ascir::ImplGraph &graph);
   static std::string GetIncludeApiHeaderFiles(const ascir::FusedScheduledResult &fused_schedule_result);
@@ -424,9 +428,9 @@ class Kernel {
   Status GlobalTensorAssign(std::string &result) const;
   Status GlobalTensorDefine(std::string &result) const;
   Status LocalTensorQueBufAlloc(std::string &result, const ascir::ImplGraph &graph) const;
-  static Status GenKernelFuncByTilingKey(const ascir::FusedScheduledResult& fused_schedule_result,
+  static Status GenKernelFuncByTilingKey(const ascir::FusedScheduledResult &fused_schedule_result,
                                          std::stringstream &ss, bool use_list_tensor = false,
-                                         const CodegenConfig& config = {false, true},
+                                         const CodegenConfig &config = {false, true},
                                          const std::string &kernel_task_type = "");
   void SetUseListTensor(bool use_list_tensor);
   Status ParseOptimizeInfo(const ascir::NodeView &node, const ascir::TensorView &tensor);
@@ -444,57 +448,59 @@ class Kernel {
   Status InitCVFusionAddr(std::stringstream &result, bool vector_no_db_flag, bool is_dynamic = false,
                           bool is_inductor = false);
   static std::string GenKernelFuncCallForInductor(const ascir::FusedScheduledResult &fused_schedule_result);
-  Status ParseUbScalarOptimizationInfo(const ascir::NodeView& node, Tensor& t, ascir::TensorId id, bool is_all_link_vf);
-  Status JudgeIsLoadLinkStoreAndVec(const ascir::NodeView& node, Tensor& t, ascir::TensorId id) const;
+  Status ParseUbScalarOptimizationInfo(const ascir::NodeView &node, Tensor &t, ascir::TensorId id, bool is_all_link_vf);
+  Status JudgeIsLoadLinkStoreAndVec(const ascir::NodeView &node, Tensor &t, ascir::TensorId id) const;
+
  private:
   static std::vector<std::string> GenPackingFunctions(std::stringstream &ss_define,
                                                       const std::vector<Variable> &kernel_args,
                                                       const std::vector<std::vector<std::string>> &per_group_func_calls,
-                                                      int64_t max_group_per_compile_unit,
-                                                      uint32_t &function_id);
-  static void GenPackingFunctionCalls(std::stringstream &ss,
-                                      const std::vector<Variable> &kernel_args,
+                                                      int64_t max_group_per_compile_unit, uint32_t &function_id);
+  static void GenPackingFunctionCalls(std::stringstream &ss, const std::vector<Variable> &kernel_args,
                                       const std::vector<std::string> &func_names);
   static std::string PackingFuncDeclare(const std::string &func_name, const std::vector<Variable> &kernel_args);
   static void AppendFuncCall(std::stringstream &ss, std::vector<std::vector<std::string>>::const_iterator begin,
                              std::vector<std::vector<std::string>>::const_iterator end, bool need_sync_all = true);
-  static void AppendFuncCall(std::stringstream &ss,std::vector<std::vector<TilingFuncCall>> &per_group_func_calls,
-                             std::vector<TilingFuncCall> &current, size_t depth, uint32_t &tiling_key, bool is_cube = false);
+  static void AppendFuncCall(std::stringstream &ss, std::vector<std::vector<TilingFuncCall>> &per_group_func_calls,
+                             std::vector<TilingFuncCall> &current, size_t depth, uint32_t &tiling_key,
+                             bool is_cube = false);
   static std::vector<Variable> PackingFuncArgs(const std::string &tiling_data_type,
-                                               const ::ascir::FusedScheduledResult& fused_schedule_result,
+                                               const ::ascir::FusedScheduledResult &fused_schedule_result,
                                                bool use_list_tensor);
   static void FakeTilingIds(std::stringstream &ss, uint32_t function_id_end);
-  Status ParseWorkspaceTensor(const ascir::TensorAttr *tensor, const ascir::FusedScheduledResult& fused_schedule_result,
+  Status ParseWorkspaceTensor(const ascir::TensorAttr *tensor, const ascir::FusedScheduledResult &fused_schedule_result,
                               std::set<int64_t> &output_indices,
                               const std::unordered_map<ascir::TensorId, size_t> &output_tensorid_to_index,
                               const std::map<size_t, std::string> output_index_to_name);
   static Status GenSingleGroupKernelWithRegTilingKey(const ascir::FusedScheduledResult &fused_schedule_result,
-                                                     const CodegenConfig& config, std::stringstream &ss,
+                                                     const CodegenConfig &config, std::stringstream &ss,
                                                      std::stringstream &ss1, bool use_list_tensor);
   static Status GenMulGroupKernelWithRegTilingKey(const ascir::FusedScheduledResult &fused_schedule_result,
-                                                  const CodegenConfig& config, std::stringstream &ss,
+                                                  const CodegenConfig &config, std::stringstream &ss,
                                                   std::stringstream &ss1, bool use_list_tensor);
   static Status GenKernelFuncWithRegTilingKey(const ascir::FusedScheduledResult &fused_schedule_result,
-                                              const CodegenConfig& config, std::stringstream &ss,
+                                              const CodegenConfig &config, std::stringstream &ss,
                                               std::stringstream &ss1, bool use_list_tensor);
   static Status GenSingleGroupKernelWithParseTilingData(const ascir::FusedScheduledResult &fused_schedule_result,
                                                         const std::vector<af::AscGraph> &schedule_graphs,
-                                                        const CodegenConfig& config, std::stringstream &ss,
+                                                        const CodegenConfig &config, std::stringstream &ss,
                                                         std::stringstream &ss1, bool use_list_tensor,
                                                         std::unordered_set<const std::string *> &kernel_file_ptr);
   static Status GenMulGroupKernelWithParseTilingData(const ascir::FusedScheduledResult &fused_schedule_result,
-                                                     const size_t graph_id, const CodegenConfig& config,
-                                                     std::stringstream &ss, std::stringstream &ss1, bool use_list_tensor,
+                                                     const size_t graph_id, const CodegenConfig &config,
+                                                     std::stringstream &ss, std::stringstream &ss1,
+                                                     bool use_list_tensor,
                                                      std::unordered_set<const std::string *> &kernel_file_ptr);
   static Status GenKernelFuncWithParseTilingData(const ascir::FusedScheduledResult &fused_schedule_result,
-                                                 const CodegenConfig& config, std::stringstream &ss,
+                                                 const CodegenConfig &config, std::stringstream &ss,
                                                  std::stringstream &ss1, bool use_list_tensor);
   static int64_t GetMaxGroupPerCompileUnit(bool enable_parallel_compile);
   static Status GenCubeCommonFuncOfCVFusion(const ascir::FusedScheduledResult &fused_schedule_result,
                                             const size_t graph_id, const size_t common_index,
                                             const CodegenConfig &config, std::stringstream &ss, std::stringstream &ss1,
                                             const bool use_list_tensor,
-                                            std::unordered_set<const std::string *> &kernel_file_ptr, bool is_dynamic = false);
+                                            std::unordered_set<const std::string *> &kernel_file_ptr,
+                                            bool is_dynamic = false);
   static Status GenCubeCommonFuncForScheduleGroup(const ascir::FusedScheduledResult &fused_schedule_result,
                                                   const size_t graph_id, const size_t common_index,
                                                   const size_t group_index, const CodegenConfig &config,
@@ -504,6 +510,7 @@ class Kernel {
   static Status GenCVKernelFuncWithMulGroup(const ascir::FusedScheduledResult &fused_schedule_result,
                                             const CodegenConfig &config, std::stringstream &ss, std::stringstream &ss1,
                                             bool use_list_tensor);
+
  private:
   static Status GenCubeCommonFuncForAIV(const ascir::FusedScheduledResult &fused_schedule_result, size_t graph_id,
                                         const size_t common_index, const size_t group_index,
@@ -543,7 +550,7 @@ class Kernel {
   bool use_list_tensor_ = false;
   bool enable_parallel_compile_ = true;
 };
-}
+}  // namespace codegen
 
 std::ostream &operator<<(std::ostream &os, const codegen::Code &obj);
 

@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -35,10 +35,9 @@ namespace af {
 namespace {
 const char_t *const kPreOpInputShapeRange = "_pre_op_in_range";
 
-const static std::set<std::string> kDummyContextOpTypes{ "Enter", "Switch", "RefSwitch", "StackPush", "StackPop" };
-const static std::map<std::string, std::string> kGeLocalOpMapping {
-    { "StreamMerge", "Merge" }, { "MemcpyAsync", "Identity" }
-};
+const static std::set<std::string> kDummyContextOpTypes{"Enter", "Switch", "RefSwitch", "StackPush", "StackPop"};
+const static std::map<std::string, std::string> kGeLocalOpMapping{{"StreamMerge", "Merge"},
+                                                                  {"MemcpyAsync", "Identity"}};
 
 bool IsOpWithSubgraph(const NodePtr &node) {
   const auto op_desc = node->GetOpDesc();
@@ -126,7 +125,7 @@ graphStatus UpdateParentNodeForBranch(const ConstNodePtr &node,
         if (ref_out_tensor_shape.GetDim(j) != shape.GetDim(j)) {
           GELOGD("node is %s, i : %zu, j: %zu ,shape size: %" PRId64 ", ref_out_tensor_shape size: %" PRId64,
                  node->GetName().c_str(), i, j, shape.GetShapeSize(), ref_out_tensor_shape.GetShapeSize());
-          (void) ref_out_tensor_shape.SetDim(j, UNKNOWN_DIM);
+          (void)ref_out_tensor_shape.SetDim(j, UNKNOWN_DIM);
         }
       }
     }
@@ -143,7 +142,7 @@ void SetShapeRangeForWhile(GeShape &data_shape, const GeShape &out_shape, bool &
         // if input data is fix shape, output is different, need_infer_again
         need_infer_again = true;
       }
-      (void) data_shape.SetDim(j, UNKNOWN_DIM);
+      (void)data_shape.SetDim(j, UNKNOWN_DIM);
     }
     // set shape rang of while, if dim is unknown ,set shape range as {0,-1}
     if (data_shape.GetDim(j) == UNKNOWN_DIM) {
@@ -154,8 +153,7 @@ void SetShapeRangeForWhile(GeShape &data_shape, const GeShape &out_shape, bool &
   }
 }
 
-graphStatus UpdateParentNodeForWhile(const ConstNodePtr &node,
-                                     std::vector<std::vector<GeTensorDesc>> &ref_data_tensors,
+graphStatus UpdateParentNodeForWhile(const ConstNodePtr &node, std::vector<std::vector<GeTensorDesc>> &ref_data_tensors,
                                      std::vector<std::vector<GeTensorDesc>> &ref_out_tensors) {
   GELOGD("Enter update parent node shape for class while op process");
   if (ref_data_tensors.size() != ref_out_tensors.size()) {
@@ -234,15 +232,15 @@ graphStatus UpdateSubGraphDataNodes(const ConstNodePtr &node) {
       if (data_opdesc == nullptr) {
         REPORT_INNER_ERR_MSG("E18888", "Invalid data node on the sub graph %s parent node %s, no OpDesc", name.c_str(),
                              node->GetName().c_str());
-        GE_LOGE("[Get][OpDesc] Invalid data node on the sub graph %s parent node %s, no OpDesc",
-                name.c_str(), node->GetName().c_str());
+        GE_LOGE("[Get][OpDesc] Invalid data node on the sub graph %s parent node %s, no OpDesc", name.c_str(),
+                node->GetName().c_str());
         return GRAPH_FAILED;
       }
       if (!AttrUtils::GetInt(data_opdesc, ATTR_NAME_PARENT_NODE_INDEX, ref_i)) {
         REPORT_INNER_ERR_MSG("E18888", "Invalid data node on the sub graph %s parent node %s, no ref-index attribute",
                              name.c_str(), node->GetName().c_str());
-        GE_LOGE("[Get][Int] Invalid data node on the sub graph %s parent node %s, no ref-index attribute",
-                name.c_str(), node->GetName().c_str());
+        GE_LOGE("[Get][Int] Invalid data node on the sub graph %s parent node %s, no ref-index attribute", name.c_str(),
+                node->GetName().c_str());
         return GRAPH_FAILED;
       }
       if (data_opdesc->HasAttr(ATTR_MBATCH_ORIGIN_INPUT_DIMS)) {
@@ -255,9 +253,10 @@ graphStatus UpdateSubGraphDataNodes(const ConstNodePtr &node) {
                              "parent node %s are incompatible, inputs num %u",
                              ref_i, node_sub->GetName().c_str(), name.c_str(), node->GetName().c_str(),
                              node->GetAllInDataAnchorsSize());
-        GE_LOGE("[Call][MutableInputDesc] The ref index(%d) on the data %s on the sub graph %s "
-                "parent node %s are incompatible, inputs num %u", ref_i, node_sub->GetName().c_str(),
-                name.c_str(), node->GetName().c_str(), node->GetAllInDataAnchorsSize());
+        GE_LOGE(
+            "[Call][MutableInputDesc] The ref index(%d) on the data %s on the sub graph %s "
+            "parent node %s are incompatible, inputs num %u",
+            ref_i, node_sub->GetName().c_str(), name.c_str(), node->GetName().c_str(), node->GetAllInDataAnchorsSize());
         return GRAPH_FAILED;
       }
       GELOGI("Ref index is %d, input_desc dtype is %d, node name is %s", ref_i, input_desc->GetDataType(),
@@ -274,10 +273,7 @@ graphStatus UpdateSubGraphDataNodes(const ConstNodePtr &node) {
                          ref_i, node_sub->GetName().c_str(), name.c_str(), node->GetName().c_str(),
                          node->GetAllOutDataAnchorsSize());
         GELOGD("Update input desc of data %s on the sub graph %s of node %s,output idx: %d from [%s] to [%s]",
-               node_sub->GetName().c_str(),
-               name.c_str(),
-               node->GetName().c_str(),
-               ref_i,
+               node_sub->GetName().c_str(), name.c_str(), node->GetName().c_str(), ref_i,
                data_opdesc->GetInputDescPtr(0U)->GetShape().ToString().c_str(),
                input_desc->GetShape().ToString().c_str());
       }
@@ -286,8 +282,8 @@ graphStatus UpdateSubGraphDataNodes(const ConstNodePtr &node) {
       if (ret != GRAPH_SUCCESS) {
         REPORT_INNER_ERR_MSG("E18888", "Failed to update input desc of data %s on the sub graph %s parent node %s",
                              node_sub->GetName().c_str(), name.c_str(), node->GetName().c_str());
-        GE_LOGE("[Update][InputDesc] of data %s on the sub graph %s parent node %s failed",
-                node_sub->GetName().c_str(), name.c_str(), node->GetName().c_str());
+        GE_LOGE("[Update][InputDesc] of data %s on the sub graph %s parent node %s failed", node_sub->GetName().c_str(),
+                name.c_str(), node->GetName().c_str());
         return ret;
       }
       ret = data_opdesc->UpdateOutputDesc(0U, *input_desc);
@@ -303,8 +299,8 @@ graphStatus UpdateSubGraphDataNodes(const ConstNodePtr &node) {
   return GRAPH_SUCCESS;
 }
 
-graphStatus FindSubgraphDataAndNetoutput(const std::shared_ptr<ComputeGraph> &sub_graph,
-                                         NodePtr &netoutput, const ConstNodePtr &node,
+graphStatus FindSubgraphDataAndNetoutput(const std::shared_ptr<ComputeGraph> &sub_graph, NodePtr &netoutput,
+                                         const ConstNodePtr &node,
                                          std::vector<std::vector<GeTensorDesc>> &ref_data_tensors) {
   auto sub_nodes = sub_graph->GetDirectNode();
   for (size_t i = sub_nodes.size(); i > 0UL; --i) {
@@ -362,16 +358,16 @@ graphStatus UpdateParentNodeOutTensor(const ConstNodePtr &node) {
     if (netoutput == nullptr) {
       REPORT_INNER_ERR_MSG("E18888", "No NetOutput node on sub graph %s, parent node %s", name.c_str(),
                            node->GetName().c_str());
-      GE_LOGE("[Check][Param] No NetOutput node on sub graph %s, parent node %s",
-              name.c_str(), node->GetName().c_str());
+      GE_LOGE("[Check][Param] No NetOutput node on sub graph %s, parent node %s", name.c_str(),
+              node->GetName().c_str());
       return GRAPH_FAILED;
     }
     const auto netoutput_opdesc = netoutput->GetOpDesc();
     if (netoutput_opdesc == nullptr) {
       REPORT_INNER_ERR_MSG("E18888", "Invalid NetOutput node on sub graph %s, parent node %s, no OpDesc on it",
                            name.c_str(), node->GetName().c_str());
-      GE_LOGE("[Get][OpDesc] Invalid NetOutput node on sub graph %s, parent node %s, no OpDesc on it",
-              name.c_str(), node->GetName().c_str());
+      GE_LOGE("[Get][OpDesc] Invalid NetOutput node on sub graph %s, parent node %s, no OpDesc on it", name.c_str(),
+              node->GetName().c_str());
       return GRAPH_FAILED;
     }
     for (auto &edge_anchor : netoutput->GetAllInDataAnchors()) {
@@ -385,8 +381,8 @@ graphStatus UpdateParentNodeOutTensor(const ConstNodePtr &node) {
                 name.c_str(), node->GetName().c_str(), edge_anchor->GetIdx());
         return GRAPH_FAILED;
       }
-      GELOGI("Netoutput in anchor index is %d, input tensor dim is %zu",
-             edge_anchor->GetIdx(), edge_desc->GetShape().GetDimNum());
+      GELOGI("Netoutput in anchor index is %d, input tensor dim is %zu", edge_anchor->GetIdx(),
+             edge_desc->GetShape().GetDimNum());
       int32_t ref_i;
       if (!AttrUtils::GetInt(edge_desc, ATTR_NAME_PARENT_NODE_INDEX, ref_i)) {
         // if there is no ref index on the TensorDesc, it means the output data will be ignored outer.
@@ -438,7 +434,7 @@ void SerialShapeRange(const GeTensorDescPtr &desc, std::string &desc_str) {
 graphStatus UpdateOpInputDesc(const ConstNodePtr &node_ptr) {
   GE_CHECK_NOTNULL(node_ptr);
   GE_CHECK_NOTNULL(node_ptr->GetOpDesc());
-                  
+
   for (const auto &in_anchor : node_ptr->GetAllInDataAnchors()) {
     const auto in_idx = in_anchor->GetIdx();
     const auto peer_out_data_anchor = in_anchor->GetPeerOutAnchor();
@@ -462,18 +458,20 @@ graphStatus UpdateOpInputDesc(const ConstNodePtr &node_ptr) {
     const auto peer_out_shape = peer_out_desc->MutableShape().GetDims();
     const auto peer_out_dtype = peer_out_desc->GetDataType();
     if (peer_out_dtype != in_dtype) {
-      GELOGW("[Update][InputDesc] current node [%s] [%d]\'th in_dtype is [%s].peer output node [%s] [%d]\'th "
-             "output_dtype is [%s]. The two dtype should be same! Please check graph and fix it",
-             node_ptr->GetName().c_str(), in_idx, TypeUtils::DataTypeToSerialString(in_dtype).c_str(),
-             peer_out_data_node->GetName().c_str(), peer_out_idx,
-             TypeUtils::DataTypeToSerialString(peer_out_dtype).c_str());
+      GELOGW(
+          "[Update][InputDesc] current node [%s] [%d]\'th in_dtype is [%s].peer output node [%s] [%d]\'th "
+          "output_dtype is [%s]. The two dtype should be same! Please check graph and fix it",
+          node_ptr->GetName().c_str(), in_idx, TypeUtils::DataTypeToSerialString(in_dtype).c_str(),
+          peer_out_data_node->GetName().c_str(), peer_out_idx,
+          TypeUtils::DataTypeToSerialString(peer_out_dtype).c_str());
     } else if ((!in_shape.empty()) && (in_shape != peer_out_shape)) {
       const std::string in_shape_str = Serial(in_shape);
       const std::string peer_out_shape_str = Serial(peer_out_shape);
-      GELOGW("[Update][InputDesc] current node [%s] [%d]\'th in_shape is [%s].peer output node [%s] [%d]\'th "
-             "output_shape is [%s]. The two shape should be same! Please check graph and fix it",
-             node_ptr->GetName().c_str(), in_idx, in_shape_str.c_str(),
-             peer_out_data_node->GetName().c_str(), peer_out_idx, peer_out_shape_str.c_str());
+      GELOGW(
+          "[Update][InputDesc] current node [%s] [%d]\'th in_shape is [%s].peer output node [%s] [%d]\'th "
+          "output_shape is [%s]. The two shape should be same! Please check graph and fix it",
+          node_ptr->GetName().c_str(), in_idx, in_shape_str.c_str(), peer_out_data_node->GetName().c_str(),
+          peer_out_idx, peer_out_shape_str.c_str());
     } else {
       // do nothing
     }
@@ -553,13 +551,12 @@ namespace {
 thread_local std::unordered_map<NodePtr, InferenceContextPtr> context_map;
 }
 
-GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY
-void ShapeRefiner::ClearContextMap() {
+GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY void ShapeRefiner::ClearContextMap() {
   context_map.clear();
 }
 
-GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY
-void ShapeRefiner::PushToContextMap(const NodePtr &node, const InferenceContextPtr &inference_context) {
+GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY void ShapeRefiner::PushToContextMap(
+    const NodePtr &node, const InferenceContextPtr &inference_context) {
   (void)context_map.emplace(node, inference_context);
 }
 
@@ -569,8 +566,8 @@ static void GetRealOutNode(const OutDataAnchorPtr &peer_out_data_anchor,
   auto peer_out_data_node = peer_out_data_anchor->GetOwnerNode();
   if (IsOpWithSubgraph(peer_out_data_node)) {
     node_to_indx_stack.push(std::make_pair(peer_out_data_node, peer_out_data_anchor->GetIdx()));
-  } else if ((peer_out_data_node->GetType() == DATA)
-      && peer_out_data_node->GetOpDesc()->HasAttr(ATTR_NAME_PARENT_NODE_INDEX)) {
+  } else if ((peer_out_data_node->GetType() == DATA) &&
+             peer_out_data_node->GetOpDesc()->HasAttr(ATTR_NAME_PARENT_NODE_INDEX)) {
     NodeToOutAnchor node_to_out_anchor = NodeUtils::GetParentInputAndAnchorCrossSubgraph(peer_out_data_node);
     if ((node_to_out_anchor.first == nullptr) || (node_to_out_anchor.second == nullptr)) {
       GELOGW("Get parent input node or anchor is nullptr.");
@@ -581,9 +578,9 @@ static void GetRealOutNode(const OutDataAnchorPtr &peer_out_data_anchor,
     } else {
       (void)out_nodes.emplace(node_to_out_anchor.first, node_to_out_anchor.second->GetIdx());
     }
-    GELOGI("Ori peer node is:[%s][%s], change to real peer node:[%s][%s]",
-           peer_out_data_node->GetName().c_str(), peer_out_data_node->GetType().c_str(),
-           node_to_out_anchor.first->GetName().c_str(), node_to_out_anchor.first->GetType().c_str());
+    GELOGI("Ori peer node is:[%s][%s], change to real peer node:[%s][%s]", peer_out_data_node->GetName().c_str(),
+           peer_out_data_node->GetType().c_str(), node_to_out_anchor.first->GetName().c_str(),
+           node_to_out_anchor.first->GetType().c_str());
   } else {
     (void)out_nodes.emplace(peer_out_data_node, peer_out_data_anchor->GetIdx());
     GELOGI("Peer node: %s, out index: %d.", peer_out_data_node->GetName().c_str(), peer_out_data_anchor->GetIdx());
@@ -624,9 +621,8 @@ static Status GetOutNodesByParentNodeOutIndex(const NodePtr &parent_node, const 
   return SUCCESS;
 }
 
-GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY
-graphStatus ShapeRefiner::GetRealInNodesAndIndex(NodePtr &input_node, int32_t &output_idx,
-                                                 std::map<NodePtr, int32_t> &nodes_idx) {
+GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY graphStatus
+ShapeRefiner::GetRealInNodesAndIndex(NodePtr &input_node, int32_t &output_idx, std::map<NodePtr, int32_t> &nodes_idx) {
   auto op_desc = input_node->GetOpDesc();
   GE_CHECK_NOTNULL(op_desc);
   while ((input_node->GetType() == DATA) && (op_desc->HasAttr(ATTR_NAME_PARENT_NODE_INDEX))) {
@@ -649,7 +645,8 @@ graphStatus ShapeRefiner::GetRealInNodesAndIndex(NodePtr &input_node, int32_t &o
 
   if (IsOpWithSubgraph(input_node)) {
     if (GetOutNodesByParentNodeOutIndex(input_node, output_idx, nodes_idx) != SUCCESS) {
-      REPORT_INNER_ERR_MSG("E18888", "Get outnodes of %s by parent node out index failed.", input_node->GetName().c_str());
+      REPORT_INNER_ERR_MSG("E18888", "Get outnodes of %s by parent node out index failed.",
+                           input_node->GetName().c_str());
       GELOGE(FAILED, "[Get][Outnodes] of %s by parent node out index failed.", input_node->GetName().c_str());
       return FAILED;
     }
@@ -661,15 +658,13 @@ graphStatus ShapeRefiner::GetRealInNodesAndIndex(NodePtr &input_node, int32_t &o
   return SUCCESS;
 }
 
-
-GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY
-graphStatus ShapeRefiner::CreateInferenceContext(const NodePtr &node, InferenceContextPtr &inference_context) {
+GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY graphStatus
+ShapeRefiner::CreateInferenceContext(const NodePtr &node, InferenceContextPtr &inference_context) {
   return CreateInferenceContext(node, nullptr, inference_context);
 }
 
-GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY
-graphStatus ShapeRefiner::CreateInferenceContext(const NodePtr &node, ResourceContextMgr *const resource_context_mgr,
-                                                 InferenceContextPtr &inference_context) {
+GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY graphStatus ShapeRefiner::CreateInferenceContext(
+    const NodePtr &node, ResourceContextMgr *const resource_context_mgr, InferenceContextPtr &inference_context) {
   GE_CHECK_NOTNULL(node);
   inference_context = std::shared_ptr<InferenceContext>(InferenceContext::Create(resource_context_mgr));
   GE_CHECK_NOTNULL(inference_context);
@@ -705,9 +700,9 @@ graphStatus ShapeRefiner::CreateInferenceContext(const NodePtr &node, ResourceCo
         GE_CHECK_NOTNULL(src_context);
         std::vector<AscendString> src_marks;
         src_context->GetMarks(src_marks);
-        GELOGD("node:%s get %zu marks from node:%s",
-               node->GetName().c_str(), src_marks.size(), in_node->GetName().c_str());
-        for (const auto& mark : src_marks) {
+        GELOGD("node:%s get %zu marks from node:%s", node->GetName().c_str(), src_marks.size(),
+               in_node->GetName().c_str());
+        for (const auto &mark : src_marks) {
           if (marks.empty()) {
             marks.emplace_back(mark);
           }
@@ -844,20 +839,19 @@ graphStatus ShapeRefiner::DoInferShapeAndTypeForRunning(const ConstNodePtr &node
   return GRAPH_SUCCESS;
 }
 
-GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY
-graphStatus ShapeRefiner::InferShapeAndType(const NodePtr &node) {
+GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY graphStatus ShapeRefiner::InferShapeAndType(const NodePtr &node) {
   return InferShapeAndType(node, true);
 }
 
-GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY
-graphStatus ShapeRefiner::InferShapeAndTypeForRunning(const NodePtr &node, Operator &op, const bool before_subgraph) {
+GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY graphStatus
+ShapeRefiner::InferShapeAndTypeForRunning(const NodePtr &node, Operator &op, const bool before_subgraph) {
   GE_CHECK_NOTNULL(node);
   const auto op_desc = node->GetOpDesc();
   GE_CHECK_NOTNULL(op_desc);
 
   std::vector<af::DataType> temp_dtype;
-  for (auto &tensor_desc: op_desc->GetAllOutputsDescPtr()) {
-      temp_dtype.emplace_back(tensor_desc->GetDataType());
+  for (auto &tensor_desc : op_desc->GetAllOutputsDescPtr()) {
+    temp_dtype.emplace_back(tensor_desc->GetDataType());
   }
   PrintInOutTensorShape(node, "before_infershape when running");
 
@@ -870,8 +864,7 @@ graphStatus ShapeRefiner::InferShapeAndTypeForRunning(const NodePtr &node, Opera
     for (size_t i = 0UL; i < all_output_tensor.size(); ++i) {
       auto &output_tensor = all_output_tensor.at(i);
       if (output_tensor->GetDataType() != temp_dtype[i]) {
-        GELOGD("Op %s output %zu need reset dtype,original dtype is %s, new dtype is %s",
-               node->GetName().c_str(), i,
+        GELOGD("Op %s output %zu need reset dtype,original dtype is %s, new dtype is %s", node->GetName().c_str(), i,
                TypeUtils::DataTypeToSerialString(output_tensor->GetDataType()).c_str(),
                TypeUtils::DataTypeToSerialString(temp_dtype[i]).c_str());
         output_tensor->SetDataType(temp_dtype[i]);
@@ -882,14 +875,13 @@ graphStatus ShapeRefiner::InferShapeAndTypeForRunning(const NodePtr &node, Opera
   } else {
     REPORT_INNER_ERR_MSG("EZ8888", "%s(%s) call infer function failed.", node->GetName().c_str(),
                          node->GetType().c_str());
-    GELOGE(GRAPH_FAILED, "[Call][InferFunction] failed, node:%s(%s).",
-           node->GetName().c_str(), node->GetType().c_str());
+    GELOGE(GRAPH_FAILED, "[Call][InferFunction] failed, node:%s(%s).", node->GetName().c_str(),
+           node->GetType().c_str());
     return GRAPH_FAILED;
   }
 }
 
-GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY
-graphStatus ShapeRefiner::UpdateInputOutputDesc(const NodePtr &node) {
+GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY graphStatus ShapeRefiner::UpdateInputOutputDesc(const NodePtr &node) {
   GE_CHECK_NOTNULL(node);
   const auto op_desc = node->GetOpDesc();
   GE_CHECK_NOTNULL(op_desc);
@@ -899,8 +891,8 @@ graphStatus ShapeRefiner::UpdateInputOutputDesc(const NodePtr &node) {
     GE_IF_BOOL_EXEC(output_tensor->MutableShape().GetDims().empty(),
                     output_tensor->SetOriginShape(output_tensor->GetShape()));
 
-    af::TensorUtils::SetRealDimCnt(*output_tensor, static_cast<uint32_t>(output_tensor->GetOriginShape().GetDims()
-    .size()));
+    af::TensorUtils::SetRealDimCnt(*output_tensor,
+                                   static_cast<uint32_t>(output_tensor->GetOriginShape().GetDims().size()));
     output_tensor->SetOriginDataType(output_tensor->GetDataType());
     // set output origin shape range
     std::vector<std::pair<int64_t, int64_t>> range;
@@ -924,9 +916,8 @@ graphStatus ShapeRefiner::UpdateInputOutputDesc(const NodePtr &node) {
   return GRAPH_SUCCESS;
 }
 
-GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY
-graphStatus ShapeRefiner::PostProcessAfterInfershape(const NodePtr &node, const Operator &op,
-                                                     const bool is_unknown_graph) {
+GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY graphStatus
+ShapeRefiner::PostProcessAfterInfershape(const NodePtr &node, const Operator &op, const bool is_unknown_graph) {
   GE_CHECK_NOTNULL(node);
   if (is_unknown_graph) {
     PrintInOutTensorShape(node, "after_infershape when running");
@@ -946,8 +937,7 @@ graphStatus ShapeRefiner::PostProcessAfterInfershape(const NodePtr &node, const 
       ctx_after_infer->GetMarks(marks);
       GELOGD("[%s] after infershape. mark:%zu", node->GetName().c_str(), marks.size());
       if ((!ctx_after_infer->GetOutputHandleShapesAndTypes().empty()) || (!marks.empty())) {
-        GELOGD("[%s] set inference context after. mark:%zu", node->GetName().c_str(),
-               marks.size());
+        GELOGD("[%s] set inference context after. mark:%zu", node->GetName().c_str(), marks.size());
         (void)context_map.emplace(node, ctx_after_infer);
       }
     }
@@ -957,8 +947,8 @@ graphStatus ShapeRefiner::PostProcessAfterInfershape(const NodePtr &node, const 
   return GRAPH_SUCCESS;
 }
 
-GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY
-graphStatus ShapeRefiner::InferShapeAndType(const NodePtr &node, const bool before_subgraph) {
+GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY graphStatus ShapeRefiner::InferShapeAndType(const NodePtr &node,
+                                                                                           const bool before_subgraph) {
   GE_CHECK_NOTNULL(node);
   const bool is_unknown_graph = node->GetOwnerComputeGraph()->GetGraphUnknownFlag();
   const auto op_desc = node->GetOpDesc();
@@ -1001,11 +991,11 @@ graphStatus ShapeRefiner::InferShapeAndType(const NodePtr &node, const bool befo
   if (!check_status_valid) {
     REPORT_INNER_ERR_MSG("EZ8888", "%s(%s) call infer function failed.", node->GetName().c_str(),
                          node->GetType().c_str());
-    GELOGE(GRAPH_FAILED, "[Call][InferFunction] failed, node:%s(%s).",
-           node->GetName().c_str(), node->GetType().c_str());
+    GELOGE(GRAPH_FAILED, "[Call][InferFunction] failed, node:%s(%s).", node->GetName().c_str(),
+           node->GetType().c_str());
     return GRAPH_FAILED;
   }
 
   return PostProcessAfterInfershape(node, op, is_unknown_graph);
 }
-}  // namespace ge
+}  // namespace af

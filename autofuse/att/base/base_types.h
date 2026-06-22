@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -31,9 +31,9 @@
 #ifdef AUTOFUSE_USE_GE_METADEF
 namespace af {
 using ge::Expression;
+using ge::Status;
 using ge::Symbol;
 using ge::SymbolicUtils;
-using ge::Status;
 }  // namespace af
 #endif
 
@@ -70,13 +70,7 @@ enum class PipeType {
   PIPE_NONE = std::numeric_limits<int32_t>::max()
 };
 
-enum class AxisPosition {
-  ORIGIN = 0,
-  INNER,
-  OUTER,
-  MERGED,
-  POSERR = std::numeric_limits<int32_t>::max()
-};
+enum class AxisPosition { ORIGIN = 0, INNER, OUTER, MERGED, POSERR = std::numeric_limits<int32_t>::max() };
 
 enum class TilingDataType {
   // Axis params
@@ -104,13 +98,14 @@ struct TensorInfo {
   std::string name;
   Expr variable;
   Expr expr;
-  TensorInfo(const std::string &name, const Expr &variable, const Expr &expr) : name(name), variable(variable), expr(expr) {}
+  TensorInfo(const std::string &name, const Expr &variable, const Expr &expr)
+      : name(name), variable(variable), expr(expr) {}
 };
 
 struct NodeApiTilingCode {
-  std::string function_invoke; // 高阶API的函数调用
-  std::string function_impl; // 高阶API的函数实现
-  std::string head_files; // 高阶API依赖的头文件
+  std::string function_invoke;  // 高阶API的函数调用
+  std::string function_impl;    // 高阶API的函数实现
+  std::string head_files;       // 高阶API依赖的头文件
 };
 
 struct VfInstructPerf {
@@ -120,8 +115,7 @@ struct VfInstructPerf {
 };
 
 struct TensorShapeInfo {
-  inline std::string GetDimExpr() const
-  {
+  inline std::string GetDimExpr() const {
     std::stringstream ss;
     for (size_t i = 0U; i < dims.size(); i++) {
       if (i == (dims.size() - 1U)) {
@@ -136,13 +130,13 @@ struct TensorShapeInfo {
   std::string data_type;
   HardwareDef loc;
   std::vector<Expr> dims;
-  std::vector<Expr> repeats;  // tensor的repeat
-  std::vector<Expr> strides;  // tensor的stride
-  std::vector<Expr> gm_strides;  // tensor的stride
+  std::vector<Expr> repeats;         // tensor的repeat
+  std::vector<Expr> strides;         // tensor的stride
+  std::vector<Expr> gm_strides;      // tensor的stride
   std::vector<Expr> origin_repeats;  // 和codegen逻辑一致，tail切分时保留原始的repeats信息
 };
 
-inline std::string Str(const Expr& e) {
+inline std::string Str(const Expr &e) {
   if (!e.IsValid()) {
     return "";
   }
@@ -171,10 +165,8 @@ inline std::string GetSymbolName(const Expr &e) {
   return std::string(sym->GetName().get());
 }
 
-
 struct ExprCmp {
-  bool operator()(const Expr &lhs, const Expr &rhs) const
-  {
+  bool operator()(const Expr &lhs, const Expr &rhs) const {
     if (!lhs.IsValid()) {
       return true;
     }
@@ -217,13 +209,13 @@ inline std::string DebugString(const std::vector<T> &strs) {
 using ExprExprMap = std::map<Expr, Expr, ExprCmp>;
 using ExprUintMap = std::map<Expr, uint32_t, ExprCmp>;
 
-template<typename T>
+template <typename T>
 inline Expr CreateExpr(T value) {
   return af::Symbol(value);
 }
 
-using AscendCApiPerfFunc = af::Status (*)(const std::map<std::string, float> &param_map,
-                                          const std::vector<Expr> &dims, const Expr &gm_stride, Expr &res);
-}  // namespace
+using AscendCApiPerfFunc = af::Status (*)(const std::map<std::string, float> &param_map, const std::vector<Expr> &dims,
+                                          const Expr &gm_stride, Expr &res);
+}  // namespace att
 
 #endif  // ATT_BASIC_BASIC_TYPE_H_

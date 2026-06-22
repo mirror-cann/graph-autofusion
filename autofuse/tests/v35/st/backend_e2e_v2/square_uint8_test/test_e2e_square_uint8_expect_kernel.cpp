@@ -16,11 +16,11 @@
 // 输入输出数量与{graph}中描述一致
 extern "C" __global__ __aicore__ void square_uint8_test(GM_ADDR x1, GM_ADDR y, GM_ADDR workspace, GM_ADDR tiling);
 // 确保轴数量与3匹配, 与square_uint8_backend_generator.cpp中的shape_info声明的轴数量一致
-extern "C" int64_t AutofuseTiling(uint32_t s0, uint32_t s1, uint32_t s2, AutofuseTilingData* tiling, uint32_t* workspaceSize, uint64_t *blockDim, uint32_t aiv_num, uint32_t ub_size);
+extern "C" int64_t AutofuseTiling(uint32_t s0, uint32_t s1, uint32_t s2, AutofuseTilingData *tiling,
+                                  uint32_t *workspaceSize, uint64_t *blockDim, uint32_t aiv_num, uint32_t ub_size);
 
 namespace {
-class E2E_SquareUint8_Code : public testing::Test, public testing::WithParamInterface<std::vector<int>> {
-};
+class E2E_SquareUint8_Code : public testing::Test, public testing::WithParamInterface<std::vector<int>> {};
 
 TEST_P(E2E_SquareUint8_Code, CalculateCorrect) {
   auto test_shape = GetParam();
@@ -30,24 +30,24 @@ TEST_P(E2E_SquareUint8_Code, CalculateCorrect) {
   int test_size = test_shape[0] * test_shape[1] * test_shape[2];
 
   AutofuseTilingData tiling_data;
-  uint8_t* x = (uint8_t *)AscendC::GmAlloc(test_size * sizeof(uint8_t) + 32);
-  uint8_t* y = (uint8_t *)AscendC::GmAlloc(test_size * sizeof(uint8_t) + 32);
+  uint8_t *x = (uint8_t *)AscendC::GmAlloc(test_size * sizeof(uint8_t) + 32);
+  uint8_t *y = (uint8_t *)AscendC::GmAlloc(test_size * sizeof(uint8_t) + 32);
   uint8_t *expect = (uint8_t *)AscendC::GmAlloc(test_size * sizeof(uint8_t) + 32);
 
   // Prepare test and expect data
   for (int i = 0; i < test_size; i++) {
-    x[i] = static_cast<uint8_t>(i % 16); // 使用小值避免溢出
+    x[i] = static_cast<uint8_t>(i % 16);  // 使用小值避免溢出
     uint16_t product = x[i] * x[i];
     expect[i] = static_cast<uint8_t>(product & 0xFF);
   }
 
   // Launch
   uint32_t ws_size = 0;
-  AutofuseTiling(test_shape[0], test_shape[1], test_shape[2], &tiling_data, &ws_size, &block_dim, 48, 192*1024);
+  AutofuseTiling(test_shape[0], test_shape[1], test_shape[2], &tiling_data, &ws_size, &block_dim, 48, 192 * 1024);
   printf("tiling key: %d, core_num: %d\n", tiling_data.tiling_key, tiling_data.block_dim);
 
   AscendC::SetKernelMode(KernelMode::AIV_MODE);
-  ICPU_RUN_KF(square_uint8_test, tiling_data.block_dim, (uint8_t *)x, (uint8_t *)y, nullptr, (uint8_t*)&tiling_data);
+  ICPU_RUN_KF(square_uint8_test, tiling_data.block_dim, (uint8_t *)x, (uint8_t *)y, nullptr, (uint8_t *)&tiling_data);
 
   // Count difference
   uint32_t diff_count = 0;
@@ -64,7 +64,6 @@ TEST_P(E2E_SquareUint8_Code, CalculateCorrect) {
   AscendC::GmFree(expect);
 }
 
-INSTANTIATE_TEST_SUITE_P(CalcWithDifferentShape, E2E_SquareUint8_Code,
-                        ::testing::Values(std::vector<int>{32, 16, 16}));
+INSTANTIATE_TEST_SUITE_P(CalcWithDifferentShape, E2E_SquareUint8_Code, ::testing::Values(std::vector<int>{32, 16, 16}));
 
-}
+}  // namespace

@@ -203,6 +203,6 @@ extern const std::string AXES_SOLVER_CODE_HEAD;
 extern const std::string AXES_SOLVER_CODE_FUNC;
 extern const std::string AXES_SOLVER_PGO_CODE_FUNC;
 
-} // namespace att
+}  // namespace att
 
-#endif // ATT_AXES_REORDER_SOLVER_CODE_H_
+#endif  // ATT_AXES_REORDER_SOLVER_CODE_H_

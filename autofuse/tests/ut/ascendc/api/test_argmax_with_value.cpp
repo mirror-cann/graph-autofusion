@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2026 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -19,9 +19,7 @@ using namespace AscendC;
 #include "utils.h"
 #include "where.h"
 
-class TestApiArgmaxWithValue
-    : public testing::Test,
-      public testing::WithParamInterface<std::vector<int>> {};
+class TestApiArgmaxWithValue : public testing::Test, public testing::WithParamInterface<std::vector<int>> {};
 
 TEST_P(TestApiArgmaxWithValue, Test_argmax_with_value_float_ar) {
   int a = this->GetParam()[0];
@@ -67,8 +65,7 @@ TEST_P(TestApiArgmaxWithValue, Test_argmax_with_value_float_ar) {
 
     uint32_t shape[] = {static_cast<uint32_t>(a), static_cast<uint32_t>(b)};
 
-    ArgMaxWithValueExtend<int64_t, float, AscendC::Pattern::Reduce::AR>(
-        l_y, l_z, l_x, l_tmp, shape, true);
+    ArgMaxWithValueExtend<int64_t, float, AscendC::Pattern::Reduce::AR>(l_y, l_z, l_x, l_tmp, shape, true);
 
     UbToGm(y, l_y, a);
     UbToGm(z, l_z, a);
@@ -131,8 +128,7 @@ TEST_P(TestApiArgmaxWithValue, Test_argmax_with_value_int32_ar) {
 
     uint32_t shape[] = {static_cast<uint32_t>(a), static_cast<uint32_t>(b)};
 
-    ArgMaxWithValueExtend<int64_t, int32_t, AscendC::Pattern::Reduce::AR>(
-        l_y, l_z, l_x, l_tmp, shape, true);
+    ArgMaxWithValueExtend<int64_t, int32_t, AscendC::Pattern::Reduce::AR>(l_y, l_z, l_x, l_tmp, shape, true);
 
     UbToGm(y, l_y, a);
     UbToGm(z, l_z, a);
@@ -152,9 +148,7 @@ TEST_P(TestApiArgmaxWithValue, Test_argmax_with_value_int32_ar) {
 }
 
 INSTANTIATE_TEST_SUITE_P(CalcWithDifferentShape, TestApiArgmaxWithValue,
-                         ::testing::Values(std::vector<int>{16, 32},
-                                           std::vector<int>{32, 64},
-                                           std::vector<int>{8, 128},
+                         ::testing::Values(std::vector<int>{16, 32}, std::vector<int>{32, 64}, std::vector<int>{8, 128},
                                            std::vector<int>{4, 72}));
 
 TEST(TestApiArgmaxWithValueRA, Test_argmax_with_value_float_ra) {
@@ -202,8 +196,7 @@ TEST(TestApiArgmaxWithValueRA, Test_argmax_with_value_float_ra) {
 
     uint32_t shape[] = {a, b};
 
-    ArgMaxWithValueExtend<int64_t, float, AscendC::Pattern::Reduce::RA>(
-        l_y, l_z, l_x, l_tmp, shape, true);
+    ArgMaxWithValueExtend<int64_t, float, AscendC::Pattern::Reduce::RA>(l_y, l_z, l_x, l_tmp, shape, true);
 
     UbToGm(y, l_y, b);
     UbToGm(z, l_z, b);
@@ -267,8 +260,7 @@ TEST(TestApiArgmaxWithValueRA, Test_argmax_with_value_int32_ra) {
 
     uint32_t shape[] = {a, b};
 
-    ArgMaxWithValueExtend<int64_t, int32_t, AscendC::Pattern::Reduce::RA>(
-        l_y, l_z, l_x, l_tmp, shape, true);
+    ArgMaxWithValueExtend<int64_t, int32_t, AscendC::Pattern::Reduce::RA>(l_y, l_z, l_x, l_tmp, shape, true);
 
     UbToGm(y, l_y, b);
     UbToGm(z, l_z, b);
@@ -328,8 +320,7 @@ TEST(TestApiArgmaxWithValueLE64, Test_argmax_with_value_float_le64) {
 
     uint32_t shape[] = {a, b};
 
-    ArgMaxWithValueExtend<int64_t, float, AscendC::Pattern::Reduce::AR>(
-        l_y, l_z, l_x, l_tmp, shape, true);
+    ArgMaxWithValueExtend<int64_t, float, AscendC::Pattern::Reduce::AR>(l_y, l_z, l_x, l_tmp, shape, true);
 
     UbToGm(y, l_y, a);
     UbToGm(z, l_z, a);
@@ -389,8 +380,7 @@ TEST(TestApiArgmaxWithValueLE64, Test_argmax_with_value_int32_le64) {
 
     uint32_t shape[] = {a, b};
 
-    ArgMaxWithValueExtend<int64_t, int32_t, AscendC::Pattern::Reduce::AR>(
-        l_y, l_z, l_x, l_tmp, shape, true);
+    ArgMaxWithValueExtend<int64_t, int32_t, AscendC::Pattern::Reduce::AR>(l_y, l_z, l_x, l_tmp, shape, true);
 
     UbToGm(y, l_y, a);
     UbToGm(z, l_z, a);
@@ -450,8 +440,7 @@ TEST(TestApiArgmaxWithValue, Test_argmax_with_value_float_negative) {
 
     uint32_t shape[] = {a, b};
 
-    ArgMaxWithValueExtend<int64_t, float, AscendC::Pattern::Reduce::AR>(
-        l_y, l_z, l_x, l_tmp, shape, true);
+    ArgMaxWithValueExtend<int64_t, float, AscendC::Pattern::Reduce::AR>(l_y, l_z, l_x, l_tmp, shape, true);
 
     UbToGm(y, l_y, a);
     UbToGm(z, l_z, a);
@@ -511,8 +500,7 @@ TEST(TestApiArgmaxWithValue, Test_argmax_with_value_int32_negative) {
 
     uint32_t shape[] = {a, b};
 
-    ArgMaxWithValueExtend<int64_t, int32_t, AscendC::Pattern::Reduce::AR>(
-        l_y, l_z, l_x, l_tmp, shape, true);
+    ArgMaxWithValueExtend<int64_t, int32_t, AscendC::Pattern::Reduce::AR>(l_y, l_z, l_x, l_tmp, shape, true);
 
     UbToGm(y, l_y, a);
     UbToGm(z, l_z, a);

@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -27,36 +27,37 @@ struct MyCmp {
 using DstAnchors = std::set<AnchorWithIndex, MyCmp>;
 
 struct NodeNameGraphReq {
-   public:
-    NodeNameGraphReq(const std::string &name, const int32_t index, const ComputeGraphPtr &graph)
+ public:
+  NodeNameGraphReq(const std::string &name, const int32_t index, const ComputeGraphPtr &graph)
       : node_name(name), index(index), graph(graph) {}
-    friend class ModelSerializeImp;
+  friend class ModelSerializeImp;
 
-   private:
-    std::string node_name;
-    int32_t index;
-    ComputeGraphPtr graph;
+ private:
+  std::string node_name;
+  int32_t index;
+  ComputeGraphPtr graph;
 };
 
 struct NodeNameNodeReq {
-   public:
-    NodeNameNodeReq(const std::string &src_name, const int32_t src_index, const int32_t src_out_peer_index,
-                    const NodePtr dst_node, const int32_t dst_index, const std::string &dst_name)
-        : src_node_name(src_name),
-          src_out_index(src_index),
-          src_out_peer_index(src_out_peer_index),
-          dst_node(dst_node),
-          dst_in_index(dst_index),
-          dst_node_name(dst_name) {}
+ public:
+  NodeNameNodeReq(const std::string &src_name, const int32_t src_index, const int32_t src_out_peer_index,
+                  const NodePtr dst_node, const int32_t dst_index, const std::string &dst_name)
+      : src_node_name(src_name),
+        src_out_index(src_index),
+        src_out_peer_index(src_out_peer_index),
+        dst_node(dst_node),
+        dst_in_index(dst_index),
+        dst_node_name(dst_name) {}
 
-    friend class ModelSerializeImp;
-   private:
-    std::string src_node_name;
-    int32_t src_out_index;
-    int32_t src_out_peer_index;
-    NodePtr dst_node;
-    int32_t dst_in_index;
-    std::string dst_node_name;
+  friend class ModelSerializeImp;
+
+ private:
+  std::string src_node_name;
+  int32_t src_out_index;
+  int32_t src_out_peer_index;
+  NodePtr dst_node;
+  int32_t dst_in_index;
+  std::string dst_node_name;
 };
 
 class ModelSerializeImp {
@@ -85,8 +86,7 @@ class ModelSerializeImp {
 
   bool SerializeToBuffer(const proto::ModelDef &model_def, Buffer &buffer) const;
 
-  bool UnserializeModel(Model &model, proto::ModelDef &model_proto,
-      const bool is_enable_multi_thread = false);
+  bool UnserializeModel(Model &model, proto::ModelDef &model_proto, const bool is_enable_multi_thread = false);
   bool SetWeightForModel(proto::OpDef &op_def) const;
 
   bool UnserializeGraphWithoutEdge(ComputeGraphPtr &graph, proto::GraphDef &graph_proto);
@@ -108,24 +108,26 @@ class ModelSerializeImp {
 
   bool ParseNodeIndex(const std::string &node_index, std::string &node_name, int32_t &index) const;
 
-  void SetProtobufOwner(const ProtoMsgOwner &buffer_proto_buf_onwer) { protobuf_owner_ = buffer_proto_buf_onwer; }
+  void SetProtobufOwner(const ProtoMsgOwner &buffer_proto_buf_onwer) {
+    protobuf_owner_ = buffer_proto_buf_onwer;
+  }
 
   bool LoadWeightFromFile(const std::string &file_path, const int64_t &length, std::string &weight) const;
 
-  void SetAirModelPath(const std::string &path) { air_path_ = path; }
+  void SetAirModelPath(const std::string &path) {
+    air_path_ = path;
+  }
   static bool SerializeAllAttrsFromAnyMap(const std::map<std::string, AnyValue> &attr_map,
-      google::protobuf::Map<std::string, ::af::proto::AttrDef> *const mutable_attr);
+                                          google::protobuf::Map<std::string, ::af::proto::AttrDef> *const mutable_attr);
   static bool DeserializeAllAttrsToAttrHolder(
       const google::protobuf::Map<std::string, ::af::proto::AttrDef> &proto_attr_map, AttrHolder *const attr_holder);
 
  private:
   bool RebuildOwnership(ComputeGraphPtr &compute_graph, std::map<std::string, ComputeGraphPtr> &subgraphs) const;
-  Status ParallelUnserializeGraph(
-      std::map<std::string, ComputeGraphPtr> &graphs,
-      ::google::protobuf::RepeatedPtrField<proto::GraphDef> &graphs_proto);
-  Status UnserializeGraph(
-      std::map<std::string, ComputeGraphPtr> &graphs,
-      ::google::protobuf::RepeatedPtrField<proto::GraphDef> &graphs_proto);
+  Status ParallelUnserializeGraph(std::map<std::string, ComputeGraphPtr> &graphs,
+                                  ::google::protobuf::RepeatedPtrField<proto::GraphDef> &graphs_proto);
+  Status UnserializeGraph(std::map<std::string, ComputeGraphPtr> &graphs,
+                          ::google::protobuf::RepeatedPtrField<proto::GraphDef> &graphs_proto);
   void FixOpDefSubgraphInstanceName(const ConstOpDescPtr &op_desc) const;
 
   void ExtractMetaDataAttrIn(proto::OpDef &op_def_proto, std::vector<std::string> &opt_input,
@@ -144,8 +146,8 @@ class ModelSerializeImp {
   std::vector<NodeNameNodeReq> node_input_node_names_;
   std::map<std::string, NodePtr> node_map_;
   ProtoMsgOwner protobuf_owner_;
-  std::string air_path_; // path store air model path
+  std::string air_path_;  // path store air model path
 };
-}  // namespace ge
+}  // namespace af
 
 #endif  // INC_GRAPH_DETAIL_MODEL_SERIALIZE_IMP_H_

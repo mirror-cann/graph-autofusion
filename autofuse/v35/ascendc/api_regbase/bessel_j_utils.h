@@ -16,15 +16,14 @@ constexpr float BESSEL_J_SQRT_2_OVER_PI = 0.797884560802865355879892119868763737
 constexpr uint32_t BESSEL_FLOAT_NAN = 0x7fc00000;
 
 // Horner polynomial evaluation: result = ((...(coeffs[0] * z + coeffs[1]) * z + coeffs[2]) * z + ... + coeffs[N])
-template <typename T, uint32_t currentIdx, uint32_t endIdx, const float* coeffs>
-__simd_callee__ inline void HornerPoly(AscendC::Reg::RegTensor<T>& result,
-                                        AscendC::Reg::RegTensor<T>& z,
-                                        AscendC::Reg::MaskReg& mask) {
-    AscendC::Reg::Mul(result, result, z, mask);
-    AscendC::Reg::Adds(result, result, (T)coeffs[currentIdx], mask);
-    if constexpr (currentIdx < endIdx) {
-        HornerPoly<T, currentIdx + 1, endIdx, coeffs>(result, z, mask);
-    }
+template <typename T, uint32_t currentIdx, uint32_t endIdx, const float *coeffs>
+__simd_callee__ inline void HornerPoly(AscendC::Reg::RegTensor<T> &result, AscendC::Reg::RegTensor<T> &z,
+                                       AscendC::Reg::MaskReg &mask) {
+  AscendC::Reg::Mul(result, result, z, mask);
+  AscendC::Reg::Adds(result, result, (T)coeffs[currentIdx], mask);
+  if constexpr (currentIdx < endIdx) {
+    HornerPoly<T, currentIdx + 1, endIdx, coeffs>(result, z, mask);
+  }
 }
 
 #endif  // __ASCENDC_API_REGBASE_BESSEL_J_UTILS_H__

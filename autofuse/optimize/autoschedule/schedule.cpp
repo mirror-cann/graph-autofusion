@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -63,7 +63,8 @@ bool IsContinuesBroadcast(const ascir::ImplGraph &impl_graph, const af::AscNodeP
   }
   const auto &in_nodes = pre_node->GetInDataNodes();
   if (optimize::ScheduleUtils::IsScalarLikeNode(in_nodes.at(0UL))) {
-    GELOGD("Input of Broadcast[%s] is Scalar[%s], is supported.", brc_node->GetNamePtr(), in_nodes.at(0UL)->GetNamePtr());
+    GELOGD("Input of Broadcast[%s] is Scalar[%s], is supported.", brc_node->GetNamePtr(),
+           in_nodes.at(0UL)->GetNamePtr());
     return true;
   }
   auto &in_vec_axis = pre_node->inputs[0].attr.vectorized_axis;
@@ -280,8 +281,8 @@ Status Scheduler::ModifyStoreAfterReduce(ascir::NodeView &node, ascir::AxisId re
       size_product = size_product * repeat;
     }
     auto iter = std::find(output_attr.axis.begin(), output_attr.axis.end(), reduce_block_id);
-    GE_ASSERT_TRUE(iter != output_attr.axis.end(), "Cannot find axis [%ld] from [%s]'s output tensor.",
-                   reduce_block_id, node->GetNamePtr());
+    GE_ASSERT_TRUE(iter != output_attr.axis.end(), "Cannot find axis [%ld] from [%s]'s output tensor.", reduce_block_id,
+                   node->GetNamePtr());
     size_t index = std::distance(output_attr.axis.begin(), iter);
     GE_ASSERT_TRUE(index < output_attr.repeats.size(), "Repeats of [%s]'s output tensor not greater than [%lu].",
                    node->GetNamePtr(), index);

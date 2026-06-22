@@ -46,7 +46,7 @@ NodeInfo MakeNodeInfo(const std::string &name, const std::string &type,
 }
 
 std::shared_ptr<TuningSpace> BuildMatMulLoadTuningSpace(const NodeInfo &matmul, const NodeInfo &load,
-                                                         std::vector<std::unique_ptr<SubAxis>> &axes) {
+                                                        std::vector<std::unique_ptr<SubAxis>> &axes) {
   auto tuning_space = std::make_shared<TuningSpace>();
   tuning_space->node_infos = {matmul, load};
   for (auto &axis : axes) {
@@ -142,8 +142,12 @@ struct LayerNormTestCtx {
 
 class TestArgListReorder : public ::testing::Test {
  public:
-  static void TearDownTestCase() { std::cout << "Test end." << std::endl; }
-  static void SetUpTestCase() { std::cout << "Test begin." << std::endl; }
+  static void TearDownTestCase() {
+    std::cout << "Test end." << std::endl;
+  }
+  static void SetUpTestCase() {
+    std::cout << "Test begin." << std::endl;
+  }
   void SetUp() override {}
   void TearDown() override {}
 };
@@ -158,17 +162,16 @@ TEST_F(TestArgListReorder, case0) {
   n->is_node_innerest_dim = true;
 
   auto matmul = MakeNodeInfo("MatMul", "MatMul",
-      {MakeTensor("MatMul_input_0", {m.get(), k.get()}, {M, K}, {MM, KK}),
-       MakeTensor("MatMul_input_1", {k.get(), n.get()}, {K, N}, {KK, NN})},
-      {MakeTensor("MatMul_output_0", {m.get(), n.get(), k.get()}, {M, N, ONE}, {MM, NN, ZERO})});
+                             {MakeTensor("MatMul_input_0", {m.get(), k.get()}, {M, K}, {MM, KK}),
+                              MakeTensor("MatMul_input_1", {k.get(), n.get()}, {K, N}, {KK, NN})},
+                             {MakeTensor("MatMul_output_0", {m.get(), n.get(), k.get()}, {M, N, ONE}, {MM, NN, ZERO})});
 
   auto a = std::make_unique<SubAxis>(), b = std::make_unique<SubAxis>();
   a->name = "a", b->name = "b";
   auto A = ge::Symbol("A"), B = ge::Symbol("B"), AA = ge::Symbol("AA"), BB = ge::Symbol("BB");
 
-  auto load = MakeNodeInfo("Load", "Load",
-      {MakeTensor("Load_input", {a.get(), b.get()}, {A, B}, {AA, BB})},
-      {MakeTensor("Load_output", {a.get(), b.get()}, {A, B}, {AA, BB})});
+  auto load = MakeNodeInfo("Load", "Load", {MakeTensor("Load_input", {a.get(), b.get()}, {A, B}, {AA, BB})},
+                           {MakeTensor("Load_output", {a.get(), b.get()}, {A, B}, {AA, BB})});
 
   std::vector<std::unique_ptr<SubAxis>> axes;
   axes.push_back(std::move(m)), axes.push_back(std::move(k)), axes.push_back(std::move(n));

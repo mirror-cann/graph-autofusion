@@ -1,10 +1,10 @@
 
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -43,23 +43,24 @@
 
 using namespace std;
 using namespace testing;
-namespace af{
+namespace af {
 class PatternFusionBeforeAutoFuseV2UT : public testing::Test {
-  public:
-  protected:
-    void SetUp() override {
-      dlog_setlevel(0, 3, 0);
-      es_graph_ = std::unique_ptr<es::Graph>(new es::Graph("graph"));
-      RegisterAllOpCreator();
-    }
-    void TearDown() override {
-       dlog_setlevel(0, 3, 0);
-    }
-    std::unique_ptr<es::Graph> es_graph_;
+ public:
+ protected:
+  void SetUp() override {
+    dlog_setlevel(0, 3, 0);
+    es_graph_ = std::unique_ptr<es::Graph>(new es::Graph("graph"));
+    RegisterAllOpCreator();
+  }
+  void TearDown() override {
+    dlog_setlevel(0, 3, 0);
+  }
+  std::unique_ptr<es::Graph> es_graph_;
 };
-   
+
 template <typename T>
-es::Tensor CreateConstTensor(es::Graph &graph, af::DataType dtype, const std::vector<int64_t> &dims, std::vector<T> value) {
+es::Tensor CreateConstTensor(es::Graph &graph, af::DataType dtype, const std::vector<int64_t> &dims,
+                             std::vector<T> value) {
   auto result = es::FileConstant(graph, dims, dtype);
   GeTensorDesc desc(GeShape(dims), af::FORMAT_ND, dtype);
   GeTensorPtr tensor =
@@ -69,7 +70,7 @@ es::Tensor CreateConstTensor(es::Graph &graph, af::DataType dtype, const std::ve
   return result;
 }
 
-uint8_t CountAscSubgraphNode(const NodePtr & AscNode , const string &node_type) {
+uint8_t CountAscSubgraphNode(const NodePtr &AscNode, const string &node_type) {
   const auto attr = AscNode->GetOpDesc()->GetAttrsGroup<af::AutoFuseAttrs>();
   uint8_t count = 0;
   for (const auto &node : attr->GetAscGraph()->GetAllNodes()) {
@@ -81,28 +82,24 @@ uint8_t CountAscSubgraphNode(const NodePtr & AscNode , const string &node_type) 
 }
 
 REG_OP(Relu)
-  .INPUT(x, TensorType::UnaryDataType())
-  .OUTPUT(y, TensorType::UnaryDataType())
-  .ATTR(base, Float, -1.0)
-  .ATTR(scale, Float, 1.0)
-  .ATTR(shift, Float, 0.0)
-  .OP_END_FACTORY_REG(Relu)
-REG_OP(Exp)
-  .INPUT(x, TensorType::UnaryDataType())
-  .OUTPUT(y, TensorType::UnaryDataType())
-  .ATTR(base, Float, -1.0)
-  .OP_END_FACTORY_REG(Exp)
-REG_OP(Abs)
-  .INPUT(x, TensorType::UnaryDataType())
-  .OUTPUT(y, TensorType::UnaryDataType())
-  .ATTR(base, Float, -1.0)
-  .ATTR(scale, Float, 1.0)
-  .ATTR(shift, Float, 0.0)
-  .OP_END_FACTORY_REG(Abs)
+    .INPUT(x, TensorType::UnaryDataType())
+    .OUTPUT(y, TensorType::UnaryDataType())
+    .ATTR(base, Float, -1.0)
+    .ATTR(scale, Float, 1.0)
+    .ATTR(shift, Float, 0.0)
+    .OP_END_FACTORY_REG(Relu) REG_OP(Exp)
+    .INPUT(x, TensorType::UnaryDataType())
+    .OUTPUT(y, TensorType::UnaryDataType())
+    .ATTR(base, Float, -1.0)
+    .OP_END_FACTORY_REG(Exp) REG_OP(Abs)
+    .INPUT(x, TensorType::UnaryDataType())
+    .OUTPUT(y, TensorType::UnaryDataType())
+    .ATTR(base, Float, -1.0)
+    .ATTR(scale, Float, 1.0)
+    .ATTR(shift, Float, 0.0)
+    .OP_END_FACTORY_REG(Abs)
 
-const auto ReluInfer = [](Operator &op) {
-  return GRAPH_SUCCESS;
-};
+        const auto ReluInfer = [](Operator &op) { return GRAPH_SUCCESS; };
 
 INFER_FUNC_REG(Relu, ReluInfer);
 INFER_FUNC_REG(Abs, ReluInfer);
@@ -229,7 +226,6 @@ TEST_F(PatternFusionBeforeAutoFuseV2UT, GatherForward_NonTail_A3) {
   ASSERT_EQ(asc_node_count_after_autofuse_gather, 0);
   ASSERT_EQ(asc_node_count_after_autofuse, 2);
 }
-
 
 TEST_F(PatternFusionBeforeAutoFuseV2UT, GatherForward_Tail_A5_1) {
   ge::PlatformContext::GetInstance().Reset();
@@ -359,7 +355,6 @@ TEST_F(PatternFusionBeforeAutoFuseV2UT, GatherForward_Tail_A5_2) {
   tmp_desc->SetDataType(DT_INT64);
   tmp_desc->SetOriginDataType(DT_INT64);
 
-
   GatherForwardFusionPass GatherForwardFusionPassTest;
   auto result = GatherForwardFusionPassTest.Run(graph);
   ASSERT_EQ(result, GRAPH_SUCCESS);
@@ -395,7 +390,6 @@ TEST_F(PatternFusionBeforeAutoFuseV2UT, GatherForward_Tail_A5_2) {
   ge::PlatformContext::GetInstance().Reset();
   RuntimeStub::Reset();
 }
-
 
 TEST_F(PatternFusionBeforeAutoFuseV2UT, GatherForward_NonTail_A5_1) {
   ge::PlatformContext::GetInstance().Reset();
@@ -842,7 +836,6 @@ TEST_F(PatternFusionBeforeAutoFuseV2UT, GatherForward_NonTail_A5_7) {
   tmp_desc->SetDataType(DT_INT64);
   tmp_desc->SetOriginDataType(DT_INT64);
 
-
   GatherForwardFusionPass GatherForwardFusionPassTest;
   auto result = GatherForwardFusionPassTest.Run(graph);
   ASSERT_EQ(result, GRAPH_SUCCESS);
@@ -923,7 +916,6 @@ TEST_F(PatternFusionBeforeAutoFuseV2UT, GatherForward_NonTail_A5_8) {
   auto tmp_desc = nodeptr->GetOpDesc()->MutableOutputDesc(0);
   tmp_desc->SetDataType(DT_INT64);
   tmp_desc->SetOriginDataType(DT_INT64);
-
 
   GatherForwardFusionPass GatherForwardFusionPassTest;
   auto result = GatherForwardFusionPassTest.Run(graph);
@@ -1018,7 +1010,6 @@ TEST_F(PatternFusionBeforeAutoFuseV2UT, GatherForward_NonTail_A5_9) {
   tmp_desc = nodeptr->GetOpDesc()->MutableOutputDesc(0);
   tmp_desc->SetDataType(DT_INT64);
   tmp_desc->SetOriginDataType(DT_INT64);
-
 
   GatherForwardFusionPass GatherForwardFusionPassTest;
   auto result = GatherForwardFusionPassTest.Run(graph);
@@ -1117,7 +1108,6 @@ TEST_F(PatternFusionBeforeAutoFuseV2UT, GatherForward_NonTail_A5_10) {
   tmp_desc->SetDataType(DT_INT64);
   tmp_desc->SetOriginDataType(DT_INT64);
 
-
   GatherForwardFusionPass GatherForwardFusionPassTest;
   auto result = GatherForwardFusionPassTest.Run(graph);
   ASSERT_EQ(result, GRAPH_SUCCESS);
@@ -1182,7 +1172,7 @@ TEST_F(PatternFusionBeforeAutoFuseV2UT, GatherForward_NonTail_A5_11) {
     auto exp1 = es::Exp(relu1);
     exp1.SetSymbolShape({"s0", "s1", "s2"});
     exp1.SetInputSymbolShape({"s0", "s1", "s2"});
-    auto gather1=es::GatherV2(exp1, data1, axis1);
+    auto gather1 = es::GatherV2(exp1, data1, axis1);
     gather1.SetSymbolShape({"s3", "s4", "s1", "s2"});
     auto abs2 = es::Abs(gather1);
     abs2.SetSymbolShape({"s3", "s4", "s1", "s2"});
@@ -1205,7 +1195,6 @@ TEST_F(PatternFusionBeforeAutoFuseV2UT, GatherForward_NonTail_A5_11) {
   tmp_desc = nodeptr->GetOpDesc()->MutableOutputDesc(0);
   tmp_desc->SetDataType(DT_INT64);
   tmp_desc->SetOriginDataType(DT_INT64);
-
 
   GatherForwardFusionPass GatherForwardFusionPassTest;
   auto result = GatherForwardFusionPassTest.Run(graph);
@@ -1270,7 +1259,6 @@ TEST_F(PatternFusionBeforeAutoFuseV2UT, GatherForward_NonTail_A5_12) {
     es_graph_->SetOutput(abs2, 1);
   }();
 
-
   auto graph_es = es_graph_->Build();
   auto graph = GraphUtilsEx::GetComputeGraph(*graph_es);
   auto nodeptr = graph->FindNode("data1");
@@ -1325,14 +1313,13 @@ TEST_F(PatternFusionBeforeAutoFuseV2UT, GatherForward_NonTail_A5_13) {
     data1.SetSymbolShape({"s3", "s4"});
     auto axis = CreateConstTensor(*es_graph_, af::DT_INT64, {1}, std::vector<int64_t>{0});
     axis.SetSymbolShape({});
-    auto cast1=es::Cast(data0, DT_FLOAT);
+    auto cast1 = es::Cast(data0, DT_FLOAT);
     cast1.SetSymbolShape({"s0", "s1", "s2"});
     cast1.SetInputSymbolShape({"s0", "s1", "s2"});
     auto gather = es::GatherV2(cast1, data1, axis);
     gather.SetSymbolShape({"s3", "s4", "s1", "s2"});
     es_graph_->SetOutput(gather, 0);
   }();
-
 
   auto graph_es = es_graph_->Build();
   auto graph = GraphUtilsEx::GetComputeGraph(*graph_es);
@@ -1399,7 +1386,7 @@ TEST_F(PatternFusionBeforeAutoFuseV2UT, GatherForward_NonTail_A5_14) {
     auto axis = CreateConstTensor(*es_graph_, af::DT_INT64, {1}, std::vector<int64_t>{0});
     axis.SetSymbolShape({});
     auto squeeze_axis = std::vector<int64_t>({0});
-    auto squeeze1=es::Squeeze(data0, squeeze_axis);
+    auto squeeze1 = es::Squeeze(data0, squeeze_axis);
     squeeze1.SetSymbolShape({"s0", "s1", "s2"});
     squeeze1.SetInputSymbolShape({"s0", "s1", "s2", "s5"});
     auto gather = es::GatherV2(squeeze1, data1, axis);
@@ -1462,14 +1449,13 @@ TEST_F(PatternFusionBeforeAutoFuseV2UT, GatherForward_NonTail_A5_15) {
     auto axis = CreateConstTensor(*es_graph_, af::DT_INT64, {1}, std::vector<int64_t>{0});
     axis.SetSymbolShape({});
     auto squeeze_axis = std::vector<int64_t>({0});
-    auto unsqueeze1=es::Unsqueeze(data0, squeeze_axis);
+    auto unsqueeze1 = es::Unsqueeze(data0, squeeze_axis);
     unsqueeze1.SetSymbolShape({"s0", "s1", "s2"});
     unsqueeze1.SetInputSymbolShape({"s0", "s1"});
     auto gather = es::GatherV2(unsqueeze1, data1, axis);
     gather.SetSymbolShape({"s3", "s4", "s1", "s2"});
     es_graph_->SetOutput(gather, 0);
   }();
-
 
   auto graph_es = es_graph_->Build();
   auto graph = GraphUtilsEx::GetComputeGraph(*graph_es);
@@ -1513,4 +1499,4 @@ TEST_F(PatternFusionBeforeAutoFuseV2UT, GatherForward_NonTail_A5_15) {
   ge::PlatformContext::GetInstance().Reset();
   RuntimeStub::Reset();
 }
-}
+}  // namespace af

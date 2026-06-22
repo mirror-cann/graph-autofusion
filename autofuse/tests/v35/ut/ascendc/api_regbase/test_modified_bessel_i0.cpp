@@ -8,7 +8,6 @@
  * See LICENSE in the root of the software repository for the full text of the License.
  */
 
-
 #include <cmath>
 #include <random>
 #include "gtest/gtest.h"
@@ -65,8 +64,7 @@ class TestRegbaseApiModifiedBesselI0UT : public testing::Test {
       if (rel_err > 1e-2) {
         diff_count++;
         printf("diff at index %d: x: %.20e, y: %.20e, expect: %.20e, rel_err: %f\n", i, static_cast<float>(param.x1[i]),
-               static_cast<float>(param.y[i]), static_cast<float>(param.exp[i]),
-               static_cast<float>(rel_err));
+               static_cast<float>(param.y[i]), static_cast<float>(param.exp[i]), static_cast<float>(rel_err));
       }
     }
     return diff_count;
@@ -99,7 +97,8 @@ TEST_F(TestRegbaseApiModifiedBesselI0UT, ModifiedBesselI0_TensorTensor_Test) {
   ModifiedBesselI0Test<float>((ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) / sizeof(float));
   ModifiedBesselI0Test<float>((MAX_REPEAT_NUM - 1) * ONE_REPEAT_BYTE_SIZE / 2 / sizeof(float));
   ModifiedBesselI0Test<float>(((MAX_REPEAT_NUM - 1) * ONE_REPEAT_BYTE_SIZE + (ONE_REPEAT_BYTE_SIZE - ONE_BLK_SIZE) +
-                              (ONE_BLK_SIZE - sizeof(float))) / 2 / sizeof(float));
+                               (ONE_BLK_SIZE - sizeof(float))) /
+                              2 / sizeof(float));
 }
 
-} // namespace ge
+}  // namespace af

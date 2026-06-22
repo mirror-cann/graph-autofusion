@@ -47,7 +47,7 @@ bool IsEnableEqualOrderTilingFunc(const ModelInfo &model_info) {
   }
   return false;
 }
-}
+}  // namespace
 
 class IsEnableEqualOrderTilingTest : public ::testing::Test {
  public:
@@ -62,17 +62,17 @@ class IsEnableEqualOrderTilingTest : public ::testing::Test {
   void TearDown() override {}
 
   // 辅助函数：创建测试用的切分轴
-  AttAxisPtr CreateTileSplitAxis(const std::string& name, size_t order) {
+  AttAxisPtr CreateTileSplitAxis(const std::string &name, size_t order) {
     auto axis = std::make_shared<AttAxis>();
     axis->name = name;
     axis->order = order;
     axis->axis_pos = AxisPosition::INNER;  // INNER axis for tile split
-    axis->bind_multicore = false;  // Not bound to multicore for tile split
+    axis->bind_multicore = false;          // Not bound to multicore for tile split
     return axis;
   }
 
   // 辅助函数：创建非切分轴（绑定多核）
-  AttAxisPtr CreateNonTileSplitAxis(const std::string& name, size_t order) {
+  AttAxisPtr CreateNonTileSplitAxis(const std::string &name, size_t order) {
     auto axis = std::make_shared<AttAxis>();
     axis->name = name;
     axis->order = order;
@@ -82,10 +82,10 @@ class IsEnableEqualOrderTilingTest : public ::testing::Test {
   }
 
   // 辅助函数：创建测试用的ModelInfo
-  ModelInfo CreateTestModelInfo(const std::vector<AttAxisPtr>& axes) {
+  ModelInfo CreateTestModelInfo(const std::vector<AttAxisPtr> &axes) {
     ModelInfo model_info;
     model_info.graph_name = "test_graph";
-    for (const auto& axis : axes) {
+    for (const auto &axis : axes) {
       model_info.arg_list.push_back(axis);
     }
     return model_info;
@@ -101,62 +101,44 @@ TEST_F(IsEnableEqualOrderTilingTest, empty_arg_list) {
 
 // UT002: 只有非切分轴 - 路径4
 TEST_F(IsEnableEqualOrderTilingTest, no_tile_split_axis) {
-  auto model_info = CreateTestModelInfo({
-    CreateNonTileSplitAxis("non_split_axis", 1)
-  });
+  auto model_info = CreateTestModelInfo({CreateNonTileSplitAxis("non_split_axis", 1)});
   EXPECT_FALSE(IsEnableEqualOrderTilingFunc(model_info));
 }
 
 // UT003: 单个切分轴order=1 - 路径3
 TEST_F(IsEnableEqualOrderTilingTest, single_tile_split_axis_order1) {
-  auto model_info = CreateTestModelInfo({
-    CreateTileSplitAxis("S0", 1)
-  });
+  auto model_info = CreateTestModelInfo({CreateTileSplitAxis("S0", 1)});
   EXPECT_FALSE(IsEnableEqualOrderTilingFunc(model_info));
 }
 
 // UT004: 单个切分轴order=2 - 路径3
 TEST_F(IsEnableEqualOrderTilingTest, single_tile_split_axis_order2) {
-  auto model_info = CreateTestModelInfo({
-    CreateTileSplitAxis("S0", 2)
-  });
+  auto model_info = CreateTestModelInfo({CreateTileSplitAxis("S0", 2)});
   EXPECT_FALSE(IsEnableEqualOrderTilingFunc(model_info));
 }
 
 // UT005: 两个切分轴相同order=1 - 路径2
 TEST_F(IsEnableEqualOrderTilingTest, two_tile_split_axes_same_order) {
-  auto model_info = CreateTestModelInfo({
-    CreateTileSplitAxis("S0", 1),
-    CreateTileSplitAxis("S1", 1)
-  });
+  auto model_info = CreateTestModelInfo({CreateTileSplitAxis("S0", 1), CreateTileSplitAxis("S1", 1)});
   EXPECT_TRUE(IsEnableEqualOrderTilingFunc(model_info));
 }
 
 // UT006: 两个切分轴相同order=2 - 路径2
 TEST_F(IsEnableEqualOrderTilingTest, two_tile_split_axes_same_order2) {
-  auto model_info = CreateTestModelInfo({
-    CreateTileSplitAxis("S0", 2),
-    CreateTileSplitAxis("S1", 2)
-  });
+  auto model_info = CreateTestModelInfo({CreateTileSplitAxis("S0", 2), CreateTileSplitAxis("S1", 2)});
   EXPECT_TRUE(IsEnableEqualOrderTilingFunc(model_info));
 }
 
 // UT007: 两个切分轴不同order - 路径3,4
 TEST_F(IsEnableEqualOrderTilingTest, two_tile_split_axes_different_order) {
-  auto model_info = CreateTestModelInfo({
-    CreateTileSplitAxis("S0", 1),
-    CreateTileSplitAxis("S1", 2)
-  });
+  auto model_info = CreateTestModelInfo({CreateTileSplitAxis("S0", 1), CreateTileSplitAxis("S1", 2)});
   EXPECT_FALSE(IsEnableEqualOrderTilingFunc(model_info));
 }
 
 // UT008: 三个切分轴相同order - 路径2+ASSERT
 TEST_F(IsEnableEqualOrderTilingTest, three_tile_split_axes_same_order) {
-  auto model_info = CreateTestModelInfo({
-    CreateTileSplitAxis("S0", 1),
-    CreateTileSplitAxis("S1", 1),
-    CreateTileSplitAxis("S2", 1)
-  });
+  auto model_info =
+      CreateTestModelInfo({CreateTileSplitAxis("S0", 1), CreateTileSplitAxis("S1", 1), CreateTileSplitAxis("S2", 1)});
   // 期望触发警告并返回true
   testing::internal::CaptureStdout();
   EXPECT_TRUE(IsEnableEqualOrderTilingFunc(model_info));
@@ -167,53 +149,37 @@ TEST_F(IsEnableEqualOrderTilingTest, three_tile_split_axes_same_order) {
 
 // UT009: 多个order，每个order有2个切分轴 - 路径2
 TEST_F(IsEnableEqualOrderTilingTest, multiple_orders_with_two_tile_split_axes) {
-  auto model_info = CreateTestModelInfo({
-    CreateTileSplitAxis("S0", 1),
-    CreateTileSplitAxis("S1", 1),
-    CreateTileSplitAxis("S2", 2),
-    CreateTileSplitAxis("S3", 2)
-  });
+  auto model_info = CreateTestModelInfo({CreateTileSplitAxis("S0", 1), CreateTileSplitAxis("S1", 1),
+                                         CreateTileSplitAxis("S2", 2), CreateTileSplitAxis("S3", 2)});
   EXPECT_TRUE(IsEnableEqualOrderTilingFunc(model_info));
 }
 
 // UT010: 混合切分轴和非切分轴 - 路径2（切分轴应该被正确识别）
 TEST_F(IsEnableEqualOrderTilingTest, mixed_tile_split_and_non_split_axes) {
-  auto model_info = CreateTestModelInfo({
-    CreateTileSplitAxis("S0", 1),
-    CreateNonTileSplitAxis("non_split1", 1),  // 非切分轴，不应该被计数
-    CreateTileSplitAxis("S1", 1)
-  });
+  auto model_info = CreateTestModelInfo({CreateTileSplitAxis("S0", 1),
+                                         CreateNonTileSplitAxis("non_split1", 1),  // 非切分轴，不应该被计数
+                                         CreateTileSplitAxis("S1", 1)});
   // 只有2个切分轴，应该返回true
   EXPECT_TRUE(IsEnableEqualOrderTilingFunc(model_info));
 }
 
 // UT011: 混合切分轴和非切分轴，切分轴不足2个 - 路径3,4
 TEST_F(IsEnableEqualOrderTilingTest, mixed_axes_insufficient_tile_split) {
-  auto model_info = CreateTestModelInfo({
-    CreateTileSplitAxis("S0", 1),
-    CreateNonTileSplitAxis("non_split1", 1),
-    CreateNonTileSplitAxis("non_split2", 1)
-  });
+  auto model_info = CreateTestModelInfo(
+      {CreateTileSplitAxis("S0", 1), CreateNonTileSplitAxis("non_split1", 1), CreateNonTileSplitAxis("non_split2", 1)});
   // 只有1个切分轴，应该返回false
   EXPECT_FALSE(IsEnableEqualOrderTilingFunc(model_info));
 }
 
 // UT012: 边界测试 - 多个order，但每个order只有1个切分轴 - 路径3,4
 TEST_F(IsEnableEqualOrderTilingTest, multiple_orders_each_single_tile_split_axis) {
-  auto model_info = CreateTestModelInfo({
-    CreateTileSplitAxis("S0", 1),
-    CreateTileSplitAxis("S1", 2),
-    CreateTileSplitAxis("S2", 3),
-    CreateTileSplitAxis("S3", 4)
-  });
+  auto model_info = CreateTestModelInfo({CreateTileSplitAxis("S0", 1), CreateTileSplitAxis("S1", 2),
+                                         CreateTileSplitAxis("S2", 3), CreateTileSplitAxis("S3", 4)});
   EXPECT_FALSE(IsEnableEqualOrderTilingFunc(model_info));
 }
 
 // UT013: 边界测试 - order=0的情况 - 路径2
 TEST_F(IsEnableEqualOrderTilingTest, two_tile_split_axes_order_zero) {
-  auto model_info = CreateTestModelInfo({
-    CreateTileSplitAxis("S0", 0),
-    CreateTileSplitAxis("S1", 0)
-  });
+  auto model_info = CreateTestModelInfo({CreateTileSplitAxis("S0", 0), CreateTileSplitAxis("S1", 0)});
   EXPECT_TRUE(IsEnableEqualOrderTilingFunc(model_info));
 }

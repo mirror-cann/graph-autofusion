@@ -27,7 +27,6 @@ void LoadRargmaxStore_BeforeAutofuse(af::AscGraph &graph, ge::DataType data_type
   auto z0 = graph.CreateAxis("z0", s0);
   auto z1 = graph.CreateAxis("z1", s1);
 
-
   Data x("x");
   graph.AddNode(x);
   x.y.dtype = data_type;
@@ -65,7 +64,7 @@ void LoadRargmaxStore_BeforeAutofuse(af::AscGraph &graph, ge::DataType data_type
   y.y.dtype = ge::DT_INT64;
 }
 
-void LoadRargmaxStore_AfterAutofuse(af::AscGraph& graph, ge::DataType data_type) {
+void LoadRargmaxStore_AfterAutofuse(af::AscGraph &graph, ge::DataType data_type) {
   auto x = graph.FindNode("x");
   x->attr.api.compute_type = ComputeType::kComputeInvalid;
   x->attr.api.type = ApiType::kAPITypeBuffer;

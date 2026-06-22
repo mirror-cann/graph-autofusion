@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -17,7 +17,8 @@
 #include "generator/preprocess/args_manager.h"
 namespace att {
 namespace {
-ge::Status GetGroupAscGraphsByIdent(const ScheduleGroupIdent &group_ident,
+ge::Status GetGroupAscGraphsByIdent(
+    const ScheduleGroupIdent &group_ident,
     const std::vector<std::vector<std::vector<std::vector<af::AscGraph>>>> &all_graphs_lists,
     std::vector<af::AscGraph> &group_asc_graphs) {
   const auto &reuse_asc_graph_id = group_ident.asc_graph_id;
@@ -56,7 +57,8 @@ ge::Status MergeScheduleReuseGroups(ReuseScheduleGroupPtr &merge_from, ReuseSche
   GE_ASSERT_NOTNULL(merge_from, "merge_from is nullptr.");
   GE_ASSERT_NOTNULL(merge_to, "merge_to is nullptr.");
   merge_to->schedule_group_to_info[merge_from->reuse_group_ident].reuse_input_axes = merge_from->info.reuse_input_axes;
-  merge_to->schedule_group_to_info[merge_from->reuse_group_ident].reuse_search_axes = merge_from->info.reuse_search_axes;
+  merge_to->schedule_group_to_info[merge_from->reuse_group_ident].reuse_search_axes =
+      merge_from->info.reuse_search_axes;
   merge_to->schedule_group_to_info[merge_from->reuse_group_ident].tiling_keys = merge_from->info.tiling_keys;
   merge_from = merge_to;
   return ge::SUCCESS;
@@ -114,12 +116,12 @@ bool ReuseGroupUtils::IsGroupGraphsEquivalent(const std::vector<af::AscGraph> &g
       return false;
     }
     if (equivalent_graph_recognizer.GetMappedInputAxesNames() != group_info_to.reuse_input_axes) {
-      GELOGD("AscGraphs are not equivalent, graph1[%s], graph2[%s], index[%zu], "
-             "mapped_input_axes[%s], reuse_input_axes[%s]",
-             graphs_to[i].GetName().c_str(),
-             graphs_from[i].GetName().c_str(), i,
-             af::ToString(equivalent_graph_recognizer.GetMappedInputAxesNames()).c_str(),
-             af::ToString(group_info_to.reuse_input_axes).c_str());
+      GELOGD(
+          "AscGraphs are not equivalent, graph1[%s], graph2[%s], index[%zu], "
+          "mapped_input_axes[%s], reuse_input_axes[%s]",
+          graphs_to[i].GetName().c_str(), graphs_from[i].GetName().c_str(), i,
+          af::ToString(equivalent_graph_recognizer.GetMappedInputAxesNames()).c_str(),
+          af::ToString(group_info_to.reuse_input_axes).c_str());
       return false;
     }
   }
@@ -227,4 +229,4 @@ ge::Status ReuseGroupUtils::MergeAllReusableGroups(
   }
   return ge::SUCCESS;
 }
-}
+}  // namespace att

@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -33,6 +33,7 @@ class TestBackendConv2DE2e : public testing::Test, public codegen::TilingLib {
   void TearDown() override {
     dlog_setlevel(ASCGEN_MODULE_NAME, DLOG_ERROR, 0);
   }
+
  protected:
   TestBackendConv2DE2e() : codegen::TilingLib("test", "test") {}
 };
@@ -146,8 +147,8 @@ static void CreateElemwiseGraphWithMul(af::AscGraph &graph) {
   x1Local->outputs[0].attr.mem.position = af::Position::kPositionVecIn;
 }
 
-static bool OptimizeAndGenerateCode(codegen::TilingLib &tiling_lib, af::AscGraph &graph,
-                                     af::AscGraph &conv2d_graph, const std::string &tiling_func_file) {
+static bool OptimizeAndGenerateCode(codegen::TilingLib &tiling_lib, af::AscGraph &graph, af::AscGraph &conv2d_graph,
+                                    const std::string &tiling_func_file) {
   try {
     optimize::Optimizer optimizer(optimize::OptimizerOptions{});
     ascir::FusedScheduledResult fused_schedule_result;
@@ -159,7 +160,7 @@ static bool OptimizeAndGenerateCode(codegen::TilingLib &tiling_lib, af::AscGraph
     schedule_group2.impl_graphs.push_back(conv2d_graph);
     fused_schedule_result.node_idx_to_scheduled_results[0][0].schedule_groups.push_back(schedule_group2);
     fused_schedule_result.node_idx_to_scheduled_results[0][0].cube_type = ascir::CubeTemplateType::kUBFuse;
-    
+
     const std::map<std::string, std::string> shape_info;
     auto res = tiling_lib.Generate(fused_schedule_result, shape_info, "", "0");
 
@@ -346,7 +347,7 @@ static void CreateElemwiseGraphWithAddScalar(af::AscGraph &graph, const std::str
   x1Local->outputs[0].attr.mem.position = af::Position::kPositionVecIn;
 }
 
-} // namespace
+}  // namespace
 
 void CreateConv2DGraph(af::AscGraph &graph) {
   auto s0 = graph.CreateSizeVar(32);
@@ -715,10 +716,10 @@ void CreateConv2DOffsetBiasGraph(af::AscGraph &graph) {
 TEST_F(TestBackendConv2DE2e, Conv2DE2eCodegen) {
   af::AscGraph graph("conv2d_elemwise_pro");
   CreateElemwiseGraphWithAbs(graph);
-  
+
   af::AscGraph conv2d_graph("conv2d");
   CreateConv2DGraph(conv2d_graph);
-  
+
   bool gen_success = OptimizeAndGenerateCode(*this, graph, conv2d_graph, "Conv2d_fuse_tiling_func.cpp");
   EXPECT_EQ(gen_success, true);
 }
@@ -726,53 +727,51 @@ TEST_F(TestBackendConv2DE2e, Conv2DE2eCodegen) {
 TEST_F(TestBackendConv2DE2e, Conv2DBiasE2eCodegen) {
   af::AscGraph graph("conv2d_bias_elemwise_pro");
   CreateElemwiseGraphWithRelu(graph);
-  
+
   af::AscGraph conv2d_bias_graph("conv2d_bias");
   CreateConv2DBiasGraph(conv2d_bias_graph);
-  
-  bool gen_success = OptimizeAndGenerateCode(*this, graph, conv2d_bias_graph, 
-                                              "Conv2dBias_fuse_tiling_func.cpp");
-  
+
+  bool gen_success = OptimizeAndGenerateCode(*this, graph, conv2d_bias_graph, "Conv2dBias_fuse_tiling_func.cpp");
+
   std::cout << "KERNEL_SRC_LIST=" << KERNEL_SRC_LIST << std::endl;
   std::vector<std::string> parts = splitString(KERNEL_SRC_LIST, ':');
   std::fstream tiling_data_file(parts[0], std::ios::out);
   tiling_data_file << "";
-  
+
   EXPECT_EQ(gen_success, true);
 }
 
 TEST_F(TestBackendConv2DE2e, Conv2DOffsetE2eCodegen) {
   af::AscGraph graph("conv2d_offset_elemwise_pro");
   CreateElemwiseGraphWithMulScalar(graph, "2.0");
-  
+
   af::AscGraph conv2d_offset_graph("conv2d_offset");
   CreateConv2DOffsetGraph(conv2d_offset_graph);
-  
-  bool gen_success = OptimizeAndGenerateCode(*this, graph, conv2d_offset_graph, 
-                                              "Conv2dOffset_fuse_tiling_func.cpp");
-  
+
+  bool gen_success = OptimizeAndGenerateCode(*this, graph, conv2d_offset_graph, "Conv2dOffset_fuse_tiling_func.cpp");
+
   std::cout << "KERNEL_SRC_LIST=" << KERNEL_SRC_LIST << std::endl;
   std::vector<std::string> parts = splitString(KERNEL_SRC_LIST, ':');
   std::fstream tiling_data_file(parts[0], std::ios::out);
   tiling_data_file << "";
-  
+
   EXPECT_EQ(gen_success, true);
 }
 
 TEST_F(TestBackendConv2DE2e, Conv2DOffsetBiasE2eCodegen) {
   af::AscGraph graph("conv2d_offset_bias_elemwise_pro");
   CreateElemwiseGraphWithAddScalar(graph, "1.0");
-  
+
   af::AscGraph conv2d_offset_bias_graph("conv2d_offset_bias");
   CreateConv2DOffsetBiasGraph(conv2d_offset_bias_graph);
-  
-  bool gen_success = OptimizeAndGenerateCode(*this, graph, conv2d_offset_bias_graph, 
-                                              "Conv2dOffsetBias_fuse_tiling_func.cpp");
-  
+
+  bool gen_success =
+      OptimizeAndGenerateCode(*this, graph, conv2d_offset_bias_graph, "Conv2dOffsetBias_fuse_tiling_func.cpp");
+
   std::cout << "KERNEL_SRC_LIST=" << KERNEL_SRC_LIST << std::endl;
   std::vector<std::string> parts = splitString(KERNEL_SRC_LIST, ':');
   std::fstream tiling_data_file(parts[0], std::ios::out);
   tiling_data_file << "";
-  
+
   EXPECT_EQ(gen_success, true);
 }

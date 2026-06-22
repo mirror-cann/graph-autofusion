@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -45,16 +45,19 @@ TEST_F(TestBackendGatherAbsStoreE2e, LoadGather_B_T_AbsStoreCodegen) {
 #define GET_TILING_DATA(t, tiling)  AutofuseTilingData t = *(AutofuseTilingData*)tiling;
 )";
   auto graph = ascir::ShareGraph::LoadGatherAbsStore(2, af::DT_FLOAT);
-  std::map<std::string, std::string> shape_info(
-      { {"s0", "stub_s0"}, {"s1", "stub_s1"}, {"s2", "stub_s2"}, {"s3", "stub_s3"},
-        {"s4", "stub_s4"}, {"s5", "stub_s5"}, {"s6", "stub_s6"} }
-  );
-  std::cout<<"ATT_SO_NAME="<<ATT_SO_NAME<<std::endl;
-  std::cout<<"KERNEL_SRC_LIST="<<KERNEL_SRC_LIST<<std::endl;
+  std::map<std::string, std::string> shape_info({{"s0", "stub_s0"},
+                                                 {"s1", "stub_s1"},
+                                                 {"s2", "stub_s2"},
+                                                 {"s3", "stub_s3"},
+                                                 {"s4", "stub_s4"},
+                                                 {"s5", "stub_s5"},
+                                                 {"s6", "stub_s6"}});
+  std::cout << "ATT_SO_NAME=" << ATT_SO_NAME << std::endl;
+  std::cout << "KERNEL_SRC_LIST=" << KERNEL_SRC_LIST << std::endl;
   std::vector<std::string> parts = splitString(KERNEL_SRC_LIST, ':');
-  std::string kernel_src_file_name = parts[0];      // load_gather_abs_store_kernel.cpp
-  std::string tiling_src_file_name = parts[1];      // load_gather_abs_store_tiling.cpp
-  std::string tiling_data_src_file_name = parts[2]; // load_gather_abs_store_tiling_data.h
+  std::string kernel_src_file_name = parts[0];       // load_gather_abs_store_kernel.cpp
+  std::string tiling_src_file_name = parts[1];       // load_gather_abs_store_tiling.cpp
+  std::string tiling_data_src_file_name = parts[2];  // load_gather_abs_store_tiling_data.h
 
   try {
     optimize::Optimizer optimizer(optimize::OptimizerOptions{});
@@ -73,11 +76,9 @@ TEST_F(TestBackendGatherAbsStoreE2e, LoadGather_B_T_AbsStoreCodegen) {
     kernel_file << tilig_stub << RemoveSubDirInclude(result.kernel);
     tiling_file << result.tiling;
     tiling_data_file << result.tiling_data;
-  }
-  catch (...) {
+  } catch (...) {
     gen_success = false;
   }
 
   EXPECT_EQ(gen_success, true);
 }
-

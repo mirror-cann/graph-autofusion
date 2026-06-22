@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -23,7 +23,7 @@
 #include "register/op_def.h"
 
 namespace af {
-  class Operator;
+class Operator;
 }
 
 namespace optiling {
@@ -44,7 +44,7 @@ using GEN_SIMPLIFIEDKEY_FUNC = bool (*)(const ge::Operator &op, ge::AscendString
 
 class OpCheckFuncRegistryImpl;
 class OpCheckFuncRegistry {
-public:
+ public:
   static void RegisterOpCapability(const ge::AscendString &check_type, const ge::AscendString &op_type,
                                    OP_CHECK_FUNC func);
 
@@ -61,7 +61,7 @@ public:
   static void RegisterReplay(const ge::AscendString &op_type, const ge::AscendString &soc_version, REPLAY_FUNC func);
   static REPLAY_FUNC GetReplay(const ge::AscendString &op_type, const ge::AscendString &soc_version);
 
-private:
+ private:
   static std::map<ge::AscendString, std::map<ge::AscendString, OP_CHECK_FUNC>> check_op_capability_instance_;
   static std::map<ge::AscendString, GEN_SIMPLIFIEDKEY_FUNC> gen_simplifiedkey_instance_;
   static std::map<ge::AscendString, PARAM_GENERALIZE_FUNC> param_generalize_instance_;
@@ -69,7 +69,7 @@ private:
 };
 
 class ReplayFuncHelper {
-public:
+ public:
   ReplayFuncHelper(const ge::AscendString &op_type, const ge::AscendString &soc_version, REPLAY_FUNC func);
 };
 }  // end of namespace optiling

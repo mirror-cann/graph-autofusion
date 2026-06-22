@@ -1,13 +1,13 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
- 
+
 #ifndef MAIN_TUNING_UTILS_H
 #define MAIN_TUNING_UTILS_H
 
@@ -75,8 +75,7 @@ class TuningUtils {
   // `tuning_path` means path to save the graphs
   static graphStatus ConvertGraphToFile(std::vector<ComputeGraphPtr> tuning_subgraphs,
                                         std::vector<ComputeGraphPtr> non_tuning_subgraphs = {},
-                                        const bool exe_flag = false,
-                                        const std::string &path = "",
+                                        const bool exe_flag = false, const std::string &path = "",
                                         const std::string &user_path = "");
   // Recovery `graph` from graph dump files configured in options
   static graphStatus ConvertFileToGraph(const std::map<int64_t, std::string> &options, af::Graph &graph);
@@ -84,16 +83,14 @@ class TuningUtils {
   static graphStatus LinkSubgraph(ComputeGraphPtr &root_graph, const ComputeGraphPtr &graph,
                                   const std::map<std::string, ComputeGraphPtr> &name_to_merged_subgraph);
 
-private:
+ private:
   // part 1
   class HelpInfo {
     HelpInfo(const int64_t index, const bool exe_flag, const bool is_tuning_graph, const std::string &path,
-             const std::string &user_path) : index_(index),
-                                             exe_flag_(exe_flag),
-                                             is_tuning_graph_(is_tuning_graph),
-                                             path_(path),
-                                             user_path_(user_path) {}
+             const std::string &user_path)
+        : index_(index), exe_flag_(exe_flag), is_tuning_graph_(is_tuning_graph), path_(path), user_path_(user_path) {}
     ~HelpInfo() = default;
+
    private:
     int64_t index_;
     bool exe_flag_;
@@ -103,8 +100,7 @@ private:
     bool need_preprocess_ = false;
     friend class TuningUtils;
   };
-  static graphStatus MakeExeGraph(ComputeGraphPtr &exe_graph,
-                                  const HelpInfo& help_info);
+  static graphStatus MakeExeGraph(ComputeGraphPtr &exe_graph, const HelpInfo &help_info);
   static graphStatus ConvertConstToWeightAttr(const ComputeGraphPtr &exe_graph);
   static graphStatus SetFileConstInfo(const NodePtr &node, const GeTensorPtr &tensor, const std::string &aoe_path,
                                       const OpDescPtr &op_desc);
@@ -119,8 +115,8 @@ private:
   static graphStatus CreateNetOutput(const NodePtr &node, NodePtr &out_node);
   static graphStatus AddAttrToDataNodeForMergeGraph(const NodePtr &pld, const NodePtr &data_node);
   static graphStatus AddAttrToNetOutputForMergeGraph(const NodePtr &end, const NodePtr &out_node, const int64_t index);
-  static void DumpGraphToPath(const ComputeGraphPtr &exe_graph, const int64_t index,
-                              const bool is_tuning_graph, std::string path);
+  static void DumpGraphToPath(const ComputeGraphPtr &exe_graph, const int64_t index, const bool is_tuning_graph,
+                              std::string path);
   static void TryGetWeight(const NodePtr &node, std::vector<af::GeTensorPtr> &weight);
 
   static SubgraphCreateOutNode create_output_;
@@ -147,11 +143,11 @@ private:
   static std::map<size_t, std::vector<std::string>> hash_to_files_;
   // for debug
   static std::string PrintCheckLog();
-  static std::string GetNodeNameByAnchor(const Anchor * const anchor);
+  static std::string GetNodeNameByAnchor(const Anchor *const anchor);
   static std::string GenerateFileConstPath(const std::string &aoe_path, const OpDescPtr &op_desc);
   static Status GetOrSaveReusableFileConst(const GeTensorPtr &tensor, std::string &file_path);
   static Status CheckFilesSame(const std::string &file_name, const char_t *const data, const size_t data_length,
                                bool &is_content_same);
 };
-}
-#endif // MAIN_TUNING_UTILS_H
+}  // namespace af
+#endif  // MAIN_TUNING_UTILS_H

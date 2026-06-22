@@ -39,14 +39,13 @@ Status TruncToIntApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::
   stringstream ss;
 
   // 使用 AscendC::Cast 函数，设置 round 模式为 CAST_TRUNC
-  ss << "AscendC::Cast(" << y << "[" << tpipe.tiler.TensorVectorizedOffset(current_axis, y) << "], "
-     << x << "[" << tpipe.tiler.TensorVectorizedOffset(current_axis, x) << "], "
-     << "AscendC::RoundMode::CAST_TRUNC, "
-     << x.actual_size << ");" << std::endl;
+  ss << "AscendC::Cast(" << y << "[" << tpipe.tiler.TensorVectorizedOffset(current_axis, y) << "], " << x << "["
+     << tpipe.tiler.TensorVectorizedOffset(current_axis, x) << "], "
+     << "AscendC::RoundMode::CAST_TRUNC, " << x.actual_size << ");" << std::endl;
 
   result = ss.str();
   return ge::SUCCESS;
 }
 
 static ApiCallRegister<TruncToIntApiCall> register_trunc_to_int_api_call("TruncToIntApiCall");
-} // namespace codegen
+}  // namespace codegen

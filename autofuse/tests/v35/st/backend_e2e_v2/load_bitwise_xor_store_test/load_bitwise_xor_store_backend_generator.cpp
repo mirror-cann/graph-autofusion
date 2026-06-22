@@ -36,15 +36,13 @@ TEST_F(TestBackendLoadBitwiseXorStoreE2e, LoadBitwiseXorStoreE2eCodegen) {
 )";
 
   // shape_info 和 AddAbsFusedGraph入参dims_size匹配（个数相同，命名规则为s开头、编号从0开始）
-  std::map<std::string, std::string> shape_info(
-      { {"s0", "stub_s0"}, {"s1", "stub_s1"}, {"s2", "stub_s2"}}
-  );
+  std::map<std::string, std::string> shape_info({{"s0", "stub_s0"}, {"s1", "stub_s1"}, {"s2", "stub_s2"}});
   auto graph = ascir::ShareGraph::LoadBitwiseXorStoreFusedGraph(3, af::DT_UINT8, af::DT_UINT8);
-  std::cout<<"KERNEL_SRC_LIST="<<KERNEL_SRC_LIST<<std::endl;
+  std::cout << "KERNEL_SRC_LIST=" << KERNEL_SRC_LIST << std::endl;
   std::vector<std::string> parts = splitString(KERNEL_SRC_LIST, ':');
-  const std::string& kernel_src_file_name = parts[0];
-  const std::string& tiling_src_file_name = parts[1];
-  const std::string& tiling_data_src_file_name = parts[2];
+  const std::string &kernel_src_file_name = parts[0];
+  const std::string &tiling_src_file_name = parts[1];
+  const std::string &tiling_data_src_file_name = parts[2];
 
   try {
     optimize::Optimizer optimizer(optimize::OptimizerOptions{});
@@ -63,8 +61,7 @@ TEST_F(TestBackendLoadBitwiseXorStoreE2e, LoadBitwiseXorStoreE2eCodegen) {
     kernel_file << tiling_stub << RemoveSubDirInclude(result.kernel);
     tiling_file << result.tiling;
     tiling_data_file << result.tiling_data;
-  }
-  catch (...) {
+  } catch (...) {
     gen_success = false;
   }
 

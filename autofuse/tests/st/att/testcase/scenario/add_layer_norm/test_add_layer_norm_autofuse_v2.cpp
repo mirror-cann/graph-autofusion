@@ -3,7 +3,7 @@
  * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -26,7 +26,7 @@ namespace ascir {
 constexpr int64_t ID_NONE = -1;
 using namespace ge;
 using HintGraph = AscGraph;
-}
+}  // namespace ascir
 
 // Forward declarations of graph construction functions from test_add_layer_norm.cpp
 void Add_Layer_Norm_Normal_BeforeAutofuse(ascir::HintGraph &graph, const std::string &ident = "");
@@ -85,10 +85,8 @@ void WriteFile(const std::string &file_name, const std::string &content) {
   oss << content;
 }
 
-void WriteTilingFiles(const std::map<std::string, std::string> &tiling_funcs,
-                      const std::string &head_file,
-                      const std::string &source_prefix,
-                      const std::string &head_include) {
+void WriteTilingFiles(const std::map<std::string, std::string> &tiling_funcs, const std::string &head_file,
+                      const std::string &source_prefix, const std::string &head_include) {
   for (const auto &[key, value] : tiling_funcs) {
     if (key == "TilingHead") {
       WriteFile(head_file, head_include + value);
@@ -98,10 +96,8 @@ void WriteTilingFiles(const std::map<std::string, std::string> &tiling_funcs,
   }
 }
 
-void WriteCombinedTilingFile(const std::map<std::string, std::string> &tiling_funcs,
-                             const std::string &file_name,
-                             const std::string &head_include,
-                             std::string *tiling_func = nullptr) {
+void WriteCombinedTilingFile(const std::map<std::string, std::string> &tiling_funcs, const std::string &file_name,
+                             const std::string &head_include, std::string *tiling_func = nullptr) {
   std::string combined_tiling_func;
   CombineTilings(tiling_funcs, combined_tiling_func);
   WriteFile(file_name, head_include + combined_tiling_func);
@@ -110,10 +106,8 @@ void WriteCombinedTilingFile(const std::map<std::string, std::string> &tiling_fu
   }
 }
 
-void GenerateTilingDataFile(const std::string &op_name,
-                            const ascir::FusedScheduledResult &schedule_results,
-                            const std::map<std::string, std::string> &options,
-                            const std::string &tiling_data_name,
+void GenerateTilingDataFile(const std::string &op_name, const ascir::FusedScheduledResult &schedule_results,
+                            const std::map<std::string, std::string> &options, const std::string &tiling_data_name,
                             const std::string &output_file) {
   TilingCodeGenerator generator;
   TilingCodeGenConfig generator_config;
@@ -148,7 +142,7 @@ void BuildAndRunBinary(const std::string &compile_cmd, const std::string &run_cm
   EXPECT_EQ(ret, 0);
 }
 
-bool IsFileContainsString(const std::string& filename, const std::string& searchString) {
+bool IsFileContainsString(const std::string &filename, const std::string &searchString) {
   std::ifstream file(filename);
   if (!file.is_open()) {
     std::cerr << "无法打开文件: " << filename << std::endl;
@@ -164,12 +158,16 @@ bool IsFileContainsString(const std::string& filename, const std::string& search
   file.close();
   return false;
 }
-}
+}  // namespace
 
 class TestGenAddLayerNormalModelInfoV2 : public ::testing::Test {
  public:
-  static void TearDownTestCase() { std::cout << "Test end." << std::endl; }
-  static void SetUpTestCase() { std::cout << "Test begin." << std::endl; }
+  static void TearDownTestCase() {
+    std::cout << "Test end." << std::endl;
+  }
+  static void SetUpTestCase() {
+    std::cout << "Test begin." << std::endl;
+  }
   void SetUp() override {
     att::AutoFuseConfig::MutableAttStrategyConfig().Reset();
     setenv("ASCEND_GLOBAL_LOG_LEVEL", "4", 1);
@@ -180,8 +178,7 @@ class TestGenAddLayerNormalModelInfoV2 : public ::testing::Test {
   }
 };
 
-TEST_F(TestGenAddLayerNormalModelInfoV2, test_autofuse_v2_axes_reorder)
-{
+TEST_F(TestGenAddLayerNormalModelInfoV2, test_autofuse_v2_axes_reorder) {
   SetStatsEnv();
   ascir::ScheduleGroup schedule_group1;
   ascir::ScheduleGroup schedule_group2;
@@ -209,17 +206,11 @@ TEST_F(TestGenAddLayerNormalModelInfoV2, test_autofuse_v2_axes_reorder)
   options.emplace(kGenConfigType, "AxesReorder");
 
   auto res = GenTilingImplAutoFuseV3(op_name, schedule_results, options, tiling_funcs, true);
-  WriteTilingFiles(tiling_funcs,
-                   "autofuse_tiling_func_common.h",
-                   "add_layer_norm_autofuse_tiling_func_",
+  WriteTilingFiles(tiling_funcs, "autofuse_tiling_func_common.h", "add_layer_norm_autofuse_tiling_func_",
                    "#include \"AddLayerNorm_tiling_data.h\"\n");
   EXPECT_EQ(res, true);
 
-  GenerateTilingDataFile(op_name,
-                         schedule_results,
-                         options,
-                         "graph_normalTilingData",
-                         "AddLayerNorm_tiling_data.h");
+  GenerateTilingDataFile(op_name, schedule_results, options, "graph_normalTilingData", "AddLayerNorm_tiling_data.h");
   CopyBuildArtifacts(std::string(TILING_DATA_DIR).append("/tiling_func_main_add_layer_norm_sche.cpp"));
   BuildAndRunBinary(
       "g++ tiling_func_main_add_layer_norm_sche.cpp add_layer_norm_autofuse_tiling_func_*_3.cpp -o "
@@ -243,8 +234,8 @@ std::string RemoveAutoFuseTilingHeadGuards(const std::string &input) {
 }
 
 void CombineTilings(const std::map<std::string, std::string> &tilings, std::string &result) {
-  const std::string tiling_head = "TilingHead";  // TilingHead作为开头拼接其他文件
-  const std::string tiling_data = "TilingData";  // 要排除的 TilingData 子串
+  const std::string tiling_head = "TilingHead";                       // TilingHead作为开头拼接其他文件
+  const std::string tiling_data = "TilingData";                       // 要排除的 TilingData 子串
   result += RemoveAutoFuseTilingHeadGuards(tilings.at(tiling_head));  // 删除头文件的宏保护，cpp文件不需要
   const std::string include_str = "#include \"autofuse_tiling_func_common.h\"";
 
@@ -322,8 +313,7 @@ const std::string kGroupParallelTilingMain = R"(
 // 2. 轴重排关闭group parallel，预期tiling key为0
 // 预期：
 // 1. 轴重排开启group parallel，预期tiling key为1
-TEST_F(TestGenAddLayerNormalModelInfoV2, test_autofuse_v2_axes_reorder_enable_group_parallel)
-{
+TEST_F(TestGenAddLayerNormalModelInfoV2, test_autofuse_v2_axes_reorder_enable_group_parallel) {
   SetStatsEnv();
   ascir::ScheduleGroup schedule_group1;
   ascir::ScheduleGroup schedule_group2;
@@ -362,8 +352,8 @@ TEST_F(TestGenAddLayerNormalModelInfoV2, test_autofuse_v2_axes_reorder_enable_gr
   EXPECT_TRUE(tiling_func.find("  ArrangeBlockOffsetsAscGraph0Result0(") == std::string::npos);
   EXPECT_TRUE(tiling_func.find("  ArrangeBlockOffsetsAscGraph0Result1(") != std::string::npos);
 
-  GenerateTilingDataFile("AddLayerNorm", schedule_results, options,
-                         "graph_normalTilingData", "AddLayerNorm_tiling_data.h");
+  GenerateTilingDataFile("AddLayerNorm", schedule_results, options, "graph_normalTilingData",
+                         "AddLayerNorm_tiling_data.h");
   WriteFile("tiling_func_main_add_layer_norm_sche.cpp",
             ResultCheckerUtils::DefineCheckerFunction() + kGroupParallelTilingMain);
   CopyStubArtifacts();
@@ -373,8 +363,7 @@ TEST_F(TestGenAddLayerNormalModelInfoV2, test_autofuse_v2_axes_reorder_enable_gr
       "./tiling_func_main_add_layer_norm_autofuse");
 }
 
-TEST_F(TestGenAddLayerNormalModelInfoV2, test_autofuse_v2_axes_reorder_uniq_group)
-{
+TEST_F(TestGenAddLayerNormalModelInfoV2, test_autofuse_v2_axes_reorder_uniq_group) {
   ascir::ScheduleGroup schedule_group1;
   ascir::ScheduledResult schedule_result1;
   ascir::FusedScheduledResult scheduled_results;
@@ -390,15 +379,10 @@ TEST_F(TestGenAddLayerNormalModelInfoV2, test_autofuse_v2_axes_reorder_uniq_grou
   std::string op_name = "AddLayerNorm";
   options.emplace(kGenConfigType, "AxesReorder");
   auto res = GenTilingImplAutoFuseV3(op_name, scheduled_results, options, tiling_funcs, true);
-  WriteCombinedTilingFile(tiling_funcs,
-                          "add_layer_norm_autofuse_*_tiling_func.cpp",
+  WriteCombinedTilingFile(tiling_funcs, "add_layer_norm_autofuse_*_tiling_func.cpp",
                           "#include \"AddLayerNorm_tiling_data.h\"\n");
   EXPECT_EQ(res, true);
-  GenerateTilingDataFile(op_name,
-                         scheduled_results,
-                         options,
-                         "graph_normalTilingData",
-                         "AddLayerNorm_tiling_data.h");
+  GenerateTilingDataFile(op_name, scheduled_results, options, "graph_normalTilingData", "AddLayerNorm_tiling_data.h");
   CopyBuildArtifacts(std::string(TILING_DATA_DIR).append("/tiling_func_main_add_layer_norm.cpp"));
   BuildAndRunBinary(
       "g++ tiling_func_main_add_layer_norm.cpp add_layer_norm_autofuse_*_tiling_func.cpp -o "
@@ -406,8 +390,7 @@ TEST_F(TestGenAddLayerNormalModelInfoV2, test_autofuse_v2_axes_reorder_uniq_grou
       "./tiling_func_main_add_layer_norm_autofuse > ./info.log");
 }
 
-TEST_F(TestGenAddLayerNormalModelInfoV2, test_autofuse_v2_axes_reorder_reuse_solver)
-{
+TEST_F(TestGenAddLayerNormalModelInfoV2, test_autofuse_v2_axes_reorder_reuse_solver) {
   ascir::ScheduleGroup schedule_group1;
   ascir::ScheduleGroup schedule_group2;
   ascir::ScheduledResult schedule_result1;
@@ -431,15 +414,10 @@ TEST_F(TestGenAddLayerNormalModelInfoV2, test_autofuse_v2_axes_reorder_reuse_sol
   options.emplace(kGenConfigType, "AxesReorder");
   options.emplace("enable_score_func", "1");
   auto res = GenTilingImplAutoFuseV3(op_name, scheduled_results, options, tiling_funcs, true);
-  WriteCombinedTilingFile(tiling_funcs,
-                          "add_layer_norm_autofuse_*_tiling_func.cpp",
+  WriteCombinedTilingFile(tiling_funcs, "add_layer_norm_autofuse_*_tiling_func.cpp",
                           "#include \"AddLayerNorm_tiling_data.h\"\n");
   EXPECT_EQ(res, true);
-  GenerateTilingDataFile(op_name,
-                         scheduled_results,
-                         options,
-                         "graph_normalTilingData",
-                         "AddLayerNorm_tiling_data.h");
+  GenerateTilingDataFile(op_name, scheduled_results, options, "graph_normalTilingData", "AddLayerNorm_tiling_data.h");
   CopyBuildArtifacts(std::string(TILING_DATA_DIR).append("/tiling_func_main_add_layer_norm_reuse_solver.cpp"));
   BuildAndRunBinary(
       "g++ -g -O0 tiling_func_main_add_layer_norm_reuse_solver.cpp add_layer_norm_autofuse_*_tiling_func.cpp -o "
@@ -448,8 +426,7 @@ TEST_F(TestGenAddLayerNormalModelInfoV2, test_autofuse_v2_axes_reorder_reuse_sol
   EXPECT_EQ(IsFileContainsString("./info.log", "get_tiling_key = 1"), true);
 }
 
-TEST_F(TestGenAddLayerNormalModelInfoV2, test_autofuse_v2_axes_reorder_with_score_funcs)
-{
+TEST_F(TestGenAddLayerNormalModelInfoV2, test_autofuse_v2_axes_reorder_with_score_funcs) {
   ascir::ScheduleGroup schedule_group1;
   ascir::ScheduleGroup schedule_group2;
   ascir::ScheduleGroup schedule_group3;
@@ -477,17 +454,11 @@ TEST_F(TestGenAddLayerNormalModelInfoV2, test_autofuse_v2_axes_reorder_with_scor
   options.emplace(kGenConfigType, "AxesReorder");
   auto res = GenTilingImplAutoFuseV3(op_name, scheduled_results, options, tiling_funcs, true);
   std::string tiling_func;
-  WriteCombinedTilingFile(tiling_funcs,
-                          "add_layer_norm_autofuse_*_tiling_func.cpp",
-                          "#include \"AddLayerNorm_tiling_data.h\"\n",
-                          &tiling_func);
+  WriteCombinedTilingFile(tiling_funcs, "add_layer_norm_autofuse_*_tiling_func.cpp",
+                          "#include \"AddLayerNorm_tiling_data.h\"\n", &tiling_func);
   EXPECT_NE(tiling_func.find("ScheduleResult0::CalcScore"), std::string::npos);
   EXPECT_EQ(res, true);
-  GenerateTilingDataFile(op_name,
-                         scheduled_results,
-                         options,
-                         "graph_normalTilingData",
-                         "AddLayerNorm_tiling_data.h");
+  GenerateTilingDataFile(op_name, scheduled_results, options, "graph_normalTilingData", "AddLayerNorm_tiling_data.h");
   CopyBuildArtifacts(std::string(TILING_DATA_DIR).append("/tiling_func_main_add_layer_norm_sche.cpp"));
   BuildAndRunBinary(
       "g++ tiling_func_main_add_layer_norm_sche.cpp add_layer_norm_autofuse_*_tiling_func.cpp -o "
@@ -496,8 +467,7 @@ TEST_F(TestGenAddLayerNormalModelInfoV2, test_autofuse_v2_axes_reorder_with_scor
   EXPECT_EQ(IsFileContainsString("./info.log", "get_tiling_key = 1"), true);
 }
 
-TEST_F(TestGenAddLayerNormalModelInfoV2, test_autofuse_v2_axes_reorder_with_score_funcs_one_group)
-{
+TEST_F(TestGenAddLayerNormalModelInfoV2, test_autofuse_v2_axes_reorder_with_score_funcs_one_group) {
   ascir::ScheduleGroup schedule_group1;
   ascir::ScheduleGroup schedule_group3;
   ascir::ScheduledResult schedule_result1;
@@ -521,15 +491,10 @@ TEST_F(TestGenAddLayerNormalModelInfoV2, test_autofuse_v2_axes_reorder_with_scor
   options.emplace(kGenConfigType, "AxesReorder");
   options.emplace("enable_score_func", "1");
   auto res = GenTilingImplAutoFuseV3(op_name, scheduled_results, options, tiling_funcs, true);
-  WriteCombinedTilingFile(tiling_funcs,
-                          "add_layer_norm_autofuse_*_tiling_func.cpp",
+  WriteCombinedTilingFile(tiling_funcs, "add_layer_norm_autofuse_*_tiling_func.cpp",
                           "#include \"AddLayerNorm_tiling_data.h\"\n");
   EXPECT_EQ(res, true);
-  GenerateTilingDataFile(op_name,
-                         scheduled_results,
-                         options,
-                         "graph_normalTilingData",
-                         "AddLayerNorm_tiling_data.h");
+  GenerateTilingDataFile(op_name, scheduled_results, options, "graph_normalTilingData", "AddLayerNorm_tiling_data.h");
   CopyBuildArtifacts(std::string(TILING_DATA_DIR).append("/tiling_func_main_add_layer_norm_sche.cpp"));
   auto ret = std::system("sed -i '/schedule_result0_g1_tiling_data/d' ./tiling_func_main_add_layer_norm_sche.cpp");
   EXPECT_EQ(ret, 0);
@@ -542,8 +507,7 @@ TEST_F(TestGenAddLayerNormalModelInfoV2, test_autofuse_v2_axes_reorder_with_scor
   EXPECT_EQ(IsFileContainsString("./info.log", "get_tiling_key = 1"), true);
 }
 
-TEST_F(TestGenAddLayerNormalModelInfoV2, test_autofuse_v2_high_perf_choose_first_according_to_perf)
-{
+TEST_F(TestGenAddLayerNormalModelInfoV2, test_autofuse_v2_high_perf_choose_first_according_to_perf) {
   ascir::ScheduleGroup schedule_group1;
   ascir::ScheduleGroup schedule_group2;
   ascir::ScheduleGroup schedule_group3;
@@ -567,15 +531,10 @@ TEST_F(TestGenAddLayerNormalModelInfoV2, test_autofuse_v2_high_perf_choose_first
   std::string op_name = "AddLayerNorm";
   options.emplace(kGenConfigType, "HighPerf");
   auto res = GenTilingImplAutoFuseV3(op_name, scheduled_results, options, tiling_funcs, true);
-  WriteCombinedTilingFile(tiling_funcs,
-                          "add_layer_norm_autofuse_*_tiling_func.cpp",
+  WriteCombinedTilingFile(tiling_funcs, "add_layer_norm_autofuse_*_tiling_func.cpp",
                           "#include \"AddLayerNorm_tiling_data.h\"\n");
   EXPECT_EQ(res, true);
-  GenerateTilingDataFile(op_name,
-                         scheduled_results,
-                         options,
-                         "graph_normalTilingData",
-                         "AddLayerNorm_tiling_data.h");
+  GenerateTilingDataFile(op_name, scheduled_results, options, "graph_normalTilingData", "AddLayerNorm_tiling_data.h");
   CopyBuildArtifacts(std::string(TILING_DATA_DIR).append("/tiling_func_main_add_layer_norm_sche.cpp"));
   BuildAndRunBinary(
       "g++ tiling_func_main_add_layer_norm_sche.cpp add_layer_norm_autofuse_*_tiling_func.cpp -o "
@@ -584,8 +543,7 @@ TEST_F(TestGenAddLayerNormalModelInfoV2, test_autofuse_v2_high_perf_choose_first
   EXPECT_EQ(IsFileContainsString("./info.log", "get_tiling_key = 1"), true);
 }
 
-TEST_F(TestGenAddLayerNormalModelInfoV2, test_autofuse_v2_high_perf_choose_second_according_to_perf)
-{
+TEST_F(TestGenAddLayerNormalModelInfoV2, test_autofuse_v2_high_perf_choose_second_according_to_perf) {
   ascir::ScheduleGroup schedule_group1;
   ascir::ScheduleGroup schedule_group2;
   ascir::ScheduleGroup schedule_group3;
@@ -610,15 +568,10 @@ TEST_F(TestGenAddLayerNormalModelInfoV2, test_autofuse_v2_high_perf_choose_secon
   std::string op_name = "AddLayerNorm";
   options.emplace(kGenConfigType, "HighPerf");
   auto res = GenTilingImplAutoFuseV3(op_name, scheduled_results, options, tiling_funcs, true);
-  WriteCombinedTilingFile(tiling_funcs,
-                          "add_layer_norm_autofuse_*_tiling_func.cpp",
+  WriteCombinedTilingFile(tiling_funcs, "add_layer_norm_autofuse_*_tiling_func.cpp",
                           "#include \"AddLayerNorm_tiling_data.h\"\n");
   EXPECT_EQ(res, true);
-  GenerateTilingDataFile(op_name,
-                         scheduled_results,
-                         options,
-                         "graph_normalTilingData",
-                         "AddLayerNorm_tiling_data.h");
+  GenerateTilingDataFile(op_name, scheduled_results, options, "graph_normalTilingData", "AddLayerNorm_tiling_data.h");
   CopyBuildArtifacts(std::string(TILING_DATA_DIR).append("/tiling_func_main_add_layer_norm_sche.cpp"));
   BuildAndRunBinary(
       "g++ tiling_func_main_add_layer_norm_sche.cpp add_layer_norm_autofuse_*_tiling_func.cpp -o "
@@ -627,8 +580,7 @@ TEST_F(TestGenAddLayerNormalModelInfoV2, test_autofuse_v2_high_perf_choose_secon
   EXPECT_EQ(IsFileContainsString("./info.log", "get_tiling_key = 1"), true);
 }
 
-TEST_F(TestGenAddLayerNormalModelInfoV2, test_autofuse_v2_set_log_debug)
-{
+TEST_F(TestGenAddLayerNormalModelInfoV2, test_autofuse_v2_set_log_debug) {
   setenv("ASCEND_GLOBAL_LOG_LEVEL", "0", 1);
   ascir::ScheduleGroup schedule_group1;
   ascir::ScheduleGroup schedule_group2;
@@ -658,8 +610,7 @@ TEST_F(TestGenAddLayerNormalModelInfoV2, test_autofuse_v2_set_log_debug)
   unsetenv("ASCEND_GLOBAL_LOG_LEVEL");
 }
 
-TEST_F(TestGenAddLayerNormalModelInfoV2, test_autofuse_v2_axes_reorder_by_env)
-{
+TEST_F(TestGenAddLayerNormalModelInfoV2, test_autofuse_v2_axes_reorder_by_env) {
   setenv("AUTOFUSE_DFX_FLAGS", "--autofuse_att_algorithm=AxesReorder", 1);
   ascir::ScheduleGroup schedule_group1;
   ascir::ScheduleGroup schedule_group2;
@@ -685,15 +636,13 @@ TEST_F(TestGenAddLayerNormalModelInfoV2, test_autofuse_v2_axes_reorder_by_env)
   std::string tiling_func;
   CombineTilings(tiling_funcs, tiling_func);
   EXPECT_NE(tiling_func.find("axes reorder solver"), std::string::npos);
-  WriteCombinedTilingFile(tiling_funcs,
-                          "add_layer_norm_autofuse_*_tiling_func.cpp",
+  WriteCombinedTilingFile(tiling_funcs, "add_layer_norm_autofuse_*_tiling_func.cpp",
                           "#include \"AddLayerNorm_tiling_data.h\"\n");
   EXPECT_EQ(res, true);
   unsetenv("AUTOFUSE_DFX_FLAGS");
 }
 
-TEST_F(TestGenAddLayerNormalModelInfoV2, case_axes_reorder_by_env)
-{
+TEST_F(TestGenAddLayerNormalModelInfoV2, case_axes_reorder_by_env) {
   setenv("AUTOFUSE_DFX_FLAGS",
          "--att_enable_multicore_ub_tradeoff=true;--autofuse_att_algorithm=AxesReorder;--att_enable_small_shape_"
          "strategy=true;--att_accuracy_level=1",

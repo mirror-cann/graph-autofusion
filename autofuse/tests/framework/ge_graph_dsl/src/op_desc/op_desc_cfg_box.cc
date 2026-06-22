@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -93,14 +93,14 @@ OpDescCfgBox &OpDescCfgBox::Attr(const std::string &name, const char *value) {
   return *this;
 }
 
-OpDescCfgBox &OpDescCfgBox::Attr(const std::string &name, const NamedAttrs& named_attrs) {
+OpDescCfgBox &OpDescCfgBox::Attr(const std::string &name, const NamedAttrs &named_attrs) {
   af::GeAttrValue attrvalue;
   attrvalue.SetValue(named_attrs);
   attrs_.emplace(std::make_pair(name, attrvalue));
   return *this;
 }
 
-OpDescCfgBox &OpDescCfgBox::Attr(const std::string &name, const std::vector<NamedAttrs>& named_attrs_vec) {
+OpDescCfgBox &OpDescCfgBox::Attr(const std::string &name, const std::vector<NamedAttrs> &named_attrs_vec) {
   af::GeAttrValue attrvalue;
   attrvalue.SetValue(named_attrs_vec);
   attrs_.emplace(std::make_pair(name, attrvalue));
@@ -169,7 +169,8 @@ OpDescCfgBox &OpDescCfgBox::OutputAttr(const size_t index, const std::string &na
   return OutputAttr(index, name, int64_list);
 }
 
-OpDescCfgBox &OpDescCfgBox::OutputAttr(const size_t index, const std::string &name, const std::vector<uint32_t> &value) {
+OpDescCfgBox &OpDescCfgBox::OutputAttr(const size_t index, const std::string &name,
+                                       const std::vector<uint32_t> &value) {
   std::vector<int64_t> int64_list;
   for (const auto &val : value) {
     int64_list.emplace_back(static_cast<int64_t>(val));
@@ -210,24 +211,22 @@ OpDescCfgBox &OpDescCfgBox::TensorDesc(Format format, DataType data_type, std::v
 void OpDescCfgBox::UpdateAttrs(OpDescPtr &op_desc) const {
   std::for_each(attrs_.begin(), attrs_.end(),
                 [&op_desc](const auto &attr) { op_desc->SetAttr(attr.first, attr.second); });
-  std::for_each(input_attrs_.begin(), input_attrs_.end(),
-                [&op_desc](const auto &attr) {
-                  const size_t index = attr.first;
-                  const auto &kvs = attr.second;
-                  auto tensor = op_desc->MutableInputDesc(index);
-                  for (auto &kv : kvs) {
-                    tensor->SetAttr(kv.first, kv.second);
-                  }
-                });
-  std::for_each(output_attrs_.begin(), output_attrs_.end(),
-                [&op_desc](const auto &attr) {
-                  const size_t index = attr.first;
-                  const auto &kvs = attr.second;
-                  auto tensor = op_desc->MutableOutputDesc(index);
-                  for (auto &kv : kvs) {
-                    tensor->SetAttr(kv.first, kv.second);
-                  }
-                });
+  std::for_each(input_attrs_.begin(), input_attrs_.end(), [&op_desc](const auto &attr) {
+    const size_t index = attr.first;
+    const auto &kvs = attr.second;
+    auto tensor = op_desc->MutableInputDesc(index);
+    for (auto &kv : kvs) {
+      tensor->SetAttr(kv.first, kv.second);
+    }
+  });
+  std::for_each(output_attrs_.begin(), output_attrs_.end(), [&op_desc](const auto &attr) {
+    const size_t index = attr.first;
+    const auto &kvs = attr.second;
+    auto tensor = op_desc->MutableOutputDesc(index);
+    for (auto &kv : kvs) {
+      tensor->SetAttr(kv.first, kv.second);
+    }
+  });
 }
 
 OpDescPtr OpDescCfgBox::Build(const ::EG_NS::NodeId &id) const {

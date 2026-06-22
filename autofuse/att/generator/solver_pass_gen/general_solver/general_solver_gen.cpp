@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -137,8 +137,7 @@ void GeneralSolverGen::SetCutCons(const std::vector<Expr> &cut_cons) {
   }
 }
 
-void GeneralSolverGen::SetExprRelation(const ExprExprMap &expr_relation,
-                                       const ExprExprMap &vars_relation) {
+void GeneralSolverGen::SetExprRelation(const ExprExprMap &expr_relation, const ExprExprMap &vars_relation) {
   for (const auto &pair : expr_relation) {
     expr_relation_[pair.first] = pair.second;
   }
@@ -392,7 +391,7 @@ bool GeneralSolverGen::GenClassDef() {
   construct_func = "explicit GeneralSolver";
   construct_func += tiling_case_id_;
   construct_func += "(SolverConfig& config, " + type_name_ + "& tiling_data) {\n";
-  construct_func += "            case_id_ = \""+tiling_case_id_+"\";\n";
+  construct_func += "            case_id_ = \"" + tiling_case_id_ + "\";\n";
   construct_func += "            solver_config_ = config;\n";
   construct_func += InitiateArgs(input_args_);
   construct_func += InitiateArgs(hardware_args_);
@@ -582,7 +581,8 @@ bool GeneralSolverGen::GenGetSmoothObj() {
         continue;
       }
       related_expr.emplace_back(pair.second);
-      pipe_strs += "    double " + pair.first + " = " + GetSmoothString(Str(pair.second.Replace(replace_vars_))) + ";\n";
+      pipe_strs +=
+          "    double " + pair.first + " = " + GetSmoothString(Str(pair.second.Replace(replace_vars_))) + ";\n";
     }
     related_expr.emplace_back(head_cost_);
     impl_codes_ += GetDoubleVars("    ", related_expr);
@@ -638,16 +638,19 @@ std::string GeneralSolverGen::GetWeightedDiff(FuncType func_type) {
   for (const auto &pair : buffer_cost_) {
     idx = std::to_string(leq_map_[pair.first]);
     if (func_type == FuncType::LEQ) {
-      impl_codes_ += "    double " + pair.first + "_cost = weight[" + idx + "] > 0 ? " + "GetSmooth" + pair.first + "Cost(vars) * weight[" + idx + "] : 0;\n";
+      impl_codes_ += "    double " + pair.first + "_cost = weight[" + idx + "] > 0 ? " + "GetSmooth" + pair.first +
+                     "Cost(vars) * weight[" + idx + "] : 0;\n";
     } else {
-      impl_codes_ += "    double " + pair.first + "_cost = weight[" + idx + "] < 0 ? " + "GetSmooth" + pair.first + "Cost(vars) * weight[" + idx + "] : 0;\n";
+      impl_codes_ += "    double " + pair.first + "_cost = weight[" + idx + "] < 0 ? " + "GetSmooth" + pair.first +
+                     "Cost(vars) * weight[" + idx + "] : 0;\n";
     }
     ret_exprs.emplace_back(pair.first + "_cost");
   }
   if (func_type == FuncType::LEQ) {
     for (const auto &pair : leq_cost_) {
       idx = std::to_string(leq_map_[pair.first]);
-      impl_codes_ += "    double " + pair.first + " = weight[" + idx + "] > 0 ? " + GetSmoothString(Str(pair.second)) + " * weight[" + idx + "] : 0;\n";
+      impl_codes_ += "    double " + pair.first + " = weight[" + idx + "] > 0 ? " + GetSmoothString(Str(pair.second)) +
+                     " * weight[" + idx + "] : 0;\n";
       ret_exprs.emplace_back(pair.first);
     }
   }
@@ -755,7 +758,8 @@ bool GeneralSolverGen::GenMapVarVal() {
       continue;
     }
     impl_codes_ += "    tiling_data.set_" + Str(pair.first) + "(static_cast<uint64_t>(" + Str(pair.second) + "));\n";
-    impl_codes_ += "    OP_LOGD(OP_NAME, \"" + Str(pair.first) + " = %u\", tiling_data.get_" + Str(pair.first) + "());\n";
+    impl_codes_ +=
+        "    OP_LOGD(OP_NAME, \"" + Str(pair.first) + " = %u\", tiling_data.get_" + Str(pair.first) + "());\n";
   }
   impl_codes_ += "}\n\n";
   return true;
@@ -764,10 +768,10 @@ bool GeneralSolverGen::GenMapVarVal() {
 bool GeneralSolverGen::GenInit() {
   impl_codes_ += "inline bool GeneralSolver" + tiling_case_id_ + "::Init(const SolverInput &input) {\n";
   std::set<std::string> arg_list;
-  for (const auto& arg : hardware_args_) {
+  for (const auto &arg : hardware_args_) {
     arg_list.insert(Str(arg));
   }
-  for (const auto& arg : input_args_) {
+  for (const auto &arg : input_args_) {
     arg_list.insert(Str(arg));
   }
   std::string block_arg = BaseTypeUtils::DumpHardware(HardwareDef::CORENUM);
@@ -803,10 +807,12 @@ bool GeneralSolverGen::GenGetResult() {
   impl_codes_ += "        OP_LOGD(OP_NAME, \"Filling tilingdata for " + tiling_case_id_ + ".\");\n";
   impl_codes_ += "        OP_LOGD(OP_NAME, \"Estimate the occupy.\");\n";
   for (const auto &pair : buffer_cost_) {
-    impl_codes_ += "        OP_LOGD(OP_NAME, \"" + pair.first + " = %ld\", static_cast<uint64_t>(Get" + pair.first + "Cost(solution) + " + pair.first + "));\n";
+    impl_codes_ += "        OP_LOGD(OP_NAME, \"" + pair.first + " = %ld\", static_cast<uint64_t>(Get" + pair.first +
+                   "Cost(solution) + " + pair.first + "));\n";
   }
   impl_codes_ += "        OP_LOGD(OP_NAME, \"Simulate the cost.\");\n";
-  impl_codes_ += "        OP_LOGD(OP_NAME, \"Objective value for " + tiling_case_id_ + " is %f.\", GetObj(solution));\n";
+  impl_codes_ +=
+      "        OP_LOGD(OP_NAME, \"Objective value for " + tiling_case_id_ + " is %f.\", GetObj(solution));\n";
   impl_codes_ += "        MapVarVal(solution, tiling_data);\n";
   impl_codes_ += "    }\n";
   impl_codes_ += "}\n\n";
@@ -834,7 +840,7 @@ std::string GeneralSolverGen::GenDTInit() {
   codes += "    tiling" + tiling_case_id_ + "::AttDTInit(feature_vector, dt_outputs);\n";
   for (uint32_t i = 0u; i < search_args_.size(); i++) {
     codes += "    init_vars[" + std::to_string(i) + "] = std::min(std::max(dt_outputs[" + std::to_string(i) +
-        "], lower_bound[" + std::to_string(i) + "]), upper_bound[" + std::to_string(i) + "]);\n";
+             "], lower_bound[" + std::to_string(i) + "]), upper_bound[" + std::to_string(i) + "]);\n";
   }
   // codes += "  #endif\n";
   return codes;
@@ -856,20 +862,26 @@ std::string GeneralSolverGen::InitiateValue() {
       std::string max_value_str = "static_cast<uint64_t>(" + Str(max_value_[search_args_[i]]) + ")";
       upper_expr.emplace_back(max_value_str);
       lower_expr.emplace_back("static_cast<uint64_t>(" + Str(min_value_[search_args_[i]]) + ")");
-      init_expr.emplace_back(init_value_.empty() ? max_value_str : ("static_cast<uint64_t>(" + Str(init_value_[search_args_[i]]) + ")"));
+      init_expr.emplace_back(
+          init_value_.empty() ? max_value_str : ("static_cast<uint64_t>(" + Str(init_value_[search_args_[i]]) + ")"));
       update_last.emplace_back(innest_dim_[i] ? "true" : "false");
     }
   }
-  codes += AddAnotationLine("可修改参数:待求解变量的上界,过大的上界将导致搜索范围与耗时增加,过小的上界更有可能获得较差的局部最优解\n", "    ");
+  codes += AddAnotationLine(
+      "可修改参数:待求解变量的上界,过大的上界将导致搜索范围与耗时增加,过小的上界更有可能获得较差的局部最优解\n",
+      "    ");
   for (size_t i = 0u; i < upper_expr.size(); i++) {
     codes += "    uint_space[" + std::to_string(i) + "] = " + upper_expr[i] + ";\n";
   }
-  codes += AddAnotationLine("可修改参数:待求解变量的下界,过小的下界将导致搜索范围与耗时增加,过大的下界更有可能获得较差的局部最优解\n", "    ");
+  codes += AddAnotationLine(
+      "可修改参数:待求解变量的下界,过小的下界将导致搜索范围与耗时增加,过大的下界更有可能获得较差的局部最优解\n",
+      "    ");
   for (size_t i = 0u; i < lower_expr.size(); i++) {
     codes += "    uint_space[" + std::to_string(i + upper_expr.size()) + "] = " + lower_expr[i] + ";\n";
     if (!min_value_[search_args_[i]].IsConstExpr() || !max_value_[search_args_[i]].IsConstExpr()) {
       codes += "    if (" + lower_expr[i] + " > " + upper_expr[i] + ") {\n";
-      codes += "        OP_LOGW(OP_NAME, \"Lower_bound[" + std::to_string(i) + "] is larger than upper_bound[" + std::to_string(i) + "].\");\n";
+      codes += "        OP_LOGW(OP_NAME, \"Lower_bound[" + std::to_string(i) + "] is larger than upper_bound[" +
+               std::to_string(i) + "].\");\n";
       codes += "        return false;\n";
       codes += "    }\n";
     }
@@ -941,10 +953,11 @@ std::string GeneralSolverGen::InitiateMemoryPool() const {
   codes += "    size_t total_VarVal_size = static_cast<size_t>(2 * cfg_top_num + 1) * VarVal_size;\n";
   codes += "    size_t ret_size = static_cast<size_t>(num_var * cfg_top_num) * sizeof(uint64_t);\n";
   codes += "    size_t visited_size = static_cast<size_t>(num_var * cfg_iterations) * sizeof(uint64_t);\n";
-  codes += "    void* memory_pool = calloc(1, uint_size + double_size + bool_size"
-                    " + sizeof(VarInfo) + sizeof(ConsInfo)"
-                    " + sizeof(Momentum) + total_VarVal_size + sizeof(Result)"
-                    " + ret_size + visited_size + sizeof(VisitedNode));\n";
+  codes +=
+      "    void* memory_pool = calloc(1, uint_size + double_size + bool_size"
+      " + sizeof(VarInfo) + sizeof(ConsInfo)"
+      " + sizeof(Momentum) + total_VarVal_size + sizeof(Result)"
+      " + ret_size + visited_size + sizeof(VisitedNode));\n";
   codes += "    if (memory_pool == nullptr) {\n";
   codes += "        OP_LOGE(OP_NAME, \"Failed to allocate memory pool for solver.\");\n";
   codes += "        return false;\n";
@@ -991,8 +1004,9 @@ std::string GeneralSolverGen::GenMemoryPool() {
   codes += "    var_info->SetVarInfo(num_var, uint_space, bool_space);\n";
   codes += "    cons_info->SetConsInfo(num_leq, double_space);\n";
   codes += "    momentum->SetMomentum(num_var, num_leq, double_space, bool_space);\n";
-  codes += "    result->SetResult(cfg_top_num, num_var, (VarVal*)((char*)memory_pool + offset_varVal),"
-           "((char*)memory_pool + offset_temp), ((char*)memory_pool + offset_solution));\n";
+  codes +=
+      "    result->SetResult(cfg_top_num, num_var, (VarVal*)((char*)memory_pool + offset_varVal),"
+      "((char*)memory_pool + offset_temp), ((char*)memory_pool + offset_solution));\n";
   codes += "    visited_node->SetVisitedNode(num_var, visited_head);\n";
   return codes;
 }
@@ -1016,14 +1030,14 @@ bool GeneralSolverGen::CreateInput() {
         arg_name = Str(search_args_[i]);
         search_arg_str += (idx == 0 ? "" : ", ") + arg_name;
         add_log += "    OP_LOGD(OP_NAME, \"" + arg_name + "->init value: %lu, range: [%lu, %lu].\", init_vars[" +
-            std::to_string(idx) + "], lower_bound[" + std::to_string(idx) + "], upper_bound[" +
-            std::to_string(idx) + "]);\n";
+                   std::to_string(idx) + "], lower_bound[" + std::to_string(idx) + "], upper_bound[" +
+                   std::to_string(idx) + "]);\n";
         ++idx;
       }
     }
   }
   invoke_codes_ += "    OP_LOGD(OP_NAME, \"The number of variable is %d(" + search_arg_str +
-      "), the number of constraints is %d.\", num_var, num_leq);\n";
+                   "), the number of constraints is %d.\", num_var, num_leq);\n";
   invoke_codes_ += AddAnotationLine("初始化解的个数为0\n", "    ");
   invoke_codes_ += "    int32_t solution_num = 0;\n";
   invoke_codes_ += GenMemoryPool();
@@ -1042,7 +1056,8 @@ bool GeneralSolverGen::CreateInput() {
 
 bool GeneralSolverGen::RunSolver(bool is_dt) {
   std::string class_name = "GeneralSolver" + tiling_case_id_;
-  invoke_codes_ += "    std::shared_ptr<"+ class_name + "> solver = std::make_shared<" + class_name + ">(cfg, tiling_data);\n";
+  invoke_codes_ +=
+      "    std::shared_ptr<" + class_name + "> solver = std::make_shared<" + class_name + ">(cfg, tiling_data);\n";
 
   invoke_codes_ += "    if (solver != nullptr) {\n";
   invoke_codes_ += AddAnotationLine("导入通用求解器的输入参数并完成初始化\n", "        ");
@@ -1118,7 +1133,8 @@ std::string GeneralSolverGen::GenSolverFuncInvoke() {
 std::string GeneralSolverGen::GenSolverDTInvoke() {
   std::string strs = "";
   strs += "    if (!ExecuteGeneralSolverForDT(tiling_data, output_tilings)) {\n";
-  strs += "        OP_LOGW(OP_NAME, \"Failed to execute dt general solver for tilingCaseId " + tiling_case_id_ + "!\");\n";
+  strs +=
+      "        OP_LOGW(OP_NAME, \"Failed to execute dt general solver for tilingCaseId " + tiling_case_id_ + "!\");\n";
   strs += "        return false;\n";
   strs += "    }\n";
   strs += "    OP_LOGD(OP_NAME, \"Execute general solver for tilingCaseId " + tiling_case_id_ + " successfully.\");\n";
@@ -1137,7 +1153,8 @@ std::string GeneralSolverGen::GenSolverFuncImpl() {
 }
 
 std::string GeneralSolverGen::GenSolverDTImpl() {
-  invoke_codes_ += "  bool ExecuteGeneralSolverForDT(" + type_name_ + " &tiling_data, std::vector<uint64_t> &output_tilings) {\n";
+  invoke_codes_ +=
+      "  bool ExecuteGeneralSolverForDT(" + type_name_ + " &tiling_data, std::vector<uint64_t> &output_tilings) {\n";
   CreateConfig();
   CreateInput();
   RunSolver(true);

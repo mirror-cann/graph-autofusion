@@ -52,21 +52,14 @@ AscNodePtr AscGraphAddSplitNode(AscGraph &asc_graph, const char *name, uint32_t 
 // Constructs the named ascir_op inside libaihac_ir.so and adds it to asc_graph.
 // dynamic_input_num > 0  => calls op.DynamicInputRegister("x", dynamic_input_num)
 // dynamic_output_num > 0 => calls op.DynamicOutputRegister("y", dynamic_output_num)
-AscNodePtr AscGraphAddAscirNodeByType(AscGraph &asc_graph,
-                                      const char *op_type,
-                                      const char *name,
-                                      size_t dynamic_input_num,
-                                      size_t dynamic_output_num);
+AscNodePtr AscGraphAddAscirNodeByType(AscGraph &asc_graph, const char *op_type, const char *name,
+                                      size_t dynamic_input_num, size_t dynamic_output_num);
 
-AxisId AscGraphCreateAxisBySerializedExpr(AscGraph &asc_graph,
-                                          const char *name,
-                                          const char *serialized_expr);
+AxisId AscGraphCreateAxisBySerializedExpr(AscGraph &asc_graph, const char *name, const char *serialized_expr);
 
 bool IsScalarInputBySerializedExprs(const std::vector<std::string> &serialized_exprs);
 
-AxisId AscGraphCreateAxisBySerializedExpr(AscGraph &asc_graph,
-                                          const char *name,
-                                          const char *serialized_expr);
+AxisId AscGraphCreateAxisBySerializedExpr(AscGraph &asc_graph, const char *name, const char *serialized_expr);
 
 bool IsScalarInputBySerializedExprs(const std::vector<std::string> &serialized_exprs);
 

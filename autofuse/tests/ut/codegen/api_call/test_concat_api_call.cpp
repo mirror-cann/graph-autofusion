@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -46,7 +46,7 @@ TEST(ConcatApiCallTest, ConcatApicallWithConcatDimIsInerAxis) {
 
   graph.AddNode(load_op);
   graph.AddNode(load_op2);
-  //graph.AddNode(concat_op);
+  // graph.AddNode(concat_op);
 
   load_op.x = x_op.y;
   load_op.attr.sched.axis = {z0.id, z1.id, z2.id};
@@ -140,8 +140,15 @@ TEST(ConcatApiCallTest, ConcatApicallWithConcatDimIsInerAxis) {
   std::string result;
   EXPECT_EQ(call.Generate(tpipe, vector<af::AxisId>{}, result), 0);
   std::cout << result << std::endl;
-  EXPECT_EQ(result, std::string{
-      "uint32_t concat_dim = 1;\nconst ConcatParams<half, 3> dst_params = {\n.shape  = {(t->s0)/(1), ((t->s1_1 + t->s1_2))/(1), (t->s2)/(1)},\n.stride = {(((t->s1_1 + t->s1_2) * t->s2))/(1), (t->s2)/(1), 1},\n.tensor = &local_3,\n};\nconst ConcatParams<half, 3> srcs_params[2] = {\n{\n.shape  = {(t->s0)/(1), (t->s1_1)/(1), (t->s2)/(1), },\n.stride = {((t->s1_1 * t->s2))/(1), (t->s2)/(1), 1},\n.tensor = &local_0,\n},\n{\n.shape  = {(t->s0)/(1), (t->s1_2)/(1), (t->s2)/(1), },\n.stride = {((t->s1_2 * t->s2))/(1), (t->s2)/(1), 1},\n.tensor = &local_2,\n},\n};\nConcatExtend<half, 3, 2>(dst_params, srcs_params, concat_dim, tmp_buf_0);\n"});
+  EXPECT_EQ(
+      result,
+      std::string{"uint32_t concat_dim = 1;\nconst ConcatParams<half, 3> dst_params = {\n.shape  = {(t->s0)/(1), "
+                  "((t->s1_1 + t->s1_2))/(1), (t->s2)/(1)},\n.stride = {(((t->s1_1 + t->s1_2) * t->s2))/(1), "
+                  "(t->s2)/(1), 1},\n.tensor = &local_3,\n};\nconst ConcatParams<half, 3> srcs_params[2] = "
+                  "{\n{\n.shape  = {(t->s0)/(1), (t->s1_1)/(1), (t->s2)/(1), },\n.stride = {((t->s1_1 * t->s2))/(1), "
+                  "(t->s2)/(1), 1},\n.tensor = &local_0,\n},\n{\n.shape  = {(t->s0)/(1), (t->s1_2)/(1), (t->s2)/(1), "
+                  "},\n.stride = {((t->s1_2 * t->s2))/(1), (t->s2)/(1), 1},\n.tensor = "
+                  "&local_2,\n},\n};\nConcatExtend<half, 3, 2>(dst_params, srcs_params, concat_dim, tmp_buf_0);\n"});
 }
 
 TEST(ConcatApiCallTest, ConcatApicallWithSmallTail) {
@@ -163,7 +170,7 @@ TEST(ConcatApiCallTest, ConcatApicallWithSmallTail) {
 
   graph.AddNode(load_op);
   graph.AddNode(load_op2);
-  //graph.AddNode(concat_op);
+  // graph.AddNode(concat_op);
 
   load_op.x = x_op.y;
   load_op.attr.sched.axis = {z0.id, z1.id};
@@ -205,7 +212,10 @@ TEST(ConcatApiCallTest, ConcatApicallWithSmallTail) {
   load2->attr.api.type = af::ApiType::kAPITypeCompute;
   load2->attr.api.unit = af::ComputeUnit::kUnitMTE2;
   load2->attr.sched.loop_axis = z0.id;
-  load2->outputs[0].attr.vectorized_axis = {z0.id, z1.id,};
+  load2->outputs[0].attr.vectorized_axis = {
+      z0.id,
+      z1.id,
+  };
   load2->outputs[0].attr.vectorized_strides = {pad, One};
   load2->outputs[0].attr.dtype = ge::DT_FLOAT16;
   load2->outputs[0].attr.mem.position = af::Position::kPositionVecIn;
@@ -301,7 +311,7 @@ TEST(ConcatApiCallTest, ConcatApicallWithSameTail) {
 
   graph.AddNode(load_op);
   graph.AddNode(load_op2);
-  //graph.AddNode(concat_op);
+  // graph.AddNode(concat_op);
 
   load_op.x = x_op.y;
   load_op.attr.sched.axis = {z0.id, z1.id};
@@ -343,7 +353,10 @@ TEST(ConcatApiCallTest, ConcatApicallWithSameTail) {
   load2->attr.api.type = af::ApiType::kAPITypeCompute;
   load2->attr.api.unit = af::ComputeUnit::kUnitMTE2;
   load2->attr.sched.loop_axis = z0.id;
-  load2->outputs[0].attr.vectorized_axis = {z0.id, z1.id,};
+  load2->outputs[0].attr.vectorized_axis = {
+      z0.id,
+      z1.id,
+  };
   load2->outputs[0].attr.vectorized_strides = {pad, One};
   load2->outputs[0].attr.dtype = ge::DT_FLOAT16;
   load2->outputs[0].attr.mem.position = af::Position::kPositionVecIn;
@@ -438,7 +451,7 @@ TEST(ConcatApiCallTest, ConcatApicallWithSmallTailUnpaded) {
 
   graph.AddNode(load_op);
   graph.AddNode(load_op2);
-  //graph.AddNode(concat_op);
+  // graph.AddNode(concat_op);
 
   load_op.x = x_op.y;
   load_op.attr.sched.axis = {z0.id, z1.id};
@@ -480,7 +493,10 @@ TEST(ConcatApiCallTest, ConcatApicallWithSmallTailUnpaded) {
   load2->attr.api.type = af::ApiType::kAPITypeCompute;
   load2->attr.api.unit = af::ComputeUnit::kUnitMTE2;
   load2->attr.sched.loop_axis = z0.id;
-  load2->outputs[0].attr.vectorized_axis = {z0.id, z1.id,};
+  load2->outputs[0].attr.vectorized_axis = {
+      z0.id,
+      z1.id,
+  };
   load2->outputs[0].attr.vectorized_strides = {s1_2, One};
   load2->outputs[0].attr.dtype = ge::DT_FLOAT16;
   load2->outputs[0].attr.mem.position = af::Position::kPositionVecIn;
@@ -550,7 +566,7 @@ TEST(ConcatApiCallTest, ConcatApicallWithSmallTailUnpadedDynamic) {
 
   graph.AddNode(load_op);
   graph.AddNode(load_op2);
-  //graph.AddNode(concat_op);
+  // graph.AddNode(concat_op);
 
   load_op.x = x_op.y;
   load_op.attr.sched.axis = {z0.id, z1.id};
@@ -592,7 +608,10 @@ TEST(ConcatApiCallTest, ConcatApicallWithSmallTailUnpadedDynamic) {
   load2->attr.api.type = af::ApiType::kAPITypeCompute;
   load2->attr.api.unit = af::ComputeUnit::kUnitMTE2;
   load2->attr.sched.loop_axis = z0.id;
-  load2->outputs[0].attr.vectorized_axis = {z0.id, z1.id,};
+  load2->outputs[0].attr.vectorized_axis = {
+      z0.id,
+      z1.id,
+  };
   load2->outputs[0].attr.vectorized_strides = {s1_2, One};
   load2->outputs[0].attr.dtype = ge::DT_FLOAT16;
   load2->outputs[0].attr.mem.position = af::Position::kPositionVecIn;
@@ -664,7 +683,7 @@ TEST(ConcatApiCallTest, ConcatApicallWithSmallTailPadedDynamic) {
 
   graph.AddNode(load_op);
   graph.AddNode(load_op2);
-  //graph.AddNode(concat_op);
+  // graph.AddNode(concat_op);
 
   load_op.x = x_op.y;
   load_op.attr.sched.axis = {z0.id, z1.id};
@@ -706,7 +725,10 @@ TEST(ConcatApiCallTest, ConcatApicallWithSmallTailPadedDynamic) {
   load2->attr.api.type = af::ApiType::kAPITypeCompute;
   load2->attr.api.unit = af::ComputeUnit::kUnitMTE2;
   load2->attr.sched.loop_axis = z0.id;
-  load2->outputs[0].attr.vectorized_axis = {z0.id, z1.id,};
+  load2->outputs[0].attr.vectorized_axis = {
+      z0.id,
+      z1.id,
+  };
   load2->outputs[0].attr.vectorized_strides = {s1_2, One};
   load2->outputs[0].attr.dtype = ge::DT_FLOAT16;
   load2->outputs[0].attr.mem.position = af::Position::kPositionVecIn;
@@ -761,8 +783,6 @@ TEST(ConcatApiCallTest, ConcatApicallWithSmallTailPadedDynamic) {
   EXPECT_TRUE(result.find("ConcatExtendV2Dyn") != std::string::npos);
 }
 
-
-
 TEST(ConcatApiCallTest, ConcatAllAligned) {
   af::AscGraph graph("test_graph");
 
@@ -784,7 +804,7 @@ TEST(ConcatApiCallTest, ConcatAllAligned) {
 
   graph.AddNode(load_op);
   graph.AddNode(load_op2);
-  //graph.AddNode(concat_op);
+  // graph.AddNode(concat_op);
 
   load_op.x = x_op.y;
   load_op.attr.sched.axis = {z0.id, z1.id, z2.id, z3.id};
@@ -909,7 +929,7 @@ TEST(ConcatApiCallTest, ConcatAllAligned_Padded) {
 
   graph.AddNode(load_op);
   graph.AddNode(load_op2);
-  //graph.AddNode(concat_op);
+  // graph.AddNode(concat_op);
 
   load_op.x = x_op.y;
   load_op.attr.sched.axis = {z0.id, z1.id, z2.id, z3.id};
@@ -1034,7 +1054,7 @@ TEST(ConcatApiCallTest, ConcatAllAligned_Pack_Padded) {
 
   graph.AddNode(load_op);
   graph.AddNode(load_op2);
-  //graph.AddNode(concat_op);
+  // graph.AddNode(concat_op);
 
   load_op.x = x_op.y;
   load_op.attr.sched.axis = {z0.id, z1.id, z2.id, z3.id};

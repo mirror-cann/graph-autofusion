@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -51,8 +51,8 @@ void UpdateDim(const std::vector<Expr> &stride, std::vector<Expr> &dims) {
 
 // 辅助函数：处理 ternary_ops，生成变量名并更新
 static void ProcessTernaryOps(const NodeExprId &node_expr_id, const std::string &annotation,
-                             const PerfOutputInfo &perf_res, std::map<Expr, TernaryOp, ExprCmp> &ternary_ops,
-                             std::vector<Expr> &update_vars, std::vector<std::pair<Expr, Expr>> &replace_vars) {
+                              const PerfOutputInfo &perf_res, std::map<Expr, TernaryOp, ExprCmp> &ternary_ops,
+                              std::vector<Expr> &update_vars, std::vector<std::pair<Expr, Expr>> &replace_vars) {
   std::string expr_prefix = node_expr_id.GetExprVarPrefix();
   std::string full_desc = node_expr_id.GetVarPrefix();
   Expr cur_expr;
@@ -142,9 +142,8 @@ ge::Status UpdatePerfRes(const NodeInfo &node, const PerfOutputInfo &perf_res, s
   std::vector<Expr> update_vars;
   std::vector<std::pair<Expr, Expr>> replace_vars;
 
-  GELOGI("Processing performance formula for node type %s, expr prefix: %s, full desc: %s",
-         node.node_type.c_str(), node_expr_id.GetExprVarPrefix().c_str(),
-         node_expr_id.GetVarPrefix().c_str());
+  GELOGI("Processing performance formula for node type %s, expr prefix: %s, full desc: %s", node.node_type.c_str(),
+         node_expr_id.GetExprVarPrefix().c_str(), node_expr_id.GetVarPrefix().c_str());
 
   ProcessTernaryOps(node_expr_id, annotation, perf_res, ternary_ops, update_vars, replace_vars);
   ApplyVariableReplacement(update_vars, replace_vars, ternary_ops);
@@ -164,7 +163,9 @@ ge::Status CheckOuterAxis(const SubAxis *cut_axis, const std::vector<SubAxis *> 
     } else if (axis->axis_type == AxisPosition::OUTER) {
       GE_ASSERT_TRUE(axis->parent_axis.size() == 1);
       if (cut_axis->parent_axis[0] == axis->parent_axis[0]) {
-        GELOGD("Found outer axis of vectorized axis [%s] in [%s].", af::SymbolicUtils::ToString(cut_axis->repeat).c_str(), af::SymbolicUtils::ToString(axis->repeat).c_str());
+        GELOGD("Found outer axis of vectorized axis [%s] in [%s].",
+               af::SymbolicUtils::ToString(cut_axis->repeat).c_str(),
+               af::SymbolicUtils::ToString(axis->repeat).c_str());
         outer_inside_loop = true;
         outer_axis = axis->repeat;
         break;
@@ -203,8 +204,7 @@ Expr GetTailSize(const Expr &a, const Expr &b, std::map<Expr, TernaryOp, ExprCmp
   return tail_size;
 }
 
-bool CheckInclude(const std::vector<std::string> &cur_orig, 
-                  const std::vector<std::string> &check_orig) {
+bool CheckInclude(const std::vector<std::string> &cur_orig, const std::vector<std::string> &check_orig) {
   std::map<std::string, int32_t> rec_num;
   if (check_orig.size() <= cur_orig.size()) {
     return false;
@@ -233,7 +233,7 @@ bool CheckInclude(const std::vector<std::string> &cur_orig,
 3. 多核切分策略保证优先分核，而不会分出尾块，所以保证了不会出现上述情况
 */
 bool CheckSingleCut(const NodeInfo &node) {
-  std::set<const SubAxis*> cut_axes;
+  std::set<const SubAxis *> cut_axes;
   for (const auto &input : node.inputs) {
     for (const auto &dim : input->dim_info) {
       if (dim->axis_type == AxisPosition::INNER) {
@@ -253,7 +253,7 @@ bool CheckSingleCut(const NodeInfo &node) {
     GELOGD("Single cut unsatisfied for node[%s].", node.name.c_str());
     return false;
   }
-  const SubAxis* cut_axis = *cut_axes.begin();
+  const SubAxis *cut_axis = *cut_axes.begin();
   for (const auto &axis : node.loop_axes) {
     if (CheckInclude(cut_axis->orig_axis_name, axis->orig_axis_name)) {
       GELOGD("The merged axis [%s] has the outer axis of [%s].", axis->name.c_str(), cut_axis->name.c_str());
@@ -263,11 +263,11 @@ bool CheckSingleCut(const NodeInfo &node) {
   GELOGD("Cannot find merged outer axis for [%s] within loop axes.", cut_axis->name.c_str());
   return false;
 }
-}
+}  // namespace
 
 std::vector<Expr> GetTensorTailRepeat(const TensorPtr &tensor, std::map<Expr, TernaryOp, ExprCmp> &ternary_ops) {
   std::vector<Expr> ret;
-  for (const auto &dim: tensor->dim_info) {
+  for (const auto &dim : tensor->dim_info) {
     if (dim->axis_type != AxisPosition::INNER) {
       ret.emplace_back(dim->repeat);
     } else {
@@ -310,13 +310,13 @@ ge::Status PipePerfExpr::GetTensorShapes(const NodeInfo &node, std::vector<Tenso
   for (const auto &tensor : node.inputs) {
     TensorShapeInfo tensor_shape_info;
     GE_ASSERT_SUCCESS(GetTensorShapeInfo(tensor, tensor_shape_info, ternary_ops, tail_shape),
-                       "Get node [%s] in tensor shape[%s] failed.", node.name.c_str(), tensor->name.c_str());
+                      "Get node [%s] in tensor shape[%s] failed.", node.name.c_str(), tensor->name.c_str());
     input_dims.emplace_back(tensor_shape_info);
   }
   for (const auto &tensor : node.outputs) {
     TensorShapeInfo tensor_shape_info;
     GE_ASSERT_SUCCESS(GetTensorShapeInfo(tensor, tensor_shape_info, ternary_ops, tail_shape),
-                       "Get node [%s] out tensor shape[%s] failed.", node.name.c_str(), tensor->name.c_str());
+                      "Get node [%s] out tensor shape[%s] failed.", node.name.c_str(), tensor->name.c_str());
     output_dims.emplace_back(tensor_shape_info);
   }
   return ge::SUCCESS;
@@ -344,7 +344,8 @@ ge::Status PipePerfExpr::ConvertToPerfInfo(const std::vector<NodeInfo> &node_inf
   return ge::SUCCESS;
 }
 
-Perf PipePerfExpr::UpdateTilingScheduleConfigTable(const NodeInfo &node, bool tail_shape, PerfOutputInfo &perf_res) const {
+Perf PipePerfExpr::UpdateTilingScheduleConfigTable(const NodeInfo &node, bool tail_shape,
+                                                   PerfOutputInfo &perf_res) const {
   Perf perf_func = nullptr;
   const auto api_perf = GetApiPerf(node.node_type);
   if (api_perf != nullptr) {
@@ -404,8 +405,7 @@ ge::Status PipePerfExpr::GetNodePerf(const NodeInfo &node, std::map<PipeType, Ex
                     node_unit.c_str());
 
   if (perf_func(inputs, outputs, node, perf_res) != ge::SUCCESS) {
-    GELOGW("Perf func failed for node[%s, %s], perf_res may be incomplete.", node.name.c_str(),
-           node.node_type.c_str());
+    GELOGW("Perf func failed for node[%s, %s], perf_res may be incomplete.", node.name.c_str(), node.node_type.c_str());
   }
   GELOGD("node[%s, %s] perf res: {%s}", node.name.c_str(), node.node_type.c_str(), perf_res.ToString().c_str());
   GE_ASSERT_SUCCESS(UpdatePerfRes(node, perf_res, node_perf, ternary_ops, perf_breakdowns, tail_shape));
@@ -427,8 +427,7 @@ ge::Status PipePerfExpr::GetNodeExeTime(const NodeInfo &node, const ExeTimePassM
 }
 
 ge::Status PipePerfExpr::AddTailPerf(const Expr &tail_exe_time, const Expr &node_exe_times,
-                                     const std::map<PipeType, Expr> &node_tail_perf,
-                                     PerfAddContext &tail_ctx) {
+                                     const std::map<PipeType, Expr> &node_tail_perf, PerfAddContext &tail_ctx) {
   Expr core_exe_time = node_exe_times - tail_exe_time;
   GELOGD("The exe time of the tail block is [%s], the exe time of the other block is [%s].",
          af::SymbolicUtils::ToString(tail_exe_time).c_str(), af::SymbolicUtils::ToString(core_exe_time).c_str());
@@ -444,8 +443,7 @@ ge::Status PipePerfExpr::AddTailPerf(const Expr &tail_exe_time, const Expr &node
   return ge::SUCCESS;
 }
 
-ge::Status PipePerfExpr::AddPerf(const Expr &node_exe_times, const std::string &contrib_suffix,
-                                 PerfAddContext &ctx) {
+ge::Status PipePerfExpr::AddPerf(const Expr &node_exe_times, const std::string &contrib_suffix, PerfAddContext &ctx) {
   for (const auto &pair : ctx.node_perf) {
     const auto &pipe_type_iter = PipeType2Str.find(pair.first);
     GE_ASSERT_TRUE(pipe_type_iter != PipeType2Str.end(), "Get pipe type str failed.");
@@ -535,8 +533,8 @@ ge::Status PipePerfExpr::GetPerfExpr(std::map<PipeType, Expr> &pipe_costs,
 
     // 获取节点执行时间
     TernaryOp node_exe_times;
-    GE_ASSERT_SUCCESS(GetNodeExeTime(node, exe_time_mgr, node_exe_times),
-                      "Get node [%s] exec times failed.", node.name.c_str());
+    GE_ASSERT_SUCCESS(GetNodeExeTime(node, exe_time_mgr, node_exe_times), "Get node [%s] exec times failed.",
+                      node.name.c_str());
     Expr exe_var = node_exe_times.GetVariable();
     ternary_ops[exe_var] = node_exe_times;
     GELOGD("Get node [%s] exe times %s=[%s]", node.name.c_str(), exe_var.Serialize().get(),
@@ -589,8 +587,8 @@ ge::Status PipePerfExpr::GetNodePerfInternal(const NodeInfo &node, std::map<Pipe
     }
   } else {
     // 普通节点
-    GE_ASSERT_SUCCESS(GetNodePerf(node, node_perf, ternary_ops, perf_breakdowns),
-                      "Get node [%s][%s] perf failed.", node.name.c_str(), node.node_type.c_str());
+    GE_ASSERT_SUCCESS(GetNodePerf(node, node_perf, ternary_ops, perf_breakdowns), "Get node [%s][%s] perf failed.",
+                      node.name.c_str(), node.node_type.c_str());
   }
   return ge::SUCCESS;
 }

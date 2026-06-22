@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2026 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -173,8 +173,7 @@ ReduceMergedAxisPlan BuildReduceMergedAxisPlan(const std::vector<bool> &src_stri
                                                const std::vector<bool> &dst_stride_zero);
 ReduceMergedShape BuildReduceMergedShape(const std::vector<ge::Expression> &src_repeats,
                                          const std::vector<ge::Expression> &src_strides,
-                                         const std::vector<ge::Expression> &dst_strides,
-                                         uint32_t dtype_size);
+                                         const std::vector<ge::Expression> &dst_strides, uint32_t dtype_size);
 ge::Status BuildReduceSpecificParams(const ReduceSpecificParamBuildInput &input, ReduceSpecificParams &param);
 
 struct CodegenApiParam;
@@ -182,15 +181,14 @@ using CodegenApiParamPtr = std::shared_ptr<CodegenApiParam>;
 struct CodegenApiParam {
   static ge::Status Register(af::AscNodePtr node, CodegenApiParamPtr api_param);
   static CodegenApiParamPtr GetNodeApiParam(af::AscNodePtr node);
-  static ge::Status DumpGraphApiParams(const ascir::ImplGraph &graph, const Tiler &tiler,
-                                       const std::string &prefix);
+  static ge::Status DumpGraphApiParams(const ascir::ImplGraph &graph, const Tiler &tiler, const std::string &prefix);
   std::string api_name;
   std::vector<std::string> template_params;
 
   struct TensorParam {
     TensorParam() = default;
-    TensorParam(const std::string& name, bool is_tensor, const CombinedExpression& offset)
-                : name(name), is_tensor(is_tensor), offset(offset) {}
+    TensorParam(const std::string &name, bool is_tensor, const CombinedExpression &offset)
+        : name(name), is_tensor(is_tensor), offset(offset) {}
     std::string name;
     bool is_tensor = true;
     CombinedExpression offset;
@@ -207,14 +205,9 @@ struct CodegenApiParam {
   std::string tmp_buf_name;
   CombinedExpression cal_count;
 
-  using AnySpecificParams = std::variant<
-    std::monostate,
-    DmaSpecificParams,
-    ReduceSpecificParams,
-    BroadcastSpecificParams,
-    TransposeSpecificParams
-  >;
+  using AnySpecificParams = std::variant<std::monostate, DmaSpecificParams, ReduceSpecificParams,
+                                         BroadcastSpecificParams, TransposeSpecificParams>;
   AnySpecificParams specific_params;
 };
-} // namespace codegen
+}  // namespace codegen
 #endif

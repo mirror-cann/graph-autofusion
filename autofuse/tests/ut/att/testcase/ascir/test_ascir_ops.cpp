@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -26,8 +26,6 @@ TEST(AscirOps_Register, RegOp_WillCreateAscirOpFactory) {
   EXPECT_EQ(graph.GetName(), "test");
 }
 
-
-
 TEST(AscirOps_StartNode, Ok) {
   af::AscGraph graph("test_graph");
   auto A = af::Symbol("A");
@@ -37,10 +35,8 @@ TEST(AscirOps_StartNode, Ok) {
   auto b = graph.CreateAxis("b", B);
   auto c = graph.CreateAxis("c", C);
 
-  auto data = ascir::cg::Data("test_op", graph, af::DT_FLOAT16,
-                              {a.id, b.id, c.id},
-                              {A, B, C},
-                              {B*C, C, af::sym::kSymbolOne});
+  auto data =
+      ascir::cg::Data("test_op", graph, af::DT_FLOAT16, {a.id, b.id, c.id}, {A, B, C}, {B * C, C, af::sym::kSymbolOne});
 
   auto data_ret = graph.FindNode("test_op");
 
@@ -67,7 +63,7 @@ TEST(AscirOps_StartNode, ConstantOk1) {
   auto c1_op_desc = af::OpDescUtils::GetOpDescFromOperator(c1.GetOwnerOp());
   float value;
   ASSERT_FALSE(af::AttrUtils::GetFloat(c1_op_desc, "value", value));
-//  EXPECT_FLOAT_EQ(value, 10);
+  //  EXPECT_FLOAT_EQ(value, 10);
   std::string expect_str = R"(Graph: test_graph
 Sizes:
 Axis:
@@ -96,7 +92,7 @@ Nodes:
       .ref_tensor = 0
       .merge_scope = 0
 )";
-//  EXPECT_EQ(ascir::utils::DebugStr(graph, true), expect_str);
+  //  EXPECT_EQ(ascir::utils::DebugStr(graph, true), expect_str);
 }
 
 TEST(AscirOps_StartNode, ConstantOk2) {
@@ -110,7 +106,7 @@ TEST(AscirOps_StartNode, ConstantOk2) {
   auto c1_op_desc = af::OpDescUtils::GetOpDescFromOperator(c1.GetOwnerOp());
   float value;
   ASSERT_FALSE(af::AttrUtils::GetFloat(c1_op_desc, "value", value));
-//  EXPECT_FLOAT_EQ(value, 11.1);
+  //  EXPECT_FLOAT_EQ(value, 11.1);
   std::string expect_str = R"(Graph: test_graph
 Sizes:
 Axis:
@@ -139,7 +135,7 @@ Nodes:
       .ref_tensor = 0
       .merge_scope = 0
 )";
-//  EXPECT_EQ(ascir::utils::DebugStr(graph, true), expect_str);
+  //  EXPECT_EQ(ascir::utils::DebugStr(graph, true), expect_str);
 }
 
 TEST(AscirOps_ContiguousStartNode, Ok) {
@@ -211,4 +207,4 @@ TEST(AscirOps, ExecOrderIncreaseOk) {
   EXPECT_EQ(static_cast<int64_t>(data2_node->attr.sched.exec_order), 2);
   EXPECT_EQ(static_cast<int64_t>(fs_node->attr.sched.exec_order), 3);
 }
-};
+};  // namespace af

@@ -25,8 +25,8 @@ using autofuse::tests::HostCaseRunner;
 using autofuse::tests::HostHelperOptions;
 using autofuse::tests::InputConfigs;
 using autofuse::tests::ParseHostHelperOptions;
-using autofuse::tests::ResolveSymbol;
 using autofuse::tests::ResLimit;
+using autofuse::tests::ResolveSymbol;
 using autofuse::tests::RunHostCheck;
 
 using GetTilingDataReprFn = std::string (*)(const AutofuseTilingData *);
@@ -61,8 +61,7 @@ struct AutofuseTilingSignature;
 
 template <size_t... Indexes>
 struct AutofuseTilingSignature<std::index_sequence<Indexes...>> {
-  using Type =
-      int64_t (*)(TilingDynamicArg<Indexes>..., AutofuseTilingData *, uint32_t *, uint32_t *, ResLimit *);
+  using Type = int64_t (*)(TilingDynamicArg<Indexes>..., AutofuseTilingData *, uint32_t *, uint32_t *, ResLimit *);
 };
 
 struct TopnResult {
@@ -100,14 +99,30 @@ class TypedHostRunner : public HostCaseRunner {
     return RunAutofuseTilingImpl(DynamicIndexSequence{});
   }
 
-  size_t ResultSize() const override { return topn_result_.tiling_datas.size(); }
-  int64_t ResultWorkspace(size_t index) const override { return topn_result_.workspaces[index]; }
-  int64_t ResultBlockDim(size_t index) const override { return topn_result_.block_dims[index]; }
-  std::string ResultRepr(size_t index) const override { return repr_(&topn_result_.tiling_datas[index]); }
-  double ResultPerf(size_t index) const override { return perf_(&topn_result_.tiling_datas[index]); }
-  std::string DefaultRepr() const override { return repr_(&default_tiling_data_); }
-  uint32_t DefaultWorkspace() const override { return default_workspace_; }
-  uint32_t DefaultBlockDim() const override { return default_block_dim_; }
+  size_t ResultSize() const override {
+    return topn_result_.tiling_datas.size();
+  }
+  int64_t ResultWorkspace(size_t index) const override {
+    return topn_result_.workspaces[index];
+  }
+  int64_t ResultBlockDim(size_t index) const override {
+    return topn_result_.block_dims[index];
+  }
+  std::string ResultRepr(size_t index) const override {
+    return repr_(&topn_result_.tiling_datas[index]);
+  }
+  double ResultPerf(size_t index) const override {
+    return perf_(&topn_result_.tiling_datas[index]);
+  }
+  std::string DefaultRepr() const override {
+    return repr_(&default_tiling_data_);
+  }
+  uint32_t DefaultWorkspace() const override {
+    return default_workspace_;
+  }
+  uint32_t DefaultBlockDim() const override {
+    return default_block_dim_;
+  }
 
  private:
   using DynamicIndexSequence = std::make_index_sequence<DynamicShapeArgCount>;

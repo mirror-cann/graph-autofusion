@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -37,18 +37,12 @@ enum FrameworkType {
   ONNX = 5,
 };
 
-enum class GraphStage : int64_t {
-  GRAPH_STAGE_FUZZ = 0,
-  GRAPH_STAGE_RESERVED
-};
+enum class GraphStage : int64_t { GRAPH_STAGE_FUZZ = 0, GRAPH_STAGE_RESERVED };
 
 const char_t *const kGraphDumpStage = "DumpStage";
 
-const std::map<std::string, std::string> kFwkTypeToStr = {{"0", "Caffe"},
-                                                          {"1", "MindSpore"},
-                                                          {"3", "TensorFlow"},
-                                                          {"4", "Android_NN"},
-                                                          {"5", "Onnx"}};
+const std::map<std::string, std::string> kFwkTypeToStr = {
+    {"0", "Caffe"}, {"1", "MindSpore"}, {"3", "TensorFlow"}, {"4", "Android_NN"}, {"5", "Onnx"}};
 
 enum OpEngineType {
   ENGINE_SYS = 0,  // default engine
@@ -169,11 +163,9 @@ struct DataBuffer {
   uint32_t placement;
 
   DataBuffer(void *const data_in, const uint64_t data_len, const bool is_support_mem_share = false,
-             const uint32_t data_placement = 0U) : data(data_in), length(data_len),
-                                                   isDataSupportMemShare(is_support_mem_share),
-                                                   placement(data_placement) {}
-  DataBuffer() : data(nullptr), length(0UL), isDataSupportMemShare(false),
-                 placement(0U) {}
+             const uint32_t data_placement = 0U)
+      : data(data_in), length(data_len), isDataSupportMemShare(is_support_mem_share), placement(data_placement) {}
+  DataBuffer() : data(nullptr), length(0UL), isDataSupportMemShare(false), placement(0U) {}
 };
 
 struct ConditionalDeleter {
@@ -186,7 +178,6 @@ struct ConditionalDeleter {
   }
 };
 using UniqueByteBuffer = std::unique_ptr<uint8_t[], ConditionalDeleter>;
-
 
 ///
 /// @ingroup domi_ome
@@ -314,7 +305,7 @@ struct AippConfigInfo {
 // The structure of offline Modeldata
 struct ModelData {
   void *model_data = nullptr;  // Model binary data start addr
-  uint64_t model_len = 0UL;     // Model binary data length
+  uint64_t model_len = 0UL;    // Model binary data length
   int32_t priority = 0;        // Model priority
   std::string key;             // Key path for encrypt model, Empty for unencrypt
   std::string om_name;         // om file name, used for data dump
@@ -333,19 +324,40 @@ struct ModelQueueArg {
   std::vector<uint32_t> input_queue_ids;
   std::vector<uint32_t> output_queue_ids;
   std::vector<FileConstantMem> file_constant_mems;
-  bool need_clear_dfx_cache {false};
+  bool need_clear_dfx_cache{false};
 };
 
 struct ModelParam {
-  ModelParam() : priority(0), mem_base(0U), mem_size(0U), weight_base(0U), weight_size(0U), fixed_mem_base(0U),
-                 fixed_mem_size(0U), p2p_fixed_mem_base(0U), p2p_fixed_mem_size(0U), file_constant_mems(nullptr),
-                 external_var_addr_(nullptr), external_var_size_(0), need_clear_dfx_cache_(false) {}
+  ModelParam()
+      : priority(0),
+        mem_base(0U),
+        mem_size(0U),
+        weight_base(0U),
+        weight_size(0U),
+        fixed_mem_base(0U),
+        fixed_mem_size(0U),
+        p2p_fixed_mem_base(0U),
+        p2p_fixed_mem_size(0U),
+        file_constant_mems(nullptr),
+        external_var_addr_(nullptr),
+        external_var_size_(0),
+        need_clear_dfx_cache_(false) {}
   ModelParam(const int32_t pri, const uintptr_t m_base, const size_t m_len, const uintptr_t w_base, const size_t w_len,
-             const std::vector<FileConstantMem> *const file_constant_mems = nullptr,
-             void* external_var_addr= nullptr, uint64_t external_var_size = 0, bool need_clear_dfx_cache = false)
-      : priority(pri), mem_base(m_base), mem_size(m_len), weight_base(w_base), weight_size(w_len), fixed_mem_base(0U),
-        fixed_mem_size(0U), p2p_fixed_mem_base(0U), p2p_fixed_mem_size(0U), file_constant_mems(file_constant_mems),
-        external_var_addr_(external_var_addr), external_var_size_(external_var_size), need_clear_dfx_cache_(need_clear_dfx_cache) {}
+             const std::vector<FileConstantMem> *const file_constant_mems = nullptr, void *external_var_addr = nullptr,
+             uint64_t external_var_size = 0, bool need_clear_dfx_cache = false)
+      : priority(pri),
+        mem_base(m_base),
+        mem_size(m_len),
+        weight_base(w_base),
+        weight_size(w_len),
+        fixed_mem_base(0U),
+        fixed_mem_size(0U),
+        p2p_fixed_mem_base(0U),
+        p2p_fixed_mem_size(0U),
+        file_constant_mems(file_constant_mems),
+        external_var_addr_(external_var_addr),
+        external_var_size_(external_var_size),
+        need_clear_dfx_cache_(need_clear_dfx_cache) {}
   virtual ~ModelParam() = default;
 
   int32_t priority;
@@ -358,7 +370,7 @@ struct ModelParam {
   uintptr_t p2p_fixed_mem_base;
   size_t p2p_fixed_mem_size;
   const std::vector<FileConstantMem> *const file_constant_mems;
-  void* external_var_addr_;
+  void *external_var_addr_;
   uint64_t external_var_size_;
   bool need_clear_dfx_cache_;
 };
@@ -367,7 +379,7 @@ struct ModelParam {
 struct ModelInfo {
   uint32_t version = 0U;
   std::string name;
-  bool is_encrypt = false; //  0:unencrypt, 1:encrypt
+  bool is_encrypt = false;  //  0:unencrypt, 1:encrypt
   std::vector<ShapeDescription> input_desc;
   std::vector<ShapeDescription> output_desc;
   uint8_t reserved[3] = {0U};  // 3-byte reserved field
@@ -383,7 +395,7 @@ class GE_FUNC_VISIBILITY ModelListener {
   virtual ~ModelListener() = default;
   ModelListener() = default;
   ModelListener(const ModelListener &) = delete;
-  ModelListener& operator=(const ModelListener &) & = delete;
+  ModelListener &operator=(const ModelListener &) & = delete;
   ///
   /// @brief Asynchronous callback interface
   /// @param [in] model_id   Model ID of the callback
@@ -397,9 +409,13 @@ class GE_FUNC_VISIBILITY ModelListener {
     (void)callback;
   }
 
-  virtual uint32_t GetResultCode() { return 0U; };
+  virtual uint32_t GetResultCode() {
+    return 0U;
+  };
 
-  virtual Status ResetResult() { return ge::SUCCESS; };
+  virtual Status ResetResult() {
+    return ge::SUCCESS;
+  };
 };
 
 // Profiling info of task
@@ -430,9 +446,8 @@ struct OpDescInfoId {
   uint32_t thread_id;
   int32_t device_id;
 
-  OpDescInfoId(): task_id(0U), stream_id(0U), context_id(UINT32_MAX), thread_id(UINT32_MAX), device_id(0) {}
-  OpDescInfoId(const uint32_t task, const uint32_t stream)
-      : OpDescInfoId() {
+  OpDescInfoId() : task_id(0U), stream_id(0U), context_id(UINT32_MAX), thread_id(UINT32_MAX), device_id(0) {}
+  OpDescInfoId(const uint32_t task, const uint32_t stream) : OpDescInfoId() {
     task_id = task;
     stream_id = stream;
   }
@@ -512,14 +527,14 @@ struct DumpConfig {
 
 struct QueueAttrs {
   uint32_t queue_id;
-  int32_t device_type; // CPU NPU
+  int32_t device_type;  // CPU NPU
   int32_t device_id;
-  uint32_t logic_id {0U};
+  uint32_t logic_id{0U};
 };
 
 struct InputAlignAttrs {
-  uint32_t align_max_cache_num; // 0 means align not enable
-  int32_t align_timeout;  // -1 means never timeout
+  uint32_t align_max_cache_num;  // 0 means align not enable
+  int32_t align_timeout;         // -1 means never timeout
   bool drop_when_not_align;
   uint8_t res[3];
 };
@@ -537,19 +552,19 @@ struct ModelQueueParam {
   std::vector<QueueAttrs> input_queues_attrs;
   std::vector<QueueAttrs> output_queues_attrs;
   QueueAttrs status_output_queue;
-  uint32_t model_uuid {0U};
-  bool is_dynamic_sched {false};
-  bool need_report_status {false};
+  uint32_t model_uuid{0U};
+  bool is_dynamic_sched{false};
+  bool need_report_status{false};
   InputAlignAttrs input_align_attrs{};
-  bool is_head {true};
-  bool no_need_check_inputs {false}; // 废弃并删除，使用need_check_inputs代替
-  bool need_check_inputs {false};
-  bool need_model_config {false};
-  bool mark_dump_step {false};
-  bool io_with_tensor_desc {false};
-  bool copy_inputs_for_non_zero_copy {false};
+  bool is_head{true};
+  bool no_need_check_inputs{false};  // 废弃并删除，使用need_check_inputs代替
+  bool need_check_inputs{false};
+  bool need_model_config{false};
+  bool mark_dump_step{false};
+  bool io_with_tensor_desc{false};
+  bool copy_inputs_for_non_zero_copy{false};
   const std::vector<FileConstantMem> *file_constant_mems{nullptr};
-  bool need_clear_dfx_cache {false};
+  bool need_clear_dfx_cache{false};
 };
 
 // internal options
@@ -581,10 +596,7 @@ const char_t *const OPTION_BUILD_GRAPH_MODE = "ge.buildGraphMode";
 // Configure Attribute Compression flag(true or false, default true for backward compatibility)
 const std::string ENABLE_ATTR_COMPRESSION = "ge.enableAttrCompression";
 
-const std::set<std::string> ir_builder_suppported_options_inner = {EVALUATE_GRAPH_RESOURCE_MODE,
-                                                                   RESOURCE_CONFIG_PATH,
-                                                                   RECOMPUTE,
-                                                                   OPTION_TOPOSORTING_MODE,
-                                                                   GRAPH_SLICE_MODE};
+const std::set<std::string> ir_builder_suppported_options_inner = {
+    EVALUATE_GRAPH_RESOURCE_MODE, RESOURCE_CONFIG_PATH, RECOMPUTE, OPTION_TOPOSORTING_MODE, GRAPH_SLICE_MODE};
 }  // namespace af
 #endif  // INC_COMMON_GE_TYPES_H_

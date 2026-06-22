@@ -49,9 +49,9 @@ TEST_F(TestBackendFloorDivInt32StoreE2e, FloorDivInt32StoreE2eCodegen) {
   std::map<std::string, std::string> floor_div_shape_info({{"s0", "stub_s0"}, {"s1", "stub_s1"}});
   auto graph = ascir::ShareGraph::FloorDivInt32StoreFusedGraph(2);
   std::vector<std::string> floor_div_parts = splitString(KERNEL_SRC_LIST, ':');
-  const std::string& kernel_src_file_name = floor_div_parts[0];
-  const std::string& tiling_src_file_name = floor_div_parts[1];
-  const std::string& tiling_data_src_file_name = floor_div_parts[2];
+  const std::string &kernel_src_file_name = floor_div_parts[0];
+  const std::string &tiling_src_file_name = floor_div_parts[1];
+  const std::string &tiling_data_src_file_name = floor_div_parts[2];
 
   try {
     optimize::Optimizer floor_div_optimizer(optimize::OptimizerOptions{});

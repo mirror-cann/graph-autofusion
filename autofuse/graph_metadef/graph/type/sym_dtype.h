@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -17,8 +17,8 @@
 namespace af {
 class OrderedTensorTypeList {
  public:
-  explicit OrderedTensorTypeList(const std::initializer_list<DataType> &initial_types) : initial_types_(initial_types) {
-  }
+  explicit OrderedTensorTypeList(const std::initializer_list<DataType> &initial_types)
+      : initial_types_(initial_types) {}
   std::vector<DataType> GetOrderedDtypes() const {
     return initial_types_;
   }
@@ -44,6 +44,7 @@ class OrderedTensorTypeList {
     s += "]";
     return s;
   }
+
  private:
   std::vector<DataType> initial_types_;
 };
@@ -74,10 +75,7 @@ class TypeOrTypes {
   std::vector<DataType> types_;
 };
 
-enum class ExpressionType {
-  kSingle,
-  kPromote
-};
+enum class ExpressionType { kSingle, kPromote };
 
 // 用于支持符号推导的数据类型表达式，它表达一个由Sym组成的表达式
 class SymDtypeExpression {
@@ -132,6 +130,7 @@ class SymDtype : public SymDtypeExpression {
   OrderedTensorTypeList GetOrderedTensorTypeList() const {
     return ordered_tensor_type_list_;
   }
+
  protected:
   graphStatus Eval(const OpDesc &op, DataType &dtype) const;
   graphStatus Eval(const OpDesc &op, std::vector<DataType> &dtypes) const;
@@ -183,5 +182,5 @@ graphStatus GetIrInputInstanceDescRange(const OpDescPtr &op,
 graphStatus GetIrInputRawDescRange(const OpDescPtr &op, std::map<size_t, std::pair<size_t, size_t>> &ir_input_2_range);
 
 graphStatus GetIrOutputDescRange(const OpDescPtr &op, std::map<size_t, std::pair<size_t, size_t>> &ir_output_2_range);
-}  // namespace ge
+}  // namespace af
 #endif  // METADEF_CXX_GRAPH_SYM_DTYPE_H_

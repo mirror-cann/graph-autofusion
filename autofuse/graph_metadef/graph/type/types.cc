@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -25,7 +25,7 @@ const char_t *GetFormatName(Format format) {
       "ND",
       "NC1HWC0",
       "FRACTAL_Z",
-      "NC1C0HWPAD", // 5
+      "NC1C0HWPAD",  // 5
       "NHWC1C0",
       "FSR_NCHW",
       "FRACTAL_DECONV",
@@ -35,37 +35,37 @@ const char_t *GetFormatName(Format format) {
       "NC1HWC0_C04",
       "FRACTAL_Z_C04",
       "CHWN",
-      "DECONV_SP_STRIDE8_TRANS", // 15
+      "DECONV_SP_STRIDE8_TRANS",  // 15
       "HWCN",
       "NC1KHKWHWC0",
       "BN_WEIGHT",
       "FILTER_HWCK",
-      "LOOKUP_LOOKUPS", // 20
+      "LOOKUP_LOOKUPS",  // 20
       "LOOKUP_KEYS",
       "LOOKUP_VALUE",
       "LOOKUP_OUTPUT",
       "LOOKUP_HITS",
-      "C1HWNCoC0", // 25
+      "C1HWNCoC0",  // 25
       "MD",
       "NDHWC",
-      "UNKNOWN", // FORMAT_FRACTAL_ZZ
+      "UNKNOWN",  // FORMAT_FRACTAL_ZZ
       "FRACTAL_NZ",
-      "NCDHW", // 30
+      "NCDHW",  // 30
       "DHWCN",
       "NDC1HWC0",
       "FRACTAL_Z_3D",
       "CN",
-      "NC", // 35
+      "NC",  // 35
       "DHWNC",
       "FRACTAL_Z_3D_TRANSPOSE",
       "FRACTAL_ZN_LSTM",
       "FRACTAL_Z_G",
-      "UNKNOWN", // 40, FORMAT_RESERVED
-      "UNKNOWN", // FORMAT_ALL
-      "UNKNOWN", // FORMAT_NULL
+      "UNKNOWN",  // 40, FORMAT_RESERVED
+      "UNKNOWN",  // FORMAT_ALL
+      "UNKNOWN",  // FORMAT_NULL
       "ND_RNN_BIAS",
       "FRACTAL_ZN_RNN",
-      "NYUV", // 45
+      "NYUV",  // 45
       "NYUV_A",
       "NCL",
       "FRACTAL_Z_WINO",
@@ -132,8 +132,8 @@ int64_t GetSizeInBytes(int64_t element_count, DataType data_type) {
     return CeilDiv(element_count * bit_size, kBitNumOfOneByte);
   } else {
     if (CheckInt64MulOverflow(element_count, static_cast<int64_t>(type_size)) == FAILED) {
-      GELOGW("[Check][overflow]GetSizeInBytes failed, when multiplying %" PRId64 " and %" PRId32 ".",
-             element_count, type_size);
+      GELOGW("[Check][overflow]GetSizeInBytes failed, when multiplying %" PRId64 " and %" PRId32 ".", element_count,
+             type_size);
       return -1;
     }
     return element_count * type_size;

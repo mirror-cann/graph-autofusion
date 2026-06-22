@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -58,16 +58,20 @@ ge::Status InitializeConfigByEnvOrIni(TilingCodeGenConfig &generator_config) {
       generator_config.high_precision = (AutoFuseConfig::GetAttStrategyConfig().solution_accuracy_level == 1L);
     }
     if (AutoFuseConfig::GetAttStrategyConfig().set_env_ub_threshold) {
-      generator_config.ub_threshold = (static_cast<double>(AutoFuseConfig::GetAttStrategyConfig().ub_threshold) / kPercentageDivisor);
+      generator_config.ub_threshold =
+          (static_cast<double>(AutoFuseConfig::GetAttStrategyConfig().ub_threshold) / kPercentageDivisor);
     }
     if (AutoFuseConfig::GetAttStrategyConfig().set_env_corenum_threshold) {
-      generator_config.corenum_threshold = (static_cast<double>(AutoFuseConfig::GetAttStrategyConfig().corenum_threshold) / kPercentageDivisor);
+      generator_config.corenum_threshold =
+          (static_cast<double>(AutoFuseConfig::GetAttStrategyConfig().corenum_threshold) / kPercentageDivisor);
     }
     if (AutoFuseConfig::GetAttStrategyConfig().set_env_enable_small_shape_strategy) {
-      generator_config.enable_small_shape_strategy = (AutoFuseConfig::GetAttStrategyConfig().enable_small_shape_strategy == "true");
+      generator_config.enable_small_shape_strategy =
+          (AutoFuseConfig::GetAttStrategyConfig().enable_small_shape_strategy == "true");
     }
     if (AutoFuseConfig::GetAttStrategyConfig().set_env_enable_multicore_ub_tradeoff) {
-      generator_config.enable_multicore_ub_tradeoff = (AutoFuseConfig::GetAttStrategyConfig().enable_multicore_ub_tradeoff == "true");
+      generator_config.enable_multicore_ub_tradeoff =
+          (AutoFuseConfig::GetAttStrategyConfig().enable_multicore_ub_tradeoff == "true");
     }
     if (AutoFuseConfig::GetAttStrategyConfig().set_force_tiling_case) {
       GE_ASSERT_SUCCESS(ge::AttStrategyConfigUtils::ParseForceTilingCase(
@@ -89,11 +93,9 @@ uint32_t GetDurationLevel(const std::map<std::string, std::string> &options) {
   const auto iter_duration_level = options.find(kDurationLevelName);
   if (iter_duration_level != options.end()) {
     try {
-      duration_level =
-        static_cast<uint32_t>(std::stoi(iter_duration_level->second));
+      duration_level = static_cast<uint32_t>(std::stoi(iter_duration_level->second));
     } catch (...) {
-      GELOGW("Invalid %s[%s], set default value[0].", kDurationLevelName.c_str(),
-        iter_duration_level->second.c_str());
+      GELOGW("Invalid %s[%s], set default value[0].", kDurationLevelName.c_str(), iter_duration_level->second.c_str());
     }
   }
   return duration_level;
@@ -116,7 +118,7 @@ void InitializeConfig(TilingCodeGenConfig &generator_config, const std::map<std:
   generator_config.gen_extra_infos = (GetOptionValue(options, kGenExtraInfo) == kIsTrue);
   generator_config.do_variable_replace = (GetOptionValue(options, kVariableReplace) == kIsTrue);
 }
-}
+}  // namespace
 
 bool GenTilingImpl(const std::string &op_name, const std::vector<af::AscGraph> &graphs,
                    std::map<std::string, std::string> &options) {
@@ -131,8 +133,8 @@ bool GenTilingImpl(const std::string &op_name, const std::vector<af::AscGraph> &
       }
     }
     std::map<std::string, std::string> inner_options;
-    if(!RegisterOptionsAndInitInnerOptions(inner_options, options, graphs[0].GetName())){
-        return false;
+    if (!RegisterOptionsAndInitInnerOptions(inner_options, options, graphs[0].GetName())) {
+      return false;
     }
     const auto duration_level = GetDurationLevel(inner_options);
     DurationInitGuard duration_init_guard(duration_level);
@@ -153,8 +155,8 @@ bool GenTilingImpl(const std::string &op_name, const std::vector<af::AscGraph> &
 }
 
 bool GenTilingImplAutoFuseV3(const std::string &op_name, const ascir::FusedScheduledResult &fused_schedule_result,
-                             std::map<std::string, std::string> &options, std::map<std::string, std::string> &tiling_func,
-                             bool is_inductor_scene) {
+                             std::map<std::string, std::string> &options,
+                             std::map<std::string, std::string> &tiling_func, bool is_inductor_scene) {
   TRACING_PERF_SCOPE(ge::TracingModule::kModelCompile, "GenTilingImpl", op_name);
   GE_ASSERT_TRUE(!fused_schedule_result.node_idx_to_scheduled_results.empty(), "fused schedule results of %s empty.",
                  op_name.c_str());

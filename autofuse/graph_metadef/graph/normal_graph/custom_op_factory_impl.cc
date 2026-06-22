@@ -45,4 +45,4 @@ bool CustomOpFactoryImpl::IsExistOp(const AscendString &op_type) {
 }
 
 CustomOpFactoryImpl::CustomOpFactoryImpl() = default;
-} // namespace ge
+}  // namespace af

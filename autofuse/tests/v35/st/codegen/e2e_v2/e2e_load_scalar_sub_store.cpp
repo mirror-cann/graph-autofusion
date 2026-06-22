@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -45,7 +45,7 @@ void LoadScalarSubStore_BeforeAutofuse(af::AscGraph &graph, af::DataType in_data
   load1.y.dtype = in_data_type;
   *load1.y.axis = {z0.id, z1.id, z2.id};
   *load1.y.repeats = {s0, s1, s2};
-  *load1.y.strides = {s1*s2, s2, One};
+  *load1.y.strides = {s1 * s2, s2, One};
 
   af::ascir_op::Sub sub("sub");
   graph.AddNode(sub);
@@ -54,7 +54,7 @@ void LoadScalarSubStore_BeforeAutofuse(af::AscGraph &graph, af::DataType in_data
   sub.y.dtype = out_data_type;
   sub.attr.sched.axis = {z0.id, z1.id, z2.id};
   *sub.y.repeats = {s0, s1, s2};
-  *sub.y.strides = {s1*s2, s2, One};
+  *sub.y.strides = {s1 * s2, s2, One};
   sub.attr.tmp_buffers = {{{af::Symbol(8192), -1}, MemAttr(), 0}};
 
   Store store("store");
@@ -64,7 +64,7 @@ void LoadScalarSubStore_BeforeAutofuse(af::AscGraph &graph, af::DataType in_data
   store.y.dtype = out_data_type;
   *store.y.axis = {z0.id, z1.id, z2.id};
   *store.y.repeats = {s0, s1, s2};
-  *store.y.strides = {s1*s2, s2, One};
+  *store.y.strides = {s1 * s2, s2, One};
 
   Output y("y");
   graph.AddNode(y);
@@ -76,12 +76,11 @@ void LoadScalarSubStore_BeforeAutofuse(af::AscGraph &graph, af::DataType in_data
 
 void LoadScalarSubStore_AfterInferOutput(af::AscGraph &graph, af::DataType in_data_type, af::DataType out_data_type) {
   auto x1 = graph.FindNode("x1");
-  x1->attr.api.compute_type = ComputeType::kComputeInvalid; // ComputeType::COMPUTE_DATA;
+  x1->attr.api.compute_type = ComputeType::kComputeInvalid;  // ComputeType::COMPUTE_DATA;
 
   auto load1 = graph.FindNode("load1");
   load1->outputs[0].attr.dtype = in_data_type;
   load1->attr.api.compute_type = ComputeType::kComputeLoad;
-
 
   auto sub = graph.FindNode("sub");
   sub->outputs[0].attr.dtype = out_data_type;

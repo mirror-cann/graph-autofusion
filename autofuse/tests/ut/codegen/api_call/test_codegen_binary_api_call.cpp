@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -55,7 +55,7 @@ TEST(CodegenKernel, Reciprocal_divs) {
   div_op.x2 = load_op.y;
   div_op.x1 = constant_op.y;
 
-  //graph.SetInputs({x_op});
+  // graph.SetInputs({x_op});
 
   auto load = graph.FindNode("load");
   load->attr.api.compute_type = af::ComputeType::kComputeLoad;
@@ -71,12 +71,10 @@ TEST(CodegenKernel, Reciprocal_divs) {
   load->outputs[0].attr.que.id = 1;
   load->outputs[0].attr.opt.merge_scope = af::kIdNone;
 
-
   auto constant_node = graph.FindNode("constant");
   constant_node->outputs[0].attr.mem.alloc_type = af::AllocType::kAllocTypeInvalid;
   constant_node->outputs[0].attr.mem.tensor_id = 1;
   constant_node->outputs[0].attr.mem.position = af::Position::kPositionInvalid;
-
 
   auto div = graph.FindNode("div");
   div->attr.api.unit = af::ComputeUnit::kUnitVector;
@@ -111,9 +109,8 @@ TEST(CodegenKernel, Reciprocal_divs) {
 
   std::string result;
   call.Generate(tpipe, vector<af::AxisId>{}, result);
-  EXPECT_EQ(result, std::string{
-    "Divs<half, true>(local_2[0], local_0[0], (half)1.0, tmp_buf_0, local_0_actual_size);\n"
-  });
+  EXPECT_EQ(result,
+            std::string{"Divs<half, true>(local_2[0], local_0[0], (half)1.0, tmp_buf_0, local_0_actual_size);\n"});
 }
 
 TEST(CodegenKernel, DivWithSecondInputIsUbScalar) {
@@ -223,9 +220,10 @@ TEST(CodegenKernel, DivWithSecondInputIsUbScalar) {
 
   std::string result;
   EXPECT_EQ(call.Generate(tpipe, vector<af::AxisId>{}, result), 0);
-  EXPECT_EQ(result, std::string{
-      "Divs<half, true>(local_3[0], local_0[0], (half)local_2_ub_scalar, tmp_buf_0, local_0_actual_size);\n"
-  });
+  EXPECT_EQ(
+      result,
+      std::string{
+          "Divs<half, true>(local_3[0], local_0[0], (half)local_2_ub_scalar, tmp_buf_0, local_0_actual_size);\n"});
 }
 
 TEST(CodegenKernel, Subs) {
@@ -254,7 +252,7 @@ TEST(CodegenKernel, Subs) {
   sub_op.x2 = load_op.y;
   sub_op.x1 = constant_op.y;
 
-  //graph.SetInputs({x_op});
+  // graph.SetInputs({x_op});
 
   auto load = graph.FindNode("load");
   load->attr.api.compute_type = af::ComputeType::kComputeLoad;
@@ -270,12 +268,10 @@ TEST(CodegenKernel, Subs) {
   load->outputs[0].attr.que.id = 1;
   load->outputs[0].attr.opt.merge_scope = af::kIdNone;
 
-
   auto constant_node = graph.FindNode("constant");
   constant_node->outputs[0].attr.mem.alloc_type = af::AllocType::kAllocTypeInvalid;
   constant_node->outputs[0].attr.mem.tensor_id = 1;
   constant_node->outputs[0].attr.mem.position = af::Position::kPositionInvalid;
-
 
   auto sub = graph.FindNode("sub");
   sub->attr.api.unit = af::ComputeUnit::kUnitVector;
@@ -309,9 +305,8 @@ TEST(CodegenKernel, Subs) {
 
   std::string result;
   call.Generate(tpipe, vector<af::AxisId>{}, result);
-  EXPECT_EQ(result, std::string{
-    "Subs<half, true>(local_2[0], local_0[0], (half)1.0, tmp_buf_0, local_0_actual_size);\n"
-  });
+  EXPECT_EQ(result,
+            std::string{"Subs<half, true>(local_2[0], local_0[0], (half)1.0, tmp_buf_0, local_0_actual_size);\n"});
 }
 
 TEST(CodegenKernel, SubWithFirstInputIsScalar) {
@@ -340,7 +335,7 @@ TEST(CodegenKernel, SubWithFirstInputIsScalar) {
   sub_op.x2 = load_op.y;
   sub_op.x1 = constant_op.y;
 
-  //graph.SetInputs({x_op});
+  // graph.SetInputs({x_op});
 
   auto load = graph.FindNode("load");
   load->attr.api.compute_type = af::ComputeType::kComputeLoad;
@@ -356,12 +351,10 @@ TEST(CodegenKernel, SubWithFirstInputIsScalar) {
   load->outputs[0].attr.que.id = 1;
   load->outputs[0].attr.opt.merge_scope = af::kIdNone;
 
-
   auto constant_node = graph.FindNode("constant");
   constant_node->outputs[0].attr.mem.alloc_type = af::AllocType::kAllocTypeInvalid;
   constant_node->outputs[0].attr.mem.tensor_id = 1;
   constant_node->outputs[0].attr.mem.position = af::Position::kPositionInvalid;
-
 
   auto sub = graph.FindNode("sub");
   sub->attr.api.unit = af::ComputeUnit::kUnitVector;
@@ -395,9 +388,8 @@ TEST(CodegenKernel, SubWithFirstInputIsScalar) {
 
   std::string result;
   call.Generate(tpipe, vector<af::AxisId>{}, result);
-  EXPECT_EQ(result, std::string{
-      "Subs<half, false>(local_2[0], local_0[0], (half)1.0, tmp_buf_0, local_0_actual_size);\n"
-  });
+  EXPECT_EQ(result,
+            std::string{"Subs<half, false>(local_2[0], local_0[0], (half)1.0, tmp_buf_0, local_0_actual_size);\n"});
 }
 
 TEST(CodegenKernel, SubWithDoubleInputIsScalar) {
@@ -421,12 +413,11 @@ TEST(CodegenKernel, SubWithDoubleInputIsScalar) {
   sub_op.x2 = constant_op_0.y;
   sub_op.x1 = constant_op_1.y;
 
-  //graph.SetInputs({x_op});
+  // graph.SetInputs({x_op});
   auto constant_node_0 = graph.FindNode("constant_0");
   constant_node_0->outputs[0].attr.mem.alloc_type = af::AllocType::kAllocTypeInvalid;
   constant_node_0->outputs[0].attr.mem.tensor_id = 0;
   constant_node_0->outputs[0].attr.mem.position = af::Position::kPositionInvalid;
-
 
   auto constant_node_1 = graph.FindNode("constant_1");
   constant_node_1->outputs[0].attr.mem.alloc_type = af::AllocType::kAllocTypeInvalid;
@@ -464,9 +455,7 @@ TEST(CodegenKernel, SubWithDoubleInputIsScalar) {
 
   std::string result;
   call.Generate(tpipe, vector<af::AxisId>{}, result);
-  EXPECT_EQ(result, std::string{
-      "Subs(local_2[0], (float)1.0, (float)1.0);\n"
-  });
+  EXPECT_EQ(result, std::string{"Subs(local_2[0], (float)1.0, (float)1.0);\n"});
 }
 
 TEST(CodegenKernel, SubWithSecondInputIsUbScalar) {
@@ -576,12 +565,11 @@ TEST(CodegenKernel, SubWithSecondInputIsUbScalar) {
 
   std::string result;
   EXPECT_EQ(call.Generate(tpipe, vector<af::AxisId>{}, result), 0);
-  EXPECT_EQ(result, std::string{
-      "Subs<half, true>(local_3[0], local_0[0], (half)local_2_ub_scalar, tmp_buf_0, local_0_actual_size);\n"
-  });
+  EXPECT_EQ(
+      result,
+      std::string{
+          "Subs<half, true>(local_3[0], local_0[0], (half)local_2_ub_scalar, tmp_buf_0, local_0_actual_size);\n"});
 }
-
-
 
 TEST(CodegenKernel, addsApicallWithSecondInputIsUbScalar) {
   af::AscGraph graph("test_graph");
@@ -689,9 +677,7 @@ TEST(CodegenKernel, addsApicallWithSecondInputIsUbScalar) {
 
   std::string result;
   EXPECT_EQ(call.Generate(tpipe, vector<af::AxisId>{}, result), 0);
-  EXPECT_EQ(result, std::string{
-      "Adds(local_3[0], local_0[0], (half)local_2_ub_scalar, local_0_actual_size);\n"
-  });
+  EXPECT_EQ(result, std::string{"Adds(local_3[0], local_0[0], (half)local_2_ub_scalar, local_0_actual_size);\n"});
 }
 
 TEST(CodegenKernel, AddWithSecondInputIsScalar) {
@@ -720,7 +706,7 @@ TEST(CodegenKernel, AddWithSecondInputIsScalar) {
   add_op.x2 = load_op.y;
   add_op.x1 = constant_op.y;
 
-  //graph.SetInputs({x_op});
+  // graph.SetInputs({x_op});
 
   auto load = graph.FindNode("load");
   load->attr.api.compute_type = af::ComputeType::kComputeLoad;
@@ -736,12 +722,10 @@ TEST(CodegenKernel, AddWithSecondInputIsScalar) {
   load->outputs[0].attr.que.id = 1;
   load->outputs[0].attr.opt.merge_scope = af::kIdNone;
 
-
   auto constant_node = graph.FindNode("constant");
   constant_node->outputs[0].attr.mem.alloc_type = af::AllocType::kAllocTypeInvalid;
   constant_node->outputs[0].attr.mem.tensor_id = 1;
   constant_node->outputs[0].attr.mem.position = af::Position::kPositionInvalid;
-
 
   auto add = graph.FindNode("add");
   add->attr.api.unit = af::ComputeUnit::kUnitVector;
@@ -774,11 +758,8 @@ TEST(CodegenKernel, AddWithSecondInputIsScalar) {
 
   std::string result;
   call.Generate(tpipe, vector<af::AxisId>{}, result);
-  EXPECT_EQ(result, std::string{
-      "Adds(local_2[0], local_0[0], (half)1.0, local_0_actual_size);\n"
-  });
+  EXPECT_EQ(result, std::string{"Adds(local_2[0], local_0[0], (half)1.0, local_0_actual_size);\n"});
 }
-
 
 TEST(CodegenKernel, GtWithSecondInputIsScalar) {
   af::AscGraph graph("test_graph");
@@ -806,7 +787,7 @@ TEST(CodegenKernel, GtWithSecondInputIsScalar) {
   gt_op.x2 = load_op.y;
   gt_op.x1 = constant_op.y;
 
-  //graph.SetInputs({x_op});
+  // graph.SetInputs({x_op});
 
   auto load = graph.FindNode("load");
   load->attr.api.compute_type = af::ComputeType::kComputeLoad;
@@ -822,12 +803,10 @@ TEST(CodegenKernel, GtWithSecondInputIsScalar) {
   load->outputs[0].attr.que.id = 1;
   load->outputs[0].attr.opt.merge_scope = af::kIdNone;
 
-
   auto constant_node = graph.FindNode("constant");
   constant_node->outputs[0].attr.mem.alloc_type = af::AllocType::kAllocTypeInvalid;
   constant_node->outputs[0].attr.mem.tensor_id = 1;
   constant_node->outputs[0].attr.mem.position = af::Position::kPositionInvalid;
-
 
   auto gt = graph.FindNode("gt");
   gt->attr.api.unit = af::ComputeUnit::kUnitVector;
@@ -968,9 +947,7 @@ TEST(CodegenKernel, MulsApicallWithSecondInputIsUbScalar) {
 
   std::string result;
   EXPECT_EQ(call.Generate(tpipe, vector<af::AxisId>{}, result), 0);
-  EXPECT_EQ(result, std::string{
-    "Muls(local_3[0], local_0[0], (half)local_2_ub_scalar, local_0_actual_size);\n"
-  });
+  EXPECT_EQ(result, std::string{"Muls(local_3[0], local_0[0], (half)local_2_ub_scalar, local_0_actual_size);\n"});
 }
 
 TEST(CodegenKernel, MaxApicallWithSecondInputIsUbScalar) {
@@ -1081,9 +1058,8 @@ TEST(CodegenKernel, MaxApicallWithSecondInputIsUbScalar) {
 
   std::string result;
   EXPECT_EQ(call.Generate(tpipe, vector<af::AxisId>{}, result), 0);
-  EXPECT_EQ(result, std::string{
-      "AscendC::Maxs(local_3[0], local_0[0], (half)local_2_ub_scalar, local_0_actual_size);\n"
-  });
+  EXPECT_EQ(result,
+            std::string{"AscendC::Maxs(local_3[0], local_0[0], (half)local_2_ub_scalar, local_0_actual_size);\n"});
 }
 
 TEST(CodegenKernel, MaxWithSecondInputIsScalar) {
@@ -1112,7 +1088,7 @@ TEST(CodegenKernel, MaxWithSecondInputIsScalar) {
   max_op.x2 = load_op.y;
   max_op.x1 = constant_op.y;
 
-  //graph.SetInputs({x_op});
+  // graph.SetInputs({x_op});
 
   auto load = graph.FindNode("load");
   load->attr.api.compute_type = af::ComputeType::kComputeLoad;
@@ -1128,12 +1104,10 @@ TEST(CodegenKernel, MaxWithSecondInputIsScalar) {
   load->outputs[0].attr.que.id = 1;
   load->outputs[0].attr.opt.merge_scope = af::kIdNone;
 
-
   auto constant_node = graph.FindNode("constant");
   constant_node->outputs[0].attr.mem.alloc_type = af::AllocType::kAllocTypeInvalid;
   constant_node->outputs[0].attr.mem.tensor_id = 1;
   constant_node->outputs[0].attr.mem.position = af::Position::kPositionInvalid;
-
 
   auto max = graph.FindNode("max");
   max->attr.api.unit = af::ComputeUnit::kUnitVector;
@@ -1160,16 +1134,15 @@ TEST(CodegenKernel, MaxWithSecondInputIsScalar) {
   x2.id = constant_node->outputs[0].attr.mem.tensor_id;
   x1.id = load->outputs[0].attr.mem.tensor_id;
 
-  codegen::BinaryApiCall call("AscendC::Max");;
+  codegen::BinaryApiCall call("AscendC::Max");
+  ;
   EXPECT_EQ(call.Init(max), 0);
   call.inputs.push_back(&x1);
   call.inputs.push_back(&x2);
 
   std::string result;
   call.Generate(tpipe, vector<af::AxisId>{}, result);
-  EXPECT_EQ(result, std::string{
-      "AscendC::Maxs(local_2[0], local_0[0], (half)1.0, local_0_actual_size);\n"
-  });
+  EXPECT_EQ(result, std::string{"AscendC::Maxs(local_2[0], local_0[0], (half)1.0, local_0_actual_size);\n"});
 }
 
 TEST(CodegenKernel, MinApicallWithSecondInputIsUbScalar) {
@@ -1280,9 +1253,8 @@ TEST(CodegenKernel, MinApicallWithSecondInputIsUbScalar) {
 
   std::string result;
   EXPECT_EQ(call.Generate(tpipe, vector<af::AxisId>{}, result), 0);
-  EXPECT_EQ(result, std::string{
-      "AscendC::Mins(local_3[0], local_0[0], (half)local_2_ub_scalar, local_0_actual_size);\n"
-  });
+  EXPECT_EQ(result,
+            std::string{"AscendC::Mins(local_3[0], local_0[0], (half)local_2_ub_scalar, local_0_actual_size);\n"});
 }
 
 TEST(CodegenKernel, MinWithSecondInputIsScalar) {
@@ -1311,7 +1283,7 @@ TEST(CodegenKernel, MinWithSecondInputIsScalar) {
   min_op.x2 = load_op.y;
   min_op.x1 = constant_op.y;
 
-  //graph.SetInputs({x_op});
+  // graph.SetInputs({x_op});
 
   auto load = graph.FindNode("load");
   load->attr.api.compute_type = af::ComputeType::kComputeLoad;
@@ -1327,12 +1299,10 @@ TEST(CodegenKernel, MinWithSecondInputIsScalar) {
   load->outputs[0].attr.que.id = 1;
   load->outputs[0].attr.opt.merge_scope = af::kIdNone;
 
-
   auto constant_node = graph.FindNode("constant");
   constant_node->outputs[0].attr.mem.alloc_type = af::AllocType::kAllocTypeInvalid;
   constant_node->outputs[0].attr.mem.tensor_id = 1;
   constant_node->outputs[0].attr.mem.position = af::Position::kPositionInvalid;
-
 
   auto min = graph.FindNode("min");
   min->attr.api.unit = af::ComputeUnit::kUnitVector;
@@ -1359,16 +1329,15 @@ TEST(CodegenKernel, MinWithSecondInputIsScalar) {
   x2.id = constant_node->outputs[0].attr.mem.tensor_id;
   x1.id = load->outputs[0].attr.mem.tensor_id;
 
-  codegen::BinaryApiCall call("AscendC::Min");;
+  codegen::BinaryApiCall call("AscendC::Min");
+  ;
   EXPECT_EQ(call.Init(min), 0);
   call.inputs.push_back(&x1);
   call.inputs.push_back(&x2);
 
   std::string result;
   call.Generate(tpipe, vector<af::AxisId>{}, result);
-  EXPECT_EQ(result, std::string{
-      "AscendC::Mins(local_2[0], local_0[0], (half)1.0, local_0_actual_size);\n"
-  });
+  EXPECT_EQ(result, std::string{"AscendC::Mins(local_2[0], local_0[0], (half)1.0, local_0_actual_size);\n"});
 }
 
 TEST(CodegenKernel, brc_inline_apicall_test) {
@@ -1389,7 +1358,6 @@ TEST(CodegenKernel, brc_inline_apicall_test) {
   graph.AddNode(load_op1);
   graph.AddNode(load_op2);
   graph.AddNode(add_op);
-
 
   load_op1.x = x1_op.y;
   load_op1.attr.sched.axis = {z0.id, z1.id};
@@ -1425,7 +1393,6 @@ TEST(CodegenKernel, brc_inline_apicall_test) {
   load1->outputs[0].attr.que.id = 1;
   load1->outputs[0].attr.opt.merge_scope = af::kIdNone;
 
-
   auto load2 = graph.FindNode("load2");
   load2->attr.api.compute_type = af::ComputeType::kComputeLoad;
   load2->attr.api.type = af::ApiType::kAPITypeCompute;
@@ -1440,7 +1407,6 @@ TEST(CodegenKernel, brc_inline_apicall_test) {
   load2->outputs[0].attr.mem.alloc_type = af::AllocType::kAllocTypeQueue;
   load2->outputs[0].attr.que.id = 2;
   load2->outputs[0].attr.opt.merge_scope = af::kIdNone;
-
 
   auto add = graph.FindNode("add");
   add->attr.api.unit = af::ComputeUnit::kUnitVector;
@@ -1477,9 +1443,8 @@ TEST(CodegenKernel, brc_inline_apicall_test) {
 
   std::string result;
   EXPECT_EQ(call.Generate(tpipe, vector<af::AxisId>{}, result), 0);
-  EXPECT_EQ(result, std::string{
-      "BinaryBrcInlineApiWithTwoVectorizedAxis<float>(local_3[0], local_0[0], local_2[0], t->s0, t->s1, 1, 0, t->s1, 4, &AscendC::Add, &AscendC::Add);\n"
-  });
+  EXPECT_EQ(result, std::string{"BinaryBrcInlineApiWithTwoVectorizedAxis<float>(local_3[0], local_0[0], local_2[0], "
+                                "t->s0, t->s1, 1, 0, t->s1, 4, &AscendC::Add, &AscendC::Add);\n"});
 }
 
 TEST(CodegenKernel, BinaryApiCallLogicalOrWhenBothAreTensor) {
@@ -1585,9 +1550,7 @@ TEST(CodegenKernel, BinaryApiCallLogicalOrWhenBothAreTensor) {
 
   std::string result;
   call.Generate(tpipe, current_axis, result);
-  EXPECT_EQ(result, std::string{
-    "LogicalOrExtend(local_3[0], local_0[0], local_1[0], local_0_actual_size);\n"
-  });
+  EXPECT_EQ(result, std::string{"LogicalOrExtend(local_3[0], local_0[0], local_1[0], local_0_actual_size);\n"});
 }
 
 TEST(CodegenKernel, BinaryApiCallLogicalOrWithFloatUbScalar) {
@@ -1701,9 +1664,8 @@ TEST(CodegenKernel, BinaryApiCallLogicalOrWithFloatUbScalar) {
 
   std::string result;
   call.Generate(tpipe, current_axis, result);
-  EXPECT_EQ(result, std::string{
-    "LogicalOrExtends(local_3[0], local_0[0], (float)local_1_ub_scalar, local_0_actual_size);\n"
-  });
+  EXPECT_EQ(result,
+            std::string{"LogicalOrExtends(local_3[0], local_0[0], (float)local_1_ub_scalar, local_0_actual_size);\n"});
 }
 
 TEST(CodegenKernel, BinaryApiCallLogicalAndWhenBothAreTensor) {
@@ -1809,9 +1771,7 @@ TEST(CodegenKernel, BinaryApiCallLogicalAndWhenBothAreTensor) {
 
   std::string result;
   call.Generate(tpipe, current_axis, result);
-  EXPECT_EQ(result, std::string{
-    "LogicalAndExtend(local_3[0], local_0[0], local_1[0], local_0_actual_size);\n"
-  });
+  EXPECT_EQ(result, std::string{"LogicalAndExtend(local_3[0], local_0[0], local_1[0], local_0_actual_size);\n"});
 }
 
 TEST(CodegenKernel, BinaryApiCallLogicalAndWithFloatUbScalar) {
@@ -1925,7 +1885,6 @@ TEST(CodegenKernel, BinaryApiCallLogicalAndWithFloatUbScalar) {
 
   std::string result;
   call.Generate(tpipe, current_axis, result);
-  EXPECT_EQ(result, std::string{
-    "LogicalAndExtends(local_3[0], local_0[0], (float)local_1_ub_scalar, local_0_actual_size);\n"
-  });
+  EXPECT_EQ(result,
+            std::string{"LogicalAndExtends(local_3[0], local_0[0], (float)local_1_ub_scalar, local_0_actual_size);\n"});
 }

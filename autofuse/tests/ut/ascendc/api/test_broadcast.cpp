@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -22,8 +22,8 @@ using namespace AscendC;
 TEST(TestApiBroadcast, Test_a1_to_ab) {
   // 构造测试输入和预期结果
   int a = 16, b = 32;
-  auto *x = (half*)AscendC::GmAlloc(sizeof(half) * a * 1);
-  auto *y = (half*)AscendC::GmAlloc(sizeof(half) * a * b);
+  auto *x = (half *)AscendC::GmAlloc(sizeof(half) * a * 1);
+  auto *y = (half *)AscendC::GmAlloc(sizeof(half) * a * b);
   half expect[a][b];
 
   for (int i = 0; i < a; i++) {
@@ -62,7 +62,7 @@ TEST(TestApiBroadcast, Test_a1_to_ab) {
   int diff_count = 0;
   for (int i = 0; i < a; i++) {
     for (int j = 0; j < b; j++) {
-      auto diff = (double)(y[i*b + j] - expect[i][j]);
+      auto diff = (double)(y[i * b + j] - expect[i][j]);
       if (diff < -1e-5 || diff > 1e-5) {
         diff_count++;
       }
@@ -189,8 +189,8 @@ TEST(TestApiBroadcast, Test_a1c_to_abc_withcopy) {
 TEST(TestApiBroadcast, Test_a1_to_ab_uint8) {
   // 构造测试输入和预期结果
   int a = 16, b = 32;
-  auto *x = (uint8_t*)AscendC::GmAlloc(sizeof(uint8_t) * a * 1);
-  auto *y = (uint8_t*)AscendC::GmAlloc(sizeof(uint8_t) * a * b);
+  auto *x = (uint8_t *)AscendC::GmAlloc(sizeof(uint8_t) * a * 1);
+  auto *y = (uint8_t *)AscendC::GmAlloc(sizeof(uint8_t) * a * b);
   uint8_t expect[a][b];
 
   for (uint32_t i = 0; i < a; i++) {
@@ -229,7 +229,7 @@ TEST(TestApiBroadcast, Test_a1_to_ab_uint8) {
   int diff_count = 0;
   for (int i = 0; i < a; i++) {
     for (int j = 0; j < b; j++) {
-      auto diff = (uint32_t)(y[i*b + j] - expect[i][j]);
+      auto diff = (uint32_t)(y[i * b + j] - expect[i][j]);
       if (diff < -1e-5 || diff > 1e-5) {
         diff_count++;
       }
@@ -242,8 +242,8 @@ TEST(TestApiBroadcast, Test_a1_to_ab_uint8) {
 TEST(TestApiBroadcast, Test_1b_to_ab_uint8) {
   // 构造测试输入和预期结果
   int a = 16, b = 32;
-  auto *x = (uint8_t*)AscendC::GmAlloc(sizeof(uint8_t) * 1 * b);
-  auto *y = (uint8_t*)AscendC::GmAlloc(sizeof(uint8_t) * a * b);
+  auto *x = (uint8_t *)AscendC::GmAlloc(sizeof(uint8_t) * 1 * b);
+  auto *y = (uint8_t *)AscendC::GmAlloc(sizeof(uint8_t) * a * b);
   uint8_t expect[a][b];
 
   for (uint32_t j = 0; j < b; j++) {
@@ -282,7 +282,7 @@ TEST(TestApiBroadcast, Test_1b_to_ab_uint8) {
   int diff_count = 0;
   for (int i = 0; i < a; i++) {
     for (int j = 0; j < b; j++) {
-      auto diff = (uint32_t)(y[i*b + j] - expect[i][j]);
+      auto diff = (uint32_t)(y[i * b + j] - expect[i][j]);
       if (diff < -1e-5 || diff > 1e-5) {
         diff_count++;
       }
@@ -295,8 +295,8 @@ TEST(TestApiBroadcast, Test_1b_to_ab_uint8) {
 TEST(TestApiBroadcast, Test_1bc_to_abc_uint8) {
   // 构造测试输入和预期结果
   int a = 16, b = 32, c = 8;
-  auto *x = (uint8_t*)AscendC::GmAlloc(sizeof(uint8_t) * 1 * b * c);
-  auto *y = (uint8_t*)AscendC::GmAlloc(sizeof(uint8_t) * a * b * c);
+  auto *x = (uint8_t *)AscendC::GmAlloc(sizeof(uint8_t) * 1 * b * c);
+  auto *y = (uint8_t *)AscendC::GmAlloc(sizeof(uint8_t) * a * b * c);
   uint8_t expect[a][b][c];
 
   for (uint32_t j = 0; j < b; j++) {
@@ -352,8 +352,8 @@ TEST(TestApiBroadcast, Test_1bc_to_abc_uint8) {
 TEST(TestApiBroadcast, Test_a1c_to_abc_uint8) {
   // 构造测试输入和预期结果
   int a = 16, b = 32, c = 32;
-  auto *x = (uint8_t*)AscendC::GmAlloc(sizeof(uint8_t) * a * 1 * c);
-  auto *y = (uint8_t*)AscendC::GmAlloc(sizeof(uint8_t) * a * b * c);
+  auto *x = (uint8_t *)AscendC::GmAlloc(sizeof(uint8_t) * a * 1 * c);
+  auto *y = (uint8_t *)AscendC::GmAlloc(sizeof(uint8_t) * a * b * c);
   uint8_t expect[a][b][c];
 
   for (uint32_t i = 0; i < a; i++) {
@@ -409,8 +409,8 @@ TEST(TestApiBroadcast, Test_a1c_to_abc_uint8) {
 TEST(TestApiBroadcast, Test_11_to_ab_uint8) {
   // 构造测试输入和预期结果
   int a = 16, b = 32;
-  auto *x = (uint8_t*)AscendC::GmAlloc(sizeof(uint8_t) * 1 * 1);
-  auto *y = (uint8_t*)AscendC::GmAlloc(sizeof(uint8_t) * a * b);
+  auto *x = (uint8_t *)AscendC::GmAlloc(sizeof(uint8_t) * 1 * 1);
+  auto *y = (uint8_t *)AscendC::GmAlloc(sizeof(uint8_t) * a * b);
   uint8_t expect[a][b];
 
   x[0] = 3;
@@ -462,8 +462,8 @@ TEST(TestApiBroadcast, Test_11_to_ab_uint8) {
 TEST(TestApiBroadcast, Test_1b_to_ab_int64) {
   // 构造测试输入和预期结果
   int a = 16, b = 32;
-  auto *x = (int64_t*)AscendC::GmAlloc(sizeof(int64_t) * 1 * b);
-  auto *y = (int64_t*)AscendC::GmAlloc(sizeof(int64_t) * a * b);
+  auto *x = (int64_t *)AscendC::GmAlloc(sizeof(int64_t) * 1 * b);
+  auto *y = (int64_t *)AscendC::GmAlloc(sizeof(int64_t) * a * b);
   int64_t expect[a][b];
 
   for (uint32_t j = 0; j < b; j++) {
@@ -502,7 +502,7 @@ TEST(TestApiBroadcast, Test_1b_to_ab_int64) {
   int diff_count = 0;
   for (int i = 0; i < a; i++) {
     for (int j = 0; j < b; j++) {
-      auto diff = (int64_t)(y[i*b + j] - expect[i][j]);
+      auto diff = (int64_t)(y[i * b + j] - expect[i][j]);
       if (diff < -1e-5 || diff > 1e-5) {
         diff_count++;
       }
@@ -568,8 +568,8 @@ TEST(TestApiBroadcast, Test_1b_to_ab_int64) {
 TEST(TestApiBroadcast, Test_1bc_to_abc_int64) {
   // 构造测试输入和预期结果
   int a = 16, b = 32, c = 8;
-  auto *x = (int64_t*)AscendC::GmAlloc(sizeof(int64_t) * 1 * b * c);
-  auto *y = (int64_t*)AscendC::GmAlloc(sizeof(int64_t) * a * b * c);
+  auto *x = (int64_t *)AscendC::GmAlloc(sizeof(int64_t) * 1 * b * c);
+  auto *y = (int64_t *)AscendC::GmAlloc(sizeof(int64_t) * a * b * c);
   int64_t expect[a][b][c];
 
   for (uint32_t j = 0; j < b; j++) {
@@ -625,8 +625,8 @@ TEST(TestApiBroadcast, Test_1bc_to_abc_int64) {
 TEST(TestApiBroadcast, Test_a1_to_ab_int64) {
   // 构造测试输入和预期结果
   int a = 16, b = 32;
-  auto *x = (int64_t*)AscendC::GmAlloc(sizeof(int64_t) * a * 1);
-  auto *y = (int64_t*)AscendC::GmAlloc(sizeof(int64_t) * a * b);
+  auto *x = (int64_t *)AscendC::GmAlloc(sizeof(int64_t) * a * 1);
+  auto *y = (int64_t *)AscendC::GmAlloc(sizeof(int64_t) * a * b);
   int64_t expect[a][b];
 
   for (uint32_t i = 0; i < a; i++) {
@@ -665,7 +665,7 @@ TEST(TestApiBroadcast, Test_a1_to_ab_int64) {
   int diff_count = 0;
   for (int i = 0; i < a; i++) {
     for (int j = 0; j < b; j++) {
-      auto diff = (int64_t)(y[i*b + j] - expect[i][j]);
+      auto diff = (int64_t)(y[i * b + j] - expect[i][j]);
       if (diff < -1e-5 || diff > 1e-5) {
         diff_count++;
       }
@@ -735,8 +735,8 @@ TEST(TestApiBroadcast, Test_a1_to_ab_int64) {
 TEST(TestApiBroadcast, Test_11_to_ab_int64) {
   // 构造测试输入和预期结果
   int a = 16, b = 32;
-  auto *x = (int64_t*)AscendC::GmAlloc(sizeof(int64_t) * 1 * 1);
-  auto *y = (int64_t*)AscendC::GmAlloc(sizeof(int64_t) * a * b);
+  auto *x = (int64_t *)AscendC::GmAlloc(sizeof(int64_t) * 1 * 1);
+  auto *y = (int64_t *)AscendC::GmAlloc(sizeof(int64_t) * a * b);
   int64_t expect[a][b];
 
   x[0] = 3;
@@ -788,8 +788,8 @@ TEST(TestApiBroadcast, Test_11_to_ab_int64) {
 TEST(TestApiBroadcast, Test_1bc_to_abc_uint64) {
   // 构造测试输入和预期结果
   int a = 16, b = 32, c = 8;
-  auto *x = (uint64_t*)AscendC::GmAlloc(sizeof(uint64_t) * 1 * b * c);
-  auto *y = (uint64_t*)AscendC::GmAlloc(sizeof(uint64_t) * a * b * c);
+  auto *x = (uint64_t *)AscendC::GmAlloc(sizeof(uint64_t) * 1 * b * c);
+  auto *y = (uint64_t *)AscendC::GmAlloc(sizeof(uint64_t) * a * b * c);
   uint64_t expect[a][b][c];
 
   for (uint32_t j = 0; j < b; j++) {
@@ -845,8 +845,8 @@ TEST(TestApiBroadcast, Test_1bc_to_abc_uint64) {
 TEST(TestApiBroadcast, Test_a1_to_ab_uint64) {
   // 构造测试输入和预期结果
   int a = 16, b = 32;
-  auto *x = (uint64_t*)AscendC::GmAlloc(sizeof(uint64_t) * a * 1);
-  auto *y = (uint64_t*)AscendC::GmAlloc(sizeof(uint64_t) * a * b);
+  auto *x = (uint64_t *)AscendC::GmAlloc(sizeof(uint64_t) * a * 1);
+  auto *y = (uint64_t *)AscendC::GmAlloc(sizeof(uint64_t) * a * b);
   uint64_t expect[a][b];
 
   for (uint32_t i = 0; i < a; i++) {
@@ -885,7 +885,7 @@ TEST(TestApiBroadcast, Test_a1_to_ab_uint64) {
   int diff_count = 0;
   for (int i = 0; i < a; i++) {
     for (int j = 0; j < b; j++) {
-      auto diff = (uint64_t)(y[i*b + j] - expect[i][j]);
+      auto diff = (uint64_t)(y[i * b + j] - expect[i][j]);
       if (diff < -1e-5 || diff > 1e-5) {
         diff_count++;
       }
@@ -955,8 +955,8 @@ TEST(TestApiBroadcast, Test_a1_to_ab_uint64) {
 TEST(TestApiBroadcast, Test_11_to_ab_uint64) {
   // 构造测试输入和预期结果
   int a = 16, b = 32;
-  auto *x = (uint64_t*)AscendC::GmAlloc(sizeof(uint64_t) * 1 * 1);
-  auto *y = (uint64_t*)AscendC::GmAlloc(sizeof(uint64_t) * a * b);
+  auto *x = (uint64_t *)AscendC::GmAlloc(sizeof(uint64_t) * 1 * 1);
+  auto *y = (uint64_t *)AscendC::GmAlloc(sizeof(uint64_t) * a * b);
   uint64_t expect[a][b];
 
   x[0] = 3;
@@ -1008,8 +1008,8 @@ TEST(TestApiBroadcast, Test_11_to_ab_uint64) {
 TEST(TestApiBroadcast, Test_a1_to_ab_stride) {
   // 构造测试输入和预期结果
   int a = 16, b = 32;
-  auto *x = (half*)AscendC::GmAlloc(sizeof(half) * a * 8);
-  auto *y = (half*)AscendC::GmAlloc(sizeof(half) * a * b);
+  auto *x = (half *)AscendC::GmAlloc(sizeof(half) * a * 8);
+  auto *y = (half *)AscendC::GmAlloc(sizeof(half) * a * b);
   half expect[a][b];
 
   for (int i = 0; i < a; i++) {
@@ -1051,7 +1051,7 @@ TEST(TestApiBroadcast, Test_a1_to_ab_stride) {
   int diff_count = 0;
   for (int i = 0; i < a; i++) {
     for (int j = 0; j < b; j++) {
-      auto diff = (double)(y[i*b + j] - expect[i][j]);
+      auto diff = (double)(y[i * b + j] - expect[i][j]);
       if (diff < -1e-5 || diff > 1e-5) {
         diff_count++;
       }
@@ -1117,8 +1117,8 @@ TEST(TestApiBroadcast, Test_a1_to_ab_stride) {
 TEST(TestApiBroadcast, Test_1b_to_ab_int32) {
   // 构造测试输入和预期结果
   int a = 16, b = 32;
-  auto *x = (int32_t*)AscendC::GmAlloc(sizeof(int32_t) * 1 * b);
-  auto *y = (int32_t*)AscendC::GmAlloc(sizeof(int32_t) * a * b);
+  auto *x = (int32_t *)AscendC::GmAlloc(sizeof(int32_t) * 1 * b);
+  auto *y = (int32_t *)AscendC::GmAlloc(sizeof(int32_t) * a * b);
   int32_t expect[a][b];
 
   for (uint32_t j = 0; j < b; j++) {
@@ -1157,7 +1157,7 @@ TEST(TestApiBroadcast, Test_1b_to_ab_int32) {
   int diff_count = 0;
   for (int i = 0; i < a; i++) {
     for (int j = 0; j < b; j++) {
-      auto diff = (uint32_t)(y[i*b + j] - expect[i][j]);
+      auto diff = (uint32_t)(y[i * b + j] - expect[i][j]);
       if (diff < -1e-5 || diff > 1e-5) {
         diff_count++;
       }
@@ -1170,8 +1170,8 @@ TEST(TestApiBroadcast, Test_1b_to_ab_int32) {
 TEST(TestApiBroadcast, Test_1bc_to_abc_int32) {
   // 构造测试输入和预期结果
   int a = 16, b = 32, c = 8;
-  auto *x = (int32_t*)AscendC::GmAlloc(sizeof(int32_t) * 1 * b * c);
-  auto *y = (int32_t*)AscendC::GmAlloc(sizeof(int32_t) * a * b * c);
+  auto *x = (int32_t *)AscendC::GmAlloc(sizeof(int32_t) * 1 * b * c);
+  auto *y = (int32_t *)AscendC::GmAlloc(sizeof(int32_t) * a * b * c);
   int32_t expect[a][b][c];
 
   for (uint32_t j = 0; j < b; j++) {
@@ -1227,8 +1227,8 @@ TEST(TestApiBroadcast, Test_1bc_to_abc_int32) {
 TEST(TestApiBroadcast, Test_a1c_to_abc_int32) {
   // 构造测试输入和预期结果
   int a = 16, b = 32, c = 32;
-  auto *x = (int32_t*)AscendC::GmAlloc(sizeof(int32_t) * a * 1 * c);
-  auto *y = (int32_t*)AscendC::GmAlloc(sizeof(int32_t) * a * b * c);
+  auto *x = (int32_t *)AscendC::GmAlloc(sizeof(int32_t) * a * 1 * c);
+  auto *y = (int32_t *)AscendC::GmAlloc(sizeof(int32_t) * a * b * c);
   int32_t expect[a][b][c];
 
   for (uint32_t i = 0; i < a; i++) {
@@ -1390,8 +1390,8 @@ TEST(TestApiBroadcast, Test_a1c_to_abc_int32) {
 TEST(TestApiBroadcast, Test_1b_to_ab_uint32) {
   // 构造测试输入和预期结果
   int a = 16, b = 32;
-  auto *x = (uint32_t*)AscendC::GmAlloc(sizeof(uint32_t) * 1 * b);
-  auto *y = (uint32_t*)AscendC::GmAlloc(sizeof(uint32_t) * a * b);
+  auto *x = (uint32_t *)AscendC::GmAlloc(sizeof(uint32_t) * 1 * b);
+  auto *y = (uint32_t *)AscendC::GmAlloc(sizeof(uint32_t) * a * b);
   uint32_t expect[a][b];
 
   for (uint32_t j = 0; j < b; j++) {
@@ -1430,7 +1430,7 @@ TEST(TestApiBroadcast, Test_1b_to_ab_uint32) {
   int diff_count = 0;
   for (int i = 0; i < a; i++) {
     for (int j = 0; j < b; j++) {
-      auto diff = (uint32_t)(y[i*b + j] - expect[i][j]);
+      auto diff = (uint32_t)(y[i * b + j] - expect[i][j]);
       if (diff < -1e-5 || diff > 1e-5) {
         diff_count++;
       }
@@ -1443,8 +1443,8 @@ TEST(TestApiBroadcast, Test_1b_to_ab_uint32) {
 TEST(TestApiBroadcast, Test_1bc_to_abc_uint32) {
   // 构造测试输入和预期结果
   int a = 16, b = 32, c = 8;
-  auto *x = (uint32_t*)AscendC::GmAlloc(sizeof(uint32_t) * 1 * b * c);
-  auto *y = (uint32_t*)AscendC::GmAlloc(sizeof(uint32_t) * a * b * c);
+  auto *x = (uint32_t *)AscendC::GmAlloc(sizeof(uint32_t) * 1 * b * c);
+  auto *y = (uint32_t *)AscendC::GmAlloc(sizeof(uint32_t) * a * b * c);
   uint32_t expect[a][b][c];
 
   for (uint32_t j = 0; j < b; j++) {
@@ -1500,8 +1500,8 @@ TEST(TestApiBroadcast, Test_1bc_to_abc_uint32) {
 TEST(TestApiBroadcast, Test_a1c_to_abc_uint32) {
   // 构造测试输入和预期结果
   int a = 16, b = 32, c = 32;
-  auto *x = (uint32_t*)AscendC::GmAlloc(sizeof(uint32_t) * a * 1 * c);
-  auto *y = (uint32_t*)AscendC::GmAlloc(sizeof(uint32_t) * a * b * c);
+  auto *x = (uint32_t *)AscendC::GmAlloc(sizeof(uint32_t) * a * 1 * c);
+  auto *y = (uint32_t *)AscendC::GmAlloc(sizeof(uint32_t) * a * b * c);
   uint32_t expect[a][b][c];
 
   for (uint32_t i = 0; i < a; i++) {
@@ -1610,8 +1610,8 @@ TEST(TestApiBroadcast, Test_a1c_to_abc_uint32) {
 TEST(TestApiBroadcast, Test_1b_to_ab_int16) {
   // 构造测试输入和预期结果
   int a = 16, b = 32;
-  auto *x = (int16_t*)AscendC::GmAlloc(sizeof(int16_t) * 1 * b);
-  auto *y = (int16_t*)AscendC::GmAlloc(sizeof(int16_t) * a * b);
+  auto *x = (int16_t *)AscendC::GmAlloc(sizeof(int16_t) * 1 * b);
+  auto *y = (int16_t *)AscendC::GmAlloc(sizeof(int16_t) * a * b);
   int16_t expect[a][b];
 
   for (uint32_t j = 0; j < b; j++) {
@@ -1650,7 +1650,7 @@ TEST(TestApiBroadcast, Test_1b_to_ab_int16) {
   int diff_count = 0;
   for (int i = 0; i < a; i++) {
     for (int j = 0; j < b; j++) {
-      auto diff = (uint32_t)(y[i*b + j] - expect[i][j]);
+      auto diff = (uint32_t)(y[i * b + j] - expect[i][j]);
       if (diff < -1e-5 || diff > 1e-5) {
         diff_count++;
       }
@@ -1663,8 +1663,8 @@ TEST(TestApiBroadcast, Test_1b_to_ab_int16) {
 TEST(TestApiBroadcast, Test_1bc_to_abc_int16) {
   // 构造测试输入和预期结果
   int a = 16, b = 32, c = 8;
-  auto *x = (int16_t*)AscendC::GmAlloc(sizeof(int16_t) * 1 * b * c);
-  auto *y = (int16_t*)AscendC::GmAlloc(sizeof(int16_t) * a * b * c);
+  auto *x = (int16_t *)AscendC::GmAlloc(sizeof(int16_t) * 1 * b * c);
+  auto *y = (int16_t *)AscendC::GmAlloc(sizeof(int16_t) * a * b * c);
   int16_t expect[a][b][c];
 
   for (uint32_t j = 0; j < b; j++) {
@@ -1720,8 +1720,8 @@ TEST(TestApiBroadcast, Test_1bc_to_abc_int16) {
 TEST(TestApiBroadcast, Test_a1c_to_abc_int16) {
   // 构造测试输入和预期结果
   int a = 16, b = 32, c = 32;
-  auto *x = (int16_t*)AscendC::GmAlloc(sizeof(int16_t) * a * 1 * c);
-  auto *y = (int16_t*)AscendC::GmAlloc(sizeof(int16_t) * a * b * c);
+  auto *x = (int16_t *)AscendC::GmAlloc(sizeof(int16_t) * a * 1 * c);
+  auto *y = (int16_t *)AscendC::GmAlloc(sizeof(int16_t) * a * b * c);
   int16_t expect[a][b][c];
 
   for (uint32_t i = 0; i < a; i++) {
@@ -1883,8 +1883,8 @@ TEST(TestApiBroadcast, Test_a1c_to_abc_int16) {
 TEST(TestApiBroadcast, Test_1b_to_ab_uint16) {
   // 构造测试输入和预期结果
   int a = 16, b = 32;
-  auto *x = (uint16_t*)AscendC::GmAlloc(sizeof(uint16_t) * 1 * b);
-  auto *y = (uint16_t*)AscendC::GmAlloc(sizeof(uint16_t) * a * b);
+  auto *x = (uint16_t *)AscendC::GmAlloc(sizeof(uint16_t) * 1 * b);
+  auto *y = (uint16_t *)AscendC::GmAlloc(sizeof(uint16_t) * a * b);
   uint16_t expect[a][b];
 
   for (uint32_t j = 0; j < b; j++) {
@@ -1923,7 +1923,7 @@ TEST(TestApiBroadcast, Test_1b_to_ab_uint16) {
   int diff_count = 0;
   for (int i = 0; i < a; i++) {
     for (int j = 0; j < b; j++) {
-      auto diff = (uint32_t)(y[i*b + j] - expect[i][j]);
+      auto diff = (uint32_t)(y[i * b + j] - expect[i][j]);
       if (diff < -1e-5 || diff > 1e-5) {
         diff_count++;
       }
@@ -1936,8 +1936,8 @@ TEST(TestApiBroadcast, Test_1b_to_ab_uint16) {
 TEST(TestApiBroadcast, Test_1bc_to_abc_uint16) {
   // 构造测试输入和预期结果
   int a = 16, b = 32, c = 8;
-  auto *x = (uint16_t*)AscendC::GmAlloc(sizeof(uint16_t) * 1 * b * c);
-  auto *y = (uint16_t*)AscendC::GmAlloc(sizeof(uint16_t) * a * b * c);
+  auto *x = (uint16_t *)AscendC::GmAlloc(sizeof(uint16_t) * 1 * b * c);
+  auto *y = (uint16_t *)AscendC::GmAlloc(sizeof(uint16_t) * a * b * c);
   uint16_t expect[a][b][c];
 
   for (uint32_t j = 0; j < b; j++) {
@@ -1993,8 +1993,8 @@ TEST(TestApiBroadcast, Test_1bc_to_abc_uint16) {
 TEST(TestApiBroadcast, Test_a1c_to_abc_uint16) {
   // 构造测试输入和预期结果
   int a = 16, b = 32, c = 32;
-  auto *x = (uint16_t*)AscendC::GmAlloc(sizeof(uint16_t) * a * 1 * c);
-  auto *y = (uint16_t*)AscendC::GmAlloc(sizeof(uint16_t) * a * b * c);
+  auto *x = (uint16_t *)AscendC::GmAlloc(sizeof(uint16_t) * a * 1 * c);
+  auto *y = (uint16_t *)AscendC::GmAlloc(sizeof(uint16_t) * a * b * c);
   uint16_t expect[a][b][c];
 
   for (uint32_t i = 0; i < a; i++) {
@@ -2050,8 +2050,8 @@ TEST(TestApiBroadcast, Test_a1c_to_abc_uint16) {
 TEST(TestApiBroadcast, Test_a1a1_to_abab_half) {
   // 构造测试输入和预期结果
   int a = 2, b = 8;
-  auto *x = (half*)AscendC::GmAlloc(sizeof(half) * a * 1 * a * 1);
-  auto *y = (half*)AscendC::GmAlloc(sizeof(half) * a * b * a * b);
+  auto *x = (half *)AscendC::GmAlloc(sizeof(half) * a * 1 * a * 1);
+  auto *y = (half *)AscendC::GmAlloc(sizeof(half) * a * b * a * b);
   half expect[a][b][a][b];
 
   for (uint32_t i = 0; i < a; i++) {
@@ -2116,8 +2116,8 @@ TEST(TestApiBroadcast, Test_a1a1_to_abab_half) {
 TEST(TestApiBroadcast, Test_1a1_to_bab_half) {
   // 构造测试输入和预期结果
   int a = 2, b = 8;
-  auto *x = (half*)AscendC::GmAlloc(sizeof(half) * 1 * a * 1);
-  auto *y = (half*)AscendC::GmAlloc(sizeof(half) * b * a * b);
+  auto *x = (half *)AscendC::GmAlloc(sizeof(half) * 1 * a * 1);
+  auto *y = (half *)AscendC::GmAlloc(sizeof(half) * b * a * b);
   half expect[b][a][b];
 
   for (uint32_t k = 0; k < a; k++) {

@@ -19,6 +19,6 @@ namespace pre_process {
 ge::Status InsertBroadcastAfterScalarForAscGraph(af::AscGraph &asc_graph);
 
 }  // namespace pre_process
-}  // namespace optimize
+}  // namespace af
 
 #endif  // AUTOFUSE_OPTIMIZE_PRE_PROCESS_SCALAR_BROADCAST_INSERT_H

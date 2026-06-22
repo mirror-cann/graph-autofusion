@@ -10,10 +10,8 @@
 #ifndef __ASCENDC_API_REGBASE_LEGENDRE_POLYNOMIAL_P_H__
 #define __ASCENDC_API_REGBASE_LEGENDRE_POLYNOMIAL_P_H__
 
-static constexpr AscendC::Reg::DivSpecificMode kLegendreHighPrecisionDivMode = {
-    AscendC::Reg::MaskMergeMode::ZEROING,
-    true
-};
+static constexpr AscendC::Reg::DivSpecificMode kLegendreHighPrecisionDivMode = {AscendC::Reg::MaskMergeMode::ZEROING,
+                                                                                true};
 
 template <typename T>
 __simd_vf__ inline void LegendrePolynomialPFillVF(__ubuf__ T *yAddr, uint32_t calCount, T fillValue) {
@@ -44,8 +42,7 @@ __simd_vf__ inline void LegendrePolynomialPLinearVF(__ubuf__ T *xAddr, __ubuf__ 
 }
 
 template <typename T>
-__simd_vf__ inline void LegendrePolynomialPImplVF(__ubuf__ T *xAddr, __ubuf__ T *yAddr, int32_t n,
-                                                  uint32_t calCount) {
+__simd_vf__ inline void LegendrePolynomialPImplVF(__ubuf__ T *xAddr, __ubuf__ T *yAddr, int32_t n, uint32_t calCount) {
   const uint32_t repeatElem = static_cast<uint32_t>(AscendC::GetVecLen() / sizeof(T));
   const uint16_t repeatTime = static_cast<uint16_t>(AscendC::CeilDivision(calCount, repeatElem));
 
@@ -104,10 +101,8 @@ __simd_vf__ inline void LegendrePolynomialPImplVF(__ubuf__ T *xAddr, __ubuf__ T 
 }
 
 template <typename T, typename U>
-__aicore__ inline void LegendrePolynomialPExtend(const AscendC::LocalTensor<T> &dst,
-                                                 const AscendC::LocalTensor<T> &src,
-                                                 U n,
-                                                 const uint32_t calcount) {
+__aicore__ inline void LegendrePolynomialPExtend(const AscendC::LocalTensor<T> &dst, const AscendC::LocalTensor<T> &src,
+                                                 U n, const uint32_t calcount) {
   static_assert(AscendC::SupportType<T, float>(), "Current data type is not supported on current device!");
   const int32_t order = static_cast<int32_t>(n);
 
@@ -132,10 +127,8 @@ __aicore__ inline void LegendrePolynomialPExtend(const AscendC::LocalTensor<T> &
 }
 
 template <typename T, typename U>
-__aicore__ inline void LegendrePolynomialPExtend(const AscendC::LocalTensor<T> &dst,
-                                                 const AscendC::LocalTensor<T> &src,
-                                                 const AscendC::LocalTensor<U> &n,
-                                                 const uint32_t calcount) {
+__aicore__ inline void LegendrePolynomialPExtend(const AscendC::LocalTensor<T> &dst, const AscendC::LocalTensor<T> &src,
+                                                 const AscendC::LocalTensor<U> &n, const uint32_t calcount) {
   LegendrePolynomialPExtend(dst, src, n.GetValue(0), calcount);
 }
 

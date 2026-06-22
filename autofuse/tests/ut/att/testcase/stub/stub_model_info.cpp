@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -11,8 +11,7 @@
 #include <iostream>
 #include "stub/stub_model_info.h"
 namespace att {
-ModelInfo CreateModelInfo(const ge::ExprType expr_type)
-{
+ModelInfo CreateModelInfo(const ge::ExprType expr_type) {
   ModelInfo model_info;
   Expr default_expr;
   bool is_const = true;
@@ -50,7 +49,7 @@ ModelInfo CreateModelInfo(const ge::ExprType expr_type)
   sym_m->value_range.first = 1;
   sym_m->value_range.second = 10000;
   m->size = sym_m;
-  
+
   tilem->name = "tilem";
   tilem->axis_pos = AxisPosition::INNER;
   tilem->bind_multicore = false;
@@ -87,7 +86,7 @@ ModelInfo CreateModelInfo(const ge::ExprType expr_type)
   test_optional.min_value = "1";
   test_optional.max_value = "100";
   model_info.graph_input_infos.optional_atts[1U] = test_optional;
-  
+
   // set n
   Expr expr_n = CreateExpr("n_size");
   Expr expr_tilen = CreateExpr("tilen_size");
@@ -113,7 +112,7 @@ ModelInfo CreateModelInfo(const ge::ExprType expr_type)
   n->is_last = false;
   n->is_node_innerest_dim = false;
   n->size = sym_n;
-  
+
   tilen->name = "tilen";
   tilen->axis_pos = AxisPosition::INNER;
   tilen->bind_multicore = false;
@@ -141,7 +140,6 @@ ModelInfo CreateModelInfo(const ge::ExprType expr_type)
   basen->orig_axis.push_back(n.get());
   basen->from_axis = {stepn.get()};
 
-
   model_info.arg_list.emplace_back(n);
   model_info.arg_list.emplace_back(tilen);
   model_info.arg_list.emplace_back(stepn);
@@ -160,7 +158,6 @@ ModelInfo CreateModelInfo(const ge::ExprType expr_type)
   k->size = sym_k;
   model_info.arg_list.emplace_back(k);
 
-
   Expr l0a_occupy = expr_basem * expr_k * CreateExpr(4);
   Expr l0b_occupy = expr_k * expr_basen * CreateExpr(4);
   Expr l0c_occupy = expr_basem * expr_basen * CreateExpr(4);
@@ -175,7 +172,7 @@ ModelInfo CreateModelInfo(const ge::ExprType expr_type)
   model_info.hardware_cons[HardwareDef::L2] = l2_occupy;
   model_info.hardware_cons[HardwareDef::CORENUM] = core_num;
   model_info.hardware_cons[HardwareDef::UB] = CreateExpr(0L);
-  
+
   Expr mac = (expr_basem * expr_basen * expr_k) / (CreateExpr(16) * CreateExpr(256));
   Expr mte = (((expr_stepm * expr_k) / CreateExpr(32)) + ((expr_stepn * expr_k) / CreateExpr(32)));
   model_info.objects[PipeType::AIC_MAC] = mac;
@@ -224,7 +221,7 @@ ModelInfo GetMatmulL2TileInfo() {
   m->is_last = false;
   m->is_node_innerest_dim = false;
   m->size = sym_m;
-  
+
   tilem->name = "tilem";
   tilem->axis_pos = AxisPosition::INNER;
   tilem->bind_multicore = false;
@@ -245,7 +242,7 @@ ModelInfo GetMatmulL2TileInfo() {
   model_info.arg_list.emplace_back(m);
   model_info.arg_list.emplace_back(tilem);
   model_info.arg_list.emplace_back(basem);
-  
+
   // set n
   Expr expr_n = CreateExpr("n_size");
   Expr expr_tilen = CreateExpr("tilen_size");
@@ -266,7 +263,7 @@ ModelInfo GetMatmulL2TileInfo() {
   n->is_last = false;
   n->is_node_innerest_dim = false;
   n->size = sym_n;
-  
+
   tilen->name = "tilen";
   tilen->axis_pos = AxisPosition::INNER;
   tilen->bind_multicore = false;
@@ -284,7 +281,6 @@ ModelInfo GetMatmulL2TileInfo() {
   basen->size = sym_basen;
   basen->orig_axis.push_back(n.get());
   basen->from_axis = {tilen.get()};
-
 
   model_info.arg_list.emplace_back(n);
   model_info.arg_list.emplace_back(tilen);
@@ -343,12 +339,10 @@ ModelInfo GetMatmulL2TileInfo() {
   basek->orig_axis.push_back(k.get());
   basek->from_axis = {stepkb.get()};
 
-
   model_info.arg_list.emplace_back(k);
   model_info.arg_list.emplace_back(stepka);
   model_info.arg_list.emplace_back(stepkb);
   model_info.arg_list.emplace_back(basek);
-
 
   Expr l0a_occupy = expr_basem * expr_basek * CreateExpr(4);
   Expr l0b_occupy = expr_basek * expr_basen * CreateExpr(4);
@@ -362,19 +356,25 @@ ModelInfo GetMatmulL2TileInfo() {
   model_info.hardware_cons[HardwareDef::L1] = l1_occupy;
   model_info.hardware_cons[HardwareDef::L2] = l2_occupy;
   model_info.hardware_cons[HardwareDef::UB] = CreateExpr(0L);
-  
+
   Expr tile_cnt = ((expr_n / expr_tilen) * (expr_m / expr_tilem));
-  Expr base_cnt = af::sym::Max(af::sym::kSymbolOne, (((expr_tilem * expr_tilen) / (expr_basem * expr_basen)) / CreateExpr("block_dim")));
+  Expr base_cnt = af::sym::Max(af::sym::kSymbolOne,
+                               (((expr_tilem * expr_tilen) / (expr_basem * expr_basen)) / CreateExpr("block_dim")));
   Expr al1_cnt = (expr_k / expr_stepka);
   Expr bl1_cnt = (expr_stepka / expr_stepkb);
   Expr l0_cnt = (expr_stepkb / expr_basek);
   Expr l1_cnt = (al1_cnt * bl1_cnt);
   Expr base_fixpipe_cost = ((expr_basem * expr_basen * CreateExpr(4)) / CreateExpr(32));
-  Expr al1_mte2 = (((expr_basem * expr_stepka * CreateExpr(2)) / (CreateExpr(32) / af::sym::Max(af::sym::kSymbolOne, (CreateExpr(256) / expr_stepka)))) + CreateExpr(210));
+  Expr al1_mte2 = (((expr_basem * expr_stepka * CreateExpr(2)) /
+                    (CreateExpr(32) / af::sym::Max(af::sym::kSymbolOne, (CreateExpr(256) / expr_stepka)))) +
+                   CreateExpr(210));
   std::cout << "AL1 mte2: " << al1_mte2 << std::endl;
-  Expr bl1_mte2 = (((expr_basen * expr_stepkb * CreateExpr(2)) / (CreateExpr(32) / af::sym::Max(af::sym::kSymbolOne, (CreateExpr(256) / expr_basen)))) + CreateExpr(210));
+  Expr bl1_mte2 = (((expr_basen * expr_stepkb * CreateExpr(2)) /
+                    (CreateExpr(32) / af::sym::Max(af::sym::kSymbolOne, (CreateExpr(256) / expr_basen)))) +
+                   CreateExpr(210));
   std::cout << "BL1 mte2: " << bl1_mte2 << std::endl;
-  Expr mac = (((tile_cnt * base_cnt * l1_cnt * l0_cnt)) * (expr_basem * expr_basen * expr_k) / (CreateExpr(16) * CreateExpr(256)));
+  Expr mac = (((tile_cnt * base_cnt * l1_cnt * l0_cnt)) * (expr_basem * expr_basen * expr_k) /
+              (CreateExpr(16) * CreateExpr(256)));
   Expr mte2 = (tile_cnt * base_cnt * al1_cnt * (al1_mte2 + (bl1_cnt * bl1_mte2)));
   std::cout << "mte2: " << mte2 << std::endl;
   Expr fixpipe = (tile_cnt * base_cnt * base_fixpipe_cost);
@@ -396,8 +396,7 @@ ModelInfo GetMatmulL2TileInfo() {
   return model_info;
 }
 
-ModelInfo CreateCeilingModel()
-{
+ModelInfo CreateCeilingModel() {
   ModelInfo model_info;
   Expr expr_s1 = CreateExpr("s1_size");
   Expr expr_s2 = CreateExpr("s2_size");
@@ -409,7 +408,7 @@ ModelInfo CreateCeilingModel()
   SymVarInfoPtr sym_s2 = std::make_shared<SymVarInfo>(expr_s2);
   SymVarInfoPtr sym_s2t = std::make_shared<SymVarInfo>(expr_s2t);
   SymVarInfoPtr sym_s1s2Tb = std::make_shared<SymVarInfo>(expr_s1s2Tb);
-  
+
   AttAxisPtr s1 = std::make_shared<AttAxis>();
   s1->name = "s1";
   s1->axis_pos = AxisPosition::ORIGIN;
@@ -417,7 +416,7 @@ ModelInfo CreateCeilingModel()
   s1->is_last = false;
   s1->is_node_innerest_dim = false;
   s1->size = sym_s1;
-  
+
   AttAxisPtr s2 = std::make_shared<AttAxis>();
   s2->name = "s2";
   s2->axis_pos = AxisPosition::ORIGIN;

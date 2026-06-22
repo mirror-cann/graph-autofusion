@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -27,15 +27,15 @@ namespace transformer {
     }                                      \
   } while (0)
 
-#define INT64_ZEROCHECK(a)                 \
-  if (a == 0) {                            \
-    return false;                          \
+#define INT64_ZEROCHECK(a) \
+  if (a == 0) {            \
+    return false;          \
   }
 
-#define MUL_OVERFLOW(x, y, z)              \
-  if (ge::MulOverflow((x), (y), (z))) {    \
-    return false;                          \
-  }                                        \
+#define MUL_OVERFLOW(x, y, z)           \
+  if (ge::MulOverflow((x), (y), (z))) { \
+    return false;                       \
+  }
 
 enum AxisValueType {
   AXIS_N = 0,
@@ -79,6 +79,7 @@ class AxisUtil {
   static std::map<std::string, int32_t> GetReshapeTypeAxisMap(const ge::Format &format,
                                                               const int64_t &reshape_type_mask);
   static std::vector<std::string> GetSplitOrConcatAxisByFormat(const ge::Format &format, const std::string &axis);
+
  private:
   static bool GetAxisValueByNCHW(const gert::Shape &shape, AxisValue &axis_value);
 
@@ -100,6 +101,5 @@ class AxisUtil {
 
   static bool GetAxisValueByC1HWNCoC0(const gert::Shape &shape, AxisValue &axis_value);
 };
-} // namespace transformer
-#endif // COMMON_UTILS_TRANSFORMER_INC_AXIS_UTIL_H_
- 
+}  // namespace transformer
+#endif  // COMMON_UTILS_TRANSFORMER_INC_AXIS_UTIL_H_

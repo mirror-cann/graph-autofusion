@@ -120,7 +120,8 @@ static void GetOpsProtoSoFileList(const std::string &path, std::vector<std::stri
         }
       });
     } else {
-      GELOGW("[FindSo][Check] Get path with os&cpu type [%s] unsuccessfully, reason:%s", new_path.c_str(), strerror(errno));
+      GELOGW("[FindSo][Check] Get path with os&cpu type [%s] unsuccessfully, reason:%s", new_path.c_str(),
+             strerror(errno));
       PluginManager::GetFileListWithSuffix(v_path[i], ".so", file_list);
     }
   }
@@ -132,11 +133,12 @@ void OpsProtoManager::LoadOpsProtoPluginSo(const std::string &path) {
     GELOGE(GRAPH_FAILED, "[Check][Param] filePath is empty. please check your text file.");
     return;
   }
-  GELOGW("[LoadSo][Check] Shared library will not be checked. Please make sure that the source of shared library is "
-         "trusted.");
+  GELOGW(
+      "[LoadSo][Check] Shared library will not be checked. Please make sure that the source of shared library is "
+      "trusted.");
   OperatorFactoryImpl::SetRegisterOverridable(true);
   void *const handle = mmDlopen(path.c_str(), static_cast<int32_t>(static_cast<uint32_t>(MMPA_RTLD_NOW) |
-      static_cast<uint32_t>(MMPA_RTLD_GLOBAL)));
+                                                                   static_cast<uint32_t>(MMPA_RTLD_GLOBAL)));
   OperatorFactoryImpl::SetRegisterOverridable(false);
   if (handle == nullptr) {
     const char_t *error = mmDlerror();
@@ -165,12 +167,13 @@ void OpsProtoManager::LoadBuiltinOpsPluginSo(const std::string &path_list) {
     return;
   }
   // Warning message
-  GELOGW("[LoadSo][Check] Shared library will not be checked. Please make sure that the source of shared library is "
-         "trusted.");
+  GELOGW(
+      "[LoadSo][Check] Shared library will not be checked. Please make sure that the source of shared library is "
+      "trusted.");
 
   // Load .so file
   for (const auto &elem : file_list) {
     LoadOpsProtoPluginSo(elem);
   }
 }
-}  // namespace ge
+}  // namespace af

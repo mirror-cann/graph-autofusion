@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2026 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -36,10 +36,8 @@ void PrintResult(graph_normalTilingData &tilingData) {
     std::cout << "get_nbo_loop_num" << " = " << tilingData.graph0_result0_g0_tiling_data.get_nbo_loop_num()
               << std::endl;
   } else if (tiling_key == 1111) {
-    std::cout << "get_nbo_size" << " = " << tilingData.graph0_result1_g0_tiling_data.get_nbo_slice_size()
-              << std::endl;
-    std::cout << "get_nio_size" << " = " << tilingData.graph0_result1_g0_tiling_data.get_nio_slice_size()
-              << std::endl;
+    std::cout << "get_nbo_size" << " = " << tilingData.graph0_result1_g0_tiling_data.get_nbo_slice_size() << std::endl;
+    std::cout << "get_nio_size" << " = " << tilingData.graph0_result1_g0_tiling_data.get_nio_slice_size() << std::endl;
     std::cout << "get_block_dim" << " = " << tilingData.graph0_result1_g0_tiling_data.get_block_dim() << std::endl;
     std::cout << "get_ub_size" << " = " << tilingData.graph0_result1_g0_tiling_data.get_ub_size() << std::endl;
     std::cout << "get_A" << " = " << tilingData.graph0_result1_g0_tiling_data.get_A_slice() << std::endl;

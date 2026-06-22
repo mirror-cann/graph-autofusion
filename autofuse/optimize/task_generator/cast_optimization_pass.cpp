@@ -51,10 +51,8 @@ Expression GetColSize(const af::AscTensor &tensor, size_t concat_dim) {
   return col_size;
 }
 
-bool TryRemoveOrBypassReverseCast(const ComputeGraphPtr &cg,
-                                  const AscNode *src_node,
-                                  const OutDataAnchorPtr &src_out_anchor,
-                                  const InDataAnchorPtr &concat_in_anchor) {
+bool TryRemoveOrBypassReverseCast(const ComputeGraphPtr &cg, const AscNode *src_node,
+                                  const OutDataAnchorPtr &src_out_anchor, const InDataAnchorPtr &concat_in_anchor) {
   const auto cast_out_nodes = src_node->GetOutDataNodes();
   if (cast_out_nodes.size() <= 1UL) {
     GE_ASSERT_SUCCESS(GraphUtils::IsolateNode(src_out_anchor->GetOwnerNode(), {0}));
@@ -69,10 +67,9 @@ bool TryRemoveOrBypassReverseCast(const ComputeGraphPtr &cg,
   GELOGD("input index = %d, bypassed reverse Cast with multiple consumers", concat_in_anchor->GetIdx());
   return true;
 }
-} // namespace
+}  // namespace
 
-bool CastOptimizationPass::MayCauseDegradation(const AscNodePtr &concat_node,
-                                               int32_t src_dtype_size,
+bool CastOptimizationPass::MayCauseDegradation(const AscNodePtr &concat_node, int32_t src_dtype_size,
                                                int32_t dst_dtype_size) {
   // 如果对齐从4B下降到不足4B, 且无法使用Gather API, 则可能会引入劣化
   size_t concat_dim = 0UL;
@@ -82,18 +79,13 @@ bool CastOptimizationPass::MayCauseDegradation(const AscNodePtr &concat_node,
   bool alignment_changed = false;
   for (uint32_t i = 0U; i < concat_node->inputs.Size(); ++i) {
     const auto &col_size_expr = GetColSize(concat_node->inputs[i], concat_dim);
-    const auto src_aligned = SymbolicUtils::StaticCheckEq(
-      sym::Mod(col_size_expr * Symbol(src_dtype_size), kAlignment),
-      ops::Zero);
-    const auto target_aligned = SymbolicUtils::StaticCheckEq(
-      sym::Mod(col_size_expr * Symbol(dst_dtype_size), kAlignment),
-      ops::Zero);
+    const auto src_aligned =
+        SymbolicUtils::StaticCheckEq(sym::Mod(col_size_expr * Symbol(src_dtype_size), kAlignment), ops::Zero);
+    const auto target_aligned =
+        SymbolicUtils::StaticCheckEq(sym::Mod(col_size_expr * Symbol(dst_dtype_size), kAlignment), ops::Zero);
     if ((src_aligned != TriBool::kFalse) && (target_aligned != TriBool::kTrue)) {
-      GELOGI("concat input[%u] col_size = %s, changing dtype size from %d to %d may cause alignment degradation",
-             i,
-             col_size_expr.Str().get(),
-             src_dtype_size,
-             dst_dtype_size);
+      GELOGI("concat input[%u] col_size = %s, changing dtype size from %d to %d may cause alignment degradation", i,
+             col_size_expr.Str().get(), src_dtype_size, dst_dtype_size);
       alignment_changed = true;
       break;
     }
@@ -126,9 +118,7 @@ Status CastOptimizationPass::Run(AscGraph &graph, int32_t concat_alg) {
   return SUCCESS;
 }
 
-bool CastOptimizationPass::NeedOptimize(const AscNodePtr &node,
-                                        DataType src_dtype,
-                                        DataType dst_dtype,
+bool CastOptimizationPass::NeedOptimize(const AscNodePtr &node, DataType src_dtype, DataType dst_dtype,
                                         int32_t concat_alg) {
   const auto src_dtype_size = GetSizeByDataType(src_dtype);
   const auto dst_dtype_size = GetSizeByDataType(dst_dtype);
@@ -143,18 +133,13 @@ bool CastOptimizationPass::NeedOptimize(const AscNodePtr &node,
     return false;
   }
   GELOGD("Cast from %s(size = %d) to %s(size = %d), need optimize",
-         TypeUtils::DataTypeToSerialString(src_dtype).c_str(),
-         src_dtype_size,
-         TypeUtils::DataTypeToSerialString(dst_dtype).c_str(),
-         dst_dtype_size);
+         TypeUtils::DataTypeToSerialString(src_dtype).c_str(), src_dtype_size,
+         TypeUtils::DataTypeToSerialString(dst_dtype).c_str(), dst_dtype_size);
   return true;
 }
 
-Status CastOptimizationPass::DoOptimize(AscGraph &graph,
-                                        const AscNodePtr &node,
-                                        const AscNodePtr &out_cast_node,
-                                        DataType src_dtype,
-                                        DataType dst_dtype) {
+Status CastOptimizationPass::DoOptimize(AscGraph &graph, const AscNodePtr &node, const AscNodePtr &out_cast_node,
+                                        DataType src_dtype, DataType dst_dtype) {
   const auto &cg = AscGraphUtils::GetComputeGraph(graph);
   std::map<af::OutDataAnchor *, AscNodePtr> out_anchor_to_cast_node;
   for (const auto &concat_in_anchor : node->GetAllInDataAnchors()) {
@@ -168,8 +153,7 @@ Status CastOptimizationPass::DoOptimize(AscGraph &graph,
       }
     }
     if (src_node->outputs[0].attr.dtype == dst_dtype) {
-      GELOGD("input index = %d, source dtype already matches dst_dtype, skip adding Cast",
-             concat_in_anchor->GetIdx());
+      GELOGD("input index = %d, source dtype already matches dst_dtype, skip adding Cast", concat_in_anchor->GetIdx());
       continue;
     }
     GE_ASSERT_SUCCESS(GraphUtils::RemoveEdge(src_out_anchor, concat_in_anchor));

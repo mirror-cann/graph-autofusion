@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -35,7 +35,7 @@ class FastNodeUtils {
    * @param index 要检索的输入数据节点的索引。
    * @return 如果找到指定索引处的输入数据节点，则返回该节点的指针；否则返回 nullptr。
    */
-  static FastNode *GetInDataNodeByIndex(const FastNode * const node, const int32_t index);
+  static FastNode *GetInDataNodeByIndex(const FastNode *const node, const int32_t index);
 
   /**
    * @brief 获取给定节点是否为常量 Op 节点。
@@ -164,6 +164,6 @@ struct FastNodeCompareKey {
     return (n0->GetName() < n1->GetName());
   }
 };
-}  // namespace ge
+}  // namespace af
 
 #endif  // INC_GRAPH_UTILS_FAST_NODE_UTILS_H

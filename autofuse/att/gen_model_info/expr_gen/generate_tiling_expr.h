@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -23,12 +23,13 @@
 
 namespace att {
 class GenerateTilingExpr {
-public:
+ public:
   explicit GenerateTilingExpr(TuningSpacePtr tuning_space) : tuning_space_(std::move(tuning_space)) {}
   virtual ~GenerateTilingExpr() = default;
 
   ge::Status Generate(ModelInfo &model_info);
-private:
+
+ private:
   // 获取tensor内存占用表达式
   ge::Status GetTensorExpr(std::map<std::string, Expr> &tensor_exprs);
 
@@ -36,8 +37,7 @@ private:
   ge::Status GetWorkSpaceSize(std::map<int64_t, Expr> &workspace_size_map);
 
   // 获取内存相关的约束
-  ge::Status GetBufConstraint(std::map<HardwareDef, Expr> &hardware_cons,
-                          std::map<std::string, Expr> &container_exprs);
+  ge::Status GetBufConstraint(std::map<HardwareDef, Expr> &hardware_cons, std::map<std::string, Expr> &container_exprs);
 
   // 获取预留的ub空间大小
   ge::Status GetReservedUbSize(Expr &reserved_ub_size);
@@ -78,10 +78,10 @@ private:
   void UpdateNeedUBMCTradeoff(ModelInfo &model_info);
 
   // 辅助方法：查找A轴（Vectorized轴里从右向左数第一个非R轴、非B轴）
-  std::vector<const AttAxis*> FindAAxis(const std::vector<AttAxisPtr> &arg_list) const;
+  std::vector<const AttAxis *> FindAAxis(const std::vector<AttAxisPtr> &arg_list) const;
 
   // 辅助方法：判断是否应该跳过某个轴
-  bool ShouldSkipAxis(const SubAxis* sub_axis, const std::set<std::string>& reduce_split_axis_names) const;
+  bool ShouldSkipAxis(const SubAxis *sub_axis, const std::set<std::string> &reduce_split_axis_names) const;
 
   // 辅助方法：检查轴是否来自Reduce分核轴
   bool IsFromReduceSplit(const SubAxis *sub_axis, const std::set<std::string> &reduce_split_axis_names) const;
@@ -90,14 +90,14 @@ private:
   std::set<std::string> CollectReduceSplitAxisNames() const;
 
   // 辅助方法：收集 Store 节点的 SubAxes
-  std::vector<SubAxis*> CollectStoreSubAxes() const;
+  std::vector<SubAxis *> CollectStoreSubAxes() const;
 
   // 辅助方法：通过名称匹配添加 A 轴
-  void AddAxisByName(const SubAxis* sub_axis, const std::vector<AttAxisPtr>& arg_list,
-                     std::vector<const AttAxis*>& result) const;
+  void AddAxisByName(const SubAxis *sub_axis, const std::vector<AttAxisPtr> &arg_list,
+                     std::vector<const AttAxis *> &result) const;
 
   // 辅助方法：计算惩罚的core_num_ratio
-  Expr CalcPenaltyCoreNumRatio(const AttAxis *split_axis, const std::vector<const AttAxis*> &a_axes) const;
+  Expr CalcPenaltyCoreNumRatio(const AttAxis *split_axis, const std::vector<const AttAxis *> &a_axes) const;
 
   // 辅助方法：将表达式转换为 upper_bound 形式
   Expr ApplyUpperBoundTransform(const Expr &size_expr) const;
@@ -111,11 +111,11 @@ private:
   void ApplyPenaltyConfigToModelInfo(ModelInfo &model_info);
 
   // 辅助方法：应用符号转换（通用函数）
-  using SymbolTransformFunc = std::function<std::string(const std::string&)>;
+  using SymbolTransformFunc = std::function<std::string(const std::string &)>;
   Expr ApplySymbolTransform(const Expr &size_expr, const SymbolTransformFunc &transform_func) const;
 
   TuningSpacePtr tuning_space_;
 };
-} // namespace att
+}  // namespace att
 
-#endif // EXPR_GEN_GENERATE_TILING_EXPR_H_
+#endif  // EXPR_GEN_GENERATE_TILING_EXPR_H_

@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -67,7 +67,7 @@ bool IsAllStaticAligned(AscNodeInputs &node_inputs, uint32_t concat_dim, int32_t
 
     if (SymbolicUtils::StaticCheckEq(sym::Mod(axis, Symbol(align_size)), sym::kSymbolZero) != TriBool::kTrue) {
       GELOGD("The product of dims after concat_dim is %s, not aligned.",
-              SymbolicUtils::ToString(sym::Mod(axis, Symbol(align_size))).c_str());
+             SymbolicUtils::ToString(sym::Mod(axis, Symbol(align_size))).c_str());
       return false;
     }
   }
@@ -95,17 +95,21 @@ Expression CalcForDefaultKernel(AscNodeInputs &node_inputs, uint32_t concat_dim,
   Expression min_tmp_buf_size = Symbol(0);
   bool is_aligned = IsAllStaticAligned(node_inputs, concat_dim, ALIGNSIZE32 / type_size);
   if (type_size == TYPESIZEEQ8) {
-    min_tmp_buf_size = is_aligned ? Symbol(0) : (sym::Align(Symbol(FOUR) * max_axis_size, ALIGNSIZE8) +
-                                                              Symbol(ALIGNPAD_8)) * Symbol(TMPSIZEOF8_4);
+    min_tmp_buf_size =
+        is_aligned ? Symbol(0)
+                   : (sym::Align(Symbol(FOUR) * max_axis_size, ALIGNSIZE8) + Symbol(ALIGNPAD_8)) * Symbol(TMPSIZEOF8_4);
   } else if (type_size == TYPESIZEEQ4) {
-    min_tmp_buf_size = is_aligned ? Symbol(0) : (sym::Align(Symbol(TWO) * max_axis_size, ALIGNSIZE8) +
-                                                              Symbol(ALIGNPAD_4)) * Symbol(TMPSIZEOF8_4);
+    min_tmp_buf_size =
+        is_aligned ? Symbol(0)
+                   : (sym::Align(Symbol(TWO) * max_axis_size, ALIGNSIZE8) + Symbol(ALIGNPAD_4)) * Symbol(TMPSIZEOF8_4);
   } else if (type_size == TYPESIZEEQ2) {
-    min_tmp_buf_size = is_aligned ? Symbol(0) : (sym::Align(Symbol(TWO) * max_axis_size, ALIGNSIZE16) +
-                                                              Symbol(ALIGNPAD_2)) * Symbol(TMPSIZEOF2);
+    min_tmp_buf_size =
+        is_aligned ? Symbol(0)
+                   : (sym::Align(Symbol(TWO) * max_axis_size, ALIGNSIZE16) + Symbol(ALIGNPAD_2)) * Symbol(TMPSIZEOF2);
   } else if (type_size == TYPESIZEEQ1) {
-    min_tmp_buf_size = is_aligned ? Symbol(0) : (sym::Align(Symbol(TWO) * max_axis_size, ALIGNSIZE32) +
-                                                              Symbol(ALIGNPAD_1)) * Symbol(TMPSIZEOF1);
+    min_tmp_buf_size =
+        is_aligned ? Symbol(0)
+                   : (sym::Align(Symbol(TWO) * max_axis_size, ALIGNSIZE32) + Symbol(ALIGNPAD_1)) * Symbol(TMPSIZEOF1);
   }
   return min_tmp_buf_size;
 }
@@ -122,7 +126,8 @@ std::vector<std::unique_ptr<TmpBufDesc>> CalcConcatTmpSize(const AscNode &node) 
   bool flag = false;  // 是否尾轴合并
   uint32_t concat_dim = 0;
   for (uint32_t i = 0; i < node_outputs[0].attr.repeats.size(); ++i) {
-    if (SymbolicUtils::StaticCheckEq(node_outputs[0].attr.repeats[i], node_inputs[0].attr.repeats[i]) != TriBool::kTrue) {
+    if (SymbolicUtils::StaticCheckEq(node_outputs[0].attr.repeats[i], node_inputs[0].attr.repeats[i]) !=
+        TriBool::kTrue) {
       concat_dim = i;
       if (i != node_outputs[0].attr.repeats.size() - 1) {
         flag = true;
@@ -130,9 +135,9 @@ std::vector<std::unique_ptr<TmpBufDesc>> CalcConcatTmpSize(const AscNode &node) 
     }
   }
   bool concat_small_tail = false;
-  (void) af::AttrUtils::GetBool(node.GetOpDesc(), "_concat_small_tail", concat_small_tail);
-  const auto tmp_buf_size = concat_small_tail ? CalcForSmallTailKernel(node_outputs, concat_dim) :
-                            CalcForDefaultKernel(node_inputs, concat_dim, flag);
+  (void)af::AttrUtils::GetBool(node.GetOpDesc(), "_concat_small_tail", concat_small_tail);
+  const auto tmp_buf_size = concat_small_tail ? CalcForSmallTailKernel(node_outputs, concat_dim)
+                                              : CalcForDefaultKernel(node_inputs, concat_dim, flag);
   if (SymbolicUtils::StaticCheckEq(tmp_buf_size, sym::kSymbolZero) == TriBool::kTrue) {
     GELOGI("%s does not require tmp buf", node.GetNamePtr());
     return {};
@@ -163,9 +168,8 @@ std::vector<std::unique_ptr<TmpBufDesc>> CalcConcatTmpSizeV2(const AscNode &node
     }
   }
   auto type_size = GetSizeByDataType(node_inputs[0].attr.dtype);
-  GE_ASSERT_TRUE(type_size > 0,
-                 "%s Invalid node inputs dtype: %d",
-                 node.GetNamePtr(), static_cast<int32_t>(node_inputs[0].attr.dtype));
+  GE_ASSERT_TRUE(type_size > 0, "%s Invalid node inputs dtype: %d", node.GetNamePtr(),
+                 static_cast<int32_t>(node_inputs[0].attr.dtype));
   Expression min_tmp_buf_size = Symbol(0);
   bool is_aligned = IsAllStaticAligned(node_inputs, concat_dim, ALIGNSIZE32 / type_size);
   if (is_aligned) {

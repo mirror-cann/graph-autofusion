@@ -1,11 +1,11 @@
 /**
-* Copyright (c) 2026 Huawei Technologies Co., Ltd.
-* This program is free software, you can redistribute it and/or modify it under the terms and conditions of
-* CANN Open Software License Agreement Version 2.0 (the "License").
-* Please refer to the License for details. You may not use this file except in compliance with the License.
-* THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
-* INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
-* See LICENSE in the root of the software repository for the full text of the License.
+ * Copyright (c) 2026 Huawei Technologies Co., Ltd.
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
+ * CANN Open Software License Agreement Version 2.0 (the "License").
+ * Please refer to the License for details. You may not use this file except in compliance with the License.
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+ * See LICENSE in the root of the software repository for the full text of the License.
  */
 
 #include "axes_reorder_solver_code_common.h"
@@ -37,7 +37,9 @@ std::string GenStructDef() {
   codes += "struct Variable;\n";
   codes += "struct TilingVariable;\n";
   codes += "struct Constraint;\n";
-  codes += "using ConsEvalFuncPtr = int64_t (*)(TilingVariable **rel_tiling_vars, Variable **rel_input_shapes, int64_t rel_hw_spec);\n";
+  codes +=
+      "using ConsEvalFuncPtr = int64_t (*)(TilingVariable **rel_tiling_vars, Variable **rel_input_shapes, int64_t "
+      "rel_hw_spec);\n";
   codes += "using GetUpperBoundFuncPtr = int64_t (*)(Variable **rel_ori_dims);\n";
   codes += "\n";
   return codes;
@@ -150,7 +152,7 @@ std::string GenAxesReorderSolverInput() {
   codes += "  uint32_t all_cons_size = 0u;\n";
   codes += "  double ub_threshold = 0.2f;\n";
   codes += "  double corenum_threshold = 0.4f;\n";
-  codes += "  double perf_threshold = 0000.0f;\n"; // 经验值，理论上不使用
+  codes += "  double perf_threshold = 0000.0f;\n";  // 经验值，理论上不使用
   codes += "  Variable **input_vars = nullptr;\n";
   codes += "  TilingVariable **tiling_vars = nullptr;\n";
   codes += "  TilingVariable **pure_mc_vars = nullptr;\n";
@@ -162,4 +164,4 @@ std::string GenAxesReorderSolverInput() {
   return codes;
 }
 
-} // namespace att
+}  // namespace att

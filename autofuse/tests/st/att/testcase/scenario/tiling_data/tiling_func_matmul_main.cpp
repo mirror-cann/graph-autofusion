@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2026 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -28,19 +28,19 @@ bool TestCase(std::vector<int64_t> shapes) {
   tilingData.set_m_size(m);
   tilingData.set_k_size(k);
   tilingData.set_n_size(n);
-  std::cout << "m"<< " = " << m << std::endl;
-  std::cout << "k"<< " = " << k << std::endl;
-  std::cout << "n"<< " = " << n << std::endl;
-    
+  std::cout << "m" << " = " << m << std::endl;
+  std::cout << "k" << " = " << k << std::endl;
+  std::cout << "n" << " = " << n << std::endl;
+
   const auto status = GetTiling(tilingData, 1u, nullptr);
   if ((status)) {
-    std::cout << "tile_l2_m"<< " = " << tilingData.get_tilem_size() << std::endl;
-    std::cout << "tile_l2_n"<< " = " << tilingData.get_tilen_size() << std::endl;
-    std::cout << "step_ka"<< " = " << tilingData.get_stepka_size() << std::endl;
-    std::cout << "step_kb"<< " = " << tilingData.get_stepkb_size() << std::endl;
-    std::cout << "base_k"<< " = " << tilingData.get_basek_size() << std::endl;
-    std::cout << "base_m"<< " = " << tilingData.get_basem_size() << std::endl;
-    std::cout << "base_n"<< " = " << tilingData.get_basen_size() << std::endl;
+    std::cout << "tile_l2_m" << " = " << tilingData.get_tilem_size() << std::endl;
+    std::cout << "tile_l2_n" << " = " << tilingData.get_tilen_size() << std::endl;
+    std::cout << "step_ka" << " = " << tilingData.get_stepka_size() << std::endl;
+    std::cout << "step_kb" << " = " << tilingData.get_stepkb_size() << std::endl;
+    std::cout << "base_k" << " = " << tilingData.get_basek_size() << std::endl;
+    std::cout << "base_m" << " = " << tilingData.get_basem_size() << std::endl;
+    std::cout << "base_n" << " = " << tilingData.get_basen_size() << std::endl;
     return true;
   }
   std::cout << "mm tiling func execute failed." << std::endl;

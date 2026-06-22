@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -333,13 +333,13 @@ Status VfCall::ParseInputOutputInfo(const TPipe &tpipe) const {
 }
 
 void GenerateStridesEqualCheck(const std::vector<Tensor> &inputs, const std::vector<Tensor> &outputs,
-                                     const VectorizedAxisLoopMergeStatus &merge_info, std::stringstream &ss) {
+                               const VectorizedAxisLoopMergeStatus &merge_info, std::stringstream &ss) {
   std::vector<std::string> all_stride_names;
   for (size_t j = 0; j < merge_info.inputs_strides.size(); j++) {
     size_t stride_size = merge_info.inputs_strides[j].size();
     size_t start_idx = stride_size <= kVFMaxLoop ? 0 : stride_size - kVFMaxLoop;
     for (; start_idx < stride_size; start_idx++) {
-      if (merge_info.inputs_strides[j][start_idx].Simplify() == af::ops::One || 
+      if (merge_info.inputs_strides[j][start_idx].Simplify() == af::ops::One ||
           merge_info.inputs_strides[j][start_idx].Simplify() == af::ops::Zero) {
         continue;
       }
@@ -353,7 +353,7 @@ void GenerateStridesEqualCheck(const std::vector<Tensor> &inputs, const std::vec
     size_t stride_size = merge_info.outputs_strides[j].size();
     size_t start_idx = stride_size <= kVFMaxLoop ? 0 : stride_size - kVFMaxLoop;
     for (; start_idx < stride_size; start_idx++) {
-      if (merge_info.outputs_strides[j][start_idx].Simplify() == af::ops::One || 
+      if (merge_info.outputs_strides[j][start_idx].Simplify() == af::ops::One ||
           merge_info.outputs_strides[j][start_idx].Simplify() == af::ops::Zero) {
         continue;
       }
@@ -399,7 +399,8 @@ void OptimizeMergeParamsAndLoopSize(const std::vector<std::string> &loop_size_ve
   ss << "  if (strides_equal) {\n";
   ss << "    " << loop_size_0 << " = 1;\n";
   ss << "    element_count = static_cast<uint32_t>(strides_align * output_dims_0);\n";
-  ss << "    " << loop_size_1 << " = static_cast<uint16_t>((element_count + ELEMENT_PER_VECTOR_LENGTH - 1) / ELEMENT_PER_VECTOR_LENGTH);\n";
+  ss << "    " << loop_size_1
+     << " = static_cast<uint16_t>((element_count + ELEMENT_PER_VECTOR_LENGTH - 1) / ELEMENT_PER_VECTOR_LENGTH);\n";
   ss << "  }\n";
   return;
 }
@@ -415,7 +416,7 @@ void GenerateVectorFuncParams(const std::string &max_dtype_size, int32_t stride_
     ss << "  uint32_t element_count = static_cast<uint32_t>(" << "output_dims_" << stride_depth << ");\n";
   }
   ss << "  uint16_t loop_times = static_cast<uint16_t>((element_count + ELEMENT_PER_VECTOR_LENGTH - 1) / "
-            "ELEMENT_PER_VECTOR_LENGTH);\n";
+        "ELEMENT_PER_VECTOR_LENGTH);\n";
   return;
 }
 
@@ -457,7 +458,8 @@ Status VfCall::GenerateFuncDefinition(const TPipe &tpipe, const Tiler &tiler, st
   //   constexpr static uint32_t SIZE_OF_DTYPE = sizeof(half);
   //   constexpr static uint32_t ELEMENT_PER_VECTOR_LENGTH = VECTOR_LENGTH / SIZE_OF_DTYPE;
   //   uint32_t element_count = static_cast<uint32_t>(output_dims_0);
-  //   uint16_t loop_times = static_cast<uint16_t>((element_count + ELEMENT_PER_VECTOR_LENGTH - 1) / ELEMENT_PER_VECTOR_LENGTH);
+  //   uint16_t loop_times = static_cast<uint16_t>((element_count + ELEMENT_PER_VECTOR_LENGTH - 1) /
+  //   ELEMENT_PER_VECTOR_LENGTH);
   GenerateVectorFuncParams(max_dtype_size_, stride_depth, merge_info.merge_axis_ids, params);
 
   std::string dtype_name;
@@ -487,7 +489,10 @@ Status VfCall::GenerateFuncDefinition(const TPipe &tpipe, const Tiler &tiler, st
   std::vector<std::string> loop_size_vec;
   root_loop_.Generate(tpipe, tensor_mgr_, stride_depth, loop_body, loop_size, only_loop_max_depth, loop_size_vec);
   params << std::endl << loop_size << std::endl;
-  if (stride_depth == MAX_VF_AXIS_MERGE_SIZE - 1 && only_loop_max_depth == MAX_VF_AXIS_MERGE_SIZE - 1) { // 假如stride_depth为1即两层循环，那实际上loop里递归了三次，分别是0、1、2，在2里单独处理call
+  if (stride_depth == MAX_VF_AXIS_MERGE_SIZE - 1 &&
+      only_loop_max_depth ==
+          MAX_VF_AXIS_MERGE_SIZE -
+              1) {  // 假如stride_depth为1即两层循环，那实际上loop里递归了三次，分别是0、1、2，在2里单独处理call
     GenerateStridesEqualCheck(this->ub_inputs_, this->ub_outputs_, merge_info, params);
     OptimizeMergeParamsAndLoopSize(loop_size_vec, params);
   }
@@ -500,7 +505,8 @@ Status VfCall::GenerateFuncDefinition(const TPipe &tpipe, const Tiler &tiler, st
 
 Status VfCall::Generate(const TPipe &tpipe, [[maybe_unused]] const std::vector<ascir::AxisId> &current_axis,
                         [[maybe_unused]] const std::vector<std::reference_wrapper<const Tensor>> &inputs,
-                        [[maybe_unused]] const std::vector<std::reference_wrapper<const Tensor>> &outputs, std::string &result) const {
+                        [[maybe_unused]] const std::vector<std::reference_wrapper<const Tensor>> &outputs,
+                        std::string &result) const {
   // 合轴信息只会在子图内部体现，不会在原图上体现
   // 对于broadcast inline场景, 需要再合轴后对ApiParams中的repeats和strides做排序
   VectorizedAxisLoopMergeStatus merge_info;

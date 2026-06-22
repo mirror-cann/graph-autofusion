@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -90,7 +90,7 @@ std::string CalGatherOuterAxisOffset(const std::vector<ascir::AxisId> &current_a
 void CollectParamOuterAndInnerAxes(const std::vector<ascir::AxisId> &param_axis, ascir::AxisId gather_axis_id,
                                    std::vector<ascir::AxisId> &param_outer_axes,
                                    std::vector<ascir::AxisId> &param_inner_axes) {
-  const size_t gather_axis_id_t = static_cast<size_t>(gather_axis_id);                          
+  const size_t gather_axis_id_t = static_cast<size_t>(gather_axis_id);
   for (size_t i = 0; i < param_axis.size(); i++) {
     if (i < gather_axis_id_t) {
       param_outer_axes.emplace_back(param_axis[i]);
@@ -105,7 +105,7 @@ void CollectParamOuterAndInnerAxes(const std::vector<ascir::AxisId> &param_axis,
 std::string CalGatherParamOffset(const std::vector<ascir::AxisId> &param_axis, std::string indices_value,
                                  ascir::AxisId gather_axis_id, const Axis &inner_vectorized_axis, const TPipe &tpipe) {
   stringstream ss;
-  const size_t gather_axis_id_t = static_cast<size_t>(gather_axis_id);  
+  const size_t gather_axis_id_t = static_cast<size_t>(gather_axis_id);
   for (size_t i = 0; i < param_axis.size(); i++) {
     if (i == gather_axis_id_t) {
       ss << indices_value << " * ";
@@ -136,14 +136,14 @@ std::string CalGatherIndicesAxesSize(const std::vector<ascir::AxisId> &indices_a
   return ss.str();
 }
 
-std::string CalGatherOuterSize(const std::vector<ascir::AxisId> &param_axis, ascir::AxisId gather_axis_id, const TPipe &tpipe) {
+std::string CalGatherOuterSize(const std::vector<ascir::AxisId> &param_axis, ascir::AxisId gather_axis_id,
+                               const TPipe &tpipe) {
   stringstream ss;
-  const size_t gather_axis_id_t = static_cast<size_t>(gather_axis_id);  
+  const size_t gather_axis_id_t = static_cast<size_t>(gather_axis_id);
   for (size_t i = 0; i < param_axis.size(); i++) {
     if (i < gather_axis_id_t) {
       ss << tpipe.tiler.GetAxis(param_axis[i]).axis_size << " * ";
-    }
-    else {
+    } else {
       break;
     }
   }
@@ -151,9 +151,10 @@ std::string CalGatherOuterSize(const std::vector<ascir::AxisId> &param_axis, asc
   return ss.str();
 }
 
-std::string CalGatherInnerSize(const std::vector<ascir::AxisId> &param_axis, ascir::AxisId gather_axis_id, const TPipe &tpipe) {
+std::string CalGatherInnerSize(const std::vector<ascir::AxisId> &param_axis, ascir::AxisId gather_axis_id,
+                               const TPipe &tpipe) {
   stringstream ss;
-  const size_t gather_axis_id_t = static_cast<size_t>(gather_axis_id); 
+  const size_t gather_axis_id_t = static_cast<size_t>(gather_axis_id);
   for (size_t i = 0; i < param_axis.size(); i++) {
     if (i > gather_axis_id_t) {
       ss << tpipe.tiler.GetAxis(param_axis[i]).axis_size << " * ";
@@ -173,4 +174,4 @@ std::string CalGatherSize(const std::vector<ascir::AxisId> &param_axis, const TP
   return ss.str();
 }
 
-}
+}  // namespace gather_base

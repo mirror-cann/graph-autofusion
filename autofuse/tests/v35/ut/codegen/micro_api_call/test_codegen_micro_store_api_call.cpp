@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -256,10 +256,10 @@ TEST(CodegenKernel, LoadMicroApiCall_Store_Cast_in16_out8) {
   std::string result;
   cp.max_dtype_size = "int16_t";
   call_0.Generate(tensor_mng, tpipe, cp, result);
-  EXPECT_EQ(result, std::string{
-    "AscendC::MicroAPI::StoreAlign<int8_t, AscendC::MicroAPI::StoreDist::DIST_PACK_B16>(local_3 + offset, "
-    "vreg_0, p_reg);\n"
-  });
+  EXPECT_EQ(result,
+            std::string{
+                "AscendC::MicroAPI::StoreAlign<int8_t, AscendC::MicroAPI::StoreDist::DIST_PACK_B16>(local_3 + offset, "
+                "vreg_0, p_reg);\n"});
 }
 
 TEST(CodegenKernel, LoadMicroApiCall_Store_Cast_in32_out16) {
@@ -394,10 +394,10 @@ TEST(CodegenKernel, LoadMicroApiCall_Store_Cast_in32_out16) {
   std::string result;
   cp.max_dtype_size = "int32_t";
   call_0.Generate(tensor_mng, tpipe, cp, result);
-  EXPECT_EQ(result, std::string{
-    "AscendC::MicroAPI::StoreAlign<int16_t, AscendC::MicroAPI::StoreDist::DIST_PACK_B32>(local_3 + offset, "
-    "vreg_0, p_reg);\n"
-  });
+  EXPECT_EQ(result,
+            std::string{
+                "AscendC::MicroAPI::StoreAlign<int16_t, AscendC::MicroAPI::StoreDist::DIST_PACK_B32>(local_3 + offset, "
+                "vreg_0, p_reg);\n"});
 }
 
 TEST(CodegenKernel, LoadMicroApiCall_Store_Cast_in64_out32) {
@@ -532,10 +532,10 @@ TEST(CodegenKernel, LoadMicroApiCall_Store_Cast_in64_out32) {
   std::string result;
   cp.max_dtype_size = "int64_t";
   call_0.Generate(tensor_mng, tpipe, cp, result);
-  EXPECT_EQ(result, std::string{
-    "AscendC::MicroAPI::StoreAlign<int32_t, AscendC::MicroAPI::StoreDist::DIST_PACK_B64>(local_3 + offset, "
-    "vreg_0, p_reg);\n"
-  });
+  EXPECT_EQ(result,
+            std::string{
+                "AscendC::MicroAPI::StoreAlign<int32_t, AscendC::MicroAPI::StoreDist::DIST_PACK_B64>(local_3 + offset, "
+                "vreg_0, p_reg);\n"});
 }
 
 TEST(CodegenKernel, LoadMicroApiCall_Store_Cast_in32_out8) {
@@ -670,10 +670,10 @@ TEST(CodegenKernel, LoadMicroApiCall_Store_Cast_in32_out8) {
   std::string result;
   cp.max_dtype_size = "int32_t";
   call_0.Generate(tensor_mng, tpipe, cp, result);
-  EXPECT_EQ(result, std::string{
-    "AscendC::MicroAPI::StoreAlign<int8_t, AscendC::MicroAPI::StoreDist::DIST_PACK4_B32>(local_3 + offset, "
-    "vreg_0, p_reg);\n"
-  });
+  EXPECT_EQ(result,
+            std::string{
+                "AscendC::MicroAPI::StoreAlign<int8_t, AscendC::MicroAPI::StoreDist::DIST_PACK4_B32>(local_3 + offset, "
+                "vreg_0, p_reg);\n"});
 }
 
 TEST(CodegenKernel, LoadMicroApiCall_Store_Cast_in64_out16) {
@@ -808,15 +808,15 @@ TEST(CodegenKernel, LoadMicroApiCall_Store_Cast_in64_out16) {
   std::string result;
   cp.max_dtype_size = "int64_t";
   call_0.Generate(tensor_mng, tpipe, cp, result);
-  EXPECT_EQ(result, std::string{
-    "AscendC::MicroAPI::MaskReg p_reg_vreg_0_mask_temp;\n"
-    "AscendC::Reg::RegTensor<int16_t> vreg_0_pack_tmp;\n"
-    "AscendC::Reg::Pack<uint32_t, uint64_t>((AscendC::Reg::RegTensor<uint32_t>&)vreg_0_pack_tmp, "
-    "(AscendC::Reg::RegTensor<uint64_t>&)vreg_0);\n"
-    "AscendC::Reg::MaskPack(p_reg_vreg_0_mask_temp, p_reg);\n"
-    "AscendC::MicroAPI::StoreAlign<int16_t, AscendC::MicroAPI::StoreDist::DIST_PACK_B32>(local_3 + offset, "
-    "vreg_0_pack_tmp, p_reg_vreg_0_mask_temp);\n"
-  });
+  EXPECT_EQ(result,
+            std::string{
+                "AscendC::MicroAPI::MaskReg p_reg_vreg_0_mask_temp;\n"
+                "AscendC::Reg::RegTensor<int16_t> vreg_0_pack_tmp;\n"
+                "AscendC::Reg::Pack<uint32_t, uint64_t>((AscendC::Reg::RegTensor<uint32_t>&)vreg_0_pack_tmp, "
+                "(AscendC::Reg::RegTensor<uint64_t>&)vreg_0);\n"
+                "AscendC::Reg::MaskPack(p_reg_vreg_0_mask_temp, p_reg);\n"
+                "AscendC::MicroAPI::StoreAlign<int16_t, AscendC::MicroAPI::StoreDist::DIST_PACK_B32>(local_3 + offset, "
+                "vreg_0_pack_tmp, p_reg_vreg_0_mask_temp);\n"});
 }
 
 TEST(CodegenKernel, LoadMicroApiCall_Store_Cast_in64_out8) {
@@ -951,15 +951,15 @@ TEST(CodegenKernel, LoadMicroApiCall_Store_Cast_in64_out8) {
   std::string result;
   cp.max_dtype_size = "int64_t";
   call_0.Generate(tensor_mng, tpipe, cp, result);
-  EXPECT_EQ(result, std::string{
-    "AscendC::MicroAPI::MaskReg p_reg_vreg_0_mask_temp;\n"
-    "AscendC::Reg::RegTensor<int8_t> vreg_0_pack_tmp;\n"
-    "AscendC::Reg::Pack<uint32_t, uint64_t>((AscendC::Reg::RegTensor<uint32_t>&)vreg_0_pack_tmp, "
-    "(AscendC::Reg::RegTensor<uint64_t>&)vreg_0);\n"
-    "AscendC::Reg::MaskPack(p_reg_vreg_0_mask_temp, p_reg);\n"
-    "AscendC::MicroAPI::StoreAlign<int8_t, AscendC::MicroAPI::StoreDist::DIST_PACK4_B32>(local_3 + offset, "
-    "vreg_0_pack_tmp, p_reg_vreg_0_mask_temp);\n"
-  });
+  EXPECT_EQ(result,
+            std::string{
+                "AscendC::MicroAPI::MaskReg p_reg_vreg_0_mask_temp;\n"
+                "AscendC::Reg::RegTensor<int8_t> vreg_0_pack_tmp;\n"
+                "AscendC::Reg::Pack<uint32_t, uint64_t>((AscendC::Reg::RegTensor<uint32_t>&)vreg_0_pack_tmp, "
+                "(AscendC::Reg::RegTensor<uint64_t>&)vreg_0);\n"
+                "AscendC::Reg::MaskPack(p_reg_vreg_0_mask_temp, p_reg);\n"
+                "AscendC::MicroAPI::StoreAlign<int8_t, AscendC::MicroAPI::StoreDist::DIST_PACK4_B32>(local_3 + offset, "
+                "vreg_0_pack_tmp, p_reg_vreg_0_mask_temp);\n"});
 }
 
 TEST(CodegenKernel, LoadMicroApiCall_Store_Out_Int8) {
@@ -1064,10 +1064,9 @@ TEST(CodegenKernel, LoadMicroApiCall_Store_Out_Int8) {
 
   std::string result;
   call_0.Generate(tensor_mng, tpipe, cp, result);
-  EXPECT_EQ(result, std::string{
-    "AscendC::MicroAPI::StoreAlign<int8_t, AscendC::MicroAPI::StoreDist::DIST_FIRST_ELEMENT_B8>(local_2 + offset, vreg_1,"
-    " p_reg);\n"
-  });
+  EXPECT_EQ(result, std::string{"AscendC::MicroAPI::StoreAlign<int8_t, "
+                                "AscendC::MicroAPI::StoreDist::DIST_FIRST_ELEMENT_B8>(local_2 + offset, vreg_1,"
+                                " p_reg);\n"});
 }
 
 TEST(CodegenKernel, LoadMicroApiCall_Store_Out_Half) {
@@ -1172,10 +1171,9 @@ TEST(CodegenKernel, LoadMicroApiCall_Store_Out_Half) {
 
   std::string result;
   call_0.Generate(tensor_mng, tpipe, cp, result);
-  EXPECT_EQ(result, std::string{
-    "AscendC::MicroAPI::StoreAlign<half, AscendC::MicroAPI::StoreDist::DIST_FIRST_ELEMENT_B16>(local_2 + offset, vreg_1,"
-    " p_reg);\n"
-  });
+  EXPECT_EQ(result, std::string{"AscendC::MicroAPI::StoreAlign<half, "
+                                "AscendC::MicroAPI::StoreDist::DIST_FIRST_ELEMENT_B16>(local_2 + offset, vreg_1,"
+                                " p_reg);\n"});
 }
 
 TEST(CodegenKernel, LoadMicroApiCall_Store_Out_Float) {
@@ -1280,10 +1278,9 @@ TEST(CodegenKernel, LoadMicroApiCall_Store_Out_Float) {
 
   std::string result;
   call_0.Generate(tensor_mng, tpipe, cp, result);
-  EXPECT_EQ(result, std::string{
-    "AscendC::MicroAPI::StoreAlign<float, AscendC::MicroAPI::StoreDist::DIST_FIRST_ELEMENT_B32>(local_2 + offset, vreg_1,"
-    " p_reg);\n"
-  });
+  EXPECT_EQ(result, std::string{"AscendC::MicroAPI::StoreAlign<float, "
+                                "AscendC::MicroAPI::StoreDist::DIST_FIRST_ELEMENT_B32>(local_2 + offset, vreg_1,"
+                                " p_reg);\n"});
 }
 
 // ============================================================================

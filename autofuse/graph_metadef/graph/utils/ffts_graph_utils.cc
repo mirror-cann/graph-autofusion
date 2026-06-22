@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -21,7 +21,7 @@
 namespace {
 static uint32_t g_fftsPlusSubgraphNum = 0U;
 const uint32_t kMaxiumRecursionDepth = 10U;
-}
+}  // namespace
 
 namespace af {
 graphStatus FftsGraphUtils::GraphPartition(ComputeGraph &graph, const std::set<NodePtr> &unsupported_nodes) {
@@ -49,13 +49,13 @@ graphStatus FftsGraphUtils::GraphPartition(ComputeGraph &graph, const std::set<N
   for (const auto &subgraph : graphs_need_split) {
     if (IsGraphNeedSplit(subgraph, nodes_need_clip)) {
       std::vector<std::pair<bool, std::set<NodePtr>>> split_nodes;
-      GE_CHK_STATUS_RET(SplitNodesWithCheck(subgraph, nodes_need_clip, split_nodes),
-                        "[Split][Nodes] failed, graph:%s", subgraph->GetName().c_str());
-      GE_CHK_STATUS_RET(SplitSubgraph(subgraph, split_nodes),
-                        "[Split][Subgraph] %s failed", subgraph->GetName().c_str());
+      GE_CHK_STATUS_RET(SplitNodesWithCheck(subgraph, nodes_need_clip, split_nodes), "[Split][Nodes] failed, graph:%s",
+                        subgraph->GetName().c_str());
+      GE_CHK_STATUS_RET(SplitSubgraph(subgraph, split_nodes), "[Split][Subgraph] %s failed",
+                        subgraph->GetName().c_str());
     } else {
-      GE_CHK_STATUS_RET(BuildFftsPlusSubgraphWithAllNodes(subgraph),
-                        "[Build][FftsPlusSubgraph] failed, graph:%s", subgraph->GetName().c_str());
+      GE_CHK_STATUS_RET(BuildFftsPlusSubgraphWithAllNodes(subgraph), "[Build][FftsPlusSubgraph] failed, graph:%s",
+                        subgraph->GetName().c_str());
     }
   }
 
@@ -147,8 +147,7 @@ graphStatus FftsGraphUtils::SplitNodesWithCheck(const ComputeGraphPtr &graph,
 
 void FftsGraphUtils::SplitNodes(const std::set<NodePtr> &calc_nodes,
                                 const std::function<bool(const NodePtr &)> &is_cur_stage,
-                                std::set<NodePtr> &visited_nodes,
-                                std::set<NodePtr> &cur_nodes,
+                                std::set<NodePtr> &visited_nodes, std::set<NodePtr> &cur_nodes,
                                 std::set<NodePtr> &next_nodes) {
   visited_nodes.insert(cur_nodes.cbegin(), cur_nodes.cend());
   std::queue<NodePtr> nodes;
@@ -167,10 +166,9 @@ void FftsGraphUtils::SplitNodes(const std::set<NodePtr> &calc_nodes,
     (void)visited_nodes.insert(node);
     for (const auto &out_node : node->GetOutAllNodes()) {
       const auto &in_nodes = out_node->GetInAllNodes();
-      const bool all_in_node_seen = !std::any_of(in_nodes.begin(), in_nodes.end(),
-                                                 [visited_nodes](const NodePtr &node_ptr) {
-        return visited_nodes.count(node_ptr) == 0U;
-      });
+      const bool all_in_node_seen =
+          !std::any_of(in_nodes.begin(), in_nodes.end(),
+                       [visited_nodes](const NodePtr &node_ptr) { return visited_nodes.count(node_ptr) == 0U; });
       if (!all_in_node_seen) {
         continue;
       }
@@ -224,7 +222,7 @@ graphStatus FftsGraphUtils::BuildFftsPlusSubgraphWithAllNodes(const ComputeGraph
 
 void FftsGraphUtils::CollectCalcNodeInSubgraph(const ComputeGraphPtr &subgraph, std::set<NodePtr> &calc_nodes) {
   std::set<NodePtr> edge_nodes;
-  const std::set<std::string> ctrl_goto_types = { LABELSET, LABELGOTOEX, LABELSWITCHBYINDEX };
+  const std::set<std::string> ctrl_goto_types = {LABELSET, LABELGOTOEX, LABELSWITCHBYINDEX};
   // collect end nodes
   CollectEndNodeInSubgraph(subgraph, ctrl_goto_types, edge_nodes);
   // collect start nodes
@@ -261,7 +259,7 @@ void FftsGraphUtils::CollectEndNodeInSubgraph(const ComputeGraphPtr &subgraph,
     return;
   }
   std::set<NodePtr> out_nodes;
-  for (const auto &in_node :  net_output_node->GetInAllNodes()) {
+  for (const auto &in_node : net_output_node->GetInAllNodes()) {
     for (const auto &out_node : in_node->GetOutAllNodes()) {
       (void)out_nodes.insert(out_node);
     }
@@ -321,12 +319,10 @@ graphStatus FftsGraphUtils::SetAttrForFftsPlusSubgraph(const ComputeGraphPtr &su
   return GRAPH_SUCCESS;
 }
 
-graphStatus FftsGraphUtils::GraphPartition(ComputeGraph &graph,
-                                           const CalcFunc &calc_func,
+graphStatus FftsGraphUtils::GraphPartition(ComputeGraph &graph, const CalcFunc &calc_func,
                                            const std::vector<uint32_t> &upper_limit) {
   if ((calc_func == nullptr) || upper_limit.empty()) {
-    GELOGI("Graph:%s, calculate function or upper_limit is empty, skip graph partition",
-           graph.GetName().c_str());
+    GELOGI("Graph:%s, calculate function or upper_limit is empty, skip graph partition", graph.GetName().c_str());
     return SUCCESS;
   }
 
@@ -364,8 +360,7 @@ graphStatus FftsGraphUtils::GraphPartition(ComputeGraph &graph,
       return false;
     }
     // op_desc of node should not be null
-    if ((parent->GetType() != PARTITIONEDCALL) ||
-        (parent->GetOpDesc()->GetSubgraphInstanceNames().size() != 1U)) {
+    if ((parent->GetType() != PARTITIONEDCALL) || (parent->GetOpDesc()->GetSubgraphInstanceNames().size() != 1U)) {
       return false;
     }
     return !parent->GetOpDesc()->HasAttr(ATTR_NAME_FFTS_PLUS_SUB_GRAPH);
@@ -376,15 +371,14 @@ graphStatus FftsGraphUtils::GraphPartition(ComputeGraph &graph,
   return GRAPH_SUCCESS;
 }
 
-graphStatus FftsGraphUtils::Calculate(const ComputeGraphPtr &graph,
-                                      const CalcFunc &calc_func,
+graphStatus FftsGraphUtils::Calculate(const ComputeGraphPtr &graph, const CalcFunc &calc_func,
                                       std::map<NodePtr, std::vector<uint32_t>> &node_value,
                                       std::map<ComputeGraphPtr, std::vector<uint32_t>> &graph_value,
                                       const uint32_t recursive_depth) {
   if (recursive_depth >= kMaxiumRecursionDepth) {
     REPORT_INNER_ERR_MSG("E18888", "param depth:%u >= %u(allow max subgraphs)", recursive_depth, kMaxiumRecursionDepth);
-    GELOGE(GRAPH_FAILED, "[Check][Param]exist too much subgraphs:%u > %u(allow max subgraphs)",
-           recursive_depth, kMaxiumRecursionDepth);
+    GELOGE(GRAPH_FAILED, "[Check][Param]exist too much subgraphs:%u > %u(allow max subgraphs)", recursive_depth,
+           kMaxiumRecursionDepth);
     return GRAPH_FAILED;
   }
   GE_CHECK_NOTNULL(graph);
@@ -410,13 +404,14 @@ graphStatus FftsGraphUtils::Calculate(const ComputeGraphPtr &graph,
                            "value size of node %s is %zu",
                            graph->GetName().c_str(), cur_graph_value.size(), node->GetName().c_str(),
                            cur_node_value.size());
-      GELOGE(GRAPH_FAILED, "[Check][Param] Value size not match, value size of graph %s is %zu, "
-                           "value size of node %s is %zu", graph->GetName().c_str(), cur_graph_value.size(),
-             node->GetName().c_str(), cur_node_value.size());
+      GELOGE(GRAPH_FAILED,
+             "[Check][Param] Value size not match, value size of graph %s is %zu, "
+             "value size of node %s is %zu",
+             graph->GetName().c_str(), cur_graph_value.size(), node->GetName().c_str(), cur_node_value.size());
       return GRAPH_FAILED;
     } else {
-      (void) std::transform(cur_graph_value.begin(), cur_graph_value.end(), cur_node_value.begin(),
-                            cur_graph_value.begin(), std::plus<uint32_t>());
+      (void)std::transform(cur_graph_value.begin(), cur_graph_value.end(), cur_node_value.begin(),
+                           cur_graph_value.begin(), std::plus<uint32_t>());
     }
   }
   graph_value[graph] = cur_graph_value;
@@ -439,8 +434,8 @@ std::vector<uint32_t> FftsGraphUtils::Calculate(const NodePtr &node, const CalcF
       if (Calculate(subgraph, calc_func, node_value, graph_value, recursive_depth + 1U) != GRAPH_SUCCESS) {
         REPORT_INNER_ERR_MSG("E18888", "Calculate value failed, graph %s, parent_node:%s", subgraph->GetName().c_str(),
                              node->GetName().c_str());
-        GELOGE(GRAPH_FAILED, "[Calculate][Value] failed, graph %s, parent_node:%s",
-               subgraph->GetName().c_str(), node->GetName().c_str());
+        GELOGE(GRAPH_FAILED, "[Calculate][Value] failed, graph %s, parent_node:%s", subgraph->GetName().c_str(),
+               node->GetName().c_str());
         return {};
       }
     }
@@ -458,13 +453,14 @@ std::vector<uint32_t> FftsGraphUtils::Calculate(const NodePtr &node, const CalcF
                            "is %zu",
                            node->GetName().c_str(), cur_node_value.size(), subgraph->GetName().c_str(),
                            subgraph_value.size());
-      GELOGE(GRAPH_FAILED, "[Check][Param] Value size not match, value size of node %s is %zu, "
-                           "value size of subgraph %s is %zu", node->GetName().c_str(), cur_node_value.size(),
-             subgraph->GetName().c_str(), subgraph_value.size());
+      GELOGE(GRAPH_FAILED,
+             "[Check][Param] Value size not match, value size of node %s is %zu, "
+             "value size of subgraph %s is %zu",
+             node->GetName().c_str(), cur_node_value.size(), subgraph->GetName().c_str(), subgraph_value.size());
       return {};
     } else {
-      (void) std::transform(cur_node_value.begin(), cur_node_value.end(),
-                            subgraph_value.begin(), cur_node_value.begin(), std::plus<uint32_t>());
+      (void)std::transform(cur_node_value.begin(), cur_node_value.end(), subgraph_value.begin(), cur_node_value.begin(),
+                           std::plus<uint32_t>());
     }
   }
 
@@ -525,8 +521,8 @@ graphStatus FftsGraphUtils::PartitionGraphWithLimit(const ComputeGraphPtr &graph
                                                     const uint32_t recursive_depth) {
   if (recursive_depth >= kMaxiumRecursionDepth) {
     REPORT_INNER_ERR_MSG("E18888", "param depth:%u >= %u(allow max subgraphs)", recursive_depth, kMaxiumRecursionDepth);
-    GELOGE(GRAPH_FAILED, "[Check][Param]exist too much subgraphs:%u > %u(allow max subgraphs)",
-           recursive_depth, kMaxiumRecursionDepth);
+    GELOGE(GRAPH_FAILED, "[Check][Param]exist too much subgraphs:%u > %u(allow max subgraphs)", recursive_depth,
+           kMaxiumRecursionDepth);
     return GRAPH_FAILED;
   }
   GE_CHECK_NOTNULL(graph);
@@ -580,8 +576,7 @@ graphStatus FftsGraphUtils::PartitionGraphWithLimit(const ComputeGraphPtr &graph
 graphStatus FftsGraphUtils::SplitFuncNode(const std::vector<NodePtr> exceed_single_node,
                                           std::map<NodePtr, std::vector<uint32_t>> &node_value,
                                           std::map<ComputeGraphPtr, std::vector<uint32_t>> &graph_value,
-                                          const std::vector<uint32_t> &upper_limit,
-                                          const uint32_t recursive_depth) {
+                                          const std::vector<uint32_t> &upper_limit, const uint32_t recursive_depth) {
   for (const auto &node : exceed_single_node) {
     // op_desc of node should not be null
     (void)node->GetOpDesc()->DelAttr(ATTR_NAME_THREAD_SCOPE_ID);
@@ -600,4 +595,4 @@ graphStatus FftsGraphUtils::SplitFuncNode(const std::vector<NodePtr> exceed_sing
   }
   return GRAPH_SUCCESS;
 }
-}  // namespace ge
+}  // namespace af

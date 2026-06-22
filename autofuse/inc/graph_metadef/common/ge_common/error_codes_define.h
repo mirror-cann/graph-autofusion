@@ -1,5 +1,5 @@
 /**
-* Copyright (c) 2025 Huawei Technologies Co., Ltd.
+ * Copyright (c) 2025 Huawei Technologies Co., Ltd.
  * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
@@ -17,55 +17,43 @@
 #include <string>
 #include "ge_common/ge_api_error_codes.h"
 
-#define GE_ERRORNO_COMMON(name, value, desc)                                  \
-  GE_ERRORNO(af::InnLogRuntime::RT_HOST, af::InnErrorCodeType::ERROR_CODE,    \
-             af::InnErrorLevel::COMMON_LEVEL, af::InnSystemIdType::SYSID_GE,  \
-             af::InnSubModuleId::COMMON_MODULE, name, (value), (desc))
-#define GE_ERRORNO_CLIENT(name, value, desc)                                  \
-  GE_ERRORNO(af::InnLogRuntime::RT_HOST, af::InnErrorCodeType::ERROR_CODE,    \
-             af::InnErrorLevel::COMMON_LEVEL, af::InnSystemIdType::SYSID_GE,  \
-             af::InnSubModuleId::CLIENT_MODULE, name, (value), (desc))
-#define GE_ERRORNO_INIT(name, value, desc)                                    \
-  GE_ERRORNO(af::InnLogRuntime::RT_HOST, af::InnErrorCodeType::ERROR_CODE,    \
-             af::InnErrorLevel::COMMON_LEVEL, af::InnSystemIdType::SYSID_GE,  \
-             af::InnSubModuleId::INIT_MODULE, name, (value), (desc))
-#define GE_ERRORNO_SESSION(name, value, desc)                                 \
-  GE_ERRORNO(af::InnLogRuntime::RT_HOST, af::InnErrorCodeType::ERROR_CODE,    \
-             af::InnErrorLevel::COMMON_LEVEL, af::InnSystemIdType::SYSID_GE,  \
-             af::InnSubModuleId::SESSION_MODULE, name, (value), (desc))
-#define GE_ERRORNO_GRAPH(name, value, desc)                                   \
-  GE_ERRORNO(af::InnLogRuntime::RT_HOST, af::InnErrorCodeType::ERROR_CODE,    \
-             af::InnErrorLevel::COMMON_LEVEL, af::InnSystemIdType::SYSID_GE,  \
-             af::InnSubModuleId::GRAPH_MODULE, name, (value), (desc))
-#define GE_ERRORNO_ENGINE(name, value, desc)                                  \
-  GE_ERRORNO(af::InnLogRuntime::RT_HOST, af::InnErrorCodeType::ERROR_CODE,    \
-             af::InnErrorLevel::COMMON_LEVEL, af::InnSystemIdType::SYSID_GE,  \
-             af::InnSubModuleId::ENGINE_MODULE, name, (value), (desc))
-#define GE_ERRORNO_OPS(name, value, desc)                                     \
-  GE_ERRORNO(af::InnLogRuntime::RT_HOST, af::InnErrorCodeType::ERROR_CODE,    \
-             af::InnErrorLevel::COMMON_LEVEL, af::InnSystemIdType::SYSID_GE,  \
-             af::InnSubModuleId::OPS_MODULE, name, (value), (desc))
-#define GE_ERRORNO_PLUGIN(name, value, desc)                                  \
-  GE_ERRORNO(af::InnLogRuntime::RT_HOST, af::InnErrorCodeType::ERROR_CODE,    \
-             af::InnErrorLevel::COMMON_LEVEL, af::InnSystemIdType::SYSID_GE,  \
-             af::InnSubModuleId::PLUGIN_MODULE, name, (value), (desc))
-#define GE_ERRORNO_RUNTIME(name, value, desc)                                 \
-  GE_ERRORNO(af::InnLogRuntime::RT_HOST, af::InnErrorCodeType::ERROR_CODE,    \
-             af::InnErrorLevel::COMMON_LEVEL, af::InnSystemIdType::SYSID_GE,  \
-             af::InnSubModuleId::RUNTIME_MODULE, name, (value), (desc))
-#define GE_ERRORNO_EXECUTOR(name, value, desc)                                \
-  GE_ERRORNO(af::InnLogRuntime::RT_DEVICE, af::InnErrorCodeType::ERROR_CODE,  \
-             af::InnErrorLevel::COMMON_LEVEL, af::InnSystemIdType::SYSID_GE,  \
-             af::InnSubModuleId::EXECUTOR_MODULE, name, (value), (desc))
-#define GE_ERRORNO_GENERATOR(name, value, desc)                               \
-  GE_ERRORNO(af::InnLogRuntime::RT_HOST, af::InnErrorCodeType::ERROR_CODE,    \
-             af::InnErrorLevel::COMMON_LEVEL, af::InnSystemIdType::SYSID_GE,  \
-             af::InnSubModuleId::GENERATOR_MODULE, name, (value), (desc))
+#define GE_ERRORNO_COMMON(name, value, desc)                                                                \
+  GE_ERRORNO(af::InnLogRuntime::RT_HOST, af::InnErrorCodeType::ERROR_CODE, af::InnErrorLevel::COMMON_LEVEL, \
+             af::InnSystemIdType::SYSID_GE, af::InnSubModuleId::COMMON_MODULE, name, (value), (desc))
+#define GE_ERRORNO_CLIENT(name, value, desc)                                                                \
+  GE_ERRORNO(af::InnLogRuntime::RT_HOST, af::InnErrorCodeType::ERROR_CODE, af::InnErrorLevel::COMMON_LEVEL, \
+             af::InnSystemIdType::SYSID_GE, af::InnSubModuleId::CLIENT_MODULE, name, (value), (desc))
+#define GE_ERRORNO_INIT(name, value, desc)                                                                  \
+  GE_ERRORNO(af::InnLogRuntime::RT_HOST, af::InnErrorCodeType::ERROR_CODE, af::InnErrorLevel::COMMON_LEVEL, \
+             af::InnSystemIdType::SYSID_GE, af::InnSubModuleId::INIT_MODULE, name, (value), (desc))
+#define GE_ERRORNO_SESSION(name, value, desc)                                                               \
+  GE_ERRORNO(af::InnLogRuntime::RT_HOST, af::InnErrorCodeType::ERROR_CODE, af::InnErrorLevel::COMMON_LEVEL, \
+             af::InnSystemIdType::SYSID_GE, af::InnSubModuleId::SESSION_MODULE, name, (value), (desc))
+#define GE_ERRORNO_GRAPH(name, value, desc)                                                                 \
+  GE_ERRORNO(af::InnLogRuntime::RT_HOST, af::InnErrorCodeType::ERROR_CODE, af::InnErrorLevel::COMMON_LEVEL, \
+             af::InnSystemIdType::SYSID_GE, af::InnSubModuleId::GRAPH_MODULE, name, (value), (desc))
+#define GE_ERRORNO_ENGINE(name, value, desc)                                                                \
+  GE_ERRORNO(af::InnLogRuntime::RT_HOST, af::InnErrorCodeType::ERROR_CODE, af::InnErrorLevel::COMMON_LEVEL, \
+             af::InnSystemIdType::SYSID_GE, af::InnSubModuleId::ENGINE_MODULE, name, (value), (desc))
+#define GE_ERRORNO_OPS(name, value, desc)                                                                   \
+  GE_ERRORNO(af::InnLogRuntime::RT_HOST, af::InnErrorCodeType::ERROR_CODE, af::InnErrorLevel::COMMON_LEVEL, \
+             af::InnSystemIdType::SYSID_GE, af::InnSubModuleId::OPS_MODULE, name, (value), (desc))
+#define GE_ERRORNO_PLUGIN(name, value, desc)                                                                \
+  GE_ERRORNO(af::InnLogRuntime::RT_HOST, af::InnErrorCodeType::ERROR_CODE, af::InnErrorLevel::COMMON_LEVEL, \
+             af::InnSystemIdType::SYSID_GE, af::InnSubModuleId::PLUGIN_MODULE, name, (value), (desc))
+#define GE_ERRORNO_RUNTIME(name, value, desc)                                                               \
+  GE_ERRORNO(af::InnLogRuntime::RT_HOST, af::InnErrorCodeType::ERROR_CODE, af::InnErrorLevel::COMMON_LEVEL, \
+             af::InnSystemIdType::SYSID_GE, af::InnSubModuleId::RUNTIME_MODULE, name, (value), (desc))
+#define GE_ERRORNO_EXECUTOR(name, value, desc)                                                                \
+  GE_ERRORNO(af::InnLogRuntime::RT_DEVICE, af::InnErrorCodeType::ERROR_CODE, af::InnErrorLevel::COMMON_LEVEL, \
+             af::InnSystemIdType::SYSID_GE, af::InnSubModuleId::EXECUTOR_MODULE, name, (value), (desc))
+#define GE_ERRORNO_GENERATOR(name, value, desc)                                                             \
+  GE_ERRORNO(af::InnLogRuntime::RT_HOST, af::InnErrorCodeType::ERROR_CODE, af::InnErrorLevel::COMMON_LEVEL, \
+             af::InnSystemIdType::SYSID_GE, af::InnSubModuleId::GENERATOR_MODULE, name, (value), (desc))
 
-#define LLM_ERRORNO_COMMON(name, value, desc)                                 \
-  GE_ERRORNO(af::InnLogRuntime::RT_HOST, af::InnErrorCodeType::ERROR_CODE,    \
-             af::InnErrorLevel::COMMON_LEVEL, af::InnSystemIdType::SYSID_GE,  \
-             af::InnSubModuleId::LLM_ENGINE_MODULE, name, (value), (desc))
+#define LLM_ERRORNO_COMMON(name, value, desc)                                                               \
+  GE_ERRORNO(af::InnLogRuntime::RT_HOST, af::InnErrorCodeType::ERROR_CODE, af::InnErrorLevel::COMMON_LEVEL, \
+             af::InnSystemIdType::SYSID_GE, af::InnSubModuleId::LLM_ENGINE_MODULE, name, (value), (desc))
 
 #define GE_GET_ERRORNO_STR(value) af::StatusFactory::Instance()->GetErrDesc(value)
 

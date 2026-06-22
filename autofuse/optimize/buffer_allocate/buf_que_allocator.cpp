@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -263,7 +263,8 @@ Status BufQueAllocator::SetOutputTensorAttr(const af::AscGraph &impl_graph) cons
   for (const auto &node : impl_graph.GetAllNodes()) {
     GE_ASSERT_NOTNULL(node);
     // 前面在IO分配时已经分配过了
-    static std::set<std::string> allocated_types = {Data::Type, ScalarData::Type, Workspace::Type, Store::Type, Output::Type};
+    static std::set<std::string> allocated_types = {Data::Type, ScalarData::Type, Workspace::Type, Store::Type,
+                                                    Output::Type};
     if (allocated_types.count(node->GetType()) > 0UL) {
       continue;
     }
@@ -476,7 +477,8 @@ Status BufQueAllocator::InitTensorInfo(af::AscGraph &graph, TensorInfoMap &tenso
         GE_ASSERT_NOTNULL(out_asc_node);
         tensor_info.loop_axes.emplace(out_asc_node->attr.sched.loop_axis);
       }
-      InitTensorReuseInfoAndLifeTime(node, output, tensor_info, !is_reduce_after || is_reduce_mem_reuse, is_cube_none_db);
+      InitTensorReuseInfoAndLifeTime(node, output, tensor_info, !is_reduce_after || is_reduce_mem_reuse,
+                                     is_cube_none_db);
       GE_ASSERT_SUCCESS(InitTensorMemInfo(graph, output, tensor_info), "Failed to init tensor info for graph [%s].",
                         graph.GetName().c_str());
       GELOGD("[MemReuse] Init node [%s]'s output tensor[%d] [%s].", node->GetNamePtr(), output->anchor.GetIdx(),
@@ -809,8 +811,8 @@ Status BufQueAllocator::ProcessSingleImplGraph(af::AscGraph &impl_graph, BasePla
   GE_ASSERT_SUCCESS(platform.PartitionSubFunctions(impl_graph), "Failed to partition vf func for graph %s.",
                     impl_graph.GetName().c_str());
   if (cube_type == ascir::CubeTemplateType::kUBFuse) {
-    GE_ASSERT_SUCCESS(TopoSortByCubeLoadPriority(impl_graph),
-                      "Failed to topo sort by cube load priority for graph %s.", impl_graph.GetName().c_str());
+    GE_ASSERT_SUCCESS(TopoSortByCubeLoadPriority(impl_graph), "Failed to topo sort by cube load priority for graph %s.",
+                      impl_graph.GetName().c_str());
   }
   return AllocBufQueForSingleImplGraph(impl_graph, max_que_num, is_reduce_mem_reuse);
 }

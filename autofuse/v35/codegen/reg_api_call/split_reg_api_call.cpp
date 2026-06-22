@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -51,8 +51,7 @@ Status SplitRegApiCall::ParseSplitDim(const Tensor &x, const Tensor &y0, size_t 
   return ge::SUCCESS;
 }
 
-Status SplitFindNonZeroStride(const std::vector<ascir::SizeExpr> &vectorized_strides,
-                              int32_t index,
+Status SplitFindNonZeroStride(const std::vector<ascir::SizeExpr> &vectorized_strides, int32_t index,
                               af::Expression &stride) {
   for (int32_t i = index; i >= 0; --i) {
     stride = vectorized_strides[i];
@@ -60,14 +59,13 @@ Status SplitFindNonZeroStride(const std::vector<ascir::SizeExpr> &vectorized_str
       break;
     }
   }
-  GE_ASSERT_TRUE(stride != af::ops::Zero,
-                 "Failed to find non-zero v_stride before index = %d, v_strides = %s",
-                 index, af::ToString(vectorized_strides).c_str());
+  GE_ASSERT_TRUE(stride != af::ops::Zero, "Failed to find non-zero v_stride before index = %d, v_strides = %s", index,
+                 af::ToString(vectorized_strides).c_str());
   return ge::SUCCESS;
 }
 
 Status SplitRegApiCall::InitializeTiling(size_t split_dim, const vector<std::reference_wrapper<const Tensor>> &outputs,
-                                       const Tensor &x, SplitRegApiCall::SplitTiling &tiling) {
+                                         const Tensor &x, SplitRegApiCall::SplitTiling &tiling) {
   auto data_type_size = ge::GetSizeByDataType(x.dtype);
   GE_ASSERT_TRUE(data_type_size > 0);
   tiling.data_type_size = static_cast<uint32_t>(data_type_size);
@@ -95,10 +93,10 @@ Status SplitRegApiCall::InitializeTiling(size_t split_dim, const vector<std::ref
       tiling.dst_col_size_exprs[output_index] = tiling.dst_col_size_exprs[output_index] * axis_size_expr;
     }
     auto split_dim_stride_dst = y.vectorized_strides[split_dim];
-    GE_ASSERT_SUCCESS(SplitFindNonZeroStride(y.vectorized_strides,
-                                        static_cast<int32_t>(split_dim),
-                                        split_dim_stride_dst));
-    tiling.dst_col_actual_size_exprs[output_index] = y.axis_size[y.vectorized_axis_pos[split_dim]] * split_dim_stride_dst;
+    GE_ASSERT_SUCCESS(
+        SplitFindNonZeroStride(y.vectorized_strides, static_cast<int32_t>(split_dim), split_dim_stride_dst));
+    tiling.dst_col_actual_size_exprs[output_index] =
+        y.axis_size[y.vectorized_axis_pos[split_dim]] * split_dim_stride_dst;
   }
   return ge::SUCCESS;
 }
@@ -108,7 +106,8 @@ bool SplitRegApiCall::IsAllAligned(SplitRegApiCall::SplitTiling &tiling) {
   auto offset = af::ops::Zero;
   for (size_t index = 0U; index < tiling.dst_col_actual_size_exprs.size(); ++index) {
     auto size = af::Symbol(tiling.data_type_size) * tiling.dst_col_actual_size_exprs[index];
-    if (af::SymbolicUtils::StaticCheckEq(af::sym::Mod(size, af::Symbol(kDataBlockSize)), af::ops::Zero) != af::TriBool::kTrue) {
+    if (af::SymbolicUtils::StaticCheckEq(af::sym::Mod(size, af::Symbol(kDataBlockSize)), af::ops::Zero) !=
+        af::TriBool::kTrue) {
       GELOGI("input[%zu] size = %s, is not aligned", index,
              af::SymbolicUtils::ToString(tiling.dst_col_actual_size_exprs[index]).c_str());
       return false;
@@ -126,7 +125,7 @@ bool SplitRegApiCall::IsAllAligned(SplitRegApiCall::SplitTiling &tiling) {
 }
 
 void SplitRegApiCall::GenSplitTilingForAllAligned(SplitRegApiCall::SplitTiling &tiling, const Tiler &tiler,
-                                                 std::stringstream &ss) {
+                                                  std::stringstream &ss) {
   const auto qualifier = tiling.all_static ? "constexpr " : "const ";
   ss << qualifier;
   ss << "SplitTilingAllAligned<" << tiling.dst_col_size_exprs.size() << "> split_tiling {" << std::endl;
@@ -145,7 +144,7 @@ void SplitRegApiCall::GenSplitTilingForAllAligned(SplitRegApiCall::SplitTiling &
 }
 
 void SplitRegApiCall::GenSrcTensors(const std::vector<std::reference_wrapper<const Tensor>> &outputs,
-                                  const std::string &dtype_name, std::stringstream &ss) {
+                                    const std::string &dtype_name, std::stringstream &ss) {
   ss << "LocalTensor<" << dtype_name << "> split_dst_tensors[] { ";
   for (auto &output : outputs) {
     const auto &x = output.get();
@@ -155,27 +154,24 @@ void SplitRegApiCall::GenSrcTensors(const std::vector<std::reference_wrapper<con
 }
 
 ge::Status SplitRegApiCall::GenerateForAllAligned(const vector<std::reference_wrapper<const Tensor>> &outputs,
-                                                const Tensor &x,
-                                                SplitRegApiCall::SplitTiling &tiling,
-                                                const Tiler &tiler,
-                                                std::stringstream &ss) {
+                                                  const Tensor &x, SplitRegApiCall::SplitTiling &tiling,
+                                                  const Tiler &tiler, std::stringstream &ss) {
   std::string dtype_name;
   GE_CHK_STATUS_RET(Tensor::DtypeName(x.dtype, dtype_name), "Codegen get data type:%d failed",
                     static_cast<int32_t>(x.dtype));
   GenSplitTilingForAllAligned(tiling, tiler, ss);
   GenSrcTensors(outputs, dtype_name, ss);
-  ss << "SplitAllAligned<" << dtype_name << ", " << outputs.size() << ">("
-     << tiler.ActualSize(tiling.total_rows_expr) << ", " << "split_tiling"
+  ss << "SplitAllAligned<" << dtype_name << ", " << outputs.size() << ">(" << tiler.ActualSize(tiling.total_rows_expr)
+     << ", " << "split_tiling"
      << ", " << x << ", " << "split_dst_tensors"
      << ");" << std::endl;
   return ge::SUCCESS;
 }
 
 Status SplitRegApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
-                                  const vector<std::reference_wrapper<const Tensor>> &inputs,
-                                  const vector<std::reference_wrapper<const Tensor>> &outputs,
-                                  string &result) const{
-  (void) current_axis;
+                                 const vector<std::reference_wrapper<const Tensor>> &inputs,
+                                 const vector<std::reference_wrapper<const Tensor>> &outputs, string &result) const {
+  (void)current_axis;
   GE_CHK_BOOL_RET_STATUS((!inputs.empty()) && (!outputs.empty()), ge::FAILED,
                          "Codegen input or output tensor is empty");
   const auto &x = inputs[0].get();
@@ -206,13 +202,10 @@ Status SplitRegApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::Ax
 }
 
 ge::Status SplitRegApiCall::GenerateDefault(const vector<std::reference_wrapper<const Tensor>> &outputs,
-                                             const Tensor &x,
-                                             SplitRegApiCall::SplitTiling &tiling,
-                                             const TPipe &t_pipe,
-                                             std::stringstream &ss,
-                                             const int64_t tmp_buf_id) {
+                                            const Tensor &x, SplitRegApiCall::SplitTiling &tiling, const TPipe &t_pipe,
+                                            std::stringstream &ss, const int64_t tmp_buf_id) {
   std::string dtype_name;
-  (void) Tensor::DtypeName(x.dtype, dtype_name);
+  (void)Tensor::DtypeName(x.dtype, dtype_name);
   if (tiling.data_type_size == sizeof(uint64_t)) {
     auto kB64ToB32 = af::Symbol(sizeof(uint64_t) / sizeof(uint32_t));
     SplitTiling tiling_b32;
@@ -242,9 +235,8 @@ ge::Status SplitRegApiCall::GenerateDefault(const vector<std::reference_wrapper<
   GenDstAddrs(outputs, dtype_name, ss);
   ss << "split::SplitExtend<" << dtype_name << ", " << outputs.size() << ">("
      << "(" << dtype_name << " *)" << x << ".GetPhyAddr()"
-     << ", " << "split_dst_addrs, "
-     << t_pipe.tmp_buf << "_" << std::to_string(tmp_buf_id)
-     << ", split_tiling);" << std::endl;
+     << ", " << "split_dst_addrs, " << t_pipe.tmp_buf << "_" << std::to_string(tmp_buf_id) << ", split_tiling);"
+     << std::endl;
   return ge::SUCCESS;
 }
 
@@ -258,9 +250,8 @@ bool SplitRegApiCall::NeedB8ToB16(SplitRegApiCall::SplitTiling &tiling) {
                      });
 }
 
-void SplitRegApiCall::DefineSplitTiling(SplitRegApiCall::SplitTiling &tiling,
-                                          const Tiler &tiler,
-                                          std::stringstream &ss) {
+void SplitRegApiCall::DefineSplitTiling(SplitRegApiCall::SplitTiling &tiling, const Tiler &tiler,
+                                        std::stringstream &ss) {
   ss << "const split::SplitTiling<" << tiling.dst_col_size_exprs.size() << "> split_tiling {" << std::endl;
   ss << "  .num_rows = static_cast<uint32_t>(" << tiler.ActualSize(tiling.total_rows_expr) << "), " << std::endl;
   ss << "  .num_src_cols = " << tiler.Size(tiling.src_col_size_expr, true) << ", " << std::endl;
@@ -272,9 +263,8 @@ void SplitRegApiCall::DefineSplitTiling(SplitRegApiCall::SplitTiling &tiling,
   ss << "};" << std::endl;
 }
 
-void SplitRegApiCall::GenDstAddrs(const vector<std::reference_wrapper<const Tensor>> &outputs,
-                                   const string &dtype_name,
-                                   std::stringstream &ss) {
+void SplitRegApiCall::GenDstAddrs(const vector<std::reference_wrapper<const Tensor>> &outputs, const string &dtype_name,
+                                  std::stringstream &ss) {
   ss << dtype_name << " *split_dst_addrs[] { ";
   for (auto &output : outputs) {
     const auto &x = output.get();

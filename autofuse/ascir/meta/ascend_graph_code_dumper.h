@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -67,7 +67,8 @@ class PythonCodeDumper {
 #else
       : name_generator_(name_generator ? name_generator : af::ComGraphMakeShared<NameGenerator>()),
 #endif
-        types_to_ascir_(af::ascir::AscirRegistry::GetInstance().GetAll()) {}
+        types_to_ascir_(af::ascir::AscirRegistry::GetInstance().GetAll()) {
+  }
   std::string node_name_of_python_;
 
  private:
@@ -93,7 +94,8 @@ class PythonCodeDumperFused {
 #else
       : name_generator_(af::ComGraphMakeShared<NameGenerator>()),
 #endif
-        code_dumper_asc_graph_(PythonCodeDumper(name_generator_)) {}
+        code_dumper_asc_graph_(PythonCodeDumper(name_generator_)) {
+  }
 
  private:
   std::string node_name_of_python_;
@@ -101,5 +103,4 @@ class PythonCodeDumperFused {
   PythonCodeDumper code_dumper_asc_graph_;
 };
 }  // namespace af::ascir
-#endif // AUTOFUSE_ASCEND_GRAPH_CODE_DUMPER_H
-
+#endif  // AUTOFUSE_ASCEND_GRAPH_CODE_DUMPER_H

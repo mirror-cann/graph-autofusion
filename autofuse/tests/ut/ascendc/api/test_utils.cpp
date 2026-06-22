@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -18,13 +18,12 @@ using namespace AscendC;
 #include <cstdint>
 #include <climits>
 
-class TestUtilsApi: public testing::Test {};
+class TestUtilsApi : public testing::Test {};
 TEST(TestUtilsApi, TestCeilRational) {
-    ASSERT_EQ(Ceiling(1.1f), 2);
-    ASSERT_EQ((32 * Ceiling(Rational(1, 32) * 31)), 32);
-    ASSERT_EQ((32 * Ceiling(Rational(1, 32) * 60)), 64);
+  ASSERT_EQ(Ceiling(1.1f), 2);
+  ASSERT_EQ((32 * Ceiling(Rational(1, 32) * 31)), 32);
+  ASSERT_EQ((32 * Ceiling(Rational(1, 32) * 60)), 64);
 }
-
 
 TEST(TestUtilsApi, Floor_ShouldReturnInt64_WhenNumIsFloat) {
   ASSERT_EQ(Floor(2.3f), 2);
@@ -49,17 +48,17 @@ TEST(TestUtilsApi, Floor_ShouldReturnInt_WhenNumIsUnsignedInt) {
 }
 
 TEST(TestUtilsApi, TestFindNearestPower2) {
-    uint64_t n1 = KernelUtils::FindNearestPower2(0);
-    ASSERT_EQ(n1, 0);
-    uint64_t n2 = KernelUtils::FindNearestPower2(1);
-    ASSERT_EQ(n2, 1);
-    uint64_t n3 = KernelUtils::FindNearestPower2(3);
-    ASSERT_EQ(n3, 2);
+  uint64_t n1 = KernelUtils::FindNearestPower2(0);
+  ASSERT_EQ(n1, 0);
+  uint64_t n2 = KernelUtils::FindNearestPower2(1);
+  ASSERT_EQ(n2, 1);
+  uint64_t n3 = KernelUtils::FindNearestPower2(3);
+  ASSERT_EQ(n3, 2);
 }
 
 TEST(TestUtilsApi, TestCalLog2) {
-    uint64_t n = KernelUtils::CalLog2(8);
-    ASSERT_EQ(n, 3);
+  uint64_t n = KernelUtils::CalLog2(8);
+  ASSERT_EQ(n, 3);
 }
 
 TEST(TestUtilsApi, Mod_ShouldReturnInt_WhenNumIsInt) {
@@ -92,14 +91,14 @@ TEST(TestUtilsApi, Mod_MixType) {
 }
 
 TEST(TestUtilsApi, AfInfinityTest) {
-  union  ScalarBitcodeFloat {
-  __aicore__ ScalarBitcodeFloat() {}
+  union ScalarBitcodeFloat {
+    __aicore__ ScalarBitcodeFloat() {}
     float input;
     uint32_t output;
   } data_float;
 
-  union  ScalarBitcodeHalf {
-  __aicore__ ScalarBitcodeHalf() {}
+  union ScalarBitcodeHalf {
+    __aicore__ ScalarBitcodeHalf() {}
     half input;
     uint16_t output;
   } data_half;

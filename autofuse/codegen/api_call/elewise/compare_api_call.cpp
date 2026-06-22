@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -27,13 +27,12 @@ using namespace af::ascir_op;
 using namespace ascgen_utils;
 
 static void CreateComputeNodeOuterForIfRequired(size_t outer_repeats_size, ApiLoopParams param,
-                                         const std::stringstream &ss1, std::stringstream &ss)
-{
+                                                const std::stringstream &ss1, std::stringstream &ss) {
   if (outer_repeats_size == 1UL) {
     ss << ss1.str();
   } else {
-    CreateComputeNodeOuterFor({param.outer_repeats.begin(), param.outer_repeats.begin() + outer_repeats_size - 1},
-                               ss1, ss, 0);
+    CreateComputeNodeOuterFor({param.outer_repeats.begin(), param.outer_repeats.begin() + outer_repeats_size - 1}, ss1,
+                              ss, 0);
   }
   return;
 }
@@ -58,9 +57,7 @@ Status CompareApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::Axi
   GE_ASSERT_TRUE(it != this->tmp_buf_id.end(), "CompareApiCall cannot find tmp buffer id to use.");
   id = it->second;
 
-  (void)RegisterBasicDumpParam(this->api_name_, inputs, outputs,
-                               {},
-                               tpipe.tmp_buf.name + "_" + std::to_string(id));
+  (void)RegisterBasicDumpParam(this->api_name_, inputs, outputs, {}, tpipe.tmp_buf.name + "_" + std::to_string(id));
 
   // 如果第2个输入是ub_scalar场景, 初始化x2为ub_scalar对应的变量
   std::string dtype_name;
@@ -83,7 +80,8 @@ Status CompareApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::Axi
     if (outer_repeats_size == 0U) {
       ss << "CompareScalarExtend" << "(" << y << "[" << tpipe.tiler.TensorVectorizedOffset(current_axis, y) << "], "
          << x1 << "[" << tpipe.tiler.TensorVectorizedOffset(current_axis, x1) << "], " << x2_scalar << ", "
-         << "CMPMODE::" << this->api_name_ << ", " << x1.actual_size << ", " << tpipe.tmp_buf << "_" << std::to_string(id) << ");" << std::endl;
+         << "CMPMODE::" << this->api_name_ << ", " << x1.actual_size << ", " << tpipe.tmp_buf << "_"
+         << std::to_string(id) << ");" << std::endl;
     } else {
       std::stringstream ss1;
       size_t input0_strides_size = param.inputs_strides[0].size();
@@ -98,11 +96,11 @@ Status CompareApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::Axi
 
       std::string dtype_size = "4";
       ss1 << "CompareExtend<" << dtype_name << ", CMPMODE::" << this->api_name_ << ">(" << y << "["
-          << output_inner_offset << "], " << x1 << "[" << input0_inner_offset << "], " <<
-          scalar_local_blk_tensor_name_x2 << "[0], " << param.outer_repeats[outer_repeats_size - 1] << ", "
+          << output_inner_offset << "], " << x1 << "[" << input0_inner_offset << "], "
+          << scalar_local_blk_tensor_name_x2 << "[0], " << param.outer_repeats[outer_repeats_size - 1] << ", "
           << tpipe.tiler.ActualSize(param.cal_count) << ", " << tpipe.tiler.Size(param.input_second_to_last_stride)
-          << ", " << tpipe.tiler.Size(param.output_second_to_last_stride) << ", " << tpipe.tmp_buf << "_" << std::to_string(id) << ");"
-          << std::endl;
+          << ", " << tpipe.tiler.Size(param.output_second_to_last_stride) << ", " << tpipe.tmp_buf << "_"
+          << std::to_string(id) << ");" << std::endl;
       CreateComputeNodeOuterForIfRequired(outer_repeats_size, param, ss1, ss);
     }
   } else {
@@ -117,7 +115,8 @@ Status CompareApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::Axi
       ss << "CompareExtend" << "(" << y << "[" << tpipe.tiler.TensorVectorizedOffset(current_axis, y) << "], " << x1
          << "[" << tpipe.tiler.TensorVectorizedOffset(current_axis, x1) << "], " << x2 << "["
          << tpipe.tiler.TensorVectorizedOffset(current_axis, x2) << "], "
-         << "CMPMODE::" << this->api_name_ << ", " << x1.actual_size << ", " << tpipe.tmp_buf << "_" << std::to_string(id) << ");" << std::endl;
+         << "CMPMODE::" << this->api_name_ << ", " << x1.actual_size << ", " << tpipe.tmp_buf << "_"
+         << std::to_string(id) << ");" << std::endl;
     } else {
       size_t input0_strides_size = param.inputs_strides[0].size();
       std::vector<ascir::SizeExpr> inner0_input_strides(param.inputs_strides[0].begin(),
@@ -140,8 +139,8 @@ Status CompareApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::Axi
           << output_inner_offset << "], " << x1 << "[" << input0_inner_offset << "], " << x2 << "["
           << input1_inner_offset << "], " << param.outer_repeats[outer_repeats_size - 1] << ", "
           << tpipe.tiler.ActualSize(param.cal_count) << ", " << tpipe.tiler.Size(param.input_second_to_last_stride)
-          << ", " << tpipe.tiler.Size(param.output_second_to_last_stride) << ", " << tpipe.tmp_buf << "_" << std::to_string(id) << ");"
-          << std::endl;
+          << ", " << tpipe.tiler.Size(param.output_second_to_last_stride) << ", " << tpipe.tmp_buf << "_"
+          << std::to_string(id) << ");" << std::endl;
       CreateComputeNodeOuterForIfRequired(outer_repeats_size, param, ss1, ss);
     }
   }
@@ -152,4 +151,4 @@ Status CompareApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::Axi
 
 static ApiCallRegister<CompareApiCall> register_compare_api_call("CompareApiCall");
 
-} // namespace codegen
+}  // namespace codegen

@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2026 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -109,10 +109,11 @@ ReduceMergedAxisPlan codegen::BuildReduceMergedAxisPlan(const std::vector<bool> 
   plan.valid = true;
   ReduceMergedAxisState state;
   for (size_t i = 0U; i < num_axes; ++i) {
-    const bool last_not_one_dst_stride_zero =
-        state.last_not_one_axis_index == static_cast<size_t>(-1) ? false : dst_stride_zero[state.last_not_one_axis_index];
-    const auto action = UpdateReduceMergedAxisState(src_stride_zero[i], dst_stride_zero[i], last_not_one_dst_stride_zero,
-                                                    i == num_axes - 1U, i, state);
+    const bool last_not_one_dst_stride_zero = state.last_not_one_axis_index == static_cast<size_t>(-1)
+                                                  ? false
+                                                  : dst_stride_zero[state.last_not_one_axis_index];
+    const auto action = UpdateReduceMergedAxisState(src_stride_zero[i], dst_stride_zero[i],
+                                                    last_not_one_dst_stride_zero, i == num_axes - 1U, i, state);
     if (action == ReduceMergedAxisAction::kAlignFirst || action == ReduceMergedAxisAction::kAlignLast) {
       plan.align_last_axis = true;
       plan.aligned_axis_index = i;
@@ -136,8 +137,7 @@ ReduceMergedAxisPlan codegen::BuildReduceMergedAxisPlan(const std::vector<bool> 
 
 ReduceMergedShape codegen::BuildReduceMergedShape(const std::vector<ge::Expression> &src_repeats,
                                                   const std::vector<ge::Expression> &src_strides,
-                                                  const std::vector<ge::Expression> &dst_strides,
-                                                  uint32_t dtype_size) {
+                                                  const std::vector<ge::Expression> &dst_strides, uint32_t dtype_size) {
   ReduceMergedShape shape;
   if (src_repeats.empty() || src_repeats.size() != src_strides.size() || src_strides.size() != dst_strides.size() ||
       dtype_size == 0U || dtype_size > 32U) {
@@ -170,8 +170,7 @@ ReduceMergedShape codegen::BuildReduceMergedShape(const std::vector<ge::Expressi
   return shape;
 }
 
-ge::Status codegen::BuildReduceSpecificParams(const ReduceSpecificParamBuildInput &input,
-                                              ReduceSpecificParams &param) {
+ge::Status codegen::BuildReduceSpecificParams(const ReduceSpecificParamBuildInput &input, ReduceSpecificParams &param) {
   param = ReduceSpecificParams{};
   GE_ASSERT_TRUE(IsValidReduceSpecificInput(input), "Invalid reduce specific param input, node[%s].",
                  input.node_name.c_str());

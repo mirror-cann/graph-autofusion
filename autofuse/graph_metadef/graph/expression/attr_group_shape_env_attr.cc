@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -19,12 +19,12 @@ namespace af {
 namespace {
 static thread_local ShapeEnvAttr *shape_env_context{nullptr};
 static std::map<ge::DataType, std::string> kGeDType2CppDtype = {
-  {ge::DT_INT32, "int32_t"},
-  {ge::DT_INT64, "int64_t"},
-  {ge::DT_UINT32, "uint32_t"},
-  {ge::DT_UINT64, "uint64_t"},
+    {ge::DT_INT32, "int32_t"},
+    {ge::DT_INT64, "int64_t"},
+    {ge::DT_UINT32, "uint32_t"},
+    {ge::DT_UINT64, "uint64_t"},
 };
-}
+}  // namespace
 
 thread_local std::string ShapeEnvAttr::guard_dfx_info_ = "";
 ShapeEnvAttr *GetCurShapeEnvContext() {
@@ -47,8 +47,8 @@ graphStatus ShapeEnvAttr::SerializeSymbolInfo(proto::ShapeEnvAttrGroupsDef *shap
   GELOGI("symbol_to_value size: %zu", symbol_to_value_.size());
   for (const auto &iter : symbol_to_value_) {
     GE_ASSERT_TRUE(!iter.first.IsConstExpr(),
-        "Symbol in symbol_to_value of shape env attr should be a variable, but get: %s",
-        iter.first.Serialize().get());
+                   "Symbol in symbol_to_value of shape env attr should be a variable, but get: %s",
+                   iter.first.Serialize().get());
     symbol_to_value_def->insert({iter.first.Serialize().get(), iter.second});
   }
   auto value_to_symbol_def = shape_env_group->mutable_value_to_symbol();
@@ -58,8 +58,8 @@ graphStatus ShapeEnvAttr::SerializeSymbolInfo(proto::ShapeEnvAttrGroupsDef *shap
     proto::SymbolInfoDef symbol_infos;
     for (const auto &sym_iter : iter.second) {
       GE_ASSERT_TRUE(!sym_iter.IsConstExpr(),
-          "Symbol in value_to_symbol of shape env attr should be a variable, but get: %s",
-          sym_iter.Serialize().get());
+                     "Symbol in value_to_symbol of shape env attr should be a variable, but get: %s",
+                     sym_iter.Serialize().get());
       symbol_infos.add_symbols(sym_iter.Serialize().get());
     }
     value_to_symbol_def->insert({iter.first, symbol_infos});
@@ -99,7 +99,7 @@ graphStatus ShapeEnvAttr::SerializeSymbolCheckInfos(proto::ShapeEnvAttrGroupsDef
   return GRAPH_SUCCESS;
 }
 
-ShapeEnvAttr::ShapeEnvAttr(const ShapeEnvAttr& other) {
+ShapeEnvAttr::ShapeEnvAttr(const ShapeEnvAttr &other) {
   shape_env_setting_ = other.shape_env_setting_;
   symbol_to_value_ = other.symbol_to_value_;
   value_to_symbol_ = other.value_to_symbol_;
@@ -110,7 +110,7 @@ ShapeEnvAttr::ShapeEnvAttr(const ShapeEnvAttr& other) {
   unique_sym_id_ = other.unique_sym_id_;
 }
 
-ShapeEnvAttr& ShapeEnvAttr::operator=(const ShapeEnvAttr& other) {
+ShapeEnvAttr &ShapeEnvAttr::operator=(const ShapeEnvAttr &other) {
   if (this != &other) {
     shape_env_setting_ = other.shape_env_setting_;
     symbol_to_value_ = other.symbol_to_value_;
@@ -140,9 +140,8 @@ graphStatus ShapeEnvAttr::DeserializeSymbolInfo(const proto::ShapeEnvAttrGroupsD
   GELOGI("symbol_to_value size: %zu", shape_env_group.symbol_to_value_size());
   for (const auto &iter : shape_env_group.symbol_to_value()) {
     Expression sym = Expression::Deserialize(iter.first.c_str());
-    GE_ASSERT_TRUE(!sym.IsConstExpr(),
-        "Symbol in symbol_to_value of shape env attr should be a variable, but get: %s",
-        iter.first.c_str());
+    GE_ASSERT_TRUE(!sym.IsConstExpr(), "Symbol in symbol_to_value of shape env attr should be a variable, but get: %s",
+                   iter.first.c_str());
     symbol_to_value_.emplace(std::make_pair(sym, iter.second));
   }
   value_to_symbol_.clear();
@@ -151,8 +150,7 @@ graphStatus ShapeEnvAttr::DeserializeSymbolInfo(const proto::ShapeEnvAttrGroupsD
     for (const auto &sym_iter : iter.second.symbols()) {
       Expression sym = Expression::Deserialize(sym_iter.c_str());
       GE_ASSERT_TRUE(!sym.IsConstExpr(),
-          "Symbol in value_to_symbol of shape env attr should be a variable, but get: %s",
-          sym_iter.c_str());
+                     "Symbol in value_to_symbol of shape env attr should be a variable, but get: %s", sym_iter.c_str());
       symbol_infos.emplace_back(sym);
     }
     value_to_symbol_.emplace(std::make_pair(iter.first, symbol_infos));
@@ -183,13 +181,12 @@ graphStatus ShapeEnvAttr::DeserializeSymbolCheckInfos(const proto::ShapeEnvAttrG
 }
 
 graphStatus ShapeEnvAttr::Deserialize(const proto::AttrGroupDef &attr_group_def, AttrHolder *attr_holder) {
-  (void) attr_holder;
-  const auto& shape_env_group = attr_group_def.shape_env_attr_group();
+  (void)attr_holder;
+  const auto &shape_env_group = attr_group_def.shape_env_attr_group();
   DeserializeSymbolInfo(shape_env_group);
   DeserializeSymbolCheckInfos(shape_env_group);
-  shape_env_setting_ =
-      ShapeEnvSetting(shape_env_group.shape_setting().specialize_zero_one(),
-          static_cast<DynamicMode>(shape_env_group.shape_setting().dynamic_mode()));
+  shape_env_setting_ = ShapeEnvSetting(shape_env_group.shape_setting().specialize_zero_one(),
+                                       static_cast<DynamicMode>(shape_env_group.shape_setting().dynamic_mode()));
   unique_sym_id_ = shape_env_group.unique_sym_id();
   return GRAPH_SUCCESS;
 }
@@ -222,13 +219,11 @@ Expression ShapeEnvAttr::FindReplacements(const Expression &expr) {
     return expr;
   }
   if (iter->second.has_replace) {
-    GELOGD("Find replace expr: %s of expr: %s has replace",
-        iter->second.replace_expr.Str().get(), expr.Str().get());
+    GELOGD("Find replace expr: %s of expr: %s has replace", iter->second.replace_expr.Str().get(), expr.Str().get());
     return expr;
   }
   auto replace_expr = iter->second.replace_expr;
-  GELOGD("Find replace expr: %s of expr: %s",
-      replace_expr.Str().get(), expr.Str().get());
+  GELOGD("Find replace expr: %s of expr: %s", replace_expr.Str().get(), expr.Str().get());
   if (replace_expr == expr) {
     return expr;
   }
@@ -268,8 +263,7 @@ void ShapeEnvAttr::SimplifySymbolCheckInfo(
     }
     (void)simplify_symbol_check_info.emplace_back(SymbolCheckInfo(simple_expr));
   }
-  (void)symbol_check_infos.insert(simplify_symbol_check_info.begin(),
-      simplify_symbol_check_info.end());
+  (void)symbol_check_infos.insert(simplify_symbol_check_info.begin(), simplify_symbol_check_info.end());
 }
 
 void ShapeEnvAttr::SimplifySymbolCheckInfo() {
@@ -292,8 +286,8 @@ Expression ShapeEnvAttr::Simplify(const Expression &expr) {
   }
   if (!var_replacements.empty()) {
     auto result_expr = expr.Replace(var_replacements);
-    GELOGI("Simplify expr: %s to expr: %s",
-        SymbolicUtils::ToString(expr).c_str(), SymbolicUtils::ToString(result_expr).c_str());
+    GELOGI("Simplify expr: %s to expr: %s", SymbolicUtils::ToString(expr).c_str(),
+           SymbolicUtils::ToString(result_expr).c_str());
     GE_ASSERT_NOTNULL(result_expr.impl_);
     return Expression(result_expr.impl_->Simplify());
   }
@@ -328,8 +322,8 @@ void ShapeEnvAttr::AppendInitReplacement(const Expression &expr) {
 
 graphStatus ShapeEnvAttr::FindRootExpr(const Expression &expr, Expression &root_expr) const {
   const auto &iter = replacements_.find(expr);
-  GE_ASSERT_TRUE(iter != replacements_.end(),
-    "Can not find replacement of expr: %s", SymbolicUtils::ToString(expr).c_str());
+  GE_ASSERT_TRUE(iter != replacements_.end(), "Can not find replacement of expr: %s",
+                 SymbolicUtils::ToString(expr).c_str());
   if (iter->second.replace_expr == expr) {
     root_expr = expr;
     return GRAPH_SUCCESS;
@@ -369,8 +363,7 @@ bool Replacement::operator<=(const Replacement &other) {
   return rank <= other.rank;
 }
 
-graphStatus ShapeEnvAttr::MergeReplacement(const Expression &expr1,
-    const Expression &expr2) {
+graphStatus ShapeEnvAttr::MergeReplacement(const Expression &expr1, const Expression &expr2) {
   Expression father_expr1;
   GE_ASSERT_SUCCESS(FindRootExpr(expr1, father_expr1));
   Expression father_expr2;
@@ -402,39 +395,39 @@ graphStatus ShapeEnvAttr::MergePath() {
 }
 
 graphStatus ShapeEnvAttr::AppendReplacement(const Expression &target, const Expression &replacement) {
-    if (target == replacement) {
-        return GRAPH_SUCCESS;
-    }
-    Expression expr1 = target;
-    Expression expr2 = replacement;
-    auto expr = sym::Eq(target, replacement).CanonicalizeBoolExpr();
-    std::vector<Expression> args = expr.GetArgs();
-    if (args.size() == kSizeTwo) {
-        expr1 = args[0];
-        expr2 = args[1];
-        GELOGD("expr1 %s->%s, expr2 %s->%s",
-          SymbolicUtils::ToString(target).c_str(), SymbolicUtils::ToString(expr1).c_str(),
-          SymbolicUtils::ToString(replacement).c_str(), SymbolicUtils::ToString(expr2).c_str());
-    }
+  if (target == replacement) {
+    return GRAPH_SUCCESS;
+  }
+  Expression expr1 = target;
+  Expression expr2 = replacement;
+  auto expr = sym::Eq(target, replacement).CanonicalizeBoolExpr();
+  std::vector<Expression> args = expr.GetArgs();
+  if (args.size() == kSizeTwo) {
+    expr1 = args[0];
+    expr2 = args[1];
+    GELOGD("expr1 %s->%s, expr2 %s->%s", SymbolicUtils::ToString(target).c_str(),
+           SymbolicUtils::ToString(expr1).c_str(), SymbolicUtils::ToString(replacement).c_str(),
+           SymbolicUtils::ToString(expr2).c_str());
+  }
 
   // 仅支持 符号->常量，符号->表达式，符号->符号 映射
   if (expr1.IsConstExpr()) {
     if (!expr2.IsVariableExpr()) {
-      GELOGW("Unsupport append replacement %s to %s",
-          SymbolicUtils::ToString(expr1).c_str(), SymbolicUtils::ToString(expr2).c_str());
+      GELOGW("Unsupport append replacement %s to %s", SymbolicUtils::ToString(expr1).c_str(),
+             SymbolicUtils::ToString(expr2).c_str());
       return GRAPH_SUCCESS;
     }
   } else if (!expr1.IsVariableExpr()) {
     if (!expr2.IsVariableExpr()) {
-      GELOGW("Unsupport append replacement %s to %s",
-          SymbolicUtils::ToString(expr1).c_str(), SymbolicUtils::ToString(expr2).c_str());
+      GELOGW("Unsupport append replacement %s to %s", SymbolicUtils::ToString(expr1).c_str(),
+             SymbolicUtils::ToString(expr2).c_str());
       return GRAPH_SUCCESS;
     }
   }
   // 判断replacement是否成环
   if (CheckReplacementCycle(expr1, expr2)) {
     GELOGW("Unsupport append replacement %s to %s, replacement contains the other.",
-      SymbolicUtils::ToString(expr1).c_str(), SymbolicUtils::ToString(expr2).c_str());
+           SymbolicUtils::ToString(expr1).c_str(), SymbolicUtils::ToString(expr2).c_str());
     return GRAPH_SUCCESS;
   }
   AppendInitReplacement(expr1);
@@ -447,22 +440,20 @@ graphStatus ShapeEnvAttr::AppendReplacement(const Expression &target, const Expr
   return GRAPH_SUCCESS;
 }
 
-graphStatus ShapeEnvAttr::AppendSymbolAssertInfo(const Expression &expr,
-    const std::string &file, const int64_t line) {
-  GE_ASSERT_TRUE(expr.IsBooleanExpr(),
-      "Assert expr: %s should be boolean", SymbolicUtils::ToString(expr).c_str());
+graphStatus ShapeEnvAttr::AppendSymbolAssertInfo(const Expression &expr, const std::string &file, const int64_t line) {
+  GE_ASSERT_TRUE(expr.IsBooleanExpr(), "Assert expr: %s should be boolean", SymbolicUtils::ToString(expr).c_str());
   if (!expr.IsConstExpr()) {
-    (void)symbol_assert_infos_.emplace(SymbolCheckInfo(expr.CanonicalizeBoolExpr(), file, line, GetGuardDfxContextInfo()));
+    (void)symbol_assert_infos_.emplace(
+        SymbolCheckInfo(expr.CanonicalizeBoolExpr(), file, line, GetGuardDfxContextInfo()));
   }
   return GRAPH_SUCCESS;
 }
 
-graphStatus ShapeEnvAttr::AppendSymbolCheckInfo(const Expression &expr,
-    const std::string &file, const int64_t line) {
-  GE_ASSERT_TRUE(expr.IsBooleanExpr(),
-      "Check expr: %s should be boolean", SymbolicUtils::ToString(expr).c_str());
+graphStatus ShapeEnvAttr::AppendSymbolCheckInfo(const Expression &expr, const std::string &file, const int64_t line) {
+  GE_ASSERT_TRUE(expr.IsBooleanExpr(), "Check expr: %s should be boolean", SymbolicUtils::ToString(expr).c_str());
   if (!expr.IsConstExpr()) {
-    (void)symbol_check_infos_.emplace(SymbolCheckInfo(expr.CanonicalizeBoolExpr(), file, line, GetGuardDfxContextInfo()));
+    (void)symbol_check_infos_.emplace(
+        SymbolCheckInfo(expr.CanonicalizeBoolExpr(), file, line, GetGuardDfxContextInfo()));
   }
   return GRAPH_SUCCESS;
 }
@@ -507,4 +498,4 @@ bool ShapeEnvAttr::CheckReplacementCycle(const Expression &expr1, const Expressi
   return false;
 }
 
-} // namespace af
+}  // namespace af

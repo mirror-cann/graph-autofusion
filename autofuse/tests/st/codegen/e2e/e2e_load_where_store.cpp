@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -52,7 +52,7 @@ void LoadWhereStore_BeforeAutofuse(af::AscGraph &graph) {
   load1.attr.sched.axis = {z0.id, z1.id, z2.id};
   *load1.y.axis = {z0.id, z1.id, z2.id};
   *load1.y.repeats = {s0, s1, s2};
-  *load1.y.strides = {s1*s2, s2, One};
+  *load1.y.strides = {s1 * s2, s2, One};
 
   Load load2("load2");
   graph.AddNode(load2);
@@ -60,7 +60,7 @@ void LoadWhereStore_BeforeAutofuse(af::AscGraph &graph) {
   load2.attr.sched.axis = {z0.id, z1.id, z2.id};
   *load2.y.axis = {z0.id, z1.id, z2.id};
   *load2.y.repeats = {s0, s1, s2};
-  *load2.y.strides = {s1*s2, s2, One};
+  *load2.y.strides = {s1 * s2, s2, One};
 
   Load load3("load3");
   graph.AddNode(load3);
@@ -68,7 +68,7 @@ void LoadWhereStore_BeforeAutofuse(af::AscGraph &graph) {
   load3.attr.sched.axis = {z0.id, z1.id, z2.id};
   *load3.y.axis = {z0.id, z1.id, z2.id};
   *load3.y.repeats = {s0, s1, s2};
-  *load3.y.strides = {s1*s2, s2, One};
+  *load3.y.strides = {s1 * s2, s2, One};
 
   af::ascir_op::Where where("where");
   graph.AddNode(where);
@@ -77,7 +77,7 @@ void LoadWhereStore_BeforeAutofuse(af::AscGraph &graph) {
   where.x3 = load3.y;
   where.attr.sched.axis = {z0.id, z1.id, z2.id};
   *where.y.repeats = {s0, s1, s2};
-  *where.y.strides = {s1*s2, s2, One};
+  *where.y.strides = {s1 * s2, s2, One};
   where.attr.tmp_buffers = {{{af::Symbol(8192), -1}, MemAttr(), 0}};
 
   Store store("store");
@@ -87,7 +87,7 @@ void LoadWhereStore_BeforeAutofuse(af::AscGraph &graph) {
   store.y.dtype = ge::DT_FLOAT;
   *store.y.axis = {z0.id, z1.id, z2.id};
   *store.y.repeats = {s0, s1, s2};
-  *store.y.strides = {s1*s2, s2, One};
+  *store.y.strides = {s1 * s2, s2, One};
 
   Output y("y");
   graph.AddNode(y);
@@ -99,13 +99,13 @@ void LoadWhereStore_BeforeAutofuse(af::AscGraph &graph) {
 
 void LoadWhereStore_AfterInferOutput(af::AscGraph &graph) {
   auto x1 = graph.FindNode("x1");
-  x1->attr.api.compute_type = ComputeType::kComputeInvalid; // ComputeType::COMPUTE_DATA;
+  x1->attr.api.compute_type = ComputeType::kComputeInvalid;  // ComputeType::COMPUTE_DATA;
 
   auto x2 = graph.FindNode("x2");
-  x2->attr.api.compute_type = ComputeType::kComputeInvalid; // ComputeType::COMPUTE_DATA;
+  x2->attr.api.compute_type = ComputeType::kComputeInvalid;  // ComputeType::COMPUTE_DATA;
 
   auto x3 = graph.FindNode("x3");
-  x3->attr.api.compute_type = ComputeType::kComputeInvalid; // ComputeType::COMPUTE_DATA;
+  x3->attr.api.compute_type = ComputeType::kComputeInvalid;  // ComputeType::COMPUTE_DATA;
 
   auto load1 = graph.FindNode("load1");
   load1->outputs[0].attr.dtype = ge::DT_UINT8;
@@ -120,7 +120,7 @@ void LoadWhereStore_AfterInferOutput(af::AscGraph &graph) {
   load3->attr.api.compute_type = ComputeType::kComputeLoad;
 
   auto where = graph.FindNode("where");
-  where->outputs[0].attr.dtype =(ge::DataType)load2->outputs[0].attr.dtype;
+  where->outputs[0].attr.dtype = (ge::DataType)load2->outputs[0].attr.dtype;
   where->outputs[0].attr.axis = load2->outputs[0].attr.axis;
   where->outputs[0].attr.repeats = load2->outputs[0].attr.repeats;
   where->outputs[0].attr.strides = load2->outputs[0].attr.strides;

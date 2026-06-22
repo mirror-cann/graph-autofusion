@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -24,7 +24,7 @@
 
 using namespace AscendC;
 
-namespace af{
+namespace af {
 template <typename T>
 struct ClipByValueCase1InputParam {
   T *y{};
@@ -102,7 +102,7 @@ class TestApiClipByValueUT : public testing::Test {
     param.exp = static_cast<T *>(AscendC::GmAlloc(sizeof(T) * param.size));
 
     int input_range = 10;
-    std::mt19937 eng(1);                                         // Seed the generator
+    std::mt19937 eng(1);                                  // Seed the generator
     std::uniform_int_distribution distr(0, input_range);  // Define the range
 
     auto src0 = distr(eng);  // Use the secure random number generator
@@ -117,7 +117,7 @@ class TestApiClipByValueUT : public testing::Test {
       for (int i = 0; i < param.size; i++) {
         param.exp[i] = param.src1;
       }
-    } else if (src0 > src2){
+    } else if (src0 > src2) {
       for (int i = 0; i < param.size; i++) {
         param.exp[i] = param.src2;
       }
@@ -183,14 +183,14 @@ class TestApiClipByValueUT : public testing::Test {
     param.src2 = static_cast<T *>(AscendC::GmAlloc(sizeof(T) * param.size));
 
     int input_range = 10;
-    std::mt19937 eng(1);                                         // Seed the generator
+    std::mt19937 eng(1);                                  // Seed the generator
     std::uniform_int_distribution distr(0, input_range);  // Define the range
 
     auto src1 = distr(eng);  // Use the secure random number generator
     do {
       src1 = distr(eng);  // Use the secure random number generator
     } while (src1 > 5);
-    param.src1 = src1; // Min
+    param.src1 = src1;  // Min
 
     for (int i = 0; i < param.size; i++) {
       auto input = distr(eng);  // Use the secure random number generator
@@ -200,11 +200,11 @@ class TestApiClipByValueUT : public testing::Test {
       do {
         src2 = distr(eng);  // Use the secure random number generator
       } while (src2 <= src1);
-      param.src2[i] = src2; // Max
-      
+      param.src2[i] = src2;  // Max
+
       if ((T)input < param.src1) {
         param.exp[i] = param.src1;
-      } else if ((T)input > param.src2[i]){
+      } else if ((T)input > param.src2[i]) {
         param.exp[i] = param.src2[i];
       } else {
         param.exp[i] = input;
@@ -275,14 +275,14 @@ class TestApiClipByValueUT : public testing::Test {
     param.src1 = static_cast<T *>(AscendC::GmAlloc(sizeof(T) * param.size));
 
     int input_range = 10;
-    std::mt19937 eng(1);                                         // Seed the generator
+    std::mt19937 eng(1);                                  // Seed the generator
     std::uniform_int_distribution distr(0, input_range);  // Define the range
 
     auto src2 = distr(eng);  // Use the secure random number generator
     do {
       src2 = distr(eng);  // Use the secure random number generator
     } while (src2 < 5);
-    param.src2 = src2; // Max
+    param.src2 = src2;  // Max
 
     for (int i = 0; i < param.size; i++) {
       auto input = distr(eng);  // Use the secure random number generator
@@ -292,11 +292,11 @@ class TestApiClipByValueUT : public testing::Test {
       do {
         src1 = distr(eng);  // Use the secure random number generator
       } while (src1 >= src2);
-      param.src1[i] = src1; // Min
-      
+      param.src1[i] = src1;  // Min
+
       if ((T)input < param.src1[i]) {
         param.exp[i] = param.src1[i];
-      } else if ((T)input > param.src2){
+      } else if ((T)input > param.src2) {
         param.exp[i] = param.src2;
       } else {
         param.exp[i] = input;
@@ -366,26 +366,26 @@ class TestApiClipByValueUT : public testing::Test {
     param.src0 = static_cast<T *>(AscendC::GmAlloc(sizeof(T) * param.size));
 
     int input_range = 10;
-    std::mt19937 eng(1);                                         // Seed the generator
+    std::mt19937 eng(1);                                  // Seed the generator
     std::uniform_int_distribution distr(0, input_range);  // Define the range
 
     auto src1 = distr(eng);  // Use the secure random number generator
     auto src2 = distr(eng);  // Use the secure random number generator
     if (src1 < src2) {
-      param.src1 = src1; // Min
-      param.src2 = src2; // Max
+      param.src1 = src1;  // Min
+      param.src2 = src2;  // Max
     } else {
-      param.src1 = src2; // Min
-      param.src2 = src1; // Max
+      param.src1 = src2;  // Min
+      param.src2 = src1;  // Max
     }
 
     for (int i = 0; i < param.size; i++) {
       auto input = distr(eng);  // Use the secure random number generator
       param.src0[i] = input;
-      
+
       if ((T)input < param.src1) {
         param.exp[i] = param.src1;
-      } else if ((T)input > param.src2){
+      } else if ((T)input > param.src2) {
         param.exp[i] = param.src2;
       } else {
         param.exp[i] = input;
@@ -453,7 +453,7 @@ class TestApiClipByValueUT : public testing::Test {
     param.src2 = static_cast<T *>(AscendC::GmAlloc(sizeof(T) * param.size));
 
     int input_range = 10;
-    std::mt19937 eng(1);                                         // Seed the generator
+    std::mt19937 eng(1);                                  // Seed the generator
     std::uniform_int_distribution distr(0, input_range);  // Define the range
 
     for (int i = 0; i < param.size; i++) {
@@ -462,16 +462,16 @@ class TestApiClipByValueUT : public testing::Test {
       auto src1 = distr(eng);  // Use the secure random number generator
       auto src2 = distr(eng);  // Use the secure random number generator
       if (src1 < src2) {
-        param.src1[i] = src1; // Min
-        param.src2[i] = src2; // Max
+        param.src1[i] = src1;  // Min
+        param.src2[i] = src2;  // Max
       } else {
-        param.src1[i] = src2; // Min
-        param.src2[i] = src1; // Max
+        param.src1[i] = src2;  // Min
+        param.src2[i] = src1;  // Max
       }
-      
+
       if ((T)input < param.src1[i]) {
         param.exp[i] = param.src1[i];
-      } else if ((T)input > param.src2[i]){
+      } else if ((T)input > param.src2[i]) {
         param.exp[i] = param.src2[i];
       } else {
         param.exp[i] = input;
@@ -525,7 +525,6 @@ class TestApiClipByValueUT : public testing::Test {
     AscendC::GmFree(param.src1);
     AscendC::GmFree(param.src2);
   }
-
 };
 
 TEST_F(TestApiClipByValueUT, ClipByValue_case1) {
@@ -534,14 +533,14 @@ TEST_F(TestApiClipByValueUT, ClipByValue_case1) {
   ClipByValueCase1Test<float>(256);
   ClipByValueCase1Test<float>(264);
   ClipByValueCase1Test<float>(2056);
-  //输入非32B对齐
+  // 输入非32B对齐
   ClipByValueCase1Test<float>(2060);
   ClipByValueCase1Test<half>(128);
   ClipByValueCase1Test<half>(144);
   ClipByValueCase1Test<half>(512);
   ClipByValueCase1Test<half>(528);
   ClipByValueCase1Test<half>(4112);
-  //输入非32B对齐
+  // 输入非32B对齐
   ClipByValueCase1Test<half>(1928);
 }
 
@@ -551,15 +550,15 @@ TEST_F(TestApiClipByValueUT, ClipByValue_case2) {
   ClipByValueCase2Test<float>(256);
   ClipByValueCase2Test<float>(264);
   ClipByValueCase2Test<float>(2056);
-  //输入非32B对齐
+  // 输入非32B对齐
   ClipByValueCase2Test<float>(2060);
-  ClipByValueCase2Test<float>(8416); // 4496 + 3920
+  ClipByValueCase2Test<float>(8416);  // 4496 + 3920
   ClipByValueCase2Test<half>(128);
   ClipByValueCase2Test<half>(144);
   ClipByValueCase2Test<half>(512);
   ClipByValueCase2Test<half>(528);
   ClipByValueCase2Test<half>(4112);
-  //输入非32B对齐
+  // 输入非32B对齐
   ClipByValueCase2Test<half>(1928);
 
   // size大于tumpbuf size/2的场景
@@ -572,14 +571,14 @@ TEST_F(TestApiClipByValueUT, ClipByValue_case3) {
   ClipByValueCase3Test<float>(256);
   ClipByValueCase3Test<float>(264);
   ClipByValueCase3Test<float>(2056);
-  //输入非32B对齐
+  // 输入非32B对齐
   ClipByValueCase3Test<float>(2060);
   ClipByValueCase3Test<half>(128);
   ClipByValueCase3Test<half>(144);
   ClipByValueCase3Test<half>(512);
   ClipByValueCase3Test<half>(528);
   ClipByValueCase3Test<half>(4112);
-  //输入非32B对齐
+  // 输入非32B对齐
   ClipByValueCase3Test<half>(1928);
 }
 
@@ -589,14 +588,14 @@ TEST_F(TestApiClipByValueUT, ClipByValue_case4) {
   ClipByValueCase4Test<float>(256);
   ClipByValueCase4Test<float>(264);
   ClipByValueCase4Test<float>(2056);
-  //输入非32B对齐
+  // 输入非32B对齐
   ClipByValueCase4Test<float>(2060);
   ClipByValueCase4Test<half>(128);
   ClipByValueCase4Test<half>(144);
   ClipByValueCase4Test<half>(512);
   ClipByValueCase4Test<half>(528);
   ClipByValueCase4Test<half>(4112);
-  //输入非32B对齐
+  // 输入非32B对齐
   ClipByValueCase4Test<half>(1928);
 }
 
@@ -611,4 +610,4 @@ TEST_F(TestApiClipByValueUT, ClipByValue_case5) {
 // TEST_F(TestApiClipByValueUT, ClipByValue_case4) {
 //   ClipByValueCase4Test<half>(256);
 // }
-}  // namespace ge
+}  // namespace af
