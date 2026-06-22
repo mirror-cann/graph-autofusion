@@ -135,7 +135,8 @@ public:
     const std::vector<OriginalScopeInfo>& GetOriginalScopeInfos() const { return originalScopeInfos_; }
 
     // Dump all nodes' fusion fail reasons to log file
-    void DumpFusionFailReasons(const std::vector<SuperKernelScopeInfo>& processedScopeInfos);
+    void DumpFusionFailReasons(const std::vector<SuperKernelScopeInfo>& processedScopeInfos,
+                               bool debugPerOpMaxCoreEnabled = false);
 
     // Convert graph to JSON format matching sk_raw_tasks_after.json structure
     Json ToJson() const;

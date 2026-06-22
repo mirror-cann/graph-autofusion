@@ -173,6 +173,35 @@ TEST_F(PrintFusedScopesTest, ScopeWithMemoryNode)
     SUCCEED();
 }
 
+TEST_F(PrintFusedScopesTest, DebugPerOpMaxCoreSuppressesScopeBreakReason)
+{
+    SuperKernelGraph graph(nullptr);
+    std::bitset<MAX_SCOPE_NUM> flags;
+    flags.set(0);
+
+    auto node = CreateKernelNode(10);
+    AddKernelInfoToNode(node.get());
+    node->SetScopeBitFlags(flags);
+    SuperKernelBaseNode* nodePtr = node.get();
+    graph.graphMap[10] = std::move(node);
+    graph.originalScopeInfos_.push_back({0, flags, {10, 11}});
+
+    SuperKernelScopeInfo scopeInfo;
+    scopeInfo.SetScopeBitFlags(flags);
+    scopeInfo.SetNodes({nodePtr});
+    scopeInfo.MutableExtInfo().filteredNodes = {nodePtr};
+    scopeInfo.SetBreakInfo(ScopeBreakInfo().SetReason(ScopeBreakReason::UNFUSIBLE_NODE).SetTriggerNode(10, 0));
+
+    std::vector<SuperKernelScopeInfo> scopeInfos;
+    scopeInfos.push_back(std::move(scopeInfo));
+
+    ut_log::LogBuffer::Instance().Clear();
+    PrintFusedScopes(graph, scopeInfos, true);
+    std::string logContent = ut_log::LogBuffer::Instance().GetContent();
+    EXPECT_THAT(logContent, testing::HasSubstr("DEBUG_PER_OP_MAX_CORE=enabled"));
+    EXPECT_THAT(logContent, testing::Not(testing::HasSubstr("breakReason=[")));
+}
+
 // ==================== SuperKernelScopeInfo Tests ====================
 
 class SuperKernelScopeInfoTest : public SkDumpJsonTest {};
@@ -756,18 +785,14 @@ TEST_F(SkDumpJsonDirectHelperTest, ScopePrintingHelpersCoverKernelSetAndBatchBra
     EXPECT_STREQ(to_string(ScopeBreakReason::NONE), "NONE");
     EXPECT_STREQ(to_string(ScopeBreakReason::UNFUSIBLE_NODE), "UNFUSIBLE_NODE");
     EXPECT_STREQ(to_string(ScopeBreakReason::DEADLOCK_DETECTED), "DEADLOCK_DETECTED");
-    EXPECT_STREQ(to_string(ScopeBreakReason::SCHEMODE_CORE_DROP), "SCHEMODE_CORE_DROP");
-    EXPECT_STREQ(to_string(ScopeBreakReason::SCHEMODE_CORE_RISE), "SCHEMODE_CORE_RISE");
+    EXPECT_STREQ(to_string(ScopeBreakReason::SYNCALL_OP_DROP), "SYNCALL_OP_DROP");
     EXPECT_STREQ(to_string(ScopeBreakReason::DEBUG_PER_OP_MAX_CORE), "DEBUG_PER_OP_MAX_CORE");
     EXPECT_STREQ(ScopeBreakReasonDetail(ScopeBreakReason::UNFUSIBLE_NODE),
                  "There exists unfusible node in scope");
     EXPECT_STREQ(ScopeBreakReasonDetail(ScopeBreakReason::DEADLOCK_DETECTED),
                  "There exists deadlock in scope");
-    EXPECT_NE(std::string(ScopeBreakReasonDetail(ScopeBreakReason::SCHEMODE_CORE_DROP))
-                  .find("less than the maximum number of kernels"),
-              std::string::npos);
-    EXPECT_NE(std::string(ScopeBreakReasonDetail(ScopeBreakReason::SCHEMODE_CORE_RISE))
-                  .find("greater than the maximum number of kernels"),
+    EXPECT_NE(std::string(ScopeBreakReasonDetail(ScopeBreakReason::SYNCALL_OP_DROP))
+                  .find("greater than or equal to other operators"),
               std::string::npos);
     EXPECT_STREQ(ScopeBreakReasonDetail(ScopeBreakReason::DEBUG_PER_OP_MAX_CORE),
                  "Per-Op debug mode: each operator is an independent scope");
@@ -821,9 +846,11 @@ TEST_F(SkDumpJsonDirectHelperTest, ScopePrintingHelpersCoverKernelSetAndBatchBra
     scopeInfo.MutableExtInfo().processStatus = ScopeProcessStatus::RESOURCE_INSUFFICIENT;
     scopeInfo.SetBreakInfo(ScopeBreakInfo()
         .SetReason(ScopeBreakReason::UNFUSIBLE_NODE)
-        .SetTriggerNode(202, 0));
+        .SetTriggerNode(202, 0)
+        .SetSyncAllNodeIds(std::vector<uint64_t>{201, 202}));
     std::string breakInfo = scopeInfo.GetBreakInfo().Format();
     EXPECT_NE(breakInfo.find("breakReason=UNFUSIBLE_NODE"), std::string::npos);
+    EXPECT_NE(breakInfo.find("syncAllNodes=[201,202]"), std::string::npos);
     EXPECT_EQ(breakInfo.find("breakReasonDetail="), std::string::npos);
 
     auto originalSets = BuildOriginalKernelSets(graph, graph.GetOriginalScopeInfos());

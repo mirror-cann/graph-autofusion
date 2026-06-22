@@ -57,12 +57,8 @@ const char* ScopeBreakReasonDetail(ScopeBreakReason reason)
             return "There exists unfusible node in scope";
         case ScopeBreakReason::DEADLOCK_DETECTED:
             return "There exists deadlock in scope";
-        case ScopeBreakReason::SCHEMODE_CORE_DROP:
-            return "There exists an operator for full kernel synchronization, and the number of kernels of this "
-                   "operator is less than the maximum number of kernels of the fused superkernel";
-        case ScopeBreakReason::SCHEMODE_CORE_RISE:
-            return "There exists an operator for full kernel synchronization, and the number of kernels of this "
-                   "operator is greater than the maximum number of kernels of the previously fused superkernel";
+        case ScopeBreakReason::SYNCALL_OP_DROP:
+            return "The core count of syncall operators in scope should be greater than or equal to other operators";
         case ScopeBreakReason::DEBUG_PER_OP_MAX_CORE:
             return "Per-Op debug mode: each operator is an independent scope";
         default:
@@ -663,7 +659,8 @@ bool DumpGraphJsonToFile(Json graphJson, const SuperKernelOptionsManager& opts, 
 } // anonymous namespace
 
 void PrintFusedScopes(const SuperKernelGraph& graph,
-                      const std::vector<SuperKernelScopeInfo>& processedScopeInfos) 
+                      const std::vector<SuperKernelScopeInfo>& processedScopeInfos,
+                      bool debugPerOpMaxCoreEnabled)
 {
     // Build scopeId -> scope index map for root tracing
     std::unordered_map<uint16_t, size_t> scopeIdToIdx;
@@ -676,7 +673,8 @@ void PrintFusedScopes(const SuperKernelGraph& graph,
     auto originalKernelSets = BuildOriginalKernelSets(graph, originalScopes);
 
     // Print scopes after fusion
-    SK_LOGI("scopes after fusion:");
+    SK_LOGI("[PrintFusedScopes] scopes after fusion: DEBUG_PER_OP_MAX_CORE=%s",
+            debugPerOpMaxCoreEnabled ? "enabled" : "disabled");
     for (const auto& scopeInfo : processedScopeInfos) {
         const auto& extInfo = scopeInfo.GetExtInfo();
 
@@ -708,7 +706,8 @@ void PrintFusedScopes(const SuperKernelGraph& graph,
         }
 
         // Line 3: breakReason (if kernel set differs from original scope)
-        if (rootScopeBreakInfo.GetReason() != ScopeBreakReason::NONE && !IsKernelSetMatch(scopeInfo, originalKernelSets, graph)) {
+        if (!debugPerOpMaxCoreEnabled && rootScopeBreakInfo.GetReason() != ScopeBreakReason::NONE &&
+            !IsKernelSetMatch(scopeInfo, originalKernelSets, graph)) {
             SK_LOGI("    breakReason=[%s], breakReasonDetail=%s, scopeName=[%s]",
                     rootScopeBreakInfo.Format().c_str(),
                     ScopeBreakReasonDetail(rootScopeBreakInfo.GetReason()), scopeNames.c_str());

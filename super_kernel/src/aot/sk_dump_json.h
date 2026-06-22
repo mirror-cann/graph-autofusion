@@ -70,9 +70,11 @@ void PrintOriginalScopes(const SuperKernelGraph& graph);
  *
  * @param graph Reference to the SuperKernelGraph
  * @param processedScopeInfos Reference to the vector of processed scope info
+ * @param debugPerOpMaxCoreEnabled Whether DEBUG_PER_OP_MAX_CORE mode is enabled
  */
 void PrintFusedScopes(const SuperKernelGraph& graph,
-                      const std::vector<SuperKernelScopeInfo>& processedScopeInfos);
+                      const std::vector<SuperKernelScopeInfo>& processedScopeInfos,
+                      bool debugPerOpMaxCoreEnabled = false);
 
 /**
  * @brief Dump an existing graph to JSON file

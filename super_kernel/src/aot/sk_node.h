@@ -54,11 +54,11 @@ using SkBindMap = std::unordered_map<uint64_t, SkBindInfo>;
 // Unfused reason
 enum class FusionFailReason {
     CAN_FUSE,               // 0: Can fuse (default)
-    BINDMAP_RESOLVE_FAILED, // 1: Failed to resolve SuperKernel bind map for the operator
-    TASK_GROUP_NOT_EMPTY,   // 2: Operator dynamically refreshes task info at runtime, SK does not support fusing dynamically changing tasks
+    OP_UNSUPPORT,           // 1: Failed to resolve SuperKernel bind map for the operator
+    DYNAMIC_TASK_UNSUPPORT, // 2: Operator dynamically refreshes task info at runtime, SK does not support fusing dynamically changing tasks
     NOT_IN_SCOPE,       // 3: Operator is not within user-marked fusion range
     IN_UNFUSIBLE_SCOPE, // 4: User actively marked this operator as unfusible
-    EXCEED_DEVICE_MAX,  // 5: Operator requires more cores than device maximum
+    EXCEED_CORE_MAX,    // 5: Operator requires more cores than device maximum
     RESET_TYPE_NODE,    // 6: reset type node placed at end
     ISOLATED_EVENT,     // 7: Isolated event exists
     EXIST_DEADLOCK,     // 8: Deadlock exists
@@ -69,7 +69,7 @@ enum class FusionFailReason {
     MEMORY_WAIT_NODE_ONLY, // 13: No memory write exists, meaning the memory write is outside modelRI,
     MEMORY_WRITE_NODE_ONLY,  // 14: only exists memory write nodes, mask it as unfusible
     DEFAULT_NODE, // 15: default node uses aicpu resources, mask it as unfusible
-    SIMT_OP_NOT_SUPPORTED, // 16: SIMT operator is not supported for SuperKernel fusion
+    SIMT_OP_UNSUPPORT, // 16: SIMT operator is not supported for SuperKernel fusion
     KERNEL_ATTR_GET_FAILED, // 17: Failed to get kernel attribute for SuperKernel fusion
     EXCEED_SCOPE_MAX, // 18: Exceeded maximum scope number limit for SuperKernel fusion
 };
@@ -152,16 +152,16 @@ inline const char* to_string(FusionFailReason reason) {
     switch (reason) {
         case FusionFailReason::CAN_FUSE:
             return "CAN_FUSE";
-        case FusionFailReason::BINDMAP_RESOLVE_FAILED:
-            return "BINDMAP_RESOLVE_FAILED";
-        case FusionFailReason::TASK_GROUP_NOT_EMPTY:   
-            return "TASK_GROUP_NOT_EMPTY";
+        case FusionFailReason::OP_UNSUPPORT:
+            return "OP_UNSUPPORT";
+        case FusionFailReason::DYNAMIC_TASK_UNSUPPORT:
+            return "DYNAMIC_TASK_UNSUPPORT";
         case FusionFailReason::NOT_IN_SCOPE:
             return "NOT_IN_SCOPE";
         case FusionFailReason::IN_UNFUSIBLE_SCOPE:
             return "IN_UNFUSIBLE_SCOPE";
-        case FusionFailReason::EXCEED_DEVICE_MAX:
-            return "EXCEED_DEVICE_MAX";
+        case FusionFailReason::EXCEED_CORE_MAX:
+            return "EXCEED_CORE_MAX";
         case FusionFailReason::RESET_TYPE_NODE:
             return "RESET_TYPE_NODE";
         case FusionFailReason::ISOLATED_EVENT:
@@ -182,8 +182,8 @@ inline const char* to_string(FusionFailReason reason) {
             return "MEMORY_WRITE_NODE_ONLY";
         case FusionFailReason::DEFAULT_NODE: 
             return "DEFAULT_NODE";
-        case FusionFailReason::SIMT_OP_NOT_SUPPORTED:
-            return "SIMT_OP_NOT_SUPPORTED";
+        case FusionFailReason::SIMT_OP_UNSUPPORT:
+            return "SIMT_OP_UNSUPPORT";
         case FusionFailReason::KERNEL_ATTR_GET_FAILED:
             return "KERNEL_ATTR_GET_FAILED";
         case FusionFailReason::EXCEED_SCOPE_MAX:
@@ -473,7 +473,7 @@ public:
         fusionFailReason_.SetDeadlockFailReason(deadlockReason);
     }
     void SetFusionFailReason(BindmapFailReason bindmapReason) {
-        fusionFailReason_.primary = FusionFailReason::BINDMAP_RESOLVE_FAILED;
+        fusionFailReason_.primary = FusionFailReason::OP_UNSUPPORT;
         fusionFailReason_.SetBindmapFailReason(bindmapReason);
     }    
     void SetFusionFailReason(const FusionFailReasonInfo& info) { fusionFailReason_ = info; }

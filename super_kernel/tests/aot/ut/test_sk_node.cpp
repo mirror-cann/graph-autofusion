@@ -443,20 +443,20 @@ TEST_F(SkNodeTest, FusionFailReasonInfo_BindmapDetailsAndStrings)
 {
     FusionFailReasonInfo noneInfo(BindmapFailReason::NONE);
     EXPECT_EQ(noneInfo.GetBindmapFailReason(), BindmapFailReason::NONE);
-    EXPECT_EQ(noneInfo.primary, FusionFailReason::BINDMAP_RESOLVE_FAILED);
-    EXPECT_EQ(FusionFailReasonToStr(noneInfo), "BINDMAP_RESOLVE_FAILED");
+    EXPECT_EQ(noneInfo.primary, FusionFailReason::OP_UNSUPPORT);
+    EXPECT_EQ(FusionFailReasonToStr(noneInfo), "OP_UNSUPPORT");
     EXPECT_EQ(FusionFailReasonDetailToStr(noneInfo), "Failed to resolve SuperKernel bind map for the operator");
-    EXPECT_STREQ(to_string(FusionFailReason::BINDMAP_RESOLVE_FAILED), "BINDMAP_RESOLVE_FAILED");
+    EXPECT_STREQ(to_string(FusionFailReason::OP_UNSUPPORT), "OP_UNSUPPORT");
 
     FusionFailReasonInfo info(BindmapFailReason::FUNCHDL_NULL);
     EXPECT_EQ(info.GetBindmapFailReason(), BindmapFailReason::FUNCHDL_NULL);
-    EXPECT_EQ(FusionFailReasonToStr(info), "BINDMAP_RESOLVE_FAILED [FUNCHDL_NULL]");
+    EXPECT_EQ(FusionFailReasonToStr(info), "OP_UNSUPPORT [FUNCHDL_NULL]");
     EXPECT_EQ(FusionFailReasonDetailToStr(info),
               "Failed to resolve SuperKernel bind map for the operator, funcHdl is null");
 
     info.SetBindmapFailReason(BindmapFailReason::FUNC_NOT_FOUND);
     EXPECT_EQ(info.GetBindmapFailReason(), BindmapFailReason::FUNC_NOT_FOUND);
-    EXPECT_EQ(FusionFailReasonToStr(info), "BINDMAP_RESOLVE_FAILED [FUNC_NOT_FOUND]");
+    EXPECT_EQ(FusionFailReasonToStr(info), "OP_UNSUPPORT [FUNC_NOT_FOUND]");
     EXPECT_EQ(FusionFailReasonDetailToStr(info),
               "Failed to resolve SuperKernel bind map for the operator, "
               "function not found in bind map");
@@ -567,15 +567,15 @@ TEST_F(SkNodeTest, FusionFailReasonStrings_CoverAllEnumNamesAndDetails)
     };
     const std::vector<FusionReasonCase> fusionReasonCases = {
         {FusionFailReason::CAN_FUSE, "CAN_FUSE", "node can fuse"},
-        {FusionFailReason::BINDMAP_RESOLVE_FAILED, "BINDMAP_RESOLVE_FAILED",
+        {FusionFailReason::OP_UNSUPPORT, "OP_UNSUPPORT",
             "Failed to resolve SuperKernel bind map for the operator"},
-        {FusionFailReason::TASK_GROUP_NOT_EMPTY, "TASK_GROUP_NOT_EMPTY",
+        {FusionFailReason::DYNAMIC_TASK_UNSUPPORT, "DYNAMIC_TASK_UNSUPPORT",
             "The operator will refresh task information at runtime"},
         {FusionFailReason::NOT_IN_SCOPE, "NOT_IN_SCOPE",
             "The user actively marked that this operator is not fused"},
         {FusionFailReason::IN_UNFUSIBLE_SCOPE, "IN_UNFUSIBLE_SCOPE",
             "This operator is not within the fusion range marked by the user"},
-        {FusionFailReason::EXCEED_DEVICE_MAX, "EXCEED_DEVICE_MAX",
+        {FusionFailReason::EXCEED_CORE_MAX, "EXCEED_CORE_MAX",
             "exceeds the maximum number of kernels that the device can provide"},
         {FusionFailReason::RESET_TYPE_NODE, "RESET_TYPE_NODE", "reset type node in end"},
         {FusionFailReason::ISOLATED_EVENT, "ISOLATED_EVENT", "There is no kernel node on the stream"},
@@ -587,7 +587,7 @@ TEST_F(SkNodeTest, FusionFailReasonStrings_CoverAllEnumNamesAndDetails)
         {FusionFailReason::MEMORY_WRITE_NODE_ONLY, "MEMORY_WRITE_NODE_ONLY",
             "only exists memory write nodes"},
         {FusionFailReason::DEFAULT_NODE, "DEFAULT_NODE", "default node uses aicpu resources"},
-        {FusionFailReason::SIMT_OP_NOT_SUPPORTED, "SIMT_OP_NOT_SUPPORTED",
+        {FusionFailReason::SIMT_OP_UNSUPPORT, "SIMT_OP_UNSUPPORT",
             "SIMT operator is not supported for SuperKernel fusion"},
         {FusionFailReason::KERNEL_ATTR_GET_FAILED, "KERNEL_ATTR_GET_FAILED",
             "Failed to get kernel attribute for SuperKernel fusion"},
@@ -698,7 +698,7 @@ TEST_F(SkNodeTest, KernelInitNode_BindmapEmptyReasonIsRecorded)
     SuperKernelKernelNode node(MakeOriginTask(task), ACL_MODEL_RI_TASK_KERNEL, 0, 0, 0, INVALID_TASK_ID);
     EXPECT_TRUE(node.InitNode());
     EXPECT_FALSE(node.IsFusible());
-    EXPECT_EQ(node.GetFusionFailReason(), FusionFailReason::BINDMAP_RESOLVE_FAILED);
+    EXPECT_EQ(node.GetFusionFailReason(), FusionFailReason::OP_UNSUPPORT);
     EXPECT_EQ(node.GetFusionFailReasonInfo().GetBindmapFailReason(), BindmapFailReason::BINDMAP_INIT_EMPTY);
 }
 
@@ -745,7 +745,7 @@ TEST_F(SkNodeTest, KernelInitNode_NullFuncHandleRecordsBindmapReason)
     SuperKernelKernelNode node(MakeOriginTask(task), ACL_MODEL_RI_TASK_KERNEL, 0, 0, 0, INVALID_TASK_ID);
     EXPECT_TRUE(node.InitNode());
     EXPECT_FALSE(node.IsFusible());
-    EXPECT_EQ(node.GetFusionFailReason(), FusionFailReason::BINDMAP_RESOLVE_FAILED);
+    EXPECT_EQ(node.GetFusionFailReason(), FusionFailReason::OP_UNSUPPORT);
     EXPECT_EQ(node.GetFusionFailReasonInfo().GetBindmapFailReason(), BindmapFailReason::FUNCHDL_NULL);
 }
 
@@ -798,7 +798,7 @@ TEST_F(SkNodeTest, KernelInitNode_InconsistentCapRecordsBindmapReason)
     EXPECT_EQ(node.nodeInfos.kernelInfos.cap, 0U);
     EXPECT_EQ(node.nodeInfos.kernelInfos.bindmapFailReason, BindmapFailReason::BINDMAP_CAP_INCONSISTENT);
     EXPECT_EQ(node.nodeInfos.kernelInfos.resolvedNum, 0U);
-    EXPECT_EQ(node.GetFusionFailReason(), FusionFailReason::BINDMAP_RESOLVE_FAILED);
+    EXPECT_EQ(node.GetFusionFailReason(), FusionFailReason::OP_UNSUPPORT);
     EXPECT_EQ(node.GetFusionFailReasonInfo().GetBindmapFailReason(), BindmapFailReason::BINDMAP_CAP_INCONSISTENT);
 }
 
@@ -887,7 +887,7 @@ TEST_F(SkNodeTest, KernelInitNode_TaskGroupNotEmptyRecordsReason)
     SuperKernelKernelNode node(MakeOriginTask(task), ACL_MODEL_RI_TASK_KERNEL, 0, 0, 0, INVALID_TASK_ID);
     EXPECT_TRUE(node.InitNode());
     EXPECT_FALSE(node.IsFusible());
-    EXPECT_EQ(node.GetFusionFailReason(), FusionFailReason::TASK_GROUP_NOT_EMPTY);
+    EXPECT_EQ(node.GetFusionFailReason(), FusionFailReason::DYNAMIC_TASK_UNSUPPORT);
 }
 
 TEST_F(SkNodeTest, DumpKernelBinaries_DisabledLoggerSkipsWork)
@@ -1270,7 +1270,7 @@ TEST_F(SkNodeTest, Node_FusionFailReasonManagement)
     EXPECT_EQ(node.GetFusionFailReasonInfo().GetDeadlockFailReason(), DeadlockFailReason::NOTIFY_NOT_IN_GRAPH);
 
     node.SetFusionFailReason(BindmapFailReason::FUNC_NOT_FOUND);
-    EXPECT_EQ(node.GetFusionFailReason(), FusionFailReason::BINDMAP_RESOLVE_FAILED);
+    EXPECT_EQ(node.GetFusionFailReason(), FusionFailReason::OP_UNSUPPORT);
     EXPECT_EQ(node.GetFusionFailReasonInfo().GetBindmapFailReason(), BindmapFailReason::FUNC_NOT_FOUND);
 }
 
@@ -1799,12 +1799,12 @@ TEST_F(SkNodeTest, FusionFailReasonInfo_BindmapNewReasons)
     FusionFailReasonInfo info1(BindmapFailReason::BIN_DEV_ADDR_GET_FAILED);
     EXPECT_EQ(info1.GetBindmapFailReason(), BindmapFailReason::BIN_DEV_ADDR_GET_FAILED);
     std::string str1 = FusionFailReasonToStr(info1);
-    EXPECT_EQ(str1, "BINDMAP_RESOLVE_FAILED [BIN_DEV_ADDR_GET_FAILED]");
+    EXPECT_EQ(str1, "OP_UNSUPPORT [BIN_DEV_ADDR_GET_FAILED]");
 
     FusionFailReasonInfo info2(BindmapFailReason::FUNC_ADDR_GET_FAILED);
     EXPECT_EQ(info2.GetBindmapFailReason(), BindmapFailReason::FUNC_ADDR_GET_FAILED);
     std::string str2 = FusionFailReasonToStr(info2);
-    EXPECT_EQ(str2, "BINDMAP_RESOLVE_FAILED [FUNC_ADDR_GET_FAILED]");
+    EXPECT_EQ(str2, "OP_UNSUPPORT [FUNC_ADDR_GET_FAILED]");
 
     info1.SetBindmapFailReason(BindmapFailReason::FUNC_ADDR_GET_FAILED);
     EXPECT_EQ(info1.GetBindmapFailReason(), BindmapFailReason::FUNC_ADDR_GET_FAILED);
@@ -1874,7 +1874,7 @@ TEST_F(SkNodeTest, KernelInitNode_BinaryDevAddrGetFailed_RecordsBindmapReason)
     SuperKernelKernelNode node(MakeOriginTask(task), ACL_MODEL_RI_TASK_KERNEL, 0, 0, 0, INVALID_TASK_ID);
     EXPECT_TRUE(node.InitNode());
     EXPECT_FALSE(node.IsFusible());
-    EXPECT_EQ(node.GetFusionFailReason(), FusionFailReason::BINDMAP_RESOLVE_FAILED);
+    EXPECT_EQ(node.GetFusionFailReason(), FusionFailReason::OP_UNSUPPORT);
     EXPECT_EQ(node.GetFusionFailReasonInfo().GetBindmapFailReason(),
               BindmapFailReason::BIN_DEV_ADDR_GET_FAILED);
 }
@@ -1906,7 +1906,7 @@ TEST_F(SkNodeTest, KernelInitNode_FunctionAddrGetFailed_RecordsBindmapReason)
     SuperKernelKernelNode node(MakeOriginTask(task), ACL_MODEL_RI_TASK_KERNEL, 0, 0, 0, INVALID_TASK_ID);
     EXPECT_TRUE(node.InitNode());
     EXPECT_FALSE(node.IsFusible());
-    EXPECT_EQ(node.GetFusionFailReason(), FusionFailReason::BINDMAP_RESOLVE_FAILED);
+    EXPECT_EQ(node.GetFusionFailReason(), FusionFailReason::OP_UNSUPPORT);
     EXPECT_EQ(node.GetFusionFailReasonInfo().GetBindmapFailReason(),
               BindmapFailReason::FUNC_ADDR_GET_FAILED);
 }
@@ -2184,7 +2184,7 @@ TEST_F(SkNodeTest, IdentifyAndHandleSimtKernel_AivOnly_SimtType3)
     EXPECT_EQ(node.nodeInfos.kernelInfos.kernelType, SkKernelType::AIV_ONLY);
     EXPECT_TRUE(node.nodeInfos.kernelInfos.isSimtOp);
     EXPECT_FALSE(node.IsFusible());
-    EXPECT_EQ(node.GetFusionFailReason(), FusionFailReason::SIMT_OP_NOT_SUPPORTED);
+    EXPECT_EQ(node.GetFusionFailReason(), FusionFailReason::SIMT_OP_UNSUPPORT);
 }
 
 TEST_F(SkNodeTest, IdentifyAndHandleSimtKernel_AivOnly_SimtType4)
@@ -2213,7 +2213,7 @@ TEST_F(SkNodeTest, IdentifyAndHandleSimtKernel_AivOnly_SimtType4)
     EXPECT_EQ(node.nodeInfos.kernelInfos.kernelType, SkKernelType::AIV_ONLY);
     EXPECT_TRUE(node.nodeInfos.kernelInfos.isSimtOp);
     EXPECT_FALSE(node.IsFusible());
-    EXPECT_EQ(node.GetFusionFailReason(), FusionFailReason::SIMT_OP_NOT_SUPPORTED);
+    EXPECT_EQ(node.GetFusionFailReason(), FusionFailReason::SIMT_OP_UNSUPPORT);
 }
 
 TEST_F(SkNodeTest, IdentifyAndHandleSimtKernel_Mix11_SimtType)
@@ -2242,7 +2242,7 @@ TEST_F(SkNodeTest, IdentifyAndHandleSimtKernel_Mix11_SimtType)
     EXPECT_EQ(node.nodeInfos.kernelInfos.kernelType, SkKernelType::MIX_AIC_1_1);
     EXPECT_TRUE(node.nodeInfos.kernelInfos.isSimtOp);
     EXPECT_FALSE(node.IsFusible());
-    EXPECT_EQ(node.GetFusionFailReason(), FusionFailReason::SIMT_OP_NOT_SUPPORTED);
+    EXPECT_EQ(node.GetFusionFailReason(), FusionFailReason::SIMT_OP_UNSUPPORT);
 }
 
 TEST_F(SkNodeTest, IdentifyAndHandleSimtKernel_Mix12_SimtType)
@@ -2271,5 +2271,5 @@ TEST_F(SkNodeTest, IdentifyAndHandleSimtKernel_Mix12_SimtType)
     EXPECT_EQ(node.nodeInfos.kernelInfos.kernelType, SkKernelType::MIX_AIC_1_2);
     EXPECT_TRUE(node.nodeInfos.kernelInfos.isSimtOp);
     EXPECT_FALSE(node.IsFusible());
-    EXPECT_EQ(node.GetFusionFailReason(), FusionFailReason::SIMT_OP_NOT_SUPPORTED);
+    EXPECT_EQ(node.GetFusionFailReason(), FusionFailReason::SIMT_OP_UNSUPPORT);
 }
