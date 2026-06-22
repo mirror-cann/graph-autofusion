@@ -53,7 +53,7 @@ class ConcatFusionCaseGenerator : public FusionCaseGenerator {
                           const af::Axis &replace_axis);
   Status ConvertSingleInput(ascir::HintGraph &owner_graph, const af::AscNodePtr &concat_node, size_t in_index,
                             size_t group_idx, ConcatDimAxisMap &repeat_to_axis_id);
-  static Status PropagateAxisChanges(af::Node *start_node, const std::vector<ascir::AxisId> &new_axis_ids);
+  static Status PropagateAxisChanges(af::Node *start_node, ascir::AxisId old_axis_id, ascir::AxisId new_axis_id);
   Status ReplaceWithConcat(::ascir::ImplGraph &owner_graph,
                            const af::AscNodePtr &concat_node,
                            size_t start,
@@ -67,14 +67,14 @@ class ConcatFusionCaseGenerator : public FusionCaseGenerator {
                                     size_t end);
   static Status CollectBackwardNodes(const af::NodePtr &concat_node, std::vector<af::AscNodePtr> &nodes);
   static Status CollectReachableLoadNodes(const af::NodePtr &concat_node, std::set<af::AscNodePtr> &nodes);
-  Status CloneNonConcatNodes(const af::Axis &new_axis, size_t index,
+  Status CloneNonConcatNodes(const af::Axis &new_axis, ascir::AxisId old_axis_id, size_t index,
                              std::vector<af::InDataAnchorPtr> &in_anchors,
-                             const std::vector<ascir::AxisId> &new_axis_ids,
                              std::unordered_map<std::string, af::NodePtr> &name_to_new_node);
-  static af::Status ReplaceAxis(const af::AscNodePtr &node, size_t axis_index, const af::Axis &to_axis,
-                                const std::vector<ascir::AxisId> &new_axis_ids);
-  static af::Status UpdateRepeatAndStrides(const af::AscNodePtr &node, size_t axis_index,
-                                           const af::Expression &axis_size, af::AscTensorAttr &tensor_attr);
+  static af::Status ReplaceAxis(const af::AscNodePtr &node, ascir::AxisId old_axis_id, const af::Axis &to_axis);
+  static af::Status UpdateOutputAttr(const af::AscNodePtr &node,
+                                     ascir::AxisId old_axis_id,
+                                     const af::Axis &to_axis,
+                                     af::AscTensorAttr &tensor_attr);
   static Status InsertAxis(const ascir::ImplGraph &optimized_graph);
   static Status AddTemplateIfCanFitInOneKernel(const af::AscNodePtr &concat_node, ascir::HintGraph &graph,
                                                std::vector<ascir::ImplGraph> &graphs);

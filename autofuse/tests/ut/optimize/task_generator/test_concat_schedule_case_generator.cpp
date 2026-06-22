@@ -923,33 +923,43 @@ TEST_F(ConcatScheduleCaseGeneratorTest, ConcatBackwardFusion_WithSameLoad) {
 
   Load load1("load1");
   load1.x = data0.y;
+  load1.attr.sched.axis = {z0.id, z1.id};
   load1.y.dtype = ge::DT_FLOAT16;
+  *load1.y.axis = {z0.id, z1.id};
   *load1.y.repeats = {s0, s1_1};
   *load1.y.strides = {s1_1, af::sym::kSymbolOne};
   load1.ir_attr.SetOffset(af::sym::kSymbolZero);
 
   Load load2("load2");
   load2.x = data0.y;
+  load2.attr.sched.axis = {z0.id, z1.id};
   load2.y.dtype = ge::DT_FLOAT16;
+  *load2.y.axis = {z0.id, z1.id};
   *load2.y.repeats = {s0, s1_2};
   *load2.y.strides = {s1_2, af::sym::kSymbolOne};
   load2.ir_attr.SetOffset(af::sym::kSymbolZero);
 
   Load load3("load3");
+  load3.attr.sched.axis = {z0.id, z1.id};
   load3.y.dtype = ge::DT_FLOAT16;
   load3.x = data0.y;
+  *load3.y.axis = {z0.id, z1.id};
   *load3.y.repeats = {s0, s1_3};
   *load3.y.strides = {s1_3, af::sym::kSymbolOne};
   load3.ir_attr.SetOffset(af::sym::kSymbolZero);
 
   Broadcast brc1("brc1");
   brc1.x = load3.y;
+  brc1.attr.sched.axis = {z0.id, z1.id};
+  *brc1.y.axis = {z0.id, z1.id};
   *brc1.y.repeats = {s0, s1_2};
   *brc1.y.strides = {s1_2, af::sym::kSymbolOne};
 
   Add add1("add1");
   add1.x1 = load2.y;
   add1.x2 = brc1.y;
+  add1.attr.sched.axis = {z0.id, z1.id};
+  *add1.y.axis = {z0.id, z1.id};
   *add1.y.repeats = {s0, s1_2};
   *add1.y.strides = {s1_2, af::sym::kSymbolOne};
 
@@ -963,17 +973,23 @@ TEST_F(ConcatScheduleCaseGeneratorTest, ConcatBackwardFusion_WithSameLoad) {
 
   Broadcast brc("brc");
   brc.x = load3.y;
+  brc.attr.sched.axis = {z0.id, z1.id};
+  *brc.y.axis = {z0.id, z1.id};
   *brc.y.repeats = {s0, s1};
   *brc.y.strides = {s1, af::sym::kSymbolOne};
 
   Add add("add");
   add.x1 = concat.y;
   add.x2 = brc.y;
+  add.attr.sched.axis = {z0.id, z1.id};
+  *add.y.axis = {z0.id, z1.id};
   *add.y.repeats = {s0, s1};
   *add.y.strides = {s1, af::sym::kSymbolOne};
 
   Store store("store_1");
   store.x = add.y;
+  store.attr.sched.axis = {z0.id, z1.id};
+  *store.y.axis = {z0.id, z1.id};
   *store.y.repeats = {s0, s1};
   *store.y.strides = {s1, af::sym::kSymbolOne};
 
@@ -1399,7 +1415,7 @@ TEST_F(ConcatScheduleCaseGeneratorTest, ConcatWithScalarDataInput) {
     .Build();
 
   optimize::ConcatFusionCaseGenerator generator;
-  std::vector<AscGraph> generated_graphs;
+  std::vector<af::AscGraph> generated_graphs;
   std::vector<std::string> score_functions;
   EXPECT_EQ(generator.Generate(graph, generated_graphs, score_functions), ge::SUCCESS);
 
@@ -1419,4 +1435,63 @@ TEST_F(ConcatScheduleCaseGeneratorTest, ConcatWithScalarDataInput) {
   EXPECT_TRUE(found_scalar_data_copy) << "Expected ScalarData copy to be created";
 }
 
+// Data0 -> Load0(y.axis=[z1,z0]) -> Transpose(y.axis=[z0,z1]) -> Concat -> Store -> Output
+// Data1 -> Load1(y.axis=[z0,z1]) --------------------------------^
+// 验证消除Concat后，Load0的output axis顺序[z1,z0]被保留（仅替换axis ID）
+TEST_F(ConcatScheduleCaseGeneratorTest, ConcatWithTranspose_AxisOrderPreserved) {
+  auto s0 = af::Symbol("s0");
+  auto s1_0 = af::Symbol("s1_0");
+  auto s1_1 = af::Symbol("s1_1");
+
+  auto graph = af::testing::AscGraphBuilder("concat_transpose_axis_order")
+      .Loops({s0, s1_0 + s1_1})
+      .Data("data0", 0, ge::DT_FLOAT16)
+      .Load("load0", "data0",
+            std::vector<af::Expression>{s0, s1_0},
+            std::vector<af::Expression>{s1_0, af::sym::kSymbolOne})
+      .Transpose("transpose0", "load0", {1, 0})
+      .Data("data1", 1, ge::DT_FLOAT16)
+      .Load("load1", "data1",
+            std::vector<af::Expression>{s0, s1_1},
+            std::vector<af::Expression>{s1_1, af::sym::kSymbolOne})
+      .Concat("concat", {"transpose0", "load1"}, 1)
+      .Store("store", "concat")
+      .Output("out", "store", 0)
+      .Build();
+
+  auto z0_id = graph.GetAllAxis()[0]->id;
+  auto z1_id = graph.GetAllAxis()[1]->id;
+
+  auto load0_node = std::dynamic_pointer_cast<af::AscNode>(graph.FindNode("load0"));
+  ASSERT_NE(load0_node, nullptr);
+  load0_node->outputs[0].attr.axis = std::vector<ascir::AxisId>{z1_id, z0_id};
+  load0_node->outputs[0].attr.repeats = std::vector<af::Expression>{s1_0, s0};
+  load0_node->outputs[0].attr.strides = std::vector<af::Expression>{s0, af::sym::kSymbolOne};
+
+  auto transpose0_node = std::dynamic_pointer_cast<af::AscNode>(graph.FindNode("transpose0"));
+  ASSERT_NE(transpose0_node, nullptr);
+  transpose0_node->outputs[0].attr.axis = std::vector<ascir::AxisId>{z0_id, z1_id};
+  transpose0_node->outputs[0].attr.repeats = std::vector<af::Expression>{s0, s1_0};
+  transpose0_node->outputs[0].attr.strides = std::vector<af::Expression>{s1_0, af::sym::kSymbolOne};
+
+  auto concat_node = std::dynamic_pointer_cast<af::AscNode>(graph.FindNode("concat"));
+  ASSERT_NE(concat_node, nullptr);
+  concat_node->outputs[0].attr.axis = std::vector<ascir::AxisId>{z0_id, z1_id};
+
+  optimize::ConcatFusionCaseGenerator generator;
+  std::vector<af::AscGraph> generated_graphs;
+  std::vector<std::string> score_functions;
+  EXPECT_EQ(generator.Generate(graph, generated_graphs, score_functions), ge::SUCCESS);
+
+  auto cg = af::AscGraphUtils::GetComputeGraph(graph);
+  auto load0_after = std::dynamic_pointer_cast<af::AscNode>(cg->FindNode("load0"));
+  ASSERT_NE(load0_after, nullptr);
+
+  const auto &output_axis = load0_after->outputs[0].attr.axis;
+  ASSERT_EQ(output_axis.size(), 2UL);
+  EXPECT_NE(output_axis[0], output_axis[1])
+      << "Load0 output axis[0] and axis[1] should be different axis IDs";
+  EXPECT_EQ(output_axis[0], z1_id)
+      << "Load0 output axis[0] should still be z1 (order preserved, only concat dim replaced)";
+}
 }  // namespace schedule

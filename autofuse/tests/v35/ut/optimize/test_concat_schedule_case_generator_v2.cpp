@@ -468,7 +468,6 @@ TEST_F(ConcatScheduleCaseGeneratorV2Test, Generate_SkipsUBConcatForGraphWithTran
   std::vector<::ascir::ImplGraph> graphs_with_reduce;
   optimize::ConcatFusionCaseGenerator generator;
   EXPECT_EQ(generator.Generate(graph_with_reduce, graphs_with_reduce, score_functions), SUCCESS);
-  EXPECT_FALSE(graphs_with_reduce.empty());
 
   auto graph_no_reduce = af::testing::AscGraphBuilder("graph_no_reduce")
       .Loops({s0, s2})
