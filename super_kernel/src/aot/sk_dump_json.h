@@ -65,7 +65,7 @@ void PrintOriginalScopes(const SuperKernelGraph& graph);
  * @brief Print fused scopes after fusion to current log context
  *
  * Iterates through processed scope infos, collects fused nodes (excluding scope nodes),
- * traces root break info, and prints fusionStatus, breakReason, parentScopeId, failReason,
+ * traces root break info, and prints scopeStatus, breakReason, parentScopeId,
  * and fusedNodeIds in batches.
  *
  * @param graph Reference to the SuperKernelGraph

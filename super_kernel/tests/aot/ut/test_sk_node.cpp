@@ -441,38 +441,170 @@ std::string MakeTmpDir(const std::string& suffix)
 
 TEST_F(SkNodeTest, FusionFailReasonInfo_BindmapDetailsAndStrings)
 {
-    FusionFailReasonInfo noneInfo(FusionFailReason::BINDMAP_IS_EMPTY, BindmapFailReason::NONE);
-    EXPECT_EQ(noneInfo.GetBindmapDetail(), BindmapFailReason::NONE);
-    EXPECT_EQ(FusionFailReasonToStr(noneInfo),
-        std::string(FusionFailReasonToStr(FusionFailReason::BINDMAP_IS_EMPTY)));
+    FusionFailReasonInfo noneInfo(BindmapFailReason::NONE);
+    EXPECT_EQ(noneInfo.GetBindmapFailReason(), BindmapFailReason::NONE);
+    EXPECT_EQ(noneInfo.primary, FusionFailReason::BINDMAP_RESOLVE_FAILED);
+    EXPECT_EQ(FusionFailReasonToStr(noneInfo), "BINDMAP_RESOLVE_FAILED");
+    EXPECT_EQ(FusionFailReasonDetailToStr(noneInfo), "Failed to resolve SuperKernel bind map for the operator");
+    EXPECT_STREQ(to_string(FusionFailReason::BINDMAP_RESOLVE_FAILED), "BINDMAP_RESOLVE_FAILED");
 
-    FusionFailReasonInfo info(FusionFailReason::BINDMAP_IS_EMPTY, BindmapFailReason::FUNCHDL_NULL);
-    EXPECT_EQ(info.GetBindmapDetail(), BindmapFailReason::FUNCHDL_NULL);
-    EXPECT_NE(FusionFailReasonToStr(info).find("funcHdl is null"), std::string::npos);
+    FusionFailReasonInfo info(BindmapFailReason::FUNCHDL_NULL);
+    EXPECT_EQ(info.GetBindmapFailReason(), BindmapFailReason::FUNCHDL_NULL);
+    EXPECT_EQ(FusionFailReasonToStr(info), "BINDMAP_RESOLVE_FAILED [FUNCHDL_NULL]");
+    EXPECT_EQ(FusionFailReasonDetailToStr(info),
+              "Failed to resolve SuperKernel bind map for the operator, funcHdl is null");
 
-    info.SetBindmapDetail(BindmapFailReason::FUNC_NOT_FOUND);
-    EXPECT_EQ(info.GetBindmapDetail(), BindmapFailReason::FUNC_NOT_FOUND);
-    EXPECT_NE(FusionFailReasonToStr(info).find("function not found in bind map"), std::string::npos);
+    info.SetBindmapFailReason(BindmapFailReason::FUNC_NOT_FOUND);
+    EXPECT_EQ(info.GetBindmapFailReason(), BindmapFailReason::FUNC_NOT_FOUND);
+    EXPECT_EQ(FusionFailReasonToStr(info), "BINDMAP_RESOLVE_FAILED [FUNC_NOT_FOUND]");
+    EXPECT_EQ(FusionFailReasonDetailToStr(info),
+              "Failed to resolve SuperKernel bind map for the operator, "
+              "function not found in bind map");
 
-    EXPECT_STREQ(BindmapFailReasonToStr(BindmapFailReason::BINDMAP_INIT_EMPTY), "bindmap init empty");
-    EXPECT_STREQ(BindmapFailReasonToStr(BindmapFailReason::BINHDL_NULL), "binHdl is null");
-    EXPECT_STREQ(BindmapFailReasonToStr(static_cast<BindmapFailReason>(255)), "UNKNOWN_BINDMAP_REASON");
+    EXPECT_STREQ(to_string(BindmapFailReason::BINDMAP_INIT_EMPTY), "BINDMAP_INIT_EMPTY");
+    EXPECT_STREQ(to_string(BindmapFailReason::BINHDL_NULL), "BINHDL_NULL");
+    EXPECT_STREQ(to_string(static_cast<BindmapFailReason>(255)), "UNKNOWN_BINDMAP_REASON");
+    EXPECT_STREQ(FusionFailReasonInfo(BindmapFailReason::BINHDL_NULL)
+                     .GetBindmapDetail(),
+                 "binHdl is null");
+    EXPECT_STREQ(FusionFailReasonInfo(static_cast<BindmapFailReason>(255))
+                     .GetBindmapDetail(),
+                 "");
+
+    struct BindmapReasonCase {
+        BindmapFailReason reason;
+        const char* name;
+        const char* detail;
+    };
+    const std::vector<BindmapReasonCase> bindmapCases = {
+        {BindmapFailReason::NONE, "NONE", ""},
+        {BindmapFailReason::BINDMAP_INIT_EMPTY, "BINDMAP_INIT_EMPTY", "bindmap init empty"},
+        {BindmapFailReason::BINHDL_NULL, "BINHDL_NULL", "binHdl is null"},
+        {BindmapFailReason::FUNCHDL_NULL, "FUNCHDL_NULL", "funcHdl is null"},
+        {BindmapFailReason::FUNC_NOT_FOUND, "FUNC_NOT_FOUND", "function not found in bind map"},
+        {BindmapFailReason::BIN_DEV_ADDR_GET_FAILED, "BIN_DEV_ADDR_GET_FAILED",
+            "failed to get binary device address"},
+        {BindmapFailReason::FUNC_ADDR_GET_FAILED, "FUNC_ADDR_GET_FAILED", "failed to get function address"},
+        {BindmapFailReason::BINDMAP_ENTRY_CONFLICT, "BINDMAP_ENTRY_CONFLICT", "bind map entry conflict"},
+        {BindmapFailReason::BINDMAP_CAP_INCONSISTENT, "BINDMAP_CAP_INCONSISTENT",
+            "bind map cap inconsistent"},
+        {BindmapFailReason::BIN_HOST_ADDR_GET_FAILED, "BIN_HOST_ADDR_GET_FAILED",
+            "failed to get binary host address"},
+    };
+    for (const auto& item : bindmapCases) {
+        EXPECT_STREQ(to_string(item.reason), item.name);
+        EXPECT_STREQ(FusionFailReasonInfo(item.reason).GetBindmapDetail(),
+            item.detail);
+    }
 }
 
 TEST_F(SkNodeTest, FusionFailReasonInfo_ScopeAndDeadlockDetails)
 {
-    FusionFailReasonInfo scopeInfo(FusionFailReason::SCOPE_FUSE_PART, static_cast<ScopeFailReason>(1));
-    EXPECT_EQ(scopeInfo.GetScopeDetail(), static_cast<ScopeFailReason>(1));
-    EXPECT_NE(FusionFailReasonToStr(scopeInfo).find("["), std::string::npos);
+    FusionFailReasonInfo scopeInfo(ScopeProcessStatus::RESOURCE_INSUFFICIENT);
+    EXPECT_EQ(scopeInfo.primary, FusionFailReason::SCOPE_FUSE_PART);
+    EXPECT_EQ(scopeInfo.GetScopeProcessStatus(), ScopeProcessStatus::RESOURCE_INSUFFICIENT);
+    EXPECT_STREQ(scopeInfo.GetScopeDetail(), "Insufficient stream task slots or event memory resources");
+    EXPECT_EQ(FusionFailReasonToStr(scopeInfo), "SCOPE_FUSE_PART [RESOURCE_INSUFFICIENT]");
+    EXPECT_EQ(FusionFailReasonDetailToStr(scopeInfo),
+              "scope fuse failed, "
+              "Insufficient stream task slots or event memory resources");
 
-    FusionFailReasonInfo deadlockInfo(FusionFailReason::EXIST_DEADLOCK, static_cast<DeadlockFailReason>(1));
-    EXPECT_EQ(deadlockInfo.GetDeadlockDetail(), static_cast<DeadlockFailReason>(1));
-    EXPECT_NE(FusionFailReasonToStr(deadlockInfo).find("["), std::string::npos);
+    FusionFailReasonInfo deadlockInfo(static_cast<DeadlockFailReason>(1));
+    EXPECT_EQ(deadlockInfo.primary, FusionFailReason::EXIST_DEADLOCK);
+    EXPECT_EQ(deadlockInfo.GetDeadlockFailReason(), static_cast<DeadlockFailReason>(1));
+    EXPECT_EQ(FusionFailReasonToStr(deadlockInfo), "EXIST_DEADLOCK [KERNEL_INSUFFICIENT_CORES]");
+    EXPECT_EQ(FusionFailReasonDetailToStr(deadlockInfo),
+              "exist deadlock, "
+              "The wait node depends on a kernel node that requires more cores than available");
+    EXPECT_STREQ(to_string(DeadlockFailReason::NOTIFY_NOT_IN_GRAPH), "NOTIFY_NOT_IN_GRAPH");
+    EXPECT_STREQ(to_string(static_cast<DeadlockFailReason>(255)), "UNKNOWN_DEADLOCK_REASON");
+    EXPECT_STREQ(FusionFailReasonInfo(DeadlockFailReason::FIRST_WAIT)
+                     .GetDeadlockDetail(),
+                 "The wait node is first node in scope");
+    EXPECT_STREQ(FusionFailReasonInfo(static_cast<DeadlockFailReason>(255))
+                     .GetDeadlockDetail(),
+                 "");
 
-    scopeInfo.SetScopeDetail(static_cast<ScopeFailReason>(0));
-    deadlockInfo.SetDeadlockDetail(static_cast<DeadlockFailReason>(0));
-    EXPECT_EQ(scopeInfo.GetScopeDetail(), static_cast<ScopeFailReason>(0));
-    EXPECT_EQ(deadlockInfo.GetDeadlockDetail(), static_cast<DeadlockFailReason>(0));
+    struct DeadlockReasonCase {
+        DeadlockFailReason reason;
+        const char* name;
+        const char* detail;
+    };
+    const std::vector<DeadlockReasonCase> deadlockCases = {
+        {DeadlockFailReason::NOT_FIND_DEADLOCK, "NOT_FIND_DEADLOCK", ""},
+        {DeadlockFailReason::KERNEL_INSUFFICIENT_CORES, "KERNEL_INSUFFICIENT_CORES",
+            "The wait node depends on a kernel node that requires more cores than available"},
+        {DeadlockFailReason::NOTIFY_INSUFFICIENT_CORES, "NOTIFY_INSUFFICIENT_CORES",
+            "The wait node depends on a notify node which has fused in other SK that it requires more cores"},
+        {DeadlockFailReason::NOTIFY_NOT_IN_GRAPH, "NOTIFY_NOT_IN_GRAPH",
+            "The wait node depends on a notify node that it is not in graph"},
+        {DeadlockFailReason::NOTIFY_AFTER_SK_RANGE, "NOTIFY_AFTER_SK_RANGE",
+            "The wait node depends on a notify node that it is after SK range"},
+        {DeadlockFailReason::NOTIFY_INVALID, "NOTIFY_INVALID",
+            "In check deadlock of this wait node, get invalid notify node"},
+        {DeadlockFailReason::FIRST_WAIT, "FIRST_WAIT", "The wait node is first node in scope"},
+        {DeadlockFailReason::NO_SUPPORT_NODE, "NO_SUPPORT_NODE",
+            "The wait node waiting for unsupport node type"},
+    };
+    for (const auto& item : deadlockCases) {
+        EXPECT_STREQ(to_string(item.reason), item.name);
+        EXPECT_STREQ(FusionFailReasonInfo(item.reason).GetDeadlockDetail(),
+            item.detail);
+    }
+
+    scopeInfo.SetScopeProcessStatus(ScopeProcessStatus::INIT);
+    deadlockInfo.SetDeadlockFailReason(static_cast<DeadlockFailReason>(0));
+    EXPECT_EQ(scopeInfo.GetScopeProcessStatus(), ScopeProcessStatus::INIT);
+    EXPECT_EQ(deadlockInfo.GetDeadlockFailReason(), static_cast<DeadlockFailReason>(0));
+}
+
+TEST_F(SkNodeTest, FusionFailReasonStrings_CoverAllEnumNamesAndDetails)
+{
+    struct FusionReasonCase {
+        FusionFailReason reason;
+        const char* name;
+        const char* detail;
+    };
+    const std::vector<FusionReasonCase> fusionReasonCases = {
+        {FusionFailReason::CAN_FUSE, "CAN_FUSE", "node can fuse"},
+        {FusionFailReason::BINDMAP_RESOLVE_FAILED, "BINDMAP_RESOLVE_FAILED",
+            "Failed to resolve SuperKernel bind map for the operator"},
+        {FusionFailReason::TASK_GROUP_NOT_EMPTY, "TASK_GROUP_NOT_EMPTY",
+            "The operator will refresh task information at runtime"},
+        {FusionFailReason::NOT_IN_SCOPE, "NOT_IN_SCOPE",
+            "The user actively marked that this operator is not fused"},
+        {FusionFailReason::IN_UNFUSIBLE_SCOPE, "IN_UNFUSIBLE_SCOPE",
+            "This operator is not within the fusion range marked by the user"},
+        {FusionFailReason::EXCEED_DEVICE_MAX, "EXCEED_DEVICE_MAX",
+            "exceeds the maximum number of kernels that the device can provide"},
+        {FusionFailReason::RESET_TYPE_NODE, "RESET_TYPE_NODE", "reset type node in end"},
+        {FusionFailReason::ISOLATED_EVENT, "ISOLATED_EVENT", "There is no kernel node on the stream"},
+        {FusionFailReason::EXIST_DEADLOCK, "EXIST_DEADLOCK", "exist deadlock"},
+        {FusionFailReason::SCOPE_FUSE_PART, "SCOPE_FUSE_PART", "scope fuse failed"},
+        {FusionFailReason::EXTERNAL_DEPEND, "EXTERNAL_DEPEND", "event node has external dependency"},
+        {FusionFailReason::UNSUPPORT_EVENT_TYPE, "UNSUPPORT_EVENT_TYPE", "unsupport event type"},
+        {FusionFailReason::MEMORY_WAIT_NODE_ONLY, "MEMORY_WAIT_NODE_ONLY", "No memory write exists"},
+        {FusionFailReason::MEMORY_WRITE_NODE_ONLY, "MEMORY_WRITE_NODE_ONLY",
+            "only exists memory write nodes"},
+        {FusionFailReason::DEFAULT_NODE, "DEFAULT_NODE", "default node uses aicpu resources"},
+        {FusionFailReason::SIMT_OP_NOT_SUPPORTED, "SIMT_OP_NOT_SUPPORTED",
+            "SIMT operator is not supported for SuperKernel fusion"},
+        {FusionFailReason::KERNEL_ATTR_GET_FAILED, "KERNEL_ATTR_GET_FAILED",
+            "Failed to get kernel attribute for SuperKernel fusion"},
+        {FusionFailReason::EXCEED_SCOPE_MAX, "EXCEED_SCOPE_MAX", "Exceeded maximum scope number limit"},
+    };
+    for (const auto& item : fusionReasonCases) {
+        EXPECT_STREQ(to_string(item.reason), item.name);
+        FusionFailReasonInfo info(item.reason);
+        EXPECT_EQ(FusionFailReasonToStr(info), item.name);
+        EXPECT_NE(FusionFailReasonDetailToStr(info).find(item.detail), std::string::npos);
+    }
+
+    EXPECT_STREQ(to_string(static_cast<FusionFailReason>(255)), "UNKNOWN_FUSION_FAIL_REASON");
+    EXPECT_EQ(FusionFailReasonToStr(FusionFailReasonInfo(static_cast<FusionFailReason>(255))),
+              "UNKNOWN_FUSION_FAIL_REASON");
+    EXPECT_EQ(FusionFailReasonDetailToStr(FusionFailReasonInfo(static_cast<FusionFailReason>(255))),
+              "UNKNOWN_REASON");
 }
 
 TEST_F(SkNodeTest, AlignUpAndClamp_CoversAlignmentAndCoreClamp)
@@ -566,8 +698,8 @@ TEST_F(SkNodeTest, KernelInitNode_BindmapEmptyReasonIsRecorded)
     SuperKernelKernelNode node(MakeOriginTask(task), ACL_MODEL_RI_TASK_KERNEL, 0, 0, 0, INVALID_TASK_ID);
     EXPECT_TRUE(node.InitNode());
     EXPECT_FALSE(node.IsFusible());
-    EXPECT_EQ(node.GetFusionFailReason(), FusionFailReason::BINDMAP_IS_EMPTY);
-    EXPECT_EQ(node.GetFusionFailReasonInfo().GetBindmapDetail(), BindmapFailReason::BINDMAP_INIT_EMPTY);
+    EXPECT_EQ(node.GetFusionFailReason(), FusionFailReason::BINDMAP_RESOLVE_FAILED);
+    EXPECT_EQ(node.GetFusionFailReasonInfo().GetBindmapFailReason(), BindmapFailReason::BINDMAP_INIT_EMPTY);
 }
 
 TEST_F(SkNodeTest, KernelInitNode_MixSplitFlagHonorsUbufLockIgnoreKernel)
@@ -613,8 +745,8 @@ TEST_F(SkNodeTest, KernelInitNode_NullFuncHandleRecordsBindmapReason)
     SuperKernelKernelNode node(MakeOriginTask(task), ACL_MODEL_RI_TASK_KERNEL, 0, 0, 0, INVALID_TASK_ID);
     EXPECT_TRUE(node.InitNode());
     EXPECT_FALSE(node.IsFusible());
-    EXPECT_EQ(node.GetFusionFailReason(), FusionFailReason::BINDMAP_IS_EMPTY);
-    EXPECT_EQ(node.GetFusionFailReasonInfo().GetBindmapDetail(), BindmapFailReason::FUNCHDL_NULL);
+    EXPECT_EQ(node.GetFusionFailReason(), FusionFailReason::BINDMAP_RESOLVE_FAILED);
+    EXPECT_EQ(node.GetFusionFailReasonInfo().GetBindmapFailReason(), BindmapFailReason::FUNCHDL_NULL);
 }
 
 TEST_F(SkNodeTest, KernelInitNode_RecordsConsistentCapInKernelInfos)
@@ -666,8 +798,8 @@ TEST_F(SkNodeTest, KernelInitNode_InconsistentCapRecordsBindmapReason)
     EXPECT_EQ(node.nodeInfos.kernelInfos.cap, 0U);
     EXPECT_EQ(node.nodeInfos.kernelInfos.bindmapFailReason, BindmapFailReason::BINDMAP_CAP_INCONSISTENT);
     EXPECT_EQ(node.nodeInfos.kernelInfos.resolvedNum, 0U);
-    EXPECT_EQ(node.GetFusionFailReason(), FusionFailReason::BINDMAP_IS_EMPTY);
-    EXPECT_EQ(node.GetFusionFailReasonInfo().GetBindmapDetail(), BindmapFailReason::BINDMAP_CAP_INCONSISTENT);
+    EXPECT_EQ(node.GetFusionFailReason(), FusionFailReason::BINDMAP_RESOLVE_FAILED);
+    EXPECT_EQ(node.GetFusionFailReasonInfo().GetBindmapFailReason(), BindmapFailReason::BINDMAP_CAP_INCONSISTENT);
 }
 
 TEST_F(SkNodeTest, KernelInitNode_BindmapEntryConflictRecordsBindmapReason)
@@ -690,7 +822,7 @@ TEST_F(SkNodeTest, KernelInitNode_BindmapEntryConflictRecordsBindmapReason)
     EXPECT_TRUE(node.InitNode());
     EXPECT_FALSE(node.IsFusible());
     EXPECT_EQ(node.nodeInfos.kernelInfos.bindmapFailReason, BindmapFailReason::BINDMAP_ENTRY_CONFLICT);
-    EXPECT_EQ(node.GetFusionFailReasonInfo().GetBindmapDetail(), BindmapFailReason::BINDMAP_ENTRY_CONFLICT);
+    EXPECT_EQ(node.GetFusionFailReasonInfo().GetBindmapFailReason(), BindmapFailReason::BINDMAP_ENTRY_CONFLICT);
 }
 
 TEST_F(SkNodeTest, KernelInitNode_FunctionNotInBindmapRecordsBindmapReason)
@@ -713,7 +845,7 @@ TEST_F(SkNodeTest, KernelInitNode_FunctionNotInBindmapRecordsBindmapReason)
     EXPECT_TRUE(node.InitNode());
     EXPECT_FALSE(node.IsFusible());
     EXPECT_EQ(node.nodeInfos.kernelInfos.bindmapFailReason, BindmapFailReason::FUNC_NOT_FOUND);
-    EXPECT_EQ(node.GetFusionFailReasonInfo().GetBindmapDetail(), BindmapFailReason::FUNC_NOT_FOUND);
+    EXPECT_EQ(node.GetFusionFailReasonInfo().GetBindmapFailReason(), BindmapFailReason::FUNC_NOT_FOUND);
 }
 
 TEST_F(SkNodeTest, KernelInitNode_BinHostAddrGetFailedRecordsBindmapReason)
@@ -737,7 +869,7 @@ TEST_F(SkNodeTest, KernelInitNode_BinHostAddrGetFailedRecordsBindmapReason)
     EXPECT_TRUE(node.InitNode());
     EXPECT_FALSE(node.IsFusible());
     EXPECT_EQ(node.nodeInfos.kernelInfos.bindmapFailReason, BindmapFailReason::BIN_HOST_ADDR_GET_FAILED);
-    EXPECT_EQ(node.GetFusionFailReasonInfo().GetBindmapDetail(), BindmapFailReason::BIN_HOST_ADDR_GET_FAILED);
+    EXPECT_EQ(node.GetFusionFailReasonInfo().GetBindmapFailReason(), BindmapFailReason::BIN_HOST_ADDR_GET_FAILED);
 }
 
 TEST_F(SkNodeTest, KernelInitNode_TaskGroupNotEmptyRecordsReason)
@@ -1129,17 +1261,17 @@ TEST_F(SkNodeTest, Node_FusionFailReasonManagement)
 
     EXPECT_EQ(node.GetFusionFailReason(), FusionFailReason::RESET_TYPE_NODE);
 
-    node.SetFusionFailReason(FusionFailReason::SCOPE_FUSE_PART, ScopeFailReason::STREAM_SYNC_FAIL);
+    node.SetFusionFailReason(ScopeProcessStatus::RESOURCE_INSUFFICIENT);
     EXPECT_EQ(node.GetFusionFailReason(), FusionFailReason::SCOPE_FUSE_PART);
-    EXPECT_EQ(node.GetFusionFailReasonInfo().GetScopeDetail(), ScopeFailReason::STREAM_SYNC_FAIL);
+    EXPECT_EQ(node.GetFusionFailReasonInfo().GetScopeProcessStatus(), ScopeProcessStatus::RESOURCE_INSUFFICIENT);
 
-    node.SetFusionFailReason(FusionFailReason::EXIST_DEADLOCK, DeadlockFailReason::NOTIFY_NOT_IN_GRAPH);
+    node.SetFusionFailReason(DeadlockFailReason::NOTIFY_NOT_IN_GRAPH);
     EXPECT_EQ(node.GetFusionFailReason(), FusionFailReason::EXIST_DEADLOCK);
-    EXPECT_EQ(node.GetFusionFailReasonInfo().GetDeadlockDetail(), DeadlockFailReason::NOTIFY_NOT_IN_GRAPH);
+    EXPECT_EQ(node.GetFusionFailReasonInfo().GetDeadlockFailReason(), DeadlockFailReason::NOTIFY_NOT_IN_GRAPH);
 
-    node.SetFusionFailReason(FusionFailReason::BINDMAP_IS_EMPTY, BindmapFailReason::FUNC_NOT_FOUND);
-    EXPECT_EQ(node.GetFusionFailReason(), FusionFailReason::BINDMAP_IS_EMPTY);
-    EXPECT_EQ(node.GetFusionFailReasonInfo().GetBindmapDetail(), BindmapFailReason::FUNC_NOT_FOUND);
+    node.SetFusionFailReason(BindmapFailReason::FUNC_NOT_FOUND);
+    EXPECT_EQ(node.GetFusionFailReason(), FusionFailReason::BINDMAP_RESOLVE_FAILED);
+    EXPECT_EQ(node.GetFusionFailReasonInfo().GetBindmapFailReason(), BindmapFailReason::FUNC_NOT_FOUND);
 }
 
 // ==================== Node Stream and Index Tests ====================
@@ -1653,48 +1785,47 @@ TEST_F(SkNodeTest, SimtAivType_SimdSimtMix)
     EXPECT_EQ(aivType, 4);
 }
 
-TEST_F(SkNodeTest, BindmapFailReasonToStr_NewReasons)
+TEST_F(SkNodeTest, BindmapFailReasonStrings_NewReasons)
 {
-    EXPECT_STREQ(BindmapFailReasonToStr(BindmapFailReason::BIN_DEV_ADDR_GET_FAILED),
-                 "failed to get binary device address");
-    EXPECT_STREQ(BindmapFailReasonToStr(BindmapFailReason::FUNC_ADDR_GET_FAILED),
-                 "failed to get function address");
-    EXPECT_STREQ(BindmapFailReasonToStr(BindmapFailReason::BINDMAP_ENTRY_CONFLICT),
-                 "bind map entry conflict");
-    EXPECT_STREQ(BindmapFailReasonToStr(BindmapFailReason::BINDMAP_CAP_INCONSISTENT),
-                 "bind map cap inconsistent");
-    EXPECT_STREQ(BindmapFailReasonToStr(BindmapFailReason::BIN_HOST_ADDR_GET_FAILED),
-                 "failed to get binary host address");
+    EXPECT_STREQ(to_string(BindmapFailReason::BIN_DEV_ADDR_GET_FAILED), "BIN_DEV_ADDR_GET_FAILED");
+    EXPECT_STREQ(to_string(BindmapFailReason::FUNC_ADDR_GET_FAILED), "FUNC_ADDR_GET_FAILED");
+    EXPECT_STREQ(to_string(BindmapFailReason::BINDMAP_ENTRY_CONFLICT), "BINDMAP_ENTRY_CONFLICT");
+    EXPECT_STREQ(to_string(BindmapFailReason::BINDMAP_CAP_INCONSISTENT), "BINDMAP_CAP_INCONSISTENT");
+    EXPECT_STREQ(to_string(BindmapFailReason::BIN_HOST_ADDR_GET_FAILED), "BIN_HOST_ADDR_GET_FAILED");
 }
 
 TEST_F(SkNodeTest, FusionFailReasonInfo_BindmapNewReasons)
 {
-    FusionFailReasonInfo info1(FusionFailReason::BINDMAP_IS_EMPTY,
-        BindmapFailReason::BIN_DEV_ADDR_GET_FAILED);
-    EXPECT_EQ(info1.GetBindmapDetail(), BindmapFailReason::BIN_DEV_ADDR_GET_FAILED);
+    FusionFailReasonInfo info1(BindmapFailReason::BIN_DEV_ADDR_GET_FAILED);
+    EXPECT_EQ(info1.GetBindmapFailReason(), BindmapFailReason::BIN_DEV_ADDR_GET_FAILED);
     std::string str1 = FusionFailReasonToStr(info1);
-    EXPECT_NE(str1.find("failed to get binary device address"), std::string::npos);
+    EXPECT_EQ(str1, "BINDMAP_RESOLVE_FAILED [BIN_DEV_ADDR_GET_FAILED]");
 
-    FusionFailReasonInfo info2(FusionFailReason::BINDMAP_IS_EMPTY,
-        BindmapFailReason::FUNC_ADDR_GET_FAILED);
-    EXPECT_EQ(info2.GetBindmapDetail(), BindmapFailReason::FUNC_ADDR_GET_FAILED);
+    FusionFailReasonInfo info2(BindmapFailReason::FUNC_ADDR_GET_FAILED);
+    EXPECT_EQ(info2.GetBindmapFailReason(), BindmapFailReason::FUNC_ADDR_GET_FAILED);
     std::string str2 = FusionFailReasonToStr(info2);
-    EXPECT_NE(str2.find("failed to get function address"), std::string::npos);
+    EXPECT_EQ(str2, "BINDMAP_RESOLVE_FAILED [FUNC_ADDR_GET_FAILED]");
 
-    info1.SetBindmapDetail(BindmapFailReason::FUNC_ADDR_GET_FAILED);
-    EXPECT_EQ(info1.GetBindmapDetail(), BindmapFailReason::FUNC_ADDR_GET_FAILED);
+    info1.SetBindmapFailReason(BindmapFailReason::FUNC_ADDR_GET_FAILED);
+    EXPECT_EQ(info1.GetBindmapFailReason(), BindmapFailReason::FUNC_ADDR_GET_FAILED);
 }
 
 TEST_F(SkNodeTest, FusionFailReasonToStr_NewKernelAttrFailed)
 {
-    const char* str = FusionFailReasonToStr(FusionFailReason::KERNEL_ATTR_GET_FAILED);
-    EXPECT_NE(std::string(str).find("Failed to get kernel attribute"), std::string::npos);
+    const char* str = to_string(FusionFailReason::KERNEL_ATTR_GET_FAILED);
+    EXPECT_STREQ(str, "KERNEL_ATTR_GET_FAILED");
+    FusionFailReasonInfo info(FusionFailReason::KERNEL_ATTR_GET_FAILED);
+    EXPECT_EQ(FusionFailReasonToStr(info), "KERNEL_ATTR_GET_FAILED");
+    EXPECT_NE(FusionFailReasonDetailToStr(info).find("Failed to get kernel attribute"), std::string::npos);
 }
 
 TEST_F(SkNodeTest, FusionFailReasonToStr_ExceedScopeMax)
 {
-    const char* str = FusionFailReasonToStr(FusionFailReason::EXCEED_SCOPE_MAX);
-    EXPECT_NE(std::string(str).find("Exceeded maximum scope number limit"), std::string::npos);
+    const char* str = to_string(FusionFailReason::EXCEED_SCOPE_MAX);
+    EXPECT_STREQ(str, "EXCEED_SCOPE_MAX");
+    FusionFailReasonInfo info(FusionFailReason::EXCEED_SCOPE_MAX);
+    EXPECT_EQ(FusionFailReasonToStr(info), "EXCEED_SCOPE_MAX");
+    EXPECT_NE(FusionFailReasonDetailToStr(info).find("Exceeded maximum scope number limit"), std::string::npos);
 }
 
 aclError FakeAclrtBinaryGetDevAddressFailure(aclrtBinHandle binHdl, void** devAddr, size_t* devSize)
@@ -1743,8 +1874,8 @@ TEST_F(SkNodeTest, KernelInitNode_BinaryDevAddrGetFailed_RecordsBindmapReason)
     SuperKernelKernelNode node(MakeOriginTask(task), ACL_MODEL_RI_TASK_KERNEL, 0, 0, 0, INVALID_TASK_ID);
     EXPECT_TRUE(node.InitNode());
     EXPECT_FALSE(node.IsFusible());
-    EXPECT_EQ(node.GetFusionFailReason(), FusionFailReason::BINDMAP_IS_EMPTY);
-    EXPECT_EQ(node.GetFusionFailReasonInfo().GetBindmapDetail(),
+    EXPECT_EQ(node.GetFusionFailReason(), FusionFailReason::BINDMAP_RESOLVE_FAILED);
+    EXPECT_EQ(node.GetFusionFailReasonInfo().GetBindmapFailReason(),
               BindmapFailReason::BIN_DEV_ADDR_GET_FAILED);
 }
 
@@ -1775,8 +1906,8 @@ TEST_F(SkNodeTest, KernelInitNode_FunctionAddrGetFailed_RecordsBindmapReason)
     SuperKernelKernelNode node(MakeOriginTask(task), ACL_MODEL_RI_TASK_KERNEL, 0, 0, 0, INVALID_TASK_ID);
     EXPECT_TRUE(node.InitNode());
     EXPECT_FALSE(node.IsFusible());
-    EXPECT_EQ(node.GetFusionFailReason(), FusionFailReason::BINDMAP_IS_EMPTY);
-    EXPECT_EQ(node.GetFusionFailReasonInfo().GetBindmapDetail(),
+    EXPECT_EQ(node.GetFusionFailReason(), FusionFailReason::BINDMAP_RESOLVE_FAILED);
+    EXPECT_EQ(node.GetFusionFailReasonInfo().GetBindmapFailReason(),
               BindmapFailReason::FUNC_ADDR_GET_FAILED);
 }
 

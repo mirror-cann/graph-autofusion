@@ -43,6 +43,68 @@ extern "C" aclrtBinHandle AscendGetEntryBinHandle();
 
 constexpr uint64_t INVALID_SK_BIND_VALUE = 0xffffffffffffffffULL;
 
+namespace {
+bool GetFunctionAllocUbufSize(aclrtFuncHandle funcHandle, size_t& allocUbufSize, const std::string& context)
+{
+    uint32_t allocUbufSizeValue = 0;
+    rtError_t ret = rtFunctionGetMetaInfo(funcHandle, RT_FUNCTION_TYPE_COMPILER_ALLOC_UB_SIZE,
+        &allocUbufSizeValue, sizeof(allocUbufSizeValue));
+    if (ret != RT_ERROR_NONE) {
+        SK_LOGE("rtFunctionGetMetaInfo COMPILER_ALLOC_UB_SIZE failed for %s, ret=%d", context.c_str(), ret);
+        return false;
+    }
+    allocUbufSize = static_cast<size_t>(allocUbufSizeValue);
+    return true;
+}
+
+const char* FusionFailReasonDetail(FusionFailReason reason)
+{
+    switch (reason) {
+        case FusionFailReason::CAN_FUSE:
+            return "node can fuse";
+        case FusionFailReason::BINDMAP_RESOLVE_FAILED:
+            return "Failed to resolve SuperKernel bind map for the operator";
+        case FusionFailReason::TASK_GROUP_NOT_EMPTY:
+            return "The operator will refresh task information at runtime, but SK does not support fusing dynamically changing tasks";
+        case FusionFailReason::NOT_IN_SCOPE:
+            return "The user actively marked that this operator is not fused";
+        case FusionFailReason::IN_UNFUSIBLE_SCOPE:
+            return "This operator is not within the fusion range marked by the user";
+        case FusionFailReason::EXCEED_DEVICE_MAX:
+            return "The number of kernels required by the operator exceeds the maximum number of kernels that the device can provide";
+        case FusionFailReason::RESET_TYPE_NODE:
+            return "reset type node in end";
+        case FusionFailReason::ISOLATED_EVENT:
+            return "There is no kernel node on the stream where the current node is located, and this stream is within the scope";
+        case FusionFailReason::EXIST_DEADLOCK:
+            return "exist deadlock";
+        case FusionFailReason::SCOPE_FUSE_PART:
+            return "scope fuse failed";
+        case FusionFailReason::EXTERNAL_DEPEND:
+            return "event node has external dependency";
+        case FusionFailReason::UNSUPPORT_EVENT_TYPE:
+            return "unsupport event type";
+        case FusionFailReason::NOTIFY_NO_WAIT_NODE:
+            return "notify node has no wait node in modelRI, mark as unfusible";
+        case FusionFailReason::MEMORY_WAIT_NODE_ONLY:
+            return "No memory write exists, meaning the memory write is outside modelRI. Therefore change all waits to event semantics, but they cannot be fused.";
+        case FusionFailReason::MEMORY_WRITE_NODE_ONLY:
+            return "only exists memory write nodes, mask it as unfusible";
+        case FusionFailReason::DEFAULT_NODE:
+            return "default node uses aicpu resources, mask it as unfusible";
+        case FusionFailReason::SIMT_OP_NOT_SUPPORTED:
+            return "SIMT operator is not supported for SuperKernel fusion";
+        case FusionFailReason::KERNEL_ATTR_GET_FAILED:
+            return "Failed to get kernel attribute for SuperKernel fusion";
+        case FusionFailReason::EXCEED_SCOPE_MAX:
+            return "Exceeded maximum scope number limit for SuperKernel fusion";
+        default:
+            return "UNKNOWN_REASON";
+    }
+}
+
+} // namespace
+
 KernelCapBits ParseKernelCapBits(uint64_t cap)
 {
     const auto getBit = [cap](KernelCapBitOffset offset) -> bool {
@@ -57,81 +119,173 @@ KernelCapBits ParseKernelCapBits(uint64_t cap)
     return bits;
 }
 
-// Implementation of FusionFailReasonInfo methods (requires complete ScopeFailReason/DeadlockFailReason definition)
-FusionFailReasonInfo::FusionFailReasonInfo(FusionFailReason reason, ScopeFailReason scopeReason)
-    : primary(reason), scopeDetailValue(static_cast<uint8_t>(scopeReason)) {}
+// Implementation of FusionFailReasonInfo methods (requires complete ScopeProcessStatus/DeadlockFailReason definition)
+FusionFailReasonInfo::FusionFailReasonInfo()
+    : scopeProcessStatus(ScopeProcessStatus::INIT),
+      deadlockFailReason(DeadlockFailReason::NOT_FIND_DEADLOCK),
+      bindmapFailReason(BindmapFailReason::NONE) {}
 
-FusionFailReasonInfo::FusionFailReasonInfo(FusionFailReason reason, DeadlockFailReason deadlockReason)
-    : primary(reason), deadlockDetailValue(static_cast<uint8_t>(deadlockReason)) {}
+FusionFailReasonInfo::FusionFailReasonInfo(FusionFailReason reason)
+    : primary(reason),
+      scopeProcessStatus(ScopeProcessStatus::INIT),
+      deadlockFailReason(DeadlockFailReason::NOT_FIND_DEADLOCK),
+      bindmapFailReason(BindmapFailReason::NONE) {}
 
-ScopeFailReason FusionFailReasonInfo::GetScopeDetail() const {
-    return static_cast<ScopeFailReason>(scopeDetailValue);
+FusionFailReasonInfo::FusionFailReasonInfo(ScopeProcessStatus scopeStatus)
+    : primary(FusionFailReason::SCOPE_FUSE_PART),
+      scopeProcessStatus(scopeStatus),
+      deadlockFailReason(DeadlockFailReason::NOT_FIND_DEADLOCK),
+      bindmapFailReason(BindmapFailReason::NONE) {}
+
+FusionFailReasonInfo::FusionFailReasonInfo(DeadlockFailReason deadlockReason)
+    : primary(FusionFailReason::EXIST_DEADLOCK),
+      scopeProcessStatus(ScopeProcessStatus::INIT),
+      deadlockFailReason(deadlockReason),
+      bindmapFailReason(BindmapFailReason::NONE) {}
+
+ScopeProcessStatus FusionFailReasonInfo::GetScopeProcessStatus() const {
+    return scopeProcessStatus;
 }
 
-void FusionFailReasonInfo::SetScopeDetail(ScopeFailReason scopeReason) {
-    scopeDetailValue = static_cast<uint8_t>(scopeReason);
+void FusionFailReasonInfo::SetScopeProcessStatus(ScopeProcessStatus scopeStatus) {
+    scopeProcessStatus = scopeStatus;
 }
 
-DeadlockFailReason FusionFailReasonInfo::GetDeadlockDetail() const {
-    return static_cast<DeadlockFailReason>(deadlockDetailValue);
+const char* FusionFailReasonInfo::GetScopeDetail() const
+{
+    return ScopeProcessStatusDetail(GetScopeProcessStatus());
 }
 
-void FusionFailReasonInfo::SetDeadlockDetail(DeadlockFailReason deadlockReason) {
-    deadlockDetailValue = static_cast<uint8_t>(deadlockReason);
+DeadlockFailReason FusionFailReasonInfo::GetDeadlockFailReason() const {
+    return deadlockFailReason;
 }
 
-FusionFailReasonInfo::FusionFailReasonInfo(FusionFailReason reason, BindmapFailReason bindmapReason)
-    : primary(reason), bindmapDetailValue(static_cast<uint8_t>(bindmapReason)) {}
-
-BindmapFailReason FusionFailReasonInfo::GetBindmapDetail() const {
-    return static_cast<BindmapFailReason>(bindmapDetailValue);
+void FusionFailReasonInfo::SetDeadlockFailReason(DeadlockFailReason deadlockReason) {
+    deadlockFailReason = deadlockReason;
 }
 
-void FusionFailReasonInfo::SetBindmapDetail(BindmapFailReason bindmapReason) {
-    bindmapDetailValue = static_cast<uint8_t>(bindmapReason);
-}
-
-const char* BindmapFailReasonToStr(BindmapFailReason reason) {
-    switch (reason) {
-        case BindmapFailReason::NONE:                   return "NONE";
-        case BindmapFailReason::BINDMAP_INIT_EMPTY:     return "bindmap init empty";
-        case BindmapFailReason::BINHDL_NULL:            return "binHdl is null";
-        case BindmapFailReason::FUNCHDL_NULL:           return "funcHdl is null";
-        case BindmapFailReason::FUNC_NOT_FOUND:         return "function not found in bind map";
-        case BindmapFailReason::BIN_DEV_ADDR_GET_FAILED: return "failed to get binary device address";
-        case BindmapFailReason::FUNC_ADDR_GET_FAILED:   return "failed to get function address";
-        case BindmapFailReason::BINDMAP_ENTRY_CONFLICT: return "bind map entry conflict";
-        case BindmapFailReason::BINDMAP_CAP_INCONSISTENT: return "bind map cap inconsistent";
-        case BindmapFailReason::BIN_HOST_ADDR_GET_FAILED: return "failed to get binary host address";
-        default:                                        return "UNKNOWN_BINDMAP_REASON";
+const char* FusionFailReasonInfo::GetDeadlockDetail() const
+{
+    switch (GetDeadlockFailReason()) {
+        case DeadlockFailReason::KERNEL_INSUFFICIENT_CORES:
+            return "The wait node depends on a kernel node that requires more cores than available";
+        case DeadlockFailReason::NOTIFY_INSUFFICIENT_CORES:
+            return "The wait node depends on a notify node which has fused in other SK that it requires more cores";
+        case DeadlockFailReason::NOTIFY_NOT_IN_GRAPH:
+            return "The wait node depends on a notify node that it is not in graph";
+        case DeadlockFailReason::NOTIFY_AFTER_SK_RANGE:
+            return "The wait node depends on a notify node that it is after SK range";
+        case DeadlockFailReason::NOTIFY_INVALID:
+            return "In check deadlock of this wait node, get invalid notify node";
+        case DeadlockFailReason::FIRST_WAIT:
+            return "The wait node is first node in scope";
+        case DeadlockFailReason::NO_SUPPORT_NODE:
+            return "The wait node waiting for unsupport node type";
+        default:
+            return "";
     }
 }
 
-std::string FusionFailReasonToStr(const FusionFailReasonInfo& info) {
-    std::string result = FusionFailReasonToStr(info.primary);
+FusionFailReasonInfo::FusionFailReasonInfo(BindmapFailReason bindmapReason)
+    : primary(FusionFailReason::BINDMAP_RESOLVE_FAILED),
+      scopeProcessStatus(ScopeProcessStatus::INIT),
+      deadlockFailReason(DeadlockFailReason::NOT_FIND_DEADLOCK),
+      bindmapFailReason(bindmapReason) {}
+
+BindmapFailReason FusionFailReasonInfo::GetBindmapFailReason() const {
+    return bindmapFailReason;
+}
+
+void FusionFailReasonInfo::SetBindmapFailReason(BindmapFailReason bindmapReason) {
+    bindmapFailReason = bindmapReason;
+}
+
+const char* FusionFailReasonInfo::GetBindmapDetail() const
+{
+    switch (GetBindmapFailReason()) {
+        case BindmapFailReason::BINDMAP_INIT_EMPTY:
+            return "bindmap init empty";
+        case BindmapFailReason::BINHDL_NULL:
+            return "binHdl is null";
+        case BindmapFailReason::FUNCHDL_NULL:
+            return "funcHdl is null";
+        case BindmapFailReason::FUNC_NOT_FOUND:
+            return "function not found in bind map";
+        case BindmapFailReason::BIN_DEV_ADDR_GET_FAILED:
+            return "failed to get binary device address";
+        case BindmapFailReason::FUNC_ADDR_GET_FAILED:
+            return "failed to get function address";
+        case BindmapFailReason::BINDMAP_ENTRY_CONFLICT:
+            return "bind map entry conflict";
+        case BindmapFailReason::BINDMAP_CAP_INCONSISTENT:
+            return "bind map cap inconsistent";
+        case BindmapFailReason::BIN_HOST_ADDR_GET_FAILED:
+            return "failed to get binary host address";
+        default:
+            return "";
+    }
+}
+
+std::string FusionFailReasonToStr(const FusionFailReasonInfo& info)
+{
+    std::string reasonKey = to_string(info.primary);
     if (info.primary == FusionFailReason::SCOPE_FUSE_PART) {
-        ScopeFailReason scopeDetail = info.GetScopeDetail();
-        if (scopeDetail != ScopeFailReason::NONE) {
-            result += " [";
-            result += ScopeFailReasonToStr(scopeDetail);
-            result += "]";
+        ScopeProcessStatus scopeStatus = info.GetScopeProcessStatus();
+        if (scopeStatus != ScopeProcessStatus::INIT && scopeStatus != ScopeProcessStatus::SUCCESS) {
+            reasonKey += " [";
+            reasonKey += to_string(scopeStatus);
+            reasonKey += "]";
         }
     } else if (info.primary == FusionFailReason::EXIST_DEADLOCK) {
-        DeadlockFailReason deadlockDetail = info.GetDeadlockDetail();
-        if (deadlockDetail != DeadlockFailReason::NOT_FIND_DEADLOCK) {
-            result += " [";
-            result += DeadlockFailReasonToStr(deadlockDetail);
-            result += "]";
+        DeadlockFailReason deadlockReason = info.GetDeadlockFailReason();
+        if (deadlockReason != DeadlockFailReason::NOT_FIND_DEADLOCK) {
+            reasonKey += " [";
+            reasonKey += to_string(deadlockReason);
+            reasonKey += "]";
         }
-    } else if (info.primary == FusionFailReason::BINDMAP_IS_EMPTY) {
-        BindmapFailReason bindmapDetail = info.GetBindmapDetail();
-        if (bindmapDetail != BindmapFailReason::NONE) {
-            result += " [";
-            result += BindmapFailReasonToStr(bindmapDetail);
-            result += "]";
+    } else if (info.primary == FusionFailReason::BINDMAP_RESOLVE_FAILED) {
+        BindmapFailReason bindmapReason = info.GetBindmapFailReason();
+        if (bindmapReason != BindmapFailReason::NONE) {
+            reasonKey += " [";
+            reasonKey += to_string(bindmapReason);
+            reasonKey += "]";
         }
     }
-    return result;
+    return reasonKey;
+}
+
+std::string FusionFailReasonDetailToStr(const FusionFailReasonInfo& info)
+{
+    std::string reasonDetail = FusionFailReasonDetail(info.primary);
+    if (info.primary == FusionFailReason::SCOPE_FUSE_PART) {
+        ScopeProcessStatus scopeStatus = info.GetScopeProcessStatus();
+        if (scopeStatus != ScopeProcessStatus::INIT && scopeStatus != ScopeProcessStatus::SUCCESS) {
+            const char* scopeDetailStr = info.GetScopeDetail();
+            if (scopeDetailStr[0] != '\0') {
+                reasonDetail += ", ";
+                reasonDetail += scopeDetailStr;
+            }
+        }
+    } else if (info.primary == FusionFailReason::EXIST_DEADLOCK) {
+        DeadlockFailReason deadlockReason = info.GetDeadlockFailReason();
+        if (deadlockReason != DeadlockFailReason::NOT_FIND_DEADLOCK) {
+            const char* deadlockDetailStr = info.GetDeadlockDetail();
+            if (deadlockDetailStr[0] != '\0') {
+                reasonDetail += ", ";
+                reasonDetail += deadlockDetailStr;
+            }
+        }
+    } else if (info.primary == FusionFailReason::BINDMAP_RESOLVE_FAILED) {
+        BindmapFailReason bindmapReason = info.GetBindmapFailReason();
+        if (bindmapReason != BindmapFailReason::NONE) {
+            const char* bindmapDetailStr = info.GetBindmapDetail();
+            if (bindmapDetailStr[0] != '\0') {
+                reasonDetail += ", ";
+                reasonDetail += bindmapDetailStr;
+            }
+        }
+    }
+    return reasonDetail;
 }
 
 SkBindMap InitSuperKernelBindMap(aclrtBinHandle binHdl)
@@ -903,7 +1057,7 @@ bool SuperKernelKernelNode::InitNode(const SuperKernelOptionsManager* opts) {
     if (!isScopeNode && !nodeInfos.kernelInfos.funcName.empty() && nodeInfos.kernelInfos.binHdl != nullptr) {
         isFusible = InitKernelResolvedFuncs(nodeInfos.kernelInfos);
         if (!isFusible) {
-            SetFusionFailReason(FusionFailReason::BINDMAP_IS_EMPTY, nodeInfos.kernelInfos.bindmapFailReason);
+            SetFusionFailReason(nodeInfos.kernelInfos.bindmapFailReason);
         }
     }
 
