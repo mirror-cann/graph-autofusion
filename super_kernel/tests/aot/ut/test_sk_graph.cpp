@@ -999,7 +999,7 @@ TEST_F(SuperKernelGraphTest, CollectFusionFailStats_WithNodes) {
   auto stats = graph->CollectFusionFailStats();
   EXPECT_EQ(stats.fusibleCount, 1);
   EXPECT_EQ(stats.unfusibleCount, 4);
-  EXPECT_EQ(stats.reasonStats["BINDMAP_RESOLVE_FAILED [BINHDL_NULL]"], 1);
+  EXPECT_EQ(stats.reasonStats["OP_UNSUPPORT [BINHDL_NULL]"], 1);
   EXPECT_EQ(stats.reasonStats["SCOPE_FUSE_PART [RESOURCE_INSUFFICIENT]"], 1);
   EXPECT_EQ(stats.reasonStats["EXIST_DEADLOCK [KERNEL_INSUFFICIENT_CORES]"], 1);
   ASSERT_EQ(stats.unfusibleNodeLogEntries.size(), 4);

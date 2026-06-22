@@ -108,8 +108,7 @@ enum class ScopeBreakReason : uint8_t {
   NONE,
   UNFUSIBLE_NODE,
   DEADLOCK_DETECTED,
-  SCHEMODE_CORE_DROP,
-  SCHEMODE_CORE_RISE,
+  SYNCALL_OP_DROP,
   DEBUG_PER_OP_MAX_CORE,
 };
 
@@ -124,10 +123,8 @@ inline const char *to_string(ScopeBreakReason reason) {
       return "UNFUSIBLE_NODE";
     case ScopeBreakReason::DEADLOCK_DETECTED:
       return "DEADLOCK_DETECTED";
-    case ScopeBreakReason::SCHEMODE_CORE_DROP:
-      return "SCHEMODE_CORE_DROP";
-    case ScopeBreakReason::SCHEMODE_CORE_RISE:
-      return "SCHEMODE_CORE_RISE";
+    case ScopeBreakReason::SYNCALL_OP_DROP:
+      return "SYNCALL_OP_DROP";
     case ScopeBreakReason::DEBUG_PER_OP_MAX_CORE:
       return "DEBUG_PER_OP_MAX_CORE";
     default:
@@ -165,6 +162,16 @@ class ScopeBreakInfo {
     return *this;
   }
 
+  ScopeBreakInfo &SetSyncAllNodeIds(const std::vector<uint64_t> &nodeIds) {
+    syncAllNodeIds = nodeIds;
+    return *this;
+  }
+
+  ScopeBreakInfo &SetSyncAllNodeIds(std::vector<uint64_t> &&nodeIds) {
+    syncAllNodeIds = std::move(nodeIds);
+    return *this;
+  }
+
   ScopeBreakInfo &SetDetail(const std::string &d) {
     detail = d;
     return *this;
@@ -191,6 +198,9 @@ class ScopeBreakInfo {
   const std::string &GetDetail() const {
     return detail;
   }
+  const std::vector<uint64_t> &GetSyncAllNodeIds() const {
+    return syncAllNodeIds;
+  }
 
   std::string Format() const {
     std::string result;
@@ -206,6 +216,16 @@ class ScopeBreakInfo {
     if (parentScopeId != INVALID_SCOPE_ID) {
       result += ", parentScope=" + std::to_string(parentScopeId);
     }
+    if (!syncAllNodeIds.empty()) {
+      result += ", syncAllNodes=[";
+      for (size_t i = 0; i < syncAllNodeIds.size(); ++i) {
+        if (i != 0) {
+          result += ",";
+        }
+        result += std::to_string(syncAllNodeIds[i]);
+      }
+      result += "]";
+    }
     if (!detail.empty()) {
       result += ", detail=\"" + detail + "\"";
     }
@@ -217,6 +237,7 @@ class ScopeBreakInfo {
   uint64_t triggerNodeId = INVALID_TASK_ID;   // Node that triggered the break
   uint32_t triggerStreamIdx = 0;              // Stream of trigger node
   uint16_t parentScopeId = INVALID_SCOPE_ID;  // Parent scope ID (split from, for tracing split chain)
+  std::vector<uint64_t> syncAllNodeIds;       // SyncAll kernel nodes contained in the scope before break
   std::string detail;                         // Human-readable description
 };
 

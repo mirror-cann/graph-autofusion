@@ -565,6 +565,10 @@ class SuperKernelScopeSplitter {
     return needResplit_;
   }
 
+  bool IsDebugPerOpMaxCoreEnabled() const {
+    return enablePerOpMaxCore_;
+  }
+
   /*!
    * \brief Print scope break reason report for debugging
    */
@@ -584,6 +588,7 @@ class SuperKernelScopeSplitter {
   void InitDefaultNodeFusibility();
   SuperKernelOptionsManager *opts_ = nullptr;
   bool enableTaskBreakerBypass_ = false;
+  bool enablePerOpMaxCore_ = false;
 };
 
 // Declaration for FindRootBreakInfo
