@@ -55,11 +55,12 @@ usage() {
   echo "  sh build.sh [-h|--help] [--pkg] [-u|--ut] [-s|--st] [--impl=<py|cpp|all>]"
   echo "              [--module=<name>] [-c|--coverage] [-j]"
   echo "              [--output_path=<PATH>] [--cann_3rd_lib_path=<PATH>] [--build-type=<TYPE>] [--no-autofuse]"
+  echo "              [--pkg-type=<TYPE>]"
   echo "              [-f <FILE>]"
   echo ""
   echo "Options:"
   echo "    -h, --help            Print usage"
-  echo "    --pkg                 Build run package"
+  echo "    --pkg                 Build package"
   echo "    --no-autofuse         Skip autofuse backend build/package artifacts"
   echo "    -j                    Compile thread nums, default is 16, eg: -j 8"
   echo "    -u, --ut              Run unit tests for supported implementations"
@@ -76,6 +77,7 @@ usage() {
   echo "                          (Third_party package will cost a little time during the first compilation,"
   echo "                          it will skip compilation to save time during subsequent builds)"
   echo "    --build-type=<TYPE>   Set build type: Debug, Release(default: Release)"
+  echo "    --pkg-type=<TYPE>     Set package type: run/rpm/deb(default: run)"
   echo "    -f <FILE>             File containing list of changed files. Smart module selection:"
   echo "                          - Only super_kernel/ changed: skip autofuse build/tests"
   echo "                          - Only autofuse/ changed: skip superkernel tests"
@@ -316,8 +318,9 @@ checkopts() {
   CANN_3RD_LIB_PATH="$BASEPATH/output/third_party"
   ENABLE_AUTOFUSE="on"
   CHANGED_FILES=""
+  PACKAGE_TYPE="run"
 
-  parsed_args=$(getopt -a -o j:huscf: -l help,pkg,autofuse,no-autofuse,impl:,module:,test_case:,run_example,ut,st,coverage,output_path:,cann_3rd_lib_path:,build-type: -- "$@") || {
+  parsed_args=$(getopt -a -o j:huscf: -l help,pkg,autofuse,no-autofuse,impl:,module:,test_case:,run_example,ut,st,coverage,output_path:,cann_3rd_lib_path:,build-type:,pkg-type: -- "$@") || {
     usage
     exit 1
   }
@@ -407,6 +410,15 @@ checkopts() {
         fi
         shift 2
         ;;
+      --pkg-type)
+        if [[ ! "$2" =~ ^(run|rpm|deb)$ ]]; then
+          echo "ERROR: Invalid package type: $2"
+          echo "       Valid types: run, rpm, deb"
+          exit 1
+        fi
+        PACKAGE_TYPE="$2"
+        shift 2
+        ;;
       -f)
         CHANGED_FILES_FILE="$2"
         if [ ! -f "$CHANGED_FILES_FILE" ]; then
@@ -457,7 +469,7 @@ checkopts() {
 function cmake_config()
 {
   local extra_option="$1"
-  local cmake_option="${CUSTOM_OPTION} -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DCANN_3RD_LIB_PATH=${CANN_3RD_LIB_PATH}"
+  local cmake_option="${CUSTOM_OPTION} -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DCANN_3RD_LIB_PATH=${CANN_3RD_LIB_PATH} -DPACKAGE_TYPE=${PACKAGE_TYPE}"
   if [ "X$ENABLE_AUTOFUSE" == "Xon" ]; then
     extra_option="${extra_option} -DBUILD_AUTOFUSE=ON"
   fi

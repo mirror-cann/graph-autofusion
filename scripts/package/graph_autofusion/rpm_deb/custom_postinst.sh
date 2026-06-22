@@ -1,0 +1,77 @@
+#!/bin/bash
+# ----------------------------------------------------------------------------------------------------------------------
+# Copyright (c) 2025 Huawei Technologies Co., Ltd.
+# This program is free software, you can redistribute it and/or modify it under the terms and conditions of
+# CANN Open Software License Agreement Version 2.0 (the "License").
+# Please refer to the License for details. You may not use this file except in compliance with the License.
+# THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+# INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+# See LICENSE in the root of the software repository for the full text of the License.
+# ----------------------------------------------------------------------------------------------------------------------
+
+if [ -z "${INSTALL_PATH:-}" ]; then
+    echo "================ graph_autofusion rpm/deb postinst skipped: INSTALL_PATH is empty ================"
+    exit 0
+fi
+
+sourcedir="${INSTALL_PATH}"
+whl_dir="${sourcedir}/graph_autofusion/lib"
+WHL_INSTALL_DIR_PATH="${sourcedir}/python/site-packages"
+unset PYTHONPATH
+export PIP_BREAK_SYSTEM_PACKAGES=1
+
+run_pip() { python3 -m pip "$@" >/dev/null 2>&1 || pip3 "$@" >/dev/null 2>&1; }
+
+input_install_for_all=n
+if [ "$(id -u)" -eq 0 ]; then
+    input_install_for_all=y
+fi
+
+set_file_chmod() {
+    local permission="${1}"
+    local new_permission=""
+    if [ "${input_install_for_all}" = "y" ]; then
+        new_permission="$(expr substr $permission 1 2)$(expr substr $permission 2 1)"
+        echo "${new_permission}"
+    else
+        echo "${permission}"
+    fi
+}
+
+chmod_recur() {
+    local file_path="${1}"
+    local permission="${2}"
+    local type="${3}"
+    permission=$(set_file_chmod "${permission}")
+    if [ "${type}" = "dir" ]; then
+        find "${file_path}" -type d -exec chmod "${permission}" {} \; 2>/dev/null || true
+    elif [ "${type}" = "file" ]; then
+        find "${file_path}" -type f -exec chmod "${permission}" {} \; 2>/dev/null || true
+    fi
+}
+
+whl=$(ls "${whl_dir}"/superkernel-*.whl 2>/dev/null | head -1)
+if [ -n "${whl}" ] && [ -f "${whl}" ]; then
+    run_pip install --disable-pip-version-check --upgrade --no-deps --force-reinstall -t "${WHL_INSTALL_DIR_PATH}" "${whl}" || true
+fi
+
+autofuse_python_dir="${WHL_INSTALL_DIR_PATH}/autofuse"
+if [ -d "${autofuse_python_dir}" ]; then
+    python3 -m compileall -q "${autofuse_python_dir}" 2>/dev/null || true
+    chmod -R 550 "${autofuse_python_dir}/__pycache__" 2>/dev/null || true
+fi
+
+chmod_recur "${sourcedir}/python" 750 dir
+chmod_recur "${WHL_INSTALL_DIR_PATH}/superkernel" 550 dir
+chmod_recur "${WHL_INSTALL_DIR_PATH}/superkernel" 550 file
+chmod_recur "${WHL_INSTALL_DIR_PATH}"/superkernel-*.dist-info 550 dir
+chmod_recur "${WHL_INSTALL_DIR_PATH}"/superkernel-*.dist-info 550 file
+chmod_recur "${WHL_INSTALL_DIR_PATH}/LICENSE" 440 file
+for lib64_dir in "${sourcedir}"/*-linux/lib64; do
+    if [ -d "${lib64_dir}" ]; then
+        chmod_recur "${lib64_dir}" 550 dir
+    fi
+done
+
+rm -rf "${sourcedir}/graph_autofusion" 2>/dev/null || true
+echo "================ graph_autofusion rpm/deb postinst done: whl=${whl:-none}, site_packages=${WHL_INSTALL_DIR_PATH} ================"
