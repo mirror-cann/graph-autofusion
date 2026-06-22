@@ -1,12 +1,12 @@
 /*
-* Copyright (c) 2025 Huawei Technologies Co., Ltd.
-* This program is free software, you can redistribute it and/or modify it under the terms and conditions of
-* CANN Open Software License Agreement Version 2.0 (the "License").
-* Please refer to the License for details. You may not use this file except in compliance with the License.
-* THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
-* INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
-* See LICENSE in the root of the software repository for the full text of the License.
-*/
+ * Copyright (c) 2025 Huawei Technologies Co., Ltd.
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
+ * CANN Open Software License Agreement Version 2.0 (the "License").
+ * Please refer to the License for details. You may not use this file except in compliance with the License.
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+ * See LICENSE in the root of the software repository for the full text of the License.
+ */
 
 /*!
  * \file sk_scope_launch.cpp
@@ -22,103 +22,99 @@
 #include "sk_common.h"
 #include "sk_log.h"
 
-extern "C" void sk_scope_kernel_begin_do_dav_2201(void* stream, ScopeKernelArgs args);
-extern "C" void sk_scope_kernel_end_do_dav_2201(void* stream, ScopeKernelArgs args);
-extern "C" void sk_placeholder_kernel_do_dav_2201(void* stream, ScopeKernelArgs args);
-extern "C" void sk_scope_kernel_begin_do_dav_3510(void* stream, ScopeKernelArgs args);
-extern "C" void sk_scope_kernel_end_do_dav_3510(void* stream, ScopeKernelArgs args);
-extern "C" void sk_placeholder_kernel_do_dav_3510(void* stream, ScopeKernelArgs args);
+extern "C" void sk_scope_kernel_begin_do_dav_2201(void *stream, ScopeKernelArgs args);
+extern "C" void sk_scope_kernel_end_do_dav_2201(void *stream, ScopeKernelArgs args);
+extern "C" void sk_placeholder_kernel_do_dav_2201(void *stream, ScopeKernelArgs args);
+extern "C" void sk_scope_kernel_begin_do_dav_3510(void *stream, ScopeKernelArgs args);
+extern "C" void sk_scope_kernel_end_do_dav_3510(void *stream, ScopeKernelArgs args);
+extern "C" void sk_placeholder_kernel_do_dav_3510(void *stream, ScopeKernelArgs args);
 
-typedef void (*ScopeFuncImpl)(void*, ScopeKernelArgs);
+typedef void (*ScopeFuncImpl)(void *, ScopeKernelArgs);
 
 namespace {
 
 struct ScopeKernelImpls {
-    ScopeFuncImpl begin;
-    ScopeFuncImpl end;
-    ScopeFuncImpl placeholder;
+  ScopeFuncImpl begin;
+  ScopeFuncImpl end;
+  ScopeFuncImpl placeholder;
 };
 
-ScopeKernelImpls GetScopeKernelImpls()
-{
-    const SkKernelArch arch = GetCurrentSkKernelArch();
-    SK_LOGI("Scope kernel implementation selected: arch=%s, symbolSuffix=%s",
-            to_string(arch), GetSkKernelArchSymbolSuffix(arch));
-    switch (arch) {
+ScopeKernelImpls GetScopeKernelImpls() {
+  const SkKernelArch arch = GetCurrentSkKernelArch();
+  SK_LOGI("Scope kernel implementation selected: arch=%s, symbolSuffix=%s", to_string(arch),
+          GetSkKernelArchSymbolSuffix(arch));
+  switch (arch) {
     case SkKernelArch::DAV_3510:
-        return {sk_scope_kernel_begin_do_dav_3510, sk_scope_kernel_end_do_dav_3510,
-                sk_placeholder_kernel_do_dav_3510};
+      return {sk_scope_kernel_begin_do_dav_3510, sk_scope_kernel_end_do_dav_3510, sk_placeholder_kernel_do_dav_3510};
     case SkKernelArch::DAV_2201:
     default:
-        return {sk_scope_kernel_begin_do_dav_2201, sk_scope_kernel_end_do_dav_2201,
-                sk_placeholder_kernel_do_dav_2201};
-    }
+      return {sk_scope_kernel_begin_do_dav_2201, sk_scope_kernel_end_do_dav_2201, sk_placeholder_kernel_do_dav_2201};
+  }
 }
 
-aclError LaunchScopeKernelImpl(const char* scopeName, aclrtStream stream, ScopeFuncImpl scopeKernelImpl) {
-    ScopeKernelArgs args;
-    if (scopeName == nullptr) {
-        scopeName = "default_sk_scope_name";
-    }
-    size_t len = strlen(scopeName);
-    size_t maxLen = MAX_SCOPE_NAME_LEN - 1;
-    if (len > maxLen) {
-        SK_LOGE("scope name length: %zu exceeds maximum allowed size: %zu", len, maxLen);
-        return ACL_ERROR_INVALID_PARAM;
-    }
-    errno_t ret = memcpy_s(args.name, maxLen, scopeName, len);
-    if (ret != 0) {
-        SK_LOGE("memcpy_s failed, ret: %d", ret);
-        return ACL_ERROR_INVALID_PARAM;
-    }
-    args.name[len] = '\0';
-    SK_LOGD("Call scopeKernelImpl, scopeName: %s", scopeName);
-    scopeKernelImpl(stream, args);
-    return ACL_SUCCESS;
+aclError LaunchScopeKernelImpl(const char *scopeName, aclrtStream stream, ScopeFuncImpl scopeKernelImpl) {
+  ScopeKernelArgs args;
+  if (scopeName == nullptr) {
+    scopeName = "default_sk_scope_name";
+  }
+  size_t len = strlen(scopeName);
+  size_t maxLen = MAX_SCOPE_NAME_LEN - 1;
+  if (len > maxLen) {
+    SK_LOGE("scope name length: %zu exceeds maximum allowed size: %zu", len, maxLen);
+    return ACL_ERROR_INVALID_PARAM;
+  }
+  errno_t ret = memcpy_s(args.name, maxLen, scopeName, len);
+  if (ret != 0) {
+    SK_LOGE("memcpy_s failed, ret: %d", ret);
+    return ACL_ERROR_INVALID_PARAM;
+  }
+  args.name[len] = '\0';
+  SK_LOGD("Call scopeKernelImpl, scopeName: %s", scopeName);
+  scopeKernelImpl(stream, args);
+  return ACL_SUCCESS;
 }
 
-} // namespace
+}  // namespace
 
-aclError LaunchScopeKernel(const char* scopeName, aclrtStream stream, bool isBegin)
-{   
-    ScopeKernelImpls impls = GetScopeKernelImpls();
-    if (isBegin) {
-        SK_LOGI("aclskScopeBegin kernel and placeholder kernel launch start!");
-        aclError ret = LaunchScopeKernelImpl(scopeName, stream, impls.begin);
-        if (ret != ACL_SUCCESS) {
-            SK_LOGE("LaunchScopeKernelImpl failed, scopeBegin kernel launch failed, ret: %d", ret);
-            return ret;
-        }
-        ret = LaunchScopeKernelImpl(scopeName, stream, impls.placeholder);
-        if (ret != ACL_SUCCESS) {
-            SK_LOGE("LaunchScopeKernelImpl failed, placeholder kernel launch failed, ret: %d", ret);
-            return ret;
-        }
-        ret = LaunchScopeKernelImpl(scopeName, stream, impls.placeholder);
-        if (ret != ACL_SUCCESS) {
-            SK_LOGE("LaunchScopeKernelImpl failed, placeholder kernel launch failed, ret: %d", ret);
-            return ret;
-        }
-        SK_LOGI("aclskScopeBegin kernel and placeholder kernel launch success! ");
-        return ret;
-    } else {
-        SK_LOGI("aclskScopeEnd kernel and placeholder kernel launch start! ");
-        aclError ret = LaunchScopeKernelImpl(scopeName, stream, impls.placeholder);
-        if (ret != ACL_SUCCESS) {
-            SK_LOGE("LaunchScopeKernelImpl failed, placeholder kernel launch failed, ret: %d", ret);
-            return ret;
-        }
-        ret = LaunchScopeKernelImpl(scopeName, stream, impls.placeholder);
-        if (ret != ACL_SUCCESS) {
-            SK_LOGE("LaunchScopeKernelImpl failed, placeholder kernel launch failed, ret: %d", ret);
-            return ret;
-        }
-        ret = LaunchScopeKernelImpl(scopeName, stream, impls.end);
-        if (ret != ACL_SUCCESS) {
-            SK_LOGE("LaunchScopeKernelImpl failed, scopeEnd kernel launch failed, ret: %d", ret);
-            return ret;
-        }
-        SK_LOGI("aclskScopeEnd kernel and placeholder kernel launch success! ");
-        return ret;
+aclError LaunchScopeKernel(const char *scopeName, aclrtStream stream, bool isBegin) {
+  ScopeKernelImpls impls = GetScopeKernelImpls();
+  if (isBegin) {
+    SK_LOGI("aclskScopeBegin kernel and placeholder kernel launch start!");
+    aclError ret = LaunchScopeKernelImpl(scopeName, stream, impls.begin);
+    if (ret != ACL_SUCCESS) {
+      SK_LOGE("LaunchScopeKernelImpl failed, scopeBegin kernel launch failed, ret: %d", ret);
+      return ret;
     }
+    ret = LaunchScopeKernelImpl(scopeName, stream, impls.placeholder);
+    if (ret != ACL_SUCCESS) {
+      SK_LOGE("LaunchScopeKernelImpl failed, placeholder kernel launch failed, ret: %d", ret);
+      return ret;
+    }
+    ret = LaunchScopeKernelImpl(scopeName, stream, impls.placeholder);
+    if (ret != ACL_SUCCESS) {
+      SK_LOGE("LaunchScopeKernelImpl failed, placeholder kernel launch failed, ret: %d", ret);
+      return ret;
+    }
+    SK_LOGI("aclskScopeBegin kernel and placeholder kernel launch success! ");
+    return ret;
+  } else {
+    SK_LOGI("aclskScopeEnd kernel and placeholder kernel launch start! ");
+    aclError ret = LaunchScopeKernelImpl(scopeName, stream, impls.placeholder);
+    if (ret != ACL_SUCCESS) {
+      SK_LOGE("LaunchScopeKernelImpl failed, placeholder kernel launch failed, ret: %d", ret);
+      return ret;
+    }
+    ret = LaunchScopeKernelImpl(scopeName, stream, impls.placeholder);
+    if (ret != ACL_SUCCESS) {
+      SK_LOGE("LaunchScopeKernelImpl failed, placeholder kernel launch failed, ret: %d", ret);
+      return ret;
+    }
+    ret = LaunchScopeKernelImpl(scopeName, stream, impls.end);
+    if (ret != ACL_SUCCESS) {
+      SK_LOGE("LaunchScopeKernelImpl failed, scopeEnd kernel launch failed, ret: %d", ret);
+      return ret;
+    }
+    SK_LOGI("aclskScopeEnd kernel and placeholder kernel launch success! ");
+    return ret;
+  }
 }

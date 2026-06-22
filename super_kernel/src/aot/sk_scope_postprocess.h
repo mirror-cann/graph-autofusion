@@ -24,33 +24,33 @@
 #include <vector>
 
 struct StreamPostPlan {
-    bool needFrontWait = false;
-    bool needBackBlock = false;
-    uint64_t candidateNodeId = INVALID_TASK_ID;
+  bool needFrontWait = false;
+  bool needBackBlock = false;
+  uint64_t candidateNodeId = INVALID_TASK_ID;
 };
 
 class SuperKernelScopePostProcessor {
-public:
-    SuperKernelScopePostProcessor() = default;
-    SuperKernelScopePostProcessor(SuperKernelGraph& graph) : graph(graph) {}
-    ~SuperKernelScopePostProcessor() = default;
-    // Return true when this scope is processable by scheduler.
-    // Return false when this scope is unprocessable and should be skipped by caller.
-    bool PostProcess(SuperKernelScopeInfo& scopeInfo);
+ public:
+  SuperKernelScopePostProcessor() = default;
+  SuperKernelScopePostProcessor(SuperKernelGraph &graph) : graph(graph) {}
+  ~SuperKernelScopePostProcessor() = default;
+  // Return true when this scope is processable by scheduler.
+  // Return false when this scope is unprocessable and should be skipped by caller.
+  bool PostProcess(SuperKernelScopeInfo &scopeInfo);
 
-private:
-    bool ValidateScopeStreamNodes(const SuperKernelScopeInfo& scopeInfo);
-    bool ApplyEventMemoryForFilteredNodes(std::vector<SuperKernelBaseNode*>& filteredNodes,
-                                          std::vector<SuperKernelBaseNode*>& needUpdateNodes);
-    bool CollectStreamBoundaryPlans(const SuperKernelScopeInfo& scopeInfo, std::vector<StreamPostPlan>& plans,
-                                    uint32_t& needFrontWaitCount);
-    bool ProcessSubStreamSyncEvents(SuperKernelScopeInfo& scopeInfo, ScopeExtInfo& tempExtInfo,
-                                    std::vector<StreamPostPlan>& plans, uint32_t mainStreamIdx,
-                                    const std::vector<uint32_t>& subStreamOrder, uint32_t needFrontWaitCount);
-    bool FinalizePostProcess(SuperKernelScopeInfo& scopeInfo, ScopeExtInfo& tempExtInfo,
-                             std::vector<SuperKernelBaseNode*>& needUpdateNodes);
+ private:
+  bool ValidateScopeStreamNodes(const SuperKernelScopeInfo &scopeInfo);
+  bool ApplyEventMemoryForFilteredNodes(std::vector<SuperKernelBaseNode *> &filteredNodes,
+                                        std::vector<SuperKernelBaseNode *> &needUpdateNodes);
+  bool CollectStreamBoundaryPlans(const SuperKernelScopeInfo &scopeInfo, std::vector<StreamPostPlan> &plans,
+                                  uint32_t &needFrontWaitCount);
+  bool ProcessSubStreamSyncEvents(SuperKernelScopeInfo &scopeInfo, ScopeExtInfo &tempExtInfo,
+                                  std::vector<StreamPostPlan> &plans, uint32_t mainStreamIdx,
+                                  const std::vector<uint32_t> &subStreamOrder, uint32_t needFrontWaitCount);
+  bool FinalizePostProcess(SuperKernelScopeInfo &scopeInfo, ScopeExtInfo &tempExtInfo,
+                           std::vector<SuperKernelBaseNode *> &needUpdateNodes);
 
-    SuperKernelGraph& graph;
+  SuperKernelGraph &graph;
 };
 
-#endif // __SK_SCOPE_POSTPROCESS_H__
+#endif  // __SK_SCOPE_POSTPROCESS_H__

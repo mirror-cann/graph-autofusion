@@ -1,12 +1,12 @@
 /**
-* Copyright (c) 2025 Huawei Technologies Co., Ltd.
-* This program is free software, you can redistribute it and/or modify it under the terms and conditions of
-* CANN Open Software License Agreement Version 2.0 (the "License").
-* Please refer to the License for details. You may not use this file except in compliance with the License.
-* THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
-* INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
-* See LICENSE in the root of the software repository for the full text of the License.
-*/
+ * Copyright (c) 2025 Huawei Technologies Co., Ltd.
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
+ * CANN Open Software License Agreement Version 2.0 (the "License").
+ * Please refer to the License for details. You may not use this file except in compliance with the License.
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+ * See LICENSE in the root of the software repository for the full text of the License.
+ */
 
 #ifndef SUPER_KERNEL_UT_COMMON_STUBS_H_
 #define SUPER_KERNEL_UT_COMMON_STUBS_H_
@@ -36,7 +36,7 @@ void SkUtSetAclrtFunctionAvailDynUbufSize(size_t dynUbufSize);
 void SkUtSetThrowOnAclmdlRIGetStreams(int enable);
 void SkUtSetDestroyRegisterCallbackDelayUs(uint32_t delayUs);
 int SkUtGetBinaryGetFunctionNullHandle();
-const char* SkUtGetLastBinaryGetFunctionName();
+const char *SkUtGetLastBinaryGetFunctionName();
 
 aclError SkUtGetAclmdlRIGetStreamsRet(int phase);
 aclError SkUtGetAclrtStreamGetTasksRet(int phase);
@@ -53,7 +53,7 @@ aclError SkUtGetAclrtFunctionGetAvailDynUbufPerBlockRet();
 size_t SkUtGetAclrtFunctionAvailDynUbufSize();
 int SkUtGetThrowOnAclmdlRIGetStreams();
 uint32_t SkUtGetDestroyRegisterCallbackCallCount();
-aclError SkUtRegisterModelDestroyCallback(aclmdlRI modelRI, aclmdlRIDestroyCallbackFunc callback, void* userData);
+aclError SkUtRegisterModelDestroyCallback(aclmdlRI modelRI, aclmdlRIDestroyCallbackFunc callback, void *userData);
 
 aclError SkUtInvokeModelDestroyCallback(aclmdlRI modelRI);
 size_t SkUtGetModelDestroyCallbackCount();
@@ -67,7 +67,7 @@ aclrtTaskType SkUtGetTaskType(uint32_t streamIdx, uint32_t taskIdx);
 
 void SkUtSetEntryBinHandleNull(int enable);
 void SkUtSetBinaryGetFunctionNullHandle(int enable);
-void SkUtSetLastBinaryGetFunctionName(const char* funcName);
+void SkUtSetLastBinaryGetFunctionName(const char *funcName);
 
 void SkUtSetSecurecMemcpyFailOnCall(int hitOnCall);
 void SkUtSetSecurecMemsetFailOnCall(int hitOnCall);
@@ -77,15 +77,15 @@ int SkUtSecurecShouldFailMemset();
 void SkUtSetStreamId(uint32_t streamIdx, int32_t streamId);
 int32_t SkUtGetStreamId(uint32_t streamIdx);
 
-void SkUtSetAclrtGetSocName(const char* socName);
-const char* SkUtGetAclrtGetSocName();
+void SkUtSetAclrtGetSocName(const char *socName);
+const char *SkUtGetAclrtGetSocName();
 
 uint32_t SkUtGetDebugJsonPrintCallCount();
-const char* SkUtGetDebugJsonPrintPath(uint32_t index);
-void SkUtRecordDebugJsonPrintPath(const char* path);
+const char *SkUtGetDebugJsonPrintPath(uint32_t index);
+void SkUtRecordDebugJsonPrintPath(const char *path);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif // SUPER_KERNEL_UT_COMMON_STUBS_H_
+#endif  // SUPER_KERNEL_UT_COMMON_STUBS_H_

@@ -1,12 +1,12 @@
 /**
-* Copyright (c) 2025 Huawei Technologies Co., Ltd.
-* This program is free software, you can redistribute it and/or modify it under the terms and conditions of
-* CANN Open Software License Agreement Version 2.0 (the "License").
-* Please refer to the License for details. You may not use this file except in compliance with the License.
-* THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
-* INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
-* See LICENSE in the root of the software repository for the full text of the License.
-*/
+ * Copyright (c) 2025 Huawei Technologies Co., Ltd.
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
+ * CANN Open Software License Agreement Version 2.0 (the "License").
+ * Please refer to the License for details. You may not use this file except in compliance with the License.
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+ * See LICENSE in the root of the software repository for the full text of the License.
+ */
 
 #ifndef __RT_DATA_H__
 #define __RT_DATA_H__
@@ -19,7 +19,7 @@ extern "C" {
 
 // #include "rt_sk_intf.h"
 
-#define K_TYPE_AICORE  1
+#define K_TYPE_AICORE 1
 #define K_TYPE_AIC 2
 #define K_TYPE_AIV 3
 #define K_TYPE_MIX_AIC_MAIN 4
@@ -61,24 +61,24 @@ struct rt_info {
 };
 
 typedef struct rtFunctionInfo {
-    void *pcAddr;
-    uint32_t prefetchCnt;
-    uint8_t mixType;                  // 0:NO_MIX; 1:MIX_AIC; 2:MIX_AIV; 3:MIX_AIC_AIV
-    uint8_t reserved[3];
+  void *pcAddr;
+  uint32_t prefetchCnt;
+  uint8_t mixType;  // 0:NO_MIX; 1:MIX_AIC; 2:MIX_AIV; 3:MIX_AIC_AIV
+  uint8_t reserved[3];
 } rtFunctionInfo_t;
 
 typedef struct tagRtKernelInfo {
-    uint8_t functionInfoNum;
-    uint8_t reserved[3];
-    rtFunctionInfo_t functionInfo[2];
+  uint8_t functionInfoNum;
+  uint8_t reserved[3];
+  rtFunctionInfo_t functionInfo[2];
 } rtKernelDetailInfo_t;
 
 void rt_start_capture(int dry_run);
 void rt_stop_capture(void);
 void rt_get_kernel_info(struct rt_info **info, size_t *size);
 
-int rtKernelGetAddrAndPrefCntV2(void *hdl, const uint64_t tilingKey, const void * const stubFunc,
-                                              const uint32_t flag, rtKernelDetailInfo_t *kernelInfo);
+int rtKernelGetAddrAndPrefCntV2(void *hdl, const uint64_t tilingKey, const void *const stubFunc, const uint32_t flag,
+                                rtKernelDetailInfo_t *kernelInfo);
 int rtGetFunctionByName(const char *name, void **fun_hdl);
 int rtGetAddrByFun(const void *fun_hdl, void **addr);
 int rtQueryFunctionRegistered(const char *name);
@@ -88,4 +88,4 @@ int rtFunctionRegister(void *bin_hdl, const void *fun, const char *name, const v
 }
 #endif
 
-#endif // __RT_DATA_H__
+#endif  // __RT_DATA_H__
