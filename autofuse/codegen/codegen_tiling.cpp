@@ -3990,6 +3990,10 @@ void TilingLib::GenTopnGetTilingFunc(std::stringstream &ss, const ascir::FusedSc
   GenTopnSetFailureMessage(ss, "    ", "invalid topn");
   ss << "    return -1;" << std::endl;
   ss << "  }" << std::endl;
+
+  GenTopnInitSearchTiling(ss, fused_schedule_result, tiling, symbol_value_count);
+  GenTopnDefaultTiling(ss, tiling);
+
   ss << "  const bool internal_no_config_path = (request.input_configs == nullptr);" << std::endl;
   ss << "  const bool explicit_no_config_path = request.input_configs != nullptr && request.input_configs->size() == 1 "
      << "&& request.input_configs->front().empty();" << std::endl;
@@ -4008,8 +4012,6 @@ void TilingLib::GenTopnGetTilingFunc(std::stringstream &ss, const ascir::FusedSc
   ss << "    for (const auto &cfg : configs) { config_ptrs.push_back(&cfg); }" << std::endl;
   ss << "  }" << std::endl;
   ss << std::endl;
-
-  GenTopnInitSearchTiling(ss, fused_schedule_result, tiling, symbol_value_count);
 
   GenTopnSearchAndFinalChecks(ss, tiling, fused_schedule_result);
   ss << "  return 0;" << std::endl;
@@ -4062,11 +4064,21 @@ void TilingLib::GenTopnCollectCandidates(std::stringstream &ss, const std::strin
   ss << "      double final_modeled_perf = EvaluateModeledPerf(raw_candidate.tiling_data);" << std::endl;
   ss << "      if (!std::isfinite(final_modeled_perf)) { final_modeled_perf = DBL_MAX; }" << std::endl;
   ss << "      solution.modeled_perf = final_modeled_perf;" << std::endl;
-  ss << "      solution.is_default = false;" << std::endl;
+  ss << "      solution.is_default = !default_repr.empty() && (solution.canonical_repr == default_repr);" << std::endl;
+  ss << "      if (solution.is_default) { found_default_candidate = true; }" << std::endl;
   ss << "      OP_LOGI(OP_NAME, \"candidate: repr=%s perf=%.6f is_default=%d\", "
      << "solution.canonical_repr.c_str(), solution.modeled_perf, solution.is_default);" << std::endl;
   ss << "      response.candidate_solutions.push_back(solution);" << std::endl;
   ss << "    }" << std::endl;
+  ss << "  }" << std::endl;
+  ss << "  if (!default_repr.empty() && !found_default_candidate) {" << std::endl;
+  ss << "    CandidateSolution default_solution;" << std::endl;
+  ss << "    default_solution.tiling_data = default_tiling;" << std::endl;
+  ss << "    default_solution.canonical_repr = default_repr;" << std::endl;
+  ss << "    default_solution.modeled_perf = DBL_MAX;" << std::endl;
+  ss << "    default_solution.is_default = true;" << std::endl;
+  ss << "    found_default_candidate = true;" << std::endl;
+  ss << "    response.candidate_solutions.push_back(default_solution);" << std::endl;
   ss << "  }" << std::endl;
   ss << std::endl;
 }
@@ -4089,12 +4101,30 @@ void TilingLib::GenTopnSetFailureMessage(std::stringstream &ss, const std::strin
   ss << indent << "response.error_message = \"" << reason << "\";" << std::endl;
 }
 
+void TilingLib::GenTopnDefaultTiling(std::stringstream &ss, const std::string &tiling) const {
+  ss << "  std::string default_repr;" << std::endl;
+  ss << "  bool found_default_candidate = false;" << std::endl;
+  ss << "  " << tiling << " default_tiling = search_tiling;" << std::endl;
+  ss << "  if (GetTiling(default_tiling, -1)) {" << std::endl;
+  ss << "    default_repr = GetTilingDataRepr(&default_tiling);" << std::endl;
+  ss << "  } else {" << std::endl;
+  ss << "    OP_LOGW(OP_NAME, \"GetTiling failed for default topn config.\");" << std::endl;
+  ss << "    response.error_message = \"GetTiling failed for default topn config\";" << std::endl;
+  ss << "  }" << std::endl;
+}
+
 void TilingLib::GenTopnSearchAndFinalChecks(std::stringstream &ss, const std::string &tiling,
                                             const ascir::FusedScheduledResult &fused_schedule_result) const {
   ss << "  PgoConfig::Instance().ResetRuntimeOverrides();" << std::endl;
   ss << "  size_t failed_config_count = 0U;" << std::endl;
   GenTopnSearchTilingSetup(ss, tiling, fused_schedule_result);
   GenTopnCollectCandidates(ss, tiling);
+  ss << "  if (!found_default_candidate) {" << std::endl;
+  ss << "    if (response.error_message.empty()) {" << std::endl;
+  GenTopnSetFailureMessage(ss, "      ", "default topn candidate not found");
+  ss << "    }" << std::endl;
+  ss << "    return -1;" << std::endl;
+  ss << "  }" << std::endl;
   ss << "  OP_LOGI(OP_NAME, \"GetTopnCandidateSolutions collected %zu candidates\", "
         "response.candidate_solutions.size());"
      << std::endl;
@@ -4218,7 +4248,7 @@ void TilingLib::GenDeduplicateCandidateSolutions(std::stringstream &ss) const {
 
 std::string TilingLib::GenTopnSelectorHelpersForInductor() const {
   std::stringstream ss;
-  ss << "// Topn selector helpers: modeled_perf ascending, canonical_repr tiebreak." << std::endl;
+  ss << "// Topn selector helpers: default-first, modeled_perf ascending, canonical_repr tiebreak." << std::endl;
   ss << "inline bool CompareCandidateSolution(const CandidateSolution &lhs, const CandidateSolution &rhs) {"
      << std::endl;
   ss << "  if (lhs.is_default != rhs.is_default) { return lhs.is_default; }" << std::endl;

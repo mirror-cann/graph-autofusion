@@ -159,6 +159,7 @@ class TilingLib {
   void GenTopnSearchTilingKeyCall(std::stringstream &ss, const ::ascir::FusedScheduledResult &fused_schedule_result,
                                   const std::string &search_cfg) const;
   void GenTopnSetFailureMessage(std::stringstream &ss, const std::string &indent, const std::string &reason) const;
+  void GenTopnDefaultTiling(std::stringstream &ss, const std::string &tiling) const;
   void GenTopnSearchAndFinalChecks(std::stringstream &ss, const std::string &tiling,
                                    const ::ascir::FusedScheduledResult &fused_schedule_result) const;
   void GenGenerateTopnSolutionsEntry(std::stringstream &ss, const ::ascir::FusedScheduledResult &fused_schedule_result,
