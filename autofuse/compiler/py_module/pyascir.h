@@ -134,6 +134,8 @@ PyMODINIT_FUNC PyInit_pyautofuse(void);
   OP(Nop)                 \
   OP(Transpose)           \
   OP(IsFinite)            \
+  OP(IsInf)               \
+  OP(MaskedFill)          \
   OP(FloorDiv)            \
   OP(Gelu)                \
   OP(Split)               \

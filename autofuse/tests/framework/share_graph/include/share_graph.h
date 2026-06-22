@@ -23,6 +23,7 @@ struct ShareGraph {
   static af::ComputeGraphPtr SubTransposeAbsFusedGraph(size_t dims_size, vector<size_t> perms);
   static af::ComputeGraphPtr ScalarInfAddFusedGraph(size_t dims_size);
   static af::ComputeGraphPtr ScalarDivInfFusedGraph(size_t dims_size);
+  static af::ComputeGraphPtr IsInfMaskedFillFusedGraph(size_t dims_size);
   static af::ComputeGraphPtr AddGeluFusedGraph(size_t dims_size);
   static af::ComputeGraphPtr CompareFusedGraph(size_t dims_size, bool is_second_input_tensor, af::DataType dtype,
                                                std::string mode);

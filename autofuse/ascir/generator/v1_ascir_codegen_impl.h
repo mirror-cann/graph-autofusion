@@ -559,6 +559,41 @@ class IsFiniteAscIrCodegenImpl : public AscIrCodegen {
   }
 };
 
+class IsInfAscIrCodegenImpl : public AscIrCodegen {
+ public:
+  std::vector<std::unique_ptr<TmpBufDesc>> CalcTmpBufSize(const AscNode &node) override {
+    return CalcIsInfTmpSize(node);
+  }
+  std::string GetApiCallName() const override {
+    return "UnaryBitWidthChangeApiCall";
+  }
+  std::string GetApiName() const override {
+    return "IsInfExtend";
+  }
+  std::vector<std::string> LoadApiHeaderFiles([[maybe_unused]] bool is_dynamic) const override {
+    return {"is_inf.h"};
+  }
+  std::vector<std::string> IncludeApiHeaderFiles() const override {
+    return {
+      "basic_api/kernel_operator_vec_duplicate_intf.h",
+      "basic_api/kernel_operator_vec_binary_scalar_intf.h",
+      "basic_api/kernel_operator_vec_vconv_intf.h",
+      "basic_api/kernel_operator_vec_binary_intf.h",
+      "basic_api/kernel_operator_vec_unary_intf.h",
+      "basic_api/kernel_operator_vec_cmpsel_intf.h",
+    };
+  }
+  [[nodiscard]] bool IsNodeValid(const AscNode &node) const override {
+    GE_ASSERT_SUCCESS(ValidateShapeConsistencyWithSingleOutput(node),
+                      "Node %s[%s] check shape consistency failed",
+                      node.GetTypePtr(), node.GetNamePtr());
+    GE_ASSERT_TRUE(!IsNodeHasScalarInput(node),
+                   "Node %s[%s] not support scalar input",
+                   node.GetTypePtr(), node.GetNamePtr());
+    return true;
+  }
+};
+
 class LogicalNotAscIrCodegenImpl : public AscIrCodegen {
  public:
   std::vector<std::unique_ptr<TmpBufDesc>> CalcTmpBufSize(const AscNode &node) override {
@@ -1507,7 +1542,7 @@ class SelectAscIrCodegenImpl : public AscIrCodegen {
     return "WhereApiCall";
   }
   std::string GetApiName() const override {
-    return "Select";
+    return "Where";
   }
   std::vector<std::string> LoadApiHeaderFiles([[maybe_unused]] bool is_dynamic) const override {
     return {"duplicate.h", "where.h"};
@@ -1529,6 +1564,19 @@ class SelectAscIrCodegenImpl : public AscIrCodegen {
     GE_ASSERT_SUCCESS(ValidateShapeConsistencyWithSingleOutput(node, {false, {1, 2}}),
                       "Node %s[%s] check shape consistency failed", node.GetTypePtr(), node.GetNamePtr());
     return true;
+  }
+};
+
+// MaskedFill reuses Select codegen. IsScalarInputSupported checks original input order
+// (before MaskedFillInputReorderPass): inputs[1]=mask cannot be scalar.
+class MaskedFillAscIrCodegenImpl : public SelectAscIrCodegenImpl {
+ public:
+  std::vector<std::unique_ptr<TmpBufDesc>> CalcTmpBufSize(const AscNode &node) override {
+    return CalcMaskedFillTmpSize(node);
+  }
+  bool IsScalarInputSupported(const std::vector<bool> &is_scalar_list) const override {
+    GE_ASSERT_EQ(is_scalar_list.size(), 3UL);
+    return !is_scalar_list[1];
   }
 };
 /*********************************************************************************/
