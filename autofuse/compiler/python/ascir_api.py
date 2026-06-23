@@ -862,16 +862,6 @@ def Isnan(owner_graph: ascir.HintGraph,
     return _common_in_1_out_1_normal_op("Isnan", owner_graph, x, axis=axis, size=size, stride=stride)
 
 
-def IsInf(owner_graph: ascir.HintGraph,
-          x: ascir.OpsOperatorOutput,
-          *,
-          axis: List[ascir.Axis],
-          size: Optional[List[ascir.SizeExpr]] = None,
-          stride: Optional[List[ascir.SizeExpr]] = None
-          ) -> ascir.OpsOperatorOutput:
-    return _common_in_1_out_1_normal_op("IsInf", owner_graph, x, axis=axis, size=size, stride=stride)
-
-
 def Max(owner_graph: ascir.HintGraph,
         x: ascir.OpsOperatorOutput,
         *,
@@ -1214,18 +1204,6 @@ def Select(owner_graph: ascir.HintGraph,
            stride: Optional[List[ascir.SizeExpr]] = None
            ) -> ascir.OpsOperatorOutput:
     return _common_in_3_out_1_normal_op("Select", owner_graph, x1, x2, x3, axis=axis, size=size, stride=stride)
-
-
-def MaskedFill(owner_graph: ascir.HintGraph,
-               x: ascir.OpsOperatorOutput,
-               mask: ascir.OpsOperatorOutput,
-               value: ascir.OpsOperatorOutput,
-               *,
-               axis: List[ascir.Axis],
-               size: Optional[List[ascir.SizeExpr]] = None,
-               stride: Optional[List[ascir.SizeExpr]] = None
-               ) -> ascir.OpsOperatorOutput:
-    return _common_in_3_out_1_normal_op("MaskedFill", owner_graph, x, mask, value, axis=axis, size=size, stride=stride)
 
 
 def Sigmoid(owner_graph: ascir.HintGraph,

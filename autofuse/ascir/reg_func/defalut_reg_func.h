@@ -37,7 +37,6 @@ std::vector<std::unique_ptr<TmpBufDesc>> CalcGatherTmpSize(const AscNode &node);
 std::vector<std::unique_ptr<TmpBufDesc>> CalcGeTmpSize(const AscNode &node);
 std::vector<std::unique_ptr<TmpBufDesc>> CalcGtTmpSize(const AscNode &node);
 std::vector<std::unique_ptr<TmpBufDesc>> CalcIsnanTmpSize(const AscNode &node);
-std::vector<std::unique_ptr<TmpBufDesc>> CalcIsInfTmpSize(const AscNode &node);
 std::vector<std::unique_ptr<TmpBufDesc>> CalcLeTmpSize(const AscNode &node);
 std::vector<std::unique_ptr<TmpBufDesc>> CalcLogicalAndTmpSize(const AscNode &node);
 std::vector<std::unique_ptr<TmpBufDesc>> CalcLtTmpSize(const AscNode &node);
@@ -48,7 +47,6 @@ std::vector<std::unique_ptr<TmpBufDesc>> CalcReduceMaxTmpSize(const AscNode &nod
 std::vector<std::unique_ptr<TmpBufDesc>> CalcRsqrtTmpSize(const AscNode &node);
 std::vector<std::unique_ptr<TmpBufDesc>> CalcRemainderTmpSize(const AscNode &node);
 std::vector<std::unique_ptr<TmpBufDesc>> CalcSelectTmpSize(const AscNode &node);
-std::vector<std::unique_ptr<TmpBufDesc>> CalcMaskedFillTmpSize(const AscNode &node);
 std::vector<std::unique_ptr<TmpBufDesc>> CalcSigmoidTmpSize(const AscNode &node);
 std::vector<std::unique_ptr<TmpBufDesc>> CalcSubTmpSize(const AscNode &node);
 std::vector<std::unique_ptr<TmpBufDesc>> CalcTrueDivTmpSize(const AscNode &node);

@@ -50,8 +50,6 @@ std::vector<std::unique_ptr<TmpBufDesc>> CalcModifiedBesselI0TmpSizeV2(const Asc
 std::vector<std::unique_ptr<TmpBufDesc>> CalcModifiedBesselI1TmpSizeV2(const AscNode &node);
 std::vector<std::unique_ptr<TmpBufDesc>> CalcModifiedBesselK0TmpSizeV2(const AscNode &node);
 std::vector<std::unique_ptr<TmpBufDesc>> CalcModifiedBesselK1TmpSizeV2(const AscNode &node);
-std::vector<std::unique_ptr<TmpBufDesc>> CalcIsInfTmpSize(const AscNode &node);
-std::vector<std::unique_ptr<TmpBufDesc>> CalcMaskedFillTmpSize(const AscNode &node);
 }  // namespace ascir
 }  // namespace af
 #endif  // __ASCIR_REG_FUNC_DEFAULT_REG_FUNC_V2_H__

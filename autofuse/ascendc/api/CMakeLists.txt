@@ -24,7 +24,6 @@ set(ascendc_api_extend_src
     sign.h
     datacopy.h
     isfinite.h
-    is_inf.h
     reduce_init.h
     remainder.h
     cast.h

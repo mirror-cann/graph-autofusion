@@ -1200,36 +1200,6 @@ class IsFiniteAscIrCodegenImplV2 : public AscIrCodegenV2 {
   }
 };
 
-class IsInfAscIrCodegenImplV2 : public AscIrCodegenV2 {
- public:
-  [[nodiscard]] std::string GetApiCallName() const override {
-    return "UnaryBitWidthChangeApiCallV2";
-  }
-  [[nodiscard]] std::string GetApiName() const override {
-    return "IsInf";
-  }
-  [[nodiscard]] std::pair<std::vector<ge::DataType>, std::vector<ge::DataType>> GetConversionDtype(const AscNode &node) {
-    std::map<ge::DataType, ge::DataType> dtype_conversion_map = {
-      {DT_BF16, DT_FLOAT}
-    };
-    return GetConversionFromDtypeMap(node, dtype_conversion_map);
-  }
-  [[nodiscard]] std::vector<std::string> IncludeApiHeaderFiles() const override {
-    return {
-      "adv_api/math/is_inf.h",
-    };
-  }
-  [[nodiscard]] bool IsNodeValid(const AscNode &node) const override {
-    GE_ASSERT_TRUE(!IsNodeHasScalarInput(node),
-                   "Node %s[%s] not support scalar input",
-                   node.GetTypePtr(), node.GetNamePtr());
-    GE_ASSERT_SUCCESS(ValidateShapeConsistencyWithSingleOutput(node),
-                      "Node %s[%s] check shape consistency failed",
-                      node.GetTypePtr(), node.GetNamePtr());
-    return true;
-  }
-};
-
 class LogicalNotAscIrCodegenImplV2 : public AscIrCodegenV2 {
  public:
   [[nodiscard]] std::string GetApiCallName() const override {
@@ -2084,7 +2054,7 @@ class SelectAscIrCodegenImplV2 : public AscIrCodegenV2 {
     return "WhereApiCall";
   }
   [[nodiscard]] std::string GetApiName() const override {
-    return "Where";
+    return "Select";
   }
   [[nodiscard]] std::vector<std::string> LoadApiHeaderFiles([[maybe_unused]] bool is_dynamic) const override {
     return {"duplicate.h", "where.h"};
@@ -2118,19 +2088,6 @@ class SelectAscIrCodegenImplV2 : public AscIrCodegenV2 {
     GE_ASSERT_SUCCESS(ValidateShapeConsistencyWithSingleOutput(node, {false, {1, 2}}),
                       "Node %s[%s] check shape consistency failed", node.GetTypePtr(), node.GetNamePtr());
     return true;
-  }
-};
-
-// MaskedFill reuses Select codegen. IsScalarInputSupported checks original input order
-// (before MaskedFillInputReorderPass): inputs[1]=mask cannot be scalar.
-class MaskedFillAscIrCodegenImplV2 : public SelectAscIrCodegenImplV2 {
- public:
-  [[nodiscard]] std::vector<std::unique_ptr<TmpBufDesc>> CalcTmpBufSize(const AscNode &node) override {
-    return CalcMaskedFillTmpSize(node);
-  }
-  [[nodiscard]] bool IsScalarInputSupported(const std::vector<bool> &is_scalar_list) const override {
-    GE_ASSERT_EQ(is_scalar_list.size(), 3UL);
-    return !is_scalar_list[1];
   }
 };
 /*********************************************************************************/

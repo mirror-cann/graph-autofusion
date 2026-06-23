@@ -21,7 +21,6 @@
 #include "utils/api_call_factory.h"
 #include "utils/api_call_utils.h"
 #include "autofuse_config/auto_fuse_config.h"
-#include "graph_pass/masked_fill_input_reorder_pass.h"
 
 using namespace ge;
 using namespace af::ops;
@@ -134,45 +133,6 @@ TEST(CodegenKernel, Kernel_DynamicInputDtypeCheck) {
   fused_schedule_result.input_nodes.push_back(x2);
   fused_schedule_result.output_nodes.push_back(y);
   codegen::Kernel kernel(graph.GetName());
-  auto ret = IsDataTypeSupported(graph);
-  EXPECT_EQ(ret, ge::SUCCESS);
-}
-
-TEST(CodegenKernel, Kernel_MaskedFillReorderedInputDtypeCheck) {
-  af::AscGraph graph("test_graph");
-  af::ascir_op::Data x_op("x", graph);
-  x_op.ir_attr.SetIndex(0);
-  af::ascir_op::Data mask_op("mask", graph);
-  mask_op.ir_attr.SetIndex(1);
-  af::ascir_op::Data value_op("value", graph);
-  value_op.ir_attr.SetIndex(2);
-
-  af::ascir_op::MaskedFill masked_fill_op("masked_fill");
-  af::ascir_op::Store store_op("store");
-  af::ascir_op::Output y_op("y");
-  y_op.ir_attr.SetIndex(0);
-
-  graph.AddNode(masked_fill_op);
-  graph.AddNode(store_op);
-  graph.AddNode(y_op);
-
-  x_op.y.dtype = ge::DT_FLOAT16;
-  mask_op.y.dtype = ge::DT_UINT8;
-  value_op.y.dtype = ge::DT_FLOAT16;
-
-  masked_fill_op.x = x_op.y;
-  masked_fill_op.mask = mask_op.y;
-  masked_fill_op.value = value_op.y;
-  masked_fill_op.y.dtype = ge::DT_FLOAT16;
-
-  store_op.x = masked_fill_op.y;
-  store_op.y.dtype = ge::DT_FLOAT16;
-  y_op.x = store_op.y;
-  y_op.y.dtype = ge::DT_FLOAT16;
-
-  optimize::MaskedFillInputReorderPass pass;
-  ASSERT_EQ(pass.RunPass(graph), ge::SUCCESS);
-
   auto ret = IsDataTypeSupported(graph);
   EXPECT_EQ(ret, ge::SUCCESS);
 }

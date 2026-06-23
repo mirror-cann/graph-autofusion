@@ -11,8 +11,6 @@ add_library(test_ascir_ut OBJECT
     reg_func/test_reg_func_div.cpp
     reg_func/test_reg_func_remainder.cpp
     reg_func/test_reg_func_is_nan.cpp
-    reg_func/test_reg_func_is_inf.cpp
-    reg_func/test_reg_func_masked_fill.cpp
     reg_func/test_reg_func_logic_and.cpp
     reg_func/test_reg_func_logic_not.cpp
     reg_func/test_reg_func_logic_or.cpp

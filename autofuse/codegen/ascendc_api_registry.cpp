@@ -61,10 +61,6 @@ Register::Register() {
 #include "isnan_str.h"
 
   };
-  const std::string kAscendcIsInfStr = {
-#include "is_inf_str.h"
-
-  };
   const std::string kAscendcLogical_notStr = {
 #include "logical_not_str.h"
 
@@ -186,7 +182,6 @@ Register::Register() {
                                                            {"datacopy.h", kAscendcDatacopyStr},
                                                            {"isfinite.h", kAscendcIsfiniteStr},
                                                            {"isnan.h", kAscendcIsnanStr},
-                                                           {"is_inf.h", kAscendcIsInfStr},
                                                            {"logical_not.h", kAscendcLogical_notStr},
                                                            {"logical.h", kAscendcLogicalStr},
                                                            {"pow.h", kAscendcPowStr},

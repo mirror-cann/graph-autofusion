@@ -431,16 +431,9 @@ REG_ASC_IR(IsFinite).Impl(v2_soc_versions,
                            af::ascir::AscIrImplCreator<af::ascir::IsFiniteAscIrCodegenImplV2>(),
                            {{"T1", TensorType{DT_FLOAT16, DT_FLOAT, DT_BF16}}, {"T2", TensorType{DT_UINT8}}}});
 
-REG_ASC_IR(IsInf)
-    .Impl(v2_soc_versions, {af::ascir::AscIrImplCreator<af::ascir::IsInfAscIrAttImplV2>(),
-                            af::ascir::AscIrImplCreator<af::ascir::IsInfAscIrCodegenImplV2>(),
-                            {{"T1", TensorType{DT_FLOAT16, DT_FLOAT, DT_BF16}},
-                             {"T2", TensorType{DT_UINT8}}}});
-
-REG_ASC_IR(Relu)
-    .Impl(v2_soc_versions, {af::ascir::AscIrImplCreator<af::ascir::ReluAscIrAttImplV2>(),
-                            af::ascir::AscIrImplCreator<af::ascir::ReluAscIrCodegenImplV2>(),
-                            {{"T", TensorType{DT_INT32, DT_FLOAT16, DT_FLOAT, DT_UINT8, DT_INT64}}}});
+REG_ASC_IR(Relu).Impl(v2_soc_versions, {af::ascir::AscIrImplCreator<af::ascir::ReluAscIrAttImplV2>(),
+                                        af::ascir::AscIrImplCreator<af::ascir::ReluAscIrCodegenImplV2>(),
+                                        {{"T", TensorType{DT_INT32, DT_FLOAT16, DT_FLOAT, DT_UINT8, DT_INT64}}}});
 
 REG_ASC_IR(Neg).Impl(v2_soc_versions,
                      {af::ascir::AscIrImplCreator<af::ascir::NegAscIrAttImplV2>(),
@@ -609,22 +602,22 @@ REG_ASC_IR(Split)
     .Attr<int64_t>("gid")  // global_id, SplitOp的全局编号
     .ComputeType(ComputeType::kComputeSplit)
     .Impl(v2_soc_versions,
-          {af::ascir::AscIrImplCreator<af::ascir::SelectAscIrAttImplV2>(),
-           af::ascir::AscIrImplCreator<af::ascir::SelectAscIrCodegenImplV2>(),
-           {{"T1", TensorType{DT_UINT8}}, {"T2", TensorType{DT_FLOAT16, DT_FLOAT, DT_INT16, DT_INT32, DT_INT64}}}});
+          {af::ascir::AscIrImplCreator<af::ascir::SplitAscIrAttImplV2>(),
+           af::ascir::AscIrImplCreator<af::ascir::SplitAscIrCodegenImplV2>(),
+           {{"T", TensorType{DT_COMPLEX128, DT_COMPLEX64, DT_DOUBLE, DT_FLOAT,  DT_FLOAT16, DT_INT16,   DT_INT32,
+                             DT_INT64,      DT_INT8,      DT_QINT16, DT_QINT32, DT_QINT8,   DT_QUINT16, DT_QUINT8,
+                             DT_UINT16,     DT_UINT32,    DT_UINT64, DT_UINT8,  DT_BF16,    DT_BOOL}}}});
 
-REG_ASC_IR(Where)
-    .Impl(v2_soc_versions,
-          {af::ascir::AscIrImplCreator<af::ascir::WhereAscIrAttImplV2>(),
-           af::ascir::AscIrImplCreator<af::ascir::WhereAscIrCodegenImplV2>(),
-            {{"T1", TensorType{DT_UINT8}}, {"T2", TensorType{DT_FLOAT16, DT_FLOAT, DT_INT16, DT_INT32, DT_INT64, DT_BF16, DT_INT8, DT_UINT8, DT_UINT16, DT_UINT32, DT_UINT64}}}});
+REG_ASC_IR(Select).Impl(v2_soc_versions, {af::ascir::AscIrImplCreator<af::ascir::SelectAscIrAttImplV2>(),
+                                          af::ascir::AscIrImplCreator<af::ascir::SelectAscIrCodegenImplV2>(),
+                                          {{"T1", TensorType{DT_UINT8}},
+                                           {"T2", TensorType{DT_FLOAT16, DT_FLOAT, DT_INT16, DT_INT32, DT_INT64}}}});
 
-REG_ASC_IR(MaskedFill)
-    .Impl(v2_soc_versions,
-          {af::ascir::AscIrImplCreator<af::ascir::MaskedFillAscIrAttImplV2>(),
-           af::ascir::AscIrImplCreator<af::ascir::MaskedFillAscIrCodegenImplV2>(),
-           {{"T1", TensorType{DT_UINT8}},
-            {"T2", TensorType{DT_FLOAT16, DT_FLOAT, DT_BF16}}}});
+REG_ASC_IR(Where).Impl(v2_soc_versions, {af::ascir::AscIrImplCreator<af::ascir::WhereAscIrAttImplV2>(),
+                                         af::ascir::AscIrImplCreator<af::ascir::WhereAscIrCodegenImplV2>(),
+                                         {{"T1", TensorType{DT_UINT8}},
+                                          {"T2", TensorType{DT_FLOAT16, DT_FLOAT, DT_INT16, DT_INT32, DT_INT64, DT_BF16,
+                                                            DT_INT8, DT_UINT8, DT_UINT16, DT_UINT32, DT_UINT64}}}});
 
 // Ub2ub是在sched阶段添加的，不需要在py构图中对外体现
 REG_ASC_IR(Ub2ub).Impl(v2_soc_versions, {af::ascir::AscIrImplCreator<af::ascir::Ub2ubAscIrAttImplV2>(),

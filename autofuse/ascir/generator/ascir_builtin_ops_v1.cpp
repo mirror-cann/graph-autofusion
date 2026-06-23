@@ -313,15 +313,6 @@ REG_ASC_IR(IsFinite)
                             af::ascir::AscIrImplCreator<af::ascir::IsFiniteAscIrCodegenImpl>(),
                             {{"T1", TensorType{DT_FLOAT16, DT_FLOAT}}, {"T2", TensorType{DT_UINT8}}}});
 
-REG_ASC_IR(IsInf)
-    .Input("x", "T1")
-    .Output("y", "T2")
-    .ComputeType(ComputeType::kComputeElewise)
-    .Impl(v1_soc_versions, {af::ascir::AscIrImplCreator<af::ascir::IsInfAscIrAttImpl>(),
-                            af::ascir::AscIrImplCreator<af::ascir::IsInfAscIrCodegenImpl>(),
-                            {{"T1", TensorType{DT_FLOAT16, DT_FLOAT}},
-                             {"T2", TensorType{DT_UINT8}}}});
-
 REG_ASC_IR(Relu)
     .Input("x", "T")
     .Output("y", "T")
@@ -622,18 +613,6 @@ REG_ASC_IR(Where)
           {af::ascir::AscIrImplCreator<af::ascir::WhereAscIrAttImpl>(),
            af::ascir::AscIrImplCreator<af::ascir::WhereAscIrCodegenImpl>(),
            {{"T1", TensorType{DT_UINT8}}, {"T2", TensorType{DT_FLOAT16, DT_FLOAT, DT_INT16, DT_INT32, DT_INT64}}}});
-
-REG_ASC_IR(MaskedFill)
-    .Input("x", "T2")
-    .Input("mask", "T1")
-    .Input("value", "T2")
-    .Output("y", "T2")
-    .ComputeType(ComputeType::kComputeElewise)
-    .Impl(v1_soc_versions,
-          {af::ascir::AscIrImplCreator<af::ascir::MaskedFillAscIrAttImpl>(),
-           af::ascir::AscIrImplCreator<af::ascir::MaskedFillAscIrCodegenImpl>(),
-           {{"T1", TensorType{DT_UINT8}},
-            {"T2", TensorType{DT_FLOAT16, DT_FLOAT}}}});
 
 // Ub2ub是在sched阶段添加的，不需要在py构图中对外体现
 // todo:Ub2ub DT_INT64 后面根据需要放开

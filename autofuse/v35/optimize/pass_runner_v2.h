@@ -17,7 +17,6 @@
 #include "optimize/graph_pass/scalar_broadcast_optimization.h"
 #include "optimize/graph_pass/expand_dims_for_all_reduce.h"
 #include "optimize/graph_pass/pow_equiv_substitution_pass.h"
-#include "optimize/graph_pass/masked_fill_input_reorder_pass.h"
 #include "v35/optimize/graph_pass/continues_broadcast_optimization.h"
 #include "v35/optimize/graph_pass/gather_to_load.h"
 #include "v35/optimize/graph_pass/split_concat_optimization_pass.h"
@@ -30,7 +29,6 @@ class PassRunnerV2 final : public BasePassRunner {
     this->RegisterPass<BroadcastConstToStorePass>();
     this->RegisterPass<ScalarTo1DTensorPass>();
     this->RegisterPass<ScalarBroadcastOptimizationPass>();
-    this->RegisterPass<MaskedFillInputReorderPass>();
     this->RegisterPass<ExpandDimsForAllReducePass>();
     this->RegisterPass<ContinuesBroadcastOptimizationPass>();
     this->RegisterPass<GatherToLoadPass>();
