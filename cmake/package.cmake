@@ -103,4 +103,4 @@ install(FILES super_kernel/include/super_kernel/super_kernel.h
     COMPONENT graph-autofusion
 )
 
-set_cann_cpack_config(graph-autofusion ENABLE_DEVICE ${ENABLE_DEVICE} SHARE_INFO_NAME graph_autofusion)
+set_cann_cpack_config(graph-autofusion ENABLE_DEVICE ${ENABLE_DEVICE} SHARE_INFO_NAME graph_autofusion PACKAGE_TYPE ${PACKAGE_TYPE})

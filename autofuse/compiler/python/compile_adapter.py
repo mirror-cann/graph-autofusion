@@ -13,12 +13,14 @@
 import os
 import tempfile
 import argparse
+import time
 from typing import List
 from autofuse import ascendc_compile
 import re
 
 HOST_DEFAULT_CXX11_ABI = "-D_GLIBCXX_USE_CXX11_ABI=1"
 HOST_CXX11_ABI_PREFIX = "-D_GLIBCXX_USE_CXX11_ABI="
+INDUCTOR_COMPILE_TRACE_LABEL = "InductorCompile"
 
 
 def str2bool(v):
@@ -106,6 +108,34 @@ def get_debug_flag():
     return dfx_dict.get('codegen_compile_debug', "false").lower() == 'true'
 
 
+def record_inductor_compile_duration(stage, step, graph_name, start, duration):
+    from autofuse.pyautofuse import ascir
+    labels = [INDUCTOR_COMPILE_TRACE_LABEL, stage, step, graph_name]
+    ascir.utils.duration_record(labels, int(start), int(duration))
+
+
+def report_inductor_compile_durations():
+    from autofuse.pyautofuse import ascir
+    ascir.utils.report_durations()
+
+
+class InductorCompileDuration:
+    def __init__(self, stage, step, graph_name):
+        self.stage = stage
+        self.step = step
+        self.graph_name = graph_name
+        self.start = None
+
+    def __enter__(self):
+        self.start = time.time_ns()
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        end = time.time_ns()
+        record_inductor_compile_duration(self.stage, self.step, self.graph_name, self.start, end - self.start)
+        return False
+
+
 def get_pgo_topn():
     default_topn = 5
     dfx_dict = get_dfx_env_result()
@@ -147,26 +177,43 @@ def execute_compile(sources, args):
     base_host_file = args.graph_name + "_tiling_func.cpp"
     base_device_file = args.graph_name + "_op_kernel.cpp"
     if args.stage in ['all', 'host']:
-        host_file_path = os.path.join(args.temp_dir, "host")
-        generate_file(host_file_path, tiling_def_file, sources['tiling_struct_code'])
-        generate_file(host_file_path, base_host_file, sources['host_impl_code'])
-        args.host_files = os.path.join(host_file_path, base_host_file)
+        with InductorCompileDuration(args.trace_stage, "GenerateHostSource", args.graph_name):
+            host_file_path = os.path.join(args.temp_dir, "host")
+            generate_file(host_file_path, tiling_def_file, sources['tiling_struct_code'])
+            generate_file(host_file_path, base_host_file, sources['host_impl_code'])
+            args.host_files = os.path.join(host_file_path, base_host_file)
     if args.stage in ['all', 'device']:
-        device_file_path = os.path.join(args.temp_dir, "device")
-        generate_file(device_file_path, tiling_def_file, sources['tiling_struct_code'])
-        generate_file(device_file_path, base_device_file, sources['kernel_impl_code'])
-        args.device_files = os.path.join(device_file_path, base_device_file)
+        with InductorCompileDuration(args.trace_stage, "GenerateDeviceSource", args.graph_name):
+            device_file_path = os.path.join(args.temp_dir, "device")
+            generate_file(device_file_path, tiling_def_file, sources['tiling_struct_code'])
+            generate_file(device_file_path, base_device_file, sources['kernel_impl_code'])
+            args.device_files = os.path.join(device_file_path, base_device_file)
 
-    ascendc_compile.main(args)
+    with InductorCompileDuration(args.trace_stage, "AscendCCompile", args.graph_name):
+        ascendc_compile.main(args)
     return args.temp_dir
 
 
-def compile_core(sources, argv: List[str], stage='all', tiling_repr=None):
-    args, temp_dir_ctx, auto_cleanup = prepare_compile_context(argv, stage, tiling_repr)
-    if not auto_cleanup:
-        return execute_compile(sources, args)
-    with temp_dir_ctx:
-        return execute_compile(sources, args)
+def compile_core(sources, argv: List[str], stage='all', tiling_repr=None, trace_stage=None):
+    args = None
+    total_start = time.time_ns()
+    try:
+        prepare_start = time.time_ns()
+        args, temp_dir_ctx, auto_cleanup = prepare_compile_context(argv, stage, tiling_repr)
+        args.trace_stage = trace_stage if trace_stage is not None else stage
+        prepare_end = time.time_ns()
+        record_inductor_compile_duration(args.trace_stage, "PrepareCompileContext", args.graph_name,
+                                         prepare_start, prepare_end - prepare_start)
+        if not auto_cleanup:
+            return execute_compile(sources, args)
+        with temp_dir_ctx:
+            return execute_compile(sources, args)
+    finally:
+        if args is not None:
+            total_end = time.time_ns()
+            record_inductor_compile_duration(args.trace_stage, "Total", args.graph_name,
+                                             total_start, total_end - total_start)
+            report_inductor_compile_durations()
 
 
 def jit_compile(tiling_def, host_tiling, op_kernel, argv: List[str]):
@@ -174,7 +221,7 @@ def jit_compile(tiling_def, host_tiling, op_kernel, argv: List[str]):
         'tiling_struct_code': tiling_def,
         'host_impl_code': host_tiling,
         'kernel_impl_code': op_kernel
-    }, argv)
+    }, argv, trace_stage="jit_compile")
 
 
 def host_compile(tiling_def_code, tiling_impl_code, argv: List[str]):
@@ -182,7 +229,7 @@ def host_compile(tiling_def_code, tiling_impl_code, argv: List[str]):
         'tiling_struct_code': tiling_def_code,
         'host_impl_code': tiling_impl_code,
         'kernel_impl_code': None
-    }, argv, 'host')
+    }, argv, 'host', trace_stage="host_compile")
 
 
 def kernel_compile(tiling_def_code, kernel_impl_code, argv: List[str], *, tiling_repr=None):
@@ -190,7 +237,7 @@ def kernel_compile(tiling_def_code, kernel_impl_code, argv: List[str], *, tiling
         'tiling_struct_code': tiling_def_code,
         'host_impl_code': None,
         'kernel_impl_code': kernel_impl_code
-    }, argv, 'device', tiling_repr)
+    }, argv, 'device', tiling_repr, trace_stage="kernel_compile")
 
 
 def extract_time(line):
@@ -227,9 +274,9 @@ def pgo_write_config(config_path, tiling_data, is_last_result=False):
     # 只有调优结束后，才写1标记内存复用，否则写0强制每次读文件
     with open(config_path, 'w') as file:
         if is_last_result:
-            file.write(f'1\n')
+            file.write('1\n')
         else:
-            file.write(f'0\n')
+            file.write('0\n')
         file.write(f"{tiling_data}\n")
         file.flush()
 

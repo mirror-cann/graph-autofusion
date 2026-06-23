@@ -8,15 +8,25 @@ add_executable(optimize_st
         ${CODE_ROOT_DIR}/tests/framework/easy_asc_graph/asc_graph_builder.cpp
 )
 
+if (ENABLE_ASAN)
+    set(ASCGEN_SANITIZER_COMPILE_OPT
+            -fsanitize=address -fsanitize=leak -fsanitize-recover=address)
+    set(ASCGEN_SANITIZER_LINK_OPT
+            -fsanitize=address -fsanitize=leak -fsanitize-recover=address)
+else ()
+    set(ASCGEN_SANITIZER_COMPILE_OPT "")
+    set(ASCGEN_SANITIZER_LINK_OPT "")
+endif ()
+
 set(ASCGEN_DT_COMPILE_OPTION
         -O0
         -g
         --coverage -fprofile-arcs -ftest-coverage
-        -fsanitize=address -fsanitize=leak -fsanitize-recover=address
+        ${ASCGEN_SANITIZER_COMPILE_OPT}
 )
 
 set(ASCGEN_COMMON_LINK_OPTION
-        -fsanitize=address -fsanitize=leak -fsanitize-recover=address
+        ${ASCGEN_SANITIZER_LINK_OPT}
         -lrt -ldl -lgcov
 )
 
