@@ -1053,6 +1053,89 @@ std::string AxesReorderSolverGen::SetTilingVars(VarsType var_type) {
   return strs;
 }
 
+int32_t AxesReorderSolverGen::GetLocalBufferVarIndex(const Expr &expr) const {
+  for (size_t i = 0U; i < local_buffer_tiling_vars_.size(); ++i) {
+    if (local_buffer_tiling_vars_[i] == expr) {
+      return static_cast<int32_t>(i);
+    }
+  }
+  return -1;
+}
+
+std::string AxesReorderSolverGen::GenRuntimeExprValue(const Expr &expr) const {
+  if (expr.IsConstExpr()) {
+    return Str(expr);
+  }
+  const int32_t local_idx = GetLocalBufferVarIndex(expr);
+  if (local_idx >= 0) {
+    return Str(expr) + ".upper_bound(" + Str(expr) + ".upper_bound_vars)";
+  }
+  if (expr.IsVariableExpr()) {
+    return Str(expr) + ".value";
+  }
+  return GenRuntimeCompoundExprValue(expr);
+}
+
+std::string AxesReorderSolverGen::GenRuntimeCompoundExprValue(const Expr &expr) const {
+  Expr runtime_expr = expr;
+  std::vector<std::pair<Expr, Expr>> subs_vars;
+  std::vector<std::pair<std::string, std::string>> runtime_values;
+  size_t runtime_idx = 0U;
+  for (const auto &arg : expr.FreeSymbols()) {
+    const std::string runtime_name = "__runtime_expr_" + std::to_string(runtime_idx++) + "__";
+    subs_vars.emplace_back(arg, CreateExpr(runtime_name.c_str()));
+    runtime_values.emplace_back(runtime_name, GenRuntimeExprValue(arg));
+  }
+  runtime_expr = runtime_expr.Subs(subs_vars);
+  std::string runtime_expr_str = Str(runtime_expr);
+  for (const auto &runtime_value : runtime_values) {
+    size_t pos = runtime_expr_str.find(runtime_value.first);
+    while (pos != std::string::npos) {
+      runtime_expr_str.replace(pos, runtime_value.first.size(), runtime_value.second);
+      pos = runtime_expr_str.find(runtime_value.first, pos + runtime_value.second.size());
+    }
+  }
+  return runtime_expr_str;
+}
+
+std::string AxesReorderSolverGen::GenRuntimeReorderRule(const RuntimeReorderRule &rule) {
+  const int32_t preferred_idx = GetLocalBufferVarIndex(rule.preferred_axis);
+  const int32_t fallback_idx = GetLocalBufferVarIndex(rule.fallback_axis);
+  if ((preferred_idx < 0) || (fallback_idx < 0) || (preferred_idx == fallback_idx)) {
+    return "";
+  }
+  std::string code;
+  code += "    if ((" + GenRuntimeExprValue(rule.condition_axis) + " < " + std::to_string(rule.condition_threshold) +
+          ") && (" + GenRuntimeExprValue(rule.compare_axis) + " > " + std::to_string(rule.compare_threshold) + ")) {\n";
+  code += "      OP_LOGI(OP_NAME, \"[ATT][ReduceTileReorder] Runtime reduce tile reorder chooses preferred axis ";
+  code += Str(rule.preferred_axis);
+  code += " before fallback axis ";
+  code += Str(rule.fallback_axis);
+  code += ", prefer splitting reduce axis.\");\n";
+  if (preferred_idx > fallback_idx) {
+    code += "      auto *runtime_preferred_var = input.local_buffer_vars[" + std::to_string(preferred_idx) + "];\n";
+    code += "      input.local_buffer_vars[" + std::to_string(preferred_idx) + "] = input.local_buffer_vars[" +
+            std::to_string(fallback_idx) + "];\n";
+    code += "      input.local_buffer_vars[" + std::to_string(fallback_idx) + "] = runtime_preferred_var;\n";
+  }
+  code += "    } else {\n";
+  code += "      OP_LOGI(OP_NAME, \"[ATT][ReduceTileReorder] Runtime reduce tile reorder keeps fallback axis ";
+  code += Str(rule.fallback_axis);
+  code += " before preferred axis ";
+  code += Str(rule.preferred_axis);
+  code += ", prefer splitting tail axis.\");\n";
+  code += "    }\n";
+  return code;
+}
+
+std::string AxesReorderSolverGen::GenRuntimeReorderRules() {
+  std::string code;
+  for (const auto &rule : runtime_reorder_rules_) {
+    code += GenRuntimeReorderRule(rule);
+  }
+  return code;
+}
+
 std::string AxesReorderSolverGen::GenInput(const TradeOffConfig &trade_off_config, std::vector<Expr> &all_cons) {
   std::string strs;
   strs += "    AxesReorderSolverInput input;\n";
@@ -1339,6 +1422,34 @@ std::string AxesReorderSolverGen::IsEnableBlockLoopTradeOffByPerf() const {
   return res;
 }
 
+std::string AxesReorderSolverGen::GenPendingSearchConfigOverride() {
+  std::string codes;
+  if (!(enable_autofuse_pgo_ || is_inductor_scene_)) {
+    return codes;
+  }
+  const ge::char_t *runtime_enable_multicore_ub_tradeoff =
+      (NeedUBMultiCoreBalance() &&
+       (enable_multicore_ub_tradeoff_ || tiling_schedule_config_.trade_off_config.is_enable))
+          ? "true"
+          : "false";
+  codes += "    bool runtime_enable_multicore_ub_tradeoff = ";
+  codes += runtime_enable_multicore_ub_tradeoff;
+  codes += ";\n";
+  codes += "    if (pending_search_cfg_ != nullptr) {\n";
+  codes += "      if (pending_search_cfg_->ub_threshold_enabled) {\n";
+  codes += "        input.ub_threshold = pending_search_cfg_->ub_threshold;\n";
+  codes += "      }\n";
+  codes += "      if (pending_search_cfg_->corenum_threshold_enabled) {\n";
+  codes += "        input.corenum_threshold = pending_search_cfg_->corenum_threshold;\n";
+  codes += "      }\n";
+  codes += "      runtime_enable_multicore_ub_tradeoff = pending_search_cfg_->enable_multicore_ub_tradeoff;\n";
+  codes += "    }\n";
+  codes += "    const bool runtime_enable_block_loop_trade_off_by_perf = ";
+  codes += IsEnableBlockLoopTradeOffByPerf();
+  codes += " && !runtime_enable_multicore_ub_tradeoff;\n";
+  return codes;
+}
+
 std::string AxesReorderSolverGen::GenSolverFuncImpl() {
   std::string codes;
   std::vector<Expr> all_cons;
@@ -1350,6 +1461,7 @@ std::string AxesReorderSolverGen::GenSolverFuncImpl() {
   codes += GenInputInfo(all_cons, local_buffer_cons, mc_mixed_cons);
   // 直接使用 ModelInfo 中的 TilingScheduleConfig
   codes += GenInput(tiling_schedule_config_.trade_off_config, all_cons);
+  codes += GenRuntimeReorderRules();
   // 支持二次Tiling：使用调整后的核数比例（需在创建solver之前设置）
   // 注意：g_secondary_tiling_ratio 只在 enable_group_parallel_ 为 true 时才声明
   if (enable_group_parallel_ && group_num_ > 1) {
@@ -1361,29 +1473,7 @@ std::string AxesReorderSolverGen::GenSolverFuncImpl() {
     codes += "      input.corenum_threshold = g_secondary_tiling_ratio;\n";
     codes += "    }\n";
   }
-  // Override solver input thresholds from pending_search_cfg_ (set by ExecutePGOSolver)
-  if (enable_autofuse_pgo_ || is_inductor_scene_) {
-    const ge::char_t *runtime_enable_multicore_ub_tradeoff =
-        (NeedUBMultiCoreBalance() &&
-         (enable_multicore_ub_tradeoff_ || tiling_schedule_config_.trade_off_config.is_enable))
-            ? "true"
-            : "false";
-    codes += "    bool runtime_enable_multicore_ub_tradeoff = ";
-    codes += runtime_enable_multicore_ub_tradeoff;
-    codes += ";\n";
-    codes += "    if (pending_search_cfg_ != nullptr) {\n";
-    codes += "      if (pending_search_cfg_->ub_threshold_enabled) {\n";
-    codes += "        input.ub_threshold = pending_search_cfg_->ub_threshold;\n";
-    codes += "      }\n";
-    codes += "      if (pending_search_cfg_->corenum_threshold_enabled) {\n";
-    codes += "        input.corenum_threshold = pending_search_cfg_->corenum_threshold;\n";
-    codes += "      }\n";
-    codes += "      runtime_enable_multicore_ub_tradeoff = pending_search_cfg_->enable_multicore_ub_tradeoff;\n";
-    codes += "    }\n";
-    codes += "    const bool runtime_enable_block_loop_trade_off_by_perf = ";
-    codes += IsEnableBlockLoopTradeOffByPerf();
-    codes += " && !runtime_enable_multicore_ub_tradeoff;\n";
-  }
+  codes += GenPendingSearchConfigOverride();
   codes += "    " + class_name + " solver(input);\n";
   codes += GenSolverRunInvoke(class_name);
   codes += GenEmptyTensorCheckInSolver();

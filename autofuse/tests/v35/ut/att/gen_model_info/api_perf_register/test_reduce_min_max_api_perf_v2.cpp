@@ -349,7 +349,61 @@ TEST_F(UTestReduceMinMaxApiPerfV2, AscendCApiReduceSumSupportsAscendC3510Dtypes)
   }
 }
 
-TEST_F(UTestReduceMinMaxApiPerfV2, ReduceSumB64UsesSpecializedAscendC3510Cost) {
+TEST_F(UTestReduceMinMaxApiPerfV2, ReduceSumRaUnalignedTailRDoesNotRepeatVfHead)
+{
+  auto context = MakeRaContext(kFloat32, {CreateExpr(1917), CreateExpr(10)}, true);
+  PerfOutputInfo perf;
+  ASSERT_EQ(ascendcapi_v2::ReduceSumPerf(context, perf), ge::SUCCESS);
+
+  const std::string vec_perf = PipeString(perf, PipeType::AIV_VEC);
+  EXPECT_EQ(vec_perf, "TernaryOp(IsEqual(8, 0), 1310, 11892)");
+}
+
+TEST_F(UTestReduceMinMaxApiPerfV2, ReduceSumRaAlignedTailRDoesNotRepeatVfHead)
+{
+  auto context = MakeRaContext(kFloat32, {CreateExpr(1917), CreateExpr(80)}, true);
+  PerfOutputInfo perf;
+  ASSERT_EQ(ascendcapi_v2::ReduceSumPerf(context, perf), ge::SUCCESS);
+
+  const std::string vec_perf = PipeString(perf, PipeType::AIV_VEC);
+  EXPECT_EQ(vec_perf, "TernaryOp(IsEqual(0, 0), 13808, 15732)");
+}
+
+TEST_F(UTestReduceMinMaxApiPerfV2, ReduceSumRaSymbolicAlignedTailDoesNotRepeatVfHead)
+{
+  const Expr a2t_size = CreateExpr("a2t_size");
+  auto context = MakeRaContext(kFloat32, {CreateExpr(1917), CreateExpr(8) * af::sym::Ceiling(a2t_size / CreateExpr(8))},
+                               true);
+  PerfOutputInfo perf;
+  ASSERT_EQ(ascendcapi_v2::ReduceSumPerf(context, perf), ge::SUCCESS);
+
+  const std::string aligned_formula = TernaryChoiceString(perf, true);
+  EXPECT_NE(aligned_formula.find("+ 4) * 893"), std::string::npos) << aligned_formula;
+  EXPECT_EQ(aligned_formula.find("+ 64) * 893"), std::string::npos) << aligned_formula;
+}
+
+TEST_F(UTestReduceMinMaxApiPerfV2, ReduceRaB64TailRDoesNotRepeatVfHead)
+{
+  auto context = MakeRaContext(kInt64, {CreateExpr(1224), CreateExpr(12)}, true);
+  PerfOutputInfo perf;
+  ASSERT_EQ(ascendcapi_v2::ReduceSumPerf(context, perf), ge::SUCCESS);
+
+  const std::string vec_perf = PipeString(perf, PipeType::AIV_VEC);
+  EXPECT_EQ(vec_perf, "TernaryOp(IsEqual(0, 0), 57326, 57526)");
+}
+
+TEST_F(UTestReduceMinMaxApiPerfV2, ReduceArTailRDoesNotRepeatVfHead)
+{
+  auto context = MakeArContext(kFloat32, {CreateExpr(16), CreateExpr(1917)}, true);
+  PerfOutputInfo perf;
+  ASSERT_EQ(ascendcapi_v2::ReduceSumPerf(context, perf), ge::SUCCESS);
+
+  const std::string vec_perf = PipeString(perf, PipeType::AIV_VEC);
+  EXPECT_EQ(vec_perf, "TernaryOp(IsEqual(38320, 0), 944, 1168)");
+}
+
+TEST_F(UTestReduceMinMaxApiPerfV2, ReduceSumB64UsesSpecializedAscendC3510Cost)
+{
   auto int64_context = MakeRaContext(kInt64, {CreateExpr(8), CreateExpr(64)}, true);
   auto uint64_context = MakeArContext(kUInt64, {CreateExpr(8), CreateExpr(64)}, true);
 
@@ -728,7 +782,7 @@ TEST_F(UTestReduceMinMaxApiPerfV2, RaB64ExpandsInt64BinaryFuncCost) {
   PerfOutputInfo perf;
   EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(aligned_context, perf), ge::SUCCESS);
 
-  EXPECT_EQ(TernaryChoiceString(perf, true), "99911");
+  EXPECT_EQ(TernaryChoiceString(perf, true), "92295");
 }
 
 TEST_F(UTestReduceMinMaxApiPerfV2, ArB64UnalignedSmallLastUsesOneVectorBlock) {
