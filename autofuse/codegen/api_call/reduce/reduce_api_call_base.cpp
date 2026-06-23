@@ -317,17 +317,30 @@ static void ReplaceSS(std::string &str, const std::string &oldSubStr, const std:
   return;
 }
 
-static void ReplaceSSWithSwappingFirstAndLast(std::string firstAndFirst_actual, std::string lastAndLast_actual,
-                                              const bool &isAllAxisReduce, std::stringstream &ss) {
+static void ReplaceSSWithSwappingFirstAndLast(const std::string &first, const std::string &first_actual,
+                                              const std::string &last, const std::string &last_actual,
+                                              const bool &isAllAxisReduce, std::vector<std::string> &lines)
+{
+  std::string f = first;
+  std::string fa = first_actual;
+  std::string l = last;
+  std::string la = last_actual;
   if (isAllAxisReduce) {
-    ReplaceSS(firstAndFirst_actual, "first", "last");
-    ReplaceSS(lastAndLast_actual, "last", "first");
+    ReplaceSS(f, "first", "last");
+    ReplaceSS(fa, "first", "last");
+    ReplaceSS(l, "last", "first");
+    ReplaceSS(la, "last", "first");
   }
-  ss << firstAndFirst_actual << ";\n" << lastAndLast_actual << ";\n";
+  // 添加四条独立语句，每条语句末尾加分号和换行符
+  lines.emplace_back(f + ";\n");
+  lines.emplace_back(fa + ";\n");
+  lines.emplace_back(l + ";\n");
+  lines.emplace_back(la + ";\n");
   return;
 }
 
-size_t GetAxesNumExceptZeroTail(const Tensor &src, const Tensor &dst) {
+size_t GetAxesNumExceptZeroTail(const Tensor &src, const Tensor &dst)
+{
   size_t num_axes = src.vectorized_axis.size();
   for (; num_axes > 0; num_axes--) {
     if (src.vectorized_strides[num_axes - 1] != 0 || dst.vectorized_strides[num_axes - 1] != 0) {
@@ -341,13 +354,13 @@ size_t GetAxesNumExceptZeroTail(const Tensor &src, const Tensor &dst) {
   为了避免由于存在src[i].axis_size=1(此时strides=0)导致误判为R轴，所以在遍历过程中过滤掉了src[i].axis_size为1的情况；
   用last_not_1_axis_size_index来记录上一次的axis_size != 1的位置。
 */
-void ReduceMergedSizeCodeGen(const TPipe &tpipe, std::stringstream &ss, const Tensor &src, const Tensor &dst,
+void ReduceMergedSizeCodeGen(const TPipe &tpipe, std::vector<std::string> &lines, const Tensor &src, const Tensor &dst,
                              bool is_tail) {
   std::stringstream first;
   std::stringstream first_actual;
   std::stringstream last;
   std::stringstream last_actual;
-  first << "{\nuint32_t " << (is_tail ? "first_tail" : "first") << " = 1";
+  first << "uint32_t " << (is_tail ? "first_tail" : "first") << " = 1";
   first_actual << "uint32_t " << (is_tail ? "first_tail_actual" : "first_actual") << " = 1";
   last << "uint32_t " << (is_tail ? "last_tail" : "last") << " = 1";
   last_actual << "uint32_t " << (is_tail ? "last_tail_actual" : "last_actual") << " = 1";
@@ -397,8 +410,9 @@ void ReduceMergedSizeCodeGen(const TPipe &tpipe, std::stringstream &ss, const Te
       last_not_1_axis_size_index = i;
     }
   }
-  ReplaceSSWithSwappingFirstAndLast(first.str() + ";\n" + first_actual.str(), last.str() + ";\n" + last_actual.str(),
-                                    isAllAxisReduce, ss);
+  // 先添加代码块开始符号
+  lines.emplace_back("{\n");
+  ReplaceSSWithSwappingFirstAndLast(first.str(), first_actual.str(), last.str(), last_actual.str(), isAllAxisReduce, lines);
 }
 
 bool IsNeedMultiReduce(const Tiler &tiler, const Tensor &input, const Tensor &output, ascir::AxisId axis_id) {
@@ -438,7 +452,7 @@ bool IsNeedMultiReduce(const Tiler &tiler, const Tensor &input, const Tensor &ou
 }
 
 void ReduceMeanCodeGen(std::string &dtype_name, const TPipe &tpipe, const Tensor &src, const Tensor &dst,
-                       std::stringstream &ss) {
+                       std::vector<std::string> &lines) {
   std::set<ascir::AxisId> r_from_axis;
   for (size_t i = 0; i < dst.axis_strides.size(); i++) {
     if ((src.axis_strides[i] != 0 || src.axis_size[i] != 1) && dst.axis_strides[i] == 0) {  // 如果目标张量的轴步长为0
@@ -459,18 +473,19 @@ void ReduceMeanCodeGen(std::string &dtype_name, const TPipe &tpipe, const Tensor
       collect_original_axes(axis_id);  // 从当前轴开始递归收集
     }
   }
-  ss << "const float dimr_recip = 1.0f / (";
+  std::string dimr_recip_line = "const float dimr_recip = 1.0f / (";
   uint32_t count = 0;
   for (auto axis_id : r_from_axis) {
     if (count++ == 0) {
-      ss << tpipe.tiler.AxisSize(axis_id);
+      dimr_recip_line += tpipe.tiler.AxisSize(axis_id);
     } else {
-      ss << " * " << tpipe.tiler.AxisSize(axis_id);
+      dimr_recip_line += " * " + tpipe.tiler.AxisSize(axis_id);
     }
   }
-  ss << ");" << std::endl;
-  ss << "Muls(" << dst << ", " << dst << ", " << "dimr_recip, " << KernelUtils::SizeAlign() << "(" << "reduce_dim_a"
-     << ", 32 / sizeof(" << dtype_name << ")));" << std::endl;
+  dimr_recip_line += ");\n";
+  lines.emplace_back(dimr_recip_line);
+  lines.emplace_back("Muls(" + dst.Str() + ", " + dst.Str() + ", dimr_recip, " + KernelUtils::SizeAlign()
+                     + "(reduce_dim_a, 32 / sizeof(" + dtype_name + ")));\n");
   return;
 }
 
@@ -524,31 +539,35 @@ bool IsTilerLastReduceAxis(const Tensor &tensor) {
   return count == 1;
 }
 
-void ReduceInitCodeGen(const Tensor &x, const Tensor &y, const int &type_value, std::stringstream &ss,
-                       const TPipe &tpipe, const std::string &dtype_name) {
+void ReduceInitCodeGen(const Tensor &x, const Tensor &y, const int &type_value,
+                       std::vector<std::string> &lines, const TPipe &tpipe, const std::string &dtype_name)
+{
   if (x.isAr) {
     std::string is_last_axis_str = IsTilerLastReduceAxis(y) ? "true" : "false";
+    std::stringstream ss;
     ss << "ReduceInit<" << dtype_name << ", " << type_value << ", " << is_last_axis_str << ">(" << x << ", "
        << "first_actual" << ", last" << ", last_actual, " << tpipe.tiler.GetAxis(x.vectorized_axis.back()).actual_size
        << ");" << std::endl;
-
-    ss << "AscendC::PipeBarrier<PIPE_V>();" << std::endl;
+    lines.emplace_back(ss.str());
+    lines.emplace_back("AscendC::PipeBarrier<PIPE_V>();\n");
   }
   return;
 }
 
-void ReduceDimACodeGen(const Tensor &x, const std::string &apiName, std::stringstream &ss) {
-  if (apiName == "Mean") {
+void ReduceDimACodeGen(const Tensor &x, const std::string &apiName, std::vector<std::string> &lines)
+{
+  if (apiName == "ReduceMean") {
     if (x.isAr) {
-      ss << "reduce_dim_a = first_actual;" << std::endl;
+      lines.emplace_back("reduce_dim_a = first_actual;\n");
     } else {
-      ss << "reduce_dim_a = last_actual;" << std::endl;
+      lines.emplace_back("reduce_dim_a = last_actual;\n");
     }
   }
   return;
 }
 
-void GenLastTwoRAxisSizeProductCode(const Tensor &x, const Tensor &y, const TPipe &tpipe, std::stringstream &ss) {
+void GenLastTwoRAxisSizeProductCode(const Tensor &x, const Tensor &y,
+                                    const TPipe &tpipe, std::vector<std::string> &lines) {
   // 收集所有R轴
   std::vector<std::pair<ascir::AxisId, size_t>> r_axes;
 
@@ -565,17 +584,21 @@ void GenLastTwoRAxisSizeProductCode(const Tensor &x, const Tensor &y, const TPip
     ascir::AxisId last_r_axis = r_axes[r_axes.size() - 1].first;
     ascir::AxisId second_last_r_axis = r_axes[r_axes.size() - 2].first;
 
-    ss << "// 最后两个R轴大小的乘积，作为每个核处理的R轴块大小" << std::endl;
+    lines.emplace_back("// 最后两个R轴大小的乘积，作为每个核处理的R轴块大小\n");
+    std::stringstream ss;
     ss << "int64_t r_axis_block_size = " << tpipe.tiler.AxisSize(last_r_axis) << " * "
        << tpipe.tiler.AxisSize(second_last_r_axis) << ";" << std::endl;
+    lines.emplace_back(ss.str());
   } else if (r_axes.size() == 1) {
     // 只有一个R轴
-    ss << "// 只有一个R轴，使用其大小作为块大小" << std::endl;
+    lines.emplace_back("// 只有一个R轴，使用其大小作为块大小\n");
+    std::stringstream ss;
     ss << "int64_t r_axis_block_size = " << tpipe.tiler.AxisSize(r_axes[0].first) << ";" << std::endl;
+    lines.emplace_back(ss.str());
   } else {
     // 没有R轴（特殊情况）
-    ss << "// 没有R轴，使用默认值" << std::endl;
-    ss << "int64_t r_axis_block_size = 1;" << std::endl;
+    lines.emplace_back("// 没有R轴，使用默认值\n");
+    lines.emplace_back("int64_t r_axis_block_size = 1;\n");
   }
 }
 
@@ -593,15 +616,15 @@ Status GetDtypeNameForReduce(const std::string &api_name, const Tensor &x, const
 }
 
 void GenAccumulatedOffsetDeclForArgMax(const std::string &api_name, const Tensor &x, const Tensor &y,
-                                       const TPipe &tpipe, std::stringstream &ss) {
+                                       const TPipe &tpipe, std::vector<std::string> &lines) {
   // ArgMax 和 ArgMaxMultiRPhase1 需要在循环外声明累加的 offset 变量（使用 static 保存状态）
   if (api_name == "ArgMax") {
-    ss << "static int64_t accumulated_offset = 0;" << std::endl;
+    lines.emplace_back("static int64_t accumulated_offset = 0;\n");
   } else if (api_name == "ArgMaxMultiRPhase1") {
     // ArgMaxMultiRPhase1的初始offset = block_dim * 最后两个R轴大小的乘积
     // 使用辅助函数生成计算最后两个R轴大小乘积的代码
-    GenLastTwoRAxisSizeProductCode(x, y, tpipe, ss);
-    ss << "static int64_t accumulated_offset = 0;" << std::endl;
+    GenLastTwoRAxisSizeProductCode(x, y, tpipe, lines);
+    lines.emplace_back("static int64_t accumulated_offset = 0;\n");
   }
 }
 

@@ -37,7 +37,7 @@ class RegReduceMaxApicallTest : public ::testing::Test {
 
 // Test Max with INT8 type
 TEST_F(RegReduceMaxApicallTest, Max_INT8) {
-  std::string api_name = "Max";
+  std::string api_name = "ReduceMax";
 
   std::vector<ascir::AxisId> current_axis;
   std::vector<std::reference_wrapper<const Tensor>> inputs;
@@ -64,11 +64,14 @@ TEST_F(RegReduceMaxApicallTest, Max_INT8) {
   af::AscGraph graph("test");
   af::ascir_op::Data x("x", graph);
   af::ascir_op::Data y("y", graph);
+  af::ascir_op::Max reduce("reduce");  // 创建Reduce类型的节点
+  graph.AddNode(reduce);  // 将Reduce节点添加到图中
 
   auto nodex = graph.FindNode("x");
   af::AscTensor tensorx = nodex->outputs[0];
   auto nodey = graph.FindNode("y");
   af::AscTensor tensory = nodey->outputs[0];
+  auto reduce_node = graph.FindNode("reduce");  // 获取Reduce节点
 
   tensorx.attr.axis = {z0.id, z1.id, z2.id};
   tensorx.attr.vectorized_axis = {z0.id, z2.id};
@@ -121,6 +124,8 @@ TEST_F(RegReduceMaxApicallTest, Max_INT8) {
   codegen::RegReduceApiCall call(api_name);
   call.unit = af::ComputeUnit::kUnitVector;
   call.type = "Max";
+  call.node = reduce_node;  // 设置Reduce节点，BuildApiParam需要有效的node
+  call.node_name = reduce_node->GetName();
   y_tensor.write = &call;
   call.inputs.push_back(&x_tensor);
   call.outputs.push_back(y_tensor);
@@ -138,7 +143,7 @@ TEST_F(RegReduceMaxApicallTest, Max_INT8) {
 
 // Test Max with INT16 type
 TEST_F(RegReduceMaxApicallTest, Max_INT16) {
-  std::string api_name = "Max";
+  std::string api_name = "ReduceMax";
 
   std::vector<ascir::AxisId> current_axis;
   std::vector<std::reference_wrapper<const Tensor>> inputs;
@@ -165,11 +170,14 @@ TEST_F(RegReduceMaxApicallTest, Max_INT16) {
   af::AscGraph graph("test");
   af::ascir_op::Data x("x", graph);
   af::ascir_op::Data y("y", graph);
+  af::ascir_op::Max reduce("reduce");  // 创建Reduce类型的节点
+  graph.AddNode(reduce);  // 将Reduce节点添加到图中
 
   auto nodex = graph.FindNode("x");
   af::AscTensor tensorx = nodex->outputs[0];
   auto nodey = graph.FindNode("y");
   af::AscTensor tensory = nodey->outputs[0];
+  auto reduce_node = graph.FindNode("reduce");  // 获取Reduce节点
 
   tensorx.attr.axis = {z0.id, z1.id, z2.id};
   tensorx.attr.vectorized_axis = {z0.id, z2.id};
@@ -222,6 +230,8 @@ TEST_F(RegReduceMaxApicallTest, Max_INT16) {
   codegen::RegReduceApiCall call(api_name);
   call.unit = af::ComputeUnit::kUnitVector;
   call.type = "Max";
+  call.node = reduce_node;  // 设置Reduce节点，BuildApiParam需要有效的node
+  call.node_name = reduce_node->GetName();
   y_tensor.write = &call;
   call.inputs.push_back(&x_tensor);
   call.outputs.push_back(y_tensor);
@@ -239,7 +249,7 @@ TEST_F(RegReduceMaxApicallTest, Max_INT16) {
 
 // Test Max with BF16 type
 TEST_F(RegReduceMaxApicallTest, Max_BF16) {
-  std::string api_name = "Max";
+  std::string api_name = "ReduceMax";
 
   std::vector<ascir::AxisId> current_axis;
   std::vector<std::reference_wrapper<const Tensor>> inputs;
@@ -266,11 +276,14 @@ TEST_F(RegReduceMaxApicallTest, Max_BF16) {
   af::AscGraph graph("test");
   af::ascir_op::Data x("x", graph);
   af::ascir_op::Data y("y", graph);
+  af::ascir_op::Max reduce("reduce");  // 创建Reduce类型的节点
+  graph.AddNode(reduce);  // 将Reduce节点添加到图中
 
   auto nodex = graph.FindNode("x");
   af::AscTensor tensorx = nodex->outputs[0];
   auto nodey = graph.FindNode("y");
   af::AscTensor tensory = nodey->outputs[0];
+  auto reduce_node = graph.FindNode("reduce");  // 获取Reduce节点
 
   tensorx.attr.axis = {z0.id, z1.id, z2.id};
   tensorx.attr.vectorized_axis = {z0.id, z2.id};
@@ -323,6 +336,8 @@ TEST_F(RegReduceMaxApicallTest, Max_BF16) {
   codegen::RegReduceApiCall call(api_name);
   call.unit = af::ComputeUnit::kUnitVector;
   call.type = "Max";
+  call.node = reduce_node;  // 设置Reduce节点，BuildApiParam需要有效的node
+  call.node_name = reduce_node->GetName();
   y_tensor.write = &call;
   call.inputs.push_back(&x_tensor);
   call.outputs.push_back(y_tensor);

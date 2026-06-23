@@ -20,6 +20,7 @@
 #include "api_call/utils/api_call_factory.h"
 #include "codegen/expression_convert_struct.h"
 #include "reg_api_call_utils.h"
+#include "codegen_api_param/codegen_api_param.h"
 
 namespace codegen {
 using namespace af::ops;
@@ -41,10 +42,9 @@ Status RegReduceApiCall::ParseAttr(const ascir::NodeView &node) {
   return ge::SUCCESS;
 }
 
-Status RegReduceApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
-                                  const std::vector<std::reference_wrapper<const Tensor>> &inputs,
-                                  const std::vector<std::reference_wrapper<const Tensor>> &outputs,
-                                  std::string &result) const {
+Status RegReduceApiCall::BuildApiParam(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
+                                       const std::vector<std::reference_wrapper<const Tensor>> &inputs,
+                                       const std::vector<std::reference_wrapper<const Tensor>> &outputs) const {
   // 获取tmp_buf复用TBuf的id
   int64_t life_time_axis_id = -1L;
   int64_t id = -1L;
@@ -62,7 +62,6 @@ Status RegReduceApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::A
 
   auto x = inputs[0].get();
   auto y = outputs[0].get();
-  (void)RegisterBasicDumpParam(this->api_name_, inputs, outputs);
 
   std::string reduce_pattern;
   GetIsArAndPattern(y, x.isAr, reduce_pattern);
@@ -74,53 +73,84 @@ Status RegReduceApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::A
                     static_cast<int32_t>(y.dtype));
   GELOGI("Tensor::DtypeName(y.dtype) == %s", dtype_name.c_str());
 
-  std::stringstream ss;
+  auto api_param = af::ComGraphMakeShared<CodegenApiParam>();
+  GE_ASSERT_NOTNULL(api_param);
+  
+  ReduceMergedSizeCodeGen(tpipe, api_param->api_pre_process, x, y);
 
-  ReduceMergedSizeCodeGen(tpipe, ss, x, y);
+  ReduceDimACodeGen(x, this->api_name_, api_param->api_pre_process);
 
-  ReduceDimACodeGen(x, this->api_name_, ss);
+  ReduceInitCodeGen(x, y, type_value, api_param->api_pre_process, tpipe, dtype_name);
+  api_param->api_pre_process.emplace_back("uint32_t tmp_reduce_shape[] = {first_actual, last};\n");
+  std::string new_api_name = this->api_name_ == "ReduceMean" ? "ReduceSum" : this->api_name_;
+  api_param->api_name = new_api_name;
+  api_param->template_params.emplace_back(dtype_name);
+  api_param->template_params.emplace_back(reduce_pattern);
+  api_param->template_params.emplace_back(is_reuse_source_);
 
-  ReduceInitCodeGen(x, y, type_value, ss, tpipe, dtype_name);
+  bool need_multi_reduce = IsNeedMultiReduce(tpipe.tiler, x, y, current_axis.back());
 
-  ss << "uint32_t tmp_reduce_shape[] = {first_actual, last};" << std::endl;
-
-  std::string new_api_name = this->api_name_ == "Mean" ? "Sum" : this->api_name_;
-  if (!IsNeedMultiReduce(tpipe.tiler, x, y, current_axis.back())) {
-    ss << "Reduce" << new_api_name << "<" << dtype_name << ", " << reduce_pattern << ", " << is_reuse_source_ << ">("
-       << y << "[" << tpipe.tiler.TensorVectorizedOffset(current_axis, y) << "], " << x << "["
-       << tpipe.tiler.TensorVectorizedOffset(current_axis, x) << "], ";
-    is_reuse_source_ == "true" ? ss << "" : ss << tpipe.tmp_buf << "_" << std::to_string(id) << ", ";
-    ss << "tmp_reduce_shape, true);" << std::endl;
-
-    if (this->api_name_ == "Mean") {
-      ReduceMeanCodeGen(dtype_name, tpipe, x, y, ss);
-    }
-  } else {
+  if (need_multi_reduce) {
     life_time_axis_id = 0L;
     int64_t tmp_reduce_id = -1L;
-    auto it = this->tmp_buf_id.find(life_time_axis_id);
-    GE_ASSERT_TRUE(it != this->tmp_buf_id.end(), "RegReduceApiCall(tmp_reduce_id) cannot find tmp buffer id to use.");
-    tmp_reduce_id = it->second;
-    ss << "LocalTensor<" << dtype_name << "> tmp_reduce;" << std::endl;
-    ss << "tmp_reduce = " << tpipe.tmp_buf << "_" << std::to_string(tmp_reduce_id) << ".template ReinterpretCast<"
-       << dtype_name << ">();" << std::endl;
-    ss << "Reduce" << new_api_name << "<" << dtype_name << "," << reduce_pattern << ", " << is_reuse_source_ << ">"
-       << "(tmp_reduce[0], " << x << "[" << tpipe.tiler.TensorVectorizedOffset(current_axis, x) << "], ";
-    is_reuse_source_ == "true" ? ss << "" : ss << tpipe.tmp_buf << "_" << std::to_string(id) << ", ";
-    ss << "tmp_reduce_shape, true);" << std::endl;
-    ss << "AscendC::PipeBarrier<PIPE_V>();" << std::endl;
-    ss << "uint32_t temp_size = " << KernelUtils::SizeAlign() << "(" << y.actual_size << ", 32/sizeof(" << dtype_name
-       << "));" << std::endl;
-    ss << "if (" << tpipe.tiler.GetAxis(current_axis.back()) << " == 0) {" << std::endl;
-    ss << "DataCopyExtend(" << y << "[0], " << "tmp_reduce[0], " << "temp_size);" << std::endl;
-    ss << "} else {" << std::endl;
-    ss << "AscendC::" << instr_type << "(" << y << "[0], " << "tmp_reduce[0], " << y << "[0], temp_size);\n"
-       << "}" << std::endl;
+    auto it_tmp = this->tmp_buf_id.find(life_time_axis_id);
+    GE_ASSERT_TRUE(it_tmp != this->tmp_buf_id.end(), "RegReduceApiCall(tmp_reduce_id) cannot find tmp buffer id to use.");
+    tmp_reduce_id = it_tmp->second;
+    api_param->api_pre_process.emplace_back("LocalTensor<" + dtype_name + "> tmp_reduce;\n");
+    api_param->api_pre_process.emplace_back(
+        "tmp_reduce = " + tpipe.tmp_buf.name + "_" + std::to_string(tmp_reduce_id) +
+        ".template ReinterpretCast<" + dtype_name + ">();\n");
   }
 
-  ss << "}" << std::endl;
-  result = ss.str();
-  return ge::SUCCESS;
+  if (need_multi_reduce) {
+    // need_multi_reduce 时输出到 tmp_reduce[0]
+    api_param->output_params.emplace_back("tmp_reduce", true, CombinedExprFactory::Constant(0));
+    api_param->input_params.emplace_back(
+        x.Str(), true, CombinedExprFactory::SymbolVar(tpipe.tiler.TensorVectorizedOffset(current_axis, x)));
+  } else {
+    api_param->output_params.emplace_back(
+        y.Str(), true, CombinedExprFactory::SymbolVar(tpipe.tiler.TensorVectorizedOffset(current_axis, y)));
+    api_param->input_params.emplace_back(
+        x.Str(), true, CombinedExprFactory::SymbolVar(tpipe.tiler.TensorVectorizedOffset(current_axis, x)));
+  }
+
+  // 设置tmp_buf_name（如果不是reuse_source）
+  if (is_reuse_source_ != "true") {
+    api_param->tmp_buf_name = tpipe.tmp_buf.name + "_" + std::to_string(id);
+  }
+  api_param->cal_count = CombinedExprFactory::SymbolVar("tmp_reduce_shape");
+
+  // 后处理代码
+  if (!need_multi_reduce && this->api_name_ == "ReduceMean") {
+    // Mean算子在非multi_reduce时需要额外的后处理（除法）
+    ReduceMeanCodeGen(dtype_name, tpipe, x, y, api_param->api_post_process);
+  }
+
+  if (need_multi_reduce) {
+    api_param->api_post_process.emplace_back("AscendC::PipeBarrier<PIPE_V>();\n");
+    api_param->api_post_process.emplace_back(
+        "uint32_t temp_size = " + KernelUtils::SizeAlign() + "(" + y.actual_size.Str() +
+        ", 32/sizeof(" + dtype_name + "));\n");
+    api_param->api_post_process.emplace_back(
+        "if (" + tpipe.tiler.GetAxis(current_axis.back()).Str() + " == 0) {\n");
+    api_param->api_post_process.emplace_back(
+        "DataCopyExtend(" + y.Str() + "[0], tmp_reduce[0], temp_size);\n");
+    api_param->api_post_process.emplace_back("} else {\n");
+    api_param->api_post_process.emplace_back(
+        "AscendC::" + instr_type + "(" + y.Str() + "[0], tmp_reduce[0], " + y.Str() + "[0], temp_size);\n");
+    api_param->api_post_process.emplace_back("}\n");
+  }
+  // 结束代码块（与ReduceMergedSizeCodeGen生成的 { 对应）
+  api_param->api_post_process.emplace_back("}\n");
+
+  GE_CHK_STATUS_RET(CodegenApiParam::Register(this->node, api_param),
+                    "CodegenApiParam Register failed for node %s", this->node_name.c_str());
+  return af::SUCCESS;
+}
+
+Status RegReduceApiCall::GenDimensionParam(const CodegenApiParam &api_param, const Tiler &tiler, std::stringstream &ss) const {
+  ss << api_param.cal_count.ToStr(tiler) << ", true);" << std::endl;
+  return af::SUCCESS;
 }
 
 static ApiCallRegister<RegReduceApiCall> register_reduce_api_call("RegReduceApiCall");

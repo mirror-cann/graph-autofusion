@@ -1239,7 +1239,7 @@ class MaxAscIrCodegenImplV2 : public AscIrCodegenV2 {
     return "RegReduceApiCall";
   }
   [[nodiscard]] std::string GetApiName() const override {
-    return "Max";
+    return "ReduceMax";
   }
   [[nodiscard]] std::vector<std::string> LoadApiHeaderFiles([[maybe_unused]] bool is_dynamic) const override {
     return {"reduce_init_reg_base.h"};
@@ -1273,7 +1273,7 @@ class SumAscIrCodegenImplV2 : public AscIrCodegenV2 {
     return "RegReduceApiCall";
   }
   [[nodiscard]] std::string GetApiName() const override {
-    return "Sum";
+    return "ReduceSum";
   }
   [[nodiscard]] std::vector<std::string> LoadApiHeaderFiles([[maybe_unused]] bool is_dynamic) const override {
     return {"reduce_init_reg_base.h"};
@@ -1310,7 +1310,7 @@ class MinAscIrCodegenImplV2 : public AscIrCodegenV2 {
     return "RegReduceApiCall";
   }
   [[nodiscard]] std::string GetApiName() const override {
-    return "Min";
+    return "ReduceMin";
   }
   [[nodiscard]] std::vector<std::string> LoadApiHeaderFiles([[maybe_unused]] bool is_dynamic) const override {
     return {"reduce_init_reg_base.h"};
@@ -1344,7 +1344,7 @@ class MeanAscIrCodegenImplV2 : public AscIrCodegenV2 {
     return "RegReduceApiCall";
   }
   [[nodiscard]] std::string GetApiName() const override {
-    return "Mean";
+    return "ReduceMean";
   }
   [[nodiscard]] std::vector<std::string> LoadApiHeaderFiles([[maybe_unused]] bool is_dynamic) const override {
     return {"reduce_init_reg_base.h"};
@@ -1373,7 +1373,7 @@ class ProdAscIrCodegenImplV2 : public AscIrCodegenV2 {
     return "RegReduceApiCall";
   }
   [[nodiscard]] std::string GetApiName() const override {
-    return "Prod";
+    return "ReduceProd";
   }
   [[nodiscard]] std::vector<std::string> LoadApiHeaderFiles([[maybe_unused]] bool is_dynamic) const override {
     return {"reduce_init_reg_base.h"};
@@ -1402,7 +1402,7 @@ class AnyAscIrCodegenImplV2 : public AscIrCodegenV2 {
     return "RegReduceApiCall";
   }
   [[nodiscard]] std::string GetApiName() const override {
-    return "Any";
+    return "ReduceAny";
   }
   [[nodiscard]] std::vector<std::string> LoadApiHeaderFiles([[maybe_unused]] bool is_dynamic) const override {
     return {"reduce_init_reg_base.h"};
@@ -1431,7 +1431,7 @@ class AllAscIrCodegenImplV2 : public AscIrCodegenV2 {
     return "RegReduceApiCall";
   }
   [[nodiscard]] std::string GetApiName() const override {
-    return "All";
+    return "ReduceAll";
   }
   [[nodiscard]] std::vector<std::string> LoadApiHeaderFiles([[maybe_unused]] bool is_dynamic) const override {
     return {"reduce_init_reg_base.h"};
