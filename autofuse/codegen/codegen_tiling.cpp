@@ -2275,7 +2275,11 @@ std::string TilingLib::GenPgoAutofuseTiling(const ascir::FusedScheduledResult &f
   ss << " const ResLimit *limit = (res_limit == nullptr) ? &g_no_limit_res : res_limit;" << std::endl;
   ss << pgo_shape_dim.tiling_set_shape_dim.str();
   ss << "  tiling->set_block_dim(limit->aiv_num);" << std::endl;
-  ss << "  tiling->set_ub_size(limit->ub_size - 256);" << std::endl;
+  if (is_inductor_scene) {
+    ss << "  tiling->set_ub_size(limit->ub_size - 256);" << std::endl;
+  } else {
+    ss << "  tiling->set_ub_size(limit->ub_size);" << std::endl;
+  }
   if (!ascgen_utils::IsJustCubeFixpip(fused_schedule_result)) {
     if (enable_autofuse_pgo_) {
       ss << "  if (!PGOGetTilingKey(config_file, *tiling)) {" << std::endl;
@@ -2892,8 +2896,9 @@ static void GetTilingParse(std::string &tiling_parse, int &vector_core_num) {
   ss << " if (ascendc_platform.GetSocVersion() == platform_ascendc::SocVersion::ASCEND950) {" << std::endl;
   ss << " version_is_ASCEND950 = true;" << std::endl;
   ss << " }" << std::endl;
-  ss << " ub_size -= (ascendc_platform.GetSocVersion() == platform_ascendc::SocVersion::ASCEND950 && ub_size % 1024 == "
-        "0) ? 256 : 0;"
+  ss << " ub_size -= (ascendc_platform.GetSocVersion() != platform_ascendc::SocVersion::ASCEND910 && "
+        "ascendc_platform.GetSocVersion() != platform_ascendc::SocVersion::ASCEND910B && ub_size % 1024 == 0) ? "
+        "256 : 0;"
      << std::endl;
   ss << " (*tiling_parse_data)->ub_size = ub_size;" << std::endl;
   ss << " return ge::GRAPH_SUCCESS;" << std::endl;
