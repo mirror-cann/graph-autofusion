@@ -1225,7 +1225,8 @@ TEST_F(SuperKernelScopeSplitterTest, Sync_ResetStreamStatesResume)
 
     graph->BuildEventNodeAssociations();
 
-    EXPECT_FALSE(notify2->IsFusible());
+    EXPECT_TRUE(notify2->IsFusible());
+    EXPECT_TRUE(notify2->GetCorrespondingWaitNodeIds().empty());
 
     SuperKernelScopeSplitter splitter(*graph, *opts);
     bool result = splitter.SplitGraph();
@@ -1241,7 +1242,7 @@ TEST_F(SuperKernelScopeSplitterTest, Sync_ResetStreamStatesResume)
             allProcessedNodes.insert(node->GetNodeId());
         }
     }
-    std::set<uint64_t> expectedNodes = {1, 2, 3, 4, 5, 6};
+    std::set<uint64_t> expectedNodes = {1, 2, 3, 4, 5, 6, 8};
     EXPECT_EQ(allProcessedNodes, expectedNodes);
 }
 
@@ -2731,7 +2732,8 @@ TEST_F(SuperKernelScopeSplitterTest, EventOnly_FullPipelineOnlyEventNodes)
 
     graph->BuildEventNodeAssociations();
 
-    EXPECT_FALSE(notify1->IsFusible());
+    EXPECT_TRUE(notify1->IsFusible());
+    EXPECT_TRUE(notify1->GetCorrespondingWaitNodeIds().empty());
 
     SuperKernelScopeSplitter splitter(*graph, *opts);
     bool result = splitter.SplitGraph();
@@ -2806,17 +2808,17 @@ TEST_F(SuperKernelScopeSplitterTest, DeadlockRefinePassValueBreakerBypassKeepsUn
 }
 
 /**
- * @brief 孤立Notify节点(无对应Wait)标记为non-fusible
+ * @brief 孤立Notify节点(无对应Wait)保持当前融合状态
  * 
  * 图结构:
  *   stream0: [Notify1(1, eventId=100) -> K1(2)]
  *   Event100: Notify1(1) 无对应Wait节点(空等待列表)
  * 
  * 预期结果:
- *   - Notify1被标记为non-fusible
+ *   - Notify1保持当前融合状态
  *   - Notify1无对应Wait节点ID
  *   - SplitGraph返回true
- *   - 生成1个scope仅包含K1(2)
+ *   - 生成1个scope包含Notify1(1)和K1(2)
  */
 TEST_F(SuperKernelScopeSplitterTest, ErrorHandling_OrphanNotifyMarkedUnfusible)
 {
@@ -2828,7 +2830,7 @@ TEST_F(SuperKernelScopeSplitterTest, ErrorHandling_OrphanNotifyMarkedUnfusible)
 
     graph->BuildEventNodeAssociations();
 
-    EXPECT_FALSE(notify1->IsFusible());
+    EXPECT_TRUE(notify1->IsFusible());
     EXPECT_TRUE(notify1->GetCorrespondingWaitNodeIds().empty());
 
     SuperKernelScopeSplitter splitter(*graph, *opts);
@@ -2843,7 +2845,7 @@ TEST_F(SuperKernelScopeSplitterTest, ErrorHandling_OrphanNotifyMarkedUnfusible)
         }
     }
 
-    std::set<uint64_t> expectedNodes = {2};
+    std::set<uint64_t> expectedNodes = {1, 2};
     EXPECT_EQ(allProcessedNodes, expectedNodes);
 }
 
@@ -3370,8 +3372,8 @@ TEST_F(SuperKernelScopeSplitterTest, EventOnly_MultipleScopesProcessed)
  * 
  * 预期结果:
  *   - SplitGraph返回true
- *   - Stream1只有Event节点，被EventOnlyStreamRemovePass移除
- *   - Notify1标记为non-fusible
+ *   - Notify1在BuildEventNodeAssociations后保持当前融合状态
+ *   - Stream1只有Event节点，后续由EventOnlyStreamRemovePass移除
  *   - 生成1个scope仅包含K1/K2
  */
 TEST_F(SuperKernelScopeSplitterTest, EventOnly_FullPipelineWithEventOnlyStream)
@@ -3387,7 +3389,8 @@ TEST_F(SuperKernelScopeSplitterTest, EventOnly_FullPipelineWithEventOnlyStream)
 
     graph->BuildEventNodeAssociations();
 
-    EXPECT_FALSE(notify1->IsFusible());
+    EXPECT_TRUE(notify1->IsFusible());
+    EXPECT_TRUE(notify1->GetCorrespondingWaitNodeIds().empty());
 
     SuperKernelScopeSplitter splitter(*graph, *opts);
     bool result = splitter.SplitGraph();

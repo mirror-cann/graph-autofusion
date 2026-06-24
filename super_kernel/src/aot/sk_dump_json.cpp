@@ -157,9 +157,9 @@ std::string PtrToHexString(const void* ptr)
 }
 
 /**
- * @brief Convert uint64_t to hex string
+ * @brief Convert unsigned integer to hex string
  */
-std::string Uint64ToHexString(uint64_t value) 
+std::string UintToHexString(uint64_t value)
 {
     std::stringstream hexStream;
     hexStream << "0x" << std::hex << value;
@@ -267,10 +267,10 @@ static void AddResolvedFuncsToJson(Json& kernelParamsJson, aclrtFuncHandle funcH
     Json resolvedFuncsJson = Json::array();
     for (uint32_t i = 0; i < resolvedNum && i < K_MAX_SPLIT_BIN_COUNT; ++i) {
         Json rfJson;
-        rfJson["funcAddr"][0] = Uint64ToHexString(dumpResolvedFuncs[i].funcAddr[0]);
-        rfJson["funcAddr"][1] = Uint64ToHexString(dumpResolvedFuncs[i].funcAddr[1]);
-        rfJson["funcOffset"][0] = Uint64ToHexString(dumpResolvedFuncs[i].funcOffset[0]);
-        rfJson["funcOffset"][1] = Uint64ToHexString(dumpResolvedFuncs[i].funcOffset[1]);
+        rfJson["funcAddr"][0] = UintToHexString(dumpResolvedFuncs[i].funcAddr[0]);
+        rfJson["funcAddr"][1] = UintToHexString(dumpResolvedFuncs[i].funcAddr[1]);
+        rfJson["funcOffset"][0] = UintToHexString(dumpResolvedFuncs[i].funcOffset[0]);
+        rfJson["funcOffset"][1] = UintToHexString(dumpResolvedFuncs[i].funcOffset[1]);
         rfJson["prefetchCnt"][0] = dumpResolvedFuncs[i].prefetchCnt[0];
         rfJson["prefetchCnt"][1] = dumpResolvedFuncs[i].prefetchCnt[1];
         rfJson["symbolBind"][0] = dumpResolvedFuncs[i].symbolBind[0];
@@ -311,6 +311,7 @@ void AddEventRecordParams(Json& taskJson, const aclmdlRIEventRecordTaskParams& e
     Json eventParamsJson;
     eventParamsJson["eventId"] = PtrToHexString(eventParams.event);
     eventParamsJson["eventFlag"] = eventParams.eventFlag;
+    eventParamsJson["recordFlag"] = eventParams.recordFlag;
     taskJson["eventRecordParams"] = eventParamsJson;
 }
 
@@ -322,6 +323,7 @@ void AddEventWaitParams(Json& taskJson, const aclmdlRIEventWaitTaskParams& event
     Json eventParamsJson;
     eventParamsJson["event"] = PtrToHexString(eventParams.event);
     eventParamsJson["eventFlag"] = eventParams.eventFlag;
+    eventParamsJson["waitFlag"] = eventParams.waitFlag;
     taskJson["eventWaitParams"] = eventParamsJson;
 }
 
@@ -333,6 +335,7 @@ void AddEventResetParams(Json& taskJson, const aclmdlRIEventResetTaskParams& eve
     Json eventParamsJson;
     eventParamsJson["event"] = PtrToHexString(eventParams.event);
     eventParamsJson["eventFlag"] = eventParams.eventFlag;
+    eventParamsJson["resetFlag"] = eventParams.resetFlag;
     taskJson["eventResetParams"] = eventParamsJson;
 }
 
@@ -343,7 +346,7 @@ void AddValueWriteParams(Json& taskJson, const aclmdlRIValueWriteTaskParams& val
 {
     Json valueParamsJson;
     valueParamsJson["devAddr"] = PtrToHexString(valueParams.devAddr);
-    valueParamsJson["value"] = Uint64ToHexString(valueParams.value);
+    valueParamsJson["value"] = UintToHexString(valueParams.value);
     taskJson["valueWriteParams"] = valueParamsJson;
 }
 
@@ -354,7 +357,7 @@ void AddValueWaitParams(Json& taskJson, const aclmdlRIValueWaitTaskParams& value
 {
     Json valueParamsJson;
     valueParamsJson["devAddr"] = PtrToHexString(valueParams.devAddr);
-    valueParamsJson["value"] = Uint64ToHexString(valueParams.value);
+    valueParamsJson["value"] = UintToHexString(valueParams.value);
     valueParamsJson["flag"] = valueParams.flag;
     taskJson["valueWaitParams"] = valueParamsJson;
 }

@@ -949,6 +949,7 @@ TEST_F(SkNodeTest, MemoryNodeInitNode_EventRecordInternalFusible)
     task.type = ACL_MODEL_RI_TASK_EVENT_RECORD;
     task.params.eventRecordTaskParams.event = reinterpret_cast<aclrtEvent>(0x1000);
     task.params.eventRecordTaskParams.eventFlag = 0;
+    task.params.eventRecordTaskParams.recordFlag = ACL_EVENT_RECORD_DEFAULT;
 
     SuperKernelMemoryNode node(MakeTaskHandle(task), ACL_MODEL_RI_TASK_EVENT_RECORD, 0, 0,
                                INVALID_STREAM_ID, INVALID_TASK_ID);
@@ -959,6 +960,30 @@ TEST_F(SkNodeTest, MemoryNodeInitNode_EventRecordInternalFusible)
     EXPECT_TRUE(node.IsFusible());
     EXPECT_EQ(node.nodeInfos.syncInfos.eventId, 0x1000U);
     EXPECT_EQ(node.nodeInfos.syncInfos.eventFlag, 0U);
+    EXPECT_EQ(node.nodeInfos.syncInfos.eventTaskFlag, ACL_EVENT_RECORD_DEFAULT);
+    EXPECT_EQ(node.nodeInfos.syncInfos.memoryValue, SK_DEFAULT_NOTIFY_VALUE);
+    EXPECT_EQ(node.nodeInfos.syncInfos.memoryWaitFlag, SK_DEFAULT_WRITE_FLAG);
+}
+
+TEST_F(SkNodeTest, MemoryNodeInitNode_EventRecordExternalTaskFlagNotFusible)
+{
+    TestRITask task{};
+    task.taskId = 105;
+    task.type = ACL_MODEL_RI_TASK_EVENT_RECORD;
+    task.params.eventRecordTaskParams.event = reinterpret_cast<aclrtEvent>(0x5000);
+    task.params.eventRecordTaskParams.eventFlag = 0;
+    task.params.eventRecordTaskParams.recordFlag = ACL_EVENT_RECORD_EXTERNAL;
+
+    SuperKernelMemoryNode node(MakeTaskHandle(task), ACL_MODEL_RI_TASK_EVENT_RECORD, 0, 0,
+                               INVALID_STREAM_ID, INVALID_TASK_ID);
+
+    ASSERT_TRUE(node.InitNode());
+    EXPECT_EQ(node.GetNodeType(), SkNodeType::NODE_NOTIFY);
+    EXPECT_FALSE(node.IsFusible());
+    EXPECT_EQ(node.GetFusionFailReason(), FusionFailReason::EXTERNAL_DEPEND);
+    EXPECT_EQ(node.nodeInfos.syncInfos.eventId, 0x5000U);
+    EXPECT_EQ(node.nodeInfos.syncInfos.eventFlag, 0U);
+    EXPECT_EQ(node.nodeInfos.syncInfos.eventTaskFlag, ACL_EVENT_RECORD_EXTERNAL);
     EXPECT_EQ(node.nodeInfos.syncInfos.memoryValue, SK_DEFAULT_NOTIFY_VALUE);
     EXPECT_EQ(node.nodeInfos.syncInfos.memoryWaitFlag, SK_DEFAULT_WRITE_FLAG);
 }
@@ -970,6 +995,7 @@ TEST_F(SkNodeTest, MemoryNodeInitNode_EventWaitExternalNotFusible)
     task.type = ACL_MODEL_RI_TASK_EVENT_WAIT;
     task.params.eventWaitTaskParams.event = reinterpret_cast<aclrtEvent>(0x2000);
     task.params.eventWaitTaskParams.eventFlag = ACL_EVENT_EXTERNAL;
+    task.params.eventWaitTaskParams.waitFlag = ACL_EVENT_WAIT_EXTERNAL;
 
     SuperKernelMemoryNode node(MakeTaskHandle(task), ACL_MODEL_RI_TASK_EVENT_WAIT, 0, 0,
                                INVALID_STREAM_ID, INVALID_TASK_ID);
@@ -979,6 +1005,7 @@ TEST_F(SkNodeTest, MemoryNodeInitNode_EventWaitExternalNotFusible)
     EXPECT_FALSE(node.IsFusible());
     EXPECT_EQ(node.nodeInfos.syncInfos.eventId, 0x2000U);
     EXPECT_EQ(node.nodeInfos.syncInfos.eventFlag, ACL_EVENT_EXTERNAL);
+    EXPECT_EQ(node.nodeInfos.syncInfos.eventTaskFlag, ACL_EVENT_WAIT_EXTERNAL);
     EXPECT_EQ(node.nodeInfos.syncInfos.memoryValue, SK_DEFAULT_WAIT_VALUE);
     EXPECT_EQ(node.nodeInfos.syncInfos.memoryWaitFlag, static_cast<uint32_t>(SkMemoryWaitFlag::EQ));
 }
@@ -990,6 +1017,7 @@ TEST_F(SkNodeTest, MemoryNodeInitNode_EventResetInternalNotFusible)
     task.type = ACL_MODEL_RI_TASK_EVENT_RESET;
     task.params.eventResetTaskParams.event = reinterpret_cast<aclrtEvent>(0x3000);
     task.params.eventResetTaskParams.eventFlag = 0;
+    task.params.eventResetTaskParams.resetFlag = 1;
 
     SuperKernelMemoryNode node(MakeTaskHandle(task), ACL_MODEL_RI_TASK_EVENT_RESET, 0, 0,
                                INVALID_STREAM_ID, INVALID_TASK_ID);
@@ -999,6 +1027,7 @@ TEST_F(SkNodeTest, MemoryNodeInitNode_EventResetInternalNotFusible)
     EXPECT_FALSE(node.IsFusible());
     EXPECT_EQ(node.GetFusionFailReason(), FusionFailReason::RESET_TYPE_NODE);
     EXPECT_EQ(node.nodeInfos.syncInfos.eventId, 0x3000U);
+    EXPECT_EQ(node.nodeInfos.syncInfos.eventTaskFlag, 1U);
     EXPECT_EQ(node.nodeInfos.syncInfos.memoryValue, SK_DEFAULT_RESET_VALUE);
     EXPECT_EQ(node.nodeInfos.syncInfos.memoryWaitFlag, SK_DEFAULT_WRITE_FLAG);
 }
@@ -1576,6 +1605,7 @@ TEST_F(SkNodeTest, SyncInfosToJson_WithCorrespondingNodes)
     syncInfo.correspondingWaitNodeIds = {101, 102, 103};
     syncInfo.correspondingResetNodeIds = {201, 202};
     syncInfo.eventFlag = 0x55;
+    syncInfo.eventTaskFlag = 1;
     
     Json notifyJson = SyncInfosToJson(syncInfo, SkNodeType::NODE_NOTIFY);
     
@@ -1585,6 +1615,7 @@ TEST_F(SkNodeTest, SyncInfosToJson_WithCorrespondingNodes)
     EXPECT_TRUE(notifyJson.contains("correspondingResetNodeIds"));
     EXPECT_EQ(notifyJson["correspondingResetNodeIds"].size(), 2);
     EXPECT_EQ(notifyJson["eventFlag"], "0x55");
+    EXPECT_EQ(notifyJson["eventTaskFlag"], 1);
 }
 
 TEST_F(SkNodeTest, SyncInfosToJson_WaitNodeWithCorrespondingNotify)
@@ -1627,8 +1658,10 @@ TEST_F(SkNodeTest, SyncInfosToJson_DefaultValuesFiltered)
     syncInfo.addrValue = reinterpret_cast<void*>(0x5678);
     syncInfo.memoryValue = std::numeric_limits<uint64_t>::max();
     syncInfo.memoryWaitFlag = std::numeric_limits<uint32_t>::max();
-    syncInfo.eventFlag = std::numeric_limits<uint64_t>::max();
+    syncInfo.eventFlag = std::numeric_limits<uint32_t>::max();
+    syncInfo.eventTaskFlag = std::numeric_limits<uint32_t>::max();
     syncInfo.correspondingWaitNodeIds = {};
+    syncInfo.correspondingResetNodeIds = {};
     
     Json json = SyncInfosToJson(syncInfo, SkNodeType::NODE_NOTIFY);
     
@@ -1637,7 +1670,9 @@ TEST_F(SkNodeTest, SyncInfosToJson_DefaultValuesFiltered)
     EXPECT_FALSE(json.contains("memoryValue"));
     EXPECT_FALSE(json.contains("memoryWaitFlag"));
     EXPECT_FALSE(json.contains("eventFlag"));
+    EXPECT_FALSE(json.contains("eventTaskFlag"));
     EXPECT_FALSE(json.contains("correspondingWaitNodeIds"));
+    EXPECT_FALSE(json.contains("correspondingResetNodeIds"));
 }
 
 // ==================== KernelCapBits 结构体测试 ====================

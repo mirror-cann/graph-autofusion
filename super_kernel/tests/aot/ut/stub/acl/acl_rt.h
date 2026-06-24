@@ -31,6 +31,10 @@ static const int ACL_ERROR_INVALID_PARAM = 100000;
 #endif
 
 #define ACL_EVENT_EXTERNAL                0x00000020U
+#define ACL_EVENT_RECORD_DEFAULT          0x0U
+#define ACL_EVENT_RECORD_EXTERNAL         0x01U
+#define ACL_EVENT_WAIT_DEFAULT            0x0U
+#define ACL_EVENT_WAIT_EXTERNAL           0x01U
 
 // ACL data types
 #define ACL_UINT8  2
@@ -187,17 +191,20 @@ typedef struct aclmdlRIValueWaitTaskParams {
 
 typedef struct aclmdlRIEventRecordTaskParams {
     aclrtEvent event;
-    uint64_t eventFlag;
+    uint32_t eventFlag;
+    uint32_t recordFlag;
 } aclmdlRIEventRecordTaskParams;
 
 typedef struct aclmdlRIEventWaitTaskParams {
     aclrtEvent event;
-    uint64_t eventFlag;
+    uint32_t eventFlag;
+    uint32_t waitFlag;
 } aclmdlRIEventWaitTaskParams;
 
 typedef struct aclmdlRIEventResetTaskParams {
     aclrtEvent event;
-    uint64_t eventFlag;
+    uint32_t eventFlag;
+    uint32_t resetFlag;
 } aclmdlRIEventResetTaskParams;
 
 typedef struct aclmdlRITaskParams {

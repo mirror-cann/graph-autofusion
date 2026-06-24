@@ -60,11 +60,6 @@ uint32_t ResolveEventWaitFlag(const SuperKernelBaseNode* node)
     return static_cast<uint32_t>(SkMemoryWaitFlag::EQ);
 }
 
-bool IsValueBackedEventNode(const SuperKernelBaseNode& node)
-{
-    return node.GetNodeInfos().syncInfos.addrValue != nullptr;
-}
-
 bool IsNotifyByMemoryWaitRule(uint64_t writeMemoryValue, uint64_t memoryWaitValue,
                               uint32_t waitFlag, uint64_t eventId)
 {
@@ -453,16 +448,9 @@ void SuperKernelGraph::BuildEventNodeAssociations() {
         } else if (eventInfo.notifyNodeId != INVALID_TASK_ID && eventInfo.waitNodeIdList.empty()) {
             auto* notifyNode = GetNodeById(eventInfo.notifyNodeId);
             if (notifyNode != nullptr && notifyNode->GetNodeType() == SkNodeType::NODE_NOTIFY) {
-                if (IsValueBackedEventNode(*notifyNode)) {
-                    SK_LOGI("Event 0x%lx: value-backed notify node %lu keeps fusible without in-scope waits",
-                            eventId, eventInfo.notifyNodeId);
-                } else {
-                    notifyNode->SetIsFusible(false);
-                    notifyNode->SetFusionFailReason(FusionFailReason::NOTIFY_NO_WAIT_NODE);
-                    notifyNode->SetCorrespondingWaitNodeIds({});
-                    SK_LOGI("Event 0x%lx: notify node %lu has no wait node in modelRI, mark as unfusible",
-                            eventId, eventInfo.notifyNodeId);
-                }
+                notifyNode->SetCorrespondingWaitNodeIds({});
+                SK_LOGI("Event 0x%lx: notify node %lu has no wait node in modelRI, keep current fusible state",
+                        eventId, eventInfo.notifyNodeId);
             } else {
                 SK_LOGE("Event 0x%lx: orphan notify node %lu is invalid or not a notify node",
                         eventId, eventInfo.notifyNodeId);

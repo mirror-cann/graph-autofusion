@@ -25,6 +25,7 @@
 #include <set>
 #include <unordered_map>
 #include <array>
+#include <limits>
 
 #include <nlohmann/json.hpp>
 
@@ -65,13 +66,12 @@ enum class FusionFailReason {
     SCOPE_FUSE_PART,    // 9: Scope processing skipped part of the original scope
     EXTERNAL_DEPEND,    // 10: Event has external dependency
     UNSUPPORT_EVENT_TYPE, // 11: Unsupported event type
-    NOTIFY_NO_WAIT_NODE,  // 12: notify node has no wait node in modelRI, mark as unfusible
-    MEMORY_WAIT_NODE_ONLY, // 13: No memory write exists, meaning the memory write is outside modelRI,
-    MEMORY_WRITE_NODE_ONLY,  // 14: only exists memory write nodes, mask it as unfusible
-    DEFAULT_NODE, // 15: default node uses aicpu resources, mask it as unfusible
-    SIMT_OP_UNSUPPORT, // 16: SIMT operator is not supported for SuperKernel fusion
-    KERNEL_ATTR_GET_FAILED, // 17: Failed to get kernel attribute for SuperKernel fusion
-    EXCEED_SCOPE_MAX, // 18: Exceeded maximum scope number limit for SuperKernel fusion
+    MEMORY_WAIT_NODE_ONLY, // 12: No memory write exists, meaning the memory write is outside modelRI,
+    MEMORY_WRITE_NODE_ONLY,  // 13: only exists memory write nodes, mask it as unfusible
+    DEFAULT_NODE, // 14: default node uses aicpu resources, mask it as unfusible
+    SIMT_OP_UNSUPPORT, // 15: SIMT operator is not supported for SuperKernel fusion
+    KERNEL_ATTR_GET_FAILED, // 16: Failed to get kernel attribute for SuperKernel fusion
+    EXCEED_SCOPE_MAX, // 17: Exceeded maximum scope number limit for SuperKernel fusion
 };
 
 // Bindmap related fail reason detail
@@ -174,8 +174,6 @@ inline const char* to_string(FusionFailReason reason) {
             return "EXTERNAL_DEPEND";
         case FusionFailReason::UNSUPPORT_EVENT_TYPE: 
             return "UNSUPPORT_EVENT_TYPE";
-        case FusionFailReason::NOTIFY_NO_WAIT_NODE: 
-            return "NOTIFY_NO_WAIT_NODE";
         case FusionFailReason::MEMORY_WAIT_NODE_ONLY: 
             return "MEMORY_WAIT_NODE_ONLY";
         case FusionFailReason::MEMORY_WRITE_NODE_ONLY: 
@@ -271,11 +269,12 @@ struct SyncInfos {
     // For notify nodes: list of all wait node IDs that wait on this notify
     // For wait nodes: empty (not used)
     std::vector<uint64_t> correspondingWaitNodeIds;
-    // For event nodes, the corresponding reset node ID
+    // For reset nodes: list of reset node IDs for the same event, kept for complete graph metadata
     std::vector<uint64_t> correspondingResetNodeIds;
     uint64_t memoryValue = std::numeric_limits<uint64_t>::max();
     uint32_t memoryWaitFlag = std::numeric_limits<uint32_t>::max();
-    uint64_t eventFlag = std::numeric_limits<uint64_t>::max();
+    uint32_t eventFlag = std::numeric_limits<uint32_t>::max();
+    uint32_t eventTaskFlag = std::numeric_limits<uint32_t>::max();
 };
 
 struct NodeInfos {
