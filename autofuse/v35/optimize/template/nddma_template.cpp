@@ -194,7 +194,7 @@ Status NddmaTemplate::IsGraphHasBroadcastNodeNeedTailAxisAlign(af::AscGraph &gra
   return ge::SUCCESS;
 }
 
-Status NddmaTemplate::GetStoreContinuousAxisNum(const af::AscNodePtr &node, uint32_t& continuous_axis_num) {
+Status NddmaTemplate::GetStoreContinuousAxisNum(const af::AscNodePtr &node, uint32_t &continuous_axis_num) {
   continuous_axis_num = 0;
   auto &output_attr = node->outputs[0].attr;
   const auto &output_vec_axis = output_attr.vectorized_axis;
@@ -223,7 +223,7 @@ Status NddmaTemplate::GetStoreContinuousAxisNum(const af::AscNodePtr &node, uint
   return ge::SUCCESS;
 }
 
-Status NddmaTemplate::GetNodeContinuousAxisNum(const af::AscNodePtr &node, uint32_t& continuous_axis_num) {
+Status NddmaTemplate::GetNodeContinuousAxisNum(const af::AscNodePtr &node, uint32_t &continuous_axis_num) {
   continuous_axis_num = UINT32_MAX;
   if (af::ops::IsOps<af::ascir_op::Store>(node)) {
     GE_ASSERT_SUCCESS(GetStoreContinuousAxisNum(node, continuous_axis_num));
@@ -274,8 +274,8 @@ Status NddmaTemplate::UpdateOutputVectorizedStrides(const af::AscNodePtr &node, 
     const int64_t axis_index = std::distance(output_attr.axis.begin(), axis_tensor_iter);
     const auto &repeat = output_attr.repeats[axis_index];
     // 向量化轴的stride为0则不做处理，保留原stride
-    if (af::SymbolicUtils::StaticCheckEq(output_attr.vectorized_strides[index], af::sym::kSymbolZero)
-                                         != af::TriBool::kTrue) {
+    if (af::SymbolicUtils::StaticCheckEq(output_attr.vectorized_strides[index], af::sym::kSymbolZero) !=
+        af::TriBool::kTrue) {
       output_attr.vectorized_strides[index] = size_product;
       size_product = size_product * repeat;
     }
@@ -300,7 +300,7 @@ Status NddmaTemplate::ModifyTransposeFusionVectorizedStrides(af::AscGraph &nddma
     }
     uint32_t continuous_axis_num = 0;
     GE_ASSERT_SUCCESS(GetNodeContinuousAxisNum(node, continuous_axis_num));
-    if (continuous_axis_num <= 1U || continuous_axis_num == UINT32_MAX) { // 小于一个连续轴，不需要调整strides
+    if (continuous_axis_num <= 1U || continuous_axis_num == UINT32_MAX) {  // 小于一个连续轴，不需要调整strides
       continue;
     }
     for (const auto &output : node->outputs()) {
@@ -411,7 +411,7 @@ ge::Status NddmaTemplate::ProcessTransposeNodes(af::AscGraph &new_case, bool &is
 }
 
 ge::Status NddmaTemplate::Generate([[maybe_unused]] const af::AscGraph &origin_graph,
-                                    [[maybe_unused]] const af::AscGraph &based_case, af::AscGraph &new_case) {
+                                   [[maybe_unused]] const af::AscGraph &based_case, af::AscGraph &new_case) {
   bool is_nddma_generated = false;
   GE_ASSERT_SUCCESS(ProcessTransposeNodes(new_case, is_nddma_generated));
   bool is_transpose_nddma_generated = is_nddma_generated;
@@ -449,7 +449,10 @@ ge::Status NddmaTemplate::Generate([[maybe_unused]] const af::AscGraph &origin_g
       GE_ASSERT_SUCCESS(GenLoadToGenNddmaNode(node));
     }
   }
-  GE_ASSERT_TRUE(is_nddma_generated, "No nddma template generated.");
+  if (!is_nddma_generated) {
+    GELOGD("No nddma template generated.");
+    return ge::FAILED;
+  }
   if (is_transpose_nddma_generated) {
     GE_ASSERT_SUCCESS(ModifyTransposeFusionVectorizedStrides(new_case, BaseAlignmentStrategy::GetAlignWidth()));
   }
