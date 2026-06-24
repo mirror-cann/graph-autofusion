@@ -26,6 +26,9 @@ class PerfParamTableV2 : public PerfParamTable {
   [[nodiscard]] Expr GetVectorFunctionHeadCost() const override;
   [[nodiscard]] std::string GetApiRegisterVerName() const override;
   [[nodiscard]] Expr GetOpHeadCost() const override;
+  [[nodiscard]] uint32_t GetMicroApiLen() const override {
+    return arch_param::kV2ArchHardwareConfig.vector_len_size;
+  }
   [[nodiscard]] const std::string *GetAscendCApiPerfTable() const override;
   [[nodiscard]] PipeHeadPerfFunc GetPipeHeadPerfFunc(PipeType pipe_type) const override;
   [[nodiscard]] static Expr GetMTE2PipeHead(const std::vector<NodeInfo> &node_infos,
@@ -58,11 +61,15 @@ class TilingScheduleConfigTableV2 : public TilingScheduleConfigTable {
   [[nodiscard]] TilingScheduleConfig GetModelTilingScheduleConfig() const override {
     TilingScheduleConfig config;
     config.trade_off_config = GetTradeOffConfig();
-    config.cache_line_size = 128;  // V2 CacheLine 大小为 128 字节
+    config.cache_line_size = GetCacheLineSize();
+    config.vector_len_size = GetVectorLenSize();
     return config;
   }
   [[nodiscard]] uint32_t GetCacheLineSize() const override {
-    return 128;  // V2 CacheLine 大小为 128 字节
+    return arch_param::kV2ArchHardwareConfig.cache_line_size;
+  }
+  [[nodiscard]] uint32_t GetVectorLenSize() const override {
+    return arch_param::kV2ArchHardwareConfig.vector_len_size;
   }
   // 新增：V2形态使能Reduce分核惩罚
   [[nodiscard]] bool IsCoreNumThresholdPenaltyEnable() const override {

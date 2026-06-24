@@ -1,20 +1,120 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
 
 #include "arg_list_reorder.h"
 
+#include <algorithm>
+#include <limits>
+
 namespace att {
 namespace {
 constexpr size_t kOrderIdStart = 1;
-const std::vector<std::string> kDefaultNodeWhiteList = {"Data", "Output", "Constant", "Workspace", "TbufData"};
-}  // namespace
+const std::vector<std::string> kDefaultNodeWhiteList = {
+    "Data", "Output", "Constant", "Workspace", "TbufData"
+};
+
+bool GetExprBytes(const Expr &repeat_expr, uint32_t data_type_size, uint64_t &axis_bytes) {
+  if (data_type_size == 0U) {
+    return false;
+  }
+  uint64_t repeat = 0UL;
+  if (!repeat_expr.GetConstValue(repeat)) {
+    return false;
+  }
+  if (repeat > std::numeric_limits<uint64_t>::max() / data_type_size) {
+    return false;
+  }
+  axis_bytes = repeat * data_type_size;
+  return true;
+}
+
+bool IsReduceOrigAxis(const SubAxis *axis, const std::set<std::string> &reduce_axis_ori_axes_set) {
+  if (axis == nullptr) {
+    return false;
+  }
+  if (reduce_axis_ori_axes_set.find(axis->name) != reduce_axis_ori_axes_set.end()) {
+    return true;
+  }
+  for (const auto &orig_axis : axis->orig_axis_name) {
+    if (reduce_axis_ori_axes_set.find(orig_axis) != reduce_axis_ori_axes_set.end()) {
+      return true;
+    }
+  }
+  for (const auto *orig_axis : axis->orig_axis) {
+    if ((orig_axis != nullptr) &&
+        (reduce_axis_ori_axes_set.find(orig_axis->name) != reduce_axis_ori_axes_set.end())) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool IsSameOrRelatedAxis(const SubAxis *lhs, const SubAxis *rhs) {
+  if ((lhs == nullptr) || (rhs == nullptr)) {
+    return false;
+  }
+  if ((lhs == rhs) || (lhs->name == rhs->name)) {
+    return true;
+  }
+  for (const auto &lhs_orig_axis : lhs->orig_axis_name) {
+    if (std::find(rhs->orig_axis_name.begin(), rhs->orig_axis_name.end(), lhs_orig_axis) !=
+        rhs->orig_axis_name.end()) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool TryGetTensorDataTypeSize(const TensorPtr &tensor, uint32_t &data_type_size) {
+  if ((tensor == nullptr) || (tensor->data_type_size == 0U)) {
+    return false;
+  }
+  data_type_size = tensor->data_type_size;
+  return true;
+}
+
+bool IsDynamicExprBytes(const Expr &repeat_expr, uint32_t data_type_size) {
+  if (data_type_size == 0U) {
+    return false;
+  }
+  uint64_t axis_bytes = 0UL;
+  return !GetExprBytes(repeat_expr, data_type_size, axis_bytes);
+}
+
+bool IsConstExpr(const Expr &expr) {
+  uint64_t value = 0UL;
+  return expr.GetConstValue(value);
+}
+
+uint32_t CeilDiv(uint32_t dividend, uint32_t divisor) {
+  if (divisor == 0U) {
+    return 0U;
+  }
+  return dividend / divisor + ((dividend % divisor) == 0U ? 0U : 1U);
+}
+
+Expr GetOriginalAxisRepeat(const SubAxis *axis) {
+  if (axis == nullptr) {
+    return Expr();
+  }
+  Expr original_repeat;
+  bool has_original_repeat = false;
+  for (const auto *orig_axis : axis->orig_axis) {
+    if ((orig_axis != nullptr) && orig_axis->repeat.IsValid()) {
+      original_repeat = has_original_repeat ? af::sym::Mul(original_repeat, orig_axis->repeat) : orig_axis->repeat;
+      has_original_repeat = true;
+    }
+  }
+  return has_original_repeat ? original_repeat : axis->repeat;
+}
+}
 
 // 初始化arglist的优先级连边图
 // 初始化排序原则：父轴的优先级必须大于子轴，举例说明:
@@ -89,16 +189,42 @@ bool ArgListReorder::CheckReduce(const SubAxis *dim, const Expr &repeat, const E
   return CheckAxisProperty(dim, repeat, stride, output_tensors, AxisProperty::kReduce);
 }
 
-bool ArgListReorder::IsReduceAxisBlockSplit(const std::vector<SubAxisPtr> &all_axes,
-                                            const std::set<std::string> &reduce_axis_ori_axes_set) const {
-  for (const auto &axis : all_axes) {
-    if (!axis->is_bind_multi_core) {
+uint32_t ArgListReorder::GetCacheLineSize() const {
+  if ((tuning_space_ != nullptr) && (tuning_space_->tiling_schedule_config_table != nullptr)) {
+    return tuning_space_->tiling_schedule_config_table->GetCacheLineSize();
+  }
+  return arch_param::kDefaultCacheLineSize;
+}
+
+uint32_t ArgListReorder::GetVectorLenSize() const {
+  if ((tuning_space_ != nullptr) && (tuning_space_->tiling_schedule_config_table != nullptr)) {
+    return tuning_space_->tiling_schedule_config_table->GetVectorLenSize();
+  }
+  return arch_param::kDefaultVectorLenSize;
+}
+
+bool ArgListReorder::GetReduceAxisDataTypeSize(const NodeInfo &node, const SubAxis *axis,
+                                               const std::set<std::string> &reduce_axis_ori_axes_set,
+                                               uint32_t &data_type_size) const {
+  std::vector<TensorPtr> tensors;
+  tensors.insert(tensors.end(), node.inputs.begin(), node.inputs.end());
+  tensors.insert(tensors.end(), node.outputs.begin(), node.outputs.end());
+  for (const auto &tensor : tensors) {
+    if (!TryGetTensorDataTypeSize(tensor, data_type_size)) {
       continue;
     }
-    GELOGI("axis[%s] bind multi core", axis->name.c_str());
-    for (auto &orig_axis : axis->orig_axis_name) {
-      GELOGI("bind multi core axis[%s] has orig_axis: [%s]", axis->name.c_str(), orig_axis.c_str());
-      if (reduce_axis_ori_axes_set.find(orig_axis) != reduce_axis_ori_axes_set.end()) {
+    for (const auto *dim : tensor->dim_info) {
+      if (IsSameOrRelatedAxis(dim, axis)) {
+        return true;
+      }
+    }
+  }
+  for (const auto &tensor : tensors) {
+    if (!TryGetTensorDataTypeSize(tensor, data_type_size)) {
+      continue;
+    }
+    for (const auto *dim : tensor->dim_info) {
+      if (IsReduceOrigAxis(dim, reduce_axis_ori_axes_set)) {
         return true;
       }
     }
@@ -106,8 +232,122 @@ bool ArgListReorder::IsReduceAxisBlockSplit(const std::vector<SubAxisPtr> &all_a
   return false;
 }
 
-void ArgListReorder::SaveReduceAxisOrig(const SubAxis *reduce_axis,
-                                        std::set<std::string> &reduce_axis_ori_axes_set) const {
+bool ArgListReorder::IsReduceAxisBlockSplit(const std::vector<SubAxisPtr> &all_axes,
+                                            const std::set<std::string> &reduce_axis_ori_axes_set) const {
+  for (const auto &axis : all_axes) {
+    if (!axis->is_bind_multi_core || !IsReduceOrigAxis(axis.get(), reduce_axis_ori_axes_set)) {
+      continue;
+    }
+    GELOGI("reduce axis[%s] bind multi core", axis->name.c_str());
+    return true;
+  }
+  return false;
+}
+
+bool ArgListReorder::IsReduceAxisTileSplit(const std::set<std::string> &reduce_axis_ori_axes_set) const {
+  for (const auto &axis : tuning_space_->sub_axes) {
+    if ((axis->axis_type != AxisPosition::INNER) || axis->is_bind_multi_core ||
+        !IsReduceOrigAxis(axis.get(), reduce_axis_ori_axes_set)) {
+      continue;
+    }
+    return true;
+  }
+  return false;
+}
+
+bool ArgListReorder::TryBuildReduceTileRuntimeReorderRule(const NodeInfo &node,
+                                                          const std::set<std::string> &reduce_axis_ori_axes_set,
+                                                          RuntimeReorderRule &rule) const {
+  for (const auto &axis : tuning_space_->sub_axes) {
+    if ((axis->axis_type != AxisPosition::INNER) || axis->is_bind_multi_core ||
+        !IsReduceOrigAxis(axis.get(), reduce_axis_ori_axes_set)) {
+      continue;
+    }
+    uint32_t data_type_size = 0U;
+    if (!GetReduceAxisDataTypeSize(node, axis.get(), reduce_axis_ori_axes_set, data_type_size)) {
+      continue;
+    }
+    rule.preferred_axis = axis->repeat;
+    rule.fallback_axis = axis->repeat;
+    rule.compare_axis = GetOriginalAxisRepeat(axis.get());
+    rule.compare_threshold = GetVectorLenSize() / data_type_size;
+    return true;
+  }
+  return false;
+}
+
+bool ArgListReorder::HasSmallTailLargeReduceTile(const NodeInfo &node,
+                                                 const std::set<std::string> &reduce_axis_ori_axes_set,
+                                                 RuntimeReorderRule &rule) const {
+  if (!TryBuildReduceTileRuntimeReorderRule(node, reduce_axis_ori_axes_set, rule)) {
+    return false;
+  }
+  bool has_dynamic = false;
+  for (const auto &tensor : node.inputs) {
+    if (tensor == nullptr) {
+      continue;
+    }
+    const size_t dim_size = std::min(tensor->dim_info.size(), tensor->repeat.size());
+    for (size_t i = 0U; i < dim_size; ++i) {
+      const auto *dim = tensor->dim_info[i];
+      if ((dim == nullptr) || !dim->is_node_innerest_dim) {
+        continue;
+      }
+      if (tensor->data_type_size == 0U) {
+        continue;
+      }
+      rule.preferred_axis = tensor->repeat[i];
+      rule.condition_axis = GetOriginalAxisRepeat(dim);
+      rule.condition_threshold = CeilDiv(GetCacheLineSize(), tensor->data_type_size);
+      uint64_t tail_bytes = 0UL;
+      uint64_t reduce_bytes = 0UL;
+      const bool has_static_tail = GetExprBytes(rule.condition_axis, tensor->data_type_size, tail_bytes);
+      const bool has_static_reduce = GetExprBytes(rule.compare_axis, tensor->data_type_size, reduce_bytes);
+      const bool small_tail = has_static_tail && (tail_bytes < GetCacheLineSize());
+      const bool large_reduce = has_static_reduce && (reduce_bytes > GetVectorLenSize());
+      if ((has_static_tail && !small_tail) || (has_static_reduce && !large_reduce)) {
+        continue;
+      }
+      has_dynamic = has_dynamic || IsDynamicExprBytes(rule.condition_axis, tensor->data_type_size) ||
+                    IsDynamicExprBytes(rule.compare_axis, tensor->data_type_size);
+      if (small_tail && large_reduce) {
+        return true;
+      }
+    }
+  }
+  return has_dynamic;
+}
+
+void ArgListReorder::RecordReduceTileTemplateSelection(const NodeInfo &node,
+                                                       const std::set<std::string> &reduce_axis_ori_axes_set) {
+  if (!IsReduceAxisTileSplit(reduce_axis_ori_axes_set)) {
+    return;
+  }
+  RuntimeReorderRule runtime_rule;
+  if (!HasSmallTailLargeReduceTile(node, reduce_axis_ori_axes_set, runtime_rule)) {
+    GELOGI(
+        "[ATT][ReduceTileReorder] Static reduce tile selects fallback single template: keep reduce axis before tail "
+        "axis, prefer splitting tail axis.");
+    return;
+  }
+  const bool is_static = IsConstExpr(runtime_rule.condition_axis) && IsConstExpr(runtime_rule.compare_axis);
+  if (is_static) {
+    GELOGI(
+        "[ATT][ReduceTileReorder] Static reduce tile selects preferred single template: keep tail axis before reduce "
+        "axis, prefer splitting reduce axis.");
+    prefer_reduce_tile_ = true;
+    return;
+  }
+  GELOGI(
+      "[ATT][ReduceTileReorder] Dynamic reduce tile selects runtime single template: condition axis %s < %u and "
+      "compare axis %s > %u chooses preferred order at runtime.",
+      Str(runtime_rule.condition_axis).c_str(), runtime_rule.condition_threshold,
+      Str(runtime_rule.compare_axis).c_str(), runtime_rule.compare_threshold);
+  has_dynamic_reduce_tile_reorder_ = true;
+  dynamic_reduce_tile_reorder_rule_ = runtime_rule;
+}
+
+void ArgListReorder::SaveReduceAxisOrig(const SubAxis *reduce_axis, std::set<std::string> &reduce_axis_ori_axes_set) const {
   for (SubAxis *ori_axis : reduce_axis->orig_axis) {
     GELOGI("reduce axis ori set add: [%s]", ori_axis->name.c_str());
     reduce_axis_ori_axes_set.insert(ori_axis->name);
@@ -142,11 +382,11 @@ void ArgListReorder::FindSpecialArgs() {
         kDefaultNodeWhiteList.end()) {
       continue;
     }
-
+    
     const auto &input_tensors = node.inputs;
     const auto &output_tensors = node.outputs;
     std::set<std::string> reduce_axis_ori_axes_set;
-
+    
     for (const auto &tensor : input_tensors) {
       for (size_t i = 0; i < tensor->dim_info.size(); i++) {
         RecordSpecialArgs(node, tensor, i, output_tensors, reduce_axis_ori_axes_set);
@@ -154,13 +394,18 @@ void ArgListReorder::FindSpecialArgs() {
       auto asc_node = node.node_ptr;
       auto graph = tuning_space_->asc_graph;
       std::string last_dim_name;
-      if (AttUtils::IsLoadStoreNode(asc_node.get()) && (asc_node != nullptr) && (graph != nullptr) &&
+      if ((asc_node != nullptr) && (graph != nullptr) && AttUtils::IsLoadStoreNode(asc_node.get()) &&
           (AttUtils::GetLastTileSplitAxisName(*asc_node, *graph, last_dim_name))) {
         load_store_inner_most_dims_.insert(last_dim_name);
         GELOGD("[DFX]Found Tile split axis %s in load/store node", last_dim_name.c_str());
       }
     }
-    tiling_R_ = tiling_R_ || IsReduceAxisBlockSplit(tuning_space_->sub_axes, reduce_axis_ori_axes_set);
+    const bool is_reduce_block_split = IsReduceAxisBlockSplit(tuning_space_->sub_axes, reduce_axis_ori_axes_set);
+    tiling_R_ = tiling_R_ || is_reduce_block_split;
+    if (is_reduce_block_split) {
+      continue;
+    }
+    RecordReduceTileTemplateSelection(node, reduce_axis_ori_axes_set);
   }
 }
 
@@ -172,7 +417,7 @@ ge::Status ArgListReorder::AddEdgeGroups(const std::vector<std::string> &from_ax
     GE_ASSERT_TRUE(axis_name_2_id_map_.find(from_axis) != axis_name_2_id_map_.end(),
                    "from axis[%s] cannot be found in arg", from_axis.c_str());
     size_t from_axis_id = axis_name_2_id_map_[from_axis];
-
+    
     for (const auto &to_axis : to_axes_group) {
       GE_ASSERT_TRUE(axis_name_2_id_map_.find(to_axis) != axis_name_2_id_map_.end(),
                      "to axis[%s] cannot be found in arg", to_axis.c_str());
@@ -214,13 +459,13 @@ ArgListReorder::AxisCategories ArgListReorder::CategorizeAxesByProperty(const ve
     } else {
       categories.non_reduce_arg_names.push_back(arg->name);
     }
-
+    
     if (broadcast_map_.find(arg->name) != broadcast_map_.end()) {
       categories.broadcast_arg_names.push_back(arg->name);
     } else {
       categories.non_broadcast_arg_names.push_back(arg->name);
     }
-
+    
     if (innermost_dim_map_.find(arg->name) != innermost_dim_map_.end()) {
       categories.innermost_dim_arg_names.push_back(arg->name);
     } else {
@@ -272,7 +517,6 @@ ge::Status ArgListReorder::ApplyPriorityRules(bool tiling_R, const AxisCategorie
 // 连边操作会判环，如果z0z1t->z2t, z2t->z0z1t会成环，因此不会连z2t->z0z1t，这样也是遵循reduce轴优先级高于最内轴这条原则
 ge::Status ArgListReorder::BuildArgListPriorityGraph(const vector<AttAxisPtr> &arg_list, bool tiling_R) {
   GE_ASSERT_SUCCESS(InitArgListPriorityGraph(arg_list), "init arg list graph failed");
-  FindSpecialArgs();
   return ApplyPriorityRules(tiling_R, CategorizeAxesByProperty(arg_list));
 }
 
@@ -321,9 +565,10 @@ std::vector<AttAxisPtr> ArgListReorder::GetNewArgList(const std::vector<size_t> 
 }
 
 // 排序的入口函数
-ge::Status ArgListReorder::SortArgList(vector<AttAxisPtr> &arg_list, vector<AttAxisPtr> &tiling_R_arg_list) {
+ge::Status ArgListReorder::SortArgList(vector<AttAxisPtr> &arg_list, vector<AttAxisPtr> &tiling_R_arg_list,
+                                       std::vector<RuntimeReorderRule> *runtime_reorder_rules) {
   GE_ASSERT_TRUE(!arg_list.empty(), "arg list is empty");
-
+  
   graph_ = af::MakeShared<ArgPriorityGraph>(arg_list.size());
   GE_ASSERT_NOTNULL(graph_, "Create graph failed");
   GELOGI("Before reorder ArgList:");
@@ -332,9 +577,13 @@ ge::Status ArgListReorder::SortArgList(vector<AttAxisPtr> &arg_list, vector<AttA
     axis_name_2_id_map_[arg->name] = i;
     GELOGI("arg[%s], id is [%zu]", arg->name.c_str(), i);
   }
+  FindSpecialArgs();
   // 构建最终优先级连边图
-  GE_ASSERT_SUCCESS(BuildArgListPriorityGraph(arg_list, false), "build arg list graph failed");
+  GE_ASSERT_SUCCESS(BuildArgListPriorityGraph(arg_list, prefer_reduce_tile_), "build arg list graph failed");
   std::vector<AttAxisPtr> new_arg_list = GetNewArgList(graph_->TopologicalSort(), arg_list);
+  if ((runtime_reorder_rules != nullptr) && has_dynamic_reduce_tile_reorder_) {
+    runtime_reorder_rules->emplace_back(dynamic_reduce_tile_reorder_rule_);
+  }
 
   if (tiling_R_) {
     GELOGI("ReduceAxis BlockSplit, another reorder ArgList:");
@@ -344,7 +593,7 @@ ge::Status ArgListReorder::SortArgList(vector<AttAxisPtr> &arg_list, vector<AttA
     std::vector<AttAxisPtr> tiling_R_new_arg_list = GetNewArgList(graph_->TopologicalSort(), arg_list);
     tiling_R_arg_list = tiling_R_new_arg_list;
   }
-
+  
   arg_list = new_arg_list;
   return ge::SUCCESS;
 }

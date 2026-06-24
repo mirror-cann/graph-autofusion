@@ -116,7 +116,9 @@ Status ScheduleGroupGraphPartitioner::PartitionByConnectivity(const ::ascir::Imp
 Status ScheduleGroupGraphPartitioner::NeedRefreshAxisSize(const ::ascir::ImplGraph &optimize_graph,
                                                           bool &need_refresh) {
   const auto concat_node = ScheduleUtils::FindFirstNodeOfType<af::ascir_op::Concat>(optimize_graph);
-  GE_CHK_BOOL_RET_SPECIAL_STATUS(concat_node == nullptr, ge::SUCCESS, "no Concat node was found");
+  const auto split_node = ScheduleUtils::FindFirstNodeOfType<af::ascir_op::Split>(optimize_graph);
+  GE_CHK_BOOL_RET_SPECIAL_STATUS(concat_node == nullptr && split_node == nullptr, ge::SUCCESS,
+ 	                             "neither Concat nor Split Node was found");
   need_refresh = true;
   return ge::SUCCESS;
 }

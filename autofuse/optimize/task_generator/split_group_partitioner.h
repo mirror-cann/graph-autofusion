@@ -28,8 +28,25 @@ class SplitGroupPartitioner {
 
   Status PartitionGroups(const std::vector<SplitGroup> &groups);
 
+  Status RecomputeDiffAxes();
+
  private:
   Status Initialize();
+
+  Status RecomputeConsumersCrossGroups();
+
+  Status FindFirstMultiRefAncestors(const af::OutDataAnchorPtr &out_anchor,
+ 	                                size_t branch_idx,
+ 	                                std::set<af::InDataAnchor*> &visited_in_anchors,
+ 	                                af::InDataAnchor* &to_split) const;
+
+  bool HasCrossBranchConflictAndSizeDiff(af::OutDataAnchor *start_out_anchor,
+ 	                                     const af::OutDataAnchorPtr &out_anchor,
+ 	                                     size_t branch_idx) const;
+
+  Status RecomputeUpstreamNodes(af::InDataAnchor *to_split, size_t branch_idx,
+ 	                            std::map<std::string, af::AscNodePtr> &name_to_new_node);
+
   static constexpr int32_t kGroupTypeDefault = 0;
   static constexpr int32_t kGroupTypeAligned = 1;
   static constexpr int32_t kGroupTypeSmallTail = 2;

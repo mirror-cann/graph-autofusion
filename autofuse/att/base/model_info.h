@@ -12,6 +12,7 @@
 #define ATT_MODEL_INFO_H
 #include <memory>
 #include <map>
+#include "base/arch_param.h"
 #include "base/base_types.h"
 #include "base/perf_breakdown.h"
 #include "schedule_result.h"
@@ -173,7 +174,10 @@ struct TilingScheduleConfig {
   TradeOffConfig trade_off_config;
 
   // CacheLine 大小（字节）
-  uint32_t cache_line_size{128};
+  uint32_t cache_line_size{arch_param::kDefaultCacheLineSize};
+
+  // Vector length 大小（字节）
+  uint32_t vector_len_size{arch_param::kDefaultVectorLenSize};
 
   // 是否启用惩罚配置（用于日志区分）
   bool is_penalty_config{false};
@@ -181,6 +185,7 @@ struct TilingScheduleConfig {
   [[nodiscard]] std::string DebugString() const {
     return "trade_off_config: {" + trade_off_config.DebugString() +
            "}, cache_line_size: " + std::to_string(cache_line_size) +
+           ", vector_len_size: " + std::to_string(vector_len_size) +
            ", is_penalty_config: " + std::to_string(is_penalty_config);
   }
 };
@@ -225,6 +230,15 @@ struct CacheLineConfig {
   }
 };
 
+struct RuntimeReorderRule {
+  Expr preferred_axis;
+  Expr fallback_axis;
+  Expr condition_axis;
+  Expr compare_axis;
+  uint32_t condition_threshold{0U};
+  uint32_t compare_threshold{0U};
+};
+
 class TilingScheduleConfigTable {
  public:
   virtual ~TilingScheduleConfigTable() = default;
@@ -247,6 +261,11 @@ class TilingScheduleConfigTable {
 
   // 新增：获取 CacheLine 大小
   [[nodiscard]] virtual uint32_t GetCacheLineSize() const = 0;
+
+  // 新增：获取 Vector length 大小
+  [[nodiscard]] virtual uint32_t GetVectorLenSize() const {
+    return arch_param::kDefaultVectorLenSize;
+  }
 
   // 新增：是否启用Reduce分核Store地址冲突惩罚功能
   [[nodiscard]] virtual bool IsCoreNumThresholdPenaltyEnable() const = 0;
@@ -292,6 +311,7 @@ struct ModelInfo {
   const TilingScheduleConfigTable *tiling_schedule_config_table{nullptr};
   TilingScheduleConfig tiling_schedule_config;  // Model 级别的 Tiling 调度配置
   bool is_enable_equal_order_tiling{false};     // 使能等order tiling算法
+  std::vector<RuntimeReorderRule> runtime_reorder_rules;  // 运行时按shape调整单模板内轴优先级
 };
 
 using TilingModelInfo = std::vector<ModelInfo>;

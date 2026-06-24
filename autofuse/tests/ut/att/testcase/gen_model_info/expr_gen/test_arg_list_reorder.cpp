@@ -1,47 +1,213 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
 
 #include <iostream>
 #include "gtest/gtest.h"
+#include "gen_model_info/api_perf_register/v1/perf_param_v1.h"
+#include "v35/att/api_perf_register/perf_param_v2.h"
 #define private public
 #include "expr_gen/arg_list_reorder.h"
 
-namespace att {
+
+namespace att{
 class TestArgListReorder : public ::testing::Test {
  public:
-  static void TearDownTestCase() {
+  static void TearDownTestCase()
+  {
     std::cout << "Test end." << std::endl;
   }
-  static void SetUpTestCase() {
+  static void SetUpTestCase()
+  {
     std::cout << "Test begin." << std::endl;
   }
   void SetUp() override {
-    // Code here will be called immediately after the constructor (right
-    // before each test).
+     // Code here will be called immediately after the constructor (right
+     // before each test).
   }
 
   void TearDown() override {
-    // Code here will be called immediately after each test (right
-    // before the destructor).
+     // Code here will be called immediately after each test (right
+     // before the destructor).
   }
 };
 
-TEST_F(TestArgListReorder, case0) {
-  // Define TuningSpace
-  // Create node: MatMul
-  // input : [m, k][k, n]
-  // repeat : [M, K][K, N]
-  // stride : [MM, KK][KK, NN]
-  // output : [m, n, k]
-  // repeat : [M, N, ONE]
-  // stride : [MM, NN, ZERO]
+namespace {
+constexpr uint32_t kTensorDataTypeSize = 2U;
+constexpr uint32_t kAxisDataTypeSize = 4U;
+
+class TestTilingScheduleConfigTable : public TilingScheduleConfigTable {
+ public:
+  TestTilingScheduleConfigTable(uint32_t cache_line_size, uint32_t vector_len_size)
+      : cache_line_size_(cache_line_size), vector_len_size_(vector_len_size) {}
+
+  [[nodiscard]] bool IsEnableBlockLoopAutoTune() const override { return false; }
+  [[nodiscard]] bool IsEnableCacheLineCheck() const override { return true; }
+  [[nodiscard]] TradeOffConfig GetTradeOffConfig() const override { return {}; }
+  [[nodiscard]] double GetUbThresholdPerfValEffect() const override { return 0.0; }
+  [[nodiscard]] TilingScheduleConfig GetModelTilingScheduleConfig() const override
+  {
+    TilingScheduleConfig config;
+    config.cache_line_size = cache_line_size_;
+    config.vector_len_size = vector_len_size_;
+    return config;
+  }
+  [[nodiscard]] uint32_t GetCacheLineSize() const override { return cache_line_size_; }
+  [[nodiscard]] uint32_t GetVectorLenSize() const override { return vector_len_size_; }
+  [[nodiscard]] bool IsCoreNumThresholdPenaltyEnable() const override { return false; }
+
+ private:
+  uint32_t cache_line_size_;
+  uint32_t vector_len_size_;
+};
+
+struct ReduceTailSortCase {
+  std::shared_ptr<TuningSpace> tuning_space;
+  ModelInfo model_info;
+  std::shared_ptr<TilingScheduleConfigTable> tiling_schedule_config_table;
+};
+
+struct ReduceTailSubAxes {
+  std::unique_ptr<SubAxis> origin_reduce;
+  std::unique_ptr<SubAxis> reduce;
+  std::unique_ptr<SubAxis> tail;
+};
+
+std::shared_ptr<AttAxis> MakeAttAxis(const std::string &name)
+{
+  auto axis = std::make_shared<AttAxis>();
+  axis->name = name;
+  return axis;
+}
+
+size_t GetArgIndex(const std::vector<AttAxisPtr> &arg_list, const std::string &name)
+{
+  for (size_t i = 0U; i < arg_list.size(); ++i) {
+    if (arg_list[i]->name == name) {
+      return i;
+    }
+  }
+  return arg_list.size();
+}
+
+SymInfoPtr MakeAxisSize(const Expr &expr) {
+  if (expr.IsConstExpr()) {
+    auto size = std::make_shared<SymConstInfo>(expr);
+    uint64_t value = 0UL;
+    if (expr.GetConstValue(value)) {
+      size->const_value = static_cast<uint32_t>(value);
+    }
+    size->data_type_size = kAxisDataTypeSize;
+    return size;
+  }
+  auto size = std::make_shared<SymVarInfo>(expr);
+  size->data_type_size = kAxisDataTypeSize;
+  return size;
+}
+
+void InitAttAxis(const AttAxisPtr &axis, const std::string &name, const Expr &size_expr, bool bind_multicore = false) {
+  axis->name = name;
+  axis->axis_pos = AxisPosition::INNER;
+  axis->bind_multicore = bind_multicore;
+  axis->size = MakeAxisSize(size_expr);
+}
+
+ReduceTailSubAxes MakeReduceTailSubAxes(const Expr &reduce_size, const Expr &tail_size, bool bind_multicore) {
+  ReduceTailSubAxes sub_axes;
+  sub_axes.origin_reduce = std::make_unique<SubAxis>();
+  sub_axes.reduce = std::make_unique<SubAxis>();
+  sub_axes.tail = std::make_unique<SubAxis>();
+  sub_axes.origin_reduce->name = "origin_reduce";
+  sub_axes.reduce->name = "reduce";
+  sub_axes.tail->name = "tail";
+  sub_axes.origin_reduce->repeat = reduce_size;
+  sub_axes.reduce->repeat = reduce_size;
+  sub_axes.tail->repeat = tail_size;
+  sub_axes.reduce->axis_type = AxisPosition::INNER;
+  sub_axes.tail->axis_type = AxisPosition::INNER;
+  sub_axes.origin_reduce->data_type_size = kAxisDataTypeSize;
+  sub_axes.reduce->data_type_size = kAxisDataTypeSize;
+  sub_axes.tail->data_type_size = kAxisDataTypeSize;
+  sub_axes.reduce->is_bind_multi_core = bind_multicore;
+  sub_axes.reduce->orig_axis_name = {sub_axes.origin_reduce->name};
+  sub_axes.reduce->orig_axis.emplace_back(sub_axes.origin_reduce.get());
+  sub_axes.tail->is_node_innerest_dim = true;
+  return sub_axes;
+}
+
+ReduceTailSortCase BuildReduceTailSortCase(const Expr &reduce_size, const Expr &tail_size,
+                                           uint32_t cache_line_size = 128U, uint32_t vector_len_size = 256U,
+                                           bool bind_multicore = true) {
+  auto sub_axes = MakeReduceTailSubAxes(reduce_size, tail_size, bind_multicore);
+  auto input = std::make_shared<Tensor>();
+  auto output = std::make_shared<Tensor>();
+  input->name = "reduce_tail_input";
+  input->data_type_size = kTensorDataTypeSize;
+  input->dim_info = {sub_axes.reduce.get(), sub_axes.tail.get()};
+  input->repeat = {sub_axes.reduce->repeat, sub_axes.tail->repeat};
+  input->stride = {sub_axes.tail->repeat, af::Symbol(1)};
+  output->name = "reduce_tail_output";
+  output->data_type_size = kTensorDataTypeSize;
+  output->dim_info = {sub_axes.reduce.get(), sub_axes.tail.get()};
+  output->repeat = {af::Symbol(1), sub_axes.tail->repeat};
+  output->stride = {af::Symbol(0), af::Symbol(1)};
+
+  NodeInfo node;
+  node.name = "ReduceTail";
+  node.node_type = "ReduceTail";
+  node.inputs = {input};
+  node.outputs = {output};
+
+  ReduceTailSortCase test_case;
+  test_case.tuning_space = std::make_shared<TuningSpace>();
+  test_case.tiling_schedule_config_table =
+      std::make_shared<TestTilingScheduleConfigTable>(cache_line_size, vector_len_size);
+  test_case.tuning_space->tiling_schedule_config_table = test_case.tiling_schedule_config_table.get();
+  test_case.tuning_space->node_infos = {node};
+  test_case.tuning_space->sub_axes.emplace_back(std::move(sub_axes.origin_reduce));
+  test_case.tuning_space->sub_axes.emplace_back(std::move(sub_axes.reduce));
+  test_case.tuning_space->sub_axes.emplace_back(std::move(sub_axes.tail));
+  auto reduce_axis = MakeAttAxis("reduce");
+  auto tail_axis = MakeAttAxis("tail");
+  InitAttAxis(reduce_axis, "reduce", reduce_size, bind_multicore);
+  InitAttAxis(tail_axis, "tail", tail_size);
+  test_case.model_info.arg_list = {reduce_axis, tail_axis};
+  return test_case;
+}
+
+ReduceTailSortCase BuildReduceTailSortCaseWithOriginalAxes(const Expr &reduce_size, const Expr &tail_size,
+                                                           const Expr &origin_reduce_size, const Expr &origin_tail_size,
+                                                           bool bind_multicore = false) {
+  auto test_case = BuildReduceTailSortCase(reduce_size, tail_size, 128U, 256U, bind_multicore);
+  test_case.tuning_space->sub_axes[0]->repeat = origin_reduce_size;
+  auto origin_tail = std::make_unique<SubAxis>();
+  origin_tail->name = "origin_tail";
+  origin_tail->repeat = origin_tail_size;
+  origin_tail->data_type_size = kAxisDataTypeSize;
+  auto *tail = test_case.tuning_space->sub_axes[2].get();
+  tail->orig_axis_name = {origin_tail->name};
+  tail->orig_axis.emplace_back(origin_tail.get());
+  test_case.tuning_space->sub_axes.emplace_back(std::move(origin_tail));
+  return test_case;
+}
+}  // namespace
+
+TEST_F(TestArgListReorder, case0)
+{
+  //Define TuningSpace
+  //Create node: MatMul
+  //input : [m, k][k, n]
+  //repeat : [M, K][K, N]
+  //stride : [MM, KK][KK, NN]
+  //output : [m, n, k]
+  //repeat : [M, N, ONE]
+  //stride : [MM, NN, ZERO]
   NodeInfo MatMul;
   Tensor Tensor00;
   std::shared_ptr<Tensor> tensor00 = std::make_shared<Tensor>(Tensor00);
@@ -84,13 +250,13 @@ TEST_F(TestArgListReorder, case0) {
   MatMul.inputs = {tensor00, tensor01};
   MatMul.outputs = {tensor02};
 
-  // Create node: Load
-  // input : [a, b]
-  // repeat : [A, B]
-  // stride : [AA, BB]
-  // output : [a, b]
-  // repeat : [A, B]
-  // stride : [AA, BB]
+  //Create node: Load
+  //input : [a, b]
+  //repeat : [A, B]
+  //stride : [AA, BB]
+  //output : [a, b]
+  //repeat : [A, B]
+  //stride : [AA, BB]
   NodeInfo Load;
   Tensor Tensor10;
   std::shared_ptr<Tensor> tensor10 = std::make_shared<Tensor>(Tensor10);
@@ -126,9 +292,9 @@ TEST_F(TestArgListReorder, case0) {
   tuning_space_->sub_axes.emplace_back(std::move(n));
   tuning_space_->sub_axes.emplace_back(std::move(a));
   tuning_space_->sub_axes.emplace_back(std::move(b));
-  // End Define
+  //End Define
 
-  // Define Modelinfo
+  //Define Modelinfo
   ModelInfo model_info;
   AttAxis att_m;
   std::shared_ptr<AttAxis> attaxis_m = std::make_shared<AttAxis>(att_m);
@@ -146,13 +312,13 @@ TEST_F(TestArgListReorder, case0) {
   attaxis_a->name = "a";
   attaxis_b->name = "b";
   model_info.arg_list = {attaxis_m, attaxis_k, attaxis_n, attaxis_a, attaxis_b};
-  // End Define
+  //End Define
 
   ArgListReorder arg_list_reorder(tuning_space_);
   std::vector<AttAxisPtr> tiling_R_arg_list;
   EXPECT_EQ(arg_list_reorder.SortArgList(model_info.arg_list, tiling_R_arg_list), af::SUCCESS);
   std::map<std::string, size_t> arg_id_map;
-  for (size_t i = 0; i < model_info.arg_list.size(); i++) {
+  for (size_t i=0; i < model_info.arg_list.size(); i++) {
     auto arg = model_info.arg_list[i];
     arg_id_map[arg->name] = i;
   }
@@ -160,15 +326,16 @@ TEST_F(TestArgListReorder, case0) {
   EXPECT_EQ(arg_id_map["n"], 1);
 }
 
-TEST_F(TestArgListReorder, case1) {
-  // Define TuningSpace
-  // Create node: MatMul
-  // input : [m, k][k, n]
-  // repeat : [M, K][K, N]
-  // stride : [MM, KK][KK, NN]
-  // output : [m, n, k]
-  // repeat : [M, N, ONE]
-  // stride : [MM, NN, ZERO]
+TEST_F(TestArgListReorder, case1)
+{
+  //Define TuningSpace
+  //Create node: MatMul
+  //input : [m, k][k, n]
+  //repeat : [M, K][K, N]
+  //stride : [MM, KK][KK, NN]
+  //output : [m, n, k]
+  //repeat : [M, N, ONE]
+  //stride : [MM, NN, ZERO]
   NodeInfo node1;
   std::shared_ptr<Tensor> tensor0 = std::make_shared<Tensor>();
   std::shared_ptr<Tensor> tensor1 = std::make_shared<Tensor>();
@@ -179,7 +346,7 @@ TEST_F(TestArgListReorder, case1) {
   auto z0z1 = std::make_unique<SubAxis>();
   auto z0z1t = std::make_unique<SubAxis>();
   auto z2t = std::make_unique<SubAxis>();
-
+    
   z0->name = "z0";
   z1->name = "z1";
   z2->name = "z2";
@@ -201,6 +368,8 @@ TEST_F(TestArgListReorder, case1) {
   node1.inputs = {tensor0};
   node1.outputs = {tensor1};
 
+
+
   auto tuning_space_ = std::make_shared<TuningSpace>();
   tuning_space_->node_infos = {node1};
   tuning_space_->sub_axes.emplace_back(std::move(z0));
@@ -209,9 +378,9 @@ TEST_F(TestArgListReorder, case1) {
   tuning_space_->sub_axes.emplace_back(std::move(z0z1));
   tuning_space_->sub_axes.emplace_back(std::move(z0z1t));
   tuning_space_->sub_axes.emplace_back(std::move(z2t));
-  // End Define
+  //End Define
 
-  // Define Modelinfo
+  //Define Modelinfo
   ModelInfo model_info;
   std::shared_ptr<AttAxis> att_z0 = std::make_shared<AttAxis>();
   std::shared_ptr<AttAxis> att_z1 = std::make_shared<AttAxis>();
@@ -219,7 +388,7 @@ TEST_F(TestArgListReorder, case1) {
   std::shared_ptr<AttAxis> att_z0z1 = std::make_shared<AttAxis>();
   std::shared_ptr<AttAxis> att_z0z1t = std::make_shared<AttAxis>();
   std::shared_ptr<AttAxis> att_z2t = std::make_shared<AttAxis>();
-
+  
   att_z0->name = "z0";
   att_z1->name = "z1";
   att_z2->name = "z2";
@@ -233,20 +402,21 @@ TEST_F(TestArgListReorder, case1) {
   att_z2t->from_axis.emplace_back(att_z2.get());
 
   model_info.arg_list = {att_z0, att_z1, att_z2, att_z0z1, att_z0z1t, att_z2t};
-  // End Define
+  //End Define
 
   ArgListReorder arg_list_reorder(tuning_space_);
   std::vector<AttAxisPtr> tiling_R_arg_list;
   EXPECT_EQ(arg_list_reorder.SortArgList(model_info.arg_list, tiling_R_arg_list), af::SUCCESS);
   std::map<std::string, size_t> arg_id_map;
-  for (size_t i = 0; i < model_info.arg_list.size(); i++) {
+  for (size_t i=0; i < model_info.arg_list.size(); i++) {
     auto arg = model_info.arg_list[i];
     arg_id_map[arg->name] = i;
   }
   EXPECT_EQ(arg_id_map["z0z1t"] < arg_id_map["z2t"], true);
 }
 
-TEST_F(TestArgListReorder, case2) {
+TEST_F(TestArgListReorder, case2)
+{
   NodeInfo node1;
   std::shared_ptr<Tensor> tensor0 = std::make_shared<Tensor>();
   std::shared_ptr<Tensor> tensor1 = std::make_shared<Tensor>();
@@ -257,7 +427,7 @@ TEST_F(TestArgListReorder, case2) {
   auto z0z1 = std::make_unique<SubAxis>();
   auto z0z1t = std::make_unique<SubAxis>();
   auto z2t = std::make_unique<SubAxis>();
-
+    
   z0->name = "z0";
   z1->name = "z1";
   z2->name = "z2";
@@ -279,6 +449,8 @@ TEST_F(TestArgListReorder, case2) {
   node1.inputs = {tensor1};
   node1.outputs = {tensor0};
 
+
+
   auto tuning_space_ = std::make_shared<TuningSpace>();
   tuning_space_->node_infos = {node1};
   tuning_space_->sub_axes.emplace_back(std::move(z0));
@@ -287,9 +459,9 @@ TEST_F(TestArgListReorder, case2) {
   tuning_space_->sub_axes.emplace_back(std::move(z0z1));
   tuning_space_->sub_axes.emplace_back(std::move(z0z1t));
   tuning_space_->sub_axes.emplace_back(std::move(z2t));
-  // End Define
+  //End Define
 
-  // Define Modelinfo
+  //Define Modelinfo
   ModelInfo model_info;
   std::shared_ptr<AttAxis> att_z0 = std::make_shared<AttAxis>();
   std::shared_ptr<AttAxis> att_z1 = std::make_shared<AttAxis>();
@@ -297,7 +469,7 @@ TEST_F(TestArgListReorder, case2) {
   std::shared_ptr<AttAxis> att_z0z1 = std::make_shared<AttAxis>();
   std::shared_ptr<AttAxis> att_z0z1t = std::make_shared<AttAxis>();
   std::shared_ptr<AttAxis> att_z2t = std::make_shared<AttAxis>();
-
+  
   att_z0->name = "z0";
   att_z1->name = "z1";
   att_z2->name = "z2";
@@ -311,16 +483,133 @@ TEST_F(TestArgListReorder, case2) {
   att_z2t->from_axis.emplace_back(att_z2.get());
 
   model_info.arg_list = {att_z0, att_z1, att_z2, att_z0z1, att_z0z1t, att_z2t};
-  // End Define
+  //End Define
 
   ArgListReorder arg_list_reorder(tuning_space_);
   std::vector<AttAxisPtr> tiling_R_arg_list;
   EXPECT_EQ(arg_list_reorder.SortArgList(model_info.arg_list, tiling_R_arg_list), af::SUCCESS);
   std::map<std::string, size_t> arg_id_map;
-  for (size_t i = 0; i < model_info.arg_list.size(); i++) {
+  for (size_t i=0; i < model_info.arg_list.size(); i++) {
     auto arg = model_info.arg_list[i];
     arg_id_map[arg->name] = i;
   }
   EXPECT_EQ(arg_id_map["z0z1t"] < arg_id_map["z2t"], true);
 }
-}  // namespace att
+
+TEST_F(TestArgListReorder, keep_tiling_r_arg_list_when_reduce_block_split) {
+  auto test_case = BuildReduceTailSortCase(af::Symbol(256), af::Symbol(32));
+  ArgListReorder arg_list_reorder(test_case.tuning_space);
+  std::vector<AttAxisPtr> tiling_R_arg_list;
+  EXPECT_EQ(arg_list_reorder.SortArgList(test_case.model_info.arg_list, tiling_R_arg_list,
+                                         &test_case.model_info.runtime_reorder_rules),
+            af::SUCCESS);
+  ASSERT_FALSE(tiling_R_arg_list.empty());
+  EXPECT_TRUE(test_case.model_info.runtime_reorder_rules.empty());
+  EXPECT_LT(GetArgIndex(tiling_R_arg_list, "tail"), GetArgIndex(tiling_R_arg_list, "reduce"));
+}
+
+TEST_F(TestArgListReorder, keep_tiling_r_arg_list_when_reduce_block_split_without_threshold_match) {
+  auto tail_not_small_case = BuildReduceTailSortCase(af::Symbol(256), af::Symbol(64));
+  ArgListReorder tail_not_small_reorder(tail_not_small_case.tuning_space);
+  std::vector<AttAxisPtr> tail_not_small_tiling_R_arg_list;
+  EXPECT_EQ(tail_not_small_reorder.SortArgList(tail_not_small_case.model_info.arg_list,
+                                               tail_not_small_tiling_R_arg_list), af::SUCCESS);
+  EXPECT_FALSE(tail_not_small_tiling_R_arg_list.empty());
+
+  auto reduce_not_large_case = BuildReduceTailSortCase(af::Symbol(128), af::Symbol(32));
+  ArgListReorder reduce_not_large_reorder(reduce_not_large_case.tuning_space);
+  std::vector<AttAxisPtr> reduce_not_large_tiling_R_arg_list;
+  EXPECT_EQ(reduce_not_large_reorder.SortArgList(reduce_not_large_case.model_info.arg_list,
+                                                reduce_not_large_tiling_R_arg_list), af::SUCCESS);
+  EXPECT_FALSE(reduce_not_large_tiling_R_arg_list.empty());
+}
+
+TEST_F(TestArgListReorder, reorder_single_template_for_reduce_tile_small_tail_large_reduce) {
+  auto test_case = BuildReduceTailSortCase(af::Symbol(256), af::Symbol(32), 128U, 256U, false);
+  ArgListReorder arg_list_reorder(test_case.tuning_space);
+  std::vector<AttAxisPtr> tiling_R_arg_list;
+  EXPECT_EQ(arg_list_reorder.SortArgList(test_case.model_info.arg_list, tiling_R_arg_list), af::SUCCESS);
+  EXPECT_TRUE(tiling_R_arg_list.empty());
+  EXPECT_LT(GetArgIndex(test_case.model_info.arg_list, "tail"), GetArgIndex(test_case.model_info.arg_list, "reduce"));
+}
+
+TEST_F(TestArgListReorder, keep_default_single_template_for_reduce_tile_without_threshold_match) {
+  auto tail_not_small_case = BuildReduceTailSortCase(af::Symbol(512), af::Symbol(48), 64U, 512U, false);
+  ArgListReorder tail_not_small_reorder(tail_not_small_case.tuning_space);
+  std::vector<AttAxisPtr> tail_not_small_tiling_R_arg_list;
+  EXPECT_EQ(tail_not_small_reorder.SortArgList(tail_not_small_case.model_info.arg_list,
+                                               tail_not_small_tiling_R_arg_list), af::SUCCESS);
+  EXPECT_TRUE(tail_not_small_tiling_R_arg_list.empty());
+  EXPECT_LT(GetArgIndex(tail_not_small_case.model_info.arg_list, "reduce"),
+            GetArgIndex(tail_not_small_case.model_info.arg_list, "tail"));
+
+  auto reduce_not_large_case = BuildReduceTailSortCase(af::Symbol(256), af::Symbol(16), 64U, 1024U, false);
+  ArgListReorder reduce_not_large_reorder(reduce_not_large_case.tuning_space);
+  std::vector<AttAxisPtr> reduce_not_large_tiling_R_arg_list;
+  EXPECT_EQ(reduce_not_large_reorder.SortArgList(reduce_not_large_case.model_info.arg_list,
+                                                reduce_not_large_tiling_R_arg_list), af::SUCCESS);
+  EXPECT_TRUE(reduce_not_large_tiling_R_arg_list.empty());
+  EXPECT_LT(GetArgIndex(reduce_not_large_case.model_info.arg_list, "reduce"),
+            GetArgIndex(reduce_not_large_case.model_info.arg_list, "tail"));
+
+  auto origin_threshold_not_match_case =
+      BuildReduceTailSortCaseWithOriginalAxes(af::Symbol(512), af::Symbol(16), af::Symbol(64), af::Symbol(80));
+  ArgListReorder origin_threshold_not_match_reorder(origin_threshold_not_match_case.tuning_space);
+  std::vector<AttAxisPtr> origin_threshold_not_match_tiling_R_arg_list;
+  EXPECT_EQ(origin_threshold_not_match_reorder.SortArgList(origin_threshold_not_match_case.model_info.arg_list,
+                                                           origin_threshold_not_match_tiling_R_arg_list),
+            af::SUCCESS);
+  EXPECT_TRUE(origin_threshold_not_match_tiling_R_arg_list.empty());
+  EXPECT_LT(GetArgIndex(origin_threshold_not_match_case.model_info.arg_list, "reduce"),
+            GetArgIndex(origin_threshold_not_match_case.model_info.arg_list, "tail"));
+
+  auto origin_threshold_match_case =
+      BuildReduceTailSortCaseWithOriginalAxes(af::Symbol(64), af::Symbol(80), af::Symbol(256), af::Symbol(16));
+  ArgListReorder origin_threshold_match_reorder(origin_threshold_match_case.tuning_space);
+  std::vector<AttAxisPtr> origin_threshold_match_tiling_R_arg_list;
+  EXPECT_EQ(origin_threshold_match_reorder.SortArgList(origin_threshold_match_case.model_info.arg_list,
+                                                       origin_threshold_match_tiling_R_arg_list),
+            af::SUCCESS);
+  EXPECT_TRUE(origin_threshold_match_tiling_R_arg_list.empty());
+  EXPECT_LT(GetArgIndex(origin_threshold_match_case.model_info.arg_list, "tail"),
+            GetArgIndex(origin_threshold_match_case.model_info.arg_list, "reduce"));
+}
+
+TEST_F(TestArgListReorder, record_runtime_reorder_for_dynamic_reduce_tile) {
+  auto test_case =
+      BuildReduceTailSortCaseWithOriginalAxes(CreateExpr("reduce_size"), CreateExpr("tail_size"),
+                                              CreateExpr("origin_reduce_size"), CreateExpr("origin_tail_size"));
+  ArgListReorder arg_list_reorder(test_case.tuning_space);
+  std::vector<AttAxisPtr> tiling_R_arg_list;
+  EXPECT_EQ(arg_list_reorder.SortArgList(test_case.model_info.arg_list, tiling_R_arg_list,
+                                         &test_case.model_info.runtime_reorder_rules),
+            af::SUCCESS);
+  EXPECT_TRUE(tiling_R_arg_list.empty());
+  EXPECT_EQ(test_case.model_info.runtime_reorder_rules.size(), 1U);
+  const auto &rule = test_case.model_info.runtime_reorder_rules[0];
+  EXPECT_EQ(Str(rule.preferred_axis), "tail_size");
+  EXPECT_EQ(Str(rule.fallback_axis), "reduce_size");
+  EXPECT_EQ(Str(rule.condition_axis), "origin_tail_size");
+  EXPECT_EQ(Str(rule.compare_axis), "origin_reduce_size");
+  EXPECT_EQ(rule.condition_threshold, 64U);
+  EXPECT_EQ(rule.compare_threshold, 128U);
+}
+
+TEST_F(TestArgListReorder, v2_micro_api_len_equals_schedule_vector_len)
+{
+  PerfParamTableV2 perf_param_table;
+  TilingScheduleConfigTableV2 tiling_schedule_config_table;
+  EXPECT_EQ(perf_param_table.GetMicroApiLen(), tiling_schedule_config_table.GetVectorLenSize());
+  EXPECT_EQ(tiling_schedule_config_table.GetModelTilingScheduleConfig().vector_len_size,
+            tiling_schedule_config_table.GetVectorLenSize());
+}
+
+TEST_F(TestArgListReorder, v1_micro_api_len_equals_schedule_vector_len)
+{
+  PerfParamTableV1 perf_param_table;
+  TilingScheduleConfigTableV1 tiling_schedule_config_table;
+  EXPECT_EQ(perf_param_table.GetMicroApiLen(), tiling_schedule_config_table.GetVectorLenSize());
+  EXPECT_EQ(tiling_schedule_config_table.GetModelTilingScheduleConfig().vector_len_size,
+            tiling_schedule_config_table.GetVectorLenSize());
+}
+} // namespace att

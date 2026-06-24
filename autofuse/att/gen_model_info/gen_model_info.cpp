@@ -242,6 +242,7 @@ void ProcessTilingR(std::vector<ModelInfo> &model_info_list, const ModelInfo &mo
   ModelInfo model_info_tiling_R = model_info;
   model_info_tiling_R.arg_list = tiling_R_arg_list;
   model_info_tiling_R.sub_case_tag = "R";
+  model_info_tiling_R.runtime_reorder_rules.clear();
   model_info_list.emplace_back(model_info_tiling_R);
 }
 
@@ -284,7 +285,9 @@ ge::Status GenerateModelInfo(const std::vector<af::AscGraph> &graph_list, std::v
     GE_ASSERT_SUCCESS(GenerateModelInfo(graph, model_info, tuning_space, tiling_key), "General model info failed.");
     if (IsAxesReorderAlgorithm()) {
       ArgListReorder arg_list_reorder(tuning_space);
-      GE_ASSERT_SUCCESS(arg_list_reorder.SortArgList(model_info.arg_list, tiling_R_arg_list), "Sort arg list failed.");
+      GE_ASSERT_SUCCESS(
+          arg_list_reorder.SortArgList(model_info.arg_list, tiling_R_arg_list, &model_info.runtime_reorder_rules),
+          "Sort arg list failed.");
     }
     const auto iter = options.find(kTilingDataTypeName);
     const std::string tiling_data_type = (iter != options.cend()) ? iter->second : "";

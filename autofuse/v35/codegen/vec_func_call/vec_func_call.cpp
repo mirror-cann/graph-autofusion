@@ -192,10 +192,7 @@ void CreateOuterForVFCall(const TPipe &tpipe, const std::string &vf_call_name, c
 void GetVFCallFuncBody(const std::string &params, const std::string &vf_body, std::stringstream &ss) {
   ss << "{" << std::endl;
   ss << params << std::endl;
-  ss << "  __VEC_SCOPE__\n";
-  ss << "  {\n";
   ss << vf_body << std::endl;
-  ss << "  }\n";
   ss << "}\n" << std::endl;
 }
 
@@ -445,7 +442,7 @@ Status VfCall::GenerateFuncDefinition(const TPipe &tpipe, const Tiler &tiler, st
 
   ss << "#if defined(__DAV_C310__) || (defined(__NPU_ARCH__) && (__NPU_ARCH__ == 5102 || __NPU_ARCH__ == 3510))"
      << std::endl;
-  ss << "\ninline __aicore__ void " << this->vf_call_name_ << "(";
+  ss << "\ninline __simd_vf__ void " << this->vf_call_name_ << "(";
   CreateVFCallDimAndStrideParmas(this->ub_inputs_, this->scalar_inputs_, this->ub_outputs_, merge_info, ss);
   ss << ")" << std::endl;
 

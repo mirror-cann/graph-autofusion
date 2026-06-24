@@ -37,7 +37,7 @@ class RegReduceApicallTest : public ::testing::Test {
 };
 
 TEST_F(RegReduceApicallTest, RegReduceApi_Test_001) {
-  std::string api_name = "Max";
+  std::string api_name = "ReduceMax";
 
   std::vector<ascir::AxisId> current_axis;
   std::vector<std::reference_wrapper<const Tensor>> inputs;
@@ -64,11 +64,14 @@ TEST_F(RegReduceApicallTest, RegReduceApi_Test_001) {
   af::AscGraph graph("test");
   af::ascir_op::Data x("x", graph);
   af::ascir_op::Data y("y", graph);
+  af::ascir_op::Max reduce("reduce");
+  graph.AddNode(reduce);
 
   auto nodex = graph.FindNode("x");
   af::AscTensor tensorx = nodex->outputs[0];
   auto nodey = graph.FindNode("y");
   af::AscTensor tensory = nodey->outputs[0];
+  auto reduce_node = graph.FindNode("reduce");
 
   tensorx.attr.axis = {z0.id, z1.id, z2.id};
   tensorx.attr.vectorized_axis = {z0.id, z2.id};
@@ -120,6 +123,8 @@ TEST_F(RegReduceApicallTest, RegReduceApi_Test_001) {
   codegen::RegReduceApiCall call(api_name);
   call.unit = af::ComputeUnit::kUnitVector;
   call.type = "Max";
+  call.node = reduce_node;
+  call.node_name = reduce_node->GetName();
   y_tensor.write = &call;
   call.inputs.push_back(&x_tensor);
   call.outputs.push_back(y_tensor);
@@ -141,7 +146,7 @@ TEST_F(RegReduceApicallTest, RegReduceApi_Test_001) {
 }
 
 TEST_F(RegReduceApicallTest, RegReduceApi_Test_002) {
-  std::string api_name = "Max";
+  std::string api_name = "ReduceMax";
 
   std::vector<ascir::AxisId> current_axis;
   std::vector<std::reference_wrapper<const Tensor>> inputs;
@@ -168,11 +173,14 @@ TEST_F(RegReduceApicallTest, RegReduceApi_Test_002) {
   af::AscGraph graph("test");
   af::ascir_op::Data x("x", graph);
   af::ascir_op::Data y("y", graph);
+  af::ascir_op::Max reduce("reduce");
+  graph.AddNode(reduce);
 
   auto nodex = graph.FindNode("x");
   af::AscTensor tensorx = nodex->outputs[0];
   auto nodey = graph.FindNode("y");
   af::AscTensor tensory = nodey->outputs[0];
+  auto reduce_node = graph.FindNode("reduce");
 
   tensorx.attr.axis = {z0.id, z1.id, z2.id};
   tensorx.attr.vectorized_axis = {z0.id, z2.id};
@@ -223,6 +231,8 @@ TEST_F(RegReduceApicallTest, RegReduceApi_Test_002) {
   codegen::RegReduceApiCall call(api_name);
   call.unit = af::ComputeUnit::kUnitVector;
   call.type = "Max";
+  call.node = reduce_node;
+  call.node_name = reduce_node->GetName();
   y_tensor.write = &call;
   call.inputs.push_back(&x_tensor);
   call.outputs.push_back(y_tensor);
@@ -239,7 +249,7 @@ TEST_F(RegReduceApicallTest, RegReduceApi_Test_002) {
 }
 
 TEST_F(RegReduceApicallTest, RegReduceApi_Test_003) {
-  std::string api_name = "Max";
+  std::string api_name = "ReduceMax";
 
   std::vector<ascir::AxisId> current_axis;
   std::vector<std::reference_wrapper<const Tensor>> inputs;
@@ -270,11 +280,14 @@ TEST_F(RegReduceApicallTest, RegReduceApi_Test_003) {
   af::AscGraph graph("test");
   af::ascir_op::Data x("x", graph);
   af::ascir_op::Data y("y", graph);
+  af::ascir_op::Max reduce("reduce");
+  graph.AddNode(reduce);
 
   auto nodex = graph.FindNode("x");
   af::AscTensor tensorx = nodex->outputs[0];
   auto nodey = graph.FindNode("y");
   af::AscTensor tensory = nodey->outputs[0];
+  auto reduce_node = graph.FindNode("reduce");
 
   tensorx.attr.axis = {z0.id, z1.id, z2.id, z3.id};
   tensorx.attr.vectorized_axis = {z0.id, z2.id, z3.id};
@@ -326,6 +339,8 @@ TEST_F(RegReduceApicallTest, RegReduceApi_Test_003) {
   codegen::RegReduceApiCall call(api_name);
   call.unit = af::ComputeUnit::kUnitVector;
   call.type = "Max";
+  call.node = reduce_node;
+  call.node_name = reduce_node->GetName();
   y_tensor.write = &call;
   call.inputs.push_back(&x_tensor);
   call.outputs.push_back(y_tensor);
@@ -342,7 +357,7 @@ TEST_F(RegReduceApicallTest, RegReduceApi_Test_003) {
 }
 
 TEST_F(RegReduceApicallTest, RegReduceApi_Test_004) {
-  std::string api_name = "Max";
+  std::string api_name = "ReduceMax";
 
   std::vector<ascir::AxisId> current_axis;
   std::vector<std::reference_wrapper<const Tensor>> inputs;
@@ -369,11 +384,13 @@ TEST_F(RegReduceApicallTest, RegReduceApi_Test_004) {
   af::AscGraph graph("test");
   af::ascir_op::Data x("x", graph);
   af::ascir_op::Data y("y", graph);
+  af::ascir_op::Max reduce("reduce");  graph.AddNode(reduce);
 
   auto nodex = graph.FindNode("x");
   af::AscTensor tensorx = nodex->outputs[0];
   auto nodey = graph.FindNode("y");
   af::AscTensor tensory = nodey->outputs[0];
+  auto reduce_node = graph.FindNode("reduce");
 
   tensorx.attr.axis = {z0.id, z1.id, z2.id};
   tensorx.attr.vectorized_axis = {z0.id, z2.id};
@@ -425,6 +442,8 @@ TEST_F(RegReduceApicallTest, RegReduceApi_Test_004) {
   codegen::RegReduceApiCall call(api_name);
   call.unit = af::ComputeUnit::kUnitVector;
   call.type = "Max";
+  call.node = reduce_node;
+  call.node_name = reduce_node->GetName();
   y_tensor.write = &call;
   call.inputs.push_back(&x_tensor);
   call.outputs.push_back(y_tensor);
@@ -441,7 +460,7 @@ TEST_F(RegReduceApicallTest, RegReduceApi_Test_004) {
 }
 
 TEST_F(RegReduceApicallTest, RegReduceApicallTest_Int32_Inner) {
-  std::string api_name = "Sum";
+  std::string api_name = "ReduceSum";
 
   std::vector<ascir::AxisId> current_axis;
   std::vector<std::reference_wrapper<const Tensor>> inputs;
@@ -468,11 +487,13 @@ TEST_F(RegReduceApicallTest, RegReduceApicallTest_Int32_Inner) {
   af::AscGraph graph("test");
   af::ascir_op::Data x("x", graph);
   af::ascir_op::Data y("y", graph);
+  af::ascir_op::Sum reduce("reduce");  graph.AddNode(reduce);
 
   auto nodex = graph.FindNode("x");
   af::AscTensor tensorx = nodex->outputs[0];
   auto nodey = graph.FindNode("y");
   af::AscTensor tensory = nodey->outputs[0];
+  auto reduce_node = graph.FindNode("reduce");
 
   tensorx.attr.axis = {z0.id, z1.id, z2.id};
   tensorx.attr.vectorized_axis = {z0.id, z2.id};
@@ -526,6 +547,8 @@ TEST_F(RegReduceApicallTest, RegReduceApicallTest_Int32_Inner) {
   codegen::RegReduceApiCall call(api_name);
   call.unit = af::ComputeUnit::kUnitVector;
   call.type = "Sum";
+  call.node = reduce_node;
+  call.node_name = reduce_node->GetName();
   y_tensor.write = &call;
   call.inputs.push_back(&x_tensor);
   call.outputs.push_back(y_tensor);
@@ -542,7 +565,7 @@ TEST_F(RegReduceApicallTest, RegReduceApicallTest_Int32_Inner) {
 }
 
 TEST_F(RegReduceApicallTest, RegReduceApicallTest_Int32_Outer) {
-  std::string api_name = "Sum";
+  std::string api_name = "ReduceSum";
 
   std::vector<ascir::AxisId> current_axis;
   std::vector<std::reference_wrapper<const Tensor>> inputs;
@@ -569,11 +592,13 @@ TEST_F(RegReduceApicallTest, RegReduceApicallTest_Int32_Outer) {
   af::AscGraph graph("test");
   af::ascir_op::Data x("x", graph);
   af::ascir_op::Data y("y", graph);
+  af::ascir_op::Sum reduce("reduce");  graph.AddNode(reduce);
 
   auto nodex = graph.FindNode("x");
   af::AscTensor tensorx = nodex->outputs[0];
   auto nodey = graph.FindNode("y");
   af::AscTensor tensory = nodey->outputs[0];
+  auto reduce_node = graph.FindNode("reduce");
 
   tensorx.attr.axis = {z0.id, z1.id, z2.id};
   tensorx.attr.vectorized_axis = {z0.id, z2.id};
@@ -627,6 +652,8 @@ TEST_F(RegReduceApicallTest, RegReduceApicallTest_Int32_Outer) {
   codegen::RegReduceApiCall call(api_name);
   call.unit = af::ComputeUnit::kUnitVector;
   call.type = "Sum";
+  call.node = reduce_node;
+  call.node_name = reduce_node->GetName();
   y_tensor.write = &call;
   call.inputs.push_back(&x_tensor);
   call.outputs.push_back(y_tensor);
@@ -643,7 +670,7 @@ TEST_F(RegReduceApicallTest, RegReduceApicallTest_Int32_Outer) {
 }
 
 TEST_F(RegReduceApicallTest, RegReduceApicallTest_ReduceMean_NoNeed_MultiReduce_Int32) {
-  std::string api_name = "Mean";
+  std::string api_name = "ReduceMean";
 
   std::vector<ascir::AxisId> current_axis;
   std::vector<std::reference_wrapper<const Tensor>> inputs;
@@ -670,11 +697,13 @@ TEST_F(RegReduceApicallTest, RegReduceApicallTest_ReduceMean_NoNeed_MultiReduce_
   af::AscGraph graph("test");
   af::ascir_op::Data x("x", graph);
   af::ascir_op::Data y("y", graph);
+  af::ascir_op::Sum reduce("reduce");  graph.AddNode(reduce);
 
   auto nodex = graph.FindNode("x");
   af::AscTensor tensorx = nodex->outputs[0];
   auto nodey = graph.FindNode("y");
   af::AscTensor tensory = nodey->outputs[0];
+  auto reduce_node = graph.FindNode("reduce");
 
   tensorx.attr.axis = {z0.id, z1.id, z2.id};
   tensorx.attr.vectorized_axis = {z1.id, z2.id};
@@ -728,6 +757,8 @@ TEST_F(RegReduceApicallTest, RegReduceApicallTest_ReduceMean_NoNeed_MultiReduce_
   codegen::RegReduceApiCall call(api_name);
   call.unit = af::ComputeUnit::kUnitVector;
   call.type = "Mean";
+  call.node = reduce_node;
+  call.node_name = reduce_node->GetName();
   y_tensor.write = &call;
   call.inputs.push_back(&x_tensor);
   call.outputs.push_back(y_tensor);
@@ -744,7 +775,7 @@ TEST_F(RegReduceApicallTest, RegReduceApicallTest_ReduceMean_NoNeed_MultiReduce_
 }
 
 TEST_F(RegReduceApicallTest, RegReduceApicallTest_ReduceMean_NoNeed_MultiReduce_Float) {
-  std::string api_name = "Mean";
+  std::string api_name = "ReduceMean";
 
   std::vector<ascir::AxisId> current_axis;
   std::vector<std::reference_wrapper<const Tensor>> inputs;
@@ -771,11 +802,13 @@ TEST_F(RegReduceApicallTest, RegReduceApicallTest_ReduceMean_NoNeed_MultiReduce_
   af::AscGraph graph("test");
   af::ascir_op::Data x("x", graph);
   af::ascir_op::Data y("y", graph);
+  af::ascir_op::Sum reduce("reduce");  graph.AddNode(reduce);
 
   auto nodex = graph.FindNode("x");
   af::AscTensor tensorx = nodex->outputs[0];
   auto nodey = graph.FindNode("y");
   af::AscTensor tensory = nodey->outputs[0];
+  auto reduce_node = graph.FindNode("reduce");
 
   tensorx.attr.axis = {z0.id, z1.id, z2.id};
   tensorx.attr.vectorized_axis = {z1.id, z2.id};
@@ -829,6 +862,8 @@ TEST_F(RegReduceApicallTest, RegReduceApicallTest_ReduceMean_NoNeed_MultiReduce_
   codegen::RegReduceApiCall call(api_name);
   call.unit = af::ComputeUnit::kUnitVector;
   call.type = "Mean";
+  call.node = reduce_node;
+  call.node_name = reduce_node->GetName();
   y_tensor.write = &call;
   call.inputs.push_back(&x_tensor);
   call.outputs.push_back(y_tensor);

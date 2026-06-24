@@ -43,38 +43,40 @@ struct ReduceCodegenShadowCheckInput {
 };
 
 static std::map<std::string, std::pair<int, std::string>> reduce_type_map = {
-    {"Min", {ReduceOpType::kMin, "Min"}},
-    {"Max", {ReduceOpType::kMax, "Max"}},
-    {"ArgMax", {ReduceOpType::kMax, "Max"}},
-    {"ArgMaxMultiRPhase1", {ReduceOpType::kMax, "Max"}},
-    {"ArgMaxMultiRPhase2", {ReduceOpType::kMax, "Max"}},
-    {"Any", {ReduceOpType::kAny, "Max"}},
-    {"All", {ReduceOpType::kAll, "Min"}},
-    {"Sum", {ReduceOpType::kSum, "Add"}},
-    {"Prod", {ReduceOpType::kProd, "Mul"}},
-    {"Mean", {ReduceOpType::kMean, "Add"}}};
+  {"ReduceMin", {ReduceOpType::kMin, "Min"}},
+  {"ReduceMax", {ReduceOpType::kMax, "Max"}},
+  {"ArgMax", {ReduceOpType::kMax, "Max"}},
+  {"ArgMaxMultiRPhase1", {ReduceOpType::kMax, "Max"}},
+  {"ArgMaxMultiRPhase2", {ReduceOpType::kMax, "Max"}},
+  {"ReduceAny", {ReduceOpType::kAny, "Max"}},
+  {"ReduceAll", {ReduceOpType::kAll, "Min"}},
+  {"ReduceSum", {ReduceOpType::kSum, "Add"}},
+  {"ReduceProd", {ReduceOpType::kProd, "Mul"}},
+  {"ReduceMean", {ReduceOpType::kMean, "Add"}},
+};
 
 void GetIsArAndPattern(const Tensor &y, bool &isAr, std::string &reduce_pattern);
 void CheckReduceSpecificParamsForCodegen(const ReduceCodegenShadowCheckInput &input);
-void ReduceMergedSizeCodeGen(const TPipe &tpipe, std::stringstream &ss, const Tensor &src, const Tensor &dst,
+void ReduceMergedSizeCodeGen(const TPipe &tpipe, std::vector<std::string> &lines, const Tensor &src, const Tensor &dst,
                              bool is_tail = false);
 bool IsNeedMultiReduce(const Tiler &tiler, const Tensor &input, const Tensor &output, ascir::AxisId axis_id);
 void ReduceMeanCodeGen(std::string &dtype_name, const TPipe &tpipe, const Tensor &src, const Tensor &dst,
-                       std::stringstream &ss);
-void ReduceInitCodeGen(const Tensor &x, const Tensor &y, const int &type_value, std::stringstream &ss,
-                       const TPipe &tpipe, const std::string &dtype_name);
-void ReduceDimACodeGen(const Tensor &x, const std::string &apiName, std::stringstream &ss);
+                       std::vector<std::string> &lines);
+void ReduceInitCodeGen(const Tensor &x, const Tensor &y, const int &type_value,
+                       std::vector<std::string> &lines, const TPipe &tpipe, const std::string &dtype_name);
+void ReduceDimACodeGen(const Tensor &x, const std::string &apiName, std::vector<std::string> &lines);
 Status GetDtypeNameForReduce(const std::string &api_name, const Tensor &x, const Tensor &y, std::string &dtype_name);
 void GenAccumulatedOffsetDeclForArgMax(const std::string &api_name, const Tensor &x, const Tensor &y,
-                                       const TPipe &tpipe, std::stringstream &ss);
+                              const TPipe &tpipe, std::vector<std::string> &lines);
 
 /**
  * @brief 生成获取最后两个R轴大小乘积的代码字符串
  * @param x 输入张量
  * @param y 输出张量
  * @param tpipe Tiler对象
- * @param ss 输出字符串流
+ * @param lines 输出代码行集合，每条语句一个 emplace_back
  */
-void GenLastTwoRAxisSizeProductCode(const Tensor &x, const Tensor &y, const TPipe &tpipe, std::stringstream &ss);
+void GenLastTwoRAxisSizeProductCode(const Tensor &x, const Tensor &y,
+                                    const TPipe &tpipe, std::vector<std::string> &lines);
 }  // namespace reduce_base
 #endif  // __AUTOFUSE_REDUCE_API_CALL_BASE_H__

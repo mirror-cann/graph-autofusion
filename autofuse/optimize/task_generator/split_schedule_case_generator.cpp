@@ -118,6 +118,8 @@ Status SplitFusionCaseGenerator::ResolveSplitDim(const af::AscNodePtr &split_nod
 Status SplitFusionCaseGenerator::ConvertSplitToLoads(ascir::HintGraph &owner_graph, const af::AscNodePtr &split_node,
                                                      size_t split_dim) {
   GE_CHK_STATUS_RET(Prepare(split_node, split_dim), "Prepare failed");
+  SplitGroupPartitioner partitioner(split_node, split_dim);
+  GE_ASSERT_SUCCESS(partitioner.RecomputeDiffAxes());
   const auto &all_out_data_anchors = split_node->GetAllOutDataAnchors();
   // 逆序遍历，防止RemoveEdge改变下标
   for (size_t i = 0UL; i < all_out_data_anchors.size(); ++i) {
