@@ -431,6 +431,11 @@ REG_ASC_IR(IsFinite).Impl(v2_soc_versions,
                            af::ascir::AscIrImplCreator<af::ascir::IsFiniteAscIrCodegenImplV2>(),
                            {{"T1", TensorType{DT_FLOAT16, DT_FLOAT, DT_BF16}}, {"T2", TensorType{DT_UINT8}}}});
 
+REG_ASC_IR(IsInf).Impl(v2_soc_versions,
+                       {af::ascir::AscIrImplCreator<af::ascir::IsInfAscIrAttImplV2>(),
+                        af::ascir::AscIrImplCreator<af::ascir::IsInfAscIrCodegenImplV2>(),
+                        {{"T1", TensorType{DT_FLOAT16, DT_FLOAT, DT_BF16}}, {"T2", TensorType{DT_UINT8}}}});
+
 REG_ASC_IR(Relu).Impl(v2_soc_versions, {af::ascir::AscIrImplCreator<af::ascir::ReluAscIrAttImplV2>(),
                                         af::ascir::AscIrImplCreator<af::ascir::ReluAscIrCodegenImplV2>(),
                                         {{"T", TensorType{DT_INT32, DT_FLOAT16, DT_FLOAT, DT_UINT8, DT_INT64}}}});
@@ -618,6 +623,11 @@ REG_ASC_IR(Where).Impl(v2_soc_versions, {af::ascir::AscIrImplCreator<af::ascir::
                                          {{"T1", TensorType{DT_UINT8}},
                                           {"T2", TensorType{DT_FLOAT16, DT_FLOAT, DT_INT16, DT_INT32, DT_INT64, DT_BF16,
                                                             DT_INT8, DT_UINT8, DT_UINT16, DT_UINT32, DT_UINT64}}}});
+
+REG_ASC_IR(MaskedFill)
+    .Impl(v2_soc_versions, {af::ascir::AscIrImplCreator<af::ascir::MaskedFillAscIrAttImplV2>(),
+                            af::ascir::AscIrImplCreator<af::ascir::MaskedFillAscIrCodegenImplV2>(),
+                            {{"T1", TensorType{DT_UINT8}}, {"T2", TensorType{DT_FLOAT16, DT_FLOAT, DT_BF16}}}});
 
 // Ub2ub是在sched阶段添加的，不需要在py构图中对外体现
 REG_ASC_IR(Ub2ub).Impl(v2_soc_versions, {af::ascir::AscIrImplCreator<af::ascir::Ub2ubAscIrAttImplV2>(),

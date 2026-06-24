@@ -715,6 +715,11 @@ ApiPerfRegister<ApiPerf> isnan_api_perf_v2(ApiPerfRegisterV2(kIsnan, GetPerfFunc
 ApiPerfRegister<ApiPerf> isfinite_api_perf_v2(ApiPerfRegisterV2(kIsFinite, GetPerfFunc(kUnitVector), nullptr,
                                                                 &perf_param_table_v2,
                                                                 &tiling_schedule_config_table_v2));
+ApiPerfRegister<ApiPerf> isinf_api_perf_v2(ApiPerfRegisterV2(kIsInf, GetPerfFunc(kUnitVector), nullptr,
+                                                             &perf_param_table_v2, &tiling_schedule_config_table_v2));
+ApiPerfRegister<ApiPerf> maskedfill_api_perf_v2(ApiPerfRegisterV2(kMaskedFill, GetPerfFunc(kUnitVector), nullptr,
+                                                                  &perf_param_table_v2,
+                                                                  &tiling_schedule_config_table_v2));
 ApiPerfRegister<ApiPerf> sigmoid_api_perf_v2(ApiPerfRegisterV2(kSigmoid, GetPerfFunc(kSigmoid + "V2"), nullptr,
                                                                &perf_param_table_v2, &tiling_schedule_config_table_v2));
 ApiPerfRegister<ApiPerf> true_div_api_perf_v2(ApiPerfRegisterV2(kTrueDiv, GetPerfFunc(kDiv + "V2"), nullptr,

@@ -3,10 +3,10 @@
 # -------------------------------------------------------------------
 # -----------------------------------------------------------------------------------------------------------
 # Copyright (c) 2025 Huawei Technologies Co., Ltd.
-# This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+# This program is free software, you can redistribute it and/or modify it under the terms and conditions of
 # CANN Open Software License Agreement Version 2.0 (the "License").
 # Please refer to the License for details. You may not use this file except in compliance with the License.
-# THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+# THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
 # INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
 # See LICENSE in the root of the software repository for the full text of the License.
 # -----------------------------------------------------------------------------------------------------------
@@ -862,6 +862,16 @@ def Isnan(owner_graph: ascir.HintGraph,
     return _common_in_1_out_1_normal_op("Isnan", owner_graph, x, axis=axis, size=size, stride=stride)
 
 
+def IsInf(owner_graph: ascir.HintGraph,
+          x: ascir.OpsOperatorOutput,
+          *,
+          axis: List[ascir.Axis],
+          size: Optional[List[ascir.SizeExpr]] = None,
+          stride: Optional[List[ascir.SizeExpr]] = None
+          ) -> ascir.OpsOperatorOutput:
+    return _common_in_1_out_1_normal_op("IsInf", owner_graph, x, axis=axis, size=size, stride=stride)
+
+
 def Max(owner_graph: ascir.HintGraph,
         x: ascir.OpsOperatorOutput,
         *,
@@ -1204,6 +1214,18 @@ def Select(owner_graph: ascir.HintGraph,
            stride: Optional[List[ascir.SizeExpr]] = None
            ) -> ascir.OpsOperatorOutput:
     return _common_in_3_out_1_normal_op("Select", owner_graph, x1, x2, x3, axis=axis, size=size, stride=stride)
+
+
+def MaskedFill(owner_graph: ascir.HintGraph,
+               x: ascir.OpsOperatorOutput,
+               mask: ascir.OpsOperatorOutput,
+               value: ascir.OpsOperatorOutput,
+               *,
+               axis: List[ascir.Axis],
+               size: Optional[List[ascir.SizeExpr]] = None,
+               stride: Optional[List[ascir.SizeExpr]] = None
+               ) -> ascir.OpsOperatorOutput:
+    return _common_in_3_out_1_normal_op("MaskedFill", owner_graph, x, mask, value, axis=axis, size=size, stride=stride)
 
 
 def Sigmoid(owner_graph: ascir.HintGraph,
