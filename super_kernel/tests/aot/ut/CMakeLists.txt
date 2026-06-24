@@ -80,6 +80,7 @@ target_compile_definitions(super_kernel_aot_utest PRIVATE
 target_compile_options(super_kernel_aot_utest PRIVATE
     -g
     -Werror
+    -Wno-error=deprecated-declarations
     -Wno-unused-function
 )
 

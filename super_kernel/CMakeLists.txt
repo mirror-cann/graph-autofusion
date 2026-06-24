@@ -46,6 +46,7 @@ target_compile_options(ascendsk PRIVATE
     -fPIC
     -fvisibility=hidden
     -Werror
+    -Wno-error=deprecated-declarations
     -fno-common
     -ftrapv
     $<IF:$<VERSION_GREATER:${CMAKE_C_COMPILER_VERSION},4.8.5>,-fstack-protector-strong,-fstack-protector-all>
