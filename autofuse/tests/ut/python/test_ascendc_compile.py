@@ -85,6 +85,7 @@ def test_host_target_records_compile_and_link_stage(ascendc_compile_module, tmpd
         "soc_version": "Ascend910B",
         "stage": "host",
         "graph_name": "graph",
+        "output_file": str(tmpdir.join("host.so")),
     })()
 
     ascendc_compile_module.module.run_compile_command = _noop_run_compile_command
@@ -336,3 +337,197 @@ def test_static_shape_kernel_proc_keeps_dynamic_inductor_tiling_when_tiling_repr
         "(uint8_t*)workspace, *tiling_data);"
         in content
     )
+
+
+def _make_compile_args(host_files=None):
+    return type("Args", (), {
+        "host_files": host_files,
+        "device_files": "/tmp/build/device/kernel.cpp",
+        "soc_version": "Ascend910B",
+        "compile_options": "-Werror",
+        "output_file": "/tmp/build/kernel.so",
+        "force_unknown": True,
+        "stage": "all",
+        "tiling_repr": None,
+    })()
+
+
+def test_build_host_compile_cmd_uses_bisheng_without_cmake(ascendc_compile_module):
+    ascendc_compile_module.module.ASCEND_PATH = "/usr/local/Ascend/cann"
+    ascendc_compile_module.module.machine = "x86_64"
+    args = _make_compile_args("/tmp/build/host/graph_tiling_func.cpp")
+
+    cmd = ascendc_compile_module.build_host_compile_cmd(
+        args, "/tmp/build", "/tmp/build/host/graph_tiling_func.cpp", "/tmp/build/host/graph_tiling_func.cpp.o")
+
+    assert cmd[0] == "/usr/local/Ascend/cann/tools/bisheng_compiler/bin/bisheng"
+    assert "-c" in cmd
+    assert "-x" in cmd
+    assert "asc" in cmd
+    assert "/tmp/build/host/graph_tiling_func.cpp" in cmd
+    assert "/tmp/build/host/graph_tiling_func.cpp.o" in cmd
+    assert "cmake" not in cmd
+    assert "make" not in cmd
+
+
+def test_compile_host_objs_keeps_single_file_compatible(ascendc_compile_module):
+    calls = []
+    args = _make_compile_args("/tmp/build/host/graph_tiling_func.cpp")
+
+    def fake_run_compile_command(cmd, stage_name):
+        calls.append((cmd, stage_name))
+
+    ascendc_compile_module.module.run_compile_command = fake_run_compile_command
+
+    result = ascendc_compile_module.compile_host_objs(args, "/tmp/build")
+
+    assert result == ["/tmp/build/host/graph_tiling_func.cpp.o"]
+    assert len(calls) == 1
+    assert calls[0][1] == "Host"
+
+
+def test_compile_host_objs_compiles_multiple_files(ascendc_compile_module, monkeypatch):
+    calls = []
+    args = _make_compile_args([
+        "/tmp/build/host/graph_tiling_func_a.cpp",
+        "/tmp/build/host/graph_tiling_func_b.cpp",
+    ])
+
+    def fake_run_compile_command(cmd, stage_name):
+        calls.append((cmd, stage_name))
+
+    ascendc_compile_module.module.run_compile_command = fake_run_compile_command
+    monkeypatch.setattr(ascendc_compile_module.os, "cpu_count", lambda: 2)
+
+    result = ascendc_compile_module.compile_host_objs(args, "/tmp/build")
+
+    assert result == [
+        "/tmp/build/host/graph_tiling_func_a.cpp.o",
+        "/tmp/build/host/graph_tiling_func_b.cpp.o",
+    ]
+    assert [call[1] for call in calls] == ["Host", "Host"]
+    compile_cmds = [call[0] for call in calls]
+    assert any("/tmp/build/host/graph_tiling_func_a.cpp" in cmd for cmd in compile_cmds)
+    assert any("/tmp/build/host/graph_tiling_func_b.cpp" in cmd for cmd in compile_cmds)
+    assert all("cmake" not in cmd and "make" not in cmd for cmd in compile_cmds)
+
+
+def test_get_host_compile_worker_count_uses_32_worker_limit(ascendc_compile_module, monkeypatch):
+    monkeypatch.setattr(ascendc_compile_module.os, "cpu_count", lambda: 64)
+    assert ascendc_compile_module.get_host_compile_worker_count(32) == 32
+    assert ascendc_compile_module.get_host_compile_worker_count(12) == 12
+    monkeypatch.setattr(ascendc_compile_module.os, "cpu_count", lambda: 16)
+    assert ascendc_compile_module.get_host_compile_worker_count(32) == 16
+    monkeypatch.setattr(ascendc_compile_module.os, "cpu_count", lambda: None)
+    assert ascendc_compile_module.get_host_compile_worker_count(3) == 1
+
+
+def test_compile_host_objs_reports_failed_source(ascendc_compile_module, monkeypatch):
+    args = _make_compile_args([
+        "/tmp/build/host/graph_tiling_func_a.cpp",
+        "/tmp/build/host/graph_tiling_func_b.cpp",
+    ])
+
+    def fake_run_compile_command(cmd, stage_name):
+        if "/tmp/build/host/graph_tiling_func_b.cpp" in cmd:
+            raise ascendc_compile_module.CompileError("stderr: fail")
+
+    ascendc_compile_module.module.run_compile_command = fake_run_compile_command
+    monkeypatch.setattr(ascendc_compile_module.os, "cpu_count", lambda: 1)
+
+    with pytest.raises(ascendc_compile_module.CompileError) as exc_info:
+        ascendc_compile_module.compile_host_objs(args, "/tmp/build")
+
+    assert "/tmp/build/host/graph_tiling_func_b.cpp" in str(exc_info.value)
+    assert "stderr: fail" in str(exc_info.value)
+
+
+def test_compile_host_obj_rejects_multiple_sources_without_compile(ascendc_compile_module):
+    args = _make_compile_args([
+        "/tmp/build/host/graph_tiling_func_a.cpp",
+        "/tmp/build/host/graph_tiling_func_b.cpp",
+    ])
+
+    def fake_run_compile_command(cmd, stage_name):
+        pytest.fail("should not compile")
+
+    ascendc_compile_module.module.run_compile_command = fake_run_compile_command
+
+    with pytest.raises(ascendc_compile_module.CompileError) as exc_info:
+        ascendc_compile_module.compile_host_obj(args, "/tmp/build")
+
+    assert "expects exactly one host source" in str(exc_info.value)
+
+
+def test_build_device_so_links_all_host_objects(ascendc_compile_module):
+    captured = {}
+    args = _make_compile_args()
+
+    def fake_compile_device_obj(compile_args, temp_dir):
+        return "/tmp/build/device/kernel.cpp.o"
+
+    ascendc_compile_module.module.compile_device_obj = fake_compile_device_obj
+
+    def fake_link_shared(target_file, obj_files, link_libraries=None):
+        captured["target_file"] = target_file
+        captured["obj_files"] = obj_files
+        captured["link_libraries"] = link_libraries
+        return target_file
+
+    ascendc_compile_module.module.link_shared = fake_link_shared
+
+    result = ascendc_compile_module.build_device_so(args, ["a.o", "b.o"], "/tmp/build")
+
+    assert result == "/tmp/build/kernel.so"
+    assert captured["obj_files"] == ["a.o", "b.o", "/tmp/build/device/kernel.cpp.o"]
+    assert captured["link_libraries"] == ascendc_compile_module.HOST_LINK_LIBRARIES
+
+
+def test_link_host_target_links_multiple_host_objects(ascendc_compile_module):
+    captured = {}
+    args = _make_compile_args([
+        "/tmp/build/host/graph_tiling_func_a.cpp",
+        "/tmp/build/host/graph_tiling_func_b.cpp",
+    ])
+
+    def fake_compile_host_objs(compile_args, temp_dir):
+        return ["a.o", "b.o"]
+
+    ascendc_compile_module.module.compile_host_objs = fake_compile_host_objs
+
+    def fake_link_shared(target_file, obj_files, link_libraries=None):
+        captured["target_file"] = target_file
+        captured["obj_files"] = obj_files
+        captured["link_libraries"] = link_libraries
+        return target_file
+
+    ascendc_compile_module.module.link_shared = fake_link_shared
+
+    result = ascendc_compile_module.link_host_target(args, "/tmp/build")
+
+    assert result == "/tmp/build/kernel.so"
+    assert captured["target_file"] == "/tmp/build/kernel.so"
+    assert captured["obj_files"] == ["a.o", "b.o"]
+    assert captured["link_libraries"] == ascendc_compile_module.HOST_LINK_LIBRARIES
+
+
+def test_link_kernel_target_reuses_host_objects_for_static_recompile(ascendc_compile_module):
+    calls = []
+    args = _make_compile_args()
+    args.force_unknown = False
+
+    def fake_try_static_shape_compile(compile_args, temp_dir, so_path):
+        return True
+
+    ascendc_compile_module.module.try_static_shape_compile = fake_try_static_shape_compile
+
+    def fake_build_device_so(compile_args, host_obj_paths, temp_dir):
+        calls.append(list(host_obj_paths))
+        return f"/tmp/build/kernel_{len(calls)}.so"
+
+    ascendc_compile_module.module.build_device_so = fake_build_device_so
+
+    result = ascendc_compile_module.link_kernel_target(args, ["a.o", "b.o"], "/tmp/build")
+
+    assert result == "/tmp/build/kernel_2.so"
+    assert calls == [["a.o", "b.o"], ["a.o", "b.o"]]

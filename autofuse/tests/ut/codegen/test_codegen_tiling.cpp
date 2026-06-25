@@ -12,6 +12,7 @@
 
 #include "autofuse_config/auto_fuse_config.h"
 #define private public
+#include "codegen.h"
 #include "codegen_tiling.h"
 #include "common_utils.h"
 #include "ascir_ops.h"
@@ -1039,6 +1040,10 @@ class TestCodegenTiling : public testing::Test, public codegen::TilingLib {
     auto store = graph.FindNode("store");
     auto y = graph.FindNode("y");
 
+    x->outputs[0].attr.dtype = ge::DT_FLOAT16;
+    load->outputs[0].attr.dtype = ge::DT_FLOAT16;
+    store->outputs[0].attr.dtype = ge::DT_FLOAT16;
+    y->outputs[0].attr.dtype = ge::DT_FLOAT16;
     x->outputs[0].attr.mem.alloc_type = af::AllocType::kAllocTypeGlobal;
     x->outputs[0].attr.mem.tensor_id = 0;
     x->attr.api.unit = af::ComputeUnit::kUnitNone;
@@ -3403,4 +3408,80 @@ TEST_F(TestCodegenTiling, MultiGroupMustNotUseBasicPGOSearchTilingKeyOverload) {
   // Must not generate basic PGOSearchTilingKey with search_tiling output at -1 case id
   EXPECT_EQ(tiling_impl.find("PGOSearchTilingKey(raw_candidates, search_tiling, -1, &search_tiling"),
             std::string::npos);
+}
+
+TEST_F(TestCodegenTiling, CodegenGenerateForInductorShouldEmitSplitMarkers) {
+  auto fused_schedule_result = this->GenBasicFusedScheduleResult({af::Symbol("s0"), af::Symbol("s1")});
+  codegen::Codegen codegen(codegen::CodegenOptions{});
+  codegen::CodegenResult result;
+
+  ASSERT_EQ(codegen.GenerateForInductor(fused_schedule_result, result), ge::SUCCESS);
+
+  EXPECT_NE(result.tiling.find("// AUTOFUSE_SPLIT_FILE_BEGIN: TilingHead"), std::string::npos);
+  EXPECT_NE(result.tiling.find("// AUTOFUSE_SPLIT_FILE_END: TilingHead"), std::string::npos);
+  EXPECT_NE(result.tiling.find("// AUTOFUSE_SPLIT_FILE_BEGIN: tiling_def_and_tiling_const"), std::string::npos);
+  EXPECT_NE(result.tiling.find("extern \"C\" int64_t AutofuseTiling"), std::string::npos);
+  EXPECT_NE(result.tiling.find("extern \"C\" int64_t GenerateTopnSolutions"), std::string::npos);
+  EXPECT_NE(result.tiling.find("GetTilingDataRepr("), std::string::npos);
+}
+
+TEST_F(TestCodegenTiling, SingleGroupEvaluateModeledPerfShouldUsePublicGetPerf) {
+  auto fused_schedule_result = this->GenBasicFusedScheduleResult({af::Symbol("s0"), af::Symbol("s1")});
+  fused_schedule_result.node_idx_to_scheduled_results[0].resize(1);
+  ASSERT_TRUE(ascgen_utils::IsSingleGroup(fused_schedule_result));
+  auto tiling_files = this->GenerateForInductor(fused_schedule_result);
+  ASSERT_TRUE(tiling_files.find(codegen::kTilingDefAndConstIdentify) != tiling_files.end());
+  const auto &tiling_impl = tiling_files.at(codegen::kTilingDefAndConstIdentify);
+
+  const size_t perf_func_pos = tiling_impl.find("static double EvaluateModeledPerf");
+  ASSERT_NE(perf_func_pos, std::string::npos);
+  const size_t perf_test_func_pos = tiling_impl.find("extern \"C\" double GetModeledPerfForTesting", perf_func_pos);
+  ASSERT_NE(perf_test_func_pos, std::string::npos);
+  const std::string perf_func = tiling_impl.substr(perf_func_pos, perf_test_func_pos - perf_func_pos);
+  EXPECT_NE(perf_func.find("return optiling::GetPerf(tmp);"), std::string::npos);
+  EXPECT_EQ(perf_func.find("TilingCaseImplPtr impl = GetTilingImplPtr"), std::string::npos);
+}
+
+TEST_F(TestCodegenTiling, CodegenGenerateForInductorCvFusionShouldKeepCubeWrapperHeaderInTilingHead) {
+  auto graph = ascir::ShareGraph::LoadMatmulElewiseBrcFusedGraph();
+  optimize::Optimizer optimizer(optimize::OptimizerOptions{});
+  ascir::FusedScheduledResult fused_schedule_result;
+  ASSERT_EQ(optimizer.Optimize(graph, fused_schedule_result), 0);
+  ASSERT_TRUE(ascgen_utils::IsCubeFusedScheduled(fused_schedule_result));
+  codegen::Codegen codegen(codegen::CodegenOptions{});
+  codegen::CodegenResult result;
+
+  ASSERT_EQ(codegen.GenerateForInductor(fused_schedule_result, result), ge::SUCCESS);
+
+  EXPECT_NE(result.tiling.find("class CubeKernelTilingWrapper"), std::string::npos);
+  EXPECT_NE(result.tiling.find("// AUTOFUSE_SPLIT_FILE_BEGIN: BCubeKernelTilingWrapperCpp"), std::string::npos);
+  EXPECT_EQ(result.tiling.find("// AUTOFUSE_SPLIT_FILE_BEGIN: ACubeKernelTilingWrapperHpp"), std::string::npos);
+  const size_t wrapper_cpp_pos = result.tiling.find("// AUTOFUSE_SPLIT_FILE_BEGIN: BCubeKernelTilingWrapperCpp");
+  ASSERT_NE(wrapper_cpp_pos, std::string::npos);
+  const size_t wrapper_cpp_end_pos = result.tiling.find("// AUTOFUSE_SPLIT_FILE_END: BCubeKernelTilingWrapperCpp");
+  ASSERT_NE(wrapper_cpp_end_pos, std::string::npos);
+  const std::string wrapper_cpp = result.tiling.substr(wrapper_cpp_pos, wrapper_cpp_end_pos - wrapper_cpp_pos);
+  EXPECT_EQ(wrapper_cpp.find("#include \"cube_kernel_tiling_wrapper.h\""), std::string::npos);
+}
+
+TEST_F(TestCodegenTiling, CodegenGenerateShouldNotEmitSplitMarkers) {
+  auto fused_schedule_result = this->GenBasicFusedScheduleResult({af::Symbol("s0"), af::Symbol("s1")});
+  codegen::Codegen codegen(codegen::CodegenOptions{});
+  codegen::CodegenResult result;
+
+  ASSERT_EQ(codegen.Generate(fused_schedule_result, result), ge::SUCCESS);
+
+  EXPECT_EQ(result.tiling.find("AUTOFUSE_SPLIT_FILE_BEGIN"), std::string::npos);
+  EXPECT_EQ(result.tiling.find("AUTOFUSE_SPLIT_FILE_END"), std::string::npos);
+}
+
+TEST_F(TestCodegenTiling, TilingLibGenerateForInductorShouldNotEmitSplitMarkers) {
+  auto fused_schedule_result = this->GenBasicFusedScheduleResult({af::Symbol("s0"), af::Symbol("s1")});
+  auto tiling_files = this->GenerateForInductor(fused_schedule_result);
+
+  ASSERT_TRUE(tiling_files.find(codegen::kTilingDefAndConstIdentify) != tiling_files.end());
+  for (const auto &[key, content] : tiling_files) {
+    EXPECT_EQ(content.find("AUTOFUSE_SPLIT_FILE_BEGIN"), std::string::npos) << key;
+    EXPECT_EQ(content.find("AUTOFUSE_SPLIT_FILE_END"), std::string::npos) << key;
+  }
 }

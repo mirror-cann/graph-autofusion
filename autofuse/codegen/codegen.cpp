@@ -31,6 +31,8 @@ namespace {
 constexpr uint32_t ELEMENTS_PER_LINE = 20;
 constexpr size_t kMaxUnfoldedIoNum = 64U;
 constexpr size_t kKernelMaxIoNum = 190U;
+constexpr const char *kSplitFileBegin = "// AUTOFUSE_SPLIT_FILE_BEGIN: ";
+constexpr const char *kSplitFileEnd = "// AUTOFUSE_SPLIT_FILE_END: ";
 
 // Include path prefixes to be removed
 const std::string kBasicApiInclude = "#include \"basic_api/";
@@ -135,6 +137,83 @@ Status CombineTilings(const std::map<std::string, std::string> &tiling_file_name
     }
   }
 
+  return ge::SUCCESS;
+}
+
+void AppendSplitBegin(const std::string &key, std::string &result) {
+  result += kSplitFileBegin;
+  result += key;
+  result += "\n";
+}
+
+void AppendSplitEnd(const std::string &key, std::string &result) {
+  if (!result.empty() && result.back() != '\n') {
+    result += '\n';
+  }
+  result += kSplitFileEnd;
+  result += key;
+  result += "\n";
+}
+
+std::string RemoveSplitCppInclude(const std::string &content, const std::string &include) {
+  size_t include_pos = content.find(include);
+  if (include_pos == std::string::npos) {
+    return content;
+  }
+  if (include_pos != 0U) {
+    GELOGW("Split cpp include [%s] is not at file begin, keep original content.", include.c_str());
+    return content;
+  }
+  size_t content_start = include_pos + include.length();
+  while (content_start < content.size() && (content[content_start] == '\n' || content[content_start] == '\r')) {
+    content_start++;
+  }
+  return content.substr(content_start);
+}
+
+std::string RemoveSplitCppIncludes(const std::string &content) {
+  return RemoveSplitCppInclude(RemoveSplitCppInclude(content, kTilingHeadInclude), kCubeKernelTilingWrapperInclude);
+}
+
+void AppendSplitSource(const std::string &key, const std::string &content, std::string &result) {
+  AppendSplitBegin(key, result);
+  result += content;
+  AppendSplitEnd(key, result);
+}
+
+void AppendLineBreakIfNeeded(std::string &content) {
+  if (!content.empty() && content.back() != '\n') {
+    content += '\n';
+  }
+}
+
+std::string BuildSplitHeaderContent(const std::map<std::string, std::string> &tiling_file_name_to_content) {
+  std::string content = RemoveAutoFuseTilingHeadGuards(tiling_file_name_to_content.at(kTilingHeadIdentify));
+  auto wrapper_header = tiling_file_name_to_content.find(kCubeKernelTilingWrapperHpp);
+  if (wrapper_header != tiling_file_name_to_content.end()) {
+    AppendLineBreakIfNeeded(content);
+    content += wrapper_header->second;
+    AppendLineBreakIfNeeded(content);
+  }
+  return content;
+}
+
+bool ShouldSkipSplitCppSource(const std::string &key) {
+  return key == kTilingHeadIdentify || key == kCubeKernelTilingWrapperHpp ||
+         key.find(kTilingDataIdentify) != std::string::npos;
+}
+
+Status CombineTilingsWithSplitMarkers(const std::map<std::string, std::string> &tiling_file_name_to_content,
+                                      std::string &result) {
+  GE_CHK_BOOL_RET_STATUS(tiling_file_name_to_content.find(kTilingHeadIdentify) != tiling_file_name_to_content.end(),
+                         ge::FAILED, "tiling_file_name_to_content has no tiling head");
+  AppendSplitSource(kTilingHeadIdentify, BuildSplitHeaderContent(tiling_file_name_to_content), result);
+  for (const auto &[key, value] : tiling_file_name_to_content) {
+    if (ShouldSkipSplitCppSource(key)) {
+      continue;
+    }
+    AppendSplitSource(key, RemoveSplitCppIncludes(value), result);
+  }
   return ge::SUCCESS;
 }
 
@@ -296,14 +375,14 @@ Status Codegen::Generate(const ascir::FusedScheduledResult &fused_schedule_resul
   return this->Generate(shape_info, fused_schedule_result, result);
 }
 
-// inductor路径不做tiling func文件拆分,把拆分的文件合一
+// inductor路径仍返回单个host_tiling字符串，通过注释marker保留拆分边界
 Status Codegen::GenerateForInductor(const ascir::FusedScheduledResult &fused_schedule_result,
                                     CodegenResult &result) const {
   GE_CHK_STATUS_RET(GenerateKernel(fused_schedule_result, result.kernel, true), "Codegen generate kernel failed");
   result.tiling_data = GenerateTilingData(fused_schedule_result, true);
   std::map<std::string, std::string> tiling_file_name_to_content;
   GE_CHK_STATUS_RET(GenerateTilingForInductor(fused_schedule_result, tiling_file_name_to_content));
-  GE_CHK_STATUS_RET(CombineTilings(tiling_file_name_to_content, result.tiling));
+  GE_CHK_STATUS_RET(CombineTilingsWithSplitMarkers(tiling_file_name_to_content, result.tiling));
   return ge::SUCCESS;
 }
 

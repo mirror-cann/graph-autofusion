@@ -2,14 +2,13 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------------------------------------
 # Copyright (c) 2025 Huawei Technologies Co., Ltd.
-# This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+# This program is free software, you can redistribute it and/or modify it under the terms and conditions of
 # CANN Open Software License Agreement Version 2.0 (the "License").
 # Please refer to the License for details. You may not use this file except in compliance with the License.
-# THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+# THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
 # INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
 # See LICENSE in the root of the software repository for the full text of the License.
 # -----------------------------------------------------------------------------------------------------------
-
 import ctypes
 import os
 import re
@@ -18,6 +17,7 @@ import shutil
 import argparse
 import subprocess
 import platform
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import time
 from functools import wraps
 from typing import List
@@ -26,6 +26,7 @@ ASCEND_PATH = os.path.join(PYF_PATH, "..", "..", "..")
 machine = platform.machine()
 HOST_LINK_LIBRARIES = ["tiling_api", "platform", "graph_base", "register"]
 INDUCTOR_COMPILE_TRACE_LABEL = "InductorCompile"
+HOST_COMPILE_MAX_WORKERS = 32
 if not os.path.exists(ASCEND_PATH):
     ASCEND_PATH = os.getenv("ASCEND_HOME_PATH", ASCEND_PATH)
 
@@ -115,12 +116,11 @@ def link_shared(target_file, obj_files, link_libraries=None):
     return target_file
 
 
-@inductor_compile_duration("CompileHostObj")
-def compile_host_obj(args: argparse.Namespace, temp_dir):
-    base_host_file = os.path.basename(args.host_files)
+def build_host_compile_cmd(args: argparse.Namespace, temp_dir, source_file, obj_file):
     soc_version = get_soc_type(args)
-    host_abi_option = [] if "-D_GLIBCXX_USE_CXX11_ABI=" in args.compile_options else ["-D", "_GLIBCXX_USE_CXX11_ABI=0"]
-    host_compile_cmd = [
+    host_abi_option = [] if "-D_GLIBCXX_USE_CXX11_ABI=" in args.compile_options else [
+        "-D", "_GLIBCXX_USE_CXX11_ABI=0"]
+    return [
         f"{ASCEND_PATH}/tools/bisheng_compiler/bin/bisheng",
         "-D", "kernel_EXPORTS",
         "-I", f"{temp_dir}/host",
@@ -140,10 +140,60 @@ def compile_host_obj(args: argparse.Namespace, temp_dir):
         "-fPIC", f"--npu-arch={soc_version}", "-O2", "-fno-common", "-Wextra", "-Wfloat-equal", "-fvisibility=default",
         *args.compile_options.split(),
         "-D", "LOG_CPP", *host_abi_option, "-o",
-        f"{temp_dir}/host/{base_host_file}.o", "-c", "-x", "asc",
-        f"{temp_dir}/host/{base_host_file}"]
-    run_compile_command(host_compile_cmd, "Host")
-    return f"{temp_dir}/host/{base_host_file}.o"
+        obj_file, "-c", "-x", "asc", source_file]
+
+
+def get_host_obj_path(source_file, temp_dir):
+    return os.path.join(temp_dir, "host", os.path.basename(source_file) + ".o")
+
+
+def compile_host_obj_file(args: argparse.Namespace, temp_dir, source_file):
+    obj_file = get_host_obj_path(source_file, temp_dir)
+    host_compile_cmd = build_host_compile_cmd(args, temp_dir, source_file, obj_file)
+    try:
+        run_compile_command(host_compile_cmd, "Host")
+    except CompileError as ex:
+        raise CompileError(f"Host compile failed for {source_file}: {ex}") from ex
+    return obj_file
+
+
+def get_host_compile_worker_count(cpp_file_count):
+    return min(HOST_COMPILE_MAX_WORKERS, cpp_file_count, os.cpu_count() or 1)
+
+
+def normalize_to_list(value):
+    if value is None:
+        return []
+    if isinstance(value, list):
+        return value
+    return [value]
+
+
+@inductor_compile_duration("CompileHostObj")
+def compile_host_objs(args: argparse.Namespace, temp_dir):
+    host_files = normalize_to_list(args.host_files)
+    if len(host_files) == 1:
+        return [compile_host_obj_file(args, temp_dir, host_files[0])]
+
+    obj_files = [None] * len(host_files)
+    worker_count = get_host_compile_worker_count(len(host_files))
+    with ThreadPoolExecutor(max_workers=worker_count) as executor:
+        future_to_index = {
+            executor.submit(compile_host_obj_file, args, temp_dir, source_file): index
+            for index, source_file in enumerate(host_files)
+        }
+        for future in as_completed(future_to_index):
+            index = future_to_index[future]
+            obj_files[index] = future.result()
+    return obj_files
+
+
+@inductor_compile_duration("CompileHostObj")
+def compile_host_obj(args: argparse.Namespace, temp_dir):
+    host_files = normalize_to_list(args.host_files)
+    if len(host_files) != 1:
+        raise CompileError("compile_host_obj expects exactly one host source")
+    return compile_host_obj_file(args, temp_dir, host_files[0])
 
 
 @inductor_compile_duration("CompileDeviceObj")
@@ -176,9 +226,10 @@ def build_device_so(args: argparse.Namespace, host_obj_path, temp_dir):
     device_obj_path = compile_device_obj(args, temp_dir)
     target_file = os.path.join(temp_dir, os.path.basename(args.output_file))
     obj_files = [device_obj_path]
-    if host_obj_path is not None:
-        obj_files.insert(0, host_obj_path)
-    link_libraries = HOST_LINK_LIBRARIES if host_obj_path is not None else None
+    host_obj_paths = normalize_to_list(host_obj_path)
+    if host_obj_paths:
+        obj_files = host_obj_paths + obj_files
+    link_libraries = HOST_LINK_LIBRARIES if host_obj_paths else None
     with InductorCompileDuration(args, "LinkDeviceSo"):
         return link_shared(target_file, obj_files, link_libraries=link_libraries)
 
@@ -384,10 +435,10 @@ def try_static_shape_compile(args: argparse.Namespace, temp_dir, so_path):
 
 def link_host_target(args, temp_dir):
     # 处理 host 编译阶段
-    host_obj_path = compile_host_obj(args, temp_dir)
-    so_file = args.host_files.replace('.cpp', '.so')
+    host_obj_paths = compile_host_objs(args, temp_dir)
+    so_file = os.path.join(temp_dir, os.path.basename(args.output_file))
     with InductorCompileDuration(args, "LinkHostSo"):
-        link_shared(so_file, [host_obj_path], link_libraries=HOST_LINK_LIBRARIES)
+        link_shared(so_file, host_obj_paths, link_libraries=HOST_LINK_LIBRARIES)
     return so_file
 
 
@@ -437,8 +488,8 @@ def main(args):
     elif args.stage == 'device':
         so_file = link_kernel_target(args, None, args.temp_dir)
     else:  # all
-        host_obj_path = compile_host_obj(args, args.temp_dir)
-        so_file = link_kernel_target(args, host_obj_path, args.temp_dir)
+        host_obj_paths = compile_host_objs(args, args.temp_dir)
+        so_file = link_kernel_target(args, host_obj_paths, args.temp_dir)
 
     copy_so_to_output(so_file, args, src_directory)
 
