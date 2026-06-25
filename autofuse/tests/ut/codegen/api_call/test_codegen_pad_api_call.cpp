@@ -25,7 +25,7 @@ using namespace codegen;
 using namespace af::ascir_op;
 using namespace testing;
 using namespace codegen;
-namespace ge {
+namespace af {
 namespace ascir {
 extern std::vector<std::unique_ptr<af::TmpBufDesc>> CalcPadTmpSize(const af::AscNode &node);
 
@@ -246,4 +246,4 @@ TEST(PadApiCallTest, PadApiCall_1) {
                   "KernelUtils::BlkAlign<float>(z1_actual_size * z0_actual_size * z2_actual_size));\n}\n"});
 }
 }  // namespace ascir
-}  // namespace ge
+}  // namespace af

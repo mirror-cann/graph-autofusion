@@ -89,10 +89,6 @@ AscirRegister &AscirRegister::Output(const char_t *output_name, const char_t *da
   ir_def_.MutableDataTypeSymbolStore().SetOutputSymbol(output_name, kIrOutputRequired, datatype_symbol);
   return *this;
 }
-AscirRegister &AscirRegister::DataType(const char_t *datatype_symbol, const TensorType &type_range) {
-  ir_def_.MutableDataTypeSymbolStore().DeclareSymbol(datatype_symbol, type_range);
-  return *this;
-}
 
 AscirRegister &AscirRegister::DynamicInput(const char_t *input_name, const char_t *datatype_symbol) {
   ir_def_.AppendInput(input_name, IrInputType::kIrInputDynamic);
@@ -108,22 +104,8 @@ AscirRegister &AscirRegister::DynamicOutput(const char_t *output_name, const cha
   return *this;
 }
 
-AscirRegister &AscirRegister::DataType(const char_t *datatype_symbol, const OrderedTensorTypeList &type_range) {
-  ir_def_.MutableDataTypeSymbolStore().DeclareSymbol(datatype_symbol, type_range);
-  return *this;
-}
-
-AscirRegister &AscirRegister::CalcTmpBufSize(const std::string &calc_tmp_buf_size_func) {
-  ir_def_.SetCalcTmpBufSizeFunc(calc_tmp_buf_size_func, CalcTmpBufSizeFuncType::CustomizeType);
-  return *this;
-}
 AscirRegister &AscirRegister::SameTmpBufSizeFromFirstInput() {
   ir_def_.SetCalcTmpBufSizeFunc("SameTmpBufSizeWithFirstInput", CalcTmpBufSizeFuncType::CommonType);
-  return *this;
-}
-
-AscirRegister &AscirRegister::ApiTilingDataType(const std::string &tiling_data_name) {
-  ir_def_.SetApiTilingDataName(tiling_data_name);
   return *this;
 }
 
