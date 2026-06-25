@@ -21,47 +21,47 @@
 #include "acl/acl.h"
 
 class SkResourceManager {
-public:
-    static constexpr size_t kDefaultValueMemoryBytes = sizeof(uint64_t);
+ public:
+  static constexpr size_t kDefaultValueMemoryBytes = sizeof(uint64_t);
 
-    enum class ResourceKind : uint8_t {
-        kDeviceMemory = 0,
-    };
+  enum class ResourceKind : uint8_t {
+    kDeviceMemory = 0,
+  };
 
-    struct ResourceRecord {
-        ResourceKind kind = ResourceKind::kDeviceMemory;
-        void* addr = nullptr;
-        size_t bytes = 0U;
-    };
+  struct ResourceRecord {
+    ResourceKind kind = ResourceKind::kDeviceMemory;
+    void *addr = nullptr;
+    size_t bytes = 0U;
+  };
 
-    struct ModelResourceContext {
-        aclmdlRI model = nullptr;
-        std::string modelId;
-        std::string modelLabel;
-        std::vector<ResourceRecord> resources;
-    };
+  struct ModelResourceContext {
+    aclmdlRI model = nullptr;
+    std::string modelId;
+    std::string modelLabel;
+    std::vector<ResourceRecord> resources;
+  };
 
-    static SkResourceManager& GetInstance();
+  static SkResourceManager &GetInstance();
 
-    static void SetCurrentModel(aclmdlRI model);
-    static aclError CallbackRegister(aclmdlRI model);
-    static aclError ValueMemory(void** addr, size_t bytes = kDefaultValueMemoryBytes);
+  static void SetCurrentModel(aclmdlRI model);
+  static aclError CallbackRegister(aclmdlRI model);
+  static aclError ValueMemory(void **addr, size_t bytes = kDefaultValueMemoryBytes);
 
-    SkResourceManager(const SkResourceManager&) = delete;
-    SkResourceManager& operator=(const SkResourceManager&) = delete;
+  SkResourceManager(const SkResourceManager &) = delete;
+  SkResourceManager &operator=(const SkResourceManager &) = delete;
 
-private:
-    SkResourceManager() = default;
-    ~SkResourceManager() = default;
+ private:
+  SkResourceManager() = default;
+  ~SkResourceManager() = default;
 
-    static std::mutex resourceMutex_;
-    static std::unordered_map<aclmdlRI, ModelResourceContext> modelContexts_;
-    static thread_local aclmdlRI currentModel_;
+  static std::mutex resourceMutex_;
+  static std::unordered_map<aclmdlRI, ModelResourceContext> modelContexts_;
+  static thread_local aclmdlRI currentModel_;
 
-    aclError AllocForModel(aclmdlRI model, void** addr, size_t bytes);
-    static aclError ReleaseRecord(const ResourceRecord& record);
-    static bool ReleaseModelResources(const std::vector<ResourceRecord>& resources);
-    static void OnModelDestroy(void* userData);
+  aclError AllocForModel(aclmdlRI model, void **addr, size_t bytes);
+  static aclError ReleaseRecord(const ResourceRecord &record);
+  static bool ReleaseModelResources(const std::vector<ResourceRecord> &resources);
+  static void OnModelDestroy(void *userData);
 };
 
 #endif

@@ -1,12 +1,12 @@
 /**
-* Copyright (c) 2026 Huawei Technologies Co., Ltd.
-* This program is free software, you can redistribute it and/or modify it under the terms and conditions of
-* CANN Open Software License Agreement Version 2.0 (the "License").
-* Please refer to the License for the details. You may not use this file except in compliance with the License.
-* THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
-* INCLUDING NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNEsS FOR A PARTICULAR PURPOSE.
-* See LICENSE in the root of the software repository for the full text of the License.
-*/
+ * Copyright (c) 2026 Huawei Technologies Co., Ltd.
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
+ * CANN Open Software License Agreement Version 2.0 (the "License").
+ * Please refer to the License for the details. You may not use this file except in compliance with the License.
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+ * INCLUDING NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNEsS FOR A PARTICULAR PURPOSE.
+ * See LICENSE in the root of the software repository for the full text of the License.
+ */
 
 /*!
  * \file sk_dump_json.h
@@ -37,7 +37,7 @@ class SuperKernelOptionsManager;
  * @param scopeId Scope ID for this task queue
  * @return JSON object representing the task queue
  */
-Json SkTaskToQueueJson(const SkTask& aicTask, const SkTask& aivTask, uint16_t scopeId);
+Json SkTaskToQueueJson(const SkTask &aicTask, const SkTask &aivTask, uint16_t scopeId);
 
 /**
  * @brief Dump all task queues to a single JSON file
@@ -48,8 +48,8 @@ Json SkTaskToQueueJson(const SkTask& aicTask, const SkTask& aivTask, uint16_t sc
  * @param taskQueueJsons Map of scopeId -> task queue JSON
  * @return true if dump successful, false otherwise
  */
-bool DumpAllTaskQueuesToJson(const SuperKernelGraph& graph,
-                             const std::unordered_map<std::string, Json>& taskQueueJsons);
+bool DumpAllTaskQueuesToJson(const SuperKernelGraph &graph,
+                             const std::unordered_map<std::string, Json> &taskQueueJsons);
 
 /**
  * @brief Print original scopes before fusion to current log context
@@ -59,20 +59,20 @@ bool DumpAllTaskQueuesToJson(const SuperKernelGraph& graph,
  *
  * @param graph Reference to the SuperKernelGraph
  */
-void PrintOriginalScopes(const SuperKernelGraph& graph);
+void PrintOriginalScopes(const SuperKernelGraph &graph);
 
 /**
  * @brief Print fused scopes after fusion to current log context
  *
  * Iterates through processed scope infos, collects fused nodes (excluding scope nodes),
- * traces root break info, and prints fusionStatus, breakReason, parentScopeId, failReason,
+ * traces root break info, and prints scopeStatus, breakReason, parentScopeId,
  * and fusedNodeIds in batches.
  *
  * @param graph Reference to the SuperKernelGraph
  * @param processedScopeInfos Reference to the vector of processed scope info
  */
-void PrintFusedScopes(const SuperKernelGraph& graph,
-                      const std::vector<SuperKernelScopeInfo>& processedScopeInfos);
+void PrintFusedScopes(const SuperKernelGraph &graph, const std::vector<SuperKernelScopeInfo> &processedScopeInfos,
+                      bool debugPerOpMaxCoreEnabled = false);
 
 /**
  * @brief Dump an existing graph to JSON file
@@ -86,8 +86,8 @@ void PrintFusedScopes(const SuperKernelGraph& graph,
  * @param scopeInfos Optional processed scope infos used to add SK metadata
  * @return true if dump successful or skipped, false otherwise
  */
-bool DumpGraphJson(const SuperKernelGraph& graph, const SuperKernelOptionsManager& opts, const std::string& metaDir,
-                   const std::string& filename, const std::vector<SuperKernelScopeInfo>* scopeInfos = nullptr);
+bool DumpGraphJson(const SuperKernelGraph &graph, const SuperKernelOptionsManager &opts, const std::string &metaDir,
+                   const std::string &filename, const std::vector<SuperKernelScopeInfo> *scopeInfos = nullptr);
 
 /**
  * @brief Dump a graph captured from modelRI to JSON file
@@ -102,7 +102,7 @@ bool DumpGraphJson(const SuperKernelGraph& graph, const SuperKernelOptionsManage
  * @param scopeInfos Optional processed scope infos used to add SK metadata
  * @return true if dump successful or skipped, false otherwise
  */
-bool DumpGraphJson(aclmdlRI model, const SuperKernelOptionsManager& opts, const std::string& metaDir,
-                   const std::string& filename, const std::vector<SuperKernelScopeInfo>* scopeInfos = nullptr);
+bool DumpGraphJson(aclmdlRI model, const SuperKernelOptionsManager &opts, const std::string &metaDir,
+                   const std::string &filename, const std::vector<SuperKernelScopeInfo> *scopeInfos = nullptr);
 
-#endif // SK_DUMP_JSON_H
+#endif  // SK_DUMP_JSON_H

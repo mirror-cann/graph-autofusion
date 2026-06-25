@@ -37,20 +37,20 @@ std::string GetCurrentModelLabel();
 // value rather than recomputing from the mutable counter. Nested/reentrant
 // contexts are not supported by the current aclskOptimize flow.
 class SkModelContext {
-public:
-    explicit SkModelContext(aclmdlRI model);
+ public:
+  explicit SkModelContext(aclmdlRI model);
 
-    ~SkModelContext();
+  ~SkModelContext();
 
-    SkModelContext(const SkModelContext&) = delete;
-    SkModelContext& operator=(const SkModelContext&) = delete;
+  SkModelContext(const SkModelContext &) = delete;
+  SkModelContext &operator=(const SkModelContext &) = delete;
 
-private:
-    friend std::string GetCurrentModelId();
-    friend std::string GetCurrentModelLabel();
+ private:
+  friend std::string GetCurrentModelId();
+  friend std::string GetCurrentModelLabel();
 
-    std::string modelId_;
-    std::string modelLabel_;
+  std::string modelId_;
+  std::string modelLabel_;
 };
 
 // ==================== sk_meta directory layout ====================
@@ -60,16 +60,15 @@ private:
  * @param component Path component to sanitize
  * @return Sanitized string safe for use as directory name
  */
-inline std::string SanitizePathComponent(const std::string& component)
-{
-    std::string result = component;
-    for (char& pathChar : result) {
-        if (pathChar == '/' || pathChar == '\\' || pathChar == ':' || pathChar == '*' ||
-            pathChar == '?' || pathChar == '"' || pathChar == '<' || pathChar == '>' || pathChar == '|') {
-            pathChar = '_';
-        }
+inline std::string SanitizePathComponent(const std::string &component) {
+  std::string result = component;
+  for (char &pathChar : result) {
+    if (pathChar == '/' || pathChar == '\\' || pathChar == ':' || pathChar == '*' || pathChar == '?' ||
+        pathChar == '"' || pathChar == '<' || pathChar == '>' || pathChar == '|') {
+      pathChar = '_';
     }
-    return result;
+  }
+  return result;
 }
 
 /**
@@ -79,9 +78,8 @@ inline std::string SanitizePathComponent(const std::string& component)
  * This is the unified path generation function for sk_meta directory structure.
  * If the path structure needs to change in the future, only modify this function.
  */
-inline std::string GetSkMetaBasePath()
-{
-    return "sk_meta/" + std::to_string(getpid());
+inline std::string GetSkMetaBasePath() {
+  return "sk_meta/" + std::to_string(getpid());
 }
 
 /**
@@ -96,12 +94,11 @@ inline std::string GetSkMetaBasePath()
  *   std::string path = GetSkMetaPath(modelLabel);
  *   // Returns: "sk_meta/{pid}/model_{modelId}"
  */
-inline std::string GetSkMetaPath(const std::string& modelLabel)
-{
-    if (modelLabel.empty()) {
-        return "";
-    }
-    return GetSkMetaBasePath() + "/" + SanitizePathComponent(modelLabel);
+inline std::string GetSkMetaPath(const std::string &modelLabel) {
+  if (modelLabel.empty()) {
+    return "";
+  }
+  return GetSkMetaBasePath() + "/" + SanitizePathComponent(modelLabel);
 }
 
 /**
@@ -109,30 +106,29 @@ inline std::string GetSkMetaPath(const std::string& modelLabel)
  * @param path Full directory path to create
  * @return true if directory exists or created successfully, false otherwise
  */
-inline bool CreateDirectoryRecursive(const std::string& path)
-{
-    if (path.empty()) {
-        return false;
+inline bool CreateDirectoryRecursive(const std::string &path) {
+  if (path.empty()) {
+    return false;
+  }
+
+  size_t pos = 0;
+  do {
+    pos = path.find('/', pos + 1);
+    std::string subPath = path.substr(0, pos);
+
+    if (subPath.empty()) {
+      continue;
     }
 
-    size_t pos = 0;
-    do {
-        pos = path.find('/', pos + 1);
-        std::string subPath = path.substr(0, pos);
+    struct stat st;
+    if (stat(subPath.c_str(), &st) != 0) {
+      if (mkdir(subPath.c_str(), 0755) != 0 && errno != EEXIST) {
+        return false;
+      }
+    }
+  } while (pos != std::string::npos && pos < path.size());
 
-        if (subPath.empty()) {
-            continue;
-        }
-
-        struct stat st;
-        if (stat(subPath.c_str(), &st) != 0) {
-            if (mkdir(subPath.c_str(), 0755) != 0 && errno != EEXIST) {
-                return false;
-            }
-        }
-    } while (pos != std::string::npos && pos < path.size());
-
-    return true;
+  return true;
 }
 
 /**
@@ -149,13 +145,12 @@ inline bool CreateDirectoryRecursive(const std::string& path)
  *   // Creates: sk_meta/{pid}/model_{modelId}
  *   // Returns: "sk_meta/{pid}/model_{modelId}"
  */
-inline std::string CreateSkMetaDirectory(const std::string& modelLabel)
-{
-    std::string dirPath = GetSkMetaPath(modelLabel);
-    if (!CreateDirectoryRecursive(dirPath)) {
-        return "";
-    }
-    return dirPath;
+inline std::string CreateSkMetaDirectory(const std::string &modelLabel) {
+  std::string dirPath = GetSkMetaPath(modelLabel);
+  if (!CreateDirectoryRecursive(dirPath)) {
+    return "";
+  }
+  return dirPath;
 }
 
-#endif // SK_MODEL_CONTEXT_H
+#endif  // SK_MODEL_CONTEXT_H

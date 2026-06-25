@@ -19,4 +19,4 @@
 #include "sk_scope_kernel_types.h"
 #include "acl/acl.h"
 
-aclError LaunchScopeKernel(const char* scopeName, aclrtStream stream, bool isBegin);
+aclError LaunchScopeKernel(const char *scopeName, aclrtStream stream, bool isBegin);
