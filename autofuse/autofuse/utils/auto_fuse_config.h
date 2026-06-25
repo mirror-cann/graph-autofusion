@@ -353,22 +353,30 @@ class AutoFuseConfig {
     (void)ReadAutoFuseEnv(all_flags);
     bool enable_lowering_concat = false;
     bool enable_lowering_reduce = false;
+    bool enable_lowering_slice = false;
+    bool enable_lowering_split = false;
+    bool enable_lowering_transpose = false;
+    bool enable_lowering_gather = false;
     bool enable_lowering_matmul = false;
     bool enable_lowering_conv = false;
     size_t recomputation_threshold = 1U;
 
     LoweringEnableConfigUpdate(enable_lowering_concat, "concat", all_flags);
     LoweringEnableConfigUpdate(enable_lowering_reduce, "reduce", all_flags);
+    LoweringEnableConfigUpdate(enable_lowering_slice, "slice", all_flags);
+    LoweringEnableConfigUpdate(enable_lowering_split, "split", all_flags);
+    LoweringEnableConfigUpdate(enable_lowering_transpose, "transpose", all_flags);
+    LoweringEnableConfigUpdate(enable_lowering_gather, "gather", all_flags);
     LoweringEnableConfigUpdate(enable_lowering_matmul, "matmul", all_flags);
     LoweringEnableConfigUpdate(enable_lowering_conv, "conv", all_flags);
     LoweringRecomputationThresholdConfigUpdate(recomputation_threshold, all_flags);
     // remove old env soon
     this->lowering_strategy_config_.experimental_lowering_concat = enable_lowering_concat;
-    this->lowering_strategy_config_.experimental_lowering_split = false;
+    this->lowering_strategy_config_.experimental_lowering_split = enable_lowering_split;
     this->lowering_strategy_config_.experimental_lowering_reduce = enable_lowering_reduce;
-    this->lowering_strategy_config_.experimental_lowering_slice = false;
-    this->lowering_strategy_config_.experimental_lowering_transpose = false;
-    this->lowering_strategy_config_.experimental_lowering_gather = false;
+    this->lowering_strategy_config_.experimental_lowering_slice = enable_lowering_slice;
+    this->lowering_strategy_config_.experimental_lowering_transpose = enable_lowering_transpose;
+    this->lowering_strategy_config_.experimental_lowering_gather = enable_lowering_gather;
     this->lowering_strategy_config_.experimental_lowering_matmul = enable_lowering_matmul;
     this->lowering_strategy_config_.experimental_lowering_conv = enable_lowering_conv;
     this->lowering_strategy_config_.recomputation_threshold = recomputation_threshold;
