@@ -407,7 +407,7 @@ bool IsNeedMultiReduce(const Tiler &tiler, const Tensor &input, const Tensor &ou
     if (pos != output.axis.end()) {
       size_t diff = pos - output.axis.begin();
       total_count++;
-      valid_count = output.axis_strides[diff] == Zero && input.axis_strides[diff] != Zero ? valid_count + 1 : valid_count;
+      valid_count = output.axis_strides[diff] == Zero && (input.axis_strides[diff] != Zero || input.axis_size[diff] != One) ? valid_count + 1 : valid_count;
       return;
     }
     for (size_t i = 0; i < axis.from.size(); i++) {
@@ -417,7 +417,7 @@ bool IsNeedMultiReduce(const Tiler &tiler, const Tensor &input, const Tensor &ou
       if (pos != output.axis.end()) {
         size_t diff = pos - output.axis.begin();
         total_count++;
-        valid_count = output.axis_strides[diff] == Zero && input.axis_strides[diff] != Zero ? valid_count + 1 : valid_count;
+        valid_count = output.axis_strides[diff] == Zero && (input.axis_strides[diff] != Zero || input.axis_size[diff] != One) ? valid_count + 1 : valid_count;
         return;
       }
       if (need_recursive) {
