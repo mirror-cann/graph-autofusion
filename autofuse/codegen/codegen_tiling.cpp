@@ -11,6 +11,7 @@
 #include "codegen_tiling.h"
 #include "codegen_tiling_data.h"
 
+#include <algorithm>
 #include <string>
 #include <cstdlib>
 #include <fstream>
@@ -333,6 +334,7 @@ void TilingLib::GenPgoHeaders(std::stringstream &ss) const {
   ss << "#include \"tiling/platform/platform_ascendc.h\"" << std::endl << std::endl;
 
   ss << "#include \"autofuse_tiling_data.h\"" << std::endl << std::endl;
+  ss << PGOTensorArgsDef();
 }
 
 void TilingLib::GenDynamicLibraryLoaderCode(std::stringstream &ss) const {
@@ -504,9 +506,19 @@ void TilingLib::GenPgoCheckTilingIsMix(const ascir::FusedScheduledResult &fused_
 }
 
 void TilingLib::GenPgoLaunchParamsInit(const ascir::FusedScheduledResult &fused_schedule_result, std::stringstream &ss) const {
-  ss << "aclError LaunchParamsInit() {" << std::endl;
+  ss << "aclError LaunchParamsInit(PgoTensorArgs *tensor_args) {" << std::endl;
   ss << "  static void *ffts = nullptr;" << std::endl;
   ss << "  aclError ret = ACL_SUCCESS;" << std::endl;
+  ss << "  constexpr uint32_t kPgoInputCount = " << fused_schedule_result.input_nodes.size() << "U;" << std::endl;
+  ss << "  constexpr uint32_t kPgoOutputCount = " << PGOSearchFuncGetOutputCount(fused_schedule_result) << "U;"
+     << std::endl;
+  ss << "  if (tensor_args == nullptr || tensor_args->input_num < kPgoInputCount ||" << std::endl;
+  ss << "      tensor_args->output_num < kPgoOutputCount ||" << std::endl;
+  ss << "      (kPgoInputCount > 0U && tensor_args->inputs == nullptr) ||" << std::endl;
+  ss << "      (kPgoOutputCount > 0U && tensor_args->outputs == nullptr)) {" << std::endl;
+  ss << "    DLOGE(\"invalid pgo tensor args\");" << std::endl;
+  ss << "    return FAILED;" << std::endl;
+  ss << "  }" << std::endl;
   ss << PGOSearchFuncInputOutputStructAssignDef(fused_schedule_result, "  g_launch_params.aiv_args");
   ss << "  g_launch_params.aiv_args.tiling_addr = reinterpret_cast<uint64_t>(g_tiling_device_addr);" << std::endl;
   if (IsNeedFfts()) {
@@ -705,8 +717,7 @@ void TilingLib::GenPgoWrapper(const ascir::FusedScheduledResult &fused_schedule_
     ss << "FindBestTilingKeyType find_best_tiling_key_fn = reinterpret_cast<FindBestTilingKeyType>(GetFunc(\"FindBestTilingKey\"));"
        << std::endl;
   }
-  ss << "int WrapperOnlyLaunch(" << PGOSearchFuncInputOutputCallBackDef(fused_schedule_result)
-     << "uint32_t workspace_size, AutofuseTilingData *tiling_data) {" << std::endl;
+  ss << "int WrapperOnlyLaunch(uint32_t workspace_size, AutofuseTilingData *tiling_data) {" << std::endl;
   ss << "  static bool inited = false;" << std::endl;
   ss << "  static aclrtBinHandle bin_handle = nullptr;" << std::endl;
   const auto backend_spce = optimize::BackendSpec::GetInstance();
@@ -897,10 +908,8 @@ void TilingLib::GenPgoBatchCallback(std::stringstream &ss) const {
   ss << "  }" << std::endl;
 }
 
-void TilingLib::GenPgoBatchProcess(const ascir::FusedScheduledResult &fused_schedule_result,
-                        std::stringstream &ss) const {
-  ss << "int ProfilingBatchProcess(" << PGOSearchFuncInputOutputCallBackDef(fused_schedule_result)
-     << "uint32_t workspace_size, std::vector<AutofuseTilingDataPerf>::iterator begin, "
+void TilingLib::GenPgoBatchProcess(std::stringstream &ss) const {
+  ss << "int ProfilingBatchProcess(uint32_t workspace_size, std::vector<AutofuseTilingDataPerf>::iterator begin, "
         "std::vector<AutofuseTilingDataPerf>::iterator end) {"
      << std::endl;
   ss << "  uint64_t batch_size = end - begin;" << std::endl;
@@ -915,8 +924,7 @@ void TilingLib::GenPgoBatchProcess(const ascir::FusedScheduledResult &fused_sche
   ss << "    AutofuseTilingData &tiling_data = it->tiling_data;" << std::endl;
   ss << "    UpdateLaunchParam(tiling_data);" << std::endl;
   ss << "    for (uint64_t i = 0; i < loop; ++i) {" << std::endl;
-  ss << "      result = WrapperOnlyLaunch(" << PGOSearchFuncInputOutputCall(fused_schedule_result)
-     << "workspace_size, &tiling_data);" << std::endl;
+  ss << "      result = WrapperOnlyLaunch(workspace_size, &tiling_data);" << std::endl;
   ss << "      if (result != 0) {" << std::endl;
   ss << "        DLOGE(\"ProfilingBatchProcess launch failed loop:%\" PRIu64 \"\", i);" << std::endl;
   ss << "        TearDownMspti(&subscriber);" << std::endl;
@@ -933,6 +941,7 @@ void TilingLib::GenPgoGetProfilingBatch(const ascir::FusedScheduledResult &fused
                         std::stringstream &ss) const {
   ss << "extern \"C\" long int PGOGetProfilingBatch(" << PGOSearchFuncInputOutputCallBackDef(fused_schedule_result)
      << "void* stream, uint32_t workspace_size, std::vector<AutofuseTilingDataPerf> *profiles) {" << std::endl;
+  ss << "  (void)tensor_args;" << std::endl;
   ss << "  int case_num = profiles->size();" << std::endl;
   ss << "  DLOGI(\"PGOGetProfilingBatch case_num:%d\", case_num);" << std::endl;
   ss << "  if (workspace_size > 0) {" << std::endl;
@@ -948,8 +957,7 @@ void TilingLib::GenPgoGetProfilingBatch(const ascir::FusedScheduledResult &fused
   ss << "    auto end_it = (it + group_size >= profiles->end()) ? profiles->end() : it + group_size;" << std::endl;
   ss << "    size_t start_index = std::distance(profiles->begin(), it);" << std::endl;
   ss << "    for (int i = 0; i < 3; i++) {" << std::endl;
-  ss << "      result = ProfilingBatchProcess(" << PGOSearchFuncInputOutputCall(fused_schedule_result)
-     << "workspace_size, it, end_it);" << std::endl;
+  ss << "      result = ProfilingBatchProcess(workspace_size, it, end_it);" << std::endl;
   ss << "      if (result != 0) {" << std::endl;
   ss << "        DLOGW(\"ProfilingBatchProcess failed at start_index:%zu retry time:%d\", start_index, i);" << std::endl;
   ss << "      } else {" << std::endl;
@@ -1020,6 +1028,7 @@ void TilingLib::GenPgoGetProfiling(const ascir::FusedScheduledResult &fused_sche
                                    std::stringstream &ss) const {
   ss << "extern \"C\" long int PGOGetProfiling(" << PGOSearchFuncInputOutputCallBackDef(fused_schedule_result)
      << "void *stream, uint32_t workspace_size, AutofuseTilingData *tiling_data, double *outCostTime) {" << std::endl;
+  ss << "  (void)tensor_args;" << std::endl;
   ss << "  if (workspace_size > 0) {" << std::endl;
   ss << "    auto ret = aclrtMalloc(&g_workspace, workspace_size, ACL_MEM_MALLOC_HUGE_FIRST);" << std::endl;
   ss << "    if (ret != ACL_SUCCESS) {" << std::endl;
@@ -1037,8 +1046,7 @@ void TilingLib::GenPgoGetProfiling(const ascir::FusedScheduledResult &fused_sche
 
   ss << "  UpdateLaunchParam(*tiling_data);" << std::endl;
   ss << "  for (uint64_t j = 0; j < loop; ++j) {" << std::endl;
-  ss << "    result = WrapperOnlyLaunch(" << PGOSearchFuncInputOutputCall(fused_schedule_result)
-     << "workspace_size, tiling_data);" << std::endl;
+  ss << "    result = WrapperOnlyLaunch(workspace_size, tiling_data);" << std::endl;
   ss << "    if (result != 0) {" << std::endl;
   ss << "      DLOGE(\"launch failed loop:%\" PRIu64 \"\", j);" << std::endl;
   ss << "      TearDownMspti(&subscriber);" << std::endl;
@@ -1063,6 +1071,7 @@ void TilingLib::GenPgoFunc(const ascir::FusedScheduledResult &fused_schedule_res
                           std::stringstream &ss) const {
   ss << "int pgo() {" << std::endl;
   ss << "  AutofuseTilingData tiling_data = {0};" << std::endl;
+  ss << "  PgoTensorArgs *tensor_args = &g_pgo_tensor_args;" << std::endl;
   ss << "  uint32_t workspace_size = 0;" << std::endl;
   ss << "  uint32_t block_dim = 0;" << std::endl;
   ss << "  if (pgo_search_fn == nullptr) {" << std::endl;
@@ -1090,6 +1099,7 @@ void TilingLib::GenPgoStaticFunc(const ascir::FusedScheduledResult &fused_schedu
   ss << "    return -1;" << std::endl;
   ss << "  }" << std::endl;
   ss << "  AutofuseTilingData tiling_data = {0};" << std::endl;
+  ss << "  PgoTensorArgs *tensor_args = &g_pgo_tensor_args;" << std::endl;
   ss << "  uint32_t workspace_size = 0;" << std::endl;
   ss << "  uint32_t block_dim = 0;" << std::endl;
   ss << "  int64_t result = autofuse_tiling_with_config_fn(config_file, &tiling_data, &workspace_size, &block_dim, &g_res_limit);"
@@ -1116,7 +1126,7 @@ void TilingLib::GenPgoStaticFunc(const ascir::FusedScheduledResult &fused_schedu
 void TilingLib::GenPgoProfiling(const ascir::FusedScheduledResult &fused_schedule_result,
                                    std::stringstream &ss) const {
   GenPgoMsptiProfiling(ss);
-  GenPgoBatchProcess(fused_schedule_result, ss);
+  GenPgoBatchProcess(ss);
   GenPgoGetProfilingBatch(fused_schedule_result, ss);
   GenPgoGetProfiling(fused_schedule_result, ss);
   ss << "typedef int64_t (*PGOSearchType)(char *search_file, char *config_file, AutofuseTilingData *tiling_data, "
@@ -1188,12 +1198,13 @@ void TilingLib::GenPgoEnvInit(const ascir::FusedScheduledResult &fused_schedule_
   ss << "    return FAILED;" << std::endl;
   ss << "  }" << std::endl;
   ss << PGOSearchTensorMallocDef(fused_schedule_result) << std::endl;
+  ss << PGOSearchTensorArgsUpdateDef(fused_schedule_result);
   ss << "  ret = aclrtMalloc(&g_tiling_device_addr, sizeof(AutofuseTilingData), ACL_MEM_MALLOC_HUGE_FIRST);" << std::endl;
   ss << "  if (ret != ACL_SUCCESS) {" << std::endl;
   ss << "    DLOGE(\"acl malloc tiling data failed, ERROR: %d\", ret);" << std::endl;
   ss << "    return FAILED;" << std::endl;
   ss << "  }" << std::endl;
-  ss << "  ret = LaunchParamsInit();" << std::endl;
+  ss << "  ret = LaunchParamsInit(&g_pgo_tensor_args);" << std::endl;
   ss << "  if (ret != ACL_SUCCESS) {" << std::endl;
   ss << "    return FAILED;" << std::endl;
   ss << "  }" << std::endl;
@@ -1863,6 +1874,7 @@ std::string TilingLib::GetTilingIncludeHead(bool is_cv) const {
   ss << "#include <stdexcept>" << std::endl;
   ss << "#include <sstream>" << std::endl;
   ss << "#include <cmath>" << std::endl;
+  ss << "#include <cstdint>" << std::endl;
   ss << "#include \"autofuse_tiling_data.h\"" << std::endl;
   if (is_cv) {
     ss << "int32_t get_g_basen_basem_align();" << std::endl;
@@ -2936,6 +2948,20 @@ std::string TilingLib::ExternFunctionDeclare(const ascir::FusedScheduledResult &
   return ss.str();
 }
 
+std::string TilingLib::PGOTensorArgsDef() const {
+  std::stringstream ss;
+  ss << "#ifndef AUTOFUSE_PGO_TENSOR_ARGS_DEFINED" << std::endl;
+  ss << "#define AUTOFUSE_PGO_TENSOR_ARGS_DEFINED" << std::endl;
+  ss << "struct PgoTensorArgs {" << std::endl;
+  ss << "  void **inputs = nullptr;" << std::endl;
+  ss << "  uint32_t input_num = 0;" << std::endl;
+  ss << "  void **outputs = nullptr;" << std::endl;
+  ss << "  uint32_t output_num = 0;" << std::endl;
+  ss << "};" << std::endl;
+  ss << "#endif" << std::endl;
+  return ss.str();
+}
+
 std::string TilingLib::PGOProfilingCallbackDef(const ascir::FusedScheduledResult &fused_schedule_result,
                                                const std::string tiling) const {
   std::stringstream ss;
@@ -2945,6 +2971,7 @@ std::string TilingLib::PGOProfilingCallbackDef(const ascir::FusedScheduledResult
   ss << "#include <unordered_set>" << std::endl;
   ss << "#include <array>" << std::endl;
   ss << std::endl;
+  ss << PGOTensorArgsDef();
   ss << "typedef long int (*ProfilingCallback)(";
   ss << PGOSearchFuncInputOutputCallBackDef(fused_schedule_result);
   ss << "void *stream, uint32_t workspaceSize, " << tiling << " *tiling_data, double *cost_time);" << std::endl;
@@ -2965,6 +2992,7 @@ std::string TilingLib::PGOProfilingCallbackDef(const ascir::FusedScheduledResult
   ss << "  }" << std::endl;
   ss << "  ProfilingCallback single_callback;" << std::endl;
   ss << "  ProfilingBatchCallback batch_callback;" << std::endl;
+  ss << "  PgoTensorArgs *tensor_args = nullptr;" << std::endl;
   ss << "  int32_t pgo_algorithm = 1; // 0 for pruning, 1 for core num" << std::endl;
   ss << "  bool need_change_solver_run = false;" << std::endl;
   ss << "  size_t pgo_threshold_index = 0;" << std::endl;
@@ -2989,48 +3017,18 @@ std::string TilingLib::PGOProfilingCallbackDef(const ascir::FusedScheduledResult
 
 std::string TilingLib::PGOSearchFuncInputOutputCallBackDef(
     const ascir::FusedScheduledResult &fused_schedule_result) const {
-  std::stringstream ss;
-  int index = 0;
-  for (auto input : fused_schedule_result.input_nodes) {
-    ss << "void* input" << index++ << ", ";
-  }
-  index = 0;
-  for (auto node : fused_schedule_result.output_nodes) {
-    if (af::ops::IsOps<af::ascir_op::Output>(node)) {
-      ss << "void* output" << index++ << ", ";
-    }
-  }
-  return ss.str();
+  (void)fused_schedule_result;
+  return "PgoTensorArgs *tensor_args, ";
 }
 
 std::string TilingLib::PGOSearchFuncInputOutputDef(const ascir::FusedScheduledResult &fused_schedule_result) const {
-  std::stringstream ss;
-  int index = 0;
-  for (auto input : fused_schedule_result.input_nodes) {
-    ss << "void* input" << index++ << " = nullptr, ";
-  }
-  index = 0;
-  for (auto node : fused_schedule_result.output_nodes) {
-    if (af::ops::IsOps<af::ascir_op::Output>(node)) {
-      ss << "void* output" << index++ << "= nullptr, ";
-    }
-  }
-  return ss.str();
+  (void)fused_schedule_result;
+  return "PgoTensorArgs *tensor_args = nullptr, ";
 }
 
 std::string TilingLib::PGOSearchFuncInputOutputCall(const ascir::FusedScheduledResult &fused_schedule_result) const {
-  std::stringstream ss;
-  int index = 0;
-  for ([[maybe_unused]] auto &input : fused_schedule_result.input_nodes) {
-    ss << "input" << index++ << ", ";
-  }
-  index = 0;
-  for (auto node : fused_schedule_result.output_nodes) {
-    if (af::ops::IsOps<af::ascir_op::Output>(node)) {
-      ss << "output" << index++ << ", ";
-    }
-  }
-  return ss.str();
+  (void)fused_schedule_result;
+  return "tensor_args, ";
 }
 
 std::string TilingLib::PGOSearchStructInputOutputDef(const ascir::FusedScheduledResult &fused_schedule_result) const {
@@ -3062,7 +3060,35 @@ std::string TilingLib::PGOSearchTensorInputOutputDef(const ascir::FusedScheduled
     }
   }
   ss << "uint64_t ffts;" << std::endl;
+  const size_t input_array_size = std::max<size_t>(fused_schedule_result.input_nodes.size(), 1UL);
+  const uint32_t output_count = PGOSearchFuncGetOutputCount(fused_schedule_result);
+  const uint32_t output_array_size = std::max<uint32_t>(output_count, 1U);
+  ss << "void *g_pgo_inputs[" << input_array_size << "] = {nullptr};" << std::endl;
+  ss << "void *g_pgo_outputs[" << output_array_size << "] = {nullptr};" << std::endl;
+  ss << "PgoTensorArgs g_pgo_tensor_args = {g_pgo_inputs, " << fused_schedule_result.input_nodes.size()
+     << "U, g_pgo_outputs, " << output_count << "U};" << std::endl;
 
+  return ss.str();
+}
+
+std::string TilingLib::PGOSearchTensorArgsUpdateDef(const ascir::FusedScheduledResult &fused_schedule_result) const {
+  std::stringstream ss;
+  int index = 0;
+  for ([[maybe_unused]] auto &input : fused_schedule_result.input_nodes) {
+    ss << "  g_pgo_inputs[" << index << "] = input" << index << ";" << std::endl;
+    index++;
+  }
+  index = 0;
+  for (auto &node : fused_schedule_result.output_nodes) {
+    if (af::ops::IsOps<af::ascir_op::Output>(node)) {
+      ss << "  g_pgo_outputs[" << index << "] = output" << index << ";" << std::endl;
+      index++;
+    }
+  }
+  ss << "  g_pgo_tensor_args.inputs = g_pgo_inputs;" << std::endl;
+  ss << "  g_pgo_tensor_args.input_num = " << fused_schedule_result.input_nodes.size() << "U;" << std::endl;
+  ss << "  g_pgo_tensor_args.outputs = g_pgo_outputs;" << std::endl;
+  ss << "  g_pgo_tensor_args.output_num = " << PGOSearchFuncGetOutputCount(fused_schedule_result) << "U;" << std::endl;
   return ss.str();
 }
 
@@ -3071,14 +3097,15 @@ std::string TilingLib::PGOSearchFuncInputOutputStructAssignDef(const ascir::Fuse
   std::stringstream ss;
   int index = 0;
   for ([[maybe_unused]] auto &input : fused_schedule_result.input_nodes) {
-    ss << struct_var_name << ".input" << index << " = reinterpret_cast<uint64_t>(input" << index << ");" << std::endl;
+    ss << struct_var_name << ".input" << index << " = reinterpret_cast<uint64_t>(tensor_args->inputs[" << index
+       << "]);" << std::endl;
     index++;
   }
   index = 0;
   for (auto &node : fused_schedule_result.output_nodes) {
     if (af::ops::IsOps<af::ascir_op::Output>(node)) {
-      ss << struct_var_name << ".output" << index << " = reinterpret_cast<uint64_t>(output" << index << ");"
-         << std::endl;
+      ss << struct_var_name << ".output" << index << " = reinterpret_cast<uint64_t>(tensor_args->outputs[" << index
+         << "]);" << std::endl;
       index++;
     }
   }
@@ -3087,14 +3114,16 @@ std::string TilingLib::PGOSearchFuncInputOutputStructAssignDef(const ascir::Fuse
 
 uint32_t TilingLib::PGOSearchFuncGetInputOutputCount(
     const ascir::FusedScheduledResult &fused_schedule_result) const {
+  return fused_schedule_result.input_nodes.size() + PGOSearchFuncGetOutputCount(fused_schedule_result);
+}
+
+uint32_t TilingLib::PGOSearchFuncGetOutputCount(const ascir::FusedScheduledResult &fused_schedule_result) const {
   uint32_t count = 0;
-  count += fused_schedule_result.input_nodes.size();
   for (auto &node : fused_schedule_result.output_nodes) {
     if (af::ops::IsOps<af::ascir_op::Output>(node)) {
       count++;
     }
   }
-
   return count;
 }
 
@@ -3806,15 +3835,7 @@ void TilingLib::GenTopnSearchTilingKeyCall(std::stringstream &ss,
                                            const ascir::FusedScheduledResult &fused_schedule_result,
                                            const std::string &search_cfg) const {
   ss << "    helper_ret = optiling::PGOSearchTilingKey(raw_candidates, cur_search_tiling, -1, &cur_search_tiling, ";
-  for (auto input : fused_schedule_result.input_nodes) {
-    (void)input;
-    ss << "nullptr, ";
-  }
-  for (auto node : fused_schedule_result.output_nodes) {
-    if (IsOps<Output>(node)) {
-      ss << "nullptr, ";
-    }
-  }
+  ss << "nullptr, ";
   const bool is_single_group = ascgen_utils::IsSingleGroup(fused_schedule_result);
   if (is_single_group) {
     ss << "nullptr, 0, best_perf, workspace_map, {}, " << search_cfg << ");" << std::endl;

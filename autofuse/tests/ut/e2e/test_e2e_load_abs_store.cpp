@@ -104,6 +104,7 @@ static std::string GetCodegenTilingWithLambdaExpectCode() {
   return R"rawliteral(#include <stdexcept>
 #include <sstream>
 #include <cmath>
+#include <cstdint>
 #include "autofuse_tiling_data.h"
 #ifndef __CCE_KT_TEST__
 #include "exe_graph/runtime/infer_shape_context.h"
@@ -449,6 +450,15 @@ static std::string GetCodegenPGOCodeExpectCode() {
 
 #include "autofuse_tiling_data.h"
 
+#ifndef AUTOFUSE_PGO_TENSOR_ARGS_DEFINED
+#define AUTOFUSE_PGO_TENSOR_ARGS_DEFINED
+struct PgoTensorArgs {
+  void **inputs = nullptr;
+  uint32_t input_num = 0;
+  void **outputs = nullptr;
+  uint32_t output_num = 0;
+};
+#endif
 namespace {
 constexpr bool g_is_mix_operator = false;
 static bool g_is_static_kernel = false;
@@ -592,6 +602,9 @@ inline void *GetFunc(const char *func_name) {
 }
 aclrtStream g_stream;
 uint64_t ffts;
+void *g_pgo_inputs[1] = {nullptr};
+void *g_pgo_outputs[1] = {nullptr};
+PgoTensorArgs g_pgo_tensor_args = {g_pgo_inputs, 0U, g_pgo_outputs, 0U};
 
 void *g_tiling_device_addr = nullptr;
 struct LaunchParams {
@@ -600,9 +613,18 @@ struct LaunchParams {
   MixKernelLaunchOpArgs mix_args;
   void *mix_args_device;
 } g_launch_params;
-aclError LaunchParamsInit() {
+aclError LaunchParamsInit(PgoTensorArgs *tensor_args) {
   static void *ffts = nullptr;
   aclError ret = ACL_SUCCESS;
+  constexpr uint32_t kPgoInputCount = 0U;
+  constexpr uint32_t kPgoOutputCount = 0U;
+  if (tensor_args == nullptr || tensor_args->input_num < kPgoInputCount ||
+      tensor_args->output_num < kPgoOutputCount ||
+      (kPgoInputCount > 0U && tensor_args->inputs == nullptr) ||
+      (kPgoOutputCount > 0U && tensor_args->outputs == nullptr)) {
+    DLOGE("invalid pgo tensor args");
+    return FAILED;
+  }
   g_launch_params.aiv_args.tiling_addr = reinterpret_cast<uint64_t>(g_tiling_device_addr);
   ret = aclrtGetHardwareSyncAddr(&ffts);
   if (ret != ACL_SUCCESS) {
@@ -919,7 +941,8 @@ int ProfilingBatchProcess(uint32_t workspace_size, std::vector<AutofuseTilingDat
   return 0;
 }
 
-extern "C" long int PGOGetProfilingBatch(void* stream, uint32_t workspace_size, std::vector<AutofuseTilingDataPerf> *profiles) {
+extern "C" long int PGOGetProfilingBatch(PgoTensorArgs *tensor_args, void* stream, uint32_t workspace_size, std::vector<AutofuseTilingDataPerf> *profiles) {
+  (void)tensor_args;
   int case_num = profiles->size();
   DLOGI("PGOGetProfilingBatch case_num:%d", case_num);
   if (workspace_size > 0) {
@@ -954,7 +977,8 @@ extern "C" long int PGOGetProfilingBatch(void* stream, uint32_t workspace_size, 
   return 0;
 }
 
-extern "C" long int PGOGetProfiling(void *stream, uint32_t workspace_size, AutofuseTilingData *tiling_data, double *outCostTime) {
+extern "C" long int PGOGetProfiling(PgoTensorArgs *tensor_args, void *stream, uint32_t workspace_size, AutofuseTilingData *tiling_data, double *outCostTime) {
+  (void)tensor_args;
   if (workspace_size > 0) {
     auto ret = aclrtMalloc(&g_workspace, workspace_size, ACL_MEM_MALLOC_HUGE_FIRST);
     if (ret != ACL_SUCCESS) {
@@ -1036,17 +1060,18 @@ extern "C" long int PGOGetProfiling(void *stream, uint32_t workspace_size, Autof
   return 0;
 }
 
-typedef int64_t (*PGOSearchType)(char *search_file, char *config_file, AutofuseTilingData *tiling_data, uint32_t *workspace_size, uint32_t *blockDim, void *resource_limit, void *stream, void *prof_callback, void *prof_batch_callback);
+typedef int64_t (*PGOSearchType)(char *search_file, char *config_file, AutofuseTilingData *tiling_data, uint32_t *workspace_size, uint32_t *blockDim, void *resource_limit, PgoTensorArgs *tensor_args, void *stream, void *prof_callback, void *prof_batch_callback);
 static PGOSearchType pgo_search_fn = reinterpret_cast<PGOSearchType>(GetFunc("PgoTilingSearch"));
 int pgo() {
   AutofuseTilingData tiling_data = {0};
+  PgoTensorArgs *tensor_args = &g_pgo_tensor_args;
   uint32_t workspace_size = 0;
   uint32_t block_dim = 0;
   if (pgo_search_fn == nullptr) {
     DLOGE("pgo search func not found");
     return -1;
   }
-  int64_t result = pgo_search_fn((char*)search_file, (char *)config_file, &tiling_data, &workspace_size, &block_dim, &g_res_limit,&g_stream, reinterpret_cast<void*>(PGOGetProfiling), reinterpret_cast<void*>(PGOGetProfilingBatch));
+  int64_t result = pgo_search_fn((char*)search_file, (char *)config_file, &tiling_data, &workspace_size, &block_dim, &g_res_limit,tensor_args, &g_stream, reinterpret_cast<void*>(PGOGetProfiling), reinterpret_cast<void*>(PGOGetProfilingBatch));
   if (result != 0) {
     DLOGE("pgo search failed. ERROR: %" PRId64 "", result);
     return -1;
@@ -1062,6 +1087,7 @@ int static_pgo(const char* config_file) {
     return -1;
   }
   AutofuseTilingData tiling_data = {0};
+  PgoTensorArgs *tensor_args = &g_pgo_tensor_args;
   uint32_t workspace_size = 0;
   uint32_t block_dim = 0;
   int64_t result = autofuse_tiling_with_config_fn(config_file, &tiling_data, &workspace_size, &block_dim, &g_res_limit);
@@ -1071,7 +1097,7 @@ int static_pgo(const char* config_file) {
   }
   double out_cost = DBL_MAX;
   for (int i = 0; i < max_flush_times; i++) {
-    result = PGOGetProfiling(g_stream, workspace_size, &tiling_data, &out_cost);
+    result = PGOGetProfiling(tensor_args, g_stream, workspace_size, &tiling_data, &out_cost);
     if (result != 0 || IsEqual(out_cost, DBL_MAX)) {
       DLOGW("get profiling failed.");
     } else {
@@ -1118,12 +1144,16 @@ int main(int argc, char *argv[]) {
     return FAILED;
   }
 
+  g_pgo_tensor_args.inputs = g_pgo_inputs;
+  g_pgo_tensor_args.input_num = 0U;
+  g_pgo_tensor_args.outputs = g_pgo_outputs;
+  g_pgo_tensor_args.output_num = 0U;
   ret = aclrtMalloc(&g_tiling_device_addr, sizeof(AutofuseTilingData), ACL_MEM_MALLOC_HUGE_FIRST);
   if (ret != ACL_SUCCESS) {
     DLOGE("acl malloc tiling data failed, ERROR: %d", ret);
     return FAILED;
   }
-  ret = LaunchParamsInit();
+  ret = LaunchParamsInit(&g_pgo_tensor_args);
   if (ret != ACL_SUCCESS) {
     return FAILED;
   }
@@ -1171,6 +1201,7 @@ static std::string GetCodegenTilingWithLambdaWithPGOExpectCode() {
   return R"rawliteral(#include <stdexcept>
 #include <sstream>
 #include <cmath>
+#include <cstdint>
 #include "autofuse_tiling_data.h"
 #ifndef __CCE_KT_TEST__
 #include "exe_graph/runtime/infer_shape_context.h"
@@ -1186,8 +1217,17 @@ static std::string GetCodegenTilingWithLambdaWithPGOExpectCode() {
 #include <unordered_set>
 #include <array>
 
-typedef long int (*ProfilingCallback)(void *stream, uint32_t workspaceSize, AutofuseTilingData *tiling_data, double *cost_time);
-typedef long int (*ProfilingBatchCallback)(void *stream, uint32_t workspaceSize, std::vector<AutofuseTilingDataPerf> *profiles);
+#ifndef AUTOFUSE_PGO_TENSOR_ARGS_DEFINED
+#define AUTOFUSE_PGO_TENSOR_ARGS_DEFINED
+struct PgoTensorArgs {
+  void **inputs = nullptr;
+  uint32_t input_num = 0;
+  void **outputs = nullptr;
+  uint32_t output_num = 0;
+};
+#endif
+typedef long int (*ProfilingCallback)(PgoTensorArgs *tensor_args, void *stream, uint32_t workspaceSize, AutofuseTilingData *tiling_data, double *cost_time);
+typedef long int (*ProfilingBatchCallback)(PgoTensorArgs *tensor_args, void *stream, uint32_t workspaceSize, std::vector<AutofuseTilingDataPerf> *profiles);
 class PgoConfig {
 public:
   static PgoConfig& Instance() {
@@ -1202,6 +1242,7 @@ public:
   }
   ProfilingCallback single_callback;
   ProfilingBatchCallback batch_callback;
+  PgoTensorArgs *tensor_args = nullptr;
   int32_t pgo_algorithm = 1; // 0 for pruning, 1 for core num
   bool need_change_solver_run = false;
   size_t pgo_threshold_index = 0;
@@ -1250,7 +1291,7 @@ inline bool IsEqual(double a, double b) {
   return true;
 }
 struct SearchConfig;
-bool PGOSearchTilingKey(std::vector<AutofuseTilingDataPerf>& tiling_data_list, AutofuseTilingData &tiling_data, int32_t tilingCaseId, AutofuseTilingData* output_tiling_data, void* stream, uint32_t workspaceSize, double& out_best_perf, std::unordered_map<int64_t, uint64_t> &workspace_map, std::vector<uint32_t*> block_dim_vec={}, const SearchConfig *search_cfg=nullptr) {
+bool PGOSearchTilingKey(std::vector<AutofuseTilingDataPerf>& tiling_data_list, AutofuseTilingData &tiling_data, int32_t tilingCaseId, AutofuseTilingData* output_tiling_data, PgoTensorArgs *tensor_args, void* stream, uint32_t workspaceSize, double& out_best_perf, std::unordered_map<int64_t, uint64_t> &workspace_map, std::vector<uint32_t*> block_dim_vec={}, const SearchConfig *search_cfg=nullptr) {
   return true;
 }
 bool PGOByCoreNumSearchTilingKey(std::vector<AutofuseTilingData>& tiling_data_list, AutofuseTilingData* tiling_data, uint32_t max_block_dim=48) {
@@ -1405,7 +1446,7 @@ void SavePGOConfigTilingData(char *file, std::vector<AutofuseTilingDataPerf> &ti
 
   return;
 }
-extern "C" int64_t PgoTilingSearchByCoreNum(char *search_file, char *config_file, AutofuseTilingData *tiling, uint32_t *workspaceSize, uint32_t *blockDim, ResLimit *res_limit = nullptr, void *stream=nullptr, ProfilingCallback prof_callback=nullptr, ProfilingBatchCallback prof_batch_callback=nullptr) {
+extern "C" int64_t PgoTilingSearchByCoreNum(char *search_file, char *config_file, AutofuseTilingData *tiling, uint32_t *workspaceSize, uint32_t *blockDim, ResLimit *res_limit = nullptr, PgoTensorArgs *tensor_args = nullptr, void *stream=nullptr, ProfilingCallback prof_callback=nullptr, ProfilingBatchCallback prof_batch_callback=nullptr) {
   const ResLimit *limit = (res_limit == nullptr) ? &g_no_limit_res : res_limit;
   double best_perf = DBL_MAX;
   uint32_t max_block_dim = limit->aiv_num;
@@ -1417,7 +1458,7 @@ extern "C" int64_t PgoTilingSearchByCoreNum(char *search_file, char *config_file
   std::vector<AutofuseTilingDataPerf> tiling_data_perf_list;
   double axeorder_cost = DBL_MAX;
   AutofuseTiling(tiling, workspaceSize, blockDim, limit->aiv_num, limit->ub_size - 256);
-  PgoConfig::Instance().single_callback(stream, *workspaceSize, tiling, &axeorder_cost);
+  PgoConfig::Instance().single_callback(tensor_args, stream, *workspaceSize, tiling, &axeorder_cost);
   AutofuseTilingDataPerf tiling_data_axereorder_perf;
   tiling_data_axereorder_perf.tiling_data = *tiling;
   tiling_data_axereorder_perf.best_perf = axeorder_cost;
@@ -1446,13 +1487,13 @@ extern "C" int64_t PgoTilingSearchByCoreNum(char *search_file, char *config_file
     tiling_data_perf_list.push_back(tiling_data_perf);
   }
   *workspaceSize += 16 * 1024 * 1024;
-  PgoConfig::Instance().batch_callback(stream, *workspaceSize, &tiling_data_perf_list);
+  PgoConfig::Instance().batch_callback(tensor_args, stream, *workspaceSize, &tiling_data_perf_list);
   best_perf = DBL_MAX;
   SavePGOSearchTilingData(search_file, tiling_data_perf_list);
   SavePGOConfigTilingData(config_file, tiling_data_perf_list, best_perf);
   return 0;
 }
-extern "C" int64_t PgoTilingSearchPGO(char *search_file, char *config_file, AutofuseTilingData *tiling, uint32_t *workspaceSize, uint32_t *blockDim, ResLimit *res_limit = nullptr, void *stream=nullptr, ProfilingCallback prof_callback=nullptr, ProfilingBatchCallback prof_batch_callback=nullptr) {
+extern "C" int64_t PgoTilingSearchPGO(char *search_file, char *config_file, AutofuseTilingData *tiling, uint32_t *workspaceSize, uint32_t *blockDim, ResLimit *res_limit = nullptr, PgoTensorArgs *tensor_args = nullptr, void *stream=nullptr, ProfilingCallback prof_callback=nullptr, ProfilingBatchCallback prof_batch_callback=nullptr) {
   const ResLimit *limit = (res_limit == nullptr) ? &g_no_limit_res : res_limit;
   std::vector<AutofuseTilingDataPerf> tiling_data_list;
   double best_perf = DBL_MAX;
@@ -1461,7 +1502,7 @@ extern "C" int64_t PgoTilingSearchPGO(char *search_file, char *config_file, Auto
   tiling->set_block_dim(max_core_num);
   max_block_dim = max_core_num;
   AutofuseTiling(tiling, workspaceSize, blockDim, limit->aiv_num, limit->ub_size - 256);
-  PgoConfig::Instance().single_callback(stream, *workspaceSize, tiling, &best_perf);
+  PgoConfig::Instance().single_callback(tensor_args, stream, *workspaceSize, tiling, &best_perf);
   if (optiling::IsEqual(best_perf, DBL_MAX)) {
     OP_LOGE(OP_NAME, "axesreorder solution get perf failed %lf", best_perf);
     return -1;
@@ -1472,7 +1513,7 @@ extern "C" int64_t PgoTilingSearchPGO(char *search_file, char *config_file, Auto
   tiling_data_list.push_back(tiling_perf);
   OP_LOGD(OP_NAME, "axesreorder solution base perf is %lf", best_perf);
   tiling->set_block_dim(max_block_dim);
-  if (!optiling::PGOSearchTilingKey(tiling_data_list, *tiling, -1, tiling, stream, *workspaceSize, best_perf)) {
+  if (!optiling::PGOSearchTilingKey(tiling_data_list, *tiling, -1, tiling, tensor_args, stream, *workspaceSize, best_perf)) {
     return -1;
   }
   if (optiling::IsEqual(best_perf, DBL_MAX)) {
@@ -1485,7 +1526,7 @@ extern "C" int64_t PgoTilingSearchPGO(char *search_file, char *config_file, Auto
 
   return 0;
 }
-extern "C" int64_t PgoTilingSearch(char *search_file, char *config_file, AutofuseTilingData *tiling, uint32_t *workspaceSize, uint32_t *blockDim, ResLimit *res_limit = nullptr, void *stream=nullptr, ProfilingCallback prof_callback=nullptr, ProfilingBatchCallback prof_batch_callback=nullptr) {
+extern "C" int64_t PgoTilingSearch(char *search_file, char *config_file, AutofuseTilingData *tiling, uint32_t *workspaceSize, uint32_t *blockDim, ResLimit *res_limit = nullptr, PgoTensorArgs *tensor_args = nullptr, void *stream=nullptr, ProfilingCallback prof_callback=nullptr, ProfilingBatchCallback prof_batch_callback=nullptr) {
   const char* var = std::getenv("AUTOFUSE_DFX_FLAGS");
   if ((var != nullptr) && (std::string(var).find("autofuse_pgo_algo=pruning") != std::string::npos)) {
     PgoConfig::Instance().pgo_algorithm = 0;
@@ -1495,9 +1536,9 @@ extern "C" int64_t PgoTilingSearch(char *search_file, char *config_file, Autofus
   PgoConfig::Instance().single_callback = prof_callback;
   PgoConfig::Instance().batch_callback = prof_batch_callback;
   if (PgoConfig::Instance().pgo_algorithm == 0) {
-    PgoTilingSearchPGO(search_file, config_file,  tiling, workspaceSize, blockDim, res_limit, stream, PgoConfig::Instance().single_callback, PgoConfig::Instance().batch_callback);
+    PgoTilingSearchPGO(search_file, config_file,  tiling, workspaceSize, blockDim, res_limit, tensor_args, stream, PgoConfig::Instance().single_callback, PgoConfig::Instance().batch_callback);
   } else if (PgoConfig::Instance().pgo_algorithm == 1) {
-    PgoTilingSearchByCoreNum(search_file, config_file,  tiling, workspaceSize, blockDim, res_limit, stream, PgoConfig::Instance().single_callback, PgoConfig::Instance().batch_callback);
+    PgoTilingSearchByCoreNum(search_file, config_file,  tiling, workspaceSize, blockDim, res_limit, tensor_args, stream, PgoConfig::Instance().single_callback, PgoConfig::Instance().batch_callback);
   }
   return 0;
 }

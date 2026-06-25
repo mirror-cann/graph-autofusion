@@ -156,8 +156,7 @@ class TilingCodeGenImpl {
                                         const std::map<size_t, std::pair<std::string, std::string>> &graph_info,
                                         const std::map<std::string, std::set<std::string>> &hardware_map,
                                         const std::map<size_t, std::map<size_t, std::map<std::string, ge::Expression>>> &var_relation);
-  std::string GenLaunchLikeInputOutputDef(bool is_define = true);
-  std::string GenInputOutputVoidCasts();
+  std::string GenPgoTensorArgsDef(bool is_define = true) const;
   void GenPGOMultiGroupBlockDimList(const FusedGraphNamespaceMap &namespace_map, std::string &block_dim_list_arg);
   ge::Status GenCastReuseTilingDataCode(const ReuseScheduleGroupInfo &reuse_info, const ReuseScheduleGroupInfo &info);
   bool IsScheduleResultEnableParallel(const size_t asc_graph_id, const size_t impl_graph_id) const;
@@ -247,6 +246,7 @@ class TilingCodeGenImpl {
   virtual ge::Status GenExternFuncDef();
   // 生成宏函数与include信息
   virtual ge::Status GenMacroInclude();
+  void GenPgoHeaderCodesTail();
   // 生成工具函数
   virtual ge::Status GenToolFuncs();
   // 生成tilingimpl的基类public函数
