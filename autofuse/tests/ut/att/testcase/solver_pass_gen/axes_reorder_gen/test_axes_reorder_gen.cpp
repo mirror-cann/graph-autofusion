@@ -166,6 +166,118 @@ TEST_F(TestAxesReorderSolverGen, TEST_GEN_SOLVER)
   EXPECT_NE(invoke_code, "");
 }
 
+TEST_F(TestAxesReorderSolverGen, GenRuntimeReorderRuleForDynamicReduceTile) {
+  Expr reduce = CreateExpr("reduce");
+  Expr tail = CreateExpr("tail");
+  RuntimeReorderRule rule;
+  rule.preferred_axis = tail;
+  rule.fallback_axis = reduce;
+  rule.condition_axis = tail;
+  rule.compare_axis = reduce;
+  rule.condition_threshold = 64U;
+  rule.compare_threshold = 128U;
+
+  AxesReorderSolverGen solver_gen("case_test", "TilingData");
+  solver_gen.local_buffer_tiling_vars_ = {reduce, tail};
+  solver_gen.from_axes_map_[tail] = {tail};
+  solver_gen.from_axes_map_[reduce] = {reduce};
+  solver_gen.SetRuntimeReorderRules({rule});
+
+  std::string code = solver_gen.GenRuntimeReorderRules();
+  EXPECT_TRUE(code.find("(tail.upper_bound(tail.upper_bound_vars) < 64)") != std::string::npos);
+  EXPECT_TRUE(code.find("(reduce.upper_bound(reduce.upper_bound_vars) > 128)") != std::string::npos);
+  EXPECT_TRUE(code.find("Runtime reduce tile reorder chooses preferred axis tail before fallback axis reduce") !=
+              std::string::npos);
+  EXPECT_TRUE(code.find("Runtime reduce tile reorder keeps fallback axis reduce before preferred axis tail") !=
+              std::string::npos);
+  EXPECT_TRUE(code.find("auto *runtime_preferred_var = input.local_buffer_vars[1]") != std::string::npos);
+  EXPECT_TRUE(code.find("input.local_buffer_vars[1] = input.local_buffer_vars[0]") != std::string::npos);
+  EXPECT_TRUE(code.find("input.local_buffer_vars[0] = runtime_preferred_var") != std::string::npos);
+}
+
+TEST_F(TestAxesReorderSolverGen, GenRuntimeReorderRuleUsesOriginalAxesForDynamicReduceTile) {
+  Expr reduce = CreateExpr("reduce");
+  Expr tail = CreateExpr("tail");
+  Expr origin_reduce = CreateExpr("origin_reduce");
+  Expr origin_tail = CreateExpr("origin_tail");
+  RuntimeReorderRule rule;
+  rule.preferred_axis = tail;
+  rule.fallback_axis = reduce;
+  rule.condition_axis = origin_tail;
+  rule.compare_axis = origin_reduce;
+  rule.condition_threshold = 64U;
+  rule.compare_threshold = 128U;
+
+  AxesReorderSolverGen solver_gen("case_test", "TilingData");
+  solver_gen.input_args_ = {origin_reduce, origin_tail};
+  solver_gen.local_buffer_tiling_vars_ = {reduce, tail};
+  solver_gen.from_axes_map_[tail] = {origin_tail};
+  solver_gen.from_axes_map_[reduce] = {origin_reduce};
+  solver_gen.SetRuntimeReorderRules({rule});
+
+  std::string code = solver_gen.GenRuntimeReorderRules();
+  EXPECT_TRUE(code.find("(origin_tail.value < 64)") != std::string::npos);
+  EXPECT_TRUE(code.find("(origin_reduce.value > 128)") != std::string::npos);
+  EXPECT_TRUE(code.find("auto *runtime_preferred_var = input.local_buffer_vars[1]") != std::string::npos);
+  EXPECT_TRUE(code.find("input.local_buffer_vars[1] = input.local_buffer_vars[0]") != std::string::npos);
+  EXPECT_TRUE(code.find("input.local_buffer_vars[0] = runtime_preferred_var") != std::string::npos);
+}
+
+TEST_F(TestAxesReorderSolverGen, GenRuntimeReorderRuleUsesOriginalAxisProductForDynamicReduceTile) {
+  Expr reduce = CreateExpr("reduce");
+  Expr tail = CreateExpr("tail");
+  Expr origin_reduce0 = CreateExpr("origin_reduce0");
+  Expr origin_reduce1 = CreateExpr("origin_reduce1");
+  Expr origin_tail0 = CreateExpr("origin_tail0");
+  Expr origin_tail1 = CreateExpr("origin_tail1");
+  RuntimeReorderRule rule;
+  rule.preferred_axis = tail;
+  rule.fallback_axis = reduce;
+  rule.condition_axis = origin_tail0 * origin_tail1;
+  rule.compare_axis = origin_reduce0 * origin_reduce1;
+  rule.condition_threshold = 64U;
+  rule.compare_threshold = 128U;
+
+  AxesReorderSolverGen solver_gen("case_test", "TilingData");
+  solver_gen.input_args_ = {origin_reduce0, origin_reduce1, origin_tail0, origin_tail1};
+  solver_gen.local_buffer_tiling_vars_ = {reduce, tail};
+  solver_gen.SetRuntimeReorderRules({rule});
+
+  std::string code = solver_gen.GenRuntimeReorderRules();
+  EXPECT_TRUE(code.find("origin_tail0.value") != std::string::npos);
+  EXPECT_TRUE(code.find("origin_tail1.value") != std::string::npos);
+  EXPECT_TRUE(code.find("origin_reduce0.value") != std::string::npos);
+  EXPECT_TRUE(code.find("origin_reduce1.value") != std::string::npos);
+  EXPECT_TRUE(code.find("origin_tail0*origin_tail1.value") == std::string::npos);
+  EXPECT_TRUE(code.find("origin_reduce0*origin_reduce1.value") == std::string::npos);
+}
+
+TEST_F(TestAxesReorderSolverGen, GenSolverFuncImplAppliesRuntimeReorderOnceBeforeSolverRun) {
+  Expr reduce = CreateExpr("reduce");
+  Expr tail = CreateExpr("tail");
+  RuntimeReorderRule rule;
+  rule.preferred_axis = tail;
+  rule.fallback_axis = reduce;
+  rule.condition_axis = tail;
+  rule.compare_axis = reduce;
+  rule.condition_threshold = 64U;
+  rule.compare_threshold = 128U;
+
+  AxesReorderSolverGen solver_gen("case_test", "TilingData");
+  solver_gen.local_buffer_tiling_vars_ = {reduce, tail};
+  solver_gen.hardware_use_map_[HardwareDef::UB] = reduce + tail;
+  solver_gen.SetRuntimeReorderRules({rule});
+
+  const std::string code = solver_gen.GenSolverFuncImpl();
+  const std::string swap_code = "auto *runtime_preferred_var = input.local_buffer_vars[1]";
+  const size_t swap_pos = code.find(swap_code);
+  const size_t solver_pos = code.find("AxesReorderSolvercase_test solver(input);");
+  EXPECT_EQ(CountSubstr(code, swap_code), 1U);
+  EXPECT_NE(swap_pos, std::string::npos);
+  EXPECT_NE(solver_pos, std::string::npos);
+  EXPECT_LT(swap_pos, solver_pos);
+}
+
 TEST_F(TestAxesReorderSolverGen, TEST_GEN_SOLVER_case2)
 {
   Expr x0 = CreateExpr("x0");

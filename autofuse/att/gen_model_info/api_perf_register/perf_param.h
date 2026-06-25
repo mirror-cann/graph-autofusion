@@ -13,6 +13,7 @@
 
 #include <string>
 #include <map>
+#include "base/arch_param.h"
 #include "base/base_types.h"
 #include "gen_model_info/parser/tuning_space.h"
 #include "util/ternary_op.h"
@@ -45,8 +46,7 @@ class PerfParamTable {
   }
   // 获取每条MicroApi指令能处理的字节数
   [[nodiscard]] virtual uint32_t GetMicroApiLen() const {
-    constexpr uint32_t kDefaultVectorLen = 256;
-    return kDefaultVectorLen;
+    return arch_param::kDefaultVectorLenSize;
   }
   // 获取注册的关键字名
   [[nodiscard]] virtual std::string GetApiRegisterVerName() const {

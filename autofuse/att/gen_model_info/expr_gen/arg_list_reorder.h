@@ -172,7 +172,8 @@ class ArgListReorder {
   explicit ArgListReorder(const TuningSpacePtr &tuning_space) : tuning_space_(tuning_space) {}
   ~ArgListReorder() = default;
   // 排序ArgList入口函数
-  ge::Status SortArgList(vector<AttAxisPtr> &arg_list, vector<AttAxisPtr> &tiling_R_arg_list);
+  ge::Status SortArgList(vector<AttAxisPtr> &arg_list, vector<AttAxisPtr> &tiling_R_arg_list,
+                         std::vector<RuntimeReorderRule> *runtime_reorder_rules = nullptr);
 
  private:
   // 轴属性枚举
@@ -201,6 +202,9 @@ class ArgListReorder {
   TuningSpacePtr tuning_space_;
   ArgPriorityGraphPtr graph_;
   bool tiling_R_ = false;
+  bool prefer_reduce_tile_ = false;
+  bool has_dynamic_reduce_tile_reorder_ = false;
+  RuntimeReorderRule dynamic_reduce_tile_reorder_rule_;
 
   // 成员函数保持原名
   bool CheckReduce(const SubAxis *dim, const Expr &repeat, const Expr &stride,
@@ -211,7 +215,19 @@ class ArgListReorder {
                          const std::vector<TensorPtr> &output_tensors, AxisProperty property);
   void FindSpecialArgs();
   ge::Status AddEdgeGroups(const std::vector<std::string> &from_axes_group, const std::vector<std::string> &to_axes_group);
-  bool IsReduceAxisBlockSplit(const std::vector<SubAxisPtr> &all_axes, const std::set<std::string> &reduce_axis_ori_axes_set) const;
+  bool IsReduceAxisBlockSplit(const std::vector<SubAxisPtr> &all_axes,
+                              const std::set<std::string> &reduce_axis_ori_axes_set) const;
+  bool IsReduceAxisTileSplit(const std::set<std::string> &reduce_axis_ori_axes_set) const;
+  uint32_t GetCacheLineSize() const;
+  uint32_t GetVectorLenSize() const;
+  bool GetReduceAxisDataTypeSize(const NodeInfo &node, const SubAxis *axis,
+                                 const std::set<std::string> &reduce_axis_ori_axes_set,
+                                 uint32_t &data_type_size) const;
+  bool TryBuildReduceTileRuntimeReorderRule(const NodeInfo &node, const std::set<std::string> &reduce_axis_ori_axes_set,
+                                            RuntimeReorderRule &rule) const;
+  bool HasSmallTailLargeReduceTile(const NodeInfo &node, const std::set<std::string> &reduce_axis_ori_axes_set,
+                                   RuntimeReorderRule &rule) const;
+  void RecordReduceTileTemplateSelection(const NodeInfo &node, const std::set<std::string> &reduce_axis_ori_axes_set);
   void SaveReduceAxisOrig(const SubAxis *reduce_axis, std::set<std::string> &reduce_axis_ori_axes_set) const;
   AxisCategories CategorizeAxesByProperty(const vector<AttAxisPtr> &arg_list);
   ge::Status ApplyPriorityRules(bool tiling_R, const AxisCategories &categories);

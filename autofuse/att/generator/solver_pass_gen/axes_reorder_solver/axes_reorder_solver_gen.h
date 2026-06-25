@@ -102,10 +102,10 @@ namespace att {
     }
     void SetIsConcatOuterMap(const ExprUintMap &is_concat_outer_map) { is_concat_outer_map_ = is_concat_outer_map; }
     void SetConcatInnerDims(const std::vector<Expr> &concat_inner_dims) { concat_inner_dims_ = concat_inner_dims; }
-    void SetUBThreshold(const double &ub_threshold) { 
+    void SetUBThreshold(const double &ub_threshold) {
       ub_threshold_ = ub_threshold;
     }
-    void SetCoreNumThreshold(const double &corenum_threshold) { 
+    void SetCoreNumThreshold(const double &corenum_threshold) {
       corenum_threshold_ = corenum_threshold;
     };
     void SetReservedUbSize(const Expr &reserved_ub_size) {
@@ -129,8 +129,11 @@ namespace att {
     void SetTilingScheduleConfig(const TilingScheduleConfig &tiling_schedule_config) {
       tiling_schedule_config_ = tiling_schedule_config;
     }
+    void SetRuntimeReorderRules(const std::vector<RuntimeReorderRule> &runtime_reorder_rules) {
+      runtime_reorder_rules_ = runtime_reorder_rules;
+    }
     void SetCacheLineConfig(const vector<CacheLineConfig> *cache_line_config) {
-      cache_line_config_ = cache_line_config;      
+      cache_line_config_ = cache_line_config;
     }
     void SetEnableParallel(bool enable_parallel) {
       enable_group_parallel_ = enable_parallel;
@@ -182,6 +185,11 @@ namespace att {
     std::string SetInputVars(InputType input_type);
     std::string SetInputCons(std::vector<Expr> cons) const;
     std::string SetTilingVars(VarsType var_type);
+    std::string GenRuntimeReorderRules();
+    std::string GenRuntimeReorderRule(const RuntimeReorderRule &rule);
+    std::string GenRuntimeExprValue(const Expr &expr) const;
+    std::string GenRuntimeCompoundExprValue(const Expr &expr) const;
+    int32_t GetLocalBufferVarIndex(const Expr &expr) const;
     void InitConcatPromptAlign(const Expr &local_var, const uint32_t prompt_align, std::string &strs);
     std::string GenInputInfo(std::vector<Expr> &all_cons, std::vector<Expr> &local_buffer_cons,
                              std::vector<Expr> &mc_mixed_cons);
@@ -196,6 +204,7 @@ namespace att {
     std::string GenPgoSetMaxBlockDim() const;
     std::vector<uint32_t> GetArgRelateCons(const Expr &arg, const std::vector<Expr> &all_cons) const;
     std::string IsEnableBlockLoopTradeOffByPerf() const;
+    std::string GenPendingSearchConfigOverride();
     std::vector<Expr> mc_args_;
     std::vector<Expr> input_args_;
     std::vector<Expr> const_args_;
@@ -228,6 +237,7 @@ namespace att {
     std::string arrange_code_;
     const TilingScheduleConfigTable *tiling_schedule_config_table_{nullptr};
     TilingScheduleConfig tiling_schedule_config_;  // Model 级别的 Tiling 调度配置
+    std::vector<RuntimeReorderRule> runtime_reorder_rules_;
     const vector<CacheLineConfig> *cache_line_config_ {nullptr};
     bool enable_group_parallel_{false};
     size_t group_num_{1UL};

@@ -487,6 +487,7 @@ void SolverPassManager::InitSolverGen(AxesReorderSolverGen &solver_gen) {
   solver_gen.SetIsUniGroup(GetIsUniGroup());
   solver_gen.SetTilingScheduleConfigTable(args_manager_.GetModelInfo().tiling_schedule_config_table);
   solver_gen.SetTilingScheduleConfig(args_manager_.GetModelInfo().tiling_schedule_config);
+  solver_gen.SetRuntimeReorderRules(args_manager_.GetModelInfo().runtime_reorder_rules);
   solver_gen.SetCacheLineConfig(&args_manager_.GetModelInfo().cache_line_config);
   solver_gen.SetEnableParallel(args_manager_.GetModelInfo().enable_group_parallel);
   solver_gen.SetGroupNum(group_num_);

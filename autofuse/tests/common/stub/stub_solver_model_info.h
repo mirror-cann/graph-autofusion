@@ -29,6 +29,7 @@ class TestTilingScheduleConfigTable : public TilingScheduleConfigTable {
   [[nodiscard]] TilingScheduleConfig GetModelTilingScheduleConfig() const override {
     TilingScheduleConfig config;
     config.cache_line_size = cache_line_size_;
+    config.vector_len_size = GetVectorLenSize();
     return config;
   }
   [[nodiscard]] uint32_t GetCacheLineSize() const override { return cache_line_size_; }
