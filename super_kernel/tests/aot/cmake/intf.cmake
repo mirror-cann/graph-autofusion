@@ -25,6 +25,7 @@ target_compile_options(intf_llt_pub INTERFACE
     -fPIC
     -pipe
     -Werror
+    -Wno-error=deprecated-declarations
 )
 
 target_link_options(intf_llt_pub INTERFACE
