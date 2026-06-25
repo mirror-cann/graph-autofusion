@@ -175,7 +175,7 @@ constexpr ResLimit g_no_limit_res = {1, 2201, 0, 2201, {}};
 extern "C" int64_t AutofuseTiling(AutofuseTilingData* tiling, uint32_t* workspaceSize, uint32_t *blockDim, uint32_t aiv_num, uint32_t ub_size)
 {
   tiling->set_block_dim(aiv_num);
-  tiling->set_ub_size(ub_size);
+  tiling->set_ub_size(ub_size - 256);
   if (!optiling::GetTiling(*tiling, -1)) {
       return -1;
   }
@@ -189,7 +189,7 @@ extern "C" int64_t AutofuseTilingWithConfig(const char *config_file, AutofuseTil
 {
  const ResLimit *limit = (res_limit == nullptr) ? &g_no_limit_res : res_limit;
   tiling->set_block_dim(limit->aiv_num);
-  tiling->set_ub_size(limit->ub_size - 256);
+  tiling->set_ub_size(limit->ub_size);
   (void)config_file;
   if (!optiling::GetTiling(*tiling, tiling_case_id)) {
     return -1;
@@ -266,7 +266,7 @@ extern "C" ge::graphStatus TilingParse(gert::SymbolTilingParseContext *context) 
  if (ascendc_platform.GetSocVersion() == platform_ascendc::SocVersion::ASCEND950) {
  version_is_ASCEND950 = true;
  }
- ub_size -= (ascendc_platform.GetSocVersion() == platform_ascendc::SocVersion::ASCEND950 && ub_size % 1024 == 0) ? 256 : 0;
+ ub_size -= (ascendc_platform.GetSocVersion() != platform_ascendc::SocVersion::ASCEND910 && ascendc_platform.GetSocVersion() != platform_ascendc::SocVersion::ASCEND910B && ub_size % 1024 == 0) ? 256 : 0;
  (*tiling_parse_data)->ub_size = ub_size;
  return ge::GRAPH_SUCCESS;
 }
@@ -1326,7 +1326,7 @@ constexpr ResLimit g_no_limit_res = {1, 2201, 0, 2201, {}};
 extern "C" int64_t AutofuseTiling(AutofuseTilingData* tiling, uint32_t* workspaceSize, uint32_t *blockDim, uint32_t aiv_num, uint32_t ub_size)
 {
   tiling->set_block_dim(aiv_num);
-  tiling->set_ub_size(ub_size);
+  tiling->set_ub_size(ub_size - 256);
   if (!optiling::GetTiling(*tiling, -1)) {
       return -1;
   }
@@ -1384,7 +1384,7 @@ extern "C" int64_t AutofuseTilingWithConfig(const char *config_file, AutofuseTil
 {
  const ResLimit *limit = (res_limit == nullptr) ? &g_no_limit_res : res_limit;
   tiling->set_block_dim(limit->aiv_num);
-  tiling->set_ub_size(limit->ub_size - 256);
+  tiling->set_ub_size(limit->ub_size);
   if (!PGOGetTilingKey(config_file, *tiling)) {
     if (!optiling::GetTiling(*tiling, tiling_case_id)) {
       return -1;
@@ -1611,7 +1611,7 @@ extern "C" ge::graphStatus TilingParse(gert::SymbolTilingParseContext *context) 
  if (ascendc_platform.GetSocVersion() == platform_ascendc::SocVersion::ASCEND950) {
  version_is_ASCEND950 = true;
  }
- ub_size -= (ascendc_platform.GetSocVersion() == platform_ascendc::SocVersion::ASCEND950 && ub_size % 1024 == 0) ? 256 : 0;
+ ub_size -= (ascendc_platform.GetSocVersion() != platform_ascendc::SocVersion::ASCEND910 && ascendc_platform.GetSocVersion() != platform_ascendc::SocVersion::ASCEND910B && ub_size % 1024 == 0) ? 256 : 0;
  (*tiling_parse_data)->ub_size = ub_size;
  return ge::GRAPH_SUCCESS;
 }

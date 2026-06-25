@@ -1,0 +1,12 @@
+{
+  "kernel_config": {
+      "graph_name": "isinf_maskedfill_fusion",
+      "input_num": "3",
+      "output_num": "1",
+      "input_shapes": "128,128;128,128;128,128",
+      "output_shapes": "128,128",
+      "input_data_types": "float16,uint8,float16",
+      "output_data_types": "float16",
+      "soc_version": "Ascend910B3"
+  }
+}

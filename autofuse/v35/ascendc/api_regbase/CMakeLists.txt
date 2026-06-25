@@ -38,6 +38,7 @@ set(ascendc_api_regbase_extend_src
         remainder.h
         bessel_j0.h
         bessel_j1.h
+        spherical_bessel_j0.h
         bessel_y0.h
         bessel_y1.h
         modified_bessel_i0.h
