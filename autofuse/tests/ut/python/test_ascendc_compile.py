@@ -9,30 +9,24 @@
 # See LICENSE in the root of the software repository for the full text of the License.
 # -----------------------------------------------------------------------------------------------------------
 
-import importlib.util
 import os
 
 import pytest
 
+from compile_test_utils import PYTHON_DIR, load_compile_module
 
-_BASE_DIR = os.path.dirname(
-    os.path.dirname(
-        os.path.dirname(
-            os.path.dirname(
-                os.path.dirname(os.path.realpath(__file__)))))
-)
-_PYTHON_DIR = os.path.join(_BASE_DIR, "autofuse/compiler/python")
 MODULE_NAME = "autofuse.compiler.python.ascendc_compile"
-MODULE_PATH = os.path.join(_PYTHON_DIR, "ascendc_compile.py")
+MODULE_PATH = os.path.join(PYTHON_DIR, "ascendc_compile.py")
 
 
 @pytest.fixture()
 def ascendc_compile_module():
-    spec = importlib.util.spec_from_file_location(MODULE_NAME, MODULE_PATH)
-    module = importlib.util.module_from_spec(spec)
-    if spec is not None and spec.loader is not None:
-        spec.loader.exec_module(module)
-    return module
+    with load_compile_module(MODULE_NAME, MODULE_PATH) as loaded_module:
+        yield loaded_module
+
+
+def _noop_run_compile_command(cmd, stage_name):
+    return None
 
 
 def test_link_shared_adds_requested_libraries(ascendc_compile_module):
@@ -42,9 +36,9 @@ def test_link_shared_adds_requested_libraries(ascendc_compile_module):
         captured["cmd"] = cmd
         captured["stage_name"] = stage_name
 
-    ascendc_compile_module.run_compile_command = fake_run_compile_command
-    ascendc_compile_module.ASCEND_PATH = "/usr/local/Ascend/cann"
-    ascendc_compile_module.machine = "x86_64"
+    ascendc_compile_module.module.run_compile_command = fake_run_compile_command
+    ascendc_compile_module.module.ASCEND_PATH = "/usr/local/Ascend/cann"
+    ascendc_compile_module.module.machine = "x86_64"
 
     result = ascendc_compile_module.link_shared("kernel.so", ["host.o"], link_libraries=["graph_base", "register"])
 
@@ -63,8 +57,81 @@ def test_link_shared_skips_libraries_by_default(ascendc_compile_module):
     def fake_run_compile_command(cmd, stage_name):
         captured["cmd"] = cmd
 
-    ascendc_compile_module.run_compile_command = fake_run_compile_command
+    ascendc_compile_module.module.run_compile_command = fake_run_compile_command
 
     ascendc_compile_module.link_shared("kernel.so", ["device.o"])
 
     assert "-lgraph_base" not in captured["cmd"]
+
+
+def test_host_target_records_compile_and_link_stage(ascendc_compile_module, tmpdir, capsys):
+    host_dir = tmpdir.mkdir("host")
+    host_file = host_dir.join("graph_tiling_func.cpp")
+    host_file.write("host")
+    args = type("Args", (), {
+        "host_files": str(host_file),
+        "compile_options": "",
+        "soc_version": "Ascend910B",
+        "stage": "host",
+        "graph_name": "graph",
+    })()
+
+    ascendc_compile_module.module.run_compile_command = _noop_run_compile_command
+    ascendc_compile_module.link_host_target(args, str(tmpdir))
+
+    labels = [item[0] for item in ascendc_compile_module.duration_records]
+    assert ["InductorCompile", "host", "CompileHostObj", "graph"] in labels
+    assert ["InductorCompile", "host", "LinkHostSo", "graph"] in labels
+    assert capsys.readouterr().out == ""
+
+
+def test_kernel_target_records_device_compile_and_link_stage(ascendc_compile_module, tmpdir):
+    device_dir = tmpdir.mkdir("device")
+    device_file = device_dir.join("graph_op_kernel.cpp")
+    device_file.write(
+        'extern "C" __global__ __aicore__ void graph_kernel(GM_ADDR input0) {}\n'
+    )
+    output_file = tmpdir.join("kernel.so")
+    args = type("Args", (), {
+        "device_files": str(device_file),
+        "output_file": str(output_file),
+        "soc_version": "Ascend910B",
+        "stage": "device",
+        "tiling_repr": None,
+        "force_unknown": True,
+        "graph_name": "graph",
+    })()
+
+    ascendc_compile_module.module.run_compile_command = _noop_run_compile_command
+    ascendc_compile_module.link_kernel_target(args, None, str(tmpdir))
+
+    labels = [item[0] for item in ascendc_compile_module.duration_records]
+    assert ["InductorCompile", "device", "CompileDeviceObj", "graph"] in labels
+    assert ["InductorCompile", "device", "LinkDeviceSo", "graph"] in labels
+
+
+def test_try_static_shape_compile_records_stage_when_force_unknown(ascendc_compile_module, tmpdir):
+    args = type("Args", (), {"force_unknown": True, "stage": "all", "graph_name": "graph"})()
+
+    assert ascendc_compile_module.try_static_shape_compile(args, str(tmpdir), "kernel.so") is False
+
+    labels = [item[0] for item in ascendc_compile_module.duration_records]
+    assert ["InductorCompile", "all", "TryStaticShapeCompile", "graph"] in labels
+
+
+def test_copy_so_to_output_records_stage(ascendc_compile_module, tmpdir):
+    src_file = tmpdir.join("source.so")
+    dst_file = tmpdir.mkdir("out").join("target.so")
+    src_file.write("binary")
+    src_directory = os.getcwd()
+    args = type("Args", (), {
+        "output_file": str(dst_file),
+        "stage": "host",
+        "graph_name": "graph",
+    })()
+
+    ascendc_compile_module.copy_so_to_output(str(src_file), args, src_directory)
+
+    labels = [item[0] for item in ascendc_compile_module.duration_records]
+    assert ["InductorCompile", "host", "CopyOutput", "graph"] in labels
+    assert dst_file.read() == "binary"

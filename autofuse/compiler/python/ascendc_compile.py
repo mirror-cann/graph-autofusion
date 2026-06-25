@@ -19,17 +19,54 @@ import tempfile
 import argparse
 import subprocess
 import platform
+import time
+from functools import wraps
 from typing import List
 PYF_PATH = os.path.dirname(os.path.realpath(__file__))
 ASCEND_PATH = os.path.join(PYF_PATH, "..", "..", "..")
 machine = platform.machine()
 HOST_LINK_LIBRARIES = ["graph_base"]
+INDUCTOR_COMPILE_TRACE_LABEL = "InductorCompile"
 if not os.path.exists(ASCEND_PATH):
     ASCEND_PATH = os.getenv("ASCEND_HOME_PATH", ASCEND_PATH)
 
 
 class CompileError(Exception):
     """Compile failed exception."""
+
+
+def record_inductor_compile_duration(stage, step, graph_name, start, duration):
+    from autofuse.pyautofuse import ascir
+    labels = [INDUCTOR_COMPILE_TRACE_LABEL, stage, step, graph_name]
+    ascir.utils.duration_record(labels, int(start), int(duration))
+
+
+class InductorCompileDuration:
+    def __init__(self, args, step):
+        self.stage = getattr(args, "trace_stage", getattr(args, "stage", "unknown"))
+        self.step = step
+        self.graph_name = getattr(args, "graph_name", "unknown")
+        self.start = None
+
+    def __enter__(self):
+        self.start = time.time_ns()
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        end = time.time_ns()
+        record_inductor_compile_duration(self.stage, self.step, self.graph_name, self.start, end - self.start)
+        return False
+
+
+def inductor_compile_duration(step, args_index=0):
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            compile_args = args[args_index] if len(args) > args_index else kwargs.get("args")
+            with InductorCompileDuration(compile_args, step):
+                return func(*args, **kwargs)
+        return wrapper
+    return decorator
 
 
 def get_soc_type(args):
@@ -66,6 +103,7 @@ def link_shared(target_file, obj_files, link_libraries=None):
     return target_file
 
 
+@inductor_compile_duration("CompileHostObj")
 def compile_host_obj(args: argparse.Namespace, temp_dir):
     base_host_file = os.path.basename(args.host_files)
     soc_version = get_soc_type(args)
@@ -89,6 +127,7 @@ def compile_host_obj(args: argparse.Namespace, temp_dir):
     return f"{temp_dir}/host/{base_host_file}.o"
 
 
+@inductor_compile_duration("CompileDeviceObj")
 def compile_device_obj(args: argparse.Namespace, temp_dir):
     base_device_file = os.path.basename(args.device_files)
     soc_version = get_soc_type(args)
@@ -109,7 +148,8 @@ def build_device_so(args: argparse.Namespace, host_obj_path, temp_dir):
     if host_obj_path is not None:
         obj_files.insert(0, host_obj_path)
     link_libraries = HOST_LINK_LIBRARIES if host_obj_path is not None else None
-    return link_shared(target_file, obj_files, link_libraries=link_libraries)
+    with InductorCompileDuration(args, "LinkDeviceSo"):
+        return link_shared(target_file, obj_files, link_libraries=link_libraries)
 
 
 def clean_before_modify(temp_dir):
@@ -127,48 +167,50 @@ def clean_before_modify(temp_dir):
 
 
 def static_shape_kernel_proc(args: argparse.Namespace, temp_dir, tiling_repr=None):
-    clean_before_modify(temp_dir)
-    base_device_files = os.path.basename(args.device_files)
-    kernel_file = os.path.join(temp_dir, "device", base_device_files)
-    pattern = re.compile(r'^extern\s+"C"\s+__global__\s+__aicore__\s+void\s+(\w+)\s*\(([^)]*)\)\s*{')
+    with InductorCompileDuration(args, "StaticShapeKernelProc"):
+        clean_before_modify(temp_dir)
+        base_device_files = os.path.basename(args.device_files)
+        kernel_file = os.path.join(temp_dir, "device", base_device_files)
+        pattern = re.compile(r'^extern\s+"C"\s+__global__\s+__aicore__\s+void\s+(\w+)\s*\(([^)]*)\)\s*{')
 
-    with open(kernel_file, 'r') as f:
-        lines = f.readlines()
+        with open(kernel_file, 'r') as f:
+            lines = f.readlines()
 
-    result = []
-    for line in lines:
-        match = pattern.match(line)
-        if not match:
-            result.append(line)
-            continue
+        result = []
+        for line in lines:
+            match = pattern.match(line)
+            if not match:
+                result.append(line)
+                continue
 
-        func_name = match.group(1)
-        params_str = match.group(2).strip()
-        if not params_str:
-            result.append(line)
-            continue
+            func_name = match.group(1)
+            params_str = match.group(2).strip()
+            if not params_str:
+                result.append(line)
+                continue
 
-        params = [p.strip() for p in params_str.split(',')]
-        if not params or params[-1] != 'AutofuseTilingData t':
-            result.append(line)
-            continue
+            params = [p.strip() for p in params_str.split(',')]
+            if not params or params[-1] != 'AutofuseTilingData t':
+                result.append(line)
+                continue
 
-        # 匹配到 AutofuseTilingData t 参数的 kernel 函数，进行静态 shape 优化：
-        # 1. 将参数名 t 改为 param，避免与后续声明的 t 变量冲突
-        # 2. 在函数体内插入 t 变量声明，用于存储静态 tiling 数据
-        params[-1] = 'AutofuseTilingData param'
-        new_params = ', '.join(params)
-        new_line = f'extern "C" __global__ __aicore__ void {func_name}({new_params}) {{\n'
-        result.append(new_line)
-        if tiling_repr is None:
-            result.append('  const AutofuseTilingData t;\n')
-        else:
-            result.append(f'  constexpr AutofuseTilingData t = {tiling_repr};\n')
+            # 匹配到 AutofuseTilingData t 参数的 kernel 函数，进行静态 shape 优化：
+            # 1. 将参数名 t 改为 param，避免与后续声明的 t 变量冲突
+            # 2. 在函数体内插入 t 变量声明，用于存储静态 tiling 数据
+            params[-1] = 'AutofuseTilingData param'
+            new_params = ', '.join(params)
+            new_line = f'extern "C" __global__ __aicore__ void {func_name}({new_params}) {{\n'
+            result.append(new_line)
+            if tiling_repr is None:
+                result.append('  const AutofuseTilingData t;\n')
+            else:
+                result.append(f'  constexpr AutofuseTilingData t = {tiling_repr};\n')
 
-    with open(kernel_file, 'w') as f:
-        f.writelines(result)
+        with open(kernel_file, 'w') as f:
+            f.writelines(result)
 
 
+@inductor_compile_duration("TryStaticShapeCompile")
 def try_static_shape_compile(args: argparse.Namespace, temp_dir, so_path):
     if args.force_unknown:
         return False
@@ -196,7 +238,8 @@ def link_host_target(args, temp_dir):
     # 处理 host 编译阶段
     host_obj_path = compile_host_obj(args, temp_dir)
     so_file = args.host_files.replace('.cpp', '.so')
-    link_shared(so_file, [host_obj_path], link_libraries=HOST_LINK_LIBRARIES)
+    with InductorCompileDuration(args, "LinkHostSo"):
+        link_shared(so_file, [host_obj_path], link_libraries=HOST_LINK_LIBRARIES)
     return so_file
 
 
@@ -221,6 +264,7 @@ def link_kernel_target(args, host_obj_path, temp_dir):
     return build_device_so(args, host_obj_path, temp_dir)
 
 
+@inductor_compile_duration("CopyOutput", args_index=1)
 def copy_so_to_output(so_file, args, src_directory):
     dst_file = os.path.realpath(args.output_file)
     dst_dir_path = os.path.dirname(dst_file)
