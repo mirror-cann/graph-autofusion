@@ -2981,11 +2981,12 @@ TEST_F(TestCodegenTiling, ProtocolRequestShouldContainMinimalFields) {
   EXPECT_NE(tiling_impl.find("int64_t topn = 1;"), std::string::npos);
 }
 
-TEST_F(TestCodegenTiling, CandidateSolutionShouldContainOnlyMinimalFields) {
+TEST_F(TestCodegenTiling, CandidateSolutionShouldContainOnlyRequiredFields) {
   auto fused_schedule_result = this->GenBasicFusedScheduleResult({af::Symbol("s0"), af::Symbol("s1")});
   auto tiling_files = this->GenerateForInductor(fused_schedule_result);
   ASSERT_TRUE(tiling_files.find(codegen::kTilingDefAndConstIdentify) != tiling_files.end());
   const auto &tiling_impl = tiling_files.at(codegen::kTilingDefAndConstIdentify);
+  EXPECT_NE(tiling_impl.find("AutofuseTilingData tiling_data;"), std::string::npos);
   EXPECT_NE(tiling_impl.find("double modeled_perf = 0.0;"), std::string::npos);
   EXPECT_NE(tiling_impl.find("bool is_default = false;"), std::string::npos);
   EXPECT_NE(tiling_impl.find("std::string canonical_repr;"), std::string::npos);
@@ -3067,18 +3068,22 @@ TEST_F(TestCodegenTiling, BridgePreservesSingleGroupComparablePerfSemantics) {
   EXPECT_NE(tiling_impl.find("std::isfinite(final_modeled_perf)"), std::string::npos);
 }
 
-TEST_F(TestCodegenTiling, BridgeDefaultFromOriginalPath) {
+TEST_F(TestCodegenTiling, BridgeAlwaysPreservesDefaultCandidateBeforeTopnSearch) {
   auto fused_schedule_result = this->GenBasicFusedScheduleResult({af::Symbol("s0"), af::Symbol("s1")});
   auto tiling_files = this->GenerateForInductor(fused_schedule_result);
   ASSERT_TRUE(tiling_files.find(codegen::kTilingDefAndConstIdentify) != tiling_files.end());
   const auto &tiling_impl = tiling_files.at(codegen::kTilingDefAndConstIdentify);
-  // Default must come from default config path, not arbitrary first candidate
-  EXPECT_NE(tiling_impl.find("is_default = is_default_config_request && !default_repr.empty()"),
-            std::string::npos);
-  // default_repr is set from GetTiling(default_tiling, -1) on default-config path only
+  const auto default_tiling_pos = tiling_impl.find("if (GetTiling(default_tiling, -1))");
+  const auto search_loop_pos = tiling_impl.find("for (const auto *cfg : config_ptrs)");
+  ASSERT_NE(default_tiling_pos, std::string::npos);
+  ASSERT_NE(search_loop_pos, std::string::npos);
+  EXPECT_LT(default_tiling_pos, search_loop_pos);
   EXPECT_NE(tiling_impl.find("default_repr = GetTilingDataRepr(&default_tiling)"), std::string::npos);
-  // No unreachable branch: is_default already requires !default_repr.empty()
-  EXPECT_EQ(tiling_impl.find("is_default && default_repr.empty()"), std::string::npos);
+  EXPECT_NE(tiling_impl.find("solution.is_default = !default_repr.empty() && "
+                             "(solution.canonical_repr == default_repr);"),
+            std::string::npos);
+  EXPECT_NE(tiling_impl.find("if (solution.is_default) { found_default_candidate = true; }"), std::string::npos);
+  EXPECT_EQ(tiling_impl.find("solution.is_default = is_default_config_request"), std::string::npos);
 }
 
 TEST_F(TestCodegenTiling, BridgeDoesNotWriteWorkspaceOrBlockDim) {
@@ -3137,17 +3142,18 @@ TEST_F(TestCodegenTiling, TopnWrapperConstructsRequestAndInvokesGetTiling) {
   EXPECT_NE(tiling_impl.find("GetTopnCandidateSolutions(request, response)"), std::string::npos);
 }
 
-TEST_F(TestCodegenTiling, GetTilingDefaultConfigDetectionIncludesInternalPath) {
+TEST_F(TestCodegenTiling, GetTilingOriginalConfigDetectionIncludesInternalPath) {
   auto fused_schedule_result = this->GenBasicFusedScheduleResult({af::Symbol("s0"), af::Symbol("s1")});
   auto tiling_files = this->GenerateForInductor(fused_schedule_result);
   ASSERT_TRUE(tiling_files.find(codegen::kTilingDefAndConstIdentify) != tiling_files.end());
   const auto &tiling_impl = tiling_files.at(codegen::kTilingDefAndConstIdentify);
   EXPECT_NE(tiling_impl.find("const bool internal_no_config_path = (request.input_configs == nullptr);"),
             std::string::npos);
-  EXPECT_NE(tiling_impl.find("const bool is_default_config_request = internal_no_config_path || "),
+  EXPECT_NE(tiling_impl.find("const bool explicit_no_config_path = request.input_configs != nullptr && "),
             std::string::npos);
-  EXPECT_NE(tiling_impl.find("(request.input_configs != nullptr && request.input_configs->size() == 1 && "),
+  EXPECT_NE(tiling_impl.find("const bool original_config_path = internal_no_config_path || explicit_no_config_path;"),
             std::string::npos);
+  EXPECT_EQ(tiling_impl.find("is_default_config_request"), std::string::npos);
 }
 
 TEST_F(TestCodegenTiling, GetTilingIteratesConfigsInOrder) {
@@ -3156,7 +3162,7 @@ TEST_F(TestCodegenTiling, GetTilingIteratesConfigsInOrder) {
   ASSERT_TRUE(tiling_files.find(codegen::kTilingDefAndConstIdentify) != tiling_files.end());
   const auto &tiling_impl = tiling_files.at(codegen::kTilingDefAndConstIdentify);
   // Multi-config must iterate in input order
-  EXPECT_NE(tiling_impl.find("for (const auto &cfg : configs)"), std::string::npos);
+  EXPECT_NE(tiling_impl.find("for (const auto *cfg : config_ptrs)"), std::string::npos);
   // Each config feeds PGOSearchTilingKey within the loop
   EXPECT_NE(tiling_impl.find("PGOSearchTilingKey("), std::string::npos);
 }
@@ -3168,11 +3174,32 @@ TEST_F(TestCodegenTiling, GetTilingInternalPathOnlyForNullptr) {
   const auto &tiling_impl = tiling_files.at(codegen::kTilingDefAndConstIdentify);
   // nullptr comparison exists in GetTiling for internal path detection
   EXPECT_NE(tiling_impl.find("request.input_configs == nullptr"), std::string::npos);
-  // Internal path pushes default SearchConfig directly (not via ParseSearchConfigs)
+  // Internal path keeps search_cfg nullptr so each Result/TilingCase uses its original generated config.
   EXPECT_NE(tiling_impl.find("internal_no_config_path"), std::string::npos);
-  // The pattern: "if (internal_no_config_path) { configs.push_back(SearchConfig()); }"
-  // ensures nullptr path bypasses ParseSearchConfigs
-  EXPECT_NE(tiling_impl.find("configs.push_back(SearchConfig())"), std::string::npos);
+  EXPECT_NE(tiling_impl.find("config_ptrs.push_back(nullptr)"), std::string::npos);
+  EXPECT_EQ(tiling_impl.find("configs.push_back(SearchConfig())"), std::string::npos);
+  const auto search_call_pos =
+      tiling_impl.find("PGOSearchTilingKey(raw_candidates, cur_search_tiling, -1, &cur_search_tiling, ");
+  ASSERT_NE(search_call_pos, std::string::npos);
+  const auto search_call_end = tiling_impl.find(");", search_call_pos);
+  ASSERT_NE(search_call_end, std::string::npos);
+  EXPECT_NE(tiling_impl.substr(search_call_pos, search_call_end - search_call_pos).find("cfg"), std::string::npos);
+}
+
+TEST_F(TestCodegenTiling, ExplicitConfigsPassSearchConfigPointerToTopnSearch) {
+  auto fused_schedule_result = this->GenBasicFusedScheduleResult({af::Symbol("s0"), af::Symbol("s1")});
+  auto tiling_files = this->GenerateForInductor(fused_schedule_result);
+  ASSERT_TRUE(tiling_files.find(codegen::kTilingDefAndConstIdentify) != tiling_files.end());
+  const auto &tiling_impl = tiling_files.at(codegen::kTilingDefAndConstIdentify);
+  EXPECT_NE(tiling_impl.find("for (const auto &cfg : configs) { config_ptrs.push_back(&cfg); }"),
+            std::string::npos);
+  EXPECT_NE(tiling_impl.find("cfg->ub_threshold"), std::string::npos);
+  const auto search_call_pos =
+      tiling_impl.find("PGOSearchTilingKey(raw_candidates, cur_search_tiling, -1, &cur_search_tiling, ");
+  ASSERT_NE(search_call_pos, std::string::npos);
+  const auto search_call_end = tiling_impl.find(");", search_call_pos);
+  ASSERT_NE(search_call_end, std::string::npos);
+  EXPECT_NE(tiling_impl.substr(search_call_pos, search_call_end - search_call_pos).find("cfg"), std::string::npos);
 }
 
 TEST_F(TestCodegenTiling, ParseSearchConfigsParsesExplicitConfigsOnly) {
@@ -3184,25 +3211,27 @@ TEST_F(TestCodegenTiling, ParseSearchConfigsParsesExplicitConfigsOnly) {
   EXPECT_EQ(tiling_impl.find("return {SearchConfig()};"), std::string::npos);
 }
 
-TEST_F(TestCodegenTiling, DefaultFlagComesOnlyFromExplicitDefaultConfigRequest) {
+TEST_F(TestCodegenTiling, TopnCandidatesKeepDefaultFirst) {
   auto fused_schedule_result = this->GenBasicFusedScheduleResult({af::Symbol("s0"), af::Symbol("s1")});
   auto tiling_files = this->GenerateForInductor(fused_schedule_result);
   ASSERT_TRUE(tiling_files.find(codegen::kTilingDefAndConstIdentify) != tiling_files.end());
   const auto &tiling_impl = tiling_files.at(codegen::kTilingDefAndConstIdentify);
-  EXPECT_NE(tiling_impl.find("solution.is_default = is_default_config_request"), std::string::npos);
-  EXPECT_NE(tiling_impl.find("!default_repr.empty()"), std::string::npos);
-  EXPECT_NE(tiling_impl.find("solution.canonical_repr == default_repr"), std::string::npos);
-  EXPECT_EQ(tiling_impl.find("solution.is_default = internal_no_config_path"), std::string::npos);
+  EXPECT_NE(tiling_impl.find("Topn selector helpers: default-first"), std::string::npos);
+  EXPECT_NE(tiling_impl.find("if (lhs.is_default != rhs.is_default) { return lhs.is_default; }"), std::string::npos);
+  EXPECT_EQ(tiling_impl.find("solution.is_default = false;"), std::string::npos);
 }
 
-TEST_F(TestCodegenTiling, ExplicitDefaultConfigRequestMustFailWithoutDefaultCandidate) {
+TEST_F(TestCodegenTiling, AppendsDefaultCandidateWhenPgoMissesDefault) {
   auto fused_schedule_result = this->GenBasicFusedScheduleResult({af::Symbol("s0"), af::Symbol("s1")});
   auto tiling_files = this->GenerateForInductor(fused_schedule_result);
   ASSERT_TRUE(tiling_files.find(codegen::kTilingDefAndConstIdentify) != tiling_files.end());
   const auto &tiling_impl = tiling_files.at(codegen::kTilingDefAndConstIdentify);
   EXPECT_NE(tiling_impl.find("bool found_default_candidate = false;"), std::string::npos);
   EXPECT_NE(tiling_impl.find("if (solution.is_default) { found_default_candidate = true; }"), std::string::npos);
-  EXPECT_NE(tiling_impl.find("if (is_default_config_request && !found_default_candidate) {"), std::string::npos);
+  EXPECT_NE(tiling_impl.find("if (!default_repr.empty() && !found_default_candidate) {"), std::string::npos);
+  EXPECT_NE(tiling_impl.find("default_solution.tiling_data = default_tiling;"), std::string::npos);
+  EXPECT_NE(tiling_impl.find("default_solution.is_default = true;"), std::string::npos);
+  EXPECT_NE(tiling_impl.find("if (!found_default_candidate) {"), std::string::npos);
   EXPECT_NE(tiling_impl.find("default topn candidate not found"), std::string::npos);
 }
 
@@ -3233,7 +3262,7 @@ TEST_F(TestCodegenTiling, MultiGroupUsesGraphLevelTilingKeysAndPerfAggregation) 
   // Multi-group must generate PGOSearchTilingKey with best_perf pointer (not ref)
   EXPECT_NE(tiling_impl.find("PGOSearchTilingKey"), std::string::npos);
   // Must have config iteration for SearchConfig
-  EXPECT_NE(tiling_impl.find("for (const auto &cfg : configs)"), std::string::npos);
+  EXPECT_NE(tiling_impl.find("for (const auto *cfg : config_ptrs)"), std::string::npos);
   // Multi-group repr must use graph-level tiling keys
   EXPECT_NE(tiling_impl.find("graph0_tiling_key"), std::string::npos);
   // Multi-group perf aggregation must use UpdateCurPerfAndBlockByGroup

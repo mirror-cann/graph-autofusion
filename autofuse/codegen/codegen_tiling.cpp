@@ -3680,9 +3680,6 @@ void TilingLib::GenTopnInitSearchTiling(std::stringstream &ss,
   ss << "    response.error_message = \"symbol_values size mismatch\";" << std::endl;
   ss << "    return -1;" << std::endl;
   ss << "  }" << std::endl;
-  ss << "  const bool is_default_config_request = internal_no_config_path || "
-     << "(request.input_configs != nullptr && request.input_configs->size() == 1 && request.input_configs->front().empty());"
-     << std::endl;
   ss << std::endl;
   ss << "  " << tiling << " search_tiling = {};" << std::endl;
   ss << "  search_tiling.set_block_dim(limit->aiv_num);" << std::endl;
@@ -3714,22 +3711,28 @@ void TilingLib::GenTopnGetTilingFunc(std::stringstream &ss, const ascir::FusedSc
   GenTopnSetFailureMessage(ss, "    ", "invalid topn");
   ss << "    return -1;" << std::endl;
   ss << "  }" << std::endl;
-  ss << "  std::vector<SearchConfig> configs;" << std::endl;
   ss << "  const bool internal_no_config_path = (request.input_configs == nullptr);" << std::endl;
-  ss << "  if (internal_no_config_path) {" << std::endl;
-  ss << "    configs.push_back(SearchConfig());" << std::endl;
+  ss << "  const bool explicit_no_config_path = request.input_configs != nullptr && request.input_configs->size() == 1 "
+     << "&& request.input_configs->front().empty();" << std::endl;
+  ss << "  const bool original_config_path = internal_no_config_path || explicit_no_config_path;" << std::endl;
+  ss << "  std::vector<SearchConfig> configs;" << std::endl;
+  ss << "  std::vector<const SearchConfig *> config_ptrs;" << std::endl;
+  ss << "  if (original_config_path) {" << std::endl;
+  ss << "    config_ptrs.push_back(nullptr);" << std::endl;
   ss << "  } else {" << std::endl;
   ss << "    configs = ParseSearchConfigs(*request.input_configs);" << std::endl;
   ss << "    if (configs.empty()) {" << std::endl;
   GenTopnSetFailureMessage(ss, "      ", "invalid input configs");
   ss << "      return -1;" << std::endl;
   ss << "    }" << std::endl;
+  ss << "    config_ptrs.reserve(configs.size());" << std::endl;
+  ss << "    for (const auto &cfg : configs) { config_ptrs.push_back(&cfg); }" << std::endl;
   ss << "  }" << std::endl;
   ss << std::endl;
 
   GenTopnInitSearchTiling(ss, fused_schedule_result, tiling, symbol_value_count);
 
-  GenTopnDefaultTilingAndFinalChecks(ss, tiling, fused_schedule_result);
+  GenTopnSearchAndFinalChecks(ss, tiling, fused_schedule_result);
   ss << "  return 0;" << std::endl;
   ss << "}" << std::endl;
   ss << std::endl;
@@ -3737,10 +3740,14 @@ void TilingLib::GenTopnGetTilingFunc(std::stringstream &ss, const ascir::FusedSc
 
 void TilingLib::GenTopnSearchTilingSetup(std::stringstream &ss, const std::string &tiling,
                                          const ascir::FusedScheduledResult &fused_schedule_result) const {
-  ss << "  for (const auto &cfg : configs) {" << std::endl;
-  ss << "    OP_LOGI(OP_NAME, \"config: ub_thresh=%.3f(enabled=%d), corenum_thresh=%.3f(enabled=%d), "
-     << "multicore_ub_tradeoff=%d\", cfg.ub_threshold, cfg.ub_threshold_enabled, "
-     << "cfg.corenum_threshold, cfg.corenum_threshold_enabled, cfg.enable_multicore_ub_tradeoff);" << std::endl;
+  ss << "  for (const auto *cfg : config_ptrs) {" << std::endl;
+  ss << "    if (cfg == nullptr) {" << std::endl;
+  ss << "      OP_LOGI(OP_NAME, \"config: original tiling config\");" << std::endl;
+  ss << "    } else {" << std::endl;
+  ss << "      OP_LOGI(OP_NAME, \"config: ub_thresh=%.3f(enabled=%d), corenum_thresh=%.3f(enabled=%d), "
+     << "multicore_ub_tradeoff=%d\", cfg->ub_threshold, cfg->ub_threshold_enabled, "
+     << "cfg->corenum_threshold, cfg->corenum_threshold_enabled, cfg->enable_multicore_ub_tradeoff);" << std::endl;
+  ss << "    }" << std::endl;
   ss << "    std::vector<AutofuseTilingDataPerf> raw_candidates;" << std::endl;
   ss << "    " << tiling << " cur_search_tiling = search_tiling;" << std::endl;
   ss << "    double best_perf = DBL_MAX;" << std::endl;
@@ -3749,12 +3756,12 @@ void TilingLib::GenTopnSearchTilingSetup(std::stringstream &ss, const std::strin
   if (is_single_group) {
     ss << "    std::unordered_map<int64_t, uint64_t> workspace_map;" << std::endl;
   }
-  GenTopnSearchTilingKeyCall(ss, fused_schedule_result);
+  GenTopnSearchTilingKeyCall(ss, fused_schedule_result, "cfg");
   ss << "    if (!helper_ret) {" << std::endl;
   ss << "      ++failed_config_count;" << std::endl;
   ss << "      response.error_message = \"PGOSearchTilingKey failed for topn config\";" << std::endl;
   ss << "      OP_LOGW(OP_NAME, \"PGOSearchTilingKey failed for topn config, failed=%zu/%zu.\", "
-     << "failed_config_count, configs.size());" << std::endl;
+     << "failed_config_count, config_ptrs.size());" << std::endl;
   ss << "      continue;" << std::endl;
   ss << "    }" << std::endl;
   ss << "    OP_LOGI(OP_NAME, \"PGOSearchTilingKey returned %zu raw_candidates, best_perf=%.6f\", "
@@ -3776,14 +3783,14 @@ void TilingLib::GenTopnCollectCandidates(std::stringstream &ss, const std::strin
   ss << "      double final_modeled_perf = EvaluateModeledPerf(raw_candidate.tiling_data);" << std::endl;
   ss << "      if (!std::isfinite(final_modeled_perf)) { final_modeled_perf = DBL_MAX; }" << std::endl;
   ss << "      solution.modeled_perf = final_modeled_perf;" << std::endl;
-  ss << "      solution.is_default = is_default_config_request && !default_repr.empty() && (solution.canonical_repr == default_repr);" << std::endl;
+  ss << "      solution.is_default = !default_repr.empty() && (solution.canonical_repr == default_repr);" << std::endl;
   ss << "      if (solution.is_default) { found_default_candidate = true; }" << std::endl;
-  ss << "      OP_LOGI(OP_NAME, \"candidate: repr=%.80s perf=%.6f is_default=%d\", "
+  ss << "      OP_LOGI(OP_NAME, \"candidate: repr=%s perf=%.6f is_default=%d\", "
      << "solution.canonical_repr.c_str(), solution.modeled_perf, solution.is_default);" << std::endl;
   ss << "      response.candidate_solutions.push_back(solution);" << std::endl;
   ss << "    }" << std::endl;
   ss << "  }" << std::endl;
-  ss << "  if (is_default_config_request && !default_repr.empty() && !found_default_candidate) {" << std::endl;
+  ss << "  if (!default_repr.empty() && !found_default_candidate) {" << std::endl;
   ss << "    CandidateSolution default_solution;" << std::endl;
   ss << "    default_solution.tiling_data = default_tiling;" << std::endl;
   ss << "    default_solution.canonical_repr = default_repr;" << std::endl;
@@ -3796,7 +3803,8 @@ void TilingLib::GenTopnCollectCandidates(std::stringstream &ss, const std::strin
 }
 
 void TilingLib::GenTopnSearchTilingKeyCall(std::stringstream &ss,
-                                           const ascir::FusedScheduledResult &fused_schedule_result) const {
+                                           const ascir::FusedScheduledResult &fused_schedule_result,
+                                           const std::string &search_cfg) const {
   ss << "    helper_ret = optiling::PGOSearchTilingKey(raw_candidates, cur_search_tiling, -1, &cur_search_tiling, ";
   for (auto input : fused_schedule_result.input_nodes) {
     (void)input;
@@ -3809,9 +3817,9 @@ void TilingLib::GenTopnSearchTilingKeyCall(std::stringstream &ss,
   }
   const bool is_single_group = ascgen_utils::IsSingleGroup(fused_schedule_result);
   if (is_single_group) {
-    ss << "nullptr, 0, best_perf, workspace_map, {}, &cfg);" << std::endl;
+    ss << "nullptr, 0, best_perf, workspace_map, {}, " << search_cfg << ");" << std::endl;
   } else {
-    ss << "nullptr, 0, best_perf, &cfg);" << std::endl;
+    ss << "nullptr, 0, best_perf, " << search_cfg << ");" << std::endl;
   }
 }
 
@@ -3820,24 +3828,22 @@ void TilingLib::GenTopnSetFailureMessage(std::stringstream &ss, const std::strin
   ss << indent << "response.error_message = \"" << reason << "\";" << std::endl;
 }
 
-void TilingLib::GenTopnDefaultTilingAndFinalChecks(std::stringstream &ss, const std::string &tiling,
-                                                   const ascir::FusedScheduledResult &fused_schedule_result) const {
+void TilingLib::GenTopnSearchAndFinalChecks(std::stringstream &ss, const std::string &tiling,
+                                            const ascir::FusedScheduledResult &fused_schedule_result) const {
   ss << "  PgoConfig::Instance().ResetRuntimeOverrides();" << std::endl;
   ss << "  size_t failed_config_count = 0U;" << std::endl;
   ss << "  std::string default_repr;" << std::endl;
   ss << "  bool found_default_candidate = false;" << std::endl;
   ss << "  " << tiling << " default_tiling = search_tiling;" << std::endl;
-  ss << "  if (is_default_config_request) {" << std::endl;
-  ss << "    if (GetTiling(default_tiling, -1)) {" << std::endl;
-  ss << "      default_repr = GetTilingDataRepr(&default_tiling);" << std::endl;
-  ss << "    } else {" << std::endl;
-  ss << "      OP_LOGW(OP_NAME, \"GetTiling failed for default topn config.\");" << std::endl;
-  ss << "      response.error_message = \"GetTiling failed for default topn config\";" << std::endl;
-  ss << "    }" << std::endl;
+  ss << "  if (GetTiling(default_tiling, -1)) {" << std::endl;
+  ss << "    default_repr = GetTilingDataRepr(&default_tiling);" << std::endl;
+  ss << "  } else {" << std::endl;
+  ss << "    OP_LOGW(OP_NAME, \"GetTiling failed for default topn config.\");" << std::endl;
+  ss << "    response.error_message = \"GetTiling failed for default topn config\";" << std::endl;
   ss << "  }" << std::endl;
   GenTopnSearchTilingSetup(ss, tiling, fused_schedule_result);
   GenTopnCollectCandidates(ss, tiling);
-  ss << "  if (is_default_config_request && !found_default_candidate) {" << std::endl;
+  ss << "  if (!found_default_candidate) {" << std::endl;
   ss << "    if (response.error_message.empty()) {" << std::endl;
   GenTopnSetFailureMessage(ss, "      ", "default topn candidate not found");
   ss << "    }" << std::endl;
@@ -3898,7 +3904,7 @@ void TilingLib::GenGenerateTopnSolutionsEntry(std::stringstream &ss,
   ss << "    tiling_datas.push_back(sol.tiling_data);" << std::endl;
   ss << "    workspaces.push_back(static_cast<int64_t>(GetWorkspaceSize(sol.tiling_data)));" << std::endl;
   ss << "    block_dims.push_back(static_cast<int64_t>(sol.tiling_data.get_block_dim()));" << std::endl;
-  ss << "    OP_LOGI(OP_NAME, \"output[%zu]: perf=%.6f is_default=%d block_dim=%ld repr=%.80s\", "
+  ss << "    OP_LOGI(OP_NAME, \"output[%zu]: perf=%.6f is_default=%d block_dim=%ld repr=%s\", "
      << "tiling_datas.size() - 1, sol.modeled_perf, sol.is_default, "
      << "static_cast<long>(sol.tiling_data.get_block_dim()), sol.canonical_repr.c_str());" << std::endl;
   ss << "  }" << std::endl;
@@ -3946,7 +3952,7 @@ void TilingLib::GenDeduplicateCandidateSolutions(std::stringstream &ss) const {
   ss << "    }" << std::endl;
   ss << "    auto &kept = deduplicated[iter->second];" << std::endl;
   ss << "    if (!IsEqual(kept.modeled_perf, solution.modeled_perf)) {" << std::endl;
-  ss << "      OP_LOGW(OP_NAME, \"same repr with different modeled_perf, keep first: kept=%.6f, current=%.6f, repr=%.80s\", "
+  ss << "      OP_LOGW(OP_NAME, \"same repr with different modeled_perf, keep first: kept=%.6f, current=%.6f, repr=%s\", "
      << "kept.modeled_perf, solution.modeled_perf, solution.canonical_repr.c_str());" << std::endl;
   ss << "      continue;" << std::endl;
   ss << "    }" << std::endl;
@@ -3975,8 +3981,14 @@ std::string TilingLib::GenTopnSelectorHelpersForInductor() const {
   ss << "  OP_LOGI(OP_NAME, \"DeduplicateCandidateSolutions: %zu -> %zu\", before_dedup, solutions.size());" << std::endl;
   ss << "  std::sort(solutions.begin(), solutions.end(), CompareCandidateSolution);" << std::endl;
   ss << "  for (size_t i = 0; i < solutions.size(); ++i) {" << std::endl;
-  ss << "    OP_LOGD(OP_NAME, \"sorted[%zu]: perf=%.6f is_default=%d repr=%.80s\", "
-     << "i, solutions[i].modeled_perf, solutions[i].is_default, solutions[i].canonical_repr.c_str());" << std::endl;
+  ss << "    OP_LOGI(OP_NAME, \"sorted[%zu]: perf=%.6f is_default=%d repr_len=%zu\", "
+     << "i, solutions[i].modeled_perf, solutions[i].is_default, solutions[i].canonical_repr.size());" << std::endl;
+  ss << "    const std::string &repr = solutions[i].canonical_repr;" << std::endl;
+  ss << "    const size_t chunk = 800;" << std::endl;
+  ss << "    for (size_t off = 0; off < repr.size(); off += chunk) {" << std::endl;
+  ss << "      OP_LOGD(OP_NAME, \"  repr[%zu..%zu]: %.*s\", off, std::min(off + chunk, repr.size()), "
+     << "static_cast<int>(std::min(chunk, repr.size() - off)), repr.c_str() + off);" << std::endl;
+  ss << "    }" << std::endl;
   ss << "  }" << std::endl;
   ss << "  if (topn > 0 && static_cast<int64_t>(solutions.size()) > topn) {" << std::endl;
   ss << "    OP_LOGI(OP_NAME, \"truncate %zu -> %ld\", solutions.size(), static_cast<long>(topn));" << std::endl;

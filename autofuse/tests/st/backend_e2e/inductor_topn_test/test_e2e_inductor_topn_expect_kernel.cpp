@@ -98,6 +98,8 @@ TEST_F(E2EBackendInductorTopnCode, GenerateTopnSolutionsReturnsDistinctCandidate
     reprs.push_back(GetTilingDataRepr(&tiling_data));
   }
   EXPECT_EQ(reprs[0], GetTilingDataRepr(&default_tiling_data));
+  EXPECT_EQ(workspaces[0], static_cast<int64_t>(default_workspace));
+  EXPECT_EQ(block_dims[0], static_cast<int64_t>(default_block_dim));
   for (size_t i = 1; i < reprs.size(); ++i) {
     EXPECT_NE(reprs[i], reprs[0]);
     for (size_t j = 0; j < i; ++j) {
