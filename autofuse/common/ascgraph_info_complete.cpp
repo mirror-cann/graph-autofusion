@@ -202,6 +202,9 @@ void AscGraphInfoComplete::AppendOriginalSizeVar(const af::AscGraph &graph, Size
       for (const auto &exp : node->inputs[0].attr.repeats) {
         InsertFreeSymbolsIntoVarSet(exp, size_vars);
       }
+      for (const auto &exp : node->inputs[1].attr.repeats) {
+        InsertFreeSymbolsIntoVarSet(exp, size_vars);
+      }
     }
 
     for (const auto &exp : node->outputs[0].attr.repeats) {
