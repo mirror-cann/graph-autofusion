@@ -11,6 +11,7 @@
 #ifndef __ASCENDC_API_SIGNBIT_H__
 #define __ASCENDC_API_SIGNBIT_H__
 
+#include "utils.h"
 
 using namespace AscendC;
 
