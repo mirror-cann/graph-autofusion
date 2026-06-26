@@ -1208,6 +1208,23 @@ TEST_F(TestCodegenTiling, SingleGroupWorkspaceValueTest) {
     "}\n"});
 }
 
+TEST_F(TestCodegenTiling, TfTilingWithConfigShouldUseParsedUbSizeDirectly) {
+  af::AscGraph graph("relu_graph");
+  CreateElemwiseGraphWithRelu(graph);
+  optimize::Optimizer optimizer(optimize::OptimizerOptions{});
+  ascir::FusedScheduledResult fused_schedule_result;
+  EXPECT_EQ(optimizer.Optimize(graph, fused_schedule_result), 0);
+  const std::map<std::string, std::string> shape_info;
+  auto res = this->Generate(fused_schedule_result, shape_info, "", "0");
+  ASSERT_TRUE(res.find(codegen::kTilingDefAndConstIdentify) != res.end());
+  const auto &tiling_impl = res.at(codegen::kTilingDefAndConstIdentify);
+
+  EXPECT_NE(tiling_impl.find("(*tiling_parse_data)->ub_size = ub_size;"), std::string::npos);
+  EXPECT_NE(tiling_impl.find("limit.ub_size = (uint32_t)parse->ub_size;"), std::string::npos);
+  EXPECT_NE(tiling_impl.find("tiling->set_ub_size(limit->ub_size);"), std::string::npos);
+  EXPECT_EQ(tiling_impl.find("tiling->set_ub_size(limit->ub_size - 256);"), std::string::npos);
+}
+
 TEST_F(TestCodegenTiling, GetWorkspaceSizeGuardsDynamicDenominator) {
   ascir::ImplGraph graph0("test_graph0");
   auto a1t_size = graph0.CreateSizeVar("a1t_size");
