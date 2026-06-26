@@ -9,11 +9,10 @@
  */
 
 #include "gen_api_tiling.h"
-#include <set>
 #include "graph/node.h"
 #include "common/checker.h"
+#include "common/common_utils.h"
 #include "base/base_types.h"
-#include "api_tiling_gen/api_tiling_gen_register.h"
 
 namespace att {
 ge::Status GetApiTilingInfo(const uint32_t tiling_case_id, const ApiTilingParams &params,
@@ -21,10 +20,9 @@ ge::Status GetApiTilingInfo(const uint32_t tiling_case_id, const ApiTilingParams
   // 遍历图上的节点，判断节点是否需要tiling
   for (const auto &node : params.graph.GetAllNodes()) {
     // 判断节点是否需要tiling
-    const auto node_type = node->GetType();
     GE_ASSERT_NOTNULL(node, "Get graph node failed.");
-    // 优先注册自动融合场景的高阶API
-    if (ApiTilingGenRegistry::Instance().IsApiTilingRegistered(node_type)) {
+    std::string api_tiling_type_name;
+    if (ascgen_utils::GetApiTilingTypeName(node, api_tiling_type_name) == ge::SUCCESS) {
       AutofuseApiTilingGenerator generator(params.graph, node, params.tiling_data_type, tiling_case_id);
       GE_ASSERT_SUCCESS(generator.Generate(),
                         "Generate api tiling code failed, graph[%s], node[%s] tiling data type[%s]",
