@@ -59,6 +59,7 @@ set(ascendc_api_regbase_extend_src
         shifted_chebyshev_polynomial_u.h
         shifted_chebyshev_polynomial_v.h
         shifted_chebyshev_polynomial_w.h
+        ndtr.h
 )
 
 set(generated_regbase_files)
