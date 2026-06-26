@@ -9,6 +9,7 @@
 # See LICENSE in the root of the software repository for the full text of the License.
 # -----------------------------------------------------------------------------------------------------------
 
+import inspect
 import os
 import types
 
@@ -24,9 +25,13 @@ MODULE_PATH = os.path.join(PYTHON_DIR, "compile_adapter.py")
 def compile_adapter_module():
     ascendc_compile_module = types.ModuleType("autofuse.ascendc_compile")
 
+    class CompileError(Exception):
+        pass
+
     def _noop_main(args):
         return None
 
+    ascendc_compile_module.CompileError = CompileError
     ascendc_compile_module.main = _noop_main
     with load_compile_module(
             MODULE_NAME,
@@ -106,3 +111,174 @@ def test_kernel_compile_records_device_stage(compile_adapter_module, tmpdir):
     assert ["InductorCompile", "kernel_compile", "GenerateDeviceSource", "autofuse"] in labels
     assert ["InductorCompile", "kernel_compile", "AscendCCompile", "autofuse"] in labels
     assert ["InductorCompile", "kernel_compile", "Total", "autofuse"] in labels
+
+
+def test_execute_compile_keeps_single_host_file_without_marker(compile_adapter_module, tmpdir):
+    captured = {}
+
+    def fake_main(args):
+        captured["args"] = args
+
+    compile_adapter_module.ascendc_compile.main = fake_main
+    args = type("Args", (), {
+        "stage": "host",
+        "temp_dir": str(tmpdir),
+        "graph_name": "graph",
+        "trace_stage": "host_compile",
+    })()
+
+    compile_adapter_module.execute_compile({
+        "tiling_struct_code": "struct AutofuseTilingData {};",
+        "host_impl_code": "extern \"C\" int TilingFunc() { return 0; }",
+        "kernel_impl_code": None,
+    }, args)
+
+    host_file = os.path.join(str(tmpdir), "host", "graph_tiling_func.cpp")
+    assert captured["args"].host_files == host_file
+    assert os.path.exists(host_file)
+
+
+def test_execute_compile_splits_host_files_with_marker(compile_adapter_module, tmpdir):
+    captured = {}
+
+    def fake_main(args):
+        captured["args"] = args
+
+    compile_adapter_module.ascendc_compile.main = fake_main
+    host_impl = "\n".join([
+        "// AUTOFUSE_SPLIT_FILE_BEGIN: TilingHead",
+        "struct CommonType {};",
+        "// AUTOFUSE_SPLIT_FILE_END: TilingHead",
+        "// AUTOFUSE_SPLIT_FILE_BEGIN: solver_func",
+        "extern \"C\" int Solver() { return 0; }",
+        "// AUTOFUSE_SPLIT_FILE_END: solver_func",
+        "// AUTOFUSE_SPLIT_FILE_BEGIN: asc_graph0_schedule_result0_g0",
+        "#include \"autofuse_tiling_func_common.h\"",
+        "extern \"C\" int TilingFunc() { return 0; }",
+        "// AUTOFUSE_SPLIT_FILE_END: asc_graph0_schedule_result0_g0",
+    ])
+    args = type("Args", (), {
+        "stage": "host",
+        "temp_dir": str(tmpdir),
+        "graph_name": "graph",
+        "trace_stage": "host_compile",
+    })()
+
+    compile_adapter_module.execute_compile({
+        "tiling_struct_code": "struct AutofuseTilingData {};",
+        "host_impl_code": host_impl,
+        "kernel_impl_code": None,
+    }, args)
+
+    host_dir = os.path.join(str(tmpdir), "host")
+    assert os.path.exists(os.path.join(host_dir, "autofuse_tiling_func_common.h"))
+    assert captured["args"].host_files == [
+        os.path.join(host_dir, "graph_tiling_func_solver_func.cpp"),
+        os.path.join(host_dir, "graph_tiling_func_asc_graph0_schedule_result0_g0.cpp"),
+    ]
+    for cpp_file in captured["args"].host_files:
+        with open(cpp_file) as f:
+            assert f.read().count('#include "autofuse_tiling_func_common.h"') == 1
+    assert not os.path.exists(os.path.join(host_dir, "graph_tiling_func_TilingHead.cpp"))
+
+
+@pytest.mark.parametrize("host_impl", [
+    "\n".join([
+        "// AUTOFUSE_SPLIT_FILE_BEGIN: TilingHead",
+        "struct CommonType {};",
+        "// AUTOFUSE_SPLIT_FILE_END: solver_func",
+    ]),
+    "\n".join([
+        "// AUTOFUSE_SPLIT_FILE_BEGIN: TilingHead",
+        "// AUTOFUSE_SPLIT_FILE_BEGIN: solver_func",
+        "// AUTOFUSE_SPLIT_FILE_END: solver_func",
+        "// AUTOFUSE_SPLIT_FILE_END: TilingHead",
+    ]),
+    "\n".join([
+        "// AUTOFUSE_SPLIT_FILE_BEGIN: TilingHead",
+        "struct CommonType {};",
+    ]),
+    "\n".join([
+        "// AUTOFUSE_SPLIT_FILE_BEGIN: TilingHead",
+        "struct CommonType {};",
+        "// AUTOFUSE_SPLIT_FILE_END: TilingHead",
+        "// AUTOFUSE_SPLIT_FILE_BEGIN: solver_func",
+        "int Solver() { return 0; }",
+        "// AUTOFUSE_SPLIT_FILE_END: solver_func",
+        "// AUTOFUSE_SPLIT_FILE_BEGIN: solver_func",
+        "int Solver2() { return 0; }",
+        "// AUTOFUSE_SPLIT_FILE_END: solver_func",
+    ]),
+    "\n".join([
+        "// AUTOFUSE_SPLIT_FILE_BEGIN: TilingHead",
+        "struct CommonType {};",
+        "// AUTOFUSE_SPLIT_FILE_END: TilingHead",
+        "// AUTOFUSE_SPLIT_FILE_BEGIN: ../solver",
+        "int Solver() { return 0; }",
+        "// AUTOFUSE_SPLIT_FILE_END: ../solver",
+    ]),
+    "\n".join([
+        "// AUTOFUSE_SPLIT_FILE_BEGIN: TilingHead",
+        "struct CommonType {};",
+        "// AUTOFUSE_SPLIT_FILE_END: TilingHead",
+        "// AUTOFUSE_SPLIT_FILE_BEGIN: a/b",
+        "int Solver() { return 0; }",
+        "// AUTOFUSE_SPLIT_FILE_END: a/b",
+    ]),
+    "\n".join([
+        "// AUTOFUSE_SPLIT_FILE_BEGIN: TilingHead",
+        "struct CommonType {};",
+        "// AUTOFUSE_SPLIT_FILE_END: TilingHead",
+        "// AUTOFUSE_SPLIT_FILE_BEGIN: a\\b",
+        "int Solver() { return 0; }",
+        "// AUTOFUSE_SPLIT_FILE_END: a\\b",
+    ]),
+    "\n".join([
+        "// AUTOFUSE_SPLIT_FILE_BEGIN: TilingHead",
+        "struct CommonType {};",
+        "// AUTOFUSE_SPLIT_FILE_END: TilingHead",
+        "// AUTOFUSE_SPLIT_FILE_BEGIN: ",
+        "int Solver() { return 0; }",
+        "// AUTOFUSE_SPLIT_FILE_END: ",
+    ]),
+    "\n".join([
+        "// AUTOFUSE_SPLIT_FILE_BEGIN: solver_func",
+        "int Solver() { return 0; }",
+        "// AUTOFUSE_SPLIT_FILE_END: solver_func",
+    ]),
+    "\n".join([
+        "// AUTOFUSE_SPLIT_FILE_BEGIN: TilingHead",
+        "struct CommonType {};",
+        "// AUTOFUSE_SPLIT_FILE_END: TilingHead",
+    ]),
+])
+def test_execute_compile_rejects_invalid_split_marker(compile_adapter_module, tmpdir, host_impl):
+    def fake_main(args):
+        return None
+
+    compile_adapter_module.ascendc_compile.main = fake_main
+    args = type("Args", (), {
+        "stage": "host",
+        "temp_dir": str(tmpdir),
+        "graph_name": "graph",
+        "trace_stage": "host_compile",
+    })()
+
+    with pytest.raises(compile_adapter_module.ascendc_compile.CompileError) as exc_info:
+        compile_adapter_module.execute_compile({
+            "tiling_struct_code": "struct AutofuseTilingData {};",
+            "host_impl_code": host_impl,
+            "kernel_impl_code": None,
+        }, args)
+
+    assert ("split host source" in str(exc_info.value) or
+            "invalid split host source key" in str(exc_info.value))
+
+
+def test_host_compile_and_jit_compile_signatures_keep_stable(compile_adapter_module):
+    assert list(inspect.signature(compile_adapter_module.jit_compile).parameters) == [
+        "tiling_def", "host_tiling", "op_kernel", "argv"
+    ]
+    assert list(inspect.signature(compile_adapter_module.host_compile).parameters) == [
+        "tiling_def_code", "tiling_impl_code", "argv"
+    ]

@@ -36,6 +36,7 @@ from tbe.tikcpp import OpInfo
 PYF_PATH = os.path.dirname(os.path.realpath(__file__))
 ASCEND_PATH = os.path.join(PYF_PATH, "..", "..", "..")
 timestamp_list = []
+HOST_TILING_COMPILE_JOBS = 32
 StaticCompileContext = namedtuple("StaticCompileContext", ["kernel_name", "temp_dir", "graph_name", "vector_core_num"])
 CodegenCompileContext = namedtuple(
     "CodegenCompileContext",
@@ -137,7 +138,7 @@ def ascbc_host_compile(graph_name, kernel_name, host_build_dir, is_last_compile,
         raise Exception(error_msg)
 
     # 定义 CMake 编译命令
-    make_command = ["make", "-C", "./", '-j']
+    make_command = ["make", "-C", "./", "-j", str(HOST_TILING_COMPILE_JOBS)]
     # 编译生成so
     make_ret = subprocess.run(make_command, capture_output=True, text=True)
     if make_ret.returncode != 0:

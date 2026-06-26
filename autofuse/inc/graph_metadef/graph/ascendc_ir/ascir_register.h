@@ -28,8 +28,6 @@ class AscirRegister {
   AscirRegister(const char *type, const char *def_file_path, int64_t line);
   AscirRegister &Inputs(std::vector<ge::AscendString> &&input_names);
   AscirRegister &Input(const char_t *input_name, const char_t *datatype_symbol);
-  AscirRegister &DataType(const char_t *datatype_symbol, const TensorType &type_range);
-  AscirRegister &DataType(const char_t *datatype_symbol, const OrderedTensorTypeList &type_range);
   AscirRegister &DynamicInput(const std::string &input_name);
   AscirRegister &DynamicInput(const char_t *input_name, const char_t *datatype_symbol);
   AscirRegister &OptionalInput(const std::string &input_name);
@@ -68,10 +66,7 @@ class AscirRegister {
   AscirRegister(AscirRegister &&) noexcept = delete;
   AscirRegister &operator=(AscirRegister &&) noexcept = delete;
 
-  AscirRegister &CalcTmpBufSize(const std::string &calc_tmp_buf_size_func);
   AscirRegister &SameTmpBufSizeFromFirstInput();
-
-  AscirRegister &ApiTilingDataType(const std::string &tiling_data_name);
 
   AscirRegister &Impl(const std::vector<std::string> &soc_version, const AscIrImpl &impl);
 
@@ -90,9 +85,6 @@ class AscirRegister {
 #define REG_ASC_IR_START_NODE(type) REG_ASC_IR(type).Inputs({}).Outputs({"y"}).StartNode()
 #define REG_ASC_IR_START_NODE_WITH_ATTR(type) \
   REG_ASC_IR(type).Inputs({}).Outputs({"y"}).Attr<int64_t>("index").StartNode()
-#define REG_ASC_IR_1IO(type) REG_ASC_IR(type).Input("x", "T").Output("y", "T").DataType("T", TensorType::ALL())
-#define REG_ASC_IR_2I1O(type) \
-  REG_ASC_IR(type).Input("x1", "T").Input("x2", "T").Output("y", "T").DataType("T", TensorType::ALL())
 
 #define EXPAND_CHAIN_CALL(...) #__VA_ARGS__
 #define REG_ASC_IR_WITH_COMMENT(type, ...)                                           \

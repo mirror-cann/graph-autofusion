@@ -336,3 +336,24 @@ def test_replace_host_files_does_not_touch_infershape_cpp(tmpdir, asc_codegen_co
 
     assert host_build_dir.join("demo_graph_tiling_func_0.cpp").read() == "new0"
     assert host_build_dir.join("demo_graph_infershape.cpp").read() == "old infershape"
+
+
+def test_ascbc_host_compile_uses_32_jobs_for_tiling_func_split_compile(monkeypatch, tmpdir,
+                                                                       asc_codegen_compile_module):
+    host_build_dir = tmpdir.mkdir("host")
+    commands = []
+
+    class FakeCompletedProcess(object):
+        returncode = 0
+        stdout = ""
+        stderr = ""
+
+    def fake_run(cmd, capture_output, text):
+        commands.append(cmd)
+        return FakeCompletedProcess()
+
+    monkeypatch.setattr(asc_codegen_compile_module.subprocess, "run", fake_run)
+
+    asc_codegen_compile_module.ascbc_host_compile("demo_graph", "demo_kernel", str(host_build_dir), True, True)
+
+    assert commands[1] == ["make", "-C", "./", "-j", "32"]

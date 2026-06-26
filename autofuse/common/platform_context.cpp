@@ -9,9 +9,8 @@
  */
 
 #include "common/platform_context.h"
-#include "runtime/base.h"
+#include "rt_external_base.h"
 #include "common/checker.h"
-#include "runtime/dev.h"
 
 namespace {
 const uint32_t kSocStrMaxLen = 32U;

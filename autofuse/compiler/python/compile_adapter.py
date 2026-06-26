@@ -2,14 +2,13 @@
 # -*- coding: utf-8 -*-
 # ----------------------------------------------------------------------------
 # Copyright (c) 2025 Huawei Technologies Co., Ltd.
-# This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+# This program is free software, you can redistribute it and/or modify it under the terms and conditions of
 # CANN Open Software License Agreement Version 2.0 (the "License").
 # Please refer to the License for details. You may not use this file except in compliance with the License.
-# THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+# THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
 # INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
 # See LICENSE in the root of the software repository for the full text of the License.
 # ----------------------------------------------------------------------------
-
 import os
 import tempfile
 import argparse
@@ -21,6 +20,11 @@ import re
 HOST_DEFAULT_CXX11_ABI = "-D_GLIBCXX_USE_CXX11_ABI=1"
 HOST_CXX11_ABI_PREFIX = "-D_GLIBCXX_USE_CXX11_ABI="
 INDUCTOR_COMPILE_TRACE_LABEL = "InductorCompile"
+SPLIT_BEGIN_PREFIX = "// AUTOFUSE_SPLIT_FILE_BEGIN:"
+SPLIT_END_PREFIX = "// AUTOFUSE_SPLIT_FILE_END:"
+SPLIT_HEADER_KEY = "TilingHead"
+SPLIT_HEADER_FILE = "autofuse_tiling_func_common.h"
+SPLIT_HEADER_INCLUDE = '#include "autofuse_tiling_func_common.h"'
 
 
 def str2bool(v):
@@ -83,6 +87,107 @@ def generate_file(dst_dir, file_name, text):
     file_path = os.path.join(dst_dir, file_name)
     with open(file_path, "w") as file:
         file.write(text)
+
+
+def has_split_host_marker(host_impl_code):
+    return (SPLIT_BEGIN_PREFIX in host_impl_code or
+            SPLIT_END_PREFIX in host_impl_code)
+
+
+def validate_split_key(key):
+    if not key:
+        raise ascendc_compile.CompileError(f"invalid split host source key: {key}")
+    if any(token in key for token in ("/", "\\", "..")):
+        raise ascendc_compile.CompileError(f"invalid split host source key: {key}")
+    if re.fullmatch(r"[A-Za-z0-9_.-]+", key) is None:
+        raise ascendc_compile.CompileError(f"invalid split host source key: {key}")
+
+
+def parse_split_marker(line, prefix):
+    stripped = line.strip()
+    if not stripped.startswith(prefix):
+        return None
+    key = stripped[len(prefix):].strip()
+    validate_split_key(key)
+    return key
+
+
+def finish_split_source(key, lines, header, cpp_sources, seen_keys):
+    if key in seen_keys:
+        raise ascendc_compile.CompileError(f"split host source key is duplicated: {key}")
+    seen_keys.add(key)
+    content = ''.join(lines)
+    if key == SPLIT_HEADER_KEY:
+        if header is not None:
+            raise ascendc_compile.CompileError("split host source header is duplicated")
+        return content, cpp_sources
+    cpp_sources.append((key, content))
+    return header, cpp_sources
+
+
+def parse_split_host_sources(host_impl_code):
+    current_key = None
+    current_lines = []
+    header = None
+    cpp_sources = []
+    seen_keys = set()
+    for line in host_impl_code.splitlines(keepends=True):
+        begin_key = parse_split_marker(line, SPLIT_BEGIN_PREFIX)
+        end_key = parse_split_marker(line, SPLIT_END_PREFIX)
+        if begin_key is not None and end_key is not None:
+            raise ascendc_compile.CompileError("split host source marker is invalid")
+        if begin_key is not None:
+            if current_key is not None:
+                raise ascendc_compile.CompileError(f"split host source marker is nested: {begin_key}")
+            current_key = begin_key
+            current_lines = []
+            continue
+        if end_key is not None:
+            if current_key is None:
+                raise ascendc_compile.CompileError(f"split host source marker end without begin: {end_key}")
+            if current_key != end_key:
+                raise ascendc_compile.CompileError(
+                    f"split host source marker mismatch: begin={current_key}, end={end_key}")
+            header, cpp_sources = finish_split_source(current_key, current_lines, header, cpp_sources, seen_keys)
+            current_key = None
+            current_lines = []
+            continue
+        if current_key is None:
+            if line.strip():
+                raise ascendc_compile.CompileError("split host source has content outside marker")
+            continue
+        current_lines.append(line)
+    if current_key is not None:
+        raise ascendc_compile.CompileError(f"split host source marker is not closed: {current_key}")
+    if header is None:
+        raise ascendc_compile.CompileError("split host source has no TilingHead")
+    if not cpp_sources:
+        raise ascendc_compile.CompileError("split host source has no cpp source")
+    return header, cpp_sources
+
+
+def add_split_header_include(cpp_content):
+    if SPLIT_HEADER_INCLUDE in cpp_content:
+        return cpp_content
+    return SPLIT_HEADER_INCLUDE + "\n" + cpp_content
+
+
+def write_split_host_sources(host_file_path, graph_name, host_impl_code):
+    header, cpp_sources = parse_split_host_sources(host_impl_code)
+    generate_file(host_file_path, SPLIT_HEADER_FILE, header)
+    host_files = []
+    for key, cpp_content in cpp_sources:
+        file_name = f"{graph_name}_tiling_func_{key}.cpp"
+        generate_file(host_file_path, file_name, add_split_header_include(cpp_content))
+        host_files.append(os.path.join(host_file_path, file_name))
+    return host_files
+
+
+def write_host_sources(host_file_path, base_host_file, graph_name, host_impl_code):
+    if not has_split_host_marker(host_impl_code):
+        generate_file(host_file_path, base_host_file, host_impl_code)
+        return os.path.join(host_file_path, base_host_file)
+    return write_split_host_sources(host_file_path, graph_name, host_impl_code)
 
 
 def parse_env_flags(env_name):
@@ -180,8 +285,8 @@ def execute_compile(sources, args):
         with InductorCompileDuration(args.trace_stage, "GenerateHostSource", args.graph_name):
             host_file_path = os.path.join(args.temp_dir, "host")
             generate_file(host_file_path, tiling_def_file, sources['tiling_struct_code'])
-            generate_file(host_file_path, base_host_file, sources['host_impl_code'])
-            args.host_files = os.path.join(host_file_path, base_host_file)
+            args.host_files = write_host_sources(
+                host_file_path, base_host_file, args.graph_name, sources['host_impl_code'])
     if args.stage in ['all', 'device']:
         with InductorCompileDuration(args.trace_stage, "GenerateDeviceSource", args.graph_name):
             device_file_path = os.path.join(args.temp_dir, "device")

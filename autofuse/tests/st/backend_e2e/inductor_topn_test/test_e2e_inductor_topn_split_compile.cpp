@@ -12,6 +12,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <dlfcn.h>
+#include <filesystem>
 #include <fstream>
 #include <future>
 #include <gtest/gtest.h>
@@ -80,6 +81,28 @@ bool HasCxx11AbiSymbols(const std::string &path) {
   return RunCommand("nm -D " + path + " 2>/dev/null | c++filt | grep -q 'std::__cxx11'") == 0;
 }
 
+bool HasDynamicSymbol(const std::string &path, const std::string &symbol) {
+  return RunCommand("nm -D " + path + " 2>/dev/null | grep -q ' " + symbol + "$'") == 0;
+}
+
+size_t CountFilesWithSuffix(const std::string &dir, const std::string &suffix) {
+  size_t count = 0;
+  for (const auto &entry : std::filesystem::directory_iterator(dir)) {
+    const std::string file_name = entry.path().filename().string();
+    if (file_name.size() >= suffix.size() &&
+        file_name.compare(file_name.size() - suffix.size(), suffix.size(), suffix) == 0) {
+      count++;
+    }
+  }
+  return count;
+}
+
+void VerifySplitHostArtifacts(const std::string &host_dir) {
+  ASSERT_TRUE(FileExists(host_dir + "/autofuse_tiling_func_common.h"));
+  EXPECT_GE(CountFilesWithSuffix(host_dir, ".cpp"), 2U);
+  EXPECT_GE(CountFilesWithSuffix(host_dir, ".cpp.o"), 2U);
+}
+
 #ifndef PYAUTOFUSE_DIR
 #define PYAUTOFUSE_DIR ""
 #endif
@@ -130,10 +153,13 @@ int RunHostCompile(const std::string &tiling_def, const std::string &host_code, 
   WriteFile(script_path, PythonPreamble() +
                              "try:\n"
                              "    from autofuse.compile_adapter import host_compile\n"
-                             "    import os\n"
-                             "    os.makedirs('" +
+                             "    import os, shutil\n"
+                             "    host_out = '" +
                              std::string(OUTPUT_DIR) +
-                             "/host_out', exist_ok=True)\n"
+                             "/host_out'\n"
+                             "    if os.path.exists(host_out):\n"
+                             "        shutil.rmtree(host_out)\n"
+                             "    os.makedirs(host_out, exist_ok=True)\n"
                              "    td = open('" +
                              std::string(OUTPUT_DIR) +
                              "/host_tiling_def.h').read()\n"
@@ -269,6 +295,10 @@ TEST_F(TestBackendInductorTopnSplitCompile, SplitCompileChainWorks) {
   ASSERT_EQ(RunHostCompile(tiling_def, host_code, host_bin), 0);
   ASSERT_TRUE(FileExists(host_bin)) << "host so not found: " << host_bin;
   ASSERT_TRUE(HasCxx11AbiSymbols(host_bin)) << "host so should use ABI=1: " << host_bin;
+  ASSERT_TRUE(HasDynamicSymbol(host_bin, "AutofuseTiling")) << "AutofuseTiling missing in host so";
+  ASSERT_TRUE(HasDynamicSymbol(host_bin, "GenerateTopnSolutions")) << "GenerateTopnSolutions missing in host so";
+  ASSERT_TRUE(HasDynamicSymbol(host_bin, "GetTilingDataRepr")) << "GetTilingDataRepr missing in host so";
+  VerifySplitHostArtifacts(OUTPUT_DIR "/host_out/host");
   const std::string tiling_repr_file = OUTPUT_DIR "/tiling_repr.txt";
   ASSERT_EQ(RunHostHelper(host_bin, tiling_repr_file), 0);
   std::string tiling_repr = ReadFile(tiling_repr_file);

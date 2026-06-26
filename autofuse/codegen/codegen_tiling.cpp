@@ -3854,11 +3854,8 @@ std::string TilingLib::GenEvaluateModeledPerfForInductor(
   bool is_single_group = ascgen_utils::IsSingleGroup(fused_schedule_result);
   ss << "static double EvaluateModeledPerf(const " << tiling << " &tiling_data) {" << std::endl;
   if (is_single_group) {
-    ss << "  TilingCaseImplPtr impl = GetTilingImplPtr(tiling_data.get_tiling_key(), "
-       << "tiling_data.get_block_dim());" << std::endl;
-    ss << "  if (impl == nullptr) { return DBL_MAX; }" << std::endl;
     ss << "  " << tiling << " tmp = tiling_data;" << std::endl;
-    ss << "  return impl->GetPerf(tmp);" << std::endl;
+    ss << "  return optiling::GetPerf(tmp);" << std::endl;
   } else {
     GenMultiGroupPerfAggregation(ss, fused_schedule_result);
   }
