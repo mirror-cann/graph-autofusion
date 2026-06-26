@@ -54,6 +54,9 @@ set(ascendc_api_regbase_extend_src
         igammac.h
         trigonometric_function_utils.h
         transpose.h
+        frexp.h
+        zeta.h
+        ndtri.h
         shifted_chebyshev_polynomial_utils.h
         shifted_chebyshev_polynomial_t.h
         shifted_chebyshev_polynomial_u.h

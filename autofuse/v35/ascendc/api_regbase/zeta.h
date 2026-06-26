@@ -36,7 +36,7 @@ __simd_vf__ inline void ZetaImplVF(__ubuf__ T *dst, __ubuf__ T *src0, __ubuf__ T
     Reg::LoadAlign(src0Reg, src0 + i * vlSize);
     Reg::LoadAlign(src1Reg, src1 + i * vlSize);
 
-    Reg::Duplicate(nanTensor, __builtin_nanf(""), mask);
+    Reg::Duplicate(nanTensor, (float &)F32_NAN, mask);
 
     Reg::Compares<T, CMPMODE::LT>(mask0, src0Reg, ONE, mask);
     Reg::Compares<T, CMPMODE::EQ>(mask1, src0Reg, ONE, mask);
@@ -249,7 +249,7 @@ __simd_vf__ inline void ZetaImplVF(__ubuf__ T *dst, __ubuf__ T *src0, __ubuf__ T
     Reg::Adds(tTensor, tTensor, ONE, mask);
     Reg::Div(mulTmp, tTensor, mulTmp, mask);
 
-    Reg::Duplicate(nanTensor, __builtin_nanf(""), mask);
+    Reg::Duplicate(nanTensor, (float &)F32_NAN, mask);
 
     Reg::Select(dstReg, nanTensor, dstReg, mask0);
     Reg::Select(dstReg, mulTmp, dstReg, mask1);

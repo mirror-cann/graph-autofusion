@@ -34,17 +34,19 @@ class TestApiFrexp : public testing::Test {
  protected:
   static void InvokeFrexpKernel(FrexpInputParam &param) {
     TPipe tpipe;
-    TBuf<TPosition::VECCALC> srcBuf, mantissaBuf, exponentBuf;
+    TBuf<TPosition::VECCALC> srcBuf, mantissaBuf, exponentBuf, tmpBuf;
     tpipe.InitBuffer(srcBuf, sizeof(float) * param.size);
     tpipe.InitBuffer(mantissaBuf, sizeof(float) * param.size);
     tpipe.InitBuffer(exponentBuf, sizeof(int32_t) * param.size);
+    tpipe.InitBuffer(tmpBuf, TMP_UB_SIZE);
 
     LocalTensor<float> srcTensor = srcBuf.Get<float>();
     LocalTensor<float> mantissaTensor = mantissaBuf.Get<float>();
     LocalTensor<int32_t> exponentTensor = exponentBuf.Get<int32_t>();
+    LocalTensor<uint8_t> tmpTensor = tmpBuf.Get<uint8_t>();
 
     GmToUb(srcTensor, param.src, param.size);
-    FrexpExtend(mantissaTensor, exponentTensor, srcTensor, param.size);
+    FrexpExtend(mantissaTensor, exponentTensor, srcTensor, tmpTensor, param.size);
     UbToGm(param.mantissa, mantissaTensor, param.size);
 
     for (uint32_t i = 0; i < param.size; i++) {

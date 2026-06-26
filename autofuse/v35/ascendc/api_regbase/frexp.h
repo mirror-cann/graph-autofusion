@@ -101,11 +101,11 @@ __simd_vf__ inline void FrexpImplVF(__ubuf__ uint32_t *mantissaUb, __ubuf__ int3
 
 template <typename T>
 __aicore__ inline void FrexpExtend(const LocalTensor<T> &mantissa, const LocalTensor<int32_t> &exponent,
-                                   const LocalTensor<T> &src, const uint32_t calCount) {
+                                   const LocalTensor<T> &src, const LocalTensor<uint8_t> &sharedTmpBuffer, const uint32_t calCount) {
   if ASCEND_IS_AIC {
     return;
   }
-  static_assert(SupportType<T, float>(), "current data type is not supported on current device!");
+  static_assert((std::is_same_v<T, float>), "Frexp only supports float on current device!");
 
   LocalTensor<uint32_t> mantissaBits = mantissa.template ReinterpretCast<uint32_t>();
   LocalTensor<uint32_t> srcBits = src.template ReinterpretCast<uint32_t>();
