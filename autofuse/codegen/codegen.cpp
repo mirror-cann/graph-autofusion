@@ -455,6 +455,7 @@ std::string Codegen::GeneratorPgo(const ascir::FusedScheduledResult &fused_sched
 
 Status Codegen::GenerateKernel(const ascir::FusedScheduledResult &fused_schedule_result, std::string &result,
                                bool is_inductor) const {
+  ascir::utils::FusedGraphNameGuard guard(fused_schedule_result.fused_graph_name.GetString());
   GE_CHK_STATUS_RET(EnrichScheduledResultAscirParams(fused_schedule_result), "Enrich ascir node params failed.");
   const auto io_num = fused_schedule_result.input_nodes.size() + fused_schedule_result.output_nodes.size();
   bool use_list_tensor = io_num >= kMaxUnfoldedIoNum;
