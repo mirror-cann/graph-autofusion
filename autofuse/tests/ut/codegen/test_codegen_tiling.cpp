@@ -2463,6 +2463,25 @@ TEST_F(TestCodegenTiling, GenerateForInductorTopnAbiShouldNotEmitOutputConfigsMe
   EXPECT_EQ(tiling_impl.find("solution_config[\"topn_status\"]"), std::string::npos);
 }
 
+TEST_F(TestCodegenTiling, GenerateForInductorNonCubeShouldNotDuplicateImplGraphs) {
+  auto fused_schedule_result = this->GenBasicFusedScheduleResult({af::Symbol("s0"), af::Symbol("s1")});
+  ASSERT_FALSE(ascgen_utils::IsCubeFusedScheduled(fused_schedule_result));
+
+  auto tiling_files = this->GenerateForInductor(fused_schedule_result);
+  ASSERT_TRUE(tiling_files.find(codegen::kTilingDefAndConstIdentify) != tiling_files.end());
+  const auto &tiling_impl = tiling_files.at(codegen::kTilingDefAndConstIdentify);
+
+  auto func_pos = tiling_impl.find("extern \"C\" uint64_t GetTilingKeyCount()");
+  ASSERT_NE(func_pos, std::string::npos);
+  auto func_end_pos = tiling_impl.find("}\n", func_pos);
+  ASSERT_NE(func_end_pos, std::string::npos);
+  auto return_two_pos = tiling_impl.find("  return 2;", func_pos);
+  auto return_four_pos = tiling_impl.find("  return 4;", func_pos);
+
+  EXPECT_LT(return_two_pos, func_end_pos);
+  EXPECT_TRUE(return_four_pos == std::string::npos || return_four_pos > func_end_pos);
+}
+
 TEST_F(TestCodegenTiling, GenerateForInductorCvFusionShouldEmitCvTilingAndCubeWrapper) {
   auto graph = ascir::ShareGraph::LoadMatmulElewiseBrcFusedGraph();
   optimize::Optimizer optimizer(optimize::OptimizerOptions{});
