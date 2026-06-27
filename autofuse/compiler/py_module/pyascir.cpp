@@ -48,6 +48,7 @@ inline constexpr char kAdjX2[] = "adj_x2";
 inline constexpr char kEnableHf32[] = "enable_hf32";
 inline constexpr char kOutputOpType[] = "Output";
 inline constexpr char kDataOpType[] = "Data";
+inline constexpr char kScalarDataOpType[] = "ScalarData";
 inline constexpr char kAscGraphAttr[] = "ascgraph";
 inline constexpr char kNegativeSlopeAttr[] = "negative_slope";
 inline constexpr char kNegativeIndexSupportAttr[] = "negative_index_support";
@@ -120,7 +121,7 @@ template <typename GraphObj>
 bool CountInputsOutputs(GraphObj *graph, size_t &input_size, std::set<int64_t> &outputs) {
   for (const auto &node : graph->GetAllNodes()) {
     PY_ASSERT_NOTNULL(node);
-    if (node->GetType() == kDataOpType) {
+    if (node->GetType() == kDataOpType || node->GetType() == kScalarDataOpType) {
       ++input_size;
     }
     if (node->GetType() == kOutputOpType) {
