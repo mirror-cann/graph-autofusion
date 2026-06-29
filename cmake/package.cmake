@@ -77,16 +77,9 @@ set(PACKAGE_FILES
     ${COMMON_FILES}
     ${CANN_CMAKE_DIR}/scripts/install/multi_version.inc
 )
-set(CONF_FILES
-    ${CANN_CMAKE_DIR}/scripts/package/cfg/path.cfg
-)
 install(FILES ${CMAKE_BINARY_DIR}/version.graph-autofusion.info
     DESTINATION share/info/graph_autofusion
     RENAME version.info
-    COMPONENT graph-autofusion
-)
-install(FILES ${CONF_FILES}
-    DESTINATION ${CMAKE_SYSTEM_PROCESSOR}-linux/conf
     COMPONENT graph-autofusion
 )
 install(FILES ${PACKAGE_FILES}

@@ -41,7 +41,6 @@ See LICENSE in the root of the software repository for the full text of the Lice
     </file_info>
     <block_info dependtree="false" dst_path="" block_conf_path="ascend">
         <block name="EngineeringCommon"/>
-        <block name="EngineeringFiles"/>
     </block_info>
     <dir_info value="graph_autofusion" install_path="graph_autofusion" install_mod="555" install_type="all">
         <path value="share" install_mod="755"/>
