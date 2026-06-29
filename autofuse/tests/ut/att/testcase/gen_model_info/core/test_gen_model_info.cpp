@@ -23,6 +23,7 @@
 #include "tiling_code_generator.h"
 #include "transpose_base_type.h"
 #include "graph_construct_utils.h"
+#include "common/platform_context.h"
 
 using namespace att;
 using att::test::CombineTilings;
@@ -680,6 +681,20 @@ TEST_F(TestGenModelInfo, ModelInfoParserForTranspose10ApiTiling) {
   EXPECT_TRUE(!got_api_code.function_invoke.empty());
   EXPECT_TRUE(!got_api_code.function_impl.empty());
   EXPECT_TRUE(!got_api_code.head_files.empty());
+}
+
+TEST_F(TestGenModelInfo, ModelInfoParserForV2TransposeWithoutApiTilingTypeName) {
+  std::vector<af::AscGraph> graphs;
+  TilingModelInfo model_info_list;
+  af::AscGraph graph("graph");
+  ASSERT_EQ(af::ascir::cg::BuildTransposeAscendGraph(graph, {1, 0, 2}), af::SUCCESS);
+  graphs.emplace_back(graph);
+  ge::PlatformContext::GetInstance().SetPlatform("3510");
+  const auto &tiling_data_name = graph.GetName() + "TilingData";
+  EXPECT_EQ(GenerateModelInfo(graphs, model_info_list, {{kTilingDataTypeName, tiling_data_name}}), af::SUCCESS);
+  ge::PlatformContext::GetInstance().Reset();
+  ASSERT_EQ(model_info_list.size(), 1);
+  EXPECT_TRUE(model_info_list[0].node_name_to_api_code.empty());
 }
 
 TEST_F(TestGenModelInfo, Pad) {

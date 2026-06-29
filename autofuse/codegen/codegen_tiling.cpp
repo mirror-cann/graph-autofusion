@@ -246,12 +246,15 @@ TilingLib::TilingLib(const std::string &lib_path, const std::string &codegen_sym
 std::map<std::string, std::string> TilingLib::GenerateForInductor(
     const ascir::FusedScheduledResult &fused_schedule_result) const {
   ascir::FusedScheduledResult elemwise_schedule_result = fused_schedule_result;
-  GE_ASSERT_SUCCESS(ascgen_utils::ProcessCubeFusionResultDynamic(elemwise_schedule_result));
+  const bool is_cube_fused_scheduled = ascgen_utils::IsCubeFusedScheduled(fused_schedule_result);
+  if (is_cube_fused_scheduled) {
+    GE_ASSERT_SUCCESS(ascgen_utils::ProcessCubeFusionResultDynamic(elemwise_schedule_result));
+  }
   std::map<std::string, std::string> tiling_file_name_to_content =
-      GetTilingHeaders(elemwise_schedule_result, true, ascgen_utils::IsCubeFusedScheduled(fused_schedule_result));
+      GetTilingHeaders(elemwise_schedule_result, true, is_cube_fused_scheduled);
   GE_CHK_BOOL_RET_STATUS_NOLOG(CheckTilingHeadersValid(tiling_file_name_to_content), tiling_file_name_to_content);
   std::stringstream ss;
-  if (ascgen_utils::IsCubeFusedScheduled(fused_schedule_result)) {
+  if (is_cube_fused_scheduled) {
     AppendCVFusionHeaders(ss, false, true);
   } else {
     AppendCommonTilingHeaders(ss);
@@ -262,7 +265,7 @@ std::map<std::string, std::string> TilingLib::GenerateForInductor(
   ss << "extern \"C\" std::string GetTilingDataRepr(const AutofuseTilingData *tiling_data);\n";
   ss << "#pragma GCC diagnostic pop\n";
   ss << TilingFuncDefForInductor(fused_schedule_result, elemwise_schedule_result) << std::endl;
-  if (!ascgen_utils::IsCubeFusedScheduled(fused_schedule_result)) {
+  if (!is_cube_fused_scheduled) {
     ss << this->GenCandidateSolutionProtocolForInductor("AutofuseTilingData") << std::endl;
     ss << this->GenTopnSelectorHelpersForInductor() << std::endl;
     ss << this->GenBuiltinTfPgoConfigsForInductor() << std::endl;
@@ -283,7 +286,7 @@ std::map<std::string, std::string> TilingLib::GenerateForInductor(
   }
   // 生成GenConstTilingData方法（对所有场景生成，包括CV fusion静态shape）
   ss << TilingData("Autofuse").GenerateConst(fused_schedule_result) << std::endl;
-  if (ascgen_utils::IsCubeFusedScheduled(fused_schedule_result)) {
+  if (is_cube_fused_scheduled) {
     tiling_file_name_to_content[kCubeKernelTilingWrapperHpp] = kCubeKernelTilingWrapperHppValue;
     tiling_file_name_to_content[kCubeKernelTilingWrapperCpp] = kCubeKernelTilingWrapperCppValue;
   }

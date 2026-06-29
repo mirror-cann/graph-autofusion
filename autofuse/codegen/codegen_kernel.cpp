@@ -39,6 +39,30 @@ namespace {
 constexpr uint32_t kFuncIdBegin = 20000000U;
 constexpr const char kInputTensorDescName[] = "input_tensor_desc";
 constexpr const char kOutputTensorDescName[] = "output_tensor_desc";
+
+std::string GetTensorName(const ascir::TensorAttr &tensor) {
+  const auto node = tensor.anchor.GetOwnerNodeBarePtr();
+  if (node != nullptr && node->GetType() == ScalarData::Type) {
+    return GenValidName(node->GetName());
+  }
+  if (af::ascir::AscTensorUtils::IsConstTensor(tensor)) {
+    return "scalar_" + std::to_string(tensor.attr.mem.tensor_id);
+  }
+  if (tensor.attr.mem.alloc_type == af::AllocType::kAllocTypeGlobal) {
+    return "global_" + std::to_string(tensor.attr.mem.tensor_id);
+  }
+  return "local_" + std::to_string(tensor.attr.mem.tensor_id);
+}
+
+Type GetTensorType(const ascir::TensorAttr &tensor, std::string &dtype_name) {
+  if (af::ascir::AscTensorUtils::IsConstTensor(tensor)) {
+    return Type(dtype_name);
+  }
+  if (tensor.attr.mem.alloc_type == af::AllocType::kAllocTypeGlobal) {
+    return Tensor::GlobalTensorTypes(dtype_name);
+  }
+  return Tensor::LocalTensorTypes(dtype_name);
+}
 }  // namespace
 
 std::ostream &operator<<(std::ostream &os, const Code &obj) {
@@ -123,13 +147,7 @@ const Type Tensor::LocalTensorTypes(std::string &dtype_name) {
 }
 
 Tensor::Tensor(const ascir::TensorAttr &tensor, std::string &dtype_name, const std::string &tensor_name)
-    : Variable((af::ascir::AscTensorUtils::IsConstTensor(tensor))                ? Type(dtype_name)
-               : (tensor.attr.mem.alloc_type == af::AllocType::kAllocTypeGlobal) ? GlobalTensorTypes(dtype_name)
-                                                                                 : LocalTensorTypes(dtype_name),
-               (af::ascir::AscTensorUtils::IsConstTensor(tensor)) ? ("scalar_" + to_string(tensor.attr.mem.tensor_id))
-               : (tensor.attr.mem.alloc_type == af::AllocType::kAllocTypeGlobal)
-                   ? ("global_" + to_string(tensor.attr.mem.tensor_id))
-                   : ("local_" + to_string(tensor.attr.mem.tensor_id))),
+    : Variable(GetTensorType(tensor, dtype_name), GetTensorName(tensor)),
       id(tensor.attr.mem.tensor_id),
       reuse_id(tensor.attr.mem.reuse_id),
       dtype(tensor.attr.dtype),

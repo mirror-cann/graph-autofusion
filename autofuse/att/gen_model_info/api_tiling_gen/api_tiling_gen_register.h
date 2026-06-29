@@ -26,7 +26,6 @@ struct ApiTilingGenerator {
 class ApiTilingGenRegistry {
  public:
   static ApiTilingGenRegistry &Instance();
-  bool IsApiTilingRegistered(const std::string &op_type);
   void RegFunc(const std::string &op_type, const AutofuseApiTilingDataGenerator &gen_func_define,
                const AutofuseApiTilingDataGenerator &gen_func_call,
                const AutofuseApiTilingDataGenerator &gen_head_files);

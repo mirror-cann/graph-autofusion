@@ -44,8 +44,4 @@ AutofuseApiTilingDataGenerator ApiTilingGenRegistry::GetApiTilingGenHeadFiles(co
   }
   return nullptr;
 }
-
-bool ApiTilingGenRegistry::IsApiTilingRegistered(const std::string &op_type) {
-  return api_tiling_generators_.find(op_type) != api_tiling_generators_.end();
-}
 }  // namespace att
