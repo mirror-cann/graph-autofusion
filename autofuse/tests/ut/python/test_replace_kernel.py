@@ -354,6 +354,8 @@ def test_ascbc_host_compile_uses_32_jobs_for_tiling_func_split_compile(monkeypat
 
     monkeypatch.setattr(asc_codegen_compile_module.subprocess, "run", fake_run)
 
-    asc_codegen_compile_module.ascbc_host_compile("demo_graph", "demo_kernel", str(host_build_dir), True, True)
+    asc_codegen_compile_module.ascbc_host_compile(
+        asc_codegen_compile_module.HostCompileContext("demo_graph", "demo_kernel",
+                                                       str(host_build_dir), True, True, False))
 
     assert commands[1] == ["make", "-C", "./", "-j", "32"]
