@@ -48,12 +48,15 @@ target_compile_options(ascendsk PRIVATE
     -Werror
     -fno-common
     -ftrapv
-    $<$<CONFIG:Debug>:-g>
-    $<$<CONFIG:Debug>:-O0>
+    $<IF:$<VERSION_GREATER:${CMAKE_C_COMPILER_VERSION},4.8.5>,-fstack-protector-strong,-fstack-protector-all>
+    $<$<CONFIG:Release>:-O2>
+    $<$<CONFIG:Debug>:-g -O0>
 )
 
 target_compile_definitions(ascendsk PRIVATE
     FUNC_VISIBILITY
+    _GLIBCXX_USE_CXX11_ABI=0
+    $<$<CONFIG:Release>:_FORTIFY_SOURCE=2>
 )
 
 target_include_directories(ascendsk PUBLIC
@@ -61,6 +64,12 @@ target_include_directories(ascendsk PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include/super_kernel
     ${CMAKE_CURRENT_SOURCE_DIR}/src/aot
     )
+target_link_options(ascendsk PRIVATE
+    -Wl,-z,relro
+    -Wl,-z,now
+    -Wl,-z,noexecstack
+    $<$<CONFIG:Release>:-s>
+)
 target_link_libraries(ascendsk PRIVATE c_sec_headers runtime_headers)
 target_link_libraries(ascendsk PUBLIC sk_scope acl_rt acl_rtc ascendcl ascend_dump runtime error_manager c_sec unified_dlog ascendc_runtime profapi profimpl msprofiler json)
 target_link_directories(ascendsk PUBLIC
