@@ -1,0 +1,13 @@
+# SK operator compatibility declarations.
+#
+# Do not invent chip-to-arch or chip-capability mappings here. Add a field only
+# when it is backed by a Huawei Ascend/CANN official HTTPS URL and record that
+# URL in the same entry. Local filesystem paths are not accepted as official
+# sources. Unknown fields are treated as "not checked".
+chip_families:
+  - id: ascend-910b
+    cann_versions: ["9.0.0", "8.2.0"]
+    notes: "Recorded target id used by existing examples; no arch or capability claims are made here."
+  - id: ascend-310p
+    cann_versions: ["8.2.0"]
+    notes: "Recorded target id used by tests/examples; no arch or capability claims are made here."

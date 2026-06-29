@@ -36,6 +36,15 @@ super_kernel/tests/aot/third_party/mockcpp_src/
 # Type checker caches
 .mypy_cache/
 
+# Claude skill local/runtime files
+.claude/settings.local.json
+.claude/skills/**/__pycache__/
+.claude/skills/**/*.py[cod]
+.claude/skills/**/run/
+.claude/skills/**/runs/
+.claude/skills/**/build/
+.claude/skills/**/dist/
+
 # IDE settings
 .vscode/
 .idea/
