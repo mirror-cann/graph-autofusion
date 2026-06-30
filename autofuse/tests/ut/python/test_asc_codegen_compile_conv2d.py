@@ -323,12 +323,8 @@ class TestGenerateCmakeLists:
         host_build_dir = str(tmpdir)
         
         asc_codegen_compile_module.generate_cmake_lists(
-            "conv2d_graph",
-            "conv2d_kernel",
-            host_build_dir,
-            is_last_compile=True,
-            is_static_shape=False,
-            is_cube=True
+            asc_codegen_compile_module.HostCompileContext(
+                "conv2d_graph", "conv2d_kernel", host_build_dir, True, False, True)
         )
         
         cmake_file = os.path.join(host_build_dir, "CMakeLists.txt")
@@ -350,12 +346,8 @@ class TestGenerateCmakeLists:
         host_build_dir = str(tmpdir)
         
         asc_codegen_compile_module.generate_cmake_lists(
-            "matmul_graph",
-            "matmul_kernel",
-            host_build_dir,
-            is_last_compile=True,
-            is_static_shape=True,
-            is_cube=True
+            asc_codegen_compile_module.HostCompileContext(
+                "matmul_graph", "matmul_kernel", host_build_dir, True, True, True)
         )
         
         cmake_file = os.path.join(host_build_dir, "CMakeLists.txt")
@@ -459,7 +451,8 @@ class TestStaticShapeCompileHasattrCheck:
 
         tiling_info = SimpleNamespace(tiling_key=2, file_content="")
         cube_info = [4, False, 4, [False], False]
-        compile_context = asc_codegen_compile_module.StaticCompileContext("kernel", str(tmpdir), "graph", 4)
+        compile_context = asc_codegen_compile_module.StaticCompileContext("kernel",
+                                                                           str(tmpdir), "graph", 4, False, "", "")
         asc_codegen_compile_module.template_decider(compile_context, tiling_info, cube_info)
 
         assert calls == [("cv_compile", 4), ("cv_common", 4)]
@@ -588,11 +581,10 @@ class TestDynamicShapeCompile:
         params = list(sig.parameters.keys())
         
         # 检查参数名称
-        assert 'kernel_name' in params
-        assert 'temp_dir' in params
-        assert 'graph_name' in params
+        assert 'compile_ctx' in params
         assert 'use_cv_common' in params
         assert 'is_cube' in params
+        assert 'cross_info' in params
 
 
 class TestAscbcConvKernelTilingPro:

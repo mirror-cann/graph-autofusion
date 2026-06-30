@@ -500,6 +500,15 @@ Status RemoveDanglingNodes(af::AscGraph &graph) {
   GE_ASSERT_NOTNULL(compute_graph);
   GE_CHK_STATUS_RET(RemoveDanglingNodes(compute_graph), "Remove dangling nodes failed, graph:[%s].",
                     graph.GetName().c_str());
+  for (const auto &node : compute_graph->GetDirectNode()) {
+    GE_ASSERT_NOTNULL(node);
+    if (node->GetType() == "Unsupported") {
+      const auto *error_msg = af::AttrUtils::GetStr(node->GetOpDescBarePtr(), "error_msg");
+      GELOGE(af::FAILED, "Graph [%s] contains UnSupported node [%s]: %s", graph.GetName().c_str(),
+             node->GetNamePtr(), error_msg != nullptr ? error_msg->c_str() : "unknown reason");
+      return af::FAILED;
+    }
+  }
   GE_CHK_STATUS_RET(LinkDanglingInputNodesToOutput(compute_graph), "Link dangling input nodes failed, graph:[%s].",
                     graph.GetName().c_str());
   GE_ASSERT_GRAPH_SUCCESS(ScheduleUtils::TopologicalSorting(graph));

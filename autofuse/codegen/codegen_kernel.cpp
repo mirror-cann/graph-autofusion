@@ -1955,12 +1955,6 @@ Status Kernel::ParseGraph(const ascir::ImplGraph &graph, const ascir::FusedSched
         // 不要将const_value放在参数第二个位置，会导致overload出现歧义
         GE_CHK_STATUS_RET(kernel.tpipe.AddTensor(const_value, *output, tensor_name), "Codegen add tensor failed");
         GE_CHK_STATUS_RET(kernel.ParseOptimizeInfo(node, *output));
-      } else if (IsOps<ScalarData>(node)) {
-        GELOGI("ScalarData node const value %s", node->GetName().c_str());
-        // 不要将const_value放在参数第二个位置，会导致overload出现歧义
-        GE_CHK_STATUS_RET(kernel.tpipe.AddTensor(GenValidName(node->GetName()), *output, tensor_name),
-                          "Codegen add tensor failed");
-        GE_CHK_STATUS_RET(kernel.ParseOptimizeInfo(node, *output));
       } else if (IsOps<IndexExpr>(node)) {
         int64_t size_id = 0;
         auto ir_attr = node->attr.ir_attr.get();
@@ -1995,7 +1989,14 @@ Status Kernel::ParseGraph(const ascir::ImplGraph &graph, const ascir::FusedSched
     auto desc = node->GetOpDesc();
     for (auto output : node->outputs()) {
       auto tensor_name = node->GetName() + "_" + desc->GetOutputNameByIndex(af::ascir::AscTensorUtils::Index(*output));
-      kernel.tpipe.AddTensor(*output, tensor_name);
+      if (IsOps<ScalarData>(node)) {
+        GELOGI("ScalarData node const value %s", node->GetName().c_str());
+        GE_CHK_STATUS_RET(kernel.tpipe.AddTensor(GenValidName(node->GetName()), *output, tensor_name),
+                          "Codegen add tensor failed");
+        GE_CHK_STATUS_RET(kernel.ParseOptimizeInfo(node, *output));
+      } else {
+        GE_CHK_STATUS_RET(kernel.tpipe.AddTensor(*output, tensor_name), "Codegen add tensor failed");
+      }
     }
   }
 

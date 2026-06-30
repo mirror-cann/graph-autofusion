@@ -37,11 +37,79 @@ PYF_PATH = os.path.dirname(os.path.realpath(__file__))
 ASCEND_PATH = os.path.join(PYF_PATH, "..", "..", "..")
 timestamp_list = []
 HOST_TILING_COMPILE_JOBS = 32
-StaticCompileContext = namedtuple("StaticCompileContext", ["kernel_name", "temp_dir", "graph_name", "vector_core_num"])
+_HOST_SOURCE_EXTENSIONS = ('.cpp', '.h', '.hpp')
+_SUPPORTED_CROSS_COMPILE_PREFIXES = {
+    ("linux", "aarch64"): "aarch64-linux-gnu-",
+    ("linux", "x86_64"): "x86_64-linux-gnu-",
+}
+
+StaticCompileContext = namedtuple("StaticCompileContext", ["kernel_name", 
+"temp_dir", "graph_name", "vector_core_num", "is_cross_compile_flag", "cross_compiler_prefix", "target_machine"])
+
 CodegenCompileContext = namedtuple(
     "CodegenCompileContext",
     ["extra_params", "vector_core_num", "ai_core_num_limited", "device_id", "static_compile_vector_core_num"],
 )
+
+CrossCompileInfo = namedtuple("CrossCompileInfo",
+    ["is_cross_compile_flag", "cross_compiler_prefix", "target_machine"])
+
+HostCompileContext = namedtuple("HostCompileContext",
+    ["graph_name", "kernel_name", "host_build_dir", "is_last_compile", "is_static_shape", "is_cube"])
+
+ShapeCompileContext = namedtuple("ShapeCompileContext",
+    ["kernel_name", "temp_dir", "graph_name"])
+
+
+def get_target_machine(params):
+    host_env_cpu = params.get("host_env_cpu", "")
+    if host_env_cpu:
+        return host_env_cpu
+    return platform.machine()
+
+
+def is_cross_compile(params):
+    host_env_cpu = params.get("host_env_cpu", "")
+    native_machine = platform.machine()
+    result = host_env_cpu != "" and host_env_cpu != native_machine
+    return result
+
+
+def get_cross_compiler_prefix(params):
+    host_env_os = params.get("host_env_os", "")
+    host_env_cpu = params.get("host_env_cpu", "")
+    prefix = _SUPPORTED_CROSS_COMPILE_PREFIXES.get((host_env_os, host_env_cpu))
+    if prefix is None:
+        raise ValueError(
+            f"Unsupported cross-compile configuration: host_env_os='{host_env_os}', "
+            f"host_env_cpu='{host_env_cpu}'. "
+            f"Supported: {list(_SUPPORTED_CROSS_COMPILE_PREFIXES.keys())}")
+    return prefix
+
+
+def get_native_host_so_path(host_build_dir, kernel_name):
+    return os.path.join(host_build_dir + "_native", f"lib{kernel_name}.so")
+
+
+def _copy_host_source_files(src_dir, dst_dir):
+    os.makedirs(dst_dir, exist_ok=True)
+    for item in os.listdir(src_dir):
+        src_path = os.path.join(src_dir, item)
+        if os.path.isfile(src_path):
+            if item.endswith(_HOST_SOURCE_EXTENSIONS):
+                shutil.copy2(src_path, os.path.join(dst_dir, item))
+        elif os.path.isdir(src_path):
+            _copy_host_source_files(src_path, os.path.join(dst_dir, item))
+
+
+def compile_native_host_so(host_ctx):
+    graph_name, kernel_name, host_build_dir, is_last_compile, is_static_shape, is_cube = host_ctx
+    native_build_dir = host_build_dir + "_native"
+    if os.path.exists(native_build_dir):
+        shutil.rmtree(native_build_dir)
+    _copy_host_source_files(host_build_dir, native_build_dir)
+    ascbc_host_compile(host_ctx._replace(host_build_dir=native_build_dir))
+
 CV_COMMON_MIX_WHITE_LIST = [
     4096, 4097, 4112, 4113, 4160, 4161, 4176, 4177,
     8192, 8208, 8256, 8272,
@@ -59,14 +127,21 @@ CV_COMMON_BMM_MIX_WHITE_LIST = [
 ]
 
 
-def generate_cmake_lists(asc_graph_name, kernel_name, host_build_dir, is_last_compile, is_static_shape, is_cube=False):
+def generate_cmake_lists(host_ctx, cross_info=None):
+    graph_name, kernel_name, host_build_dir, is_last_compile, is_static_shape, is_cube = host_ctx
+    is_cross_compile_flag = cross_info.is_cross_compile_flag if cross_info else False
+    target_machine = cross_info.target_machine if cross_info else None
     source = f"################ {kernel_name}.so ################\n"
 
     machine = platform.machine()
     source += "cmake_minimum_required(VERSION 3.16.0)\n"
     source += "project(asc_codegen)\n"
     source += f"set(CMAKE_CXX_STANDARD 17)\n"
-    source += f"link_directories({ASCEND_PATH}/{machine}-linux/lib64/\n"
+    if is_cross_compile_flag and target_machine:
+        source += f"link_directories({ASCEND_PATH}/devlib/{target_machine}/\n"
+        source += f"                  {ASCEND_PATH}/devlib/device/\n"
+    else:
+        source += f"link_directories({ASCEND_PATH}/{machine}-linux/lib64/\n"
     source += f")\n\n"
 
     source += f"file(GLOB ALL_CPP_SRCS\n"
@@ -79,15 +154,10 @@ def generate_cmake_lists(asc_graph_name, kernel_name, host_build_dir, is_last_co
     source += ")\n\n"
     source += f"add_library({kernel_name} SHARED ${{ALL_CPP_SRCS}})\n\n"
 
-    source += f"target_compile_options({kernel_name} PRIVATE\n"
-    if is_static_shape:
-        source += ("    -O0 -fno-common -Werror -Wextra -Wfloat-equal -fvisibility=default -DLOG_CPP"
-                   " -ffile-prefix-map=${CMAKE_CURRENT_SOURCE_DIR}/=\n")
-    else:
-        source += ("    -O2 -fno-common -Werror -Wextra -Wfloat-equal -fvisibility=default -DLOG_CPP"
-                   " -ffile-prefix-map=${CMAKE_CURRENT_SOURCE_DIR}/=\n")
-
-    source += ")\n\n"
+    opt_level = "-O0" if is_static_shape else "-O2"
+    source += (f"target_compile_options({kernel_name} PRIVATE\n"
+               f"    {opt_level} -fno-common -Werror -Wextra -Wfloat-equal -fvisibility=default -DLOG_CPP"
+               f" -ffile-prefix-map=${{CMAKE_CURRENT_SOURCE_DIR}}/=\n)\n\n")
     source += f"message(STATUS \"Using environment variable ASCEND_INSTALL_PATH: {ASCEND_PATH}\")\n"
     source += (f"target_link_libraries({kernel_name} PRIVATE c_sec ascendalog platform error_manager"
                f" tiling_api graph_base register)\n")
@@ -119,13 +189,20 @@ def generate_file(dst_dir, file_name, text, append=False):
         file.write(text)
 
 
-def ascbc_host_compile(graph_name, kernel_name, host_build_dir, is_last_compile, is_static_shape, is_cube=False):
-    generate_cmake_lists(graph_name, kernel_name, host_build_dir, is_last_compile, is_static_shape, is_cube)
+def ascbc_host_compile(host_ctx, cross_info=None):
+    graph_name, kernel_name, host_build_dir, is_last_compile, is_static_shape, is_cube = host_ctx
+    cross_compiler_prefix = cross_info.cross_compiler_prefix if cross_info else None
+    generate_cmake_lists(host_ctx, cross_info=cross_info)
     ori_directory = os.getcwd()
     # 切换到临时工作目录
     os.chdir(host_build_dir)
 
-    cmake_command = ["cmake", "-S", ".", "-B", "./", "-DCMAKE_C_COMPILER=gcc", "-DCMAKE_CXX_COMPILER=g++"]
+    if cross_compiler_prefix:
+        cmake_command = ["cmake", "-S", ".", "-B", "./",
+                         f"-DCMAKE_C_COMPILER={cross_compiler_prefix}gcc",
+                         f"-DCMAKE_CXX_COMPILER={cross_compiler_prefix}g++"]
+    else:
+        cmake_command = ["cmake", "-S", ".", "-B", "./", "-DCMAKE_C_COMPILER=gcc", "-DCMAKE_CXX_COMPILER=g++"]
 
     # 运行CMake
     cmake_ret = subprocess.run(cmake_command, capture_output=True, text=True)
@@ -210,7 +287,7 @@ def check_keys_in_dict(d, keys):
     return True
 
 
-def modify_json_file(json_file, host_so):
+def modify_json_file(json_file, host_so, is_cross_compile_flag=False):
     """
     修改json文件中的binFileName/binFileSuffix
     """
@@ -221,9 +298,16 @@ def modify_json_file(json_file, host_so):
     lib_file_suffix = ".so"
     data['binFileName'] = lib_file_name
     data['binFileSuffix'] = lib_file_suffix
+
+    ctypes_so = host_so
+    if is_cross_compile_flag:
+        host_dir = os.path.dirname(host_so)
+        so_name = os.path.basename(host_so)
+        ctypes_so = os.path.join(host_dir + "_native", so_name)
+
     import ctypes
     # 加载共享库
-    lib = ctypes.CDLL(host_so)
+    lib = ctypes.CDLL(ctypes_so)
 
     # 定义函数参数和返回类型
     lib.GetTilingDataSize.argtypes = []
@@ -333,15 +417,21 @@ def log_core_limit_info(codegen_context):
 
 
 def static_shape_compile(kernel_name, temp_dir, graph_name, tiling_key_list=None, kernel_type_list=None,
-                         use_cv_common=None, is_cube=False, vector_core_num=None):
+                         use_cv_common=None, is_cube=False, vector_core_num=None,
+                         is_cross_compile_flag=False, cross_compiler_prefix=None, target_machine=None):
     if use_cv_common and use_cv_common[0]:
         host_build_dir = os.path.join(temp_dir, "host", "cv_common")
     else:
         host_build_dir = os.path.join(temp_dir, "host")
-    ascbc_host_compile(graph_name, kernel_name, host_build_dir, False, True, is_cube)
+    ascbc_host_compile(HostCompileContext(graph_name, kernel_name, host_build_dir, False, True, is_cube),
+                        cross_info=CrossCompileInfo(is_cross_compile_flag, cross_compiler_prefix, target_machine))
+    if is_cross_compile_flag:
+        compile_native_host_so(HostCompileContext(graph_name, kernel_name, host_build_dir, False, True, is_cube))
 
     kernel_src = graph_name + "_op_kernel.cpp"
     host_so = os.path.join(host_build_dir, f"lib{kernel_name}.so")
+    if is_cross_compile_flag:
+        host_so = get_native_host_so_path(host_build_dir, kernel_name)
     pgo_config_path = os.path.abspath(
         os.path.join(temp_dir, "..", "..", "pgo", f"{graph_name}_config.txt")
     )
@@ -362,7 +452,7 @@ def static_shape_compile(kernel_name, temp_dir, graph_name, tiling_key_list=None
     const_tiling_data = result.decode('utf-8')
     if hasattr(lib, 'GetCVUBFusionStageSizeName'):
         stage_size_name = get_cv_ub_fusion_stage_size_name(kernel_name=kernel_name, temp_dir=temp_dir,
-                                                           graph_name=graph_name)
+                                                            graph_name=graph_name, host_so=host_so)
         const_tiling_data = const_tiling_data + f"\n#define STAGE_SIZE_NAME " + stage_size_name + "\n"
 
     if use_cv_common and use_cv_common[0]:
@@ -398,15 +488,21 @@ def static_shape_compile(kernel_name, temp_dir, graph_name, tiling_key_list=None
     static_shape_kernel_proc(kernel_src, temp_dir, kernel_type, use_cv_common=use_cv_common)
 
 
-def dynamic_shape_compile(kernel_name, temp_dir, graph_name, use_cv_common=None, is_cube=False):
+def dynamic_shape_compile(compile_ctx, use_cv_common=None, is_cube=False, cross_info=None):
+    kernel_name, temp_dir, graph_name = compile_ctx
+    is_cross_compile_flag = cross_info.is_cross_compile_flag if cross_info else False
     if use_cv_common and use_cv_common[0]:
         host_build_dir = os.path.join(temp_dir, "host", "cv_common")
     else:
         host_build_dir = os.path.join(temp_dir, "host")
-    ascbc_host_compile(graph_name, kernel_name, host_build_dir, False, True, is_cube)
+    ascbc_host_compile(HostCompileContext(graph_name, kernel_name, host_build_dir, False, True, is_cube),
+                       cross_info=cross_info)
+    if is_cross_compile_flag:
+        compile_native_host_so(HostCompileContext(graph_name, kernel_name, host_build_dir, False, True, is_cube))
 
     host_so = os.path.join(host_build_dir, f"lib{kernel_name}.so")
-
+    if is_cross_compile_flag:
+        host_so = get_native_host_so_path(host_build_dir, kernel_name)
 
     import ctypes
     lib = ctypes.CDLL(host_so)
@@ -417,7 +513,7 @@ def dynamic_shape_compile(kernel_name, temp_dir, graph_name, use_cv_common=None,
     const_tiling_data = ""
     if hasattr(lib, 'GetCVUBFusionStageSizeName'):
         stage_size_name = get_cv_ub_fusion_stage_size_name(kernel_name=kernel_name, temp_dir=temp_dir,
-                                                            graph_name=graph_name)
+                                                            graph_name=graph_name, host_so=host_so)
         const_tiling_data = const_tiling_data + f"\n#define STAGE_SIZE_NAME " + stage_size_name + "\n"
 
     if use_cv_common and use_cv_common[0]:
@@ -433,10 +529,15 @@ def dynamic_shape_compile(kernel_name, temp_dir, graph_name, use_cv_common=None,
         file.write(const_tiling_data)
 
 
-def static_shape_cv_compile(kernel_name, temp_dir, graph_name, vector_core_num=None):
-    host_build_dir = os.path.join(temp_dir, "host")
-    ascbc_host_compile(graph_name, kernel_name, host_build_dir, False, True, True)
+def _compile_and_load_cv_host_so(kernel_name, graph_name, host_build_dir, temp_dir, cross_info=None):
+    is_cross_compile_flag = cross_info.is_cross_compile_flag if cross_info else False
+    ascbc_host_compile(HostCompileContext(graph_name, kernel_name, host_build_dir, False, True, True),
+                       cross_info=cross_info)
+    if is_cross_compile_flag:
+        compile_native_host_so(HostCompileContext(graph_name, kernel_name, host_build_dir, False, True, True))
     host_so = os.path.join(host_build_dir, f"lib{kernel_name}.so")
+    if is_cross_compile_flag:
+        host_so = get_native_host_so_path(host_build_dir, kernel_name)
     pgo_config_path = os.path.abspath(
         os.path.join(temp_dir, "..", "..", "pgo", f"{graph_name}_config.txt")
     )
@@ -445,17 +546,26 @@ def static_shape_cv_compile(kernel_name, temp_dir, graph_name, vector_core_num=N
     lib = ctypes.CDLL(host_so)
     CommonUtility.print_compile_log("", f"static shape cv compile", AscendCLogLevel.LOG_INFO)
     ascendc_clean(temp_dir)
+    return lib, pgo_config_path
+
+
+def static_shape_cv_compile(kernel_name, temp_dir, graph_name, vector_core_num=None, cross_info=None):
+    host_build_dir = os.path.join(temp_dir, "host")
+    lib, pgo_config_path = _compile_and_load_cv_host_so(
+        kernel_name, graph_name, host_build_dir, temp_dir, cross_info=cross_info)
     result = -1
     if hasattr(lib, 'GenCVFusionTilingKey'):
+        import ctypes
         result = lib.GenCVFusionTilingKey(ctypes.c_char_p(pgo_config_path.encode('utf-8')),
                                           ctypes.c_int(get_static_compile_vector_core_num(vector_core_num)),
                                           ctypes.c_int(int(get_soc_spec('ub_size'))))
     return result
 
 
-def get_cv_ub_fusion_stage_size_name(kernel_name, temp_dir, graph_name):
-    host_build_dir = os.path.join(temp_dir, "host")
-    host_so = os.path.join(host_build_dir, f"lib{kernel_name}.so")
+def get_cv_ub_fusion_stage_size_name(kernel_name, temp_dir, graph_name, host_so):
+    if host_so is None:
+        host_build_dir = os.path.join(temp_dir, "host")
+        host_so = os.path.join(host_build_dir, f"lib{kernel_name}.so")
     pgo_config_path = os.path.abspath(
         os.path.join(temp_dir, "..", "..", "pgo", f"{graph_name}_config.txt")
     )
@@ -471,21 +581,14 @@ def get_cv_ub_fusion_stage_size_name(kernel_name, temp_dir, graph_name):
     return stage_size_name
 
 
-def static_shape_cv_common_compile(kernel_name, temp_dir, graph_name, vector_core_num=None):
+def static_shape_cv_common_compile(kernel_name, temp_dir, graph_name, vector_core_num=None, cross_info=None):
     host_build_dir = os.path.join(temp_dir, "host", "cv_common")
-    ascbc_host_compile(graph_name, kernel_name, host_build_dir, False, True, True)
-    host_so = os.path.join(host_build_dir, f"lib{kernel_name}.so")
-    pgo_config_path = os.path.abspath(
-        os.path.join(temp_dir, "..", "..", "pgo", f"{graph_name}_config.txt")
-    )
-
-    import ctypes
-    lib = ctypes.CDLL(host_so)
-    CommonUtility.print_compile_log("", f"static shape cv compile", AscendCLogLevel.LOG_INFO)
-    ascendc_clean(temp_dir)
+    lib, pgo_config_path = _compile_and_load_cv_host_so(
+        kernel_name, graph_name, host_build_dir, temp_dir, cross_info=cross_info)
     vec_block_dim = -1
     wss = -1
     if hasattr(lib, 'GenTilingDataValueBlockDimAndWss'):
+        import ctypes
         # 创建变量接收返回值
         workspace_size = ctypes.c_uint32()
         block_dim = ctypes.c_uint32()
@@ -658,7 +761,7 @@ def pgo_kernel_compile(*args, temp_dir, params, op_kernel_src, code_gen):
         return False, []
     get_kernel_src = code_gen.get_kernel_and_json_generator(kernel_file, json_file)
     generate_file(host_build_dir, graph_name + "_get_kernel.cpp", get_kernel_src)
-    ascbc_host_compile(graph_name, kernel_name, host_build_dir, True, False)
+    ascbc_host_compile(HostCompileContext(graph_name, kernel_name, host_build_dir, True, False, False))
     source_lib_path = os.path.join(host_build_dir, f"lib{kernel_name}.so")
     target_lib_path = os.path.join(pgo_dir, f"lib{graph_name}.so")
     shutil.copy(source_lib_path, target_lib_path)
@@ -801,6 +904,29 @@ def replace_kernel(kernel_build_dir, graph_name):
     if replace_root is None:
         return
     replace_device_kernel(replace_root, kernel_build_dir, graph_name)
+
+
+def _clean_cmake_cache(host_build_dir):
+    for cache_file in ["CMakeCache.txt", "cmake_install.cmake"]:
+        cache_path = os.path.join(host_build_dir, cache_file)
+        if os.path.exists(cache_path):
+            os.remove(cache_path)
+    cmake_files_dir = os.path.join(host_build_dir, "CMakeFiles")
+    if os.path.exists(cmake_files_dir):
+        shutil.rmtree(cmake_files_dir)
+
+
+def _run_pgo_and_clean_cache(*args, temp_dir, params, op_kernel_src,
+                              cross_compile_flag, host_build_dir):
+    pgo_env = get_pgo_env_flag()
+    use_list_tensor_desc = op_kernel_src.find('kernel_operator_list_tensor_intf.h') > 0
+    enable_parallel_compile = op_kernel_src.rfind('void fake_tiling_ids()') > 0
+    if not pgo_env or enable_parallel_compile or use_list_tensor_desc:
+        return
+    asc_pgo_exec(*args, temp_dir=temp_dir, params=params, op_kernel_src=op_kernel_src, code_gen=CodeGen())
+    if cross_compile_flag:
+        _clean_cmake_cache(host_build_dir)
+        _clean_cmake_cache(os.path.join(host_build_dir, "cv_common"))
 
 
 def get_host_build_dir(temp_dir, use_cv_common):
@@ -1220,12 +1346,15 @@ def is_matmul_relu_fixpip(tiling_info, cube_info):
 
 def template_decider(compile_context, tiling_info, cube_info, is_conv=False):
     _, is_batch, cube_block_dim, use_cv_common, has_relu = cube_info[:5]
-    tiling_key = static_shape_cv_compile(
-        kernel_name=compile_context.kernel_name,
-        temp_dir=compile_context.temp_dir,
-        graph_name=compile_context.graph_name,
-        vector_core_num=compile_context.vector_core_num,
-    )
+    compile_kwargs = {
+        "kernel_name": compile_context.kernel_name, "temp_dir": compile_context.temp_dir,
+        "graph_name": compile_context.graph_name, "vector_core_num": compile_context.vector_core_num,
+    }
+    cross_info = CrossCompileInfo(
+        is_cross_compile_flag=compile_context.is_cross_compile_flag,
+        cross_compiler_prefix=compile_context.cross_compiler_prefix,
+        target_machine=compile_context.target_machine)
+    tiling_key = static_shape_cv_compile(**compile_kwargs, cross_info=cross_info)
     host_tiling_content = f"#define CUBE_TILING_KEY {tiling_key}\n"
     logger.info("CV fusion op, get vector tilingkey(%s)", tiling_key)
     use_cv_common = use_cv_common or [False]
@@ -1234,24 +1363,19 @@ def template_decider(compile_context, tiling_info, cube_info, is_conv=False):
     if (is_matmul_relu_fixpip(tiling_info, cube_info) and not is_conv):
         host_tiling_content += f"#define CUBE_BLOCK_DIM {cube_block_dim}\n"
         logger.info("CV fusion op, entering fixpip fusion mode.")
-        tiling_info.file_content += "\n#define CV_UB_NO_DB 1\n" # 防止编译问题
+        tiling_info.file_content += "\n#define CV_UB_NO_DB 1\n"  # 防止编译问题
     elif ((tiling_key == -1 or cube_tiling_key_ub != 1) and not is_conv):
         is_in_mix_white_list = (is_batch and tiling_info.tiling_key in CV_COMMON_BMM_MIX_WHITE_LIST) or (
-                not is_batch and tiling_info.tiling_key in CV_COMMON_MIX_WHITE_LIST)
+            not is_batch and tiling_info.tiling_key in CV_COMMON_MIX_WHITE_LIST)
         if is_in_mix_white_list:
             tiling_info.file_content += "\n#define CV_SAFETY_FUSION_MIX_MODE 1\n"
         logger.info("CV fusion op, entering safety fusion mode. vector_tiling_key=%s, is_batch=%s, cube_tiling_key=%s",
                     tiling_key, is_batch, tiling_info.tiling_key)
         tiling_info.file_content += "\n#define CV_SAFETY_FUSION 1\n"
         use_cv_common[0] = True
-        vec_block_dim, wss = static_shape_cv_common_compile(
-            kernel_name=compile_context.kernel_name,
-            temp_dir=compile_context.temp_dir,
-            graph_name=compile_context.graph_name,
-            vector_core_num=compile_context.vector_core_num,
-        )
-        logger.info("CV fusion op, CV_AIC_NUM=[%s] CV_AIV_NUM=[%s] CV_VEC_WSS=[%s]", str(cube_block_dim),
-                    str(vec_block_dim), str(wss))
+        vec_block_dim, wss = static_shape_cv_common_compile(**compile_kwargs, cross_info=cross_info)
+        logger.info("CV fusion op, CV_AIC_NUM=[%s] CV_AIV_NUM=[%s] CV_VEC_WSS=[%s]",
+                    str(cube_block_dim), str(vec_block_dim), str(wss))
         for name, value in [("CV_AIC_NUM", cube_block_dim), ("CV_AIV_NUM", vec_block_dim), ("CV_VEC_WSS", wss)]:
             if value >= 0:
                 tiling_info.file_content += f"\n#define {name} {value}\n"
@@ -1484,7 +1608,10 @@ def ascbc_conv_kernel_tiling_pro(
     cube_attrs,
     tiling_key_list,
     use_cv_common=None,
-    vector_core_num=None
+    vector_core_num=None,
+    is_cross_compile_flag=False,
+    cross_compiler_prefix=None,
+    target_machine=None
 ):
     graph_name = camel_to_snake(graph_name)
     args_list = args[0]
@@ -1554,7 +1681,8 @@ def ascbc_conv_kernel_tiling_pro(
     cube_output_type_size = cube_attributes.get("type_size", 4)
     cube_info = [cube_output_type_size, False, cube_block_dim, use_cv_common, False, is_bias, is_offset_w,
                  _origin_inputs_, _origin_outputs_]
-    compile_context = StaticCompileContext(kernel_name, temp_dir, graph_name, vector_core_num)
+    compile_context = StaticCompileContext(kernel_name, temp_dir, graph_name, vector_core_num,
+                                            is_cross_compile_flag, cross_compiler_prefix, target_machine)
     create_conv_tiling_data(compile_context, tiling_info, cube_info, cube_attributes)
 
 
@@ -1569,7 +1697,10 @@ def ascbc_matmul_kernel_tiling_pro(
     cube_attrs,
     tiling_key_list,
     use_cv_common=None,
-    vector_core_num=None
+    vector_core_num=None,
+    is_cross_compile_flag=False,
+    cross_compiler_prefix=None,
+    target_machine=None
 ):
     graph_name = camel_to_snake(graph_name)
     args_list = args[0]
@@ -1620,7 +1751,8 @@ def ascbc_matmul_kernel_tiling_pro(
     cube_output_type_size = cube_attributes.get("type_size", 4)
     cube_info = [cube_output_type_size, is_batch, cube_block_dim, use_cv_common, has_relu, _origin_inputs_,
                  _origin_outputs_]
-    compile_context = StaticCompileContext(kernel_name, temp_dir, graph_name, vector_core_num)
+    compile_context = StaticCompileContext(kernel_name, temp_dir, graph_name, vector_core_num,
+                                            is_cross_compile_flag, cross_compiler_prefix, target_machine)
     create_matmul_tiling_data(compile_context, tiling_info, cube_info)
 
 
@@ -1676,7 +1808,10 @@ def asc_graph_compile_post(
     json_file,
     kernel_name,
     static_compile_flag,
-    is_cube=False
+    is_cube=False,
+    is_cross_compile_flag=False,
+    cross_compiler_prefix=None,
+    target_machine=None
 ):
     # 生成get_kernel.cpp代码
     timestamp_set(True, graph_name, "GenGetKernel")
@@ -1686,14 +1821,24 @@ def asc_graph_compile_post(
 
     #重新编译host so
     timestamp_set(True, graph_name, "CompileSecondHost")
-    ascbc_host_compile(graph_name, kernel_name, host_build_dir, True, static_compile_flag, is_cube)
+    ascbc_host_compile(HostCompileContext(graph_name, kernel_name, host_build_dir, True, static_compile_flag, is_cube),
+                        cross_info=CrossCompileInfo(is_cross_compile_flag, cross_compiler_prefix, target_machine))
+    if is_cross_compile_flag:
+        compile_native_host_so(HostCompileContext(graph_name, kernel_name, host_build_dir,
+                                                   True, static_compile_flag, is_cube))
     timestamp_set(False, graph_name, "CompileSecondHost", True)
 
     #拷贝so和json
     host_so = os.path.join(host_build_dir, f"lib{kernel_name}.so")
     kernel_meta_dir = get_current_build_config("kernel_meta_parent_dir")
-    shutil.copy(host_so, os.path.join(kernel_meta_dir, "kernel_meta"))
-    modify_json_file(json_file, host_so)
+    dest = os.path.join(kernel_meta_dir, "kernel_meta")
+    shutil.copy(host_so, dest)
+    if is_cross_compile_flag:
+        native_host_so = os.path.join(host_build_dir + "_native", f"lib{kernel_name}.so")
+        native_so_name = f"lib{kernel_name}_native.so"
+        native_dest_path = os.path.join(dest, native_so_name)
+        shutil.copy(native_host_so, native_dest_path)
+    modify_json_file(json_file, host_so, is_cross_compile_flag=is_cross_compile_flag)
     if os.path.exists(kernel_file):
         os.remove(kernel_file)
 
@@ -1740,6 +1885,10 @@ def asc_graph_compile(*args, temp_dir, params):
     kernel_name = args[-1]
     code_gen = CodeGen()
 
+    cross_compile_flag = is_cross_compile(params)
+    cross_compiler_prefix = get_cross_compiler_prefix(params) if cross_compile_flag else None
+    target_machine = get_target_machine(params) if cross_compile_flag else None
+
     op_kernel_src, tiling_func_srcs = generate_device_and_host_code(
         graph_name=graph_name, temp_dir=temp_dir, params=params, code_gen=code_gen)
     static_compile_flag = is_static_compile(params, tiling_func_srcs)
@@ -1756,18 +1905,26 @@ def asc_graph_compile(*args, temp_dir, params):
                                              input_num=input_num, output_num=output_num,
                                              use_list_tensor_desc=use_list_tensor_desc, cube_attrs=cube_attrs,
                                              tiling_key_list=tiling_key_list, use_cv_common=use_cv_common,
-                                             vector_core_num=vector_core_num)
+                                             vector_core_num=vector_core_num,
+                                             is_cross_compile_flag=cross_compile_flag,
+                                             cross_compiler_prefix=cross_compiler_prefix,
+                                             target_machine=target_machine)
             else:
                 ascbc_matmul_kernel_tiling_pro(args, temp_dir=temp_dir, graph_name=graph_name, kernel_name=kernel_name,
                                                input_num=input_num, output_num=output_num,
                                                use_list_tensor_desc=use_list_tensor_desc, cube_attrs=cube_attrs,
                                                tiling_key_list=tiling_key_list, use_cv_common=use_cv_common,
-                                               vector_core_num=vector_core_num)
+                                               vector_core_num=vector_core_num,
+                                               cross_compiler_prefix=cross_compiler_prefix,
+                                               is_cross_compile_flag=cross_compile_flag,
+                                               target_machine=target_machine)
             replace_host_files_if_needed(
                 replace_root, temp_dir, use_cv_common, graph_name)
             static_shape_compile(kernel_name=kernel_name, temp_dir=temp_dir, graph_name=graph_name,
                                  tiling_key_list=tiling_key_list, kernel_type_list=kernel_type_list,
-                                 use_cv_common=use_cv_common, is_cube=is_cube, vector_core_num=vector_core_num)
+                                 use_cv_common=use_cv_common, is_cube=is_cube, vector_core_num=vector_core_num,
+                                  is_cross_compile_flag=cross_compile_flag, cross_compiler_prefix=cross_compiler_prefix,
+                                  target_machine=target_machine)
         else:
             if (not is_conv):
                 replace_host_files_if_needed(
@@ -1777,18 +1934,23 @@ def asc_graph_compile(*args, temp_dir, params):
                                                        output_num=output_num,
                                                        use_list_tensor_desc=use_list_tensor_desc,
                                                        cube_attrs=cube_attrs, use_cv_common=use_cv_common)
-                dynamic_shape_compile(kernel_name=kernel_name, temp_dir=temp_dir, graph_name=graph_name,
-                                      use_cv_common=use_cv_common, is_cube=is_cube)
+                dynamic_shape_compile(ShapeCompileContext(kernel_name, temp_dir, graph_name),
+                                      use_cv_common=use_cv_common, is_cube=is_cube,
+                                      cross_info=CrossCompileInfo(cross_compile_flag, 
+                                                                  cross_compiler_prefix, target_machine))
 
     elif static_compile_flag:
-        pgo_env = get_pgo_env_flag()
-        if pgo_env and not enable_parallel_compile and not use_list_tensor_desc:
-            asc_pgo_exec(*args, temp_dir=temp_dir, params=params, op_kernel_src=op_kernel_src, code_gen=CodeGen())
+        _run_pgo_and_clean_cache(*args, temp_dir=temp_dir, params=params,
+                                  op_kernel_src=op_kernel_src,
+                                  cross_compile_flag=cross_compile_flag,
+                                  host_build_dir=host_build_dir)
         replace_host_files_if_needed(replace_root, temp_dir, use_cv_common, graph_name)
         timestamp_set(True, graph_name, "CompileHost")
         static_shape_compile(kernel_name=kernel_name, temp_dir=temp_dir, graph_name=graph_name,
                              tiling_key_list=tiling_key_list, kernel_type_list=kernel_type_list,
-                             vector_core_num=vector_core_num)
+                             vector_core_num=vector_core_num,
+                              is_cross_compile_flag=cross_compile_flag, cross_compiler_prefix=cross_compiler_prefix,
+                              target_machine=target_machine)
         timestamp_set(False, graph_name, "CompileHost")
 
     kernel_build_dir = get_device_build_dir(temp_dir, use_cv_common)
@@ -1804,7 +1966,9 @@ def asc_graph_compile(*args, temp_dir, params):
     timestamp_set(False, graph_name, "CompileDevice")
     host_build_dir = get_host_build_dir(temp_dir, use_cv_common)
     asc_graph_compile_post(host_build_dir, code_gen, graph_name, kernel_file,
-                           json_file, kernel_name, static_compile_flag, is_cube)
+                           json_file, kernel_name, static_compile_flag, is_cube,
+                            is_cross_compile_flag=cross_compile_flag, cross_compiler_prefix=cross_compiler_prefix,
+                            target_machine=target_machine)
 
 
 def compute_graph_compile(*args, temp_dir, params, vector_core_num, device_id):
@@ -1833,6 +1997,8 @@ def compute_graph_compile(*args, temp_dir, params, vector_core_num, device_id):
     asc_param['output_symbol_shape'] = params.get('output_symbol_shape', "[]")
     asc_param['vector_core_num'] = vector_core_num
     asc_param['device_id'] = device_id
+    asc_param['host_env_os'] = params.get('host_env_os', '')
+    asc_param['host_env_cpu'] = params.get('host_env_cpu', '')
     asc_graph_compile(*args, temp_dir=temp_dir, params=asc_param)
 
 

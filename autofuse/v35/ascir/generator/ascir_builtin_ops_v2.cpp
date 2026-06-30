@@ -1038,6 +1038,16 @@ REG_ASC_IR(RShift)
     .ComputeType(ComputeType::kComputeElewise)
     .Impl(v2_soc_versions, {af::ascir::AscIrImplCreator<af::ascir::RShiftAscIrAttImplV2>(),
                             af::ascir::AscIrImplCreator<af::ascir::RShiftAscIrCodegenImplV2>(),
-                            {{"T1", MakeT1List(kRShiftTypePairs)}, {"T2", MakeT2List(kRShiftTypePairs)}}});
+                             {{"T1", MakeT1List(kRShiftTypePairs)}, {"T2", MakeT2List(kRShiftTypePairs)}}});
+
+REG_ASC_IR(Unsupported)
+    .Inputs({})
+    .Output("y", "T")
+    .StartNode()
+    .Attr<std::string>("error_msg")
+    .ComputeType(ComputeType::kComputeInvalid)
+    .Impl(v2_soc_versions, {af::ascir::AscIrImplCreator<af::ascir::AscIrAttStubV2>(),
+                            af::ascir::AscIrImplCreator<af::ascir::UnsupportedAscIrCodegenImplV2>(),
+                            {{"T", TensorType{DT_FLOAT}}}});
 }  // namespace ascir
 }  // namespace af

@@ -3778,6 +3778,13 @@ class RemainderAscIrCodegenImplV2 : public AscIrCodegenV2 {
     return true;
   }
 };
+
+/*********************************************************************************/
+class UnsupportedAscIrCodegenImplV2 : public AscIrCodegenV2 {
+ public:
+  [[nodiscard]] std::string GetApiCallName() const override { return ""; }
+  [[nodiscard]] std::string GetApiName() const override { return "Unsupported"; }
+};
 }  // namespace ascir
 }  // namespace af
 
