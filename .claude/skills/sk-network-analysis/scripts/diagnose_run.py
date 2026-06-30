@@ -1137,14 +1137,6 @@ class EventStatsProvider:
         self._fallback_stats: dict[str, Any] | None = None
         self._global_stats: dict[tuple[str, ...], dict[str, Any]] = {}
 
-    @contextmanager
-    def _profile_section(self, name: str, **metadata: Any):
-        if self.profile is None:
-            yield
-            return
-        with self.profile.section(name, **metadata):
-            yield
-
     def register_process(
         self,
         process_label: str,
@@ -1292,6 +1284,14 @@ class EventStatsProvider:
             ):
                 self._fallback_stats = _collect_event_stats(self.run_dir, paths)
         return self._fallback_stats
+
+    @contextmanager
+    def _profile_section(self, name: str, **metadata: Any):
+        if self.profile is None:
+            yield
+            return
+        with self.profile.section(name, **metadata):
+            yield
 
     def _paths_for_process_stats(self, process_label: str) -> list[str]:
         label = str(process_label)
