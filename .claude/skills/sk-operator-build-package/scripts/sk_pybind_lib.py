@@ -136,15 +136,15 @@ def generate_pybind_artifacts(
     if not module_name:
         raise ValueError("adapted manifest missing pybind_module")
 
-    written_files = sorted(
-        _relative(path, adapted_dir)
-        for path in [
-            *csrc_sources,
-            *entry_pybind_paths,
-            *csrc_support,
-            *_required_tree_files(adapted_dir, package_dir_name),
-        ]
-    )
+    written_file_paths = []
+    written_file_paths.extend(csrc_sources)
+    written_file_paths.extend(entry_pybind_paths)
+    written_file_paths.extend(csrc_support)
+    written_file_paths.extend(_required_tree_files(adapted_dir, package_dir_name))
+    written_files = []
+    for path in written_file_paths:
+        written_files.append(_relative(path, adapted_dir))
+    written_files.sort()
 
     extension_modules_by_entry = {
         entry[

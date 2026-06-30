@@ -1314,6 +1314,7 @@ class EventStatsProvider:
             )
         return list(self._fallback_copied_paths or self._fallback_paths)
 
+
 def _update_scope_library(update_report: dict[str, Any]) -> dict[str, Any]:
     if "scope_library" in update_report and isinstance(
         update_report["scope_library"], dict
@@ -2396,18 +2397,6 @@ class ProgressTracker:
     def __exit__(self, exc_type, exc, traceback) -> None:
         self.close(complete=exc_type is None)
 
-    def _description(self) -> str:
-        worker_text = (
-            f" · workers {self.worker_count}" if self.worker_count is not None else ""
-        )
-        return (
-            f"Stage {self.stage_index}/{self.total_stages}: {self.label}{worker_text}"
-        )
-
-    def _fallback_line(self, state: str) -> str:
-        elapsed = max(0.0, time.monotonic() - self.started_at)
-        return f"{self._description()} · {state} ({self.completed}/{self.total_items}) · elapsed {elapsed:.1f}s"
-
     def start(self) -> None:
         if self._started:
             return
@@ -2454,6 +2443,17 @@ class ProgressTracker:
             )
         self._started = False
 
+    def _description(self) -> str:
+        worker_text = (
+            f" · workers {self.worker_count}" if self.worker_count is not None else ""
+        )
+        return (
+            f"Stage {self.stage_index}/{self.total_stages}: {self.label}{worker_text}"
+        )
+
+    def _fallback_line(self, state: str) -> str:
+        elapsed = max(0.0, time.monotonic() - self.started_at)
+        return f"{self._description()} · {state} ({self.completed}/{self.total_items}) · elapsed {elapsed:.1f}s"
 
 
 class ProfileRecorder:
@@ -6399,6 +6399,13 @@ document.querySelectorAll('[data-standard-table]').forEach(initStandardTablePane
     output_path.write_text(html_text, encoding="utf-8")
 
 
+def _comma_join_ids(values: Iterable[Any]) -> str:
+    parts = []
+    for value in values:
+        parts.append(str(value))
+    return ",".join(parts)
+
+
 class PerformanceReportHtmlInput(NamedTuple):
     run_dir: Path
     update_report: dict[str, Any]
@@ -6489,16 +6496,11 @@ def _render_performance_report_html(
                 event_count=html.escape(str(item.get("event_count", 0))),
                 total_dur=html.escape(str(item.get("total_duration", 0))),
                 matched_scopes=html.escape(
-                    ",".join(
-                        str(scope_id) for scope_id in item.get("matched_scope_ids", [])
-                    )
+                    _comma_join_ids(item.get("matched_scope_ids", []))
                     or "无"
                 ),
                 matched_nodes=html.escape(
-                    ",".join(
-                        str(node_id)
-                        for node_id in item.get("matched_event_node_ids", [])
-                    )
+                    _comma_join_ids(item.get("matched_event_node_ids", []))
                     or "无"
                 ),
                 judgment=html.escape(judgment),
@@ -6724,18 +6726,12 @@ def _render_performance_report_html(
                             event_count=html.escape(str(item.get("event_count", 0))),
                             total_dur=html.escape(str(item.get("total_duration", 0))),
                             matched_scopes=html.escape(
-                                ",".join(
-                                    str(scope_id)
-                                    for scope_id in item.get("matched_scope_ids", [])
-                                )
+                                _comma_join_ids(item.get("matched_scope_ids", []))
                                 or "none"
                             ),
                             matched_nodes=html.escape(
-                                ",".join(
-                                    str(node_id)
-                                    for node_id in item.get(
-                                        "matched_event_node_ids", []
-                                    )
+                                _comma_join_ids(
+                                    item.get("matched_event_node_ids", [])
                                 )
                                 or "none"
                             ),
@@ -7404,16 +7400,14 @@ def main() -> None:
                     shutil.rmtree(stale_dir)
         multi_model_mode = bundle_mode
         if model_report_entries:
-            primary_entry = next(
-                (
-                    entry
-                    for entry in model_report_entries
-                    if entry.get("scope_library_json")
-                    and entry.get("graph_library_json")
-                    and entry.get("dfx_library_json")
-                ),
-                model_report_entries[0],
-            )
+            primary_entry = model_report_entries[0]
+            for entry in model_report_entries:
+                has_scope_library = entry.get("scope_library_json")
+                has_graph_library = entry.get("graph_library_json")
+                has_dfx_library = entry.get("dfx_library_json")
+                if has_scope_library and has_graph_library and has_dfx_library:
+                    primary_entry = entry
+                    break
             scope_library_json = primary_entry.get("scope_library_json")
             graph_library_json = primary_entry.get("graph_library_json")
             dfx_library_json = primary_entry.get("dfx_library_json")

@@ -3524,16 +3524,16 @@ def _load_current_sk_runtime_input_spec(output_dir: Path) -> dict[str, Any]:
         raise CliUsageError(f"invalid sk runtime input spec status: {status}")
     if status != "defined":
         raise CliUsageError("sk runtime input spec not defined")
-        expected = _summarize_sk_runtime_input_spec(
-            RuntimeInputSpecSummaryInput(
-                output_dir,
-                analysis,
-                source_scaffold,
-                build_validation,
-                source_version,
-                source_version_validation,
-            )
+    expected = _summarize_sk_runtime_input_spec(
+        RuntimeInputSpecSummaryInput(
+            output_dir,
+            analysis,
+            source_scaffold,
+            build_validation,
+            source_version,
+            source_version_validation,
         )
+    )
     if runtime_spec != expected:
         raise CliUsageError("sk runtime input spec mismatch")
     return runtime_spec

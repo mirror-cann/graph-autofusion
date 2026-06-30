@@ -4427,13 +4427,15 @@ def _pipeline_stage_status_from_artifact(artifact: dict[str, Any]) -> str:
 
 
 def _pipeline_stage_supported_next_actions(artifact: dict[str, Any]) -> list[str]:
-    return [
-        _require_string(item, "source version pipeline stage supported next action")
-        for item in _require_list(
-            artifact.get("supported_next_actions", []),
-            "source version pipeline stage supported_next_actions",
+    actions = []
+    for item in _require_list(
+        artifact.get("supported_next_actions", []),
+        "source version pipeline stage supported_next_actions",
+    ):
+        actions.append(
+            _require_string(item, "source version pipeline stage supported next action")
         )
-    ]
+    return actions
 
 
 class SourceVersionPipelineStageInput(NamedTuple):
@@ -6645,19 +6647,24 @@ def _sanitized_package_build_env() -> tuple[dict[str, str], dict[str, Any]]:
         "LD_LIBRARY_PATH",
         "TORCH_DEVICE_BACKEND_AUTOLOAD",
     }
-    env = {name: value for name, value in os.environ.items() if name in keep_names}
+    env = {}
+    for name, value in os.environ.items():
+        if name in keep_names:
+            env[name] = value
     env["PIP_DISABLE_PIP_VERSION_CHECK"] = "1"
     env["PIP_NO_INPUT"] = "1"
     env.setdefault("TORCH_DEVICE_BACKEND_AUTOLOAD", "0")
-    removed_pip_env = sorted(
-        name
-        for name in os.environ
-        if name.startswith("PIP_")
-        and name not in {"PIP_DISABLE_PIP_VERSION_CHECK", "PIP_NO_INPUT"}
-    )
-    removed_python_env = sorted(
-        name for name in os.environ if name in {"PYTHONPATH", "PYTHONHOME"}
-    )
+    removed_pip_env = []
+    for name in os.environ:
+        if name.startswith("PIP_"):
+            if name not in {"PIP_DISABLE_PIP_VERSION_CHECK", "PIP_NO_INPUT"}:
+                removed_pip_env.append(name)
+    removed_pip_env.sort()
+    removed_python_env = []
+    for name in os.environ:
+        if name in {"PYTHONPATH", "PYTHONHOME"}:
+            removed_python_env.append(name)
+    removed_python_env.sort()
     summary = {
         "PIP_DISABLE_PIP_VERSION_CHECK": env["PIP_DISABLE_PIP_VERSION_CHECK"],
         "PIP_NO_INPUT": env["PIP_NO_INPUT"],
@@ -7250,14 +7257,12 @@ def cmd_build_standalone_executable(args: argparse.Namespace) -> int:
             if not allow_mock_executable:
                 missing_executables.append(str(executable))
                 continue
-            target_entries = [
-                entry
-                for entry in entries
-                if entry_targets.get(
-                    entry.get("entry_name"), next(iter(executable_targets))
-                )
-                == target
-            ]
+            target_entries = []
+            default_target = next(iter(executable_targets))
+            for entry in entries:
+                entry_target = entry_targets.get(entry.get("entry_name"), default_target)
+                if entry_target == target:
+                    target_entries.append(entry)
             stdout_payload = {
                 "backend": "standalone",
                 "status": "structural-passed" if structural_toolchain else "passed",

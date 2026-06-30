@@ -1847,18 +1847,17 @@ def annotate_device_task_graph_identity(
             section, fused_functions, section_index
         )
         fused_nodes = (fused or {}).get("node_details") or []
-        scope_node_ids = {
-            int(node.get("node_id"))
-            for node in fused_nodes
-            if isinstance(node, dict) and node.get("node_id") is not None
-        }
-        ordinal_node_map = {
-            int(node.get("ordinal")): int(node.get("node_id"))
-            for node in fused_nodes
-            if isinstance(node, dict)
-            and node.get("ordinal") is not None
-            and node.get("node_id") is not None
-        }
+        scope_node_ids = set()
+        ordinal_node_map = {}
+        for node in fused_nodes:
+            if not isinstance(node, dict):
+                continue
+            node_id = node.get("node_id")
+            if node_id is not None:
+                scope_node_ids.add(int(node_id))
+            ordinal = node.get("ordinal")
+            if ordinal is not None and node_id is not None:
+                ordinal_node_map[int(ordinal)] = int(node_id)
         section_queues: dict[str, list[dict[str, Any]]] = {}
         section_excluded_reason_counts: dict[str, int] = {}
         section_excluded_samples: list[dict[str, Any]] = []
@@ -5876,6 +5875,13 @@ def build_scope_library_export(
                         "end_detail": item.get("end_detail", ""),
                     }
                 )
+            fallback_bound_section_count = 0
+            for section in matched_device_sections:
+                if (
+                    str(section.get("_scope_binding_reason") or "")
+                    == "fallback_scope_name"
+                ):
+                    fallback_bound_section_count += 1
             update_payload = {
                 "begin_detail": scope_update.get("begin_detail", "")
                 if scope_update
@@ -5894,12 +5900,7 @@ def build_scope_library_export(
                     "graph_backed_update_count": len(graph_backed_updates),
                     "synthesized_custom_count": len(synthesized_custom_nodes),
                     "matched_device_section_count": len(matched_device_sections),
-                    "fallback_bound_section_count": sum(
-                        1
-                        for section in matched_device_sections
-                        if str(section.get("_scope_binding_reason") or "")
-                        == "fallback_scope_name"
-                    ),
+                    "fallback_bound_section_count": fallback_bound_section_count,
                     "has_scope_update": scope_update is not None,
                 },
                 "streams": update_streams,

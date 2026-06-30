@@ -78,6 +78,34 @@ class ArtifactLayout:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(text, encoding="utf-8")
 
+    @staticmethod
+    def _external_path_ref(path: Path) -> str:
+        parts = [part for part in path.as_posix().lstrip("/").split("/") if part]
+        if not parts:
+            return "external:path"
+        legacy_cache_dir_name = "sk-tools" + "-build-cache"
+        matched_cache = False
+        for cache_dir_name in ("sk-operator-build-cache", legacy_cache_dir_name):
+            if cache_dir_name in parts:
+                cache_index = parts.index(cache_dir_name)
+                parts = parts[cache_index:]
+                matched_cache = True
+                break
+        if not matched_cache and len(parts) > 2:
+            parts = parts[-2:]
+        return "external:" + "/".join(parts)
+
+    def rel(self, path: Path | str | None) -> str:
+        if path is None:
+            return ""
+        candidate = Path(path)
+        if not candidate.is_absolute():
+            return candidate.as_posix()
+        try:
+            return candidate.resolve().relative_to(self.root.resolve()).as_posix()
+        except ValueError:
+            return self._external_path_ref(candidate)
+
     def write_name_resolution_reports(self, payload: dict[str, Any]) -> None:
         self.write_json(self.root / "name-resolution-report.json", payload)
         lines = [
@@ -582,34 +610,6 @@ class ArtifactLayout:
                     }
                 )
         return issues
-
-    @staticmethod
-    def _external_path_ref(path: Path) -> str:
-        parts = [part for part in path.as_posix().lstrip("/").split("/") if part]
-        if not parts:
-            return "external:path"
-        legacy_cache_dir_name = "sk-tools" + "-build-cache"
-        matched_cache = False
-        for cache_dir_name in ("sk-operator-build-cache", legacy_cache_dir_name):
-            if cache_dir_name in parts:
-                cache_index = parts.index(cache_dir_name)
-                parts = parts[cache_index:]
-                matched_cache = True
-                break
-        if not matched_cache and len(parts) > 2:
-            parts = parts[-2:]
-        return "external:" + "/".join(parts)
-
-    def rel(self, path: Path | str | None) -> str:
-        if path is None:
-            return ""
-        candidate = Path(path)
-        if not candidate.is_absolute():
-            return candidate.as_posix()
-        try:
-            return candidate.resolve().relative_to(self.root.resolve()).as_posix()
-        except ValueError:
-            return self._external_path_ref(candidate)
 
     def _copy_file(self, source: Path, dest: Path) -> str:
         dest.parent.mkdir(parents=True, exist_ok=True)

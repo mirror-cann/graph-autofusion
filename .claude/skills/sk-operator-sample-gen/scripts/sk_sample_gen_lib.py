@@ -551,27 +551,27 @@ def build_single_op_verification_contract(
         }
         parameters.append(normalized)
 
-    declared_outputs = [
-        _as_string(item, "runtime contract comparison output")
-        for item in _as_list(
-            _as_object(
-                payload.get("comparison", {}), "runtime contract comparison"
-            ).get("outputs", []),
-            "runtime contract comparison outputs",
-        )
-    ]
+    comparison = _as_object(
+        payload.get("comparison", {}), "runtime contract comparison"
+    )
+    declared_outputs = []
+    for item in _as_list(
+        comparison.get("outputs", []), "runtime contract comparison outputs"
+    ):
+        declared_outputs.append(_as_string(item, "runtime contract comparison output"))
     if not declared_outputs:
-        declared_outputs = [
-            parameter["name"] for parameter in parameters if parameter["compare"]
-        ]
+        for parameter in parameters:
+            if parameter["compare"]:
+                declared_outputs.append(parameter["name"])
 
     by_name = {parameter["name"]: parameter for parameter in parameters}
-    unknown_outputs = [name for name in declared_outputs if name not in by_name]
-    non_output_roles = [
-        name
-        for name in declared_outputs
-        if name in by_name and by_name[name]["role"] not in {"output"}
-    ]
+    unknown_outputs = []
+    non_output_roles = []
+    for name in declared_outputs:
+        if name not in by_name:
+            unknown_outputs.append(name)
+        elif by_name[name]["role"] not in {"output"}:
+            non_output_roles.append(name)
     device_runnable = (
         _as_object(payload.get("fixture", {}), "runtime contract fixture").get(
             "device_runnable"
@@ -745,18 +745,16 @@ def normalize_network_sample_contract(payload: dict[str, Any]) -> dict[str, Any]
     inputs: list[dict[str, Any]] = []
     for raw_input in _as_list(raw.get("inputs", []), "network sample contract inputs"):
         item = _as_object(raw_input, "network sample contract input")
+        shape = []
+        for dim in _as_list(item.get("shape"), "network sample contract input.shape"):
+            shape.append(int(dim))
         inputs.append(
             {
                 "id": _as_string(item.get("id"), "network sample contract input.id"),
                 "dtype": _as_string(
                     item.get("dtype"), "network sample contract input.dtype"
                 ),
-                "shape": [
-                    int(dim)
-                    for dim in _as_list(
-                        item.get("shape"), "network sample contract input.shape"
-                    )
-                ],
+                "shape": shape,
             }
         )
 
@@ -786,12 +784,13 @@ def normalize_network_sample_contract(payload: dict[str, Any]) -> dict[str, Any]
     expected_fusion = _as_object(
         raw.get("expected_fusion"), "network sample contract expected_fusion"
     )
-    expected_ops = [
-        _as_string(item, "network sample contract expected_fusion.ops item")
-        for item in _as_list(
-            expected_fusion.get("ops"), "network sample contract expected_fusion.ops"
+    expected_ops = []
+    for item in _as_list(
+        expected_fusion.get("ops"), "network sample contract expected_fusion.ops"
+    ):
+        expected_ops.append(
+            _as_string(item, "network sample contract expected_fusion.ops item")
         )
-    ]
     require_all_fused = _as_bool(
         expected_fusion.get("require_all_fused", True),
         "network sample contract expected_fusion.require_all_fused",

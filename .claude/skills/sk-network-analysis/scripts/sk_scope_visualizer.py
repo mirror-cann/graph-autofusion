@@ -647,14 +647,23 @@ def build_rounds_from_libraries(scope_library, graph_library):
             for queue_name in ("AIC", "AIV"):
                 section_tasks.extend(section.get("queues", {}).get(queue_name, []))
             if section_tasks:
-                def _matches_effective_update(expected_type: str) -> bool:
-                    if not node_obj or not effective_row:
+                def _matches_effective_update(
+                    expected_type: str,
+                    current_node: "SkNode | None",
+                    current_row: dict | None,
+                    current_task_addr: str,
+                    current_carrier_node: "SkNode",
+                ) -> bool:
+                    if not current_node or not current_row:
                         return False
-                    if node_obj.node_id == carrier_node.node_id:
+                    if current_node.node_id == current_carrier_node.node_id:
                         return False
-                    if _update_type(effective_row) != expected_type:
+                    if _update_type(current_row) != expected_type:
                         return False
-                    return str(effective_row.get("effective_addr") or "") == task_addr
+                    return (
+                        str(current_row.get("effective_addr") or "")
+                        == current_task_addr
+                    )
 
                 for task in section_tasks:
                     task_type = str(task.get("task_type") or "").strip().upper()
@@ -678,7 +687,13 @@ def build_rounds_from_libraries(scope_library, graph_library):
                         fact = inherited_write_facts.setdefault(
                             task_addr, {"addr": task_addr, "values": [], "node_ids": []}
                         )
-                        if _matches_effective_update("VALUE_WRITE"):
+                        if _matches_effective_update(
+                            "VALUE_WRITE",
+                            node_obj,
+                            effective_row,
+                            task_addr,
+                            carrier_node,
+                        ):
                             if node_id not in fact["node_ids"]:
                                 fact["node_ids"].append(node_id)
                             val = str(effective_row.get("value") or "")
@@ -697,7 +712,13 @@ def build_rounds_from_libraries(scope_library, graph_library):
                                 "node_ids": [],
                             },
                         )
-                        if _matches_effective_update("VALUE_WAIT"):
+                        if _matches_effective_update(
+                            "VALUE_WAIT",
+                            node_obj,
+                            effective_row,
+                            task_addr,
+                            carrier_node,
+                        ):
                             if node_id not in fact["node_ids"]:
                                 fact["node_ids"].append(node_id)
                             val = str(effective_row.get("value") or "")

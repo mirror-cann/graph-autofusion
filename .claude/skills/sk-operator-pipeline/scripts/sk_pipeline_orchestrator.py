@@ -201,6 +201,18 @@ class PipelineOrchestrator:
         elif path.exists() or path.is_symlink():
             path.unlink()
 
+    @staticmethod
+    def _existing_asset_manifests(public_output_dir: Path) -> list[dict[str, Any]]:
+        assets: list[dict[str, Any]] = []
+        for path in sorted(
+            (public_output_dir / "assets").glob("*/asset-manifest.json")
+        ):
+            try:
+                assets.append(json.loads(path.read_text(encoding="utf-8")))
+            except (OSError, json.JSONDecodeError):
+                continue
+        return assets
+
     def _skill_path(self, key: str) -> Path:
         skill_name, script_name = _SKILL_SCRIPTS[key]
         return self.skills_root / skill_name / "scripts" / script_name
@@ -3041,18 +3053,6 @@ class PipelineOrchestrator:
                 selected_stages=selected_stages,
             )
         return state
-
-    @staticmethod
-    def _existing_asset_manifests(public_output_dir: Path) -> list[dict[str, Any]]:
-        assets: list[dict[str, Any]] = []
-        for path in sorted(
-            (public_output_dir / "assets").glob("*/asset-manifest.json")
-        ):
-            try:
-                assets.append(json.loads(path.read_text(encoding="utf-8")))
-            except (OSError, json.JSONDecodeError):
-                continue
-        return assets
 
     def _emit_layout(
         self,
