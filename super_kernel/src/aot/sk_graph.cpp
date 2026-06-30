@@ -645,6 +645,7 @@ struct ScopeStackEntry {
   uint32_t scopeIdx = INVALID_SCOPE_ID;
   std::string scopeName;
   bool isFusible = true;
+  FusionFailReasonInfo failReason;
 };
 
 // Compute current scope bit flags from the scope stack
@@ -659,15 +660,14 @@ std::bitset<MAX_SCOPE_NUM> ComputeScopeBitFlags(const std::vector<ScopeStackEntr
   return flags;
 }
 
-// Check if current scope stack contains any unfusible scope
-// If a node is inside an unfusible scope, the node is also unfusible
-bool HasUnfusibleScope(const std::vector<ScopeStackEntry> &scopeStack) {
-  for (const auto &entry : scopeStack) {
-    if (!entry.isFusible) {
-      return true;
+FusionFailReasonInfo GetUnfusibleScopeFailReason(const std::vector<ScopeStackEntry> &scopeStack) {
+  for (auto iter = scopeStack.rbegin(); iter != scopeStack.rend(); ++iter) {
+    if (iter->isFusible) {
+      continue;
     }
+    return iter->failReason;
   }
-  return false;
+  return FusionFailReasonInfo();
 }
 
 // Parse scope node information to extract scope index, name, and fusible attribute
@@ -716,8 +716,12 @@ void ProcessScopeBegin(SuperKernelGraph *graph, SuperKernelBaseNode *node, std::
   std::string scopeName = node->GetScopeName();
   bool isFusible = node->IsFusible();
   uint32_t scopeIdx = GetScopeIdx(node, scopeNameToIdx);
+  FusionFailReasonInfo failReason = isFusible ? FusionFailReasonInfo() : node->GetFusionFailReasonInfo();
+  if (!isFusible && failReason == FusionFailReason::CAN_FUSE) {
+    failReason = FusionFailReasonInfo(FusionFailReason::IN_UNFUSIBLE_SCOPE);
+  }
 
-  scopeStack.push_back({scopeIdx, scopeName, isFusible});
+  scopeStack.push_back({scopeIdx, scopeName, isFusible, failReason});
   SK_LOGI("Scope begin: name='%s' idx=%u fusible=%d stack_size=%zu", scopeName.c_str(), scopeIdx, isFusible,
           scopeStack.size());
 }
@@ -800,10 +804,12 @@ void SuperKernelGraph::UpdateNodeScopeBitFlags() {
         SK_LOGI("Marked node %s as unfusible (outside of any named scope)", node->Format().c_str());
       }
       // Mark regular nodes as unfusible if inside any unfusible scope
-      if (!node->IsScopeNode() && HasUnfusibleScope(scopeStack)) {
+      FusionFailReasonInfo scopeFailReason = GetUnfusibleScopeFailReason(scopeStack);
+      if (!node->IsScopeNode() && scopeFailReason != FusionFailReason::CAN_FUSE) {
         node->SetIsFusible(false);
-        node->SetFusionFailReason(FusionFailReason::IN_UNFUSIBLE_SCOPE);
-        SK_LOGI("Marked node %s as unfusible (inside unfusible scope)", node->Format().c_str());
+        node->SetFusionFailReason(scopeFailReason);
+        SK_LOGI("Marked node %s as unfusible (inside unfusible scope, reason=%s)", node->Format().c_str(),
+                FusionFailReasonToStr(scopeFailReason).c_str());
       }
     }
 
