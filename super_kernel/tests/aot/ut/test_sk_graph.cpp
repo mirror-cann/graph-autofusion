@@ -3,7 +3,7 @@
 * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
 * CANN Open Software License Agreement Version 2.0 (the "License").
 * Please refer to the License for details. You may not use this file except in compliance with the License.
-* THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OR ANY KIND, EITHER EXPRESS OR IMPLIED,
+* THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
 * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
 * See LICENSE in the root of the software repository for the full text of the License.
 */
@@ -1558,4 +1558,42 @@ TEST_F(SuperKernelGraphTest, RegisterFusibleScope_ExceedMaxScopeNum_EmptyScopeNa
     EXPECT_NE(addedNode, nullptr);
     EXPECT_TRUE(addedNode->IsFusible());
     EXPECT_EQ(graph->scopeNameToIdx.size(), MAX_SCOPE_NUM);
+}
+
+TEST_F(SuperKernelGraphTest, UpdateNodeScopeBitFlags_ExceedScopeMaxReasonPropagatesToInnerNode)
+{
+    for (uint32_t i = 0; i < MAX_SCOPE_NUM; ++i) {
+        graph->scopeNameToIdx["scope_" + std::to_string(i)] = i;
+    }
+
+    auto scopeBegin = std::unique_ptr<SuperKernelBaseNode>(new SuperKernelKernelNode(
+        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_STREAM_ID, INVALID_TASK_ID));
+    scopeBegin->SetNodeId(1005);
+    scopeBegin->SetNodeType(SkNodeType::NODE_KERNEL);
+    scopeBegin->SetIsScopeNode(true);
+    static_cast<SuperKernelKernelNode*>(scopeBegin.get())->isScopeBegin = true;
+    scopeBegin->SetIsFusible(true);
+    static_cast<SuperKernelKernelNode*>(scopeBegin.get())->scopeName = "scope_exceed_limit";
+
+    graph->RegisterFusibleScope(scopeBegin);
+    graph->graphMap[1005] = std::move(scopeBegin);
+
+    auto innerNode = std::unique_ptr<SuperKernelBaseNode>(new SuperKernelKernelNode(
+        nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_STREAM_ID, INVALID_TASK_ID));
+    innerNode->SetNodeId(1006);
+    innerNode->SetNodeType(SkNodeType::NODE_KERNEL);
+    innerNode->SetIsFusible(true);
+    graph->graphMap[1006] = std::move(innerNode);
+
+    graph->UpdateNodeScopeBitFlags();
+
+    auto* addedScopeBegin = graph->GetNodeById(1005);
+    ASSERT_NE(addedScopeBegin, nullptr);
+    EXPECT_TRUE(addedScopeBegin->IsFusible());
+    EXPECT_EQ(addedScopeBegin->GetFusionFailReason(), FusionFailReason::EXCEED_SCOPE_MAX);
+
+    auto* addedInnerNode = graph->GetNodeById(1006);
+    ASSERT_NE(addedInnerNode, nullptr);
+    EXPECT_FALSE(addedInnerNode->IsFusible());
+    EXPECT_EQ(addedInnerNode->GetFusionFailReason(), FusionFailReason::EXCEED_SCOPE_MAX);
 }
