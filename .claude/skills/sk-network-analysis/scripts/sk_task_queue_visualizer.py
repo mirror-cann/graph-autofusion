@@ -171,6 +171,8 @@ class LibraryTaskPayloadInput(NamedTuple):
 
 def _library_task_to_payload(payload_input: LibraryTaskPayloadInput) -> dict:
     task = payload_input.task
+    log_seq = payload_input.log_seq
+    queue_name = payload_input.queue_name
     dispatch_type = str(task.get("task_type", "") or "").upper()
     scope_name = payload_input.section.get("scope_name", "")
     sync_type = str(task.get("sync_type", "") or "")

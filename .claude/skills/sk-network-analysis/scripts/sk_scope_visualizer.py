@@ -1288,10 +1288,8 @@ def generate_html(html_input: ScopeHtmlInput):
 
     all_rounds = html_input.all_rounds
     event_colors = html_input.event_colors
-    log_files = html_input.log_files
     output_path = html_input.output_path
     init_nodes = html_input.init_nodes
-    mode = html_input.mode
 
     # 准备每轮的 JSON 数据
     rounds_json_list = []

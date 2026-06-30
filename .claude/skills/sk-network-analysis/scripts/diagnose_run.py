@@ -5486,7 +5486,6 @@ class HangReportHtmlInput(NamedTuple):
 def _render_hang_report_html(
     request: HangReportHtmlInput,
 ) -> None:
-    run_dir = request.run_dir
     update_report = request.update_report
     phase_correlated_signals = request.phase_correlated_signals
     hang_crash_summary = request.hang_crash_summary
@@ -6425,8 +6424,6 @@ def _render_performance_report_html(
     request: PerformanceReportHtmlInput,
 ) -> None:
     run_dir = request.run_dir
-    update_report = request.update_report
-    asset_inventory = request.asset_inventory
     event_stats = request.event_stats
     performance_correlations = request.performance_correlations
     performance_summary = request.performance_summary
