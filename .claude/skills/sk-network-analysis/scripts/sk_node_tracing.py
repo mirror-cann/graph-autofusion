@@ -73,6 +73,20 @@ NODE_TYPE_CATEGORIES = {
 
 TRACE_PROCESS_ID = 1
 
+
+def _emit(
+    message: object = "",
+    *,
+    file=None,
+    end: str = "\n",
+    flush: bool = False,
+) -> None:
+    stream = sys.stdout if file is None else file
+    stream.write(f"{message}{end}")
+    if flush:
+        stream.flush()
+
+
 NODE_LIBRARY_DISPLAY_TYPES = {
     "KERNEL": "Kernel",
     "EVENT_NOTIFY": "EventNotify",
@@ -325,7 +339,7 @@ def parse_log_file(filepath):
                 if node:
                     nodes.append(node)
     except Exception as e:
-        print(f"  [WARN] 读取文件出错: {e}", file=sys.stderr)
+        _emit(f"  [WARN] 读取文件出错: {e}", file=sys.stderr)
 
     if (
         not nodes
@@ -342,7 +356,7 @@ def parse_log_file(filepath):
                     if node:
                         nodes.append(node)
         except Exception as e:
-            print(f"  [WARN] fallback 读取文件出错: {e}", file=sys.stderr)
+            _emit(f"  [WARN] fallback 读取文件出错: {e}", file=sys.stderr)
 
     return nodes
 
@@ -673,7 +687,7 @@ def generate_tracing_json(nodes, edges, layout):
     # 策略: 所有 stream 共享同一个全局时间轴 (nodeIdxInStream)，但通过 tid 分泳道。
     # 这保证了同一 nodeIdxInStream 位置上的跨流节点 ts 一致，且 flow 的 from < to。
     max_nodes_in_stream = max(len(streams[sid]) for sid in sorted_stream_ids)
-    SLOT = 100  # 每个 nodeIdxInStream 位置占 100us
+    slot = 100  # 每个 nodeIdxInStream 位置占 100us
 
     events = []
 
@@ -682,7 +696,7 @@ def generate_tracing_json(nodes, edges, layout):
         tid = thread_ids[sid]
 
         for n in streams[sid]:
-            ts = n["nodeIdxInStream"] * SLOT
+            ts = n["nodeIdxInStream"] * slot
             dt = n.get("displayType", "Unknown")
             color = NODE_TYPE_COLORS.get(dt, "#999999")
             cat = NODE_TYPE_CATEGORIES.get(dt, "other")
@@ -721,7 +735,7 @@ def generate_tracing_json(nodes, edges, layout):
                     "pid": pid,
                     "tid": tid,
                     "ts": ts,
-                    "dur": SLOT - 1,  # 几乎占满 slot
+                    "dur": slot - 1,  # 几乎占满 slot
                     "name": node_name,
                     "cat": cat,
                     "color": color,
@@ -748,11 +762,11 @@ def generate_tracing_json(nodes, edges, layout):
         #   2. ts 必须 >= 0
         #
         # 使用全局递增偏移来避免 ts 冲突:
-        #   每个 edge 占用 SLOT 宽度, 从所有节点之后开始排列
+        #   每个 edge 占用 slot 宽度, 从所有节点之后开始排列
         #   这样可以保证 ts 全局单调递增且不与节点重叠
-        edge_start_ts = max_nodes_in_stream * SLOT + flow_id * SLOT
+        edge_start_ts = max_nodes_in_stream * slot + flow_id * slot
         s_ts = edge_start_ts
-        f_ts = edge_start_ts + SLOT // 2
+        f_ts = edge_start_ts + slot // 2
 
         flow_id_str = f"flow_{flow_id}"
 
@@ -799,7 +813,7 @@ def generate_tracing_json(nodes, edges, layout):
         )
 
         # --- Edges track: instant event 标注连边 (备选可视化) ---
-        edge_ts = edge_start_ts + SLOT // 4
+        edge_ts = edge_start_ts + slot // 4
         src_type = src.get("displayType", "?")
         dst_type = dst.get("displayType", "?")
         edge_name = f"{src_type}[{src['nodeId']}] -> {dst_type}[{dst['nodeId']}]  ({edge_label})"
@@ -1099,7 +1113,7 @@ def main():
     input_path = os.path.abspath(args.input)
 
     if not os.path.exists(input_path):
-        print(f"[ERROR] 路径不存在: {input_path}", file=sys.stderr)
+        _emit(f"[ERROR] 路径不存在: {input_path}", file=sys.stderr)
         sys.exit(1)
 
     all_nodes = []
@@ -1114,7 +1128,7 @@ def main():
     except FileNotFoundError:
         trace_context = None
     except ValueError as exc:
-        print(f"[ERROR] {exc}", file=sys.stderr)
+        _emit(f"[ERROR] {exc}", file=sys.stderr)
         sys.exit(1)
 
     if trace_context is not None:
@@ -1122,7 +1136,7 @@ def main():
         source_file = trace_context["source_file"]
         fused_functions = trace_context["fused_functions"]
         device_sections = trace_context["device_sections"]
-        print(
+        _emit(
             "使用 model-instance-aware tracing 输入: "
             f"mode={trace_context['model_instance_scope_mode']}, "
             f"model_instance={trace_context['model_instance_id']}, "
@@ -1132,51 +1146,51 @@ def main():
         # 收集日志文件
         log_files = collect_log_files(input_path)
         if not log_files:
-            print(f"[ERROR] 未找到日志文件: {input_path}", file=sys.stderr)
+            _emit(f"[ERROR] 未找到日志文件: {input_path}", file=sys.stderr)
             sys.exit(1)
 
-        print(f"找到 {len(log_files)} 个日志文件")
+        _emit(f"找到 {len(log_files)} 个日志文件")
 
         # 解析所有文件
         for fpath in log_files:
-            print(f"  解析: {os.path.basename(fpath)} ...", end=" ", flush=True)
+            _emit(f"  解析: {os.path.basename(fpath)} ...", end=" ", flush=True)
             nodes = parse_log_file(fpath)
             if nodes:
-                print(f"✓ 找到 {len(nodes)} 个节点")
+                _emit(f"✓ 找到 {len(nodes)} 个节点")
                 if not all_nodes:
                     all_nodes = nodes
                     source_file = fpath
                     if args.first_only:
                         break
             else:
-                print("- 无 UpdateNodeScopeBitFlags 数据")
+                _emit("- 无 UpdateNodeScopeBitFlags 数据")
 
     if not all_nodes:
-        print("[ERROR] 未从任何日志文件中提取到节点数据", file=sys.stderr)
-        print(
+        _emit("[ERROR] 未从任何日志文件中提取到节点数据", file=sys.stderr)
+        _emit(
             "  请确保日志中包含 UpdateNodeScopeBitFlags 的 Processed node 行，或提供 sk_node_detail.log",
             file=sys.stderr,
         )
         sys.exit(1)
 
-    print("\n解析结果:")
-    print(f"  来源文件: {os.path.basename(source_file) if source_file else ''}")
-    print(f"  总节点数: {len(all_nodes)}")
+    _emit("\n解析结果:")
+    _emit(f"  来源文件: {os.path.basename(source_file) if source_file else ''}")
+    _emit(f"  总节点数: {len(all_nodes)}")
 
     # 统计
     stream_ids = sorted(set(n["streamId"] for n in all_nodes))
     type_counts = defaultdict(int)
     for n in all_nodes:
         type_counts[n.get("displayType", "Unknown")] += 1
-    print(f"  流 (Stream): {stream_ids} (共 {len(stream_ids)} 条)")
+    _emit(f"  流 (Stream): {stream_ids} (共 {len(stream_ids)} 条)")
     for t, c in sorted(type_counts.items()):
-        print(f"    {t}: {c}")
+        _emit(f"    {t}: {c}")
 
     # 构建跨流连边
     edges = build_event_edges(all_nodes)
     event_edges = [e for e in edges if e["type"] == "event"]
     memory_edges = [e for e in edges if e["type"] == "memory"]
-    print(
+    _emit(
         f"  跨流连边: 事件={len(event_edges)}, 内存={len(memory_edges)}, 共={len(edges)}"
     )
 
@@ -1282,9 +1296,9 @@ def main():
         )
 
     file_size = os.path.getsize(output_path)
-    print(f"\n✓ 输出文件: {output_path} ({file_size} bytes)")
-    print(f"✓ 附加数据: {meta_output_path}")
-    print("  用 Chrome 浏览器打开 chrome://tracing/ → 点击 'Load' → 加载此文件即可查看")
+    _emit(f"\n✓ 输出文件: {output_path} ({file_size} bytes)")
+    _emit(f"✓ 附加数据: {meta_output_path}")
+    _emit("  用 Chrome 浏览器打开 chrome://tracing/ → 点击 'Load' → 加载此文件即可查看")
 
 
 if __name__ == "__main__":

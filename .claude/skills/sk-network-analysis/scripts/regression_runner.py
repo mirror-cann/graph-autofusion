@@ -23,6 +23,11 @@ from pathlib import Path
 from sk_library_extractor import find_model_dir
 
 
+def _emit(message: object = "", *, file=None, end: str = "\n") -> None:
+    stream = sys.stdout if file is None else file
+    stream.write(f"{message}{end}")
+
+
 CASES = [
     ("analyze_result_root", "analyze", "."),
     ("analyze_sk_meta", "analyze", "sk_meta"),
@@ -113,7 +118,7 @@ def main() -> None:
 
     for case_name, command_name, relative_input in selected:
         run_case(sample_root, case_name, command_name, relative_input)
-        print(f"[ok] {case_name}")
+        _emit(f"[ok] {case_name}")
 
 
 if __name__ == "__main__":

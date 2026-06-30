@@ -51,6 +51,11 @@ class CliUsageError(Exception):
     pass
 
 
+def _emit(message: object = "", *, file=None, end: str = "\n") -> None:
+    stream = sys.stdout if file is None else file
+    stream.write(f"{message}{end}")
+
+
 def _normalize_contract_finding(finding: dict[str, Any]) -> dict[str, Any]:
     normalized = dict(finding)
     normalized["actionable_by"] = ["human"]
@@ -89,7 +94,7 @@ def _contract_findings(
         path = Path(raw_path).resolve()
         try:
             validator(read_json(path), path.parent)
-        except (OSError, json.JSONDecodeError, ContractError, ValueError) as exc:
+        except (OSError, ContractError, ValueError) as exc:
             findings.append(
                 _normalize_contract_finding(contract_finding(rule_id, str(exc)))
             )
@@ -213,7 +218,7 @@ def cmd_list_rule_pack(args: argparse.Namespace) -> int:
         payload = list_compat_targets()
     else:
         raise CliUsageError(f"unsupported listable rule pack: {args.rule_pack}")
-    print(json.dumps(payload, indent=2))
+    _emit(json.dumps(payload, indent=2))
     return 0
 
 

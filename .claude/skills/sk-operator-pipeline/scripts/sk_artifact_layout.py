@@ -88,7 +88,8 @@ class ArtifactLayout:
         matched_cache = False
         for cache_dir_name in ("sk-operator-build-cache", legacy_cache_dir_name):
             if cache_dir_name in parts:
-                parts = parts[parts.index(cache_dir_name) :]
+                cache_index = parts.index(cache_dir_name)
+                parts = parts[cache_index:]
                 matched_cache = True
                 break
         if not matched_cache and len(parts) > 2:

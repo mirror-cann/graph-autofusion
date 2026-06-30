@@ -64,7 +64,8 @@ def check(units):
             close_brace = _find_matching_brace(unit["text"], open_brace)
             if close_brace is None:
                 continue
-            body = unit["text"][open_brace + 1 : close_brace]
+            body_start = open_brace + 1
+            body = unit["text"][body_start:close_brace]
             for name in _tpipe_declarations(body):
                 if re.search(
                     rf"\b{re.escape(name)}\s*\.\s*DestroyWithoutPipeAll\s*\(", body

@@ -19,6 +19,7 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -320,6 +321,11 @@ class CliUsageError(ValueError):
     """User-facing CLI usage error handled by argparse."""
 
 
+def _emit(message: object = "", *, file=None, end: str = "\n") -> None:
+    stream = sys.stdout if file is None else file
+    stream.write(f"{message}{end}")
+
+
 def _relative(path: Path, base_dir: Path) -> str:
     try:
         return str(path.relative_to(base_dir))
@@ -611,11 +617,12 @@ def _find_quality_pattern(
 
 
 def _has_meaningful_assert(text: str) -> bool:
+    assert_prefix_len = len("assert ")
     for line in text.splitlines():
         stripped = line.strip()
         if not stripped.startswith("assert "):
             continue
-        expression = stripped[len("assert ") :].strip()
+        expression = stripped[assert_prefix_len:].strip()
         if re.fullmatch(r"(?:True|1)(?:\s*,.*)?", expression):
             continue
         return True
@@ -2083,13 +2090,17 @@ def _find_kernel_signature_for_entry(
         close_brace = _find_matching_brace(text, open_brace)
         if close_brace is None:
             return None
+        signature_start = match.start()
+        body_start = open_brace + 1
+        signature = text[signature_start:open_brace].strip()
+        body = text[body_start:close_brace]
         return {
-            "signature": text[match.start() : open_brace].strip(),
+            "signature": signature,
             "qualifiers": match.group("qualifiers")
             .replace("__global__", "__sk__", 1)
             .strip(),
             "params": match.group("params"),
-            "body": text[open_brace + 1 : close_brace],
+            "body": body,
         }
     return None
 
@@ -2458,7 +2469,7 @@ def _load_json_artifact(path: Path, artifact_name: str) -> Any:
         raise CliUsageError(f"{artifact_name} cannot be read") from exc
     try:
         return json.loads(content, parse_constant=_reject_json_constant)
-    except (json.JSONDecodeError, ValueError) as exc:
+    except ValueError as exc:
         raise CliUsageError(f"{artifact_name} is not valid JSON") from exc
 
 
@@ -3052,7 +3063,9 @@ def _validate_sk_build_validation_semantics(
         source_scaffold,
         list(SK_BUILD_VALIDATION_CHECK_NAMES[:first_blocked_index]),
     )
-    for name in SK_BUILD_VALIDATION_CHECK_NAMES[first_blocked_index + 1 :]:
+    remaining_check_start = first_blocked_index + 1
+    remaining_check_names = SK_BUILD_VALIDATION_CHECK_NAMES[remaining_check_start:]
+    for name in remaining_check_names:
         if (
             checks[name]["status"] != "blocked"
             or checks[name]["reason"] != blocked_reason
@@ -4371,7 +4384,7 @@ def _read_input_value_spec(path: Path) -> tuple[Path, bytes, Any]:
         raise CliUsageError("input value spec is not valid UTF-8") from exc
     try:
         spec = json.loads(spec_text, parse_constant=_reject_json_constant)
-    except (json.JSONDecodeError, ValueError) as exc:
+    except ValueError as exc:
         raise CliUsageError("input value spec is not valid JSON") from exc
     return spec_path, spec_bytes, spec
 
@@ -4420,7 +4433,7 @@ def _read_correctness_oracle_spec(path: Path) -> tuple[Path, bytes, Any]:
         raise CliUsageError("correctness oracle spec is not valid UTF-8") from exc
     try:
         spec = json.loads(spec_text, parse_constant=_reject_json_constant)
-    except (json.JSONDecodeError, ValueError) as exc:
+    except ValueError as exc:
         raise CliUsageError("correctness oracle spec is not valid JSON") from exc
     return spec_path, spec_bytes, spec
 
@@ -5132,7 +5145,7 @@ def _read_runtime_command_spec(path: Path) -> tuple[Path, bytes, Any]:
         raise CliUsageError("runtime command spec is not valid UTF-8") from exc
     try:
         spec = json.loads(spec_text, parse_constant=_reject_json_constant)
-    except (json.JSONDecodeError, ValueError) as exc:
+    except ValueError as exc:
         raise CliUsageError("runtime command spec is not valid JSON") from exc
     return spec_path, spec_bytes, spec
 
@@ -5361,7 +5374,8 @@ def _bounded_target_runtime_output(output: str | None) -> tuple[str, bool]:
         tail += "\n"
     if len(tail) > TARGET_RUNTIME_OUTPUT_TAIL_CHARS:
         marker = "...<truncated>\n"
-        tail = marker + tail[-(TARGET_RUNTIME_OUTPUT_TAIL_CHARS - len(marker)) :]
+        tail_start = -(TARGET_RUNTIME_OUTPUT_TAIL_CHARS - len(marker))
+        tail = marker + tail[tail_start:]
     return tail, True
 
 
@@ -5484,7 +5498,7 @@ def _read_runtime_output_spec(path: Path) -> tuple[Path, bytes, Any]:
         raise CliUsageError("runtime output spec is not valid UTF-8") from exc
     try:
         spec = json.loads(spec_text, parse_constant=_reject_json_constant)
-    except (json.JSONDecodeError, ValueError) as exc:
+    except ValueError as exc:
         raise CliUsageError("runtime output spec is not valid JSON") from exc
     return spec_path, spec_bytes, spec
 
@@ -6040,13 +6054,10 @@ def _summarize_standalone_bind_target_comparison(
 def _load_current_sk_runtime_output_comparison(
     output_dir: Path, oracle_spec: dict[str, Any]
 ) -> dict[str, Any]:
-    try:
-        comparison = _load_json_artifact(
-            output_dir / "operator-sk-runtime-output-comparison.json",
-            "operator-sk-runtime-output-comparison.json",
-        )
-    except CliUsageError:
-        raise
+    comparison = _load_json_artifact(
+        output_dir / "operator-sk-runtime-output-comparison.json",
+        "operator-sk-runtime-output-comparison.json",
+    )
     try:
         comparison = _require_exact_keys(
             comparison,
@@ -6179,7 +6190,7 @@ def _read_sk_runtime_output_extraction_spec(path: Path) -> tuple[Path, bytes, An
         ) from exc
     try:
         spec = json.loads(spec_text, parse_constant=_reject_json_constant)
-    except (json.JSONDecodeError, ValueError) as exc:
+    except ValueError as exc:
         raise CliUsageError(
             "sk runtime output extraction spec is not valid JSON"
         ) from exc
@@ -6510,8 +6521,8 @@ def cmd_compare_sk_runtime_outputs(args: argparse.Namespace) -> int:
             result = _summarize_standalone_bind_target_comparison(
                 output_dir, spec_path, spec_bytes, spec
             )
-        except CliUsageError:
-            raise exc
+        except CliUsageError as fallback_exc:
+            raise exc from fallback_exc
     _write_json(output_dir / "operator-sk-runtime-output-comparison.json", result)
     return 0 if result["status"] == "matched" else 1
 
@@ -6565,7 +6576,7 @@ def _parse_source_stream_json(text: str) -> Any:
         payload = json.loads(text, parse_constant=_reject_json_constant)
         _require_json_finite(payload, "runtime output provenance source stream")
         return payload
-    except (json.JSONDecodeError, ValueError, CliUsageError) as exc:
+    except (ValueError, CliUsageError) as exc:
         raise CliUsageError("runtime output source stream is not valid JSON") from exc
 
 
@@ -6609,7 +6620,7 @@ def cmd_auto_construct_runtime_input_values(args: argparse.Namespace) -> int:
     )
     out_path = output_dir / "operator-sk-auto-input-values-spec.json"
     out_path.write_text(json.dumps(closed_spec, indent=2), encoding="utf-8")
-    print(
+    _emit(
         json.dumps(
             {"written": out_path.name, "input_sets": len(closed_spec["input_values"])}
         )
@@ -6646,7 +6657,7 @@ def cmd_auto_build_correctness_oracle(args: argparse.Namespace) -> int:
             )
     out_path = output_dir / "operator-sk-auto-oracle-spec.json"
     out_path.write_text(json.dumps(oracle_spec, indent=2), encoding="utf-8")
-    print(
+    _emit(
         json.dumps(
             {
                 "written": out_path.name,
@@ -6671,7 +6682,7 @@ def cmd_generate_runner_script(args: argparse.Namespace) -> int:
     (output_dir / "operator-sk-target-runtime-command-spec.json").write_text(
         json.dumps(command_spec, indent=2), encoding="utf-8"
     )
-    print(
+    _emit(
         json.dumps(
             {
                 "runner": runner_rel,
@@ -6697,7 +6708,7 @@ def cmd_build_single_op_verification_contract(args: argparse.Namespace) -> int:
     out_path.write_text(
         json.dumps(contract, indent=2, ensure_ascii=False), encoding="utf-8"
     )
-    print(
+    _emit(
         json.dumps(
             {
                 "written": out_path.name,
@@ -6732,7 +6743,7 @@ def cmd_collect_network_sample_contract(args: argparse.Namespace) -> int:
     fusion_path.write_text(
         json.dumps(fusion_expectation, indent=2, ensure_ascii=False), encoding="utf-8"
     )
-    print(
+    _emit(
         json.dumps(
             {
                 "written": contract_path.name,
@@ -6771,7 +6782,7 @@ def cmd_generate_network_runner_script(args: argparse.Namespace) -> int:
         json.dumps(command_spec, indent=2, ensure_ascii=False),
         encoding="utf-8",
     )
-    print(
+    _emit(
         json.dumps(
             {
                 "runner": runner_rel,

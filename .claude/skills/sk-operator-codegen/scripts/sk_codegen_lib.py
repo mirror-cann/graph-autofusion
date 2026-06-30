@@ -112,7 +112,8 @@ _GLOBAL_FN_RE = re.compile(
 
 
 def _find_matching_brace(text: str, open_pos: int) -> Optional[int]:
-    assert text[open_pos] == "{"
+    if text[open_pos] != "{":
+        raise ValueError("open_pos must point to an opening brace")
     depth = 0
     i = open_pos
     state = "code"
@@ -176,7 +177,8 @@ def _parse_param_list(params_text: str) -> list[ParsedParam]:
         if not m:
             raise ValueError(f"cannot parse parameter: {part!r}")
         name = m.group(1)
-        c_type = part[: m.start()].strip()
+        name_start = m.start()
+        c_type = part[:name_start].strip()
         if not c_type:
             raise ValueError(f"parameter missing type: {part!r}")
         parsed.append(ParsedParam(name=name, c_type=c_type, raw_source=part))
@@ -213,7 +215,8 @@ def _macro_definition_context(source_text: str, pos: int) -> tuple[str, int] | N
 
 
 def _scan_parenthesized_call_end(source_text: str, open_paren: int) -> int | None:
-    assert source_text[open_paren] == "("
+    if source_text[open_paren] != "(":
+        raise ValueError("open_paren must point to an opening parenthesis")
     depth = 0
     index = open_paren
     state = "code"
@@ -308,7 +311,8 @@ def parse_global_entries(source_text: str) -> list[ParsedKernelEntry]:
         close_brace = _find_matching_brace(source_text, open_brace)
         if close_brace is None:
             continue
-        body = _strip_macro_continuations(source_text[open_brace + 1 : close_brace])
+        body_start = open_brace + 1
+        body = _strip_macro_continuations(source_text[body_start:close_brace])
         try:
             params = _parse_param_list(match.group("params"))
         except ValueError:
@@ -513,7 +517,8 @@ def _ensure_tpipe_destroy_without_pipe_all(body: str) -> str:
                 rf"\b{re.escape(name)}\s*\.\s*DestroyWithoutPipeAll\s*\(", scope_text
             ):
                 continue
-            indent = line[: len(line) - len(line.lstrip())]
+            indent_end = len(line) - len(line.lstrip())
+            indent = line[:indent_end]
             insertions.setdefault(close_index, []).append(
                 f"{indent}{name}.DestroyWithoutPipeAll();"
             )
@@ -916,7 +921,9 @@ def _find_named_void_function_body(source_text: str, name: str) -> str | None:
     open_brace = source_text.find("{", span[0], span[1])
     if open_brace < 0:
         return None
-    return source_text[open_brace + 1 : span[1] - 1]
+    body_start = open_brace + 1
+    body_end = span[1] - 1
+    return source_text[body_start:body_end]
 
 
 def _legacy_tiling_types(text: str) -> list[str]:
@@ -1008,7 +1015,8 @@ def _template_params_for_global(
         name_match = re.search(r"([A-Za-z_]\w*)\s*$", param)
         if name_match:
             name = name_match.group(1)
-            c_type = param[: name_match.start()].strip()
+            name_start = name_match.start()
+            c_type = param[:name_start].strip()
             if c_type:
                 params.append(
                     {
@@ -1179,13 +1187,15 @@ def _find_spk_variants(source_text: str) -> list[dict]:
         stem = _spk_stem(name)
         if stem is None:
             continue
+        body_start = open_brace + 1
+        body = source_text[body_start:close_brace]
         variants.append(
             {
                 "name": name,
                 "stem": stem,
                 "qualifiers": " ".join(match.group("qualifiers").split()),
                 "params": match.group("params"),
-                "body": source_text[open_brace + 1 : close_brace],
+                "body": body,
                 "span": (match.start(), close_brace + 1),
             }
         )
@@ -1211,7 +1221,8 @@ def _legacy_kernel_launch_warnings(source_text: str) -> list[dict]:
         close_brace = _find_matching_brace(source_text, open_brace)
         if close_brace is None:
             continue
-        body = source_text[open_brace + 1 : close_brace].strip()
+        body_start = open_brace + 1
+        body = source_text[body_start:close_brace].strip()
         if "<<<" not in body or ">>>" not in body:
             continue
         lines = [
@@ -1484,7 +1495,8 @@ def migrate_legacy_spk_to_sk_bind(
         if close_brace is None:
             continue
         rendered_items = rendered_by_global[name]
-        pieces.append(cleaned[last_end : close_brace + 1])
+        body_end = close_brace + 1
+        pieces.append(cleaned[last_end:body_end])
         rendered_blocks: list[str] = [
             "\n\n// ---- SK adaptation (auto-generated from legacy entry) ----\n"
         ]

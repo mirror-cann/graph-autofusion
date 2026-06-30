@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 
 
@@ -32,6 +33,11 @@ from operator_asset_layout import build_inventory, build_layout_from_inventory
 
 class CliUsageError(Exception):
     pass
+
+
+def _emit(message: object = "", *, file=None, end: str = "\n") -> None:
+    stream = sys.stdout if file is None else file
+    stream.write(f"{message}{end}")
 
 
 def cmd_adapt_asset(args: argparse.Namespace) -> int:
@@ -108,7 +114,7 @@ def cmd_validate_contracts(args: argparse.Namespace) -> int:
     validate_verify_context_contract(read_json(verify_path), verify_path.parent)
     if report_path:
         validate_adapter_report_contract(read_json(report_path), report_path.parent)
-    print(json.dumps({"status": "valid"}, indent=2))
+    _emit(json.dumps({"status": "valid"}, indent=2))
     return 0
 
 

@@ -16,6 +16,7 @@ import hashlib
 import json
 import re
 import shutil
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -208,6 +209,11 @@ SUPPORT_DIR_NAME_RE = re.compile(r"^[A-Za-z0-9_.-]+$")
 
 class CliUsageError(ValueError):
     """User-facing CLI usage error handled by argparse."""
+
+
+def _emit(message: object = "", *, file=None, end: str = "\n") -> None:
+    stream = sys.stdout if file is None else file
+    stream.write(f"{message}{end}")
 
 
 def _relative(path: Path, base_dir: Path) -> str:
@@ -938,11 +944,12 @@ def _find_quality_pattern(
 
 
 def _has_meaningful_assert(text: str) -> bool:
+    assert_prefix_len = len("assert ")
     for line in text.splitlines():
         stripped = line.strip()
         if not stripped.startswith("assert "):
             continue
-        expression = stripped[len("assert ") :].strip()
+        expression = stripped[assert_prefix_len:].strip()
         if re.fullmatch(r"(?:True|1)(?:\s*,.*)?", expression):
             continue
         return True
@@ -2872,13 +2879,17 @@ def _find_kernel_signature_for_entry(
         close_brace = _find_matching_brace(text, open_brace)
         if close_brace is None:
             return None
+        signature_start = match.start()
+        body_start = open_brace + 1
+        signature = text[signature_start:open_brace].strip()
+        body = text[body_start:close_brace]
         return {
-            "signature": text[match.start() : open_brace].strip(),
+            "signature": signature,
             "qualifiers": match.group("qualifiers")
             .replace("__global__", "__sk__", 1)
             .strip(),
             "params": match.group("params"),
-            "body": text[open_brace + 1 : close_brace],
+            "body": body,
         }
     return None
 
@@ -3475,7 +3486,7 @@ def _load_json_artifact(path: Path, artifact_name: str) -> Any:
         raise CliUsageError(f"{artifact_name} cannot be read") from exc
     try:
         return json.loads(content, parse_constant=_reject_json_constant)
-    except (json.JSONDecodeError, ValueError) as exc:
+    except ValueError as exc:
         raise CliUsageError(f"{artifact_name} is not valid JSON") from exc
 
 
@@ -4843,7 +4854,7 @@ def cmd_aggregate_sk_adapted(args: argparse.Namespace) -> int:
         package_name=args.aggregate_wheel_name,
         package_version=args.package_version,
     )
-    print(
+    _emit(
         json.dumps(
             {
                 "status": manifest["status"],
@@ -4881,7 +4892,7 @@ def cmd_generate_standalone_compare(args: argparse.Namespace) -> int:
         target_chip=args.target_chip or "",
         npu_arch=args.npu_arch or "",
     )
-    print(
+    _emit(
         json.dumps({"status": manifest["status"], "entries": len(manifest["entries"])})
     )
     return 0
@@ -4977,10 +4988,10 @@ def cmd_generate_from_template(args: argparse.Namespace) -> int:
         target = (output_dir / rel).resolve()
         try:
             target.relative_to(output_dir.resolve())
-        except ValueError:
+        except ValueError as exc:
             raise CliUsageError(
                 f"template attempted to write outside output dir: {rel}"
-            )
+            ) from exc
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(body, encoding="utf-8")
         written.append(rel)
@@ -5002,7 +5013,7 @@ def cmd_list_templates(args: argparse.Namespace) -> int:
 
     templates_dir = Path(__file__).resolve().parent.parent / "templates"
     items = list_templates(templates_dir)
-    print(json.dumps({"templates": items}, indent=2))
+    _emit(json.dumps({"templates": items}, indent=2))
     return 0
 
 

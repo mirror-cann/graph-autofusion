@@ -90,6 +90,13 @@ EVENT_ASSET_KEY = "sk_event_dev_device_*.json"
 EVENT_ASSET_NAME = "sk_event_dev_device_*.json / sk_prof_device_*.json"
 LOG_FILE_COUNT_LIMIT = 1000
 PARSE_CACHE_VERSION = "sk-network-analysis-parse-cache-v1"
+
+
+def _emit(message: object = "", *, file: Any = None, end: str = "\n") -> None:
+    stream = sys.stdout if file is None else file
+    stream.write(f"{message}{end}")
+
+
 PRESENTATION_LIMITS = {
     "scope_nodes": 24,
     "scope_scopes": 4,
@@ -623,7 +630,8 @@ def _portal_href(href: str) -> str:
     if path.startswith(("http://", "https://", "edge://", "chrome://")):
         return href
     if path.startswith("reports/"):
-        path = path[len("reports/") :]
+        reports_prefix_len = len("reports/")
+        path = path[reports_prefix_len:]
     if path == "run-portal.html":
         return path + suffix
     if path.endswith(".html"):
@@ -720,14 +728,30 @@ def _event_stats_parser_name() -> str:
     return "ijson" if ijson is not None else "json"
 
 
+def _ijson_parse_errors() -> tuple[type[BaseException], ...]:
+    errors: list[type[BaseException]] = [OSError, ValueError]
+    if ijson is None:
+        return tuple(errors)
+
+    for owner in (ijson, getattr(ijson, "common", None)):
+        json_error = getattr(owner, "JSONError", None)
+        if isinstance(json_error, type) and issubclass(json_error, BaseException):
+            errors.append(json_error)
+    return tuple(dict.fromkeys(errors))
+
+
 @contextmanager
 def _suppress_streams(*, stdout: bool = True, stderr: bool = False):
     with ExitStack() as stack:
         if stdout:
-            stdout_target = stack.enter_context(open(os.devnull, "w", encoding="utf-8"))
+            stdout_target = stack.enter_context(
+                Path(os.devnull).open("w", encoding="utf-8")
+            )
             stack.enter_context(redirect_stdout(stdout_target))
         if stderr:
-            stderr_target = stack.enter_context(open(os.devnull, "w", encoding="utf-8"))
+            stderr_target = stack.enter_context(
+                Path(os.devnull).open("w", encoding="utf-8")
+            )
             stack.enter_context(redirect_stderr(stderr_target))
         yield
 
@@ -741,6 +765,7 @@ def _suppress_stdout():
 def _iter_event_file_events(path: Path) -> Iterable[dict[str, Any]]:
     if ijson is not None:
         prefix = "traceEvents.item"
+        parse_errors = _ijson_parse_errors()
         with path.open("rb") as handle:
             first_byte = handle.read(1)
             while first_byte and first_byte in b" \t\r\n":
@@ -751,8 +776,12 @@ def _iter_event_file_events(path: Path) -> Iterable[dict[str, Any]]:
             try:
                 yield from ijson.items(handle, prefix)
                 return
-            except Exception:
-                pass
+            except parse_errors:
+                fallback_to_json = True
+            else:
+                fallback_to_json = False
+        if not fallback_to_json:
+            return
     payload = json.loads(_read_text(path))
     events = payload.get("traceEvents", []) if isinstance(payload, dict) else payload
     if not isinstance(events, list):
@@ -2377,7 +2406,7 @@ class ProgressTracker:
                 file=sys.stderr,
             )
         else:
-            print(self._fallback_line("start"), file=sys.stderr)
+            _emit(self._fallback_line("start"), file=sys.stderr)
 
     def step(self, amount: int = 1) -> None:
         if not self._started:
@@ -2404,7 +2433,7 @@ class ProgressTracker:
             self._bar.close()
             self._bar = None
         else:
-            print(
+            _emit(
                 self._fallback_line("done" if complete else "stopped"), file=sys.stderr
             )
         self._started = False
@@ -6612,15 +6641,21 @@ def _render_run_portal(
                 else {}
             )
 
-            def _view_link(key: str, label: str) -> str:
-                href = paths.get(key)
-                if processing_error and not href:
+            def _view_link(
+                key: str,
+                label: str,
+                current_paths: dict[str, str] = paths,
+                current_processing_error: str = processing_error,
+                current_view_states: dict[str, Any] = view_states,
+            ) -> str:
+                href = current_paths.get(key)
+                if current_processing_error and not href:
                     return "<span class='hint' title='{reason}'>生成失败</span>".format(
-                        reason=html.escape(processing_error),
+                        reason=html.escape(current_processing_error),
                     )
                 view_state = (
-                    view_states.get(key, {})
-                    if isinstance(view_states.get(key), dict)
+                    current_view_states.get(key, {})
+                    if isinstance(current_view_states.get(key), dict)
                     else {}
                 )
                 state_level = str(view_state.get("level") or "available")
@@ -6631,9 +6666,9 @@ def _render_run_portal(
                 )
                 if href:
                     link = f"<a href='{html.escape(href)}'>{html.escape(label)}</a>"
-                    if processing_error:
+                    if current_processing_error:
                         return (
-                            f"{link} <span class='hint' title='{html.escape(processing_error)}'>"
+                            f"{link} <span class='hint' title='{html.escape(current_processing_error)}'>"
                             f"（partial）</span>"
                         )
                     if state_level != "available":
@@ -7641,13 +7676,13 @@ def main() -> None:
         instance_worker_budget=instance_workers,
     )
 
-    print(f"Input path: {input_dir}")
-    print(f"Input classification: {context['input_classification']}")
-    print(f"Result root: {run_dir}")
-    print(f"Model directory: {model_dir}")
-    print(f"Model directory count: {len(model_dirs)}")
-    print(f"Model instance count: {total_model_instances}")
-    print(f"Generated reports: {reports_dir}")
+    _emit(f"Input path: {input_dir}")
+    _emit(f"Input classification: {context['input_classification']}")
+    _emit(f"Result root: {run_dir}")
+    _emit(f"Model directory: {model_dir}")
+    _emit(f"Model directory count: {len(model_dirs)}")
+    _emit(f"Model instance count: {total_model_instances}")
+    _emit(f"Generated reports: {reports_dir}")
 
 
 if __name__ == "__main__":

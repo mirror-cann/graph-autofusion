@@ -384,6 +384,11 @@ def infer_result_root(
 T = TypeVar("T")
 
 
+def _emit(message: object = "", *, file: Any = None, end: str = "\n") -> None:
+    stream = sys.stdout if file is None else file
+    stream.write(f"{message}{end}")
+
+
 def _partition_consecutive(items: list[T], count: int) -> list[list[T]]:
     if count <= 0:
         return []
@@ -394,7 +399,8 @@ def _partition_consecutive(items: list[T], count: int) -> list[list[T]]:
     index = 0
     for group_index in range(count):
         size = base + (1 if group_index < remainder else 0)
-        groups.append(items[index : index + size])
+        end = index + size
+        groups.append(items[index:end])
         index += size
     return groups
 
@@ -424,7 +430,8 @@ def _read_indexed_lines(
     begin_line, end_line = line_range
     begin = max(1, begin_line)
     end = max(begin, end_line)
-    sliced = lines[begin - 1 : end]
+    start = begin - 1
+    sliced = lines[start:end]
     return [(begin + index, line) for index, line in enumerate(sliced)]
 
 
@@ -608,9 +615,9 @@ def _parser_log(
     if model_instance_id:
         parts.append(f"model_instance={model_instance_id}")
     parts.append(message)
-    print(" ".join(str(part) for part in parts if part), file=sys.stderr)
+    _emit(" ".join(str(part) for part in parts if part), file=sys.stderr)
     if details:
-        print(
+        _emit(
             "  details="
             + json.dumps(
                 {
@@ -2246,7 +2253,8 @@ def _strip_op_trace_suffix(name: str | None) -> str:
     if not name:
         return ""
     if name.endswith("_op_trace"):
-        return name[: -len("_op_trace")]
+        suffix_len = len("_op_trace")
+        return name[:-suffix_len]
     return name
 
 
@@ -3781,10 +3789,12 @@ def _group_scope_batches_by_terminal_final(
     groups: list[list[dict[str, Any]]] = []
     start = 0
     for final_index in final_indices:
-        groups.append(batches[start : final_index + 1])
+        end = final_index + 1
+        groups.append(batches[start:end])
         start = final_index + 1
 
     if start < len(batches):
+        ignored_end = start + 20
         _parser_log(
             "WARN",
             "scope_library_trailing_batches_ignored",
@@ -3794,8 +3804,7 @@ def _group_scope_batches_by_terminal_final(
                 "source_kind": source_kind,
                 "ignored_batch_count": len(batches) - start,
                 "ignored_passes": [
-                    str(batch.get("pass") or "")
-                    for batch in batches[start : start + 20]
+                    str(batch.get("pass") or "") for batch in batches[start:ignored_end]
                 ],
             },
         )
@@ -6262,7 +6271,7 @@ def main() -> int:
     try:
         model_dir = find_model_dir(args.input)
     except FileNotFoundError as exc:
-        print(f"[ERROR] 无法定位 model 目录: {exc}")
+        _emit(f"[ERROR] 无法定位 model 目录: {exc}")
         return 1
 
     update_report = collect_update_report(model_dir)
@@ -6277,9 +6286,9 @@ def main() -> int:
         graph_library_output=graph_library_output,
         dfx_library_output=dfx_library_output,
     )
-    print(f"[OK] 已生成 scope 库: {scope_path}")
-    print(f"[OK] 已生成 graph 库: {graph_path}")
-    print(f"[OK] 已生成 dfx 库: {dfx_path}")
+    _emit(f"[OK] 已生成 scope 库: {scope_path}")
+    _emit(f"[OK] 已生成 graph 库: {graph_path}")
+    _emit(f"[OK] 已生成 dfx 库: {dfx_path}")
     return 0
 
 

@@ -58,6 +58,11 @@ from sk_visualizer_shared import (
 )
 
 
+def _emit(message: object = "", *, file=None, end: str = "\n") -> None:
+    stream = sys.stdout if file is None else file
+    stream.write(f"{message}{end}")
+
+
 # ======================== Data Classes ========================
 
 
@@ -2165,7 +2170,7 @@ requestAnimationFrame(() => {{ resetView(); }});
     with open(output_path, "w", encoding="utf-8") as f:
         f.write(html_content)
 
-    print(f"Generated HTML: {output_path} ({os.path.getsize(output_path)} bytes)")
+    _emit(f"Generated HTML: {output_path} ({os.path.getsize(output_path)} bytes)")
 
 
 # ======================== Main ========================
@@ -2215,7 +2220,7 @@ def main():
     output_path = args.output_path or args.output or "task-queue-graph.html"
 
     if (args.scope_library is None) ^ (args.graph_library is None):
-        print("Error: --scope-library 和 --graph-library 必须同时提供。")
+        _emit("Error: --scope-library 和 --graph-library 必须同时提供。")
         sys.exit(1)
 
     if args.scope_library and args.graph_library:
@@ -2225,14 +2230,14 @@ def main():
         try:
             scope_library, graph_library, _ = _find_library_pair(log_path)
         except FileNotFoundError as exc:
-            print(exc)
+            _emit(exc)
             sys.exit(1)
 
     if not os.path.isfile(scope_library):
-        print(f"Error: scope 库不存在: {scope_library}")
+        _emit(f"Error: scope 库不存在: {scope_library}")
         sys.exit(1)
     if not os.path.isfile(graph_library):
-        print(f"Error: graph 库不存在: {graph_library}")
+        _emit(f"Error: graph 库不存在: {graph_library}")
         sys.exit(1)
 
     source = TaskQueueLibrarySource(scope_library, graph_library)
@@ -2241,7 +2246,7 @@ def main():
         sys.exit(1)
 
     stats = result.get("stats", {})
-    print(
+    _emit(
         "Summary: sections=%d, source_files=%d"
         % (
             int(stats.get("sections_deduped", 0)),

@@ -17,6 +17,7 @@ import argparse
 import json
 import os
 import re
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -98,6 +99,15 @@ _ASSET_ROOT_NON_BLOCKING_STATUSES = (
     "analyzed",
 )
 _PIPELINE_TERMINAL_SUCCESS_STATUSES = ("packaged", "verified")
+
+
+class CliUsageError(Exception):
+    pass
+
+
+def _emit(message: object = "", *, file=None, end: str = "\n") -> None:
+    stream = sys.stdout if file is None else file
+    stream.write(f"{message}{end}")
 
 
 def _write_json(path: Path, payload: dict[str, Any]) -> None:
@@ -728,7 +738,7 @@ def cmd_run_sk_pipeline(args: argparse.Namespace) -> int:
     for raw_root in args.asset_root or []:
         root = Path(raw_root).resolve()
         if not root.exists() or not root.is_dir():
-            raise SystemExit(f"asset root not found: {root}")
+            raise CliUsageError(f"asset root not found: {root}")
         root_paths.append(root)
         root_records = _discover_operator_asset_records(root, skills_root=skills_root)
         asset_paths.extend(
@@ -766,15 +776,15 @@ def cmd_run_sk_pipeline(args: argparse.Namespace) -> int:
             }
             output_dir.mkdir(parents=True, exist_ok=True)
             _write_asset_root_coverage(output_dir, payload)
-            raise SystemExit(
+            raise CliUsageError(
                 f"asset layout required; inspect {output_dir / 'asset-root-coverage.json'}"
             )
-        raise SystemExit(
+        raise CliUsageError(
             "--asset or --asset-root must provide at least one operator asset"
         )
     for asset in asset_paths:
         if not asset.exists():
-            raise SystemExit(f"asset path not found: {asset}")
+            raise CliUsageError(f"asset path not found: {asset}")
     try:
         prepare_output_dir(
             output_dir,
@@ -782,7 +792,7 @@ def cmd_run_sk_pipeline(args: argparse.Namespace) -> int:
             resume_from=Path(args.resume_from) if args.resume_from else None,
         )
     except ValueError as exc:
-        raise SystemExit(str(exc)) from exc
+        raise CliUsageError(str(exc)) from exc
 
     orchestrator = PipelineOrchestrator(
         skills_root, _sys.executable, repo_root=repo_root
@@ -828,7 +838,7 @@ def cmd_run_sk_pipeline(args: argparse.Namespace) -> int:
                 wheel_mode=wheel_mode,
                 build_cache_dir=build_cache_dir,
             )
-            print(
+            _emit(
                 json.dumps(
                     {
                         "status": payload["status"],
@@ -850,7 +860,7 @@ def cmd_run_sk_pipeline(args: argparse.Namespace) -> int:
                 "duplicate_entries": duplicates,
                 "duplicate_asset_slugs": duplicate_slugs,
             }
-            raise SystemExit(
+            raise CliUsageError(
                 "asset-root aggregate mode cannot continue with duplicate identities: "
                 + json.dumps(details, ensure_ascii=False)
             )
@@ -911,7 +921,7 @@ def cmd_run_sk_pipeline(args: argparse.Namespace) -> int:
             allow_mock_npu=bool(getattr(args, "allow_mock_npu", False)),
         )
     except OrchestratorError as exc:
-        raise SystemExit(str(exc)) from exc
+        raise CliUsageError(str(exc)) from exc
     summary = {
         "status": state["status"],
         "stages": len(state["stages"]),
@@ -936,7 +946,7 @@ def cmd_run_sk_pipeline(args: argparse.Namespace) -> int:
             )
         except (OSError, json.JSONDecodeError):
             summary["name_resolution_report"] = "unreadable"
-    print(json.dumps(summary))
+    _emit(json.dumps(summary))
     # 0 only when the pipeline reached a release terminal success.
     return 0 if state["status"] in _PIPELINE_TERMINAL_SUCCESS_STATUSES else 1
 
@@ -1120,7 +1130,10 @@ def build_parser() -> argparse.ArgumentParser:
 def main() -> None:
     parser = build_parser()
     args = parser.parse_args()
-    raise SystemExit(args.func(args))
+    try:
+        raise SystemExit(args.func(args))
+    except CliUsageError as exc:
+        parser.error(str(exc))
 
 
 if __name__ == "__main__":

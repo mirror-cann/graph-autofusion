@@ -397,6 +397,11 @@ class CliUsageError(ValueError):
     """User-facing CLI usage error handled by argparse."""
 
 
+def _emit(message: object = "", *, file=None, end: str = "\n") -> None:
+    stream = sys.stdout if file is None else file
+    stream.write(f"{message}{end}")
+
+
 def _relative(path: Path, base_dir: Path) -> str:
     try:
         return str(path.relative_to(base_dir))
@@ -688,11 +693,12 @@ def _find_quality_pattern(
 
 
 def _has_meaningful_assert(text: str) -> bool:
+    assert_prefix_len = len("assert ")
     for line in text.splitlines():
         stripped = line.strip()
         if not stripped.startswith("assert "):
             continue
-        expression = stripped[len("assert ") :].strip()
+        expression = stripped[assert_prefix_len:].strip()
         if re.fullmatch(r"(?:True|1)(?:\s*,.*)?", expression):
             continue
         return True
@@ -2600,7 +2606,7 @@ def _load_json_artifact(path: Path, artifact_name: str) -> Any:
         raise CliUsageError(f"{artifact_name} cannot be read") from exc
     try:
         return json.loads(content, parse_constant=_reject_json_constant)
-    except (json.JSONDecodeError, ValueError) as exc:
+    except ValueError as exc:
         raise CliUsageError(f"{artifact_name} is not valid JSON") from exc
 
 
@@ -3344,7 +3350,9 @@ def _validate_sk_build_validation_semantics(
         source_scaffold,
         list(SK_BUILD_VALIDATION_CHECK_NAMES[:first_blocked_index]),
     )
-    for name in SK_BUILD_VALIDATION_CHECK_NAMES[first_blocked_index + 1 :]:
+    remaining_check_start = first_blocked_index + 1
+    remaining_check_names = SK_BUILD_VALIDATION_CHECK_NAMES[remaining_check_start:]
+    for name in remaining_check_names:
         if (
             checks[name]["status"] != "blocked"
             or checks[name]["reason"] != blocked_reason
@@ -5629,7 +5637,9 @@ def _validate_scaffold_build_result_semantics(
         for name in SCAFFOLD_BUILD_CHECK_NAMES[:first_blocked_index]:
             if not _is_passed_shape(name):
                 raise CliUsageError("blocked scaffold build result semantics mismatch")
-        for name in SCAFFOLD_BUILD_CHECK_NAMES[first_blocked_index + 1 :]:
+        remaining_check_start = first_blocked_index + 1
+        remaining_check_names = SCAFFOLD_BUILD_CHECK_NAMES[remaining_check_start:]
+        for name in remaining_check_names:
             check = checks[name]
             if check["status"] != "blocked" or check["reason"] != blocked_reason:
                 raise CliUsageError("blocked scaffold build result semantics mismatch")
@@ -6480,7 +6490,8 @@ def _staging_relative_path(contract_path: str) -> Path:
         raise CliUsageError(
             "operator-package-contract.json package file path is outside operator-scaffold"
         )
-    relative = contract_path[len(prefix) :]
+    prefix_len = len(prefix)
+    relative = contract_path[prefix_len:]
     if not relative:
         raise CliUsageError("operator-package-contract.json package file path is empty")
     return Path(_safe_scaffold_relative_path(relative))
@@ -6876,7 +6887,7 @@ def cmd_generate_pybind_binding(args: argparse.Namespace) -> int:
     binding_manifest_path.write_text(
         json.dumps(binding_manifest, indent=2), encoding="utf-8"
     )
-    print(
+    _emit(
         json.dumps(
             {
                 "package": binding_manifest["package_name"],
@@ -7047,7 +7058,7 @@ def cmd_build_native_wheel(args: argparse.Namespace) -> int:
     (adapted_root / "operator-sk-native-wheel.json").write_text(
         json.dumps(result_manifest, indent=2), encoding="utf-8"
     )
-    print(json.dumps({"status": status, "wheels": wheels}))
+    _emit(json.dumps({"status": status, "wheels": wheels}))
     return 0 if status == "passed" else 1
 
 
@@ -7066,7 +7077,7 @@ def cmd_build_baseline(args: argparse.Namespace) -> int:
         entry_name=args.entry_name,
         structural=args.structural,
     )
-    print(
+    _emit(
         json.dumps({"status": manifest["status"], "entry_name": manifest["entry_name"]})
     )
     return 0 if manifest.get("status") == "passed" else 1
@@ -7230,7 +7241,7 @@ def cmd_build_standalone_executable(args: argparse.Namespace) -> int:
     (output_root / "operator-sk-standalone-build.json").write_text(
         json.dumps(result_manifest, indent=2), encoding="utf-8"
     )
-    print(json.dumps({"status": status, "executable": str(executable)}))
+    _emit(json.dumps({"status": status, "executable": str(executable)}))
     return 0 if status == "passed" else 1
 
 

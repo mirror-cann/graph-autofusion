@@ -52,6 +52,12 @@ from sk_visualizer_shared import (
     render_view_nav,
 )
 
+
+def _emit(message: object = "", *, file=None, end: str = "\n") -> None:
+    stream = sys.stdout if file is None else file
+    stream.write(f"{message}{end}")
+
+
 # ============================================================================
 # 数据结构
 # ============================================================================
@@ -266,6 +272,7 @@ class SkScopeRound:
         self.source_round_idx = -1
         self.model_instances = []
         self.custom_update_nodes = []
+        self.synthesized_custom_annotations = []
         self.update_edges = []
         self.update_summary = {}
 
@@ -498,7 +505,7 @@ def build_rounds_from_libraries(scope_library, graph_library):
             if isinstance(item, dict) and isinstance(item.get("node_id"), int)
         }
 
-        def _build_scope_node(node_id, node_scope_id):
+        def _build_scope_node(node_id, node_scope_id, current_round_idx=round_idx):
             node_entry = node_by_id.get(node_id)
             if not node_entry:
                 return None
@@ -513,7 +520,7 @@ def build_rounds_from_libraries(scope_library, graph_library):
                 event_flag=node_entry.get("event_flag"),
                 kernel_name=node_entry.get("func_name"),
                 scope_id=node_scope_id,
-                round_idx=round_idx,
+                round_idx=current_round_idx,
                 index_in_list=0,
                 kernel_type=node_entry.get("kernel_type")
                 or kernel_info.get("kernel_type", ""),
@@ -1141,7 +1148,7 @@ def build_edges(round_data, extra_nodes=None):
     stream_nodes = defaultdict(list)
     for node in nodes.values():
         stream_nodes[node.stream_id].append(node)
-    for sid, s_nodes in stream_nodes.items():
+    for _, s_nodes in stream_nodes.items():
         s_nodes.sort(key=lambda n: n.node_idx_in_stream)
         for i in range(len(s_nodes) - 1):
             edges.append(SkEdge(s_nodes[i].node_id, s_nodes[i + 1].node_id, "stream"))
@@ -2675,11 +2682,11 @@ def main():
 
     input_path = args.input
     if not os.path.exists(input_path):
-        print(f"[ERROR] 路径不存在: {input_path}", file=sys.stderr)
+        _emit(f"[ERROR] 路径不存在: {input_path}", file=sys.stderr)
         sys.exit(1)
 
     if (args.scope_library is None) ^ (args.graph_library is None):
-        print(
+        _emit(
             "Error: --scope-library 和 --graph-library 必须同时提供。", file=sys.stderr
         )
         sys.exit(1)
@@ -2694,28 +2701,28 @@ def main():
         try:
             scope_library, graph_library, bundle_root = _find_library_pair(input_path)
         except FileNotFoundError as exc:
-            print(exc, file=sys.stderr)
+            _emit(exc, file=sys.stderr)
             sys.exit(1)
-        print(f"[INFO] 自动匹配库文件: {bundle_root}")
+        _emit(f"[INFO] 自动匹配库文件: {bundle_root}")
 
     if not os.path.isfile(scope_library):
-        print(f"[ERROR] scope 库不存在: {scope_library}", file=sys.stderr)
+        _emit(f"[ERROR] scope 库不存在: {scope_library}", file=sys.stderr)
         sys.exit(1)
     if not os.path.isfile(graph_library):
-        print(f"[ERROR] graph 库不存在: {graph_library}", file=sys.stderr)
+        _emit(f"[ERROR] graph 库不存在: {graph_library}", file=sys.stderr)
         sys.exit(1)
 
     source = ScopeLibrarySource(scope_library, graph_library, mode="scope")
     model = ScopeGraphModel.from_libraries(source)
     if not model.rounds:
-        print("[ERROR] scope-library 中未解析到可显示 scope", file=sys.stderr)
+        _emit("[ERROR] scope-library 中未解析到可显示 scope", file=sys.stderr)
         sys.exit(1)
 
     ScopeGraphRenderer(args.output).render_html(model)
     scope_count = len(model.rounds)
     node_count = sum(len(rd.all_nodes) for rd in model.rounds)
-    print(f"[OK] 可视化报告已生成: {args.output}")
-    print(f"     scope count={scope_count}, node count={node_count}")
+    _emit(f"[OK] 可视化报告已生成: {args.output}")
+    _emit(f"     scope count={scope_count}, node count={node_count}")
 
 
 if __name__ == "__main__":
