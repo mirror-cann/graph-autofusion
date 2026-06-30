@@ -1738,12 +1738,7 @@ def render_graph_nav(
         f"<button type='button' class='graph-nav-btn' id='{html_escape(next_id)}' "
         f"title='{html_escape(next_title)}'>›</button>"
     )
-    return (
-        "<div class='graph-nav'>"
-        f"{prev_button}"
-        f"{next_button}"
-        "</div>"
-    )
+    return f"<div class='graph-nav'>{prev_button}{next_button}</div>"
 
 
 def render_graph_index_chip(chip_id: str, text: str, extra_class: str = "") -> str:

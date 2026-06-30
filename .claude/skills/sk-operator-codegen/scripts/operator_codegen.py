@@ -3499,14 +3499,18 @@ def _validate_manifest_path(
         raise CliUsageError(str(exc)) from exc
 
 
-def _validate_manifest_path_list(value: Any, list_label: str, item_label: str) -> list[str]:
+def _validate_manifest_path_list(
+    value: Any, list_label: str, item_label: str
+) -> list[str]:
     paths = []
     for item in _require_list(value, list_label):
         paths.append(_validate_manifest_path(item, item_label))
     return paths
 
 
-def _resolve_string_path_list(value: Any, list_label: str, item_label: str) -> list[str]:
+def _resolve_string_path_list(
+    value: Any, list_label: str, item_label: str
+) -> list[str]:
     paths = []
     for item in _require_list(value, list_label):
         paths.append(str(Path(_require_string(item, item_label)).resolve()))

@@ -6493,12 +6493,10 @@ def _render_performance_report_html(
                 event_count=html.escape(str(item.get("event_count", 0))),
                 total_dur=html.escape(str(item.get("total_duration", 0))),
                 matched_scopes=html.escape(
-                    _comma_join_ids(item.get("matched_scope_ids", []))
-                    or "无"
+                    _comma_join_ids(item.get("matched_scope_ids", [])) or "无"
                 ),
                 matched_nodes=html.escape(
-                    _comma_join_ids(item.get("matched_event_node_ids", []))
-                    or "无"
+                    _comma_join_ids(item.get("matched_event_node_ids", [])) or "无"
                 ),
                 judgment=html.escape(judgment),
                 trace_links=trace_links,
@@ -6727,9 +6725,7 @@ def _render_performance_report_html(
                                 or "none"
                             ),
                             matched_nodes=html.escape(
-                                _comma_join_ids(
-                                    item.get("matched_event_node_ids", [])
-                                )
+                                _comma_join_ids(item.get("matched_event_node_ids", []))
                                 or "none"
                             ),
                             judgment=html.escape(
@@ -6904,7 +6900,9 @@ def _render_run_portal(
         return {"abnormal": 3, "warning": 2, "clean": 1}.get(str(value), 0)
 
     def _model_fusion_state(item: dict[str, Any]) -> str:
-        has_task_or_update = bool(item.get("task_queue_available") or item.get("has_update"))
+        has_task_or_update = bool(
+            item.get("task_queue_available") or item.get("has_update")
+        )
         has_fused_function = int(item.get("function_count", 0) or 0) > 0
         if has_task_or_update or has_fused_function:
             return "fused"

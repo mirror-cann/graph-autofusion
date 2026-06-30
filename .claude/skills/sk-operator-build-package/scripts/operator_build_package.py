@@ -2619,14 +2619,18 @@ def _validate_manifest_path(
         raise CliUsageError(str(exc)) from exc
 
 
-def _validate_manifest_path_list(value: Any, list_label: str, item_label: str) -> list[str]:
+def _validate_manifest_path_list(
+    value: Any, list_label: str, item_label: str
+) -> list[str]:
     paths = []
     for item in _require_list(value, list_label):
         paths.append(_validate_manifest_path(item, item_label))
     return paths
 
 
-def _resolve_string_path_list(value: Any, list_label: str, item_label: str) -> list[str]:
+def _resolve_string_path_list(
+    value: Any, list_label: str, item_label: str
+) -> list[str]:
     paths = []
     for item in _require_list(value, list_label):
         paths.append(str(Path(_require_string(item, item_label)).resolve()))
@@ -3635,7 +3639,12 @@ def cmd_run_sk_build_validation(args: argparse.Namespace) -> int:
         )
         result = _sk_build_validation_manifest(
             SkBuildValidationManifestInput(
-                output_dir, "blocked", "", [], check_results, ["run_sk_build_validation"]
+                output_dir,
+                "blocked",
+                "",
+                [],
+                check_results,
+                ["run_sk_build_validation"],
             )
         )
         _write_json(output_dir / "operator-sk-build-validation.json", result)
@@ -3667,7 +3676,12 @@ def cmd_run_sk_build_validation(args: argparse.Namespace) -> int:
         )
         result = _sk_build_validation_manifest(
             SkBuildValidationManifestInput(
-                output_dir, "blocked", "", [], check_results, ["run_sk_build_validation"]
+                output_dir,
+                "blocked",
+                "",
+                [],
+                check_results,
+                ["run_sk_build_validation"],
             )
         )
         _write_json(output_dir / "operator-sk-build-validation.json", result)
@@ -5628,10 +5642,9 @@ def _validate_scaffold_build_result_semantics(
 
     def _is_passed_shape(name: str) -> bool:
         check = checks.get(name, {})
-        return (
-            check.get("status") == "passed"
-            and check.get("reason") == passed_reasons.get(name)
-        )
+        return check.get("status") == "passed" and check.get(
+            "reason"
+        ) == passed_reasons.get(name)
 
     statuses = [check["status"] for check in checks.values()]
     if status == "passed":
@@ -7260,7 +7273,9 @@ def cmd_build_standalone_executable(args: argparse.Namespace) -> int:
             target_entries = []
             default_target = next(iter(executable_targets))
             for entry in entries:
-                entry_target = entry_targets.get(entry.get("entry_name"), default_target)
+                entry_target = entry_targets.get(
+                    entry.get("entry_name"), default_target
+                )
                 if entry_target == target:
                     target_entries.append(entry)
             stdout_payload = {

@@ -5858,7 +5858,9 @@ def build_scope_library_export(
         update_payload = None
         if has_any_update_payload:
             update_streams = []
-            update_stream_items = scope_update.get("streams", []) if scope_update else []
+            update_stream_items = (
+                scope_update.get("streams", []) if scope_update else []
+            )
             for item in update_stream_items:
                 update_streams.append(
                     {

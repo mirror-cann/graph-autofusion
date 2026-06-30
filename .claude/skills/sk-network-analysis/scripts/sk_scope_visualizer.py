@@ -647,6 +647,7 @@ def build_rounds_from_libraries(scope_library, graph_library):
             for queue_name in ("AIC", "AIV"):
                 section_tasks.extend(section.get("queues", {}).get(queue_name, []))
             if section_tasks:
+
                 def _matches_effective_update(
                     expected_type: str,
                     current_node: "SkNode | None",

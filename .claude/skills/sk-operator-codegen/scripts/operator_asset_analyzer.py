@@ -571,7 +571,9 @@ def analyze_asset(asset: Path) -> AssetUnderstanding:
         raise FileNotFoundError(root)
     inventory = build_inventory(root)
     layout = build_layout_from_inventory(inventory)
-    has_layout_signal = bool(layout.get("status") == "ready" or layout.get("human_questions"))
+    has_layout_signal = bool(
+        layout.get("status") == "ready" or layout.get("human_questions")
+    )
     has_kernel_signal = bool(
         inventory.get("kernel_source_count")
         or inventory.get("kernel_candidate_count")

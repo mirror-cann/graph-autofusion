@@ -2482,14 +2482,18 @@ def _validate_manifest_path(
         raise CliUsageError(str(exc)) from exc
 
 
-def _validate_manifest_path_list(value: Any, list_label: str, item_label: str) -> list[str]:
+def _validate_manifest_path_list(
+    value: Any, list_label: str, item_label: str
+) -> list[str]:
     paths = []
     for item in _require_list(value, list_label):
         paths.append(_validate_manifest_path(item, item_label))
     return paths
 
 
-def _resolve_string_path_list(value: Any, list_label: str, item_label: str) -> list[str]:
+def _resolve_string_path_list(
+    value: Any, list_label: str, item_label: str
+) -> list[str]:
     paths = []
     for item in _require_list(value, list_label):
         paths.append(str(Path(_require_string(item, item_label)).resolve()))
@@ -3322,9 +3326,7 @@ def _sk_runtime_input_spec_manifest(
         "kernel_entries": request.kernel_entries,
         "input_specs": request.input_specs,
         "unresolved_inputs": request.unresolved_inputs,
-        "checks": [
-            request.checks[name] for name in SK_RUNTIME_INPUT_SPEC_CHECK_NAMES
-        ],
+        "checks": [request.checks[name] for name in SK_RUNTIME_INPUT_SPEC_CHECK_NAMES],
         "supported_next_actions": request.supported_next_actions,
         "execution_boundary": SK_RUNTIME_INPUT_SPEC_BOUNDARY,
     }
@@ -3390,7 +3392,7 @@ def _summarize_sk_runtime_input_spec(
         ):
             checks[name] = _sk_runtime_input_spec_check(
                 name, "blocked", "sk_build_validation_not_passed"
-        )
+            )
         _sk_runtime_boundary_checks(checks)
         return _sk_runtime_input_spec_manifest(
             RuntimeInputSpecManifestInput(
@@ -3653,8 +3655,7 @@ def _sk_runtime_input_values_manifest(
         "input_values": request.input_values,
         "unresolved_inputs": [],
         "checks": [
-            request.check_results[name]
-            for name in SK_RUNTIME_INPUT_VALUES_CHECK_NAMES
+            request.check_results[name] for name in SK_RUNTIME_INPUT_VALUES_CHECK_NAMES
         ],
         "supported_next_actions": ["collect_correctness_oracle_spec"],
         "execution_boundary": SK_RUNTIME_INPUT_VALUES_BOUNDARY,
@@ -4496,8 +4497,8 @@ def _normalize_correctness_tolerance(
     normalized: dict[str, int | float] = {}
     for name in ("rtol", "atol"):
         raw_value = tolerance[name]
-        invalid_number = (
-            not isinstance(raw_value, (int, float)) or isinstance(raw_value, bool)
+        invalid_number = not isinstance(raw_value, (int, float)) or isinstance(
+            raw_value, bool
         )
         invalid_range = not invalid_number and (
             not math.isfinite(raw_value) or raw_value < 0
@@ -5774,9 +5775,9 @@ def _compare_runtime_outputs(
         expected_output = oracle_set["expected_output"]
         actual_value = actual_output["value"]
         expected_value = expected_output["value"]
-        actual_is_bind_target_pair = (
-            isinstance(actual_value, dict) and set(actual_value) == {"baseline", "sk"}
-        )
+        actual_is_bind_target_pair = isinstance(actual_value, dict) and set(
+            actual_value
+        ) == {"baseline", "sk"}
         expected_is_bind_target = (
             isinstance(expected_value, dict)
             and expected_value.get("source") == "bind-target-on-wheel"

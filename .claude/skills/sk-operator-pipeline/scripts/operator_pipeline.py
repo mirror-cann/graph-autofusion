@@ -376,14 +376,12 @@ def _run_asset_root_separately(
     from sk_pipeline_orchestrator import PipelineOrchestrator
 
     layout = ArtifactLayout(output_dir)
-    resolved_verify_backend, resolved_wheel_mode = (
-        orchestrator.resolve_profile_options(
-            profile=args.profile,
-            verify_backend=args.verify_backend,
-            wheel_mode=wheel_mode,
-            no_verify=bool(args.no_verify),
-            no_package=bool(args.no_package),
-        )
+    resolved_verify_backend, resolved_wheel_mode = orchestrator.resolve_profile_options(
+        profile=args.profile,
+        verify_backend=args.verify_backend,
+        wheel_mode=wheel_mode,
+        no_verify=bool(args.no_verify),
+        no_package=bool(args.no_package),
     )
     selected_stages = PipelineOrchestrator.parse_stages(
         args.stages,

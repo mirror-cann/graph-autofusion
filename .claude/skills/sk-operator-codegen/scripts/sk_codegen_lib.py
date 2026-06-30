@@ -2863,7 +2863,7 @@ def _render_real_device_compare_body(
         f"    launch_{wrapper}_baseline(entry_block_dim, stream{baseline_arg_suffix});"
     )
     lines.append(
-        '    if (!acl_ok(aclrtSynchronizeStream(acl_stream), result, '
+        "    if (!acl_ok(aclrtSynchronizeStream(acl_stream), result, "
         '"aclrtSynchronizeStream baseline")) { '
         "free_device_ptrs(cleanup_device_ptrs); return result; }"
     )
@@ -2874,7 +2874,7 @@ def _render_real_device_compare_body(
         "return result; }"
     )
     lines.append(
-        '    if (!acl_ok(aclrtSynchronizeStream(acl_stream), result, '
+        "    if (!acl_ok(aclrtSynchronizeStream(acl_stream), result, "
         '"aclrtSynchronizeStream sk")) { free_device_ptrs(cleanup_device_ptrs); '
         "return result; }"
     )
@@ -3132,14 +3132,14 @@ def render_standalone_compare_source(
                 f"    {bind_target}<<<block_dim, nullptr, stream>>>({arg_tail});"
             )
             lines.append(
-                '    if (!acl_ok(aclmdlRICaptureEnd(acl_stream, &model_ri), '
+                "    if (!acl_ok(aclmdlRICaptureEnd(acl_stream, &model_ri), "
                 'result, "aclmdlRICaptureEnd sk")) return false;'
             )
             lines.append(
                 '    if (!acl_ok(aclskOptimize(model_ri, nullptr), result, "aclskOptimize sk")) return false;'
             )
             lines.append(
-                '    if (!acl_ok(aclmdlRIExecuteAsync(model_ri, acl_stream), '
+                "    if (!acl_ok(aclmdlRIExecuteAsync(model_ri, acl_stream), "
                 'result, "aclmdlRIExecuteAsync sk")) return false;'
             )
             lines.append("    return true;")
@@ -3217,10 +3217,10 @@ def render_standalone_compare_source(
             '        if (!acl_ok(aclInit(nullptr), runtime_setup_result, "aclInit")) '
             "{ results.push_back(runtime_setup_result); print_results(results); "
             "return 1; }",
-            '        if (!acl_ok(aclrtSetDevice(device_id), runtime_setup_result, '
+            "        if (!acl_ok(aclrtSetDevice(device_id), runtime_setup_result, "
             '"aclrtSetDevice")) { results.push_back(runtime_setup_result); '
             "print_results(results); aclFinalize(); return 1; }",
-            '        if (!acl_ok(aclrtCreateStream(&acl_stream), runtime_setup_result, '
+            "        if (!acl_ok(aclrtCreateStream(&acl_stream), runtime_setup_result, "
             '"aclrtCreateStream")) { results.push_back(runtime_setup_result); '
             "print_results(results); aclrtResetDevice(device_id); aclFinalize(); "
             "return 1; }",
