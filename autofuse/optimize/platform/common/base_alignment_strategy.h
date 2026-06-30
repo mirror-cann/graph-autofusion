@@ -53,6 +53,9 @@ class BaseAlignmentStrategy {
   static uint32_t GetAlignWidth() {
     return align_width_;
   }
+  virtual af::Status ModifyVectorizedStrides([[maybe_unused]] ascir::ImplGraph &impl_graph) {
+    return ge::SUCCESS;
+  }
 
  protected:
   virtual AlignmentType GetDefaultAlignmentType() = 0;

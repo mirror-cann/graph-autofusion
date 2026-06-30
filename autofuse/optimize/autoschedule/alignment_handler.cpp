@@ -18,4 +18,12 @@ ge::Status AlignmentHandler::AlignVectorizedStrides(ascir::ImplGraph &impl_graph
   GE_CHECK_NOTNULL(strategy, "Get alignment strategy by platform failed.");
   return strategy->AlignVectorizedStrides(impl_graph);
 }
+
+ge::Status AlignmentHandler::ModifyVectorizedStrides(ascir::ImplGraph &impl_graph) {
+  const auto &platform = PlatformFactory::GetInstance().GetPlatform();
+  GE_CHECK_NOTNULL(platform, "Platform is not found.");
+  const auto &strategy = platform->GetAlignmentStrategy();
+  GE_CHECK_NOTNULL(strategy, "Get alignment strategy by platform failed.");
+  return strategy->ModifyVectorizedStrides(impl_graph);
+}
 }  // namespace optimize::autoschedule

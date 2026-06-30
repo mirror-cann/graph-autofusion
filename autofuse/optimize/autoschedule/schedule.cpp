@@ -506,6 +506,7 @@ Status Scheduler::DoScheduler() {
     return align_ret;  // 返回 UNSUPPORTED 让上层跳过这个模板
   }
   GE_ASSERT_SUCCESS(NodeCacheMarker(graph_).MarkIfNodeNeedsCache());
+  GE_ASSERT_SUCCESS(AlignmentHandler::ModifyVectorizedStrides(graph_));
   ascir::utils::DumpGraph(graph_, "AfterDoTiling");
   return ge::SUCCESS;
 }

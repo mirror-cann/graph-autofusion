@@ -71,7 +71,7 @@ void BuildTransposeLoopParams(TransposeSpecificParams &transpose_specific_params
     transpose_specific_params.output_dims.emplace_back(
         CombinedExpression(ExprItemFactory::ActualSize(out_vectorized_repeats[i])));
     transpose_specific_params.input_strides.emplace_back(
-        CombinedExpression(ExprItemFactory::ActualSize(reordered_in_vectorized_strides[i])));
+        CombinedExpression(ExprItemFactory::Size(reordered_in_vectorized_strides[i])));
     transpose_specific_params.output_strides.emplace_back(
         CombinedExpression(ExprItemFactory::Size(out_vectorized_strides[i])));
   }
