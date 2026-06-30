@@ -3577,6 +3577,11 @@ ge::Status TilingCodeGenImpl::GenPGOScheduleGroupSearchEntry(
     return ge::SUCCESS;
   }
   GenSetHardwareCodes(group_info.second.second, hardware_iter->second);
+  auto [input_vars_set_code, need_update] = ProcessVarRelationsStatement(
+      graph_info, var_relations_[asc_graph_id][impl_graph_id], group_info.first, "  tiling_data.");
+  if (need_update) {
+    tiling_func_.AddLine(input_vars_set_code);
+  }
   const bool is_reuse =
       std::any_of(tiling_model_info_.cbegin(), tiling_model_info_.cend(), [&group_info](const att::ModelInfo &mi) {
         return mi.reuse_schedule_group != nullptr && mi.reuse_schedule_group->IsReuseGroup(mi.schedule_group_ident) &&
