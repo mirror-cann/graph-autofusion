@@ -2063,7 +2063,7 @@ def supported_arches_for_entry(entry_name: str) -> list[str]:
 
 def _detect_soc_version():
     try:
-        import torch_npu  # type: ignore
+        import torch_npu
     except Exception:
         return None
     npu = getattr(torch_npu, "npu", None)
@@ -3720,7 +3720,7 @@ def _load_yaml_safe(text: str) -> Any:
     callers should install PyYAML and switch to yaml.safe_load.
     """
     try:
-        import yaml  # type: ignore
+        import yaml
 
         return yaml.safe_load(text)
     except ImportError:  # pragma: no cover - fallback parser

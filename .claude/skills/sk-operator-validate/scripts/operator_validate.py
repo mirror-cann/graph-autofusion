@@ -11,6 +11,7 @@
 from __future__ import annotations
 
 import argparse
+import importlib
 import json
 import sys
 from pathlib import Path
@@ -22,25 +23,25 @@ VALIDATE_ROOT = SCRIPT_DIR.parent
 if str(VALIDATE_ROOT) not in sys.path:
     sys.path.insert(0, str(VALIDATE_ROOT))
 
-from operator_asset_contracts import (  # noqa: E402
-    ContractError,
-    contract_finding,
-    read_json,
-    validate_asset_layout_contract,
-    validate_build_context_contract,
-    validate_verify_context_contract,
-    write_json,
-)
-from rule_packs.compat_runner import (  # noqa: E402
-    CliUsageError as CompatRulePackError,
-    list_compat_targets,
-    run_compat_rules,
-)
-from rule_packs.spec_runner import (  # noqa: E402
-    CliUsageError as SpecRulePackError,
-    list_spec_rules,
-    run_spec_rules,
-)
+_CONTRACTS = importlib.import_module("operator_asset_contracts")
+_COMPAT_RUNNER = importlib.import_module("rule_packs.compat_runner")
+_SPEC_RUNNER = importlib.import_module("rule_packs.spec_runner")
+
+ContractError = _CONTRACTS.ContractError
+contract_finding = _CONTRACTS.contract_finding
+read_json = _CONTRACTS.read_json
+validate_asset_layout_contract = _CONTRACTS.validate_asset_layout_contract
+validate_build_context_contract = _CONTRACTS.validate_build_context_contract
+validate_verify_context_contract = _CONTRACTS.validate_verify_context_contract
+write_json = _CONTRACTS.write_json
+
+CompatRulePackError = _COMPAT_RUNNER.CliUsageError
+list_compat_targets = _COMPAT_RUNNER.list_compat_targets
+run_compat_rules = _COMPAT_RUNNER.run_compat_rules
+
+SpecRulePackError = _SPEC_RUNNER.CliUsageError
+list_spec_rules = _SPEC_RUNNER.list_spec_rules
+run_spec_rules = _SPEC_RUNNER.run_spec_rules
 
 
 SCHEMA_VERSION = 1

@@ -258,7 +258,7 @@ def _entry_records_for_assets(
             entries = [unit.entry_name for unit in manifest.operator_units]
             status = "analyzed" if entries else "needs-human"
             reason = "" if entries else "no-operator-unit-detected"
-        except Exception as exc:  # noqa: BLE001 - this is a coverage preflight, not the authoritative pipeline stage.
+        except Exception as exc:
             entries = []
             status = "failed"
             reason = str(exc)
@@ -419,7 +419,7 @@ def _run_asset_root_separately(
             )
             status = state["status"]
             reason = ""
-        except Exception as exc:  # noqa: BLE001 - keep the root coverage report complete.
+        except Exception as exc:
             status = "failed"
             reason = str(exc)
         preflight = entry_by_path.get(str(asset), {})

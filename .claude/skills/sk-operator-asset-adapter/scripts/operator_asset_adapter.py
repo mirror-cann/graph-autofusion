@@ -15,7 +15,7 @@ import json
 from pathlib import Path
 
 
-from operator_asset_contracts import (  # noqa: E402
+from operator_asset_contracts import (
     ContractError,
     build_adapter_report,
     build_default_build_context,
@@ -27,7 +27,7 @@ from operator_asset_contracts import (  # noqa: E402
     validate_verify_context_contract,
     write_json,
 )
-from operator_asset_layout import build_inventory, build_layout_from_inventory  # noqa: E402
+from operator_asset_layout import build_inventory, build_layout_from_inventory
 
 
 class CliUsageError(Exception):

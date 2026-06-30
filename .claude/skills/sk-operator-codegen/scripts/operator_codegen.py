@@ -5009,7 +5009,7 @@ def cmd_list_templates(args: argparse.Namespace) -> int:
 def build_parser() -> argparse.ArgumentParser:
     # sk_codegen_lib is imported lazily inside each cmd_ function so that
     # `--help` works even if optional deps (pyyaml) are unavailable.
-    import sys as _sys  # noqa
+    import sys as _sys
 
     script_dir = Path(__file__).resolve().parent
     if str(script_dir) not in _sys.path:

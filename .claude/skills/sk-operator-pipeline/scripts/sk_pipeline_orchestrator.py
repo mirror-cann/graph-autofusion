@@ -735,7 +735,7 @@ class PipelineOrchestrator:
                 op_name = future_by_name[future]
                 try:
                     result = future.result()
-                except Exception as exc:  # noqa: BLE001 - aggregate all op failures.
+                except Exception as exc:
                     result = {"op_name": op_name, "status": "failed", "error": str(exc)}
                 result.setdefault("op_name", op_name)
                 results.append(result)
