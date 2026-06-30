@@ -51,7 +51,10 @@ def check(units):
                             "category": RULE["category"],
                             "actionable_by": ["human"],
                             "remediation_hint": {"kind": "human-decision"},
-                            "message": f"struct {struct_name} field {stripped!r} is a sub-4-byte type and must use alignas(4).",
+                            "message": (
+                                f"struct {struct_name} field {stripped!r} is a "
+                                "sub-4-byte type and must use alignas(4)."
+                            ),
                             "target_file": unit["rel"],
                             "evidence_signature": f"alignas:{struct_name}:{stripped}",
                         }

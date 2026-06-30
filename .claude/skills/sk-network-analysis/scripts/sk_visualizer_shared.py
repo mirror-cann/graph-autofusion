@@ -372,9 +372,21 @@ COMMON_VISUALIZER_CSS = (
     margin-top: 8px;
     opacity: 0.78;
 }
-.stat-aic { background: linear-gradient(180deg, rgba(111,151,177,0.12), rgba(111,151,177,0.05)); color: #35566c; border-color: rgba(111,151,177,0.18); }
-.stat-aiv { background: linear-gradient(180deg, rgba(154,132,175,0.12), rgba(154,132,175,0.05)); color: #654f78; border-color: rgba(154,132,175,0.18); }
-.stat-total { background: linear-gradient(180deg, rgba(120,150,125,0.12), rgba(120,150,125,0.05)); color: #45604a; border-color: rgba(120,150,125,0.18); }
+.stat-aic {
+    background: linear-gradient(180deg, rgba(111,151,177,0.12), rgba(111,151,177,0.05));
+    color: #35566c;
+    border-color: rgba(111,151,177,0.18);
+}
+.stat-aiv {
+    background: linear-gradient(180deg, rgba(154,132,175,0.12), rgba(154,132,175,0.05));
+    color: #654f78;
+    border-color: rgba(154,132,175,0.18);
+}
+.stat-total {
+    background: linear-gradient(180deg, rgba(120,150,125,0.12), rgba(120,150,125,0.05));
+    color: #45604a;
+    border-color: rgba(120,150,125,0.18);
+}
 .view-nav {
     display: flex;
     flex-wrap: wrap;
@@ -1672,17 +1684,24 @@ def _render_scope_explainer_item(item: ScopeExplainerEntry | str) -> str:
     hidden_attr = ' style="display:none"' if item.hidden else ""
     item_class_suffix = f" {item.extra_class}" if item.extra_class else ""
     if item.kind == "box":
+        style = f"background:{html_escape(item.color)}{visibility_style}"
         return (
             "<div class='scope-explainer-item'>"
-            f"<div class='scope-explainer-box{item_class_suffix}' style='background:{html_escape(item.color)}{visibility_style}'></div>"
+            f"<div class='scope-explainer-box{item_class_suffix}' "
+            f"style='{style}'></div>"
             f"<span{class_attr}{hidden_attr}>{html_escape(item.label)}</span>"
             "</div>"
         )
     if item.kind == "line":
         dash_style = html_escape(item.dash_style or "solid")
+        style = (
+            f"border-top-style:{dash_style};"
+            f"border-top-color:{html_escape(item.color)}{visibility_style}"
+        )
         return (
             "<div class='scope-explainer-item'>"
-            f"<div class='scope-explainer-line{item_class_suffix}' style='border-top-style:{dash_style};border-top-color:{html_escape(item.color)}{visibility_style}'></div>"
+            f"<div class='scope-explainer-line{item_class_suffix}' "
+            f"style='{style}'></div>"
             f"<span{class_attr}{hidden_attr}>{html_escape(item.label)}</span>"
             "</div>"
         )
@@ -1711,10 +1730,18 @@ def render_scope_section_block(
 def render_graph_nav(
     prev_id: str, next_id: str, prev_title: str, next_title: str
 ) -> str:
+    prev_button = (
+        f"<button type='button' class='graph-nav-btn' id='{html_escape(prev_id)}' "
+        f"title='{html_escape(prev_title)}'>‹</button>"
+    )
+    next_button = (
+        f"<button type='button' class='graph-nav-btn' id='{html_escape(next_id)}' "
+        f"title='{html_escape(next_title)}'>›</button>"
+    )
     return (
         "<div class='graph-nav'>"
-        f"<button type='button' class='graph-nav-btn' id='{html_escape(prev_id)}' title='{html_escape(prev_title)}'>‹</button>"
-        f"<button type='button' class='graph-nav-btn' id='{html_escape(next_id)}' title='{html_escape(next_title)}'>›</button>"
+        f"{prev_button}"
+        f"{next_button}"
         "</div>"
     )
 
@@ -1734,17 +1761,22 @@ def render_graph_toolbar(
     trailing_html: str = "",
     controls_html: str = "",
 ) -> str:
-    left_html = "".join(
-        part
-        for part in (
-            f"<span class='toolbar-label'>{html_escape(label)}</span>" if label else "",
-            nav_html,
-            search_html,
-            select_html,
-        )
-        if part
-    )
-    right_html = "".join(part for part in (index_chip_html, trailing_html) if part)
+    left_parts = [
+        f"<span class='toolbar-label'>{html_escape(label)}</span>" if label else "",
+        nav_html,
+        search_html,
+        select_html,
+    ]
+    left_html_parts = []
+    for part in left_parts:
+        if part:
+            left_html_parts.append(part)
+    left_html = "".join(left_html_parts)
+    right_html_parts = []
+    for part in (index_chip_html, trailing_html):
+        if part:
+            right_html_parts.append(part)
+    right_html = "".join(right_html_parts)
     controls_row = (
         f"<div class='toolbar-row controls'>{controls_html}</div>"
         if controls_html
@@ -1802,9 +1834,13 @@ def render_detail_table_panel(
     if not head_main_markup:
         head_main_markup = "<div class='detail-title'>详情</div>"
     state_markup = (
-        f"<span class='detail-head-state' id='{html_escape(toggle_id)}'>{html_escape('收起' if expanded else toggle_label)}</span>"
+        f"<span class='detail-head-state' id='{html_escape(toggle_id)}'>"
+        f"{html_escape('收起' if expanded else toggle_label)}</span>"
         if toggle_id
-        else f"<span class='detail-head-state'>{html_escape('收起' if expanded else toggle_label)}</span>"
+        else (
+            "<span class='detail-head-state'>"
+            f"{html_escape('收起' if expanded else toggle_label)}</span>"
+        )
     )
     panel_class = "detail-panel is-open" if expanded else "detail-panel"
     content_class = (
@@ -1958,7 +1994,8 @@ def render_standard_table_panel(
         "<div class='table-shell-tools'>"
         "<div class='table-shell-tools-main'>"
         f"{extra_tools_html}"
-        f"<input type='search' class='table-search' data-table-search placeholder='{html_escape(search_placeholder)}' />"
+        f"<input type='search' class='table-search' data-table-search "
+        f"placeholder='{html_escape(search_placeholder)}' />"
         "</div>"
         "<div class='table-shell-tools-side'>"
         "<span class='table-page-jump'>"
@@ -2520,7 +2557,11 @@ def render_report_top_strip(
     note_block = f"<p class='info-panel-note'>{note_html}</p>" if note_html else ""
     if not chips_html and not note_block:
         return ""
-    return f"<section class='info-panel is-compact'><div class='info-panel-body'>{chips_html}{note_block}</div></section>"
+    return (
+        "<section class='info-panel is-compact'>"
+        f"<div class='info-panel-body'>{chips_html}{note_block}</div>"
+        "</section>"
+    )
 
 
 def render_report_section(

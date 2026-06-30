@@ -44,7 +44,11 @@ def check(units):
                             "old_value": legacy,
                             "new_value": modern,
                         },
-                        "message": f"legacy SkSystemArgs API {legacy!r}; rename to {modern!r} (legacy name no longer exists in current CANN headers).",
+                        "message": (
+                            f"legacy SkSystemArgs API {legacy!r}; rename to "
+                            f"{modern!r} (legacy name no longer exists in current "
+                            "CANN headers)."
+                        ),
                         "target_file": unit["rel"],
                         "evidence_signature": legacy,
                     }

@@ -571,13 +571,13 @@ def analyze_asset(asset: Path) -> AssetUnderstanding:
         raise FileNotFoundError(root)
     inventory = build_inventory(root)
     layout = build_layout_from_inventory(inventory)
-    if (
-        layout.get("status") == "ready"
-        or layout.get("human_questions")
-        or inventory.get("kernel_source_count")
+    has_layout_signal = bool(layout.get("status") == "ready" or layout.get("human_questions"))
+    has_kernel_signal = bool(
+        inventory.get("kernel_source_count")
         or inventory.get("kernel_candidate_count")
         or inventory.get("rtc_host_program_count")
-    ):
+    )
+    if has_layout_signal or has_kernel_signal:
         return analyze_asset_layout(layout)
     base = root if root.is_dir() else root.parent
     if root.is_dir() and (root / "op_kernel").is_dir() and (root / "op_host").is_dir():

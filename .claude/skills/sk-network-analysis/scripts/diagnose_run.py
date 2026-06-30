@@ -28,7 +28,7 @@ import sys
 import time
 from decimal import Decimal
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any, Iterable, NamedTuple
 
 try:
     import ijson
@@ -172,7 +172,10 @@ ASSET_GUIDANCE = {
     },
     EVENT_ASSET_KEY: {
         "diagnosis_value": "提供 SK function、node 和设备侧性能关联所需的 time-event 覆盖。",
-        "acquisition_hint": "采集结果目录时，保留 `sk_event_dev_device_*.json` 或 `sk_prof_device_*.json` 这类 SK event recorder 输出。",
+        "acquisition_hint": (
+            "采集结果目录时，保留 `sk_event_dev_device_*.json` "
+            "或 `sk_prof_device_*.json` 这类 SK event recorder 输出。"
+        ),
         "fallback_if_missing": "你仍可做结构和 queue 分析，但时间覆盖和性能判断会更弱。",
     },
 }
@@ -577,14 +580,12 @@ def _can_run(
     if report_name == "performance_report":
         if not directories["model_dir"]["exists"]:
             return False, "model directory is missing"
-        if asset_inventory["event_file_count"] == 0 and not any(
-            files[name]
-            for name in (
-                "sk_fused_nodes.log",
-                "sk_device_args.log",
-                "sk_scope_split.log",
-            )
-        ):
+        has_structure_asset = False
+        for name in ("sk_fused_nodes.log", "sk_device_args.log", "sk_scope_split.log"):
+            if files[name]:
+                has_structure_asset = True
+                break
+        if asset_inventory["event_file_count"] == 0 and not has_structure_asset:
             return (
                 False,
                 "missing timing and structural assets for performance diagnosis",
@@ -952,8 +953,19 @@ def _collect_event_stats(
     stats["devices"] = sorted(set(devices))
     stats["node_ids"] = sorted(node_ids)
     stats["sk_ids"] = sorted(sk_ids)
-    stats["event_groups"] = sorted(
-        [
+    event_groups = []
+    for group in groups.values():
+        is_empty_device_group = (
+            group["group_type"] == "device"
+            and group["event_count"] <= 1
+            and not group["node_ids"]
+            and not group["pid_labels"]
+            and group["max_duration"] == 0.0
+            and group["sample_names"] == ["(unnamed)"]
+        )
+        if is_empty_device_group:
+            continue
+        event_groups.append(
             {
                 **group,
                 "node_ids": sorted(group["node_ids"]),
@@ -964,25 +976,18 @@ def _collect_event_stats(
                 "total_duration": round(group["total_duration"], 3),
                 "max_duration": round(group["max_duration"], 3),
             }
-            for group in groups.values()
-            if not (
-                group["group_type"] == "device"
-                and group["event_count"] <= 1
-                and not group["node_ids"]
-                and not group["pid_labels"]
-                and group["max_duration"] == 0.0
-                and group["sample_names"] == ["(unnamed)"]
-            )
-        ],
+        )
+    stats["event_groups"] = sorted(
+        event_groups,
         key=lambda item: (item["total_duration"], item["event_count"]),
         reverse=True,
     )
-    stats["top_events"] = [
-        item[-1]
-        for item in sorted(
-            top_events_heap, key=lambda current: (current[0], current[1]), reverse=True
-        )
-    ]
+    top_events = sorted(
+        top_events_heap, key=lambda current: (current[0], current[1]), reverse=True
+    )
+    stats["top_events"] = []
+    for item in top_events:
+        stats["top_events"].append(item[-1])
     return stats
 
 
@@ -1092,12 +1097,12 @@ def _merge_event_stats(stats_items: list[dict[str, Any]]) -> dict[str, Any]:
         key=lambda item: (item["total_duration"], item["event_count"]),
         reverse=True,
     )
-    merged["top_events"] = [
-        item[-1]
-        for item in sorted(
-            top_events_heap, key=lambda current: (current[0], current[1]), reverse=True
-        )
-    ]
+    top_events = sorted(
+        top_events_heap, key=lambda current: (current[0], current[1]), reverse=True
+    )
+    merged["top_events"] = []
+    for item in top_events:
+        merged["top_events"].append(item[-1])
     return merged
 
 
@@ -1170,27 +1175,6 @@ class EventStatsProvider:
         if self._fallback_copied_paths:
             paths.extend(self._fallback_copied_paths)
         return paths
-
-    def _paths_for_process_stats(self, process_label: str) -> list[str]:
-        label = str(process_label)
-        raw_paths = self._process_paths.get(label, [])
-        data_dir = self._process_data_dirs.get(label)
-        if data_dir is None:
-            return list(raw_paths)
-        if label not in self._process_copied_paths:
-            self._process_copied_paths[label] = _copy_raw_event_files(
-                raw_paths, data_dir
-            )
-        return list(self._process_copied_paths[label] or raw_paths)
-
-    def _paths_for_fallback_stats(self) -> list[str]:
-        if self._fallback_data_dir is None:
-            return list(self._fallback_paths)
-        if self._fallback_copied_paths is None:
-            self._fallback_copied_paths = _copy_raw_event_files(
-                self._fallback_paths, self._fallback_data_dir
-            )
-        return list(self._fallback_copied_paths or self._fallback_paths)
 
     def for_process(self, process_label: str) -> dict[str, Any]:
         label = str(process_label)
@@ -1309,6 +1293,26 @@ class EventStatsProvider:
                 self._fallback_stats = _collect_event_stats(self.run_dir, paths)
         return self._fallback_stats
 
+    def _paths_for_process_stats(self, process_label: str) -> list[str]:
+        label = str(process_label)
+        raw_paths = self._process_paths.get(label, [])
+        data_dir = self._process_data_dirs.get(label)
+        if data_dir is None:
+            return list(raw_paths)
+        if label not in self._process_copied_paths:
+            self._process_copied_paths[label] = _copy_raw_event_files(
+                raw_paths, data_dir
+            )
+        return list(self._process_copied_paths[label] or raw_paths)
+
+    def _paths_for_fallback_stats(self) -> list[str]:
+        if self._fallback_data_dir is None:
+            return list(self._fallback_paths)
+        if self._fallback_copied_paths is None:
+            self._fallback_copied_paths = _copy_raw_event_files(
+                self._fallback_paths, self._fallback_data_dir
+            )
+        return list(self._fallback_copied_paths or self._fallback_paths)
 
 def _update_scope_library(update_report: dict[str, Any]) -> dict[str, Any]:
     if "scope_library" in update_report and isinstance(
@@ -1603,7 +1607,11 @@ def _build_dfx_hang_summary(update_report: dict[str, Any]) -> dict[str, Any]:
                 "file": super_kernel_log,
                 "line": "?",
                 "kind": "counter_localization",
-                "text": "SkCounterInfo shows no launch=2 on used cores; all used cores are already at launch=3, so the hang is more likely in SK-level logic",
+                "text": (
+                    "SkCounterInfo shows no launch=2 on used cores; all used "
+                    "cores are already at launch=3, so the hang is more likely "
+                    "in SK-level logic"
+                ),
                 "phase_key": "external_log",
                 "priority": "high",
             }
@@ -1614,7 +1622,10 @@ def _build_dfx_hang_summary(update_report: dict[str, Any]) -> dict[str, Any]:
                 "file": super_kernel_log,
                 "line": (exception_events[0].get("line") if exception_events else "?"),
                 "kind": "op_trace_hint",
-                "text": "op_trace=false; if the issue reproduces, export ASCEND_SK_OP_TRACE_ON=1 for stronger per-core symbol evidence",
+                "text": (
+                    "op_trace=false; if the issue reproduces, export "
+                    "ASCEND_SK_OP_TRACE_ON=1 for stronger per-core symbol evidence"
+                ),
                 "phase_key": _phase_key_for_line(
                     _update_phase_summary_data(update_report),
                     exception_events[0].get("line") if exception_events else None,
@@ -1649,9 +1660,8 @@ def _build_dfx_hang_summary(update_report: dict[str, Any]) -> dict[str, Any]:
             }
         )
     runtime_status = payload_summary.get("runtime_status")
-    if (
-        exception_events or core_symbol_events or runtime_errors
-    ) and runtime_status == "missing_exception_handler_dump":
+    has_dfx_signal = bool(exception_events or core_symbol_events or runtime_errors)
+    if has_dfx_signal and runtime_status == "missing_exception_handler_dump":
         actionable_signals.append(
             {
                 "file": super_kernel_log,
@@ -1662,9 +1672,7 @@ def _build_dfx_hang_summary(update_report: dict[str, Any]) -> dict[str, Any]:
                 "priority": "medium",
             }
         )
-    elif (
-        exception_events or core_symbol_events or runtime_errors
-    ) and runtime_status in {
+    elif has_dfx_signal and runtime_status in {
         "missing_exception_handler_rows",
         "ambiguous_device_args_section",
         "unresolved_device_args_section",
@@ -1831,12 +1839,12 @@ def _update_node_ids(update_report: dict[str, Any]) -> list[int]:
 def _update_stream_ids(update_report: dict[str, Any]) -> list[int]:
     scope_library = _update_scope_library(update_report)
     scopes = scope_library.get("scopes", [])
-    stream_ids = {
-        stream.get("stream_idx")
-        for scope in scopes
-        for stream in scope.get("streams", [])
-        if isinstance(stream.get("stream_idx"), int)
-    }
+    stream_ids = set()
+    for scope in scopes:
+        for stream in scope.get("streams", []):
+            stream_idx = stream.get("stream_idx")
+            if isinstance(stream_idx, int):
+                stream_ids.add(stream_idx)
     if stream_ids:
         return sorted(stream_ids)
     return update_report.get("stream_ids", [])
@@ -1915,13 +1923,16 @@ def _correlate_performance(
             if isinstance(node_id, int):
                 functions_by_node.setdefault(node_id, []).append(function)
 
-    device_sections_by_key = {
-        section.get("scope_name"): section
-        for section in _update_scope_library(update_report)
+    device_sections_by_key = {}
+    device_sections = (
+        _update_scope_library(update_report)
         .get("device_task_library", {})
         .get("sections", [])
-        if section.get("scope_name")
-    }
+    )
+    for section in device_sections:
+        scope_name = section.get("scope_name")
+        if scope_name:
+            device_sections_by_key[scope_name] = section
     correlated: list[dict[str, Any]] = []
     for group in event_stats.get("event_groups", []):
         matched_functions: list[dict[str, Any]] = []
@@ -1949,15 +1960,13 @@ def _correlate_performance(
                 if function.get("scope_id") is not None
             }
         )
-        matched_node_ids = sorted(
-            {
-                node_id
-                for function in matched_functions
-                for node_id in function.get("node_ids", [])
-                if isinstance(node_id, int)
-                and node_id in set(group.get("node_ids", []))
-            }
-        )
+        matched_node_id_set = set()
+        group_node_ids = set(group.get("node_ids", []))
+        for function in matched_functions:
+            for node_id in function.get("node_ids", []):
+                if isinstance(node_id, int) and node_id in group_node_ids:
+                    matched_node_id_set.add(node_id)
+        matched_node_ids = sorted(matched_node_id_set)
         function_task_indices = set()
         function_queue_types = set()
 
@@ -2380,6 +2389,13 @@ class ProgressTracker:
         self._started = False
         self._use_tqdm = bool(tqdm is not None and sys.stderr.isatty())
 
+    def __enter__(self) -> "ProgressTracker":
+        self.start()
+        return self
+
+    def __exit__(self, exc_type, exc, traceback) -> None:
+        self.close(complete=exc_type is None)
+
     def _description(self) -> str:
         worker_text = (
             f" · workers {self.worker_count}" if self.worker_count is not None else ""
@@ -2438,12 +2454,6 @@ class ProgressTracker:
             )
         self._started = False
 
-    def __enter__(self) -> "ProgressTracker":
-        self.start()
-        return self
-
-    def __exit__(self, exc_type, exc, traceback) -> None:
-        self.close(complete=exc_type is None)
 
 
 class ProfileRecorder:
@@ -2726,15 +2736,14 @@ def _model_collection_failure_summary(
             entry.get("processing_error") or entry.get("collection_error") or ""
         ).strip()
         if not reason:
-            missing_outputs = [
-                key
-                for key in (
-                    "scope_library_json",
-                    "graph_library_json",
-                    "dfx_library_json",
-                )
-                if not entry.get(key)
-            ]
+            missing_outputs = []
+            for key in (
+                "scope_library_json",
+                "graph_library_json",
+                "dfx_library_json",
+            ):
+                if not entry.get(key):
+                    missing_outputs.append(key)
             if missing_outputs:
                 reason = "missing " + ", ".join(missing_outputs)
             else:
@@ -2890,21 +2899,20 @@ def _write_cached_model_entries(
     cache_dir.mkdir(parents=True, exist_ok=True)
     cached_entries = []
     for entry in entries:
-        cached_entries.append(
-            {
-                key: (str(value) if isinstance(value, Path) else value)
-                for key, value in entry.items()
-                if key
-                not in {
-                    "views_dir",
-                    "bundle_root",
-                    "report_paths",
-                    "dfx_status",
-                    "dfx_conclusion",
-                    "view_states",
-                }
-            }
-        )
+        cached_entry = {}
+        excluded_keys = {
+            "views_dir",
+            "bundle_root",
+            "report_paths",
+            "dfx_status",
+            "dfx_conclusion",
+            "view_states",
+        }
+        for key, value in entry.items():
+            if key in excluded_keys:
+                continue
+            cached_entry[key] = str(value) if isinstance(value, Path) else value
+        cached_entries.append(cached_entry)
     manifest = {
         "fingerprint": _model_parse_fingerprint(model_dir),
         "model_instance_count": model_instance_count,
@@ -3247,9 +3255,10 @@ def _render_model_bundle_worker(
         "view_states": {},
     }
 
-    if result["processing_error"] and not (
+    has_required_libraries = bool(
         scope_library_json and graph_library_json and dfx_library_json
-    ):
+    )
+    if result["processing_error"] and not has_required_libraries:
         return result
 
     try:
@@ -3401,14 +3410,16 @@ def _render_model_bundle_worker(
         ):
             child_hang_path = views_dir / "hang-crash-report.html"
             _render_hang_report_html(
-                run_dir,
-                local_update_report,
-                local_phase_correlated_signals,
-                local_hang_summary,
-                local_dfx_view_state,
-                local_hang_presentation_state,
-                child_hang_path,
-                portal_href=local_portal_href,
+                HangReportHtmlInput(
+                    run_dir,
+                    local_update_report,
+                    local_phase_correlated_signals,
+                    local_hang_summary,
+                    local_dfx_view_state,
+                    local_hang_presentation_state,
+                    child_hang_path,
+                    local_portal_href,
+                )
             )
             result["report_paths"]["hang_crash_report"] = os.path.relpath(
                 child_hang_path, reports_dir
@@ -3443,18 +3454,20 @@ def _render_model_bundle_worker(
             )
             child_performance_path = views_dir / "performance-report.html"
             _render_performance_report_html(
-                run_dir,
-                local_update_report,
-                local_asset_inventory,
-                local_event_stats,
-                local_performance_correlations,
-                local_performance_summary,
-                local_node_trace_summary,
-                local_analysis_view_state,
-                local_analysis_resource_state,
-                local_performance_presentation_state,
-                child_performance_path,
-                portal_href=local_portal_href,
+                PerformanceReportHtmlInput(
+                    run_dir,
+                    local_update_report,
+                    local_asset_inventory,
+                    local_event_stats,
+                    local_performance_correlations,
+                    local_performance_summary,
+                    local_node_trace_summary,
+                    local_analysis_view_state,
+                    local_analysis_resource_state,
+                    local_performance_presentation_state,
+                    child_performance_path,
+                    local_portal_href,
+                )
             )
             result["report_paths"]["performance_report"] = os.path.relpath(
                 child_performance_path, reports_dir
@@ -3751,7 +3764,11 @@ def _render_model_selector_page(
             else "<span class='hint'>当前模型未生成该视图</span>"
         )
         rows.append(
-            "<tr><td>{process}</td><td>{model}</td><td>{ri}</td><td>{update}</td><td>{scope_count}</td><td>{function_count}</td><td>{action}</td></tr>".format(
+            (
+                "<tr><td>{process}</td><td>{model}</td><td>{ri}</td>"
+                "<td>{update}</td><td>{scope_count}</td>"
+                "<td>{function_count}</td><td>{action}</td></tr>"
+            ).format(
                 process=html.escape(str(entry.get("process_label", "-"))),
                 model=html.escape(
                     str(entry.get("model_ir_label", entry.get("model_label", "-")))
@@ -3785,7 +3802,12 @@ def _render_model_selector_page(
         intro_markup=intro_markup,
         selection_markup=selection_markup.format(
             table=_wrap_table_markup(
-                "<table><thead><tr><th>Process</th><th>模型目录</th><th>modelRI</th><th>Update</th><th>Scope Count</th><th>Function Count</th><th>Action</th></tr></thead><tbody>{}</tbody></table>".format(
+                (
+                    "<table><thead><tr><th>Process</th><th>模型目录</th>"
+                    "<th>modelRI</th><th>Update</th><th>Scope Count</th>"
+                    "<th>Function Count</th><th>Action</th></tr></thead>"
+                    "<tbody>{}</tbody></table>"
+                ).format(
                     "".join(rows)
                     or "<tr><td colspan='7'>当前没有可展示的模型入口。</td></tr>"
                 ),
@@ -4194,15 +4216,25 @@ def _collect_node_trace_summary(
     return summary
 
 
+class ArtifactDiagnosticStateInput(NamedTuple):
+    key: str
+    generation_status: str
+    asset_inventory: dict[str, Any]
+    update_report: dict[str, Any]
+    performance_summary: dict[str, Any]
+    hang_crash_summary: dict[str, Any]
+    node_trace_summary: dict[str, Any]
+
+
 def _artifact_diagnostic_state(
-    key: str,
-    generation_status: str,
-    asset_inventory: dict[str, Any],
-    update_report: dict[str, Any],
-    performance_summary: dict[str, Any],
-    hang_crash_summary: dict[str, Any],
-    node_trace_summary: dict[str, Any],
+    request: ArtifactDiagnosticStateInput,
 ) -> tuple[str, str | None]:
+    key = request.key
+    generation_status = request.generation_status
+    asset_inventory = request.asset_inventory
+    performance_summary = request.performance_summary
+    hang_crash_summary = request.hang_crash_summary
+    node_trace_summary = request.node_trace_summary
     if generation_status != "ok":
         return (
             "insufficient",
@@ -4575,13 +4607,23 @@ def _build_analysis_resource_state(
         tracing = {
             "level": "error",
             "summary": "当前没有原始 tracing 文件。节点追踪生成失败，当前属于解析异常，不是空资源。",
-            "hint": "当前未采集原始 tracing；请先检查 node tracing 工具输出；如果只是想补 tracing 文件，请使用 export ASCEND_PROF_SK_ON=1 重新采集；如果连 super_kernel.log、scope 或 queue 日志也缺失，请再使用 export ASCEND_OP_COMPILE_SAVE_KERNEL_META=1。",
+            "hint": (
+                "当前未采集原始 tracing；请先检查 node tracing 工具输出；"
+                "如果只是想补 tracing 文件，请使用 export ASCEND_PROF_SK_ON=1 "
+                "重新采集；如果连 super_kernel.log、scope 或 queue 日志也缺失，"
+                "请再使用 export ASCEND_OP_COMPILE_SAVE_KERNEL_META=1。"
+            ),
         }
     else:
         tracing = {
             "level": "missing",
             "summary": "当前没有原始 tracing 文件。",
-            "hint": "当前未采集原始 tracing；如需 tracing 文件和事件矩阵中的 tracing 跳转，请先 export ASCEND_PROF_SK_ON=1 后重新采集；如果基础的 super_kernel / scope / queue 日志也缺失，请再使用 export ASCEND_OP_COMPILE_SAVE_KERNEL_META=1。",
+            "hint": (
+                "当前未采集原始 tracing；如需 tracing 文件和事件矩阵中的 "
+                "tracing 跳转，请先 export ASCEND_PROF_SK_ON=1 后重新采集；"
+                "如果基础的 super_kernel / scope / queue 日志也缺失，请再使用 "
+                "export ASCEND_OP_COMPILE_SAVE_KERNEL_META=1。"
+            ),
         }
 
     event_file_count = int(event_stats.get("event_file_count") or 0)
@@ -4612,16 +4654,15 @@ def _build_analysis_resource_state(
             "hint": "",
         }
 
-    missing_kernel_meta_assets = [
-        name
-        for name in (
-            "super_kernel.log",
-            "sk_scope_split.log",
-            "sk_fused_nodes.log",
-            "sk_device_args.log",
-        )
-        if not files.get(name)
-    ]
+    missing_kernel_meta_assets = []
+    for name in (
+        "super_kernel.log",
+        "sk_scope_split.log",
+        "sk_fused_nodes.log",
+        "sk_device_args.log",
+    ):
+        if not files.get(name):
+            missing_kernel_meta_assets.append(name)
     if missing_kernel_meta_assets:
         kernel_meta = {
             "level": "missing",
@@ -4981,9 +5022,15 @@ def _analysis_trace_notice_html(
             trace_href = html.escape(
                 os.path.relpath(trace_path, output_path.parent), quote=True
             )
-            trace_link = f"<a href='{trace_href}' target='_blank' rel='noreferrer'>{html.escape(trace_path.name)}</a>"
+            trace_link = (
+                f"<a href='{trace_href}' target='_blank' rel='noreferrer'>"
+                f"{html.escape(trace_path.name)}</a>"
+            )
         viewer_links = " / ".join(
-            f"<a href='{html.escape(str(target), quote=True)}' target='_blank' rel='noreferrer'>{html.escape(str(target))}</a>"
+            (
+                f"<a href='{html.escape(str(target), quote=True)}' "
+                f"target='_blank' rel='noreferrer'>{html.escape(str(target))}</a>"
+            )
             for target in node_trace_summary.get("viewer_targets", [])[:2]
         )
         if trace_link and viewer_links:
@@ -5032,7 +5079,10 @@ def _analysis_trace_action_markup(
                 os.path.relpath(trace_path, output_path.parent), quote=True
             )
             viewer_targets = [
-                f"<a href='{html.escape(str(target), quote=True)}' target='_blank' rel='noreferrer'>{html.escape(str(target))}</a>"
+                (
+                    f"<a href='{html.escape(str(target), quote=True)}' "
+                    f"target='_blank' rel='noreferrer'>{html.escape(str(target))}</a>"
+                )
                 for target in node_trace_summary.get("viewer_targets", [])[:2]
             ]
             link_parts = [
@@ -5132,18 +5182,32 @@ def _build_next_information_needed(
     return items
 
 
+class ReportArtifactsInput(NamedTuple):
+    expected_reports: list[str]
+    validation: dict[str, Any]
+    report_links: dict[str, str]
+    missing_assets: list[dict[str, Any]]
+    asset_inventory: dict[str, Any]
+    update_report: dict[str, Any]
+    performance_summary: dict[str, Any]
+    hang_crash_summary: dict[str, Any]
+    node_trace_summary: dict[str, Any]
+    presentation_states: dict[str, dict[str, str]] | None = None
+
+
 def _build_report_artifacts(
-    expected_reports: list[str],
-    validation: dict[str, Any],
-    report_links: dict[str, str],
-    missing_assets: list[dict[str, Any]],
-    asset_inventory: dict[str, Any],
-    update_report: dict[str, Any],
-    performance_summary: dict[str, Any],
-    hang_crash_summary: dict[str, Any],
-    node_trace_summary: dict[str, Any],
-    presentation_states: dict[str, dict[str, str]] | None = None,
+    request: ReportArtifactsInput,
 ) -> dict[str, dict[str, Any]]:
+    expected_reports = request.expected_reports
+    validation = request.validation
+    report_links = request.report_links
+    missing_assets = request.missing_assets
+    asset_inventory = request.asset_inventory
+    update_report = request.update_report
+    performance_summary = request.performance_summary
+    hang_crash_summary = request.hang_crash_summary
+    node_trace_summary = request.node_trace_summary
+    presentation_states = request.presentation_states
     missing_by_name: dict[str, dict[str, Any]] = {}
     for item in missing_assets:
         missing_by_name[item["name"]] = item
@@ -5253,13 +5317,15 @@ def _build_report_artifacts(
             )
             next_information_needed.extend(["higher_confidence_failure_signal"])
         diagnostic_completeness, completeness_reason = _artifact_diagnostic_state(
-            key,
-            generation_status,
-            asset_inventory,
-            update_report,
-            performance_summary,
-            hang_crash_summary,
-            node_trace_summary,
+            ArtifactDiagnosticStateInput(
+                key,
+                generation_status,
+                asset_inventory,
+                update_report,
+                performance_summary,
+                hang_crash_summary,
+                node_trace_summary,
+            )
         )
         if (
             completeness_reason
@@ -5406,17 +5472,28 @@ def _decorate_graph_view(
     html_path.write_text(html_text, encoding="utf-8")
 
 
+class HangReportHtmlInput(NamedTuple):
+    run_dir: Path
+    update_report: dict[str, Any]
+    phase_correlated_signals: list[dict[str, Any]]
+    hang_crash_summary: dict[str, Any]
+    dfx_view_state: dict[str, Any]
+    presentation_state: dict[str, str]
+    output_path: Path
+    portal_href: str = "../run-portal.html"
+
+
 def _render_hang_report_html(
-    run_dir: Path,
-    update_report: dict[str, Any],
-    phase_correlated_signals: list[dict[str, Any]],
-    hang_crash_summary: dict[str, Any],
-    dfx_view_state: dict[str, Any],
-    presentation_state: dict[str, str],
-    output_path: Path,
-    *,
-    portal_href: str = "../run-portal.html",
+    request: HangReportHtmlInput,
 ) -> None:
+    run_dir = request.run_dir
+    update_report = request.update_report
+    phase_correlated_signals = request.phase_correlated_signals
+    hang_crash_summary = request.hang_crash_summary
+    dfx_view_state = request.dfx_view_state
+    presentation_state = request.presentation_state
+    output_path = request.output_path
+    portal_href = request.portal_href
     dfx_library = _update_dfx_library(update_report)
     phase_registry = (
         dfx_library.get("phase_registry", {}) if isinstance(dfx_library, dict) else {}
@@ -5611,7 +5688,10 @@ def _render_hang_report_html(
     phase_registry_rows = []
     for item in phase_stats:
         phase_registry_rows.append(
-            "<tr><td>{key}</td><td>{count}</td><td>{first}</td><td>{last}</td><td>{sample}</td></tr>".format(
+            (
+                "<tr><td>{key}</td><td>{count}</td><td>{first}</td>"
+                "<td>{last}</td><td>{sample}</td></tr>"
+            ).format(
                 key=html.escape(_phase_key_label(str(item.get("key", "unknown")))),
                 count=html.escape(str(item.get("count", 0))),
                 first=html.escape(str(item.get("first_line", "?"))),
@@ -5623,7 +5703,10 @@ def _render_hang_report_html(
     payload_function_rows = []
     for item in payload_functions:
         payload_function_rows.append(
-            "<tr><td>{scope}</td><td>{sk}</td><td>{count}</td><td>{status}</td><td>{level}</td><td>{func}</td></tr>".format(
+            (
+                "<tr><td>{scope}</td><td>{sk}</td><td>{count}</td>"
+                "<td>{status}</td><td>{level}</td><td>{func}</td></tr>"
+            ).format(
                 scope=html.escape(str(item.get("scope_id", "unknown"))),
                 sk=html.escape(str(item.get("sk_id", "unknown"))),
                 count=html.escape(str(item.get("dfx_entry_count", 0))),
@@ -5641,7 +5724,11 @@ def _render_hang_report_html(
         for row in item.get("rows", []):
             compare = row.get("device_args_compare", {})
             row_markup.append(
-                "<tr><td>{node}</td><td>{eh_bin}</td><td>{eh_ori}</td><td>{eh_aic}</td><td>{eh_aiv}</td><td>{cmp_bin}</td><td>{cmp_ori}</td></tr>".format(
+                (
+                    "<tr><td>{node}</td><td>{eh_bin}</td><td>{eh_ori}</td>"
+                    "<td>{eh_aic}</td><td>{eh_aiv}</td><td>{cmp_bin}</td>"
+                    "<td>{cmp_ori}</td></tr>"
+                ).format(
                     node=html.escape(str(row.get("node_index", "?"))),
                     eh_bin=html.escape(
                         str(
@@ -5668,7 +5755,11 @@ def _render_hang_report_html(
                 )
             )
         payload_detail_blocks.append(
-            "<details class='fold subblock'><summary>Payload Function {idx} · {func}</summary><div><p class='hint'>Reasons: {reasons}</p>{table}</div></details>".format(
+            (
+                "<details class='fold subblock'><summary>Payload Function {idx} · "
+                "{func}</summary><div><p class='hint'>Reasons: {reasons}</p>"
+                "{table}</div></details>"
+            ).format(
                 idx=idx,
                 func=html.escape(str(item.get("function_text", "unknown"))),
                 reasons=html.escape(
@@ -5678,7 +5769,12 @@ def _render_hang_report_html(
                     or "无"
                 ),
                 table=_wrap_table_markup(
-                    "<table><thead><tr><th>nodeIndex</th><th>EH bin</th><th>EH ori</th><th>EH aic</th><th>EH aiv</th><th>Compare bin</th><th>Compare ori</th></tr></thead><tbody>{}</tbody></table>".format(
+                    (
+                        "<table><thead><tr><th>nodeIndex</th><th>EH bin</th>"
+                        "<th>EH ori</th><th>EH aic</th><th>EH aiv</th>"
+                        "<th>Compare bin</th><th>Compare ori</th></tr></thead>"
+                        "<tbody>{}</tbody></table>"
+                    ).format(
                         "".join(row_markup)
                         or "<tr><td colspan='7'>当前没有 payload rows。</td></tr>"
                     ),
@@ -5703,7 +5799,10 @@ def _render_hang_report_html(
     core_symbol_rows = []
     for item in core_symbol_events:
         core_symbol_rows.append(
-            "<tr><td>{kind}</td><td>{line}</td><td>{core}</td><td>{node}</td><td>{entry}</td><td>{func}</td></tr>".format(
+            (
+                "<tr><td>{kind}</td><td>{line}</td><td>{core}</td>"
+                "<td>{node}</td><td>{entry}</td><td>{func}</td></tr>"
+            ).format(
                 kind=html.escape(str(item.get("kind", "unknown"))),
                 line=html.escape(str(item.get("line", "?"))),
                 core=html.escape(str(item.get("core_id", "?"))),
@@ -5749,7 +5848,11 @@ def _render_hang_report_html(
             else ""
         )
         affected_target_rows.append(
-            "<tr title='{title}'><td>{core}</td><td>{type}</td><td>{func}</td><td>{start}</td><td>{current}</td><td>{summary}</td></tr>".format(
+            (
+                "<tr title='{title}'><td>{core}</td><td>{type}</td>"
+                "<td>{func}</td><td>{start}</td><td>{current}</td>"
+                "<td>{summary}</td></tr>"
+            ).format(
                 title=html.escape(rule_text or "final diagnostic target"),
                 core=html.escape(str(item.get("core_id", "?"))),
                 type=html.escape(str(item.get("core_type", "-"))),
@@ -5790,7 +5893,11 @@ def _render_hang_report_html(
             else ""
         )
         diagnostic_pc_rows.append(
-            "<tr title='{title}'><td>{core}</td><td>{type}</td><td>{op}</td><td>{func}</td><td>{start}</td><td>{current}</td><td>{basis}</td></tr>".format(
+            (
+                "<tr title='{title}'><td>{core}</td><td>{type}</td>"
+                "<td>{op}</td><td>{func}</td><td>{start}</td>"
+                "<td>{current}</td><td>{basis}</td></tr>"
+            ).format(
                 title=html.escape(rule_text or "diagnostic pc target"),
                 core=html.escape(str(item.get("core_id", "?"))),
                 type=html.escape(str(item.get("core_type", "-"))),
@@ -5825,7 +5932,12 @@ def _render_hang_report_html(
     pc_localization_rows = []
     for item in pc_localization_events:
         pc_localization_rows.append(
-            "<tr><td>{core}</td><td>{type}</td><td>{status}</td><td>{esp}</td><td>{cp}</td><td>{entry_start}</td><td>{entry_end}</td><td>{node}</td><td>{entry}</td><td>{func}</td></tr>".format(
+            (
+                "<tr><td>{core}</td><td>{type}</td><td>{status}</td>"
+                "<td>{esp}</td><td>{cp}</td><td>{entry_start}</td>"
+                "<td>{entry_end}</td><td>{node}</td><td>{entry}</td>"
+                "<td>{func}</td></tr>"
+            ).format(
                 core=html.escape(str(item.get("core_id", "?"))),
                 type=html.escape(str(item.get("core_type", "-"))),
                 status=html.escape(str(item.get("pc_match_status", "unknown"))),
@@ -5908,7 +6020,10 @@ def _render_hang_report_html(
         ),
     )
     actionable_table_markup = _wrap_table_markup(
-        "<table><thead><tr><th>优先级</th><th>信号类型</th><th>来源</th><th>内容</th></tr></thead><tbody>{}</tbody></table>".format(
+        (
+            "<table><thead><tr><th>优先级</th><th>信号类型</th>"
+            "<th>来源</th><th>内容</th></tr></thead><tbody>{}</tbody></table>"
+        ).format(
             "".join(actionable_rows)
             or "<tr><td colspan='4'>当前没有可直接执行的主信号。</td></tr>"
         ),
@@ -5940,7 +6055,11 @@ def _render_hang_report_html(
         "<details class='fold subblock'><summary>更多主信号 ({})</summary><div>{}</div></details>".format(
             len(hidden_actionable),
             _wrap_table_markup(
-                "<table><thead><tr><th>优先级</th><th>信号类型</th><th>来源</th><th>内容</th></tr></thead><tbody>{}</tbody></table>".format(
+                (
+                    "<table><thead><tr><th>优先级</th><th>信号类型</th>"
+                    "<th>来源</th><th>内容</th></tr></thead>"
+                    "<tbody>{}</tbody></table>"
+                ).format(
                     "".join(
                         "<tr><td>{}</td><td>{}</td><td>{}:{}</td><td>{}</td></tr>".format(
                             html.escape(
@@ -6025,7 +6144,11 @@ document.querySelectorAll('[data-standard-table]').forEach(initStandardTablePane
         actionable_table=actionable_table_markup,
         actionable_more=actionable_more_markup,
         phase_registry_table=_wrap_table_markup(
-            "<table><thead><tr><th>Phase</th><th>Count</th><th>First Line</th><th>Last Line</th><th>Sample</th></tr></thead><tbody>{}</tbody></table>".format(
+            (
+                "<table><thead><tr><th>Phase</th><th>Count</th>"
+                "<th>First Line</th><th>Last Line</th><th>Sample</th>"
+                "</tr></thead><tbody>{}</tbody></table>"
+            ).format(
                 "".join(phase_registry_rows)
                 or "<tr><td colspan='5'>当前没有可展示的 phase registry。</td></tr>"
             ),
@@ -6066,7 +6189,11 @@ document.querySelectorAll('[data-standard-table]').forEach(initStandardTablePane
             search_placeholder="查找 source status 字段",
         ),
         phase_table=_wrap_table_markup(
-            "<table><thead><tr><th>阶段</th><th>信号桶</th><th>信号类型</th><th>来源</th><th>内容</th></tr></thead><tbody>{}</tbody></table>".format(
+            (
+                "<table><thead><tr><th>阶段</th><th>信号桶</th>"
+                "<th>信号类型</th><th>来源</th><th>内容</th></tr></thead>"
+                "<tbody>{}</tbody></table>"
+            ).format(
                 "".join(phase_rows)
                 or "<tr><td colspan='5'>当前没有可稳定提取的阶段关联信号。</td></tr>"
             ),
@@ -6078,7 +6205,11 @@ document.querySelectorAll('[data-standard-table]').forEach(initStandardTablePane
             search_placeholder="查找阶段关联信号",
         ),
         payload_function_table=_wrap_table_markup(
-            "<table><thead><tr><th>Scope</th><th>skId</th><th>Rows</th><th>Status</th><th>Evidence</th><th>Function</th></tr></thead><tbody>{}</tbody></table>".format(
+            (
+                "<table><thead><tr><th>Scope</th><th>skId</th><th>Rows</th>"
+                "<th>Status</th><th>Evidence</th><th>Function</th></tr></thead>"
+                "<tbody>{}</tbody></table>"
+            ).format(
                 "".join(payload_function_rows)
                 or "<tr><td colspan='6'>当前没有可展示的 runtime payload function。</td></tr>"
             ),
@@ -6161,7 +6292,13 @@ document.querySelectorAll('[data-standard-table]').forEach(initStandardTablePane
             search_placeholder="查找 PC localization summary",
         ),
         pc_localization_table=_wrap_table_markup(
-            "<table><thead><tr><th>Core</th><th>CoreType</th><th>Status</th><th>exception_start_pc</th><th>current_pc</th><th>entry_start_pc</th><th>entry_end_pc</th><th>nodeIndex</th><th>entryIndex</th><th>Function</th></tr></thead><tbody>{}</tbody></table>".format(
+            (
+                "<table><thead><tr><th>Core</th><th>CoreType</th>"
+                "<th>Status</th><th>exception_start_pc</th><th>current_pc</th>"
+                "<th>entry_start_pc</th><th>entry_end_pc</th><th>nodeIndex</th>"
+                "<th>entryIndex</th><th>Function</th></tr></thead>"
+                "<tbody>{}</tbody></table>"
+            ).format(
                 "".join(pc_localization_rows)
                 or "<tr><td colspan='10'>当前没有可展示的 PC localization 事件。</td></tr>"
             ),
@@ -6201,7 +6338,11 @@ document.querySelectorAll('[data-standard-table]').forEach(initStandardTablePane
             empty_message="当前没有需要额外关注的 warning。",
         ),
         core_symbol_table=_wrap_table_markup(
-            "<table><thead><tr><th>Kind</th><th>Line</th><th>Core</th><th>nodeIndex</th><th>entryIndex</th><th>Function</th></tr></thead><tbody>{}</tbody></table>".format(
+            (
+                "<table><thead><tr><th>Kind</th><th>Line</th><th>Core</th>"
+                "<th>nodeIndex</th><th>entryIndex</th><th>Function</th></tr></thead>"
+                "<tbody>{}</tbody></table>"
+            ).format(
                 "".join(core_symbol_rows)
                 or "<tr><td colspan='6'>当前没有可展示的 core symbol event。</td></tr>"
             ),
@@ -6216,9 +6357,16 @@ document.querySelectorAll('[data-standard-table]').forEach(initStandardTablePane
             "<details class='fold subblock'><summary>更多阶段关联信号 ({})</summary><div>{}</div></details>".format(
                 len(hidden_phase_rows),
                 _wrap_table_markup(
-                    "<table><thead><tr><th>阶段</th><th>信号桶</th><th>信号类型</th><th>来源</th><th>内容</th></tr></thead><tbody>{}</tbody></table>".format(
+                    (
+                        "<table><thead><tr><th>阶段</th><th>信号桶</th>"
+                        "<th>信号类型</th><th>来源</th><th>内容</th></tr></thead>"
+                        "<tbody>{}</tbody></table>"
+                    ).format(
                         "".join(
-                            "<tr><td>{}</td><td>{}</td><td>{}</td><td>{}:{}</td><td>{}</td></tr>".format(
+                            (
+                                "<tr><td>{}</td><td>{}</td><td>{}</td>"
+                                "<td>{}:{}</td><td>{}</td></tr>"
+                            ).format(
                                 html.escape(
                                     _phase_key_label(item.get("phase_key", "unknown"))
                                 ),
@@ -6251,21 +6399,36 @@ document.querySelectorAll('[data-standard-table]').forEach(initStandardTablePane
     output_path.write_text(html_text, encoding="utf-8")
 
 
+class PerformanceReportHtmlInput(NamedTuple):
+    run_dir: Path
+    update_report: dict[str, Any]
+    asset_inventory: dict[str, Any]
+    event_stats: dict[str, Any]
+    performance_correlations: list[dict[str, Any]]
+    performance_summary: dict[str, Any]
+    node_trace_summary: dict[str, Any]
+    analysis_view_state: dict[str, Any]
+    analysis_resource_state: dict[str, Any]
+    presentation_state: dict[str, str]
+    output_path: Path
+    portal_href: str = "../run-portal.html"
+
+
 def _render_performance_report_html(
-    run_dir: Path,
-    update_report: dict[str, Any],
-    asset_inventory: dict[str, Any],
-    event_stats: dict[str, Any],
-    performance_correlations: list[dict[str, Any]],
-    performance_summary: dict[str, Any],
-    node_trace_summary: dict[str, Any],
-    analysis_view_state: dict[str, Any],
-    analysis_resource_state: dict[str, Any],
-    presentation_state: dict[str, str],
-    output_path: Path,
-    *,
-    portal_href: str = "../run-portal.html",
+    request: PerformanceReportHtmlInput,
 ) -> None:
+    run_dir = request.run_dir
+    update_report = request.update_report
+    asset_inventory = request.asset_inventory
+    event_stats = request.event_stats
+    performance_correlations = request.performance_correlations
+    performance_summary = request.performance_summary
+    node_trace_summary = request.node_trace_summary
+    analysis_view_state = request.analysis_view_state
+    analysis_resource_state = request.analysis_resource_state
+    presentation_state = request.presentation_state
+    output_path = request.output_path
+    portal_href = request.portal_href
     presentation_mode = presentation_state["presentation_mode"]
     visible_rows, hidden_rows = _split_visible_hidden(
         performance_correlations,
@@ -6276,6 +6439,35 @@ def _render_performance_report_html(
     visible_top_events, hidden_top_events = _split_visible_hidden(
         performance_summary.get("top_events", []),
         6 if presentation_mode == "focused" else 9999,
+    )
+    event_matrix_row_template = (
+        "<tr><td><a href='{update_link}'>{group}</a></td><td>{sk}</td>"
+        "<td>{devices}</td><td>{event_count}</td><td>{total_dur}</td>"
+        "<td>{matched_scopes}</td><td>{matched_nodes}</td><td>{judgment}</td>"
+        "<td>{trace_links}</td></tr>"
+    )
+    event_matrix_table_template = (
+        "<table><thead><tr><th>事件分组</th><th>skId</th><th>设备</th>"
+        "<th>事件数</th><th>总时长</th><th>关联 Scope</th><th>关联 Node</th>"
+        "<th>判断</th><th>Tracing 跳转</th></tr></thead><tbody>{}</tbody></table>"
+    )
+    top_event_row_template = (
+        "<tr><td>{name}</td><td>{device}</td><td>{pid}</td><td>{tid}</td>"
+        "<td>{duration}</td><td>{sk}</td><td>{node}</td></tr>"
+    )
+    top_event_table_template = (
+        "<table><thead><tr><th>事件摘要</th><th>设备</th><th>pid</th>"
+        "<th>tid</th><th>时长</th><th>skId</th><th>nodeId</th></tr></thead>"
+        "<tbody>{}</tbody></table>"
+    )
+    top_event_more_table_template = (
+        "<table><thead><tr><th>事件摘要</th><th>原始事件名</th><th>设备</th>"
+        "<th>pid</th><th>tid</th><th>时长</th><th>skId</th><th>nodeId</th>"
+        "</tr></thead><tbody>{}</tbody></table>"
+    )
+    top_event_more_row_template = (
+        "<tr><td>{}</td><td>{}</td><td>{}</td><td>{}</td>"
+        "<td>{}</td><td>{}</td><td>{}</td><td>{}</td></tr>"
     )
     matrix_rows = []
     for item in visible_rows:
@@ -6289,7 +6481,7 @@ def _render_performance_report_html(
             item, run_dir, output_path, node_trace_summary, analysis_resource_state
         )
         matrix_rows.append(
-            "<tr><td><a href='{update_link}'>{group}</a></td><td>{sk}</td><td>{devices}</td><td>{event_count}</td><td>{total_dur}</td><td>{matched_scopes}</td><td>{matched_nodes}</td><td>{judgment}</td><td>{trace_links}</td></tr>".format(
+            event_matrix_row_template.format(
                 update_link=html.escape(update_link),
                 group=html.escape(str(item.get("group_label"))),
                 sk=html.escape(str(item.get("sk_id"))),
@@ -6316,7 +6508,7 @@ def _render_performance_report_html(
     top_event_rows = []
     for item in visible_top_events:
         top_event_rows.append(
-            "<tr><td>{name}</td><td>{device}</td><td>{pid}</td><td>{tid}</td><td>{duration}</td><td>{sk}</td><td>{node}</td></tr>".format(
+            top_event_row_template.format(
                 name=html.escape(
                     str(
                         item.get("display_name")
@@ -6416,7 +6608,7 @@ def _render_performance_report_html(
         ),
     )
     top_event_table_markup = _wrap_table_markup(
-        "<table><thead><tr><th>事件摘要</th><th>设备</th><th>pid</th><th>tid</th><th>时长</th><th>skId</th><th>nodeId</th></tr></thead><tbody>{}</tbody></table>".format(
+        top_event_table_template.format(
             "".join(top_event_rows)
             or "<tr><td colspan='7'>当前没有可展示的时间热点事件。</td></tr>"
         ),
@@ -6444,9 +6636,9 @@ def _render_performance_report_html(
         "<details class='fold subblock'><summary>更多热点事件 ({})</summary><div>{}</div></details>".format(
             len(hidden_top_events),
             _wrap_table_markup(
-                "<table><thead><tr><th>事件摘要</th><th>原始事件名</th><th>设备</th><th>pid</th><th>tid</th><th>时长</th><th>skId</th><th>nodeId</th></tr></thead><tbody>{}</tbody></table>".format(
+                top_event_more_table_template.format(
                     "".join(
-                        "<tr><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td></tr>".format(
+                        top_event_more_row_template.format(
                             html.escape(
                                 str(
                                     item.get("display_name")
@@ -6487,7 +6679,7 @@ def _render_performance_report_html(
         else ""
     )
     matrix_table_markup = _wrap_table_markup(
-        "<table><thead><tr><th>事件分组</th><th>skId</th><th>设备</th><th>事件数</th><th>总时长</th><th>关联 Scope</th><th>关联 Node</th><th>判断</th><th>Tracing 跳转</th></tr></thead><tbody>{}</tbody></table>".format(
+        event_matrix_table_template.format(
             "".join(matrix_rows)
             or "<tr><td colspan='9'>当前没有可稳定组织的事件主视角。</td></tr>"
         ),
@@ -6516,9 +6708,9 @@ def _render_performance_report_html(
         "<details class='fold subblock'><summary>更多矩阵行 ({})</summary><div>{}</div></details>".format(
             len(hidden_rows),
             _wrap_table_markup(
-                "<table><thead><tr><th>事件分组</th><th>skId</th><th>设备</th><th>事件数</th><th>总时长</th><th>关联 Scope</th><th>关联 Node</th><th>判断</th><th>Tracing 跳转</th></tr></thead><tbody>{}</tbody></table>".format(
+                event_matrix_table_template.format(
                     "".join(
-                        "<tr><td><a href='{update_link}'>{group}</a></td><td>{sk}</td><td>{devices}</td><td>{event_count}</td><td>{total_dur}</td><td>{matched_scopes}</td><td>{matched_nodes}</td><td>{judgment}</td><td>{trace_links}</td></tr>".format(
+                        event_matrix_row_template.format(
                             update_link=html.escape(
                                 f"scope-graph.html?scopeId={item['linked_update_scope']}"
                                 if item.get("linked_update_scope") is not None
@@ -6626,6 +6818,11 @@ def _render_run_portal(
 
     def _build_multi_model_rows(models: list[dict[str, Any]]) -> str:
         rows = []
+        row_template = (
+            "<tr><td>{process}</td><td>{model}</td><td>{ri}</td>"
+            "<td>{scope}</td><td>{func}</td><td>{scope_view}</td>"
+            "<td>{task_view}</td><td>{analysis_view}</td><td>{dfx_view}</td></tr>"
+        )
         for item in sorted(
             models,
             key=lambda current: (
@@ -6694,7 +6891,7 @@ def _render_run_portal(
                 return "-"
 
             rows.append(
-                "<tr><td>{process}</td><td>{model}</td><td>{ri}</td><td>{scope}</td><td>{func}</td><td>{scope_view}</td><td>{task_view}</td><td>{analysis_view}</td><td>{dfx_view}</td></tr>".format(
+                row_template.format(
                     process=html.escape(str(item.get("process_label", "-"))),
                     model=html.escape(str(item.get("model_ir_label", "-"))),
                     ri=html.escape(str(item.get("model_ri") or "unknown")),
@@ -6714,11 +6911,9 @@ def _render_run_portal(
         return {"abnormal": 3, "warning": 2, "clean": 1}.get(str(value), 0)
 
     def _model_fusion_state(item: dict[str, Any]) -> str:
-        if (
-            item.get("task_queue_available")
-            or item.get("has_update")
-            or int(item.get("function_count", 0) or 0) > 0
-        ):
+        has_task_or_update = bool(item.get("task_queue_available") or item.get("has_update"))
+        has_fused_function = int(item.get("function_count", 0) or 0) > 0
+        if has_task_or_update or has_fused_function:
             return "fused"
         if item.get("scope_graph_available"):
             return "scope_only"
@@ -6804,7 +6999,11 @@ def _render_run_portal(
         ]
     elif has_multi_model:
         summary_title = "融合总览"
-        summary_note = "当前 run 没有 abnormal 级别的 DFX 问题，因此导航页优先汇报 update/融合情况；若某个 modelRI 没有 update，但仍保留 Scope，就继续优先查看 Scope。"
+        summary_note = (
+            "当前 run 没有 abnormal 级别的 DFX 问题，因此导航页优先汇报 "
+            "update/融合情况；若某个 modelRI 没有 update，但仍保留 Scope，"
+            "就继续优先查看 Scope。"
+        )
         summary_items = [
             ("modelRI 总数", str(multi_model_count)),
             ("有更新", str(len(updated_models))),
@@ -6882,11 +7081,13 @@ def _render_run_portal(
     )
 
     multi_model_sections = ""
+    table_template = (
+        "<table><thead><tr><th>Process</th><th>模型目录</th><th>modelRI</th>"
+        "<th>Scope Count</th><th>Function Count</th><th>Scope View</th>"
+        "<th>TaskQue View</th><th>Analysis View</th><th>DFX View</th></tr></thead>"
+        "<tbody>{rows}</tbody></table>"
+    )
     if has_multi_model:
-        table_template = (
-            "<table><thead><tr><th>Process</th><th>模型目录</th><th>modelRI</th><th>Scope Count</th><th>Function Count</th>"
-            "<th>Scope View</th><th>TaskQue View</th><th>Analysis View</th><th>DFX View</th></tr></thead><tbody>{rows}</tbody></table>"
-        )
         if dfx_abnormal_models:
             multi_model_sections = (
                 _wrap_table_markup(
@@ -6940,10 +7141,6 @@ def _render_run_portal(
                 )
             )
     elif multi_models:
-        table_template = (
-            "<table><thead><tr><th>Process</th><th>模型目录</th><th>modelRI</th><th>Scope Count</th><th>Function Count</th>"
-            "<th>Scope View</th><th>TaskQue View</th><th>Analysis View</th><th>DFX View</th></tr></thead><tbody>{rows}</tbody></table>"
-        )
         multi_model_sections = _wrap_table_markup(
             table_template.format(rows=_build_multi_model_rows(multi_models)),
             panel_id="portal-single-model",
@@ -7220,12 +7417,10 @@ def main() -> None:
             scope_library_json = primary_entry.get("scope_library_json")
             graph_library_json = primary_entry.get("graph_library_json")
             dfx_library_json = primary_entry.get("dfx_library_json")
-            if (
-                not bundle_mode
-                and scope_library_json
-                and graph_library_json
-                and dfx_library_json
-            ):
+            has_required_libraries = bool(
+                scope_library_json and graph_library_json and dfx_library_json
+            )
+            if not bundle_mode and has_required_libraries:
                 report_links["scope_library"] = _run_relative_path_from_reports(
                     _reports_relative_path(scope_library_json, reports_dir),
                     reports_dir,
@@ -7507,16 +7702,18 @@ def main() -> None:
             hang_crash_summary,
         )
         report_artifacts = _build_report_artifacts(
-            expected_reports,
-            validation,
-            report_links,
-            missing_assets,
-            asset_inventory,
-            update_report,
-            performance_summary,
-            hang_crash_summary,
-            node_trace_summary,
-            presentation_states,
+            ReportArtifactsInput(
+                expected_reports,
+                validation,
+                report_links,
+                missing_assets,
+                asset_inventory,
+                update_report,
+                performance_summary,
+                hang_crash_summary,
+                node_trace_summary,
+                presentation_states,
+            )
         )
         overall_diagnostic_completeness = _overall_diagnostic_completeness(
             report_artifacts
@@ -7558,16 +7755,18 @@ def main() -> None:
         )
         presentation_states["run_portal"] = portal_presentation_state
         report_artifacts = _build_report_artifacts(
-            expected_reports,
-            validation,
-            report_links,
-            missing_assets,
-            asset_inventory,
-            update_report,
-            performance_summary,
-            hang_crash_summary,
-            node_trace_summary,
-            presentation_states,
+            ReportArtifactsInput(
+                expected_reports,
+                validation,
+                report_links,
+                missing_assets,
+                asset_inventory,
+                update_report,
+                performance_summary,
+                hang_crash_summary,
+                node_trace_summary,
+                presentation_states,
+            )
         )
         overall_diagnostic_completeness = _overall_diagnostic_completeness(
             report_artifacts

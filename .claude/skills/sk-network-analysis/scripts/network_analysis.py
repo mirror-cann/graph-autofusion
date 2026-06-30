@@ -17,10 +17,21 @@ import argparse
 import subprocess
 import sys
 from pathlib import Path
+from typing import NamedTuple
 
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 DIAGNOSE_SCRIPT = SCRIPT_DIR / "diagnose_run.py"
+
+
+class DiagnoseRunOptions(NamedTuple):
+    mode: str
+    input_path: str
+    with_ai: bool
+    jobs: int | None
+    no_parallel: bool
+    no_cache: bool
+    profile: bool
 
 
 def _run(command: list[str]) -> int:
@@ -28,75 +39,75 @@ def _run(command: list[str]) -> int:
     return completed.returncode
 
 
-def _run_diagnose(
-    mode: str,
-    input_path: str,
-    with_ai: bool,
-    jobs: int | None,
-    no_parallel: bool,
-    no_cache: bool,
-    profile: bool,
-) -> int:
-    command = [sys.executable, str(DIAGNOSE_SCRIPT), "--mode", mode]
-    if with_ai:
+def _run_diagnose(options: DiagnoseRunOptions) -> int:
+    command = [sys.executable, str(DIAGNOSE_SCRIPT), "--mode", options.mode]
+    if options.with_ai:
         command.append("--with-ai")
-    if jobs is not None:
-        command.extend(["--jobs", str(jobs)])
-    if no_parallel:
+    if options.jobs is not None:
+        command.extend(["--jobs", str(options.jobs)])
+    if options.no_parallel:
         command.append("--no-parallel")
-    if no_cache:
+    if options.no_cache:
         command.append("--no-cache")
-    if profile:
+    if options.profile:
         command.append("--profile")
-    command.append(input_path)
+    command.append(options.input_path)
     return _run(command)
 
 
 def cmd_analyze(args: argparse.Namespace) -> int:
     return _run_diagnose(
-        "full",
-        args.input,
-        args.with_ai,
-        args.jobs,
-        args.no_parallel,
-        args.no_cache,
-        args.profile,
+        DiagnoseRunOptions(
+            "full",
+            args.input,
+            args.with_ai,
+            args.jobs,
+            args.no_parallel,
+            args.no_cache,
+            args.profile,
+        )
     )
 
 
 def cmd_diagnose_hang_crash(args: argparse.Namespace) -> int:
     return _run_diagnose(
-        "hang",
-        args.input,
-        args.with_ai,
-        args.jobs,
-        args.no_parallel,
-        args.no_cache,
-        args.profile,
+        DiagnoseRunOptions(
+            "hang",
+            args.input,
+            args.with_ai,
+            args.jobs,
+            args.no_parallel,
+            args.no_cache,
+            args.profile,
+        )
     )
 
 
 def cmd_diagnose_performance(args: argparse.Namespace) -> int:
     return _run_diagnose(
-        "performance",
-        args.input,
-        args.with_ai,
-        args.jobs,
-        args.no_parallel,
-        args.no_cache,
-        args.profile,
+        DiagnoseRunOptions(
+            "performance",
+            args.input,
+            args.with_ai,
+            args.jobs,
+            args.no_parallel,
+            args.no_cache,
+            args.profile,
+        )
     )
 
 
 def cmd_trace_nodes(args: argparse.Namespace) -> int:
     return _run_diagnose(
-        "trace",
-        args.input,
-        args.with_ai,
-        args.jobs,
-        args.no_parallel,
-        args.no_cache,
-        args.profile,
+        DiagnoseRunOptions(
+            "trace",
+            args.input,
+            args.with_ai,
+            args.jobs,
+            args.no_parallel,
+            args.no_cache,
+            args.profile,
+        )
     )
 
 

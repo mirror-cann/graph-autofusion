@@ -21,7 +21,7 @@ import subprocess
 import sys
 import zipfile
 from pathlib import Path
-from typing import Any
+from typing import Any, NamedTuple
 
 SOURCE_SUFFIXES = {".asc", ".c", ".cc", ".cpp", ".cxx", ".h", ".hh", ".hpp", ".hxx"}
 INCLUDE_SUFFIXES = {".h", ".hh", ".hpp", ".hxx"}
@@ -54,7 +54,10 @@ SCAFFOLD_SPECS = {
         "reason": "missing_operator_entry_contract",
         "suggested_path": "",
         "template": "operator-entry-contract",
-        "description": "Define the operator entry contract before build or test scaffolds can target a stable callable unit.",
+        "description": (
+            "Define the operator entry contract before build or test scaffolds "
+            "can target a stable callable unit."
+        ),
     },
     "build_contract": {
         "kind": "build",
@@ -798,7 +801,10 @@ def _classify_asset(
 ) -> str:
     if not source_files:
         return "unsupported-asset"
-    if build_files and test_files and package_files and doc_files:
+    has_complete_delivery = bool(
+        build_files and test_files and package_files and doc_files
+    )
+    if has_complete_delivery:
         return "deliverable-op"
     if test_files:
         return "testable-op"
@@ -1189,13 +1195,10 @@ def _sk_source_file_fingerprints(
 
 
 def _support_dir_name(name: str) -> str:
-    if (
-        not name
-        or name in {".", ".."}
-        or "/" in name
-        or "\\" in name
-        or not SUPPORT_DIR_NAME_RE.fullmatch(name)
-    ):
+    invalid_name = not name or name in {".", ".."}
+    contains_separator = "/" in name or "\\" in name
+    unsupported_chars = not SUPPORT_DIR_NAME_RE.fullmatch(name)
+    if invalid_name or contains_separator or unsupported_chars:
         raise CliUsageError(f"invalid support directory name: {name}")
     return name
 
@@ -1323,7 +1326,8 @@ def _normalize_ascend_compile_contract(
     compile_options: list[str] | None = None,
     force_includes: list[str] | None = None,
 ) -> dict[str, Any] | None:
-    if not cann_path and not arch and not compile_options and not force_includes:
+    has_compile_contract = bool(cann_path or arch or compile_options or force_includes)
+    if not has_compile_contract:
         return None
     if not cann_path:
         raise CliUsageError(
@@ -1847,25 +1851,27 @@ def _sk_conversion_next_actions(
     return [item["action"] for item in plan if item["status"] == "needed"][:3]
 
 
-def _build_sk_conversion_analysis(
-    asset_path: Path,
-    support_dir_specs: list[str] | None = None,
-    include_dir_specs: list[str] | None = None,
-    ascend_cann_path: str | None = None,
-    ascend_arch: str | None = None,
-    ascend_compile_options: list[str] | None = None,
-    ascend_force_includes: list[str] | None = None,
-) -> dict[str, Any]:
-    manifest = _build_manifest(asset_path)
+class SkConversionAnalysisInput(NamedTuple):
+    asset_path: Path
+    support_dir_specs: list[str] | None = None
+    include_dir_specs: list[str] | None = None
+    ascend_cann_path: str | None = None
+    ascend_arch: str | None = None
+    ascend_compile_options: list[str] | None = None
+    ascend_force_includes: list[str] | None = None
+
+
+def _build_sk_conversion_analysis(request: SkConversionAnalysisInput) -> dict[str, Any]:
+    manifest = _build_manifest(request.asset_path)
     support_directories = _normalize_support_directories(
-        support_dir_specs, Path(manifest["base_dir"])
+        request.support_dir_specs, Path(manifest["base_dir"])
     )
-    include_directories = _normalize_include_directories(include_dir_specs)
+    include_directories = _normalize_include_directories(request.include_dir_specs)
     ascend_compile_contract = _normalize_ascend_compile_contract(
-        cann_path=ascend_cann_path,
-        arch=ascend_arch,
-        compile_options=ascend_compile_options,
-        force_includes=ascend_force_includes,
+        cann_path=request.ascend_cann_path,
+        arch=request.ascend_arch,
+        compile_options=request.ascend_compile_options,
+        force_includes=request.ascend_force_includes,
     )
     status, blocked_reasons = _sk_conversion_overall_status(manifest)
     inputs = _sk_conversion_inputs(manifest)
@@ -2032,12 +2038,11 @@ def _load_current_sk_conversion_analysis(output_dir: Path) -> dict[str, Any]:
                 )
             ).resolve()
         )
-        source_files = [
-            _validate_manifest_path(path, "sk conversion analysis support source file")
-            for path in _require_list(
-                item["source_files"], "sk conversion analysis support source_files"
-            )
-        ]
+        source_files = _validate_manifest_path_list(
+            item["source_files"],
+            "sk conversion analysis support source_files",
+            "sk conversion analysis support source file",
+        )
         fingerprints: list[dict[str, str]] = []
         for fingerprint in _require_list(
             item["source_file_fingerprints"],
@@ -2069,17 +2074,11 @@ def _load_current_sk_conversion_analysis(output_dir: Path) -> dict[str, Any]:
             }
         )
     analysis["support_directories"] = support_directories
-    analysis["include_directories"] = [
-        str(
-            Path(
-                _require_string(item, "sk conversion analysis include directory")
-            ).resolve()
-        )
-        for item in _require_list(
-            analysis["include_directories"],
-            "sk conversion analysis include_directories",
-        )
-    ]
+    analysis["include_directories"] = _resolve_string_path_list(
+        analysis["include_directories"],
+        "sk conversion analysis include_directories",
+        "sk conversion analysis include directory",
+    )
     raw_contract = analysis["ascend_compile_contract"]
     if raw_contract is None:
         ascend_compile_contract = None
@@ -2112,49 +2111,40 @@ def _load_current_sk_conversion_analysis(output_dir: Path) -> dict[str, Any]:
                 ).resolve()
             ),
             "arch": _require_string(contract["arch"], "ascend compile contract arch"),
-            "compile_options": [
-                _require_string(item, "ascend compile contract compile option")
-                for item in _require_list(
-                    contract["compile_options"],
-                    "ascend compile contract compile_options",
-                )
-            ],
-            "force_includes": [
-                str(
-                    Path(
-                        _require_string(item, "ascend compile contract force include")
-                    ).resolve()
-                )
-                for item in _require_list(
-                    contract["force_includes"], "ascend compile contract force_includes"
-                )
-            ],
-            "derived_include_dirs": [
-                str(
-                    Path(
-                        _require_string(
-                            item, "ascend compile contract derived include dir"
-                        )
-                    ).resolve()
-                )
-                for item in _require_list(
-                    contract["derived_include_dirs"],
-                    "ascend compile contract derived_include_dirs",
-                )
-            ],
+            "compile_options": _require_string_list(
+                contract["compile_options"],
+                "ascend compile contract compile_options",
+                "ascend compile contract compile option",
+            ),
+            "force_includes": _resolve_string_path_list(
+                contract["force_includes"],
+                "ascend compile contract force_includes",
+                "ascend compile contract force include",
+            ),
+            "derived_include_dirs": _resolve_string_path_list(
+                contract["derived_include_dirs"],
+                "ascend compile contract derived_include_dirs",
+                "ascend compile contract derived include dir",
+            ),
         }
     analysis["ascend_compile_contract"] = ascend_compile_contract
     expected = _build_sk_conversion_analysis(
-        asset_path,
-        [
-            f"{item['source_name']}={item['source_path']}"
-            for item in support_directories
-        ],
-        analysis["include_directories"],
-        ascend_compile_contract["cann_path"] if ascend_compile_contract else None,
-        ascend_compile_contract["arch"] if ascend_compile_contract else None,
-        ascend_compile_contract["compile_options"] if ascend_compile_contract else None,
-        ascend_compile_contract["force_includes"] if ascend_compile_contract else None,
+        SkConversionAnalysisInput(
+            asset_path,
+            [
+                f"{item['source_name']}={item['source_path']}"
+                for item in support_directories
+            ],
+            analysis["include_directories"],
+            ascend_compile_contract["cann_path"] if ascend_compile_contract else None,
+            ascend_compile_contract["arch"] if ascend_compile_contract else None,
+            ascend_compile_contract["compile_options"]
+            if ascend_compile_contract
+            else None,
+            ascend_compile_contract["force_includes"]
+            if ascend_compile_contract
+            else None,
+        )
     )
     if analysis != expected:
         raise CliUsageError("sk conversion analysis is not current")
@@ -2585,6 +2575,13 @@ def _require_list(value: Any, label: str) -> list[Any]:
     return value
 
 
+def _require_string_list(value: Any, list_label: str, item_label: str) -> list[str]:
+    items = []
+    for item in _require_list(value, list_label):
+        items.append(_require_string(item, item_label))
+    return items
+
+
 def _reject_json_constant(value: str) -> None:
     raise ValueError(f"non-standard JSON constant is not allowed: {value}")
 
@@ -2620,6 +2617,20 @@ def _validate_manifest_path(
         return _safe_scaffold_relative_path(path)
     except ValueError as exc:
         raise CliUsageError(str(exc)) from exc
+
+
+def _validate_manifest_path_list(value: Any, list_label: str, item_label: str) -> list[str]:
+    paths = []
+    for item in _require_list(value, list_label):
+        paths.append(_validate_manifest_path(item, item_label))
+    return paths
+
+
+def _resolve_string_path_list(value: Any, list_label: str, item_label: str) -> list[str]:
+    paths = []
+    for item in _require_list(value, list_label):
+        paths.append(str(Path(_require_string(item, item_label)).resolve()))
+    return paths
 
 
 def _bounded_pytest_evidence(output: str) -> list[str]:
@@ -2764,12 +2775,11 @@ def _normalize_sk_source_scaffold_manifest(
     ):
         raise CliUsageError("sk source scaffold mismatch")
     _require_string(manifest["asset_path"], "sk source scaffold asset_path")
-    manifest["source_files"] = [
-        _validate_manifest_path(item, "sk source scaffold source file")
-        for item in _require_list(
-            manifest["source_files"], "sk source scaffold source_files"
-        )
-    ]
+    manifest["source_files"] = _validate_manifest_path_list(
+        manifest["source_files"],
+        "sk source scaffold source_files",
+        "sk source scaffold source file",
+    )
     fingerprints: list[dict[str, str]] = []
     for fingerprint in _require_list(
         manifest["source_file_fingerprints"],
@@ -2835,28 +2845,20 @@ def _normalize_sk_source_scaffold_manifest(
                         )
                     ).resolve()
                 ),
-                "source_files": [
-                    _validate_manifest_path(
-                        path, "sk source scaffold support source file"
-                    )
-                    for path in _require_list(
-                        item["source_files"], "sk source scaffold support source_files"
-                    )
-                ],
+                "source_files": _validate_manifest_path_list(
+                    item["source_files"],
+                    "sk source scaffold support source_files",
+                    "sk source scaffold support source file",
+                ),
                 "source_file_fingerprints": fingerprints,
             }
         )
     manifest["support_directories"] = support_directories
-    manifest["include_directories"] = [
-        str(
-            Path(
-                _require_string(item, "sk source scaffold include directory")
-            ).resolve()
-        )
-        for item in _require_list(
-            manifest["include_directories"], "sk source scaffold include_directories"
-        )
-    ]
+    manifest["include_directories"] = _resolve_string_path_list(
+        manifest["include_directories"],
+        "sk source scaffold include_directories",
+        "sk source scaffold include directory",
+    )
     raw_contract = manifest["ascend_compile_contract"]
     if raw_contract is None:
         manifest["ascend_compile_contract"] = None
@@ -2890,37 +2892,21 @@ def _normalize_sk_source_scaffold_manifest(
                 ).resolve()
             ),
             "arch": _require_string(contract["arch"], "sk source scaffold ascend arch"),
-            "compile_options": [
-                _require_string(item, "sk source scaffold ascend compile option")
-                for item in _require_list(
-                    contract["compile_options"],
-                    "sk source scaffold ascend compile_options",
-                )
-            ],
-            "force_includes": [
-                str(
-                    Path(
-                        _require_string(item, "sk source scaffold ascend force include")
-                    ).resolve()
-                )
-                for item in _require_list(
-                    contract["force_includes"],
-                    "sk source scaffold ascend force_includes",
-                )
-            ],
-            "derived_include_dirs": [
-                str(
-                    Path(
-                        _require_string(
-                            item, "sk source scaffold ascend derived include dir"
-                        )
-                    ).resolve()
-                )
-                for item in _require_list(
-                    contract["derived_include_dirs"],
-                    "sk source scaffold ascend derived_include_dirs",
-                )
-            ],
+            "compile_options": _require_string_list(
+                contract["compile_options"],
+                "sk source scaffold ascend compile_options",
+                "sk source scaffold ascend compile option",
+            ),
+            "force_includes": _resolve_string_path_list(
+                contract["force_includes"],
+                "sk source scaffold ascend force_includes",
+                "sk source scaffold ascend force include",
+            ),
+            "derived_include_dirs": _resolve_string_path_list(
+                contract["derived_include_dirs"],
+                "sk source scaffold ascend derived_include_dirs",
+                "sk source scaffold ascend derived include dir",
+            ),
         }
     entries: list[dict[str, str]] = []
     for entry in _require_list(
@@ -2958,31 +2944,26 @@ def _normalize_sk_source_scaffold_manifest(
             }
         )
     manifest["copied_source_files"] = copied
-    manifest["generated_files"] = [
-        _validate_manifest_path(item, "sk source scaffold generated file")
-        for item in _require_list(
-            manifest["generated_files"], "sk source scaffold generated_files"
-        )
-    ]
-    manifest["blocked_reasons"] = [
-        _require_string(item, "sk source scaffold blocked reason")
-        for item in _require_list(
-            manifest["blocked_reasons"], "sk source scaffold blocked_reasons"
-        )
-    ]
-    manifest["execution_boundary"] = [
-        _require_string(item, "sk source scaffold execution boundary")
-        for item in _require_list(
-            manifest["execution_boundary"], "sk source scaffold execution_boundary"
-        )
-    ]
-    manifest["supported_next_actions"] = [
-        _require_string(item, "sk source scaffold supported next action")
-        for item in _require_list(
-            manifest["supported_next_actions"],
-            "sk source scaffold supported_next_actions",
-        )
-    ]
+    manifest["generated_files"] = _validate_manifest_path_list(
+        manifest["generated_files"],
+        "sk source scaffold generated_files",
+        "sk source scaffold generated file",
+    )
+    manifest["blocked_reasons"] = _require_string_list(
+        manifest["blocked_reasons"],
+        "sk source scaffold blocked_reasons",
+        "sk source scaffold blocked reason",
+    )
+    manifest["execution_boundary"] = _require_string_list(
+        manifest["execution_boundary"],
+        "sk source scaffold execution_boundary",
+        "sk source scaffold execution boundary",
+    )
+    manifest["supported_next_actions"] = _require_string_list(
+        manifest["supported_next_actions"],
+        "sk source scaffold supported_next_actions",
+        "sk source scaffold supported next action",
+    )
     return manifest
 
 
@@ -3123,25 +3104,31 @@ def _fill_blocked_sk_build_validation_checks(
 
 
 def _sk_build_validation_manifest(
-    output_dir: Path,
-    status: str,
-    build_dir: str,
-    commands: list[list[str]],
-    check_results: dict[str, dict[str, Any]],
-    supported_next_actions: list[str],
+    request: "SkBuildValidationManifestInput",
 ) -> dict[str, Any]:
     return {
-        "status": status,
-        "analysis_output_dir": str(output_dir.resolve()),
+        "status": request.status,
+        "analysis_output_dir": str(request.output_dir.resolve()),
         "source_scaffold_manifest_path": "operator-sk-source-scaffold.json",
         "source_scaffold_markdown_path": "operator-sk-source-scaffold.md",
         "build_validation_path": "operator-sk-build-validation.json",
-        "build_dir": build_dir,
-        "commands": commands,
-        "checks": [check_results[name] for name in SK_BUILD_VALIDATION_CHECK_NAMES],
-        "supported_next_actions": supported_next_actions,
+        "build_dir": request.build_dir,
+        "commands": request.commands,
+        "checks": [
+            request.check_results[name] for name in SK_BUILD_VALIDATION_CHECK_NAMES
+        ],
+        "supported_next_actions": request.supported_next_actions,
         "execution_boundary": SK_BUILD_VALIDATION_BOUNDARY,
     }
+
+
+class SkBuildValidationManifestInput(NamedTuple):
+    output_dir: Path
+    status: str
+    build_dir: str
+    commands: list[list[str]]
+    check_results: dict[str, dict[str, Any]]
+    supported_next_actions: list[str]
 
 
 def _normalize_sk_build_validation_checks(
@@ -3162,12 +3149,11 @@ def _normalize_sk_build_validation_checks(
         status = _require_string(item["status"], "sk build validation check status")
         if status not in {"passed", "failed", "blocked"}:
             raise CliUsageError(f"invalid sk build validation check status: {status}")
-        evidence = [
-            _require_string(value, "sk build validation check evidence item")
-            for value in _require_list(
-                item["evidence"], "sk build validation check evidence"
-            )
-        ]
+        evidence = _require_string_list(
+            item["evidence"],
+            "sk build validation check evidence",
+            "sk build validation check evidence item",
+        )
         normalized[name] = {
             "name": name,
             "status": status,
@@ -3255,8 +3241,16 @@ def _validate_sk_build_validation_passed_prefix(
         ),
     }
     for name in names:
-        validators[name]()
-        if name == "cmake_command_available" and not checks[name]["evidence"]:
+        validator = validators.get(name)
+        if validator is None:
+            raise CliUsageError("sk build validation checks semantics mismatch")
+        validator()
+        check = checks.get(name)
+        if (
+            name == "cmake_command_available"
+            and check is not None
+            and not check.get("evidence")
+        ):
             raise CliUsageError("sk build validation checks semantics mismatch")
 
 
@@ -3375,12 +3369,12 @@ def _validate_sk_build_validation_commands(
 ) -> list[list[str]]:
     normalized: list[list[str]] = []
     for command in commands:
-        command_items = _require_list(command, "sk build validation command")
         normalized.append(
-            [
-                _require_string(item, "sk build validation command item")
-                for item in command_items
-            ]
+            _require_string_list(
+                command,
+                "sk build validation command",
+                "sk build validation command item",
+            )
         )
 
     source_dir = str(output_dir / SK_SOURCE_SCAFFOLD_DIR)
@@ -3476,28 +3470,27 @@ def _load_current_sk_build_validation(
     build_dir = _require_string(
         manifest["build_dir"], "sk build validation build_dir", allow_empty=True
     )
-    if (status == "blocked" and build_dir) or (
+    blocked_with_build_dir = status == "blocked" and build_dir
+    unblocked_without_expected_build_dir = (
         status != "blocked" and build_dir != "operator-sk-build-validation-build"
-    ):
+    )
+    if blocked_with_build_dir or unblocked_without_expected_build_dir:
         raise CliUsageError("sk build validation build_dir mismatch")
-    boundary = [
-        _require_string(item, "sk build validation execution boundary")
-        for item in _require_list(
-            manifest["execution_boundary"], "sk build validation execution_boundary"
-        )
-    ]
+    boundary = _require_string_list(
+        manifest["execution_boundary"],
+        "sk build validation execution_boundary",
+        "sk build validation execution boundary",
+    )
     if boundary != SK_BUILD_VALIDATION_BOUNDARY:
         raise CliUsageError("sk build validation execution_boundary mismatch")
     checks = _normalize_sk_build_validation_checks(
         _require_list(manifest["checks"], "sk build validation checks")
     )
-    supported_next_actions = [
-        _require_string(item, "sk build validation supported next action")
-        for item in _require_list(
-            manifest["supported_next_actions"],
-            "sk build validation supported_next_actions",
-        )
-    ]
+    supported_next_actions = _require_string_list(
+        manifest["supported_next_actions"],
+        "sk build validation supported_next_actions",
+        "sk build validation supported next action",
+    )
     _validate_sk_build_validation_semantics(
         status, checks, source_scaffold, supported_next_actions
     )
@@ -3537,13 +3530,15 @@ def cmd_analyze_sk_conversion(args: argparse.Namespace) -> int:
 
     output_dir = Path(args.output_dir).resolve()
     analysis = _build_sk_conversion_analysis(
-        asset_path,
-        getattr(args, "support_dir", None),
-        getattr(args, "include_dir", None),
-        getattr(args, "ascend_cann_path", None),
-        getattr(args, "ascend_arch", None),
-        getattr(args, "ascend_compile_option", None),
-        getattr(args, "ascend_force_include", None),
+        SkConversionAnalysisInput(
+            asset_path,
+            getattr(args, "support_dir", None),
+            getattr(args, "include_dir", None),
+            getattr(args, "ascend_cann_path", None),
+            getattr(args, "ascend_arch", None),
+            getattr(args, "ascend_compile_option", None),
+            getattr(args, "ascend_force_include", None),
+        )
     )
     _write_sk_conversion_artifacts(output_dir, analysis)
     return 0
@@ -3604,12 +3599,14 @@ def cmd_run_sk_build_validation(args: argparse.Namespace) -> int:
             check_results, "copied_sources_current", "sk_source_scaffold_not_generated"
         )
         result = _sk_build_validation_manifest(
-            output_dir,
-            "blocked",
-            "",
-            [],
-            check_results,
-            source_scaffold["supported_next_actions"],
+            SkBuildValidationManifestInput(
+                output_dir,
+                "blocked",
+                "",
+                [],
+                check_results,
+                source_scaffold["supported_next_actions"],
+            )
         )
         _write_json(output_dir / "operator-sk-build-validation.json", result)
         return 1
@@ -3637,7 +3634,9 @@ def cmd_run_sk_build_validation(args: argparse.Namespace) -> int:
             check_results, "cmake_contract_current", "cmake_command_not_found"
         )
         result = _sk_build_validation_manifest(
-            output_dir, "blocked", "", [], check_results, ["run_sk_build_validation"]
+            SkBuildValidationManifestInput(
+                output_dir, "blocked", "", [], check_results, ["run_sk_build_validation"]
+            )
         )
         _write_json(output_dir / "operator-sk-build-validation.json", result)
         return 1
@@ -3667,7 +3666,9 @@ def cmd_run_sk_build_validation(args: argparse.Namespace) -> int:
             check_results, "cmake_configure", build_dir_check["reason"]
         )
         result = _sk_build_validation_manifest(
-            output_dir, "blocked", "", [], check_results, ["run_sk_build_validation"]
+            SkBuildValidationManifestInput(
+                output_dir, "blocked", "", [], check_results, ["run_sk_build_validation"]
+            )
         )
         _write_json(output_dir / "operator-sk-build-validation.json", result)
         return 1
@@ -3693,12 +3694,14 @@ def cmd_run_sk_build_validation(args: argparse.Namespace) -> int:
             "cmake_build", "configure_not_passed"
         )
         result = _sk_build_validation_manifest(
-            output_dir,
-            "failed",
-            "operator-sk-build-validation-build",
-            commands,
-            check_results,
-            ["run_sk_build_validation"],
+            SkBuildValidationManifestInput(
+                output_dir,
+                "failed",
+                "operator-sk-build-validation-build",
+                commands,
+                check_results,
+                ["run_sk_build_validation"],
+            )
         )
         _write_json(output_dir / "operator-sk-build-validation.json", result)
         return 1
@@ -3713,12 +3716,14 @@ def cmd_run_sk_build_validation(args: argparse.Namespace) -> int:
             "cmake_build", "configure_not_passed"
         )
         result = _sk_build_validation_manifest(
-            output_dir,
-            "failed",
-            "operator-sk-build-validation-build",
-            commands,
-            check_results,
-            ["run_sk_build_validation"],
+            SkBuildValidationManifestInput(
+                output_dir,
+                "failed",
+                "operator-sk-build-validation-build",
+                commands,
+                check_results,
+                ["run_sk_build_validation"],
+            )
         )
         _write_json(output_dir / "operator-sk-build-validation.json", result)
         return 1
@@ -3741,12 +3746,14 @@ def cmd_run_sk_build_validation(args: argparse.Namespace) -> int:
             build_evidence,
         )
         result = _sk_build_validation_manifest(
-            output_dir,
-            "failed",
-            "operator-sk-build-validation-build",
-            commands,
-            check_results,
-            ["run_sk_build_validation"],
+            SkBuildValidationManifestInput(
+                output_dir,
+                "failed",
+                "operator-sk-build-validation-build",
+                commands,
+                check_results,
+                ["run_sk_build_validation"],
+            )
         )
         _write_json(output_dir / "operator-sk-build-validation.json", result)
         return 1
@@ -3760,12 +3767,14 @@ def cmd_run_sk_build_validation(args: argparse.Namespace) -> int:
             build_evidence,
         )
         result = _sk_build_validation_manifest(
-            output_dir,
-            "failed",
-            "operator-sk-build-validation-build",
-            commands,
-            check_results,
-            ["run_sk_build_validation"],
+            SkBuildValidationManifestInput(
+                output_dir,
+                "failed",
+                "operator-sk-build-validation-build",
+                commands,
+                check_results,
+                ["run_sk_build_validation"],
+            )
         )
         _write_json(output_dir / "operator-sk-build-validation.json", result)
         return 1
@@ -3777,12 +3786,14 @@ def cmd_run_sk_build_validation(args: argparse.Namespace) -> int:
             build_evidence,
         )
         result = _sk_build_validation_manifest(
-            output_dir,
-            "failed",
-            "operator-sk-build-validation-build",
-            commands,
-            check_results,
-            ["run_sk_build_validation"],
+            SkBuildValidationManifestInput(
+                output_dir,
+                "failed",
+                "operator-sk-build-validation-build",
+                commands,
+                check_results,
+                ["run_sk_build_validation"],
+            )
         )
         _write_json(output_dir / "operator-sk-build-validation.json", result)
         return 1
@@ -3794,12 +3805,14 @@ def cmd_run_sk_build_validation(args: argparse.Namespace) -> int:
         build_evidence,
     )
     result = _sk_build_validation_manifest(
-        output_dir,
-        "passed",
-        "operator-sk-build-validation-build",
-        commands,
-        check_results,
-        ["collect_runtime_input_spec"],
+        SkBuildValidationManifestInput(
+            output_dir,
+            "passed",
+            "operator-sk-build-validation-build",
+            commands,
+            check_results,
+            ["collect_runtime_input_spec"],
+        )
     )
     _write_json(output_dir / "operator-sk-build-validation.json", result)
     return 0
@@ -3952,7 +3965,8 @@ def _render_sk_source_version_readme(manifest: dict[str, Any]) -> str:
         "The repository helper command records this check as:",
         "",
         "```bash",
-        "<skills_root>/sk-operator-build-package/scripts/operator_build_package.py validate-sk-source-version <analysis-output-dir>",
+        "<skills_root>/sk-operator-build-package/scripts/operator_build_package.py "
+        "validate-sk-source-version <analysis-output-dir>",
         "```",
         "",
         "## Source Files",
@@ -4422,22 +4436,26 @@ def _pipeline_stage_supported_next_actions(artifact: dict[str, Any]) -> list[str
     ]
 
 
+class SourceVersionPipelineStageInput(NamedTuple):
+    name: str
+    command: list[str]
+    returncode: int
+    artifact_path: str
+    artifact: dict[str, Any]
+    next_action: str
+
+
 def _source_version_pipeline_stage(
-    name: str,
-    command: list[str],
-    returncode: int,
-    artifact_path: str,
-    artifact: dict[str, Any],
-    next_action: str,
+    request: SourceVersionPipelineStageInput,
 ) -> dict[str, Any]:
-    supported_next_actions = _pipeline_stage_supported_next_actions(artifact)
+    supported_next_actions = _pipeline_stage_supported_next_actions(request.artifact)
     return {
-        "name": name,
-        "command": command,
-        "returncode": returncode,
-        "status": _pipeline_stage_status_from_artifact(artifact),
-        "artifact_path": artifact_path,
-        "next_action": next_action,
+        "name": request.name,
+        "command": request.command,
+        "returncode": request.returncode,
+        "status": _pipeline_stage_status_from_artifact(request.artifact),
+        "artifact_path": request.artifact_path,
+        "next_action": request.next_action,
         "supported_next_actions": supported_next_actions,
     }
 
@@ -4535,12 +4553,14 @@ def cmd_prepare_validated_sk_source_version(args: argparse.Namespace) -> int:
     )
     stages.append(
         _source_version_pipeline_stage(
-            "analyze_sk_conversion",
-            analyze_command,
-            analyze_return,
-            "operator-sk-conversion-analysis.json",
-            analysis,
-            "generate_sk_source_scaffold",
+            SourceVersionPipelineStageInput(
+                "analyze_sk_conversion",
+                analyze_command,
+                analyze_return,
+                "operator-sk-conversion-analysis.json",
+                analysis,
+                "generate_sk_source_scaffold",
+            )
         )
     )
 
@@ -4563,12 +4583,14 @@ def cmd_prepare_validated_sk_source_version(args: argparse.Namespace) -> int:
     )
     stages.append(
         _source_version_pipeline_stage(
-            "generate_sk_source_scaffold",
-            source_command,
-            source_return,
-            "operator-sk-source-scaffold.json",
-            source_scaffold,
-            source_next,
+            SourceVersionPipelineStageInput(
+                "generate_sk_source_scaffold",
+                source_command,
+                source_return,
+                "operator-sk-source-scaffold.json",
+                source_scaffold,
+                source_next,
+            )
         )
     )
     if source_return != 0:
@@ -4593,12 +4615,14 @@ def cmd_prepare_validated_sk_source_version(args: argparse.Namespace) -> int:
         )
     stages.append(
         _source_version_pipeline_stage(
-            "run_sk_build_validation",
-            build_command,
-            build_return,
-            "operator-sk-build-validation.json",
-            build_validation,
-            build_next,
+            SourceVersionPipelineStageInput(
+                "run_sk_build_validation",
+                build_command,
+                build_return,
+                "operator-sk-build-validation.json",
+                build_validation,
+                build_next,
+            )
         )
     )
     if build_return != 0:
@@ -4625,12 +4649,14 @@ def cmd_prepare_validated_sk_source_version(args: argparse.Namespace) -> int:
         )
     stages.append(
         _source_version_pipeline_stage(
-            "prepare_sk_source_version",
-            version_command,
-            version_return,
-            "operator-sk-source-version.json",
-            source_version,
-            version_next,
+            SourceVersionPipelineStageInput(
+                "prepare_sk_source_version",
+                version_command,
+                version_return,
+                "operator-sk-source-version.json",
+                source_version,
+                version_next,
+            )
         )
     )
     if version_return != 0:
@@ -4659,12 +4685,14 @@ def cmd_prepare_validated_sk_source_version(args: argparse.Namespace) -> int:
         )
     stages.append(
         _source_version_pipeline_stage(
-            "validate_sk_source_version",
-            validation_command,
-            validation_return,
-            SK_SOURCE_VERSION_VALIDATION_PATH,
-            source_version_validation,
-            validation_next,
+            SourceVersionPipelineStageInput(
+                "validate_sk_source_version",
+                validation_command,
+                validation_return,
+                SK_SOURCE_VERSION_VALIDATION_PATH,
+                source_version_validation,
+                validation_next,
+            )
         )
     )
     result = _source_version_pipeline_manifest(asset_path, output_dir, stages)
@@ -4995,7 +5023,12 @@ def _validate_validation_check_semantics(
         },
     }
     for name, check in checks.items():
-        if (check["status"], check["reason"]) not in allowed_by_status[status][name]:
+        allowed_for_name = allowed_by_status.get(status, {}).get(name)
+        if allowed_for_name is None:
+            raise CliUsageError(f"invalid validation check semantics for {name}")
+        check_status = check.get("status")
+        check_reason = check.get("reason")
+        if (check_status, check_reason) not in allowed_for_name:
             raise CliUsageError(f"invalid validation check semantics for {name}")
 
 
@@ -5089,7 +5122,12 @@ def _validate_preflight_check_semantics(
         },
     }
     for name, check in checks.items():
-        if (check["status"], check["reason"]) not in allowed[name]:
+        allowed_for_name = allowed.get(name)
+        if allowed_for_name is None:
+            raise CliUsageError(f"invalid preflight check semantics for {name}")
+        check_status = check.get("status")
+        check_reason = check.get("reason")
+        if (check_status, check_reason) not in allowed_for_name:
             raise CliUsageError(f"invalid preflight check semantics for {name}")
 
     check_statuses = [item["status"] for item in checks.values()]
@@ -5285,7 +5323,14 @@ def _validate_scaffold_test_result_semantics(
         },
     }
     for name, check in checks.items():
-        if (check["status"], check["reason"]) not in allowed[name]:
+        allowed_for_name = allowed.get(name)
+        if allowed_for_name is None:
+            raise CliUsageError(
+                f"invalid scaffold test result check semantics for {name}"
+            )
+        check_status = check.get("status")
+        check_reason = check.get("reason")
+        if (check_status, check_reason) not in allowed_for_name:
             raise CliUsageError(
                 f"invalid scaffold test result check semantics for {name}"
             )
@@ -5541,7 +5586,14 @@ def _validate_scaffold_build_result_semantics(
         },
     }
     for name, check in checks.items():
-        if (check["status"], check["reason"]) not in allowed[name]:
+        allowed_for_name = allowed.get(name)
+        if allowed_for_name is None:
+            raise CliUsageError(
+                f"invalid scaffold build result check semantics for {name}"
+            )
+        check_status = check.get("status")
+        check_reason = check.get("reason")
+        if (check_status, check_reason) not in allowed_for_name:
             raise CliUsageError(
                 f"invalid scaffold build result check semantics for {name}"
             )
@@ -5573,8 +5625,11 @@ def _validate_scaffold_build_result_semantics(
     }
 
     def _is_passed_shape(name: str) -> bool:
-        check = checks[name]
-        return check["status"] == "passed" and check["reason"] == passed_reasons[name]
+        check = checks.get(name, {})
+        return (
+            check.get("status") == "passed"
+            and check.get("reason") == passed_reasons.get(name)
+        )
 
     statuses = [check["status"] for check in checks.values()]
     if status == "passed":
@@ -5742,9 +5797,11 @@ def _load_scaffold_build_result_for_readiness(
     build_dir = _require_string(
         manifest["build_dir"], "scaffold build result build_dir", allow_empty=True
     )
-    if (status == "blocked" and build_dir) or (
+    blocked_with_build_dir = status == "blocked" and build_dir
+    unblocked_without_expected_build_dir = (
         status != "blocked" and build_dir != "operator-scaffold-build"
-    ):
+    )
+    if blocked_with_build_dir or unblocked_without_expected_build_dir:
         raise CliUsageError("scaffold build result build_dir mismatch")
     boundary = _require_list(
         manifest["execution_boundary"], "scaffold build result execution_boundary"
@@ -5789,21 +5846,27 @@ def _readiness_check(
     }
 
 
+class ReadinessManifestInput(NamedTuple):
+    scaffold_output_dir: Path
+    status: str
+    artifact_paths: dict[str, str]
+    artifact_statuses: dict[str, str]
+    checks: dict[str, dict[str, Any]]
+    supported_next_actions: list[str]
+
+
 def _readiness_manifest(
-    scaffold_output_dir: Path,
-    status: str,
-    artifact_paths: dict[str, str],
-    artifact_statuses: dict[str, str],
-    checks: dict[str, dict[str, Any]],
-    supported_next_actions: list[str],
+    request: ReadinessManifestInput,
 ) -> dict[str, Any]:
     return {
-        "status": status,
-        "scaffold_output_dir": str(scaffold_output_dir.resolve()),
-        "artifact_paths": artifact_paths,
-        "artifact_statuses": artifact_statuses,
-        "readiness_checks": [checks[name] for name in SCAFFOLD_READINESS_CHECK_NAMES],
-        "supported_next_actions": supported_next_actions,
+        "status": request.status,
+        "scaffold_output_dir": str(request.scaffold_output_dir.resolve()),
+        "artifact_paths": request.artifact_paths,
+        "artifact_statuses": request.artifact_statuses,
+        "readiness_checks": [
+            request.checks[name] for name in SCAFFOLD_READINESS_CHECK_NAMES
+        ],
+        "supported_next_actions": request.supported_next_actions,
         "execution_boundary": SCAFFOLD_READINESS_BOUNDARY,
     }
 
@@ -5918,12 +5981,14 @@ def _summarize_scaffold_readiness(
         ):
             checks[name] = _readiness_check(name, "missing", reason)
         return _readiness_manifest(
-            scaffold_output_dir,
-            "blocked",
-            artifact_paths,
-            artifact_statuses,
-            checks,
-            ["provide_supported_operator_source"],
+            ReadinessManifestInput(
+                scaffold_output_dir,
+                "blocked",
+                artifact_paths,
+                artifact_statuses,
+                checks,
+                ["provide_supported_operator_source"],
+            )
         )
 
     validation_path = scaffold_output_dir / "operator-validation-manifest.json"
@@ -5941,12 +6006,14 @@ def _summarize_scaffold_readiness(
             "cmake_build_result_accepted", "missing", "cmake_build_result_missing"
         )
         return _readiness_manifest(
-            scaffold_output_dir,
-            "partial",
-            artifact_paths,
-            artifact_statuses,
-            checks,
-            ["run_validate_scaffold"],
+            ReadinessManifestInput(
+                scaffold_output_dir,
+                "partial",
+                artifact_paths,
+                artifact_statuses,
+                checks,
+                ["run_validate_scaffold"],
+            )
         )
     validation_manifest = loaded_artifacts["validation_manifest"]
     if validation_manifest["status"] != "local-ok":
@@ -5976,12 +6043,14 @@ def _summarize_scaffold_readiness(
             else "local-build-blocked"
         )
         return _readiness_manifest(
-            scaffold_output_dir,
-            top_status,
-            artifact_paths,
-            artifact_statuses,
-            checks,
-            ["fix_scaffold_validation"],
+            ReadinessManifestInput(
+                scaffold_output_dir,
+                top_status,
+                artifact_paths,
+                artifact_statuses,
+                checks,
+                ["fix_scaffold_validation"],
+            )
         )
     checks["validation_result_accepted"] = _readiness_check(
         "validation_result_accepted",
@@ -6002,12 +6071,14 @@ def _summarize_scaffold_readiness(
             "cmake_build_result_accepted", "missing", "cmake_build_result_missing"
         )
         return _readiness_manifest(
-            scaffold_output_dir,
-            "partial",
-            artifact_paths,
-            artifact_statuses,
-            checks,
-            ["run_preflight_execution"],
+            ReadinessManifestInput(
+                scaffold_output_dir,
+                "partial",
+                artifact_paths,
+                artifact_statuses,
+                checks,
+                ["run_preflight_execution"],
+            )
         )
     preflight_manifest = loaded_artifacts["preflight_manifest"]
     if preflight_manifest["status"] != "ready":
@@ -6024,12 +6095,14 @@ def _summarize_scaffold_readiness(
             "cmake_build_result_accepted", "missing", "cmake_build_result_missing"
         )
         return _readiness_manifest(
-            scaffold_output_dir,
-            "local-build-blocked",
-            artifact_paths,
-            artifact_statuses,
-            checks,
-            ["fix_preflight_environment_or_drift"],
+            ReadinessManifestInput(
+                scaffold_output_dir,
+                "local-build-blocked",
+                artifact_paths,
+                artifact_statuses,
+                checks,
+                ["fix_preflight_environment_or_drift"],
+            )
         )
     checks["preflight_result_accepted"] = _readiness_check(
         "preflight_result_accepted",
@@ -6047,12 +6120,14 @@ def _summarize_scaffold_readiness(
             "cmake_build_result_accepted", "missing", "cmake_build_result_missing"
         )
         return _readiness_manifest(
-            scaffold_output_dir,
-            "partial",
-            artifact_paths,
-            artifact_statuses,
-            checks,
-            ["run_scaffold_tests"],
+            ReadinessManifestInput(
+                scaffold_output_dir,
+                "partial",
+                artifact_paths,
+                artifact_statuses,
+                checks,
+                ["run_scaffold_tests"],
+            )
         )
     test_result = loaded_artifacts["test_result_manifest"]
     if test_result["status"] != "passed":
@@ -6066,12 +6141,14 @@ def _summarize_scaffold_readiness(
             "cmake_build_result_accepted", "missing", "cmake_build_result_missing"
         )
         return _readiness_manifest(
-            scaffold_output_dir,
-            "local-build-blocked",
-            artifact_paths,
-            artifact_statuses,
-            checks,
-            ["fix_scaffold_pytest_contract"],
+            ReadinessManifestInput(
+                scaffold_output_dir,
+                "local-build-blocked",
+                artifact_paths,
+                artifact_statuses,
+                checks,
+                ["fix_scaffold_pytest_contract"],
+            )
         )
     checks["pytest_contract_result_accepted"] = _readiness_check(
         "pytest_contract_result_accepted",
@@ -6086,12 +6163,14 @@ def _summarize_scaffold_readiness(
             "cmake_build_result_accepted", "missing", "cmake_build_result_missing"
         )
         return _readiness_manifest(
-            scaffold_output_dir,
-            "partial",
-            artifact_paths,
-            artifact_statuses,
-            checks,
-            ["run_scaffold_build"],
+            ReadinessManifestInput(
+                scaffold_output_dir,
+                "partial",
+                artifact_paths,
+                artifact_statuses,
+                checks,
+                ["run_scaffold_build"],
+            )
         )
     build_result = loaded_artifacts["build_result_manifest"]
     if build_result["status"] == "passed":
@@ -6109,12 +6188,14 @@ def _summarize_scaffold_readiness(
             "prepare_customer_handoff_notes",
         ]
         return _readiness_manifest(
-            scaffold_output_dir,
-            "local-build-passed",
-            artifact_paths,
-            artifact_statuses,
-            checks,
-            actions,
+            ReadinessManifestInput(
+                scaffold_output_dir,
+                "local-build-passed",
+                artifact_paths,
+                artifact_statuses,
+                checks,
+                actions,
+            )
         )
     if build_result["status"] == "failed":
         reason = "cmake_build_failed"
@@ -6127,12 +6208,14 @@ def _summarize_scaffold_readiness(
             ["operator-scaffold-build-result.json"],
         )
         return _readiness_manifest(
-            scaffold_output_dir,
-            "local-build-failed",
-            artifact_paths,
-            artifact_statuses,
-            checks,
-            ["fix_cmake_build_failure"],
+            ReadinessManifestInput(
+                scaffold_output_dir,
+                "local-build-failed",
+                artifact_paths,
+                artifact_statuses,
+                checks,
+                ["fix_cmake_build_failure"],
+            )
         )
     checks["cmake_build_result_accepted"] = _readiness_check(
         "cmake_build_result_accepted",
@@ -6141,12 +6224,14 @@ def _summarize_scaffold_readiness(
         ["operator-scaffold-build-result.json"],
     )
     return _readiness_manifest(
-        scaffold_output_dir,
-        "local-build-blocked",
-        artifact_paths,
-        artifact_statuses,
-        checks,
-        ["fix_cmake_build_gate"],
+        ReadinessManifestInput(
+            scaffold_output_dir,
+            "local-build-blocked",
+            artifact_paths,
+            artifact_statuses,
+            checks,
+            ["fix_cmake_build_gate"],
+        )
     )
 
 
@@ -7088,7 +7173,8 @@ def cmd_build_standalone_executable(args: argparse.Namespace) -> int:
     manifest_path = output_root / "operator-sk-standalone-verify.json"
     if not manifest_path.exists():
         raise CliUsageError(
-            f"operator-sk-standalone-verify.json not found in {output_root}; run codegen.generate-standalone-compare first"
+            "operator-sk-standalone-verify.json not found in "
+            f"{output_root}; run codegen.generate-standalone-compare first"
         )
     verify_manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     source_root = output_root / "operator-sk-standalone-verify"

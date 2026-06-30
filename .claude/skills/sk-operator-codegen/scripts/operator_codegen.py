@@ -18,7 +18,7 @@ import re
 import shutil
 import sys
 from pathlib import Path
-from typing import Any
+from typing import Any, NamedTuple
 
 WORKFLOW_STEPS = [
     "operator-intake",
@@ -66,7 +66,10 @@ SCAFFOLD_SPECS = {
         "reason": "missing_operator_entry_contract",
         "suggested_path": "",
         "template": "operator-entry-contract",
-        "description": "Define the operator entry contract before build or test scaffolds can target a stable callable unit.",
+        "description": (
+            "Define the operator entry contract before build or test scaffolds "
+            "can target a stable callable unit."
+        ),
     },
     "build_contract": {
         "kind": "build",
@@ -1049,7 +1052,10 @@ def _classify_asset(
 ) -> str:
     if not source_files:
         return "unsupported-asset"
-    if build_files and test_files and package_files and doc_files:
+    has_complete_delivery = bool(
+        build_files and test_files and package_files and doc_files
+    )
+    if has_complete_delivery:
         return "deliverable-op"
     if test_files:
         return "testable-op"
@@ -1673,13 +1679,10 @@ def _sk_source_file_fingerprints(
 
 
 def _support_dir_name(name: str) -> str:
-    if (
-        not name
-        or name in {".", ".."}
-        or "/" in name
-        or "\\" in name
-        or not SUPPORT_DIR_NAME_RE.fullmatch(name)
-    ):
+    invalid_name = not name or name in {".", ".."}
+    contains_separator = "/" in name or "\\" in name
+    unsupported_chars = not SUPPORT_DIR_NAME_RE.fullmatch(name)
+    if invalid_name or contains_separator or unsupported_chars:
         raise CliUsageError(f"invalid support directory name: {name}")
     return name
 
@@ -1807,7 +1810,8 @@ def _normalize_ascend_compile_contract(
     compile_options: list[str] | None = None,
     force_includes: list[str] | None = None,
 ) -> dict[str, Any] | None:
-    if not cann_path and not arch and not compile_options and not force_includes:
+    has_compile_contract = bool(cann_path or arch or compile_options or force_includes)
+    if not has_compile_contract:
         return None
     if not cann_path:
         raise CliUsageError(
@@ -2331,25 +2335,27 @@ def _sk_conversion_next_actions(
     return [item["action"] for item in plan if item["status"] == "needed"][:3]
 
 
-def _build_sk_conversion_analysis(
-    asset_path: Path,
-    support_dir_specs: list[str] | None = None,
-    include_dir_specs: list[str] | None = None,
-    ascend_cann_path: str | None = None,
-    ascend_arch: str | None = None,
-    ascend_compile_options: list[str] | None = None,
-    ascend_force_includes: list[str] | None = None,
-) -> dict[str, Any]:
-    manifest = _build_manifest(asset_path)
+class SkConversionAnalysisInput(NamedTuple):
+    asset_path: Path
+    support_dir_specs: list[str] | None = None
+    include_dir_specs: list[str] | None = None
+    ascend_cann_path: str | None = None
+    ascend_arch: str | None = None
+    ascend_compile_options: list[str] | None = None
+    ascend_force_includes: list[str] | None = None
+
+
+def _build_sk_conversion_analysis(request: SkConversionAnalysisInput) -> dict[str, Any]:
+    manifest = _build_manifest(request.asset_path)
     support_directories = _normalize_support_directories(
-        support_dir_specs, Path(manifest["base_dir"])
+        request.support_dir_specs, Path(manifest["base_dir"])
     )
-    include_directories = _normalize_include_directories(include_dir_specs)
+    include_directories = _normalize_include_directories(request.include_dir_specs)
     ascend_compile_contract = _normalize_ascend_compile_contract(
-        cann_path=ascend_cann_path,
-        arch=ascend_arch,
-        compile_options=ascend_compile_options,
-        force_includes=ascend_force_includes,
+        cann_path=request.ascend_cann_path,
+        arch=request.ascend_arch,
+        compile_options=request.ascend_compile_options,
+        force_includes=request.ascend_force_includes,
     )
     status, blocked_reasons = _sk_conversion_overall_status(manifest)
     inputs = _sk_conversion_inputs(manifest)
@@ -2521,12 +2527,11 @@ def _load_current_sk_conversion_analysis(output_dir: Path) -> dict[str, Any]:
                 )
             ).resolve()
         )
-        source_files = [
-            _validate_manifest_path(path, "sk conversion analysis support source file")
-            for path in _require_list(
-                item["source_files"], "sk conversion analysis support source_files"
-            )
-        ]
+        source_files = _validate_manifest_path_list(
+            item["source_files"],
+            "sk conversion analysis support source_files",
+            "sk conversion analysis support source file",
+        )
         fingerprints: list[dict[str, str]] = []
         for fingerprint in _require_list(
             item["source_file_fingerprints"],
@@ -2558,17 +2563,11 @@ def _load_current_sk_conversion_analysis(output_dir: Path) -> dict[str, Any]:
             }
         )
     analysis["support_directories"] = support_directories
-    analysis["include_directories"] = [
-        str(
-            Path(
-                _require_string(item, "sk conversion analysis include directory")
-            ).resolve()
-        )
-        for item in _require_list(
-            analysis["include_directories"],
-            "sk conversion analysis include_directories",
-        )
-    ]
+    analysis["include_directories"] = _resolve_string_path_list(
+        analysis["include_directories"],
+        "sk conversion analysis include_directories",
+        "sk conversion analysis include directory",
+    )
     raw_contract = analysis["ascend_compile_contract"]
     if raw_contract is None:
         ascend_compile_contract = None
@@ -2601,49 +2600,40 @@ def _load_current_sk_conversion_analysis(output_dir: Path) -> dict[str, Any]:
                 ).resolve()
             ),
             "arch": _require_string(contract["arch"], "ascend compile contract arch"),
-            "compile_options": [
-                _require_string(item, "ascend compile contract compile option")
-                for item in _require_list(
-                    contract["compile_options"],
-                    "ascend compile contract compile_options",
-                )
-            ],
-            "force_includes": [
-                str(
-                    Path(
-                        _require_string(item, "ascend compile contract force include")
-                    ).resolve()
-                )
-                for item in _require_list(
-                    contract["force_includes"], "ascend compile contract force_includes"
-                )
-            ],
-            "derived_include_dirs": [
-                str(
-                    Path(
-                        _require_string(
-                            item, "ascend compile contract derived include dir"
-                        )
-                    ).resolve()
-                )
-                for item in _require_list(
-                    contract["derived_include_dirs"],
-                    "ascend compile contract derived_include_dirs",
-                )
-            ],
+            "compile_options": _require_string_list(
+                contract["compile_options"],
+                "ascend compile contract compile_options",
+                "ascend compile contract compile option",
+            ),
+            "force_includes": _resolve_string_path_list(
+                contract["force_includes"],
+                "ascend compile contract force_includes",
+                "ascend compile contract force include",
+            ),
+            "derived_include_dirs": _resolve_string_path_list(
+                contract["derived_include_dirs"],
+                "ascend compile contract derived_include_dirs",
+                "ascend compile contract derived include dir",
+            ),
         }
     analysis["ascend_compile_contract"] = ascend_compile_contract
     expected = _build_sk_conversion_analysis(
-        asset_path,
-        [
-            f"{item['source_name']}={item['source_path']}"
-            for item in support_directories
-        ],
-        analysis["include_directories"],
-        ascend_compile_contract["cann_path"] if ascend_compile_contract else None,
-        ascend_compile_contract["arch"] if ascend_compile_contract else None,
-        ascend_compile_contract["compile_options"] if ascend_compile_contract else None,
-        ascend_compile_contract["force_includes"] if ascend_compile_contract else None,
+        SkConversionAnalysisInput(
+            asset_path,
+            [
+                f"{item['source_name']}={item['source_path']}"
+                for item in support_directories
+            ],
+            analysis["include_directories"],
+            ascend_compile_contract["cann_path"] if ascend_compile_contract else None,
+            ascend_compile_contract["arch"] if ascend_compile_contract else None,
+            ascend_compile_contract["compile_options"]
+            if ascend_compile_contract
+            else None,
+            ascend_compile_contract["force_includes"]
+            if ascend_compile_contract
+            else None,
+        )
     )
     if analysis != expected:
         raise CliUsageError("sk conversion analysis is not current")
@@ -3465,6 +3455,13 @@ def _require_list(value: Any, label: str) -> list[Any]:
     return value
 
 
+def _require_string_list(value: Any, list_label: str, item_label: str) -> list[str]:
+    items = []
+    for item in _require_list(value, list_label):
+        items.append(_require_string(item, item_label))
+    return items
+
+
 def _reject_json_constant(value: str) -> None:
     raise ValueError(f"non-standard JSON constant is not allowed: {value}")
 
@@ -3502,6 +3499,20 @@ def _validate_manifest_path(
         raise CliUsageError(str(exc)) from exc
 
 
+def _validate_manifest_path_list(value: Any, list_label: str, item_label: str) -> list[str]:
+    paths = []
+    for item in _require_list(value, list_label):
+        paths.append(_validate_manifest_path(item, item_label))
+    return paths
+
+
+def _resolve_string_path_list(value: Any, list_label: str, item_label: str) -> list[str]:
+    paths = []
+    for item in _require_list(value, list_label):
+        paths.append(str(Path(_require_string(item, item_label)).resolve()))
+    return paths
+
+
 def _hash_file(path: Path) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as handle:
@@ -3533,13 +3544,15 @@ def cmd_analyze_sk_conversion(args: argparse.Namespace) -> int:
 
     output_dir = Path(args.output_dir).resolve()
     analysis = _build_sk_conversion_analysis(
-        asset_path,
-        getattr(args, "support_dir", None),
-        getattr(args, "include_dir", None),
-        getattr(args, "ascend_cann_path", None),
-        getattr(args, "ascend_arch", None),
-        getattr(args, "ascend_compile_option", None),
-        getattr(args, "ascend_force_include", None),
+        SkConversionAnalysisInput(
+            asset_path,
+            getattr(args, "support_dir", None),
+            getattr(args, "include_dir", None),
+            getattr(args, "ascend_cann_path", None),
+            getattr(args, "ascend_arch", None),
+            getattr(args, "ascend_compile_option", None),
+            getattr(args, "ascend_force_include", None),
+        )
     )
     _write_sk_conversion_artifacts(output_dir, analysis)
     return 0
@@ -4155,13 +4168,19 @@ def cmd_adapt_sk_from_global(args: argparse.Namespace) -> int:
                 return _codegen_human_finding(
                     "codegen.runtime-parameter-contract-required",
                     (
-                        f"operator entry {source_entry_name or public_entry_name!r} has host-struct parameter(s) "
-                        f"{host_struct_names}; provide --io-contract parameters with kind='host_struct' so the runtime boundary is explicit."
+                        f"operator entry {source_entry_name or public_entry_name!r} "
+                        f"has host-struct parameter(s) {host_struct_names}; "
+                        "provide --io-contract parameters with kind='host_struct' "
+                        "so the runtime boundary is explicit."
                     ),
                     [
                         f"entry={source_entry_name or public_entry_name}",
                         f"host_struct_parameters={host_struct_names}",
-                        "contract_schema={'schema_version':1,'entries':{'entry_name':{'parameters':{'tiling':{'kind':'host_struct'}}}}}",
+                        (
+                            "contract_schema={'schema_version':1,'entries':"
+                            "{'entry_name':{'parameters':{'tiling':"
+                            "{'kind':'host_struct'}}}}}"
+                        ),
                     ],
                 )
             if len(tensor_names) <= 1:
@@ -4169,13 +4188,19 @@ def cmd_adapt_sk_from_global(args: argparse.Namespace) -> int:
             return _codegen_human_finding(
                 "codegen.pybind-return-tensor-unresolved",
                 (
-                    f"operator entry {source_entry_name or public_entry_name!r} has multiple tensor-like parameters "
-                    f"{tensor_names}; provide --io-contract with pybind_return_tensor instead of relying on name guesses."
+                    f"operator entry {source_entry_name or public_entry_name!r} "
+                    f"has multiple tensor-like parameters {tensor_names}; provide "
+                    "--io-contract with pybind_return_tensor instead of relying "
+                    "on name guesses."
                 ),
                 [
                     f"entry={source_entry_name or public_entry_name}",
                     f"tensor_parameters={tensor_names}",
-                    "contract_schema={'schema_version':1,'entries':{'entry_name':{'inputs':[...],'outputs':[...],'pybind_return_tensor':'...'}}}",
+                    (
+                        "contract_schema={'schema_version':1,'entries':"
+                        "{'entry_name':{'inputs':[...],'outputs':[...],"
+                        "'pybind_return_tensor':'...'}}}"
+                    ),
                 ],
             )
         declared_params = io_contract.get("parameters", {})
@@ -4241,14 +4266,18 @@ def cmd_adapt_sk_from_global(args: argparse.Namespace) -> int:
             return _codegen_human_finding(
                 "codegen.tensor-list-runtime-wrapper-required",
                 (
-                    f"operator entry {source_entry_name or public_entry_name!r} declares TensorList runtime parameter(s) "
+                    f"operator entry {source_entry_name or public_entry_name!r} "
+                    "declares TensorList runtime parameter(s) "
                     f"{tensor_list_params}; generated pybind cannot safely synthesize descriptor pointers. "
                     "Provide an adapter/user wrapper that constructs the exact TensorList descriptor."
                 ),
                 [
                     f"entry={source_entry_name or public_entry_name}",
                     f"tensor_list_parameters={tensor_list_params}",
-                    "reason=TensorList descriptor layout is an external runtime contract, not a raw Tensor data pointer",
+                    (
+                        "reason=TensorList descriptor layout is an external "
+                        "runtime contract, not a raw Tensor data pointer"
+                    ),
                 ],
             )
         if runtime_wrapper:
@@ -4306,13 +4335,20 @@ def cmd_adapt_sk_from_global(args: argparse.Namespace) -> int:
                     return _codegen_human_finding(
                         "codegen.tensor-list-prepared-runtime-state-required",
                         (
-                            f"operator entry {source_entry_name or public_entry_name!r} declares TensorList runtime parameter(s) "
-                            f"{tensor_list_params}; runtime wrappers must declare a graph-safe prepared descriptor strategy."
+                            f"operator entry {source_entry_name or public_entry_name!r} "
+                            "declares TensorList runtime parameter(s) "
+                            f"{tensor_list_params}; runtime wrappers must declare "
+                            "a graph-safe prepared descriptor strategy."
                         ),
                         [
                             f"entry={source_entry_name or public_entry_name}",
                             f"tensor_list_parameters={tensor_list_params}",
-                            "contract_schema={'runtime_wrapper':{'tensor_list_descriptor_strategy':'prepared_workspace_tail','prepare_entry':'prepare_for_capture','descriptor_order':[...]}}",
+                            (
+                                "contract_schema={'runtime_wrapper':"
+                                "{'tensor_list_descriptor_strategy':"
+                                "'prepared_workspace_tail','prepare_entry':"
+                                "'prepare_for_capture','descriptor_order':[...]}}"
+                            ),
                         ],
                     )
                 descriptor_order = list(runtime_wrapper.get("descriptor_order") or [])
@@ -4330,8 +4366,10 @@ def cmd_adapt_sk_from_global(args: argparse.Namespace) -> int:
                     return _codegen_human_finding(
                         "codegen.tensor-list-descriptor-order-mismatch",
                         (
-                            f"operator entry {source_entry_name or public_entry_name!r} descriptor_order must match "
-                            f"TensorList parameter declaration order exactly; missing={missing_descriptors}, extra={extra_descriptors}."
+                            f"operator entry {source_entry_name or public_entry_name!r} "
+                            "descriptor_order must match TensorList parameter "
+                            "declaration order exactly; "
+                            f"missing={missing_descriptors}, extra={extra_descriptors}."
                         ),
                         [
                             f"entry={source_entry_name or public_entry_name}",
@@ -5210,7 +5248,8 @@ def build_parser() -> argparse.ArgumentParser:
         "--io-contract",
         help=(
             "JSON contract declaring tensor IO semantics per entry. "
-            "Schema: {'schema_version':1,'entries':{'entry':{'inputs':[...],'outputs':[...],'pybind_return_tensor':'...'}}}."
+            "Schema: {'schema_version':1,'entries':{'entry':{'inputs':[...],"
+            "'outputs':[...],'pybind_return_tensor':'...'}}}."
         ),
     )
     adapt_sk.add_argument(
@@ -5292,7 +5331,11 @@ def build_parser() -> argparse.ArgumentParser:
 
     apply_rem = subparsers.add_parser(
         "apply-remediation",
-        help="Apply auto-remediable findings (rename-symbol / remove-line-containing / add-include / replace-pattern) to source files",
+        help=(
+            "Apply auto-remediable findings (rename-symbol / "
+            "remove-line-containing / add-include / replace-pattern) to source "
+            "files"
+        ),
     )
     apply_rem.add_argument(
         "asset_dir",

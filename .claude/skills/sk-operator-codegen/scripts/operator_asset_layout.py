@@ -264,19 +264,19 @@ def build_inventory(asset: Path) -> dict[str, Any]:
 def _host_candidates_by_stem(
     root: Path, files: list[dict[str, Any]], stem: str, entry: str
 ) -> list[str]:
-    candidates = [
-        item
-        for item in files
-        if item["role"] == "host_registration"
-        and (
-            Path(str(item["path"])).stem == stem
-            or entry in item.get("op_add_entries", [])
-        )
-    ]
-    return [
-        str(item["path"])
-        for item in sorted(candidates, key=lambda item: str(item["path"]))
-    ]
+    candidates = []
+    for item in files:
+        if item["role"] != "host_registration":
+            continue
+        path_stem_matches = Path(str(item["path"])).stem == stem
+        entry_matches = entry in item.get("op_add_entries", [])
+        if path_stem_matches or entry_matches:
+            candidates.append(item)
+    return [str(item["path"]) for item in sorted(candidates, key=_path_sort_key)]
+
+
+def _path_sort_key(item: dict[str, Any]) -> str:
+    return str(item["path"])
 
 
 def _asset_kind_for_unit(
@@ -310,7 +310,10 @@ def build_layout_from_inventory(inventory: dict[str, Any]) -> dict[str, Any]:
         questions.append(
             {
                 "id": "rtc-host-program",
-                "message": "RTC host programs embed kernel source in strings and need an explicit extraction policy before conversion.",
+                "message": (
+                    "RTC host programs embed kernel source in strings and need an "
+                    "explicit extraction policy before conversion."
+                ),
             }
         )
     for item in files:
@@ -338,7 +341,10 @@ def build_layout_from_inventory(inventory: dict[str, Any]) -> dict[str, Any]:
                         "entry_name": str(entry),
                         "kernel_source": kernel_rel,
                         "candidates": host_candidates,
-                        "message": "Multiple host registration files match this kernel entry; provide an explicit asset layout.",
+                        "message": (
+                            "Multiple host registration files match this kernel "
+                            "entry; provide an explicit asset layout."
+                        ),
                     }
                 )
             tiling_headers = _find_tiling_headers(
@@ -388,7 +394,10 @@ def build_layout_from_inventory(inventory: dict[str, Any]) -> dict[str, Any]:
             {
                 "id": "duplicate-unit-id",
                 "duplicate_unit_ids": duplicate_ids,
-                "message": f"Duplicate unit ids require an explicit asset layout or namespace policy: {', '.join(duplicate_ids)}",
+                "message": (
+                    "Duplicate unit ids require an explicit asset layout or "
+                    f"namespace policy: {', '.join(duplicate_ids)}"
+                ),
             }
         )
     has_ambiguous_host = any(

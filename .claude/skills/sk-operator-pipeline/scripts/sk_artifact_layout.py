@@ -68,51 +68,13 @@ class ArtifactLayout:
     def __init__(self, root: Path) -> None:
         self.root = root
 
-    def rel(self, path: Path | str | None) -> str:
-        if path is None:
-            return ""
-        candidate = Path(path)
-        if not candidate.is_absolute():
-            return candidate.as_posix()
-        try:
-            return candidate.resolve().relative_to(self.root.resolve()).as_posix()
-        except ValueError:
-            return self._external_path_ref(candidate)
-
     @staticmethod
-    def _external_path_ref(path: Path) -> str:
-        parts = [part for part in path.as_posix().lstrip("/").split("/") if part]
-        if not parts:
-            return "external:path"
-        legacy_cache_dir_name = "sk-tools" + "-build-cache"
-        matched_cache = False
-        for cache_dir_name in ("sk-operator-build-cache", legacy_cache_dir_name):
-            if cache_dir_name in parts:
-                cache_index = parts.index(cache_dir_name)
-                parts = parts[cache_index:]
-                matched_cache = True
-                break
-        if not matched_cache and len(parts) > 2:
-            parts = parts[-2:]
-        return "external:" + "/".join(parts)
-
-    def _copy_file(self, source: Path, dest: Path) -> str:
-        dest.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(source, dest)
-        return self.rel(dest)
-
-    def _copy_tree(self, source: Path, dest: Path) -> str:
-        if dest.exists():
-            shutil.rmtree(dest)
-        dest.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copytree(source, dest, symlinks=True)
-        return self.rel(dest)
-
-    def write_json(self, path: Path, payload: dict[str, Any]) -> None:
+    def write_json(path: Path, payload: dict[str, Any]) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
 
-    def write_text(self, path: Path, text: str) -> None:
+    @staticmethod
+    def write_text(path: Path, text: str) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(text, encoding="utf-8")
 
@@ -160,6 +122,19 @@ class ArtifactLayout:
             else f"{stage_id}-{stage_name}"
         )
         return self.root / "assets" / asset_slug / "stages" / directory_name / filename
+
+    def write_lint_report(self, payload: dict[str, Any]) -> list[dict[str, str]]:
+        issues = self.lint(payload)
+        status = (
+            "passed"
+            if not any(item["severity"] == "error" for item in issues)
+            else "failed"
+        )
+        self.write_json(
+            self.root / "artifact-layout-lint.json",
+            {"status": status, "issues": issues},
+        )
+        return issues
 
     def _stage_records(
         self, state: dict[str, Any], asset_slug: str
@@ -507,7 +482,8 @@ class ArtifactLayout:
         )
         return payload
 
-    def render_markdown(self, payload: dict[str, Any]) -> str:
+    @staticmethod
+    def render_markdown(payload: dict[str, Any]) -> str:
         lines = [
             "# SK Pipeline Artifact Map",
             "",
@@ -541,7 +517,8 @@ class ArtifactLayout:
         lines.append("")
         return "\n".join(lines)
 
-    def render_readme(self, payload: dict[str, Any]) -> str:
+    @staticmethod
+    def render_readme(payload: dict[str, Any]) -> str:
         return "\n".join(
             [
                 "# SK Pipeline Output",
@@ -561,7 +538,8 @@ class ArtifactLayout:
             ]
         )
 
-    def lint(self, payload: dict[str, Any]) -> list[dict[str, str]]:
+    @staticmethod
+    def lint(payload: dict[str, Any]) -> list[dict[str, str]]:
         issues: list[dict[str, str]] = []
         paths: list[str] = []
 
@@ -605,15 +583,42 @@ class ArtifactLayout:
                 )
         return issues
 
-    def write_lint_report(self, payload: dict[str, Any]) -> list[dict[str, str]]:
-        issues = self.lint(payload)
-        status = (
-            "passed"
-            if not any(item["severity"] == "error" for item in issues)
-            else "failed"
-        )
-        self.write_json(
-            self.root / "artifact-layout-lint.json",
-            {"status": status, "issues": issues},
-        )
-        return issues
+    @staticmethod
+    def _external_path_ref(path: Path) -> str:
+        parts = [part for part in path.as_posix().lstrip("/").split("/") if part]
+        if not parts:
+            return "external:path"
+        legacy_cache_dir_name = "sk-tools" + "-build-cache"
+        matched_cache = False
+        for cache_dir_name in ("sk-operator-build-cache", legacy_cache_dir_name):
+            if cache_dir_name in parts:
+                cache_index = parts.index(cache_dir_name)
+                parts = parts[cache_index:]
+                matched_cache = True
+                break
+        if not matched_cache and len(parts) > 2:
+            parts = parts[-2:]
+        return "external:" + "/".join(parts)
+
+    def rel(self, path: Path | str | None) -> str:
+        if path is None:
+            return ""
+        candidate = Path(path)
+        if not candidate.is_absolute():
+            return candidate.as_posix()
+        try:
+            return candidate.resolve().relative_to(self.root.resolve()).as_posix()
+        except ValueError:
+            return self._external_path_ref(candidate)
+
+    def _copy_file(self, source: Path, dest: Path) -> str:
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source, dest)
+        return self.rel(dest)
+
+    def _copy_tree(self, source: Path, dest: Path) -> str:
+        if dest.exists():
+            shutil.rmtree(dest)
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copytree(source, dest, symlinks=True)
+        return self.rel(dest)

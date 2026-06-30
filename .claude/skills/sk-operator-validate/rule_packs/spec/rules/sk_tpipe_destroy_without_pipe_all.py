@@ -78,7 +78,11 @@ def check(units):
                         "category": RULE["category"],
                         "actionable_by": ["human"],
                         "remediation_hint": {"kind": "human-decision"},
-                        "message": f"__sk__ function {match.group('name')!r} declares TPipe {name!r} but does not call {name}.DestroyWithoutPipeAll().",
+                        "message": (
+                            f"__sk__ function {match.group('name')!r} declares "
+                            f"TPipe {name!r} but does not call "
+                            f"{name}.DestroyWithoutPipeAll()."
+                        ),
                         "target_file": unit["rel"],
                         "evidence_signature": f"sk_tpipe_destroy:{match.group('name')}:{name}",
                     }

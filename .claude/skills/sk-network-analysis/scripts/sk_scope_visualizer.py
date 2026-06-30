@@ -22,6 +22,7 @@ import sys
 import json
 import argparse
 from collections import defaultdict, OrderedDict
+from typing import NamedTuple
 
 from sk_visualizer_shared import (
     COMMON_DETAIL_TABLE_CSS,
@@ -347,12 +348,14 @@ class ScopeGraphRenderer:
 
     def render_html(self, model):
         return generate_html(
-            model.rounds,
-            model.event_colors,
-            model.log_files,
-            self.output_path,
-            init_nodes=model.init_nodes,
-            mode=model.mode,
+            ScopeHtmlInput(
+                model.rounds,
+                model.event_colors,
+                model.log_files,
+                self.output_path,
+                model.init_nodes,
+                model.mode,
+            )
         )
 
 
@@ -592,15 +595,12 @@ def build_rounds_from_libraries(scope_library, graph_library):
         if fused_scope_name:
             scope_obj.names = [fused_scope_name]
         elif not scope_obj.names:
-            section_by_scope_id = next(
-                (
-                    str(section.get("scope_name") or "")
-                    for section in device_sections
-                    if section.get("scope_id") == scope_id
-                    and str(section.get("scope_name") or "")
-                ),
-                "",
-            )
+            section_by_scope_id = ""
+            for section in device_sections:
+                section_scope_name = str(section.get("scope_name") or "")
+                if section.get("scope_id") == scope_id and section_scope_name:
+                    section_by_scope_id = section_scope_name
+                    break
             if section_by_scope_id:
                 scope_obj.names = [section_by_scope_id]
         fused_member_ids = [
@@ -615,24 +615,27 @@ def build_rounds_from_libraries(scope_library, graph_library):
                 for node_id in fused_member_ids
                 if _update_type(node_update_by_id.get(node_id, {})) == "KERNEL"
             ]
-            carrier_candidates = kernel_update_ids or [
-                node_id
-                for node_id in fused_member_ids
-                if str(node_by_id.get(node_id, {}).get("node_type") or "").upper()
-                == "KERNEL"
-            ]
+            carrier_candidates = kernel_update_ids
+            if not carrier_candidates:
+                carrier_candidates = []
+                for node_id in fused_member_ids:
+                    node_type = str(
+                        node_by_id.get(node_id, {}).get("node_type") or ""
+                    ).upper()
+                    if node_type == "KERNEL":
+                        carrier_candidates.append(node_id)
             if carrier_candidates:
                 carrier_node = round_data.all_nodes.get(carrier_candidates[0])
         if carrier_node:
             section = device_section_by_scope_name.get(
                 str(fused_function.get("scope_name") or ""), {}
             )
-            ordinal_to_node_id = {
-                item.get("ordinal"): item.get("node_id")
-                for item in fused_function.get("node_details", [])
-                if isinstance(item.get("ordinal"), int)
-                and isinstance(item.get("node_id"), int)
-            }
+            ordinal_to_node_id = {}
+            for item in fused_function.get("node_details", []):
+                ordinal = item.get("ordinal")
+                node_id = item.get("node_id")
+                if isinstance(ordinal, int) and isinstance(node_id, int):
+                    ordinal_to_node_id[ordinal] = node_id
             scope_node_by_id = {node.node_id: node for node in scope_nodes}
             inherited_notify_node_ids = set()
             inherited_wait_node_ids = set()
@@ -644,6 +647,15 @@ def build_rounds_from_libraries(scope_library, graph_library):
             for queue_name in ("AIC", "AIV"):
                 section_tasks.extend(section.get("queues", {}).get(queue_name, []))
             if section_tasks:
+                def _matches_effective_update(expected_type: str) -> bool:
+                    if not node_obj or not effective_row:
+                        return False
+                    if node_obj.node_id == carrier_node.node_id:
+                        return False
+                    if _update_type(effective_row) != expected_type:
+                        return False
+                    return str(effective_row.get("effective_addr") or "") == task_addr
+
                 for task in section_tasks:
                     task_type = str(task.get("task_type") or "").strip().upper()
                     if task_type not in {"EVENT_NOTIFY", "EVENT_WAIT", "EVENT_RESET"}:
@@ -666,14 +678,7 @@ def build_rounds_from_libraries(scope_library, graph_library):
                         fact = inherited_write_facts.setdefault(
                             task_addr, {"addr": task_addr, "values": [], "node_ids": []}
                         )
-                        if (
-                            node_obj
-                            and effective_row
-                            and node_obj.node_id != carrier_node.node_id
-                            and _update_type(effective_row) == "VALUE_WRITE"
-                            and str(effective_row.get("effective_addr") or "")
-                            == task_addr
-                        ):
+                        if _matches_effective_update("VALUE_WRITE"):
                             if node_id not in fact["node_ids"]:
                                 fact["node_ids"].append(node_id)
                             val = str(effective_row.get("value") or "")
@@ -692,14 +697,7 @@ def build_rounds_from_libraries(scope_library, graph_library):
                                 "node_ids": [],
                             },
                         )
-                        if (
-                            node_obj
-                            and effective_row
-                            and node_obj.node_id != carrier_node.node_id
-                            and _update_type(effective_row) == "VALUE_WAIT"
-                            and str(effective_row.get("effective_addr") or "")
-                            == task_addr
-                        ):
+                        if _matches_effective_update("VALUE_WAIT"):
                             if node_id not in fact["node_ids"]:
                                 fact["node_ids"].append(node_id)
                             val = str(effective_row.get("value") or "")
@@ -1252,13 +1250,27 @@ def _js_obj(d):
     return json.dumps(d, ensure_ascii=False)
 
 
-def generate_html(
-    all_rounds, event_colors, log_files, output_path, init_nodes=None, mode="scope"
-):
+class ScopeHtmlInput(NamedTuple):
+    all_rounds: list
+    event_colors: dict
+    log_files: list
+    output_path: str
+    init_nodes: dict | None = None
+    mode: str = "scope"
+
+
+def generate_html(html_input: ScopeHtmlInput):
     """生成交互式 HTML 可视化文件
 
     mode: 仅支持 'scope'，用于区分视图数据来源（固定为 scope 库驱动）
     """
+
+    all_rounds = html_input.all_rounds
+    event_colors = html_input.event_colors
+    log_files = html_input.log_files
+    output_path = html_input.output_path
+    init_nodes = html_input.init_nodes
+    mode = html_input.mode
 
     # 准备每轮的 JSON 数据
     rounds_json_list = []
@@ -1430,10 +1442,14 @@ def generate_html(
         nav_html=render_graph_nav(
             "scopePrevBtn", "scopeNextBtn", "上一个 Scope", "下一个 Scope"
         ),
-        select_html='<select class="toolbar-input graph-select" id="scopeSelect" style="width:560px; min-width:560px; max-width:560px;"></select>',
+        select_html=(
+            '<select class="toolbar-input graph-select" id="scopeSelect" '
+            'style="width:560px; min-width:560px; max-width:560px;"></select>'
+        ),
         index_chip_html=render_graph_index_chip("scopeIndexChip", "Scope 1 / 1"),
         trailing_html="""
-        <input type="search" class="toolbar-input scope-search" id="scopeSearchInput" placeholder="查找 ScopeName、Scope ID、节点名" />
+        <input type="search" class="toolbar-input scope-search"
+               id="scopeSearchInput" placeholder="查找 ScopeName、Scope ID、节点名" />
         <div class="mode-switch">
             <button type="button" class="mode-btn active" id="modeStructure">结构</button>
             <button type="button" class="mode-btn" id="modeUpdate">Update</button>
@@ -1497,7 +1513,10 @@ def generate_html(
 {COMMON_DETAIL_TABLE_CSS}
 {COMMON_TOOLBAR_CSS}
 {COMMON_TOOLTIP_CSS}
-.page-shell {{ width: min(1760px, calc(100vw - 32px)); margin: 18px auto 28px; display:flex; flex-direction:column; gap:14px; position:relative; z-index:1; }}
+.page-shell {{
+    width: min(1760px, calc(100vw - 32px)); margin: 18px auto 28px;
+    display:flex; flex-direction:column; gap:14px; position:relative; z-index:1;
+}}
 .summary {{ display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:12px; margin-bottom:20px; }}
 .card {{
     background:var(--sk-surface);
@@ -1515,8 +1534,14 @@ def generate_html(
     color:#475569; font-size:13px; font-weight:600; cursor:pointer;
 }}
 .mode-btn.active {{ color:var(--sk-accent); border-color:#93c5fd; background:#eff6ff; }}
-.controls {{ background: transparent; padding: 0; display:flex; align-items:center; gap:8px; flex-wrap:wrap; font-size: var(--sk-text-md); }}
-.zoom-display {{ color:#1d4ed8; font-weight:var(--sk-weight-bold); font-size:var(--sk-text-sm); min-width:42px; text-align:center; }}
+.controls {{
+    background: transparent; padding: 0; display:flex; align-items:center;
+    gap:8px; flex-wrap:wrap; font-size: var(--sk-text-md);
+}}
+.zoom-display {{
+    color:#1d4ed8; font-weight:var(--sk-weight-bold); font-size:var(--sk-text-sm);
+    min-width:42px; text-align:center;
+}}
 .table-search {{ min-width:220px; }}
 .scope-search {{ min-width:260px; }}
 .badge {{
@@ -1630,7 +1655,12 @@ function init() {{
     const scopePrevBtn = document.getElementById('scopePrevBtn');
     const scopeNextBtn = document.getElementById('scopeNextBtn');
     const tableToggleBtn = document.getElementById('tableToggleBtn');
-    const tableToggleHead = document.querySelector('#tableContent') ? document.querySelector('#tableContent').closest('.detail-panel')?.querySelector('[data-detail-toggle]') : null;
+    const tablePanel = document.querySelector('#tableContent')
+        ? document.querySelector('#tableContent').closest('.detail-panel')
+        : null;
+    const tableToggleHead = tablePanel
+        ? tablePanel.querySelector('[data-detail-toggle]')
+        : null;
     const tableSearchInput = document.getElementById('tableSearchInput');
     const tableTypeSelect = document.getElementById('tableTypeFilter');
     const tablePrevBtn = document.getElementById('tablePrevBtn');
@@ -1818,7 +1848,8 @@ function renderScopePicker() {{
     select.innerHTML = visible.map(idx => {{
         const rd = ROUNDS[idx];
         const scopeName = getRoundScopeName(rd, idx);
-        return '<option value="' + idx + '" title="' + esc(scopeName) + '">' + esc(truncateScopeOptionLabel(scopeName)) + '</option>';
+        return '<option value="' + idx + '" title="' + esc(scopeName) + '">'
+            + esc(truncateScopeOptionLabel(scopeName)) + '</option>';
     }}).join('');
     select.value = String(curRound);
     const pos = visible.indexOf(curRound);
@@ -2118,7 +2149,10 @@ function renderSummary(rd) {{
             ['地址组', us.addr_count || 0],
         ];
     }}
-    summaryEl.innerHTML = cards.map(([l,v]) => '<div class="card"><div class="lbl">' + l + '</div><div class="val">' + v + '</div></div>').join('');
+    summaryEl.innerHTML = cards.map(
+        ([l,v]) => '<div class="card"><div class="lbl">' + l
+            + '</div><div class="val">' + v + '</div></div>'
+    ).join('');
 }}
 
 /* ---- 切换 Scope ---- */
@@ -2138,7 +2172,10 @@ function esc(s) {{ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').rep
 function renderGraph(rd) {{
     const wrap = document.getElementById('svgWrap');
     const renderNodes = getViewNodes(rd);
-    if (!renderNodes.length) {{ wrap.innerHTML = '<p style="color:#999;text-align:center;padding:40px">该轮次无节点数据</p>'; return; }}
+    if (!renderNodes.length) {{
+        wrap.innerHTML = '<p style="color:#999;text-align:center;padding:40px">该轮次无节点数据</p>';
+        return;
+    }}
 
     // 重置视口状态
     scale = 1;
@@ -2171,18 +2208,24 @@ function renderGraph(rd) {{
     const nmap = {{}};
     renderNodes.forEach(n => nmap[n.id] = n);
 
-    let s = '<svg id="scopeSvg" xmlns="http://www.w3.org/2000/svg" width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '">';
+    let s = '<svg id="scopeSvg" xmlns="http://www.w3.org/2000/svg"'
+        + ' width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '">';
 
     // 箭头 marker（defs 不放在 zoomGroup 内，因为通过 ID 引用）
     s += '<defs>';
-    s += '<marker id="aS" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0,10 3.5,0 7" fill="#aaa"/></marker>';
-    s += '<marker id="aE" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0,10 3.5,0 7" fill="#E91E63"/></marker>';
-    s += '<marker id="aM" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0,10 3.5,0 7" fill="#AB47BC"/></marker>';
+    s += '<marker id="aS" markerWidth="10" markerHeight="7" refX="9" refY="3.5"'
+        + ' orient="auto"><polygon points="0 0,10 3.5,0 7" fill="#aaa"/></marker>';
+    s += '<marker id="aE" markerWidth="10" markerHeight="7" refX="9" refY="3.5"'
+        + ' orient="auto"><polygon points="0 0,10 3.5,0 7" fill="#E91E63"/></marker>';
+    s += '<marker id="aM" markerWidth="10" markerHeight="7" refX="9" refY="3.5"'
+        + ' orient="auto"><polygon points="0 0,10 3.5,0 7" fill="#AB47BC"/></marker>';
     s += '<filter id="ds"><feDropShadow dx="1" dy="2" stdDeviation="2" flood-opacity=".12"/></filter>';
     // 为每种事件颜色创建 marker
     Object.entries(EVC).forEach(([eid, clr]) => {{
         const mid = 'aE_' + eid.replace(/[^a-zA-Z0-9]/g,'_');
-        s += '<marker id="' + mid + '" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0,10 3.5,0 7" fill="' + clr + '"/></marker>';
+        s += '<marker id="' + mid + '" markerWidth="10" markerHeight="7"'
+            + ' refX="9" refY="3.5" orient="auto">'
+            + '<polygon points="0 0,10 3.5,0 7" fill="' + clr + '"/></marker>';
     }});
     s += '</defs>';
 
@@ -2194,9 +2237,17 @@ function renderGraph(rd) {{
         const y = MG.top + si * (LANE_H + LANE_GAP) - 6;
         const cy = MG.top + si*(LANE_H+LANE_GAP) + NH/2;
         const laneLabel = sid === -1 ? 'Custom AIC' : (sid === -2 ? 'Custom AIV' : 'Stream ' + sid);
-        s += '<rect x="0" y="' + y + '" width="' + W + '" height="' + (LANE_H + 12) + '" fill="' + (si%2===0?'#f8f9fb':'#fff') + '" rx="' + VIS.lane.stripeRadius + '"/>';
-        s += '<line x1="' + (MG.left - 12) + '" y1="' + cy + '" x2="' + (W - MG.right + 8) + '" y2="' + cy + '" stroke="#d6dbe4" stroke-width="' + VIS.lane.lineWidth + '" opacity="0.95"/>';
-        s += '<text x="16" y="' + (MG.top + si*(LANE_H+LANE_GAP) + NH/2 + 5) + '" font-size="' + VIS.node.laneTitleFontSize + '" font-weight="600" fill="#888" font-family="{VISUAL_FONT_MONO_STACK}">' + laneLabel + '</text>';
+        s += '<rect x="0" y="' + y + '" width="' + W + '" height="' + (LANE_H + 12)
+            + '" fill="' + (si%2===0?'#f8f9fb':'#fff')
+            + '" rx="' + VIS.lane.stripeRadius + '"/>';
+        s += '<line x1="' + (MG.left - 12) + '" y1="' + cy
+            + '" x2="' + (W - MG.right + 8) + '" y2="' + cy
+            + '" stroke="#d6dbe4" stroke-width="' + VIS.lane.lineWidth
+            + '" opacity="0.95"/>';
+        s += '<text x="16" y="' + (MG.top + si*(LANE_H+LANE_GAP) + NH/2 + 5)
+            + '" font-size="' + VIS.node.laneTitleFontSize
+            + '" font-weight="600" fill="#888" font-family="{VISUAL_FONT_MONO_STACK}">'
+            + laneLabel + '</text>';
     }});
 
     // 绘制边
@@ -2207,8 +2258,15 @@ function renderGraph(rd) {{
 
         if (e.type === 'stream') {{
             const x1 = p1.x + NW, y1 = p1.y + NH/2, x2 = p2.x, y2 = p2.y + NH/2;
-            s += '<line x1="'+x1+'" y1="'+y1+'" x2="'+x2+'" y2="'+y2+'" stroke="#ccc" stroke-width="' + VIS.edge.widthStream + '" marker-end="url(#aS)"/>';
-        }} else if (e.type === 'memory' || e.type === 'update_notify_wait' || e.type === 'update_sk_write' || e.type === 'update_sk_wait') {{
+            s += '<line x1="'+x1+'" y1="'+y1+'" x2="'+x2+'" y2="'+y2
+                + '" stroke="#ccc" stroke-width="' + VIS.edge.widthStream
+                + '" marker-end="url(#aS)"/>';
+        }} else if (
+            e.type === 'memory'
+            || e.type === 'update_notify_wait'
+            || e.type === 'update_sk_write'
+            || e.type === 'update_sk_wait'
+        ) {{
             // 内存匹配边: MemoryWrite -> MemoryWait (虚线紫色)
             const clr = EVC[e.event_id] || '#AB47BC';
             const cx1 = p1.x + NW/2, cy1 = p1.y + NH/2;
@@ -2217,7 +2275,10 @@ function renderGraph(rd) {{
             let off = dy === 0 ? 90 : 0;
             let cpx = (cx1+cx2)/2 + (dy < 0 ? off : -off);
             let cp1y = cy1, cp2y = cy2;
-            s += '<path d="M '+cx1+' '+cy1+' C '+cpx+' '+cp1y+', '+cpx+' '+cp2y+', '+cx2+' '+cy2+'" stroke="'+clr+'" stroke-width="' + VIS.edge.widthMatch + '" stroke-dasharray="' + VIS.edge.dashMemory + '" fill="none" marker-end="url(#aM)" opacity=".75"/>';
+            s += '<path d="M '+cx1+' '+cy1+' C '+cpx+' '+cp1y+', '+cpx+' '+cp2y
+                + ', '+cx2+' '+cy2+'" stroke="'+clr+'" stroke-width="'
+                + VIS.edge.widthMatch + '" stroke-dasharray="' + VIS.edge.dashMemory
+                + '" fill="none" marker-end="url(#aM)" opacity=".75"/>';
             const lx = cpx, ly = (cy1+cy2)/2;
             let label = 'Memory';
             if (e.type === 'memory' && e.event_id) label = 'Mem:' + (e.event_id||'').slice(-8);
@@ -2225,8 +2286,12 @@ function renderGraph(rd) {{
             else if (e.type === 'update_sk_wait') label = 'SK→ValueWait';
             else if (e.type === 'update_notify_wait') label = '关系边';
             const tw = label.length * 6.2 + 14;
-            s += '<rect x="'+(lx-tw/2)+'" y="'+(ly-9)+'" width="'+tw+'" height="18" rx="' + VIS.edge.labelRadiusSm + '" fill="'+clr+'" opacity=".9"/>';
-            s += '<text x="'+lx+'" y="'+(ly+4)+'" font-size="' + VIS.edge.labelFontSize + '" fill="#fff" text-anchor="middle" font-family="{VISUAL_FONT_MONO_STACK}">'+esc(label)+'</text>';
+            s += '<rect x="'+(lx-tw/2)+'" y="'+(ly-9)+'" width="'+tw
+                + '" height="18" rx="' + VIS.edge.labelRadiusSm
+                + '" fill="'+clr+'" opacity=".9"/>';
+            s += '<text x="'+lx+'" y="'+(ly+4)+'" font-size="' + VIS.edge.labelFontSize
+                + '" fill="#fff" text-anchor="middle" font-family="{VISUAL_FONT_MONO_STACK}">'
+                + esc(label)+'</text>';
         }} else {{
             // 事件匹配边: Notify -> Wait (虚线彩色)
             const clr = EVC[e.event_id] || '#E91E63';
@@ -2238,13 +2303,20 @@ function renderGraph(rd) {{
             let off = dy === 0 ? 90 : 0;
             let cpx = (cx1+cx2)/2 + (dy < 0 ? off : -off);
             let cp1y = cy1, cp2y = cy2;
-            s += '<path d="M '+cx1+' '+cy1+' C '+cpx+' '+cp1y+', '+cpx+' '+cp2y+', '+cx2+' '+cy2+'" stroke="'+clr+'" stroke-width="' + VIS.edge.widthMatch + '" stroke-dasharray="' + VIS.edge.dashEvent + '" fill="none" marker-end="url(#'+mid+')" opacity=".75"/>';
+            s += '<path d="M '+cx1+' '+cy1+' C '+cpx+' '+cp1y+', '+cpx+' '+cp2y
+                + ', '+cx2+' '+cy2+'" stroke="'+clr+'" stroke-width="'
+                + VIS.edge.widthMatch + '" stroke-dasharray="' + VIS.edge.dashEvent
+                + '" fill="none" marker-end="url(#'+mid+')" opacity=".75"/>';
             // 事件 ID 标签
             const lx = cpx, ly = (cy1+cy2)/2;
             const shortEid = (e.event_id||'').slice(-8);
             const tw = shortEid.length * 5.4 + 10;
-            s += '<rect x="'+(lx-tw/2)+'" y="'+(ly-9)+'" width="'+tw+'" height="18" rx="' + VIS.edge.labelRadiusSm + '" fill="'+clr+'" opacity=".9"/>';
-            s += '<text x="'+lx+'" y="'+(ly+4)+'" font-size="' + VIS.edge.labelFontSize + '" fill="#fff" text-anchor="middle" font-family="{VISUAL_FONT_MONO_STACK}">'+esc(shortEid)+'</text>';
+            s += '<rect x="'+(lx-tw/2)+'" y="'+(ly-9)+'" width="'+tw
+                + '" height="18" rx="' + VIS.edge.labelRadiusSm
+                + '" fill="'+clr+'" opacity=".9"/>';
+            s += '<text x="'+lx+'" y="'+(ly+4)+'" font-size="' + VIS.edge.labelFontSize
+                + '" fill="#fff" text-anchor="middle" font-family="{VISUAL_FONT_MONO_STACK}">'
+                + esc(shortEid)+'</text>';
         }}
         if (e.type === 'update_notify_wait') {{
             const clr = '#b45309';
@@ -2254,12 +2326,18 @@ function renderGraph(rd) {{
             const off = dy === 0 ? 72 : 0;
             const cpx = (cx1 + cx2) / 2 + (dy < 0 ? off : -off);
             const cp1y = cy1, cp2y = cy2;
-            s += '<path d="M '+cx1+' '+cy1+' C '+cpx+' '+cp1y+', '+cpx+' '+cp2y+', '+cx2+' '+cy2+'" stroke="'+clr+'" stroke-width="' + VIS.edge.widthEmphasis + '" fill="none" opacity=".9"/>';
+            s += '<path d="M '+cx1+' '+cy1+' C '+cpx+' '+cp1y+', '+cpx+' '+cp2y
+                + ', '+cx2+' '+cy2+'" stroke="'+clr+'" stroke-width="'
+                + VIS.edge.widthEmphasis + '" fill="none" opacity=".9"/>';
             const lx = cpx, ly = (cy1 + cy2) / 2;
             const label = 'N→W';
             const tw = 36;
-            s += '<rect x="'+(lx-tw/2)+'" y="'+(ly-9)+'" width="'+tw+'" height="18" rx="' + VIS.edge.labelRadiusSm + '" fill="'+clr+'" opacity=".92"/>';
-            s += '<text x="'+lx+'" y="'+(ly+4)+'" font-size="' + VIS.edge.labelFontSize + '" fill="#fff" text-anchor="middle" font-family="{VISUAL_FONT_MONO_STACK}">'+label+'</text>';
+            s += '<rect x="'+(lx-tw/2)+'" y="'+(ly-9)+'" width="'+tw
+                + '" height="18" rx="' + VIS.edge.labelRadiusSm
+                + '" fill="'+clr+'" opacity=".92"/>';
+            s += '<text x="'+lx+'" y="'+(ly+4)+'" font-size="' + VIS.edge.labelFontSize
+                + '" fill="#fff" text-anchor="middle" font-family="{VISUAL_FONT_MONO_STACK}">'
+                + label+'</text>';
         }}
     }});
 
@@ -2298,10 +2376,19 @@ function renderGraph(rd) {{
                 l2 = n.queue_name || '';
             }}
         }}
-        s += '<g class="nd" data-nid="'+n.id+'" data-scope-id="'+(n.scope_id==null?'':n.scope_id)+'" data-x="'+p.x+'" data-y="'+p.y+'" style="cursor:pointer">';
-        s += '<rect x="'+p.x+'" y="'+p.y+'" width="'+NW+'" height="'+NH+'" rx="' + VIS.node.radiusSm + '" fill="'+c.bg+'" stroke="'+c.border+'" stroke-width="' + VIS.node.borderWidth + '" filter="url(#ds)"/>';
-        s += '<text x="'+(p.x+NW/2)+'" y="'+(p.y+16)+'" font-size="' + VIS.node.titleFontSize + '" fill="'+c.text+'" text-anchor="middle" font-weight="600">'+esc(l1)+'</text>';
-        if (l2) s += '<text x="'+(p.x+NW/2)+'" y="'+(p.y+30)+'" font-size="' + VIS.node.subtitleFontSize + '" fill="'+c.text+'" text-anchor="middle" font-family="{VISUAL_FONT_MONO_STACK}" opacity=".9">'+esc(l2)+'</text>';
+        s += '<g class="nd" data-nid="'+n.id+'" data-scope-id="'
+            + (n.scope_id==null?'':n.scope_id) + '" data-x="'+p.x+'" data-y="'+p.y
+            + '" style="cursor:pointer">';
+        s += '<rect x="'+p.x+'" y="'+p.y+'" width="'+NW+'" height="'+NH
+            + '" rx="' + VIS.node.radiusSm + '" fill="'+c.bg+'" stroke="'+c.border
+            + '" stroke-width="' + VIS.node.borderWidth + '" filter="url(#ds)"/>';
+        s += '<text x="'+(p.x+NW/2)+'" y="'+(p.y+16)+'" font-size="'
+            + VIS.node.titleFontSize + '" fill="'+c.text
+            + '" text-anchor="middle" font-weight="600">'+esc(l1)+'</text>';
+        if (l2) s += '<text x="'+(p.x+NW/2)+'" y="'+(p.y+30)+'" font-size="'
+            + VIS.node.subtitleFontSize + '" fill="'+c.text
+            + '" text-anchor="middle" font-family="{VISUAL_FONT_MONO_STACK}" opacity=".9">'
+            + esc(l2)+'</text>';
         if (viewMode === 'update' && n.update_type) {{
             let ubg = '#475569', ulbl = n.update_type;
             if (n.update_type === 'KERNEL') {{
@@ -2318,8 +2405,12 @@ function renderGraph(rd) {{
             const badgeW = ulbl === 'SK' ? 26 : (ulbl.length > 2 ? 30 : 18);
             const badgeX = p.x + NW - badgeW - 6;
             const badgeTextX = badgeX + badgeW / 2;
-            s += '<rect x="'+badgeX+'" y="'+(p.y-8)+'" width="'+badgeW+'" height="18" rx="' + VIS.node.radiusMd + '" fill="'+ubg+'" stroke="#fff" stroke-width="' + VIS.node.borderWidth + '"/>';
-            s += '<text x="'+badgeTextX+'" y="'+(p.y+4)+'" font-size="' + VIS.node.badgeFontSize + '" fill="#fff" text-anchor="middle" font-weight="700">'+ulbl+'</text>';
+            s += '<rect x="'+badgeX+'" y="'+(p.y-8)+'" width="'+badgeW
+                + '" height="18" rx="' + VIS.node.radiusMd + '" fill="'+ubg
+                + '" stroke="#fff" stroke-width="' + VIS.node.borderWidth + '"/>';
+            s += '<text x="'+badgeTextX+'" y="'+(p.y+4)+'" font-size="'
+                + VIS.node.badgeFontSize
+                + '" fill="#fff" text-anchor="middle" font-weight="700">'+ulbl+'</text>';
         }}
         s += '</g>';
     }});
@@ -2379,18 +2470,36 @@ function showTip(ev, nid, rd, nmap) {{
         if (n.update_addr) h += 'Addr: <span class="mono">' + esc(n.update_addr) + '</span><br>';
         if (n.update_value) h += 'Value: <span class="mono">' + esc(n.update_value) + '</span><br>';
         if (n.update_flag) h += 'Flag: <span class="mono">' + esc(n.update_flag) + '</span><br>';
-        if (n.update_type === 'VALUE_WAIT' && n.update_flag) h += 'Rule: <span class="mono">' + esc(getWaitRuleText(n.update_flag)) + '</span><br>';
+        if (n.update_type === 'VALUE_WAIT' && n.update_flag) {{
+            h += 'Rule: <span class="mono">' + esc(getWaitRuleText(n.update_flag))
+                + '</span><br>';
+        }}
         if (n.update_type === 'KERNEL') {{
             if (n.update_op_info_ptr) h += 'OpInfoPtr: <span class="mono">' + esc(n.update_op_info_ptr) + '</span><br>';
-            if (n.update_op_info_size) h += 'OpInfoSize: <span class="mono">' + esc(String(n.update_op_info_size)) + '</span><br>';
-            if (n.update_func_handle) h += 'FuncHandle: <span class="mono">' + esc(n.update_func_handle) + '</span><br>';
+            if (n.update_op_info_size) {{
+                h += 'OpInfoSize: <span class="mono">'
+                    + esc(String(n.update_op_info_size)) + '</span><br>';
+            }}
+            if (n.update_func_handle) {{
+                h += 'FuncHandle: <span class="mono">'
+                    + esc(n.update_func_handle) + '</span><br>';
+            }}
             if (n.update_args) h += 'Args: <span class="mono">' + esc(n.update_args) + '</span><br>';
-            if (n.update_args_size) h += 'ArgsSize: <span class="mono">' + esc(String(n.update_args_size)) + '</span><br>';
-            if (n.update_num_blocks) h += 'NumBlocks: <span class="mono">' + esc(String(n.update_num_blocks)) + '</span><br>';
+            if (n.update_args_size) {{
+                h += 'ArgsSize: <span class="mono">' + esc(String(n.update_args_size))
+                    + '</span><br>';
+            }}
+            if (n.update_num_blocks) {{
+                h += 'NumBlocks: <span class="mono">' + esc(String(n.update_num_blocks))
+                    + '</span><br>';
+            }}
         }} else if (n.update_type === 'SYNTHESIZED_CUSTOM') {{
             if (n.queue_name) h += 'Queue: <span class="mono">' + esc(n.queue_name) + '</span><br>';
             if (n.update_args) h += 'Args: <span class="mono">' + esc(n.update_args) + '</span><br>';
-            if (n.raw_node_id != null) h += 'RawNodeId: <span class="mono">' + esc(String(n.raw_node_id)) + '</span><br>';
+            if (n.raw_node_id != null) {{
+                h += 'RawNodeId: <span class="mono">' + esc(String(n.raw_node_id))
+                    + '</span><br>';
+            }}
         }}
         const inheritedRows = [];
         (n.inherited_write_facts || []).forEach(item => {{
@@ -2428,12 +2537,16 @@ function showTip(ev, nid, rd, nmap) {{
         return;
     }}
     let h = '<b>Node #' + n.id + '</b> &nbsp;|&nbsp; Type: ' + n.type + '<br>';
-    h += 'Stream: ' + n.stream_id + ' &nbsp;|&nbsp; StreamIdx: ' + n.stream_idx + ' &nbsp;|&nbsp; Pos: ' + n.node_idx_in_stream + '<br>';
+    h += 'Stream: ' + n.stream_id + ' &nbsp;|&nbsp; StreamIdx: ' + n.stream_idx
+        + ' &nbsp;|&nbsp; Pos: ' + n.node_idx_in_stream + '<br>';
     if (n.event_id) h += 'EventID: ' + n.event_id + ' &nbsp;|&nbsp; Flag: ' + n.event_flag + '<br>';
     if (n.type === 'Kernel' && n.kernel_name) {{
         h += '<br><b>KernelInfos:</b><br>';
         h += '&nbsp;&nbsp;funcName: <span class="mono">' + esc(n.kernel_name) + '</span><br>';
-        if (n.kernel_type) h += '&nbsp;&nbsp;kernelType: <span class="kt-tag ' + getKtClass(n.kernel_type) + '">' + esc(n.kernel_type) + '</span><br>';
+        if (n.kernel_type) {{
+            h += '&nbsp;&nbsp;kernelType: <span class="kt-tag ' + getKtClass(n.kernel_type)
+                + '">' + esc(n.kernel_type) + '</span><br>';
+        }}
         if (n.task_ratio) h += '&nbsp;&nbsp;taskRatio: [' + n.task_ratio[0] + ', ' + n.task_ratio[1] + ']<br>';
         h += '&nbsp;&nbsp;numBlocks: ' + n.num_blocks + '<br>';
         h += '&nbsp;&nbsp;cubeNum: ' + n.cube_num + '<br>';
@@ -2481,7 +2594,9 @@ function renderTable(rd) {{
     // 动态表头
     const thEl = document.getElementById('tHead');
     if (viewMode === 'update') {{
-        thEl.innerHTML = '<th>Node ID</th><th>Update 类型</th><th>Addr</th><th>Value</th><th>Flag / Rule</th><th>SK Update</th><th>SK 内部事件</th><th>关系边</th>';
+        thEl.innerHTML = '<th>Node ID</th><th>Update 类型</th><th>Addr</th>'
+            + '<th>Value</th><th>Flag / Rule</th><th>SK Update</th>'
+            + '<th>SK 内部事件</th><th>关系边</th>';
     }} else {{
         thEl.innerHTML = '<th>Node ID</th><th>类型</th><th>Stream ID</th><th>Event ID</th>'
             + '<th>Kernel 名称</th><th>Kernel Type</th><th>Blocks</th>'
@@ -2543,7 +2658,8 @@ function renderTable(rd) {{
                 + '<td>' + value + '</td>'
                 + '<td class="mono">' + (flagRule.length ? flagRule.join('<br>') : '-') + '</td>'
                 + '<td class="mono" style="font-size:11px">' + (skUpdate.length ? skUpdate.join('<br>') : '-') + '</td>'
-                + '<td class="mono" style="font-size:11px">' + (inherited.length ? inherited.join('<br>') : '-') + '</td>'
+                + '<td class="mono" style="font-size:11px">'
+                + (inherited.length ? inherited.join('<br>') : '-') + '</td>'
                 + '<td class="mono" style="font-size:11px">' + (conn.length ? conn.join('<br>') : '-') + '</td>'
                 + '</tr>';
         }}).join('');
@@ -2559,7 +2675,10 @@ function renderTable(rd) {{
         // Kernel info columns
         let ktHtml = '-', blkHtml = '-', cubeHtml = '-', vecHtml = '-', trHtml = '-';
         if (n.type === 'Kernel') {{
-            if (n.kernel_type) ktHtml = '<span class="kt-tag ' + getKtClass(n.kernel_type) + '">' + esc(n.kernel_type) + '</span>';
+            if (n.kernel_type) {{
+                ktHtml = '<span class="kt-tag ' + getKtClass(n.kernel_type)
+                    + '">' + esc(n.kernel_type) + '</span>';
+            }}
             blkHtml = n.num_blocks;
             cubeHtml = n.cube_num;
             vecHtml = n.vec_num;
@@ -2653,7 +2772,8 @@ def main():
         epilog=(
             "Examples:\n"
             "  # 模式1：直接指定库文件\n"
-            '  python sk_scope_visualizer.py --scope-library "$SCOPE_LIBRARY" --graph-library "$GRAPH_LIBRARY" -o scope-graph.html\n'
+            '  python sk_scope_visualizer.py --scope-library "$SCOPE_LIBRARY" '
+            '--graph-library "$GRAPH_LIBRARY" -o scope-graph.html\n'
             "  # 模式2：给定目录，自动搜索匹配库对\n"
             '  python sk_scope_visualizer.py "$RUN_OR_RESULT_DIR" -o scope-graph.html'
         ),

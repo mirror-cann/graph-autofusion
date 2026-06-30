@@ -26,7 +26,11 @@ RULE = {
     "id": "sk.kernel-type-match",
     "severity": "warning",
     "category": "spec",
-    "description": "SK sub-function kernel type must match the original __global__ kernel type (with __mix__(1,0)->__cube__ and __mix__(0,1)->__vector__ special cases).",
+    "description": (
+        "SK sub-function kernel type must match the original __global__ kernel "
+        "type (with __mix__(1,0)->__cube__ and __mix__(0,1)->__vector__ "
+        "special cases)."
+    ),
 }
 
 _MIX_RE = re.compile(r"__mix__\s*\(\s*(\d+)\s*,\s*(\d+)\s*\)")
@@ -79,7 +83,11 @@ def check(units):
                         "category": RULE["category"],
                         "actionable_by": ["human"],
                         "remediation_hint": {"kind": "human-decision"},
-                        "message": f"SK function {sk_name!r} uses kernel type {actual!r} but the matching __global__ {base!r} implies {_canonical(expected)!r}.",
+                        "message": (
+                            f"SK function {sk_name!r} uses kernel type {actual!r} "
+                            f"but the matching __global__ {base!r} implies "
+                            f"{_canonical(expected)!r}."
+                        ),
                         "target_file": unit["rel"],
                         "evidence_signature": f"kt_mismatch:{sk_name}",
                     }

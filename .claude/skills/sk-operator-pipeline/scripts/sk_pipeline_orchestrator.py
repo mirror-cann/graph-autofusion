@@ -166,6 +166,41 @@ class PipelineOrchestrator:
         self._current_target_chip = ""
         self._toolchain_mode = "real"
 
+    @staticmethod
+    def _utc_now() -> str:
+        return (
+            datetime.now(timezone.utc)
+            .replace(microsecond=0)
+            .isoformat()
+            .replace("+00:00", "Z")
+        )
+
+    @staticmethod
+    def _write_json(path: Path, payload: dict[str, Any]) -> None:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+
+    @staticmethod
+    def _write_state(output_dir: Path, state: dict[str, Any]) -> None:
+        state["updated_at"] = PipelineOrchestrator._utc_now()
+        state["final_iteration"] = (
+            len(state.get("iterations", [])) - 1 if state.get("iterations") else -1
+        )
+        (output_dir / "pipeline-state.json").write_text(
+            json.dumps(state, indent=2), encoding="utf-8"
+        )
+
+    @staticmethod
+    def _read_json(path: Path) -> dict[str, Any]:
+        return json.loads(path.read_text(encoding="utf-8"))
+
+    @staticmethod
+    def _remove_existing(path: Path) -> None:
+        if path.is_dir() and not path.is_symlink():
+            shutil.rmtree(path)
+        elif path.exists() or path.is_symlink():
+            path.unlink()
+
     def _skill_path(self, key: str) -> Path:
         skill_name, script_name = _SKILL_SCRIPTS[key]
         return self.skills_root / skill_name / "scripts" / script_name
@@ -257,33 +292,6 @@ class PipelineOrchestrator:
         self.env = env
         self._toolchain_mode = "structural"
 
-    # -- stage-first helpers --
-
-    @staticmethod
-    def _utc_now() -> str:
-        return (
-            datetime.now(timezone.utc)
-            .replace(microsecond=0)
-            .isoformat()
-            .replace("+00:00", "Z")
-        )
-
-    @staticmethod
-    def _write_json(path: Path, payload: dict[str, Any]) -> None:
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
-
-    @staticmethod
-    def _read_json(path: Path) -> dict[str, Any]:
-        return json.loads(path.read_text(encoding="utf-8"))
-
-    @staticmethod
-    def _remove_existing(path: Path) -> None:
-        if path.is_dir() and not path.is_symlink():
-            shutil.rmtree(path)
-        elif path.exists() or path.is_symlink():
-            path.unlink()
-
     def _materialize_input(self, source: Path, dest: Path) -> str:
         self._remove_existing(dest)
         dest.parent.mkdir(parents=True, exist_ok=True)
@@ -303,7 +311,8 @@ class PipelineOrchestrator:
             else:
                 shutil.copy2(item, dest, follow_symlinks=False)
 
-    def _copy_support_headers(self, source_dir: Path, dest_dir: Path) -> list[str]:
+    @staticmethod
+    def _copy_support_headers(source_dir: Path, dest_dir: Path) -> list[str]:
         copied: list[str] = []
         if not source_dir.is_dir():
             return copied
@@ -321,7 +330,8 @@ class PipelineOrchestrator:
             copied.append(rel.as_posix())
         return copied
 
-    def _shared_support_dirs_for_asset(self, asset: Path) -> list[tuple[str, Path]]:
+    @staticmethod
+    def _shared_support_dirs_for_asset(asset: Path) -> list[tuple[str, Path]]:
         asset_root = asset if asset.is_dir() else asset.parent
         if not asset_root.is_dir():
             return []
@@ -371,7 +381,8 @@ class PipelineOrchestrator:
                 support_dirs[support_name] = support_source
         return sorted(support_dirs.items())
 
-    def _stage_dir(self, output_dir: Path, stage_id: str) -> Path:
+    @staticmethod
+    def _stage_dir(output_dir: Path, stage_id: str) -> Path:
         return output_dir / _STAGE_DIRS[stage_id]
 
     @staticmethod
@@ -445,7 +456,9 @@ class PipelineOrchestrator:
             layout_path = outputs / "operator-asset-layout.json"
             if scan.returncode == 2:
                 raise OrchestratorError(
-                    f"asset adapter requires user input for {asset_name}; inspect {outputs / 'adapter-report.json'} and provide explicit contracts"
+                    f"asset adapter requires user input for {asset_name}; inspect "
+                    f"{outputs / 'adapter-report.json'} and provide explicit "
+                    "contracts"
                 )
             analyze_argv = [
                 "analyze-operator-asset",
@@ -708,6 +721,43 @@ class PipelineOrchestrator:
                 if prereq not in selected_set:
                     raise OrchestratorError(f"{stage} needs {prereq}")
         return [stage for stage in _STAGE_ORDER if stage in selected_set]
+
+    @classmethod
+    def parse_stages(
+        cls,
+        stages: str | Sequence[str] | None,
+        *,
+        do_package: bool,
+        profile: str,
+        wheel_mode: str,
+        verify_backend: str,
+        reuse_wheel: str | None,
+    ) -> list[str]:
+        return cls._parse_stages(
+            stages,
+            do_package=do_package,
+            profile=profile,
+            wheel_mode=wheel_mode,
+            verify_backend=verify_backend,
+            reuse_wheel=reuse_wheel,
+        )
+
+    def resolve_profile_options(
+        self,
+        *,
+        profile: str,
+        verify_backend: str | None,
+        wheel_mode: str | None,
+        no_verify: bool,
+        no_package: bool,
+    ) -> tuple[str, str]:
+        return self._resolve_profile_options(
+            profile=profile,
+            verify_backend=verify_backend,
+            wheel_mode=wheel_mode,
+            no_verify=no_verify,
+            no_package=no_package,
+        )
 
     def _detect_form(self, source: Path, output_dir: Path) -> dict[str, Any]:
         result = self._run(
@@ -1366,7 +1416,8 @@ class PipelineOrchestrator:
             ]
         }
 
-    def _runtime_input_spec_for_entry(self, entry: dict[str, Any]) -> dict[str, Any]:
+    @staticmethod
+    def _runtime_input_spec_for_entry(entry: dict[str, Any]) -> dict[str, Any]:
         parameters = []
         for index, param in enumerate(entry.get("parameters", [])):
             c_type = param.get("c_type", "GM_ADDR")
@@ -1480,7 +1531,8 @@ class PipelineOrchestrator:
             }
         return statuses
 
-    def _standalone_runner_stdout(self, op_name: str, *, status: str) -> dict[str, Any]:
+    @staticmethod
+    def _standalone_runner_stdout(op_name: str, *, status: str) -> dict[str, Any]:
         return {
             "backend": "standalone",
             "status": status,
@@ -2159,12 +2211,11 @@ class PipelineOrchestrator:
             for item in stage_results:
                 manifest = item["manifest"]
                 op_name = item["op_name"]
-                manifest_entries = [
-                    entry
-                    for record in manifest.get("per_file", [])
-                    for entry in record.get("entries", [])
-                    if isinstance(entry, dict)
-                ]
+                manifest_entries = []
+                for record in manifest.get("per_file", []):
+                    for entry in record.get("entries", []):
+                        if isinstance(entry, dict):
+                            manifest_entries.append(entry)
                 if manifest_entries:
                     entry_meta = manifest_entries[0]
                     state["ops"][op_name]["entry_name"] = entry_meta.get(
@@ -3038,13 +3089,3 @@ class PipelineOrchestrator:
         )
         layout.write_lint_report(artifact_map)
         return artifact_map
-
-    @staticmethod
-    def _write_state(output_dir: Path, state: dict[str, Any]) -> None:
-        state["updated_at"] = PipelineOrchestrator._utc_now()
-        state["final_iteration"] = (
-            len(state.get("iterations", [])) - 1 if state.get("iterations") else -1
-        )
-        (output_dir / "pipeline-state.json").write_text(
-            json.dumps(state, indent=2), encoding="utf-8"
-        )

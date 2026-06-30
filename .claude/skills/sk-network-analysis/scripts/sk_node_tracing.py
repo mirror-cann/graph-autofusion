@@ -101,7 +101,8 @@ NODE_LIBRARY_DISPLAY_TYPES = {
 # 正则表达式 - 支持新旧两种日志格式
 # ============================================================
 
-# 新版格式: Processed node [nodeId:0, streamId:11, streamIdxInGraph:2, nodeIdxInStream:0, EventNotify(eventId:0xfffd80cd2b00, eventFlag:0x1)]: type=NOTIFY, scopeFlags=0, isFusible=1, stackSize=0
+# 新版格式: Processed node [nodeId:0, streamId:11, streamIdxInGraph:2,
+# nodeIdxInStream:0, EventNotify(eventId:0xfffd80cd2b00, eventFlag:0x1)]: type=NOTIFY
 RE_NODE_NEW = re.compile(
     r"\[nodeId:(\d+),\s*streamId:(\d+),\s*streamIdxInGraph:(\d+),\s*nodeIdxInStream:(\d+),\s*"
     r"(?:EventNotify|EventWait|EventReset|MemoryWrite|MemoryWait|Kernel name)[^]]*\]"
@@ -532,7 +533,8 @@ def _resolve_model_instance_trace_context(input_path, model_instance_id):
     )
     if model_instance_count > 1 and not model_instance_partition_verified:
         raise ValueError(
-            f"model-instance-local tracing inputs for {_report_model_instance_id(selected_report)} are not safely partitioned"
+            "model-instance-local tracing inputs for "
+            f"{_report_model_instance_id(selected_report)} are not safely partitioned"
         )
 
     node_rows = node_library.get("nodes", []) if isinstance(node_library, dict) else []

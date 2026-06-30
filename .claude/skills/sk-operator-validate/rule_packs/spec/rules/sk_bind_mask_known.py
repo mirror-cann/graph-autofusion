@@ -22,7 +22,10 @@ RULE = {
     "id": "sk.bind-mask-known",
     "severity": "warning",
     "category": "spec",
-    "description": "SK_BIND mask should be 0 or a combination of the known bits (DCCI=4, early-start-set=2, early-start-wait=1).",
+    "description": (
+        "SK_BIND mask should be 0 or a combination of the known bits "
+        "(DCCI=4, early-start-set=2, early-start-wait=1)."
+    ),
 }
 
 _KNOWN_MASKS = frozenset(range(0, 8))  # any OR of bits 1/2/4, including 0
@@ -97,7 +100,11 @@ def check(units):
                         "category": RULE["category"],
                         "actionable_by": ["human"],
                         "remediation_hint": {"kind": "human-decision"},
-                        "message": f"SK_BIND({orig}, {mask}, ...) uses an unrecognised mask; expected 0 or a combination of DCCI=4 / early-start-set=2 / early-start-wait=1.",
+                        "message": (
+                            f"SK_BIND({orig}, {mask}, ...) uses an unrecognised "
+                            "mask; expected 0 or a combination of DCCI=4 / "
+                            "early-start-set=2 / early-start-wait=1."
+                        ),
                         "target_file": unit["rel"],
                         "evidence_signature": f"sk_bind_mask:{orig}:{mask}",
                     }

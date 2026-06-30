@@ -16,7 +16,7 @@ import hashlib
 import os
 import re
 from pathlib import Path
-from typing import Any
+from typing import Any, NamedTuple
 from urllib.parse import urlparse
 
 SOURCE_SUFFIXES = (".asc", ".cpp", ".cc", ".cxx", ".h", ".hpp")
@@ -39,30 +39,36 @@ class CliUsageError(Exception):
 # ---------- embedded finding builder ----------
 
 
+class FindingInput(NamedTuple):
+    rule_id: str
+    severity: str
+    actionable_by: list[str]
+    remediation_hint: dict[str, Any]
+    message: str
+    target_file: str = ""
+    evidence_signature: str = ""
+    evidence: list[Any] | None = None
+
+
 def _stable_finding_id(rule_id: str, target_file: str, evidence_signature: str) -> str:
     base = "|".join([rule_id, target_file or "", evidence_signature or ""])
     return f"{rule_id}:{hashlib.sha1(base.encode('utf-8')).hexdigest()[:12]}"
 
 
-def _finding(
-    rule_id,
-    severity,
-    actionable_by,
-    remediation_hint,
-    message,
-    target_file="",
-    evidence_signature="",
-    evidence=None,
-):
+def _finding(finding_input: FindingInput):
     return {
-        "finding_id": _stable_finding_id(rule_id, target_file, evidence_signature),
-        "rule_id": rule_id,
-        "severity": severity,
+        "finding_id": _stable_finding_id(
+            finding_input.rule_id,
+            finding_input.target_file,
+            finding_input.evidence_signature,
+        ),
+        "rule_id": finding_input.rule_id,
+        "severity": finding_input.severity,
         "category": "compat",
-        "actionable_by": list(actionable_by),
-        "remediation_hint": dict(remediation_hint),
-        "evidence": list(evidence or []),
-        "message": message,
+        "actionable_by": list(finding_input.actionable_by),
+        "remediation_hint": dict(finding_input.remediation_hint),
+        "evidence": list(finding_input.evidence or []),
+        "message": finding_input.message,
     }
 
 
@@ -271,14 +277,19 @@ def run_compat_rules(
                 if api in forbidden:
                     findings.append(
                         _finding(
-                            "compat.forbidden-acl-api",
-                            "blocker",
-                            ["human"],
-                            {"kind": "human-decision"},
-                            f"ACL API {api!r} is unsupported on {target_chip} according to the recorded official source.",
-                            target_file=rel,
-                            evidence_signature=f"{target_chip}:{api}",
-                            evidence=[api],
+                            FindingInput(
+                                "compat.forbidden-acl-api",
+                                "blocker",
+                                ["human"],
+                                {"kind": "human-decision"},
+                                (
+                                    f"ACL API {api!r} is unsupported on {target_chip} "
+                                    "according to the recorded official source."
+                                ),
+                                target_file=rel,
+                                evidence_signature=f"{target_chip}:{api}",
+                                evidence=[api],
+                            ),
                         )
                     )
         if (
@@ -290,13 +301,19 @@ def run_compat_rules(
                 if c > 0 and v > 0:
                     findings.append(
                         _finding(
-                            "compat.mix-aic-aiv-unsupported",
-                            "blocker",
-                            ["human"],
-                            {"kind": "human-decision"},
-                            f"kernel uses __mix__({c},{v}) (mixed AIC/AIV), which is unsupported on {target_chip} according to the recorded official source.",
-                            target_file=rel,
-                            evidence_signature=f"{target_chip}:mix:{c}:{v}",
+                            FindingInput(
+                                "compat.mix-aic-aiv-unsupported",
+                                "blocker",
+                                ["human"],
+                                {"kind": "human-decision"},
+                                (
+                                    f"kernel uses __mix__({c},{v}) (mixed AIC/AIV), "
+                                    f"which is unsupported on {target_chip} according "
+                                    "to the recorded official source."
+                                ),
+                                target_file=rel,
+                                evidence_signature=f"{target_chip}:mix:{c}:{v}",
+                            ),
                         )
                     )
         # Arch marker mismatch is actionable only when arch_alias has an
@@ -305,18 +322,23 @@ def run_compat_rules(
         if arch_alias and marker and marker.group("alias") != arch_alias:
             findings.append(
                 _finding(
-                    "compat.arch-alias-mismatch",
-                    "warning",
-                    ["codegen.apply-remediation"],
-                    {
-                        "kind": "replace-pattern",
-                        "target_file": rel,
-                        "old_value": f"sk-arch: {marker.group('alias')}",
-                        "new_value": f"sk-arch: {arch_alias}",
-                    },
-                    f"declared arch {marker.group('alias')!r} disagrees with target chip arch_alias {arch_alias!r}.",
-                    target_file=rel,
-                    evidence_signature=f"arch:{marker.group('alias')}->{arch_alias}",
+                    FindingInput(
+                        "compat.arch-alias-mismatch",
+                        "warning",
+                        ["codegen.apply-remediation"],
+                        {
+                            "kind": "replace-pattern",
+                            "target_file": rel,
+                            "old_value": f"sk-arch: {marker.group('alias')}",
+                            "new_value": f"sk-arch: {arch_alias}",
+                        },
+                        (
+                            f"declared arch {marker.group('alias')!r} disagrees "
+                            f"with target chip arch_alias {arch_alias!r}."
+                        ),
+                        target_file=rel,
+                        evidence_signature=f"arch:{marker.group('alias')}->{arch_alias}",
+                    ),
                 )
             )
 

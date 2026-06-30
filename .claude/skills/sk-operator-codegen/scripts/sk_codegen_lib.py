@@ -378,7 +378,8 @@ def detect_sk_form(source_text: str) -> SKFormAnalysis:
             has_legacy_meta_struct=has_legacy_meta,
             notes=["no __global__ entry detected"],
         )
-    if has_sk and has_sk_bind and not has_spk and not has_legacy_meta:
+    is_current_sk_bind = has_sk and has_sk_bind and not has_spk and not has_legacy_meta
+    if is_current_sk_bind:
         return SKFormAnalysis(
             form="current-sk-bind",
             has_global=True,
@@ -388,7 +389,8 @@ def detect_sk_form(source_text: str) -> SKFormAnalysis:
             has_legacy_meta_struct=has_legacy_meta,
             notes=notes,
         )
-    if has_spk and has_legacy_meta and not has_sk and not has_sk_bind:
+    is_legacy_spk = has_spk and has_legacy_meta and not has_sk and not has_sk_bind
+    if is_legacy_spk:
         return SKFormAnalysis(
             form="legacy-spk",
             has_global=True,
@@ -400,7 +402,8 @@ def detect_sk_form(source_text: str) -> SKFormAnalysis:
                 "legacy __spk__ + FunLevelMixCoreType form; migration to current-sk-bind recommended"
             ],
         )
-    if has_sk or has_spk or has_sk_bind or has_legacy_meta:
+    has_partial_sk_signal = has_sk or has_spk or has_sk_bind or has_legacy_meta
+    if has_partial_sk_signal:
         return SKFormAnalysis(
             form="partial",
             has_global=True,
@@ -443,14 +446,13 @@ def _type_references_template_params(
 def _args_template_params_for_fields(
     params: list[ParsedParam], template_params: list[dict[str, str]]
 ) -> list[dict[str, str]]:
-    return [
-        template_param
-        for template_param in template_params
-        if any(
-            _type_references_template_params(param.c_type, [template_param["name"]])
-            for param in params
-        )
-    ]
+    referenced_template_params = []
+    for template_param in template_params:
+        for param in params:
+            if _type_references_template_params(param.c_type, [template_param["name"]]):
+                referenced_template_params.append(template_param)
+                break
+    return referenced_template_params
 
 
 def _tpipe_declarations_with_depth(body: str) -> list[tuple[str, int]]:
@@ -845,12 +847,13 @@ def _strip_commented_legacy_blocks(text: str) -> str:
             if comment_body.startswith("#endif"):
                 skipping = False
             continue
-        if stripped.startswith("//") and (
+        has_legacy_comment_signal = (
             "__spk__" in comment_body
             or "FunLevel" in comment_body
             or ".ascend.meta" in comment_body
             or "__DAV_" in comment_body
-        ):
+        )
+        if stripped.startswith("//") and has_legacy_comment_signal:
             continue
         kept.append(line)
     return "".join(kept)
@@ -1097,9 +1100,11 @@ def _select_bind_target(
 def _render_helper_forward_body(entry: ParsedKernelEntry, helper_name: str) -> str:
     lines = [f"    uint64_t fake_param[{len(entry.params)}];"]
     for index, param in enumerate(entry.params):
-        if index == len(entry.params) - 1 and not (
+        is_last_param = index == len(entry.params) - 1
+        is_pointer_like = (
             "GM_ADDR" in param.c_type or "*" in param.c_type or "__gm__" in param.c_type
-        ):
+        )
+        if is_last_param and not is_pointer_like:
             value = f"&args->{param.name}"
         else:
             value = f"args->{param.name}"
@@ -1121,7 +1126,8 @@ def _rewrite_legacy_spk_body(
             return body, [
                 _human_finding(
                     "codegen.legacy-spk-param-unpack-unsupported",
-                    f"legacy GET_STRUCT_PTR references param[{index}] but global {entry.name} has only {len(entry.params)} parameters.",
+                    f"legacy GET_STRUCT_PTR references param[{index}] but global "
+                    f"{entry.name} has only {len(entry.params)} parameters.",
                     [match.group(0)],
                 )
             ]
@@ -1236,7 +1242,10 @@ def _legacy_kernel_launch_warnings(source_text: str) -> list[dict]:
                 {
                     "finding_id": "codegen.legacy-kernel-launch-preserved-as-is",
                     "severity": "warning",
-                    "message": f"KernelLaunch function {match.group('name')} has non-chevron logic and was preserved as-is.",
+                    "message": (
+                        f"KernelLaunch function {match.group('name')} has "
+                        "non-chevron logic and was preserved as-is."
+                    ),
                 }
             )
     return warnings
@@ -1355,7 +1364,9 @@ def migrate_legacy_spk_to_sk_bind(
             meta["escalations"].append(
                 _human_finding(
                     "codegen.legacy-spk-template-type-undeducible",
-                    f"legacy __spk__ group {stem} maps to templated global {global_name}, but no unique template specialization could be deduced.",
+                    f"legacy __spk__ group {stem} maps to templated global "
+                    f"{global_name}, but no unique template specialization could "
+                    "be deduced.",
                     [json.dumps(specialization_meta, sort_keys=True)],
                 )
             )
@@ -1383,7 +1394,9 @@ def migrate_legacy_spk_to_sk_bind(
             meta["escalations"].append(
                 _human_finding(
                     "codegen.legacy-spk-template-type-undeducible",
-                    f"legacy __spk__ group {stem} maps to templated global {global_name}, but template parameters and arguments do not match.",
+                    f"legacy __spk__ group {stem} maps to templated global "
+                    f"{global_name}, but template parameters and arguments do not "
+                    "match.",
                     [
                         json.dumps(
                             {"params": template_params, "args": template_args},
@@ -1717,12 +1730,18 @@ def _runtime_setup_lines(entry: dict[str, Any]) -> list[str]:
         lines.extend(
             [
                 f"    TORCH_CHECK({name}.size() == static_cast<int64_t>(sizeof({c_type})),",
-                f'                "host-struct parameter {name} expects ", sizeof({c_type}), " bytes, got ", {name}.size());',
+                (
+                    f'                "host-struct parameter {name} expects ", '
+                    f'sizeof({c_type}), " bytes, got ", {name}.size());'
+                ),
                 f"    {c_type} {name}_host{{}};",
                 f"    auto *{name}_bytes = reinterpret_cast<uint8_t *>(&{name}_host);",
                 f"    for (size_t i = 0; i < sizeof({c_type}); ++i) {{",
                 f"        auto value = {name}[static_cast<int64_t>(i)];",
-                f'        TORCH_CHECK(value >= 0 && value <= 255, "host-struct parameter {name} byte out of range at index ", i);',
+                (
+                    f"        TORCH_CHECK(value >= 0 && value <= 255, "
+                    f'"host-struct parameter {name} byte out of range at index ", i);'
+                ),
                 f"        {name}_bytes[i] = static_cast<uint8_t>(value);",
                 "    }",
             ]
@@ -2226,7 +2245,8 @@ def render_op_extension_init_py(module_name: str, entries: list[dict[str, Any]])
         lines.append(f"def run_{name}(*args, **kwargs):")
         lines.append(f"    if {name!r} not in custom_ops_libs:")
         lines.append(
-            f"        raise RuntimeError('ACLGraph custom op {name} is not packaged for selected NPU arch %s' % SELECTED_NPU_ARCH)"
+            f"        raise RuntimeError('ACLGraph custom op {name} is not "
+            "packaged for selected NPU arch %s' % SELECTED_NPU_ARCH)"
         )
         lines.append(
             f"    return custom_ops_libs[{name!r}].run_{name}(*args, **kwargs)"
@@ -2794,12 +2814,35 @@ def _render_real_device_compare_body(
                     f"    std::vector<uint8_t> {host_var}({name}_bytes, static_cast<uint8_t>({fill_value}));",
                     f"    uint8_t *{baseline_var} = nullptr;",
                     f"    uint8_t *{sk_var} = nullptr;",
-                    f'    if (!acl_ok(aclrtMalloc(reinterpret_cast<void **>(&{baseline_var}), {name}_bytes, ACL_MEM_MALLOC_HUGE_FIRST), result, "aclrtMalloc {name} baseline")) {{ free_device_ptrs(cleanup_device_ptrs); return result; }}',
+                    (
+                        f"    if (!acl_ok(aclrtMalloc(reinterpret_cast<void **>"
+                        f"(&{baseline_var}), {name}_bytes, "
+                        f'ACL_MEM_MALLOC_HUGE_FIRST), result, "aclrtMalloc {name} '
+                        'baseline")) { free_device_ptrs(cleanup_device_ptrs); '
+                        "return result; }"
+                    ),
                     f"    cleanup_device_ptrs.push_back(static_cast<void *>({baseline_var}));",
-                    f'    if (!acl_ok(aclrtMalloc(reinterpret_cast<void **>(&{sk_var}), {name}_bytes, ACL_MEM_MALLOC_HUGE_FIRST), result, "aclrtMalloc {name} sk")) {{ free_device_ptrs(cleanup_device_ptrs); return result; }}',
+                    (
+                        f"    if (!acl_ok(aclrtMalloc(reinterpret_cast<void **>"
+                        f"(&{sk_var}), {name}_bytes, ACL_MEM_MALLOC_HUGE_FIRST), "
+                        f'result, "aclrtMalloc {name} sk")) {{ '
+                        "free_device_ptrs(cleanup_device_ptrs); return result; }"
+                    ),
                     f"    cleanup_device_ptrs.push_back(static_cast<void *>({sk_var}));",
-                    f'    if (!acl_ok(aclrtMemcpy({baseline_var}, {name}_bytes, {host_var}.data(), {name}_bytes, ACL_MEMCPY_HOST_TO_DEVICE), result, "aclrtMemcpy {name} baseline input")) {{ free_device_ptrs(cleanup_device_ptrs); return result; }}',
-                    f'    if (!acl_ok(aclrtMemcpy({sk_var}, {name}_bytes, {host_var}.data(), {name}_bytes, ACL_MEMCPY_HOST_TO_DEVICE), result, "aclrtMemcpy {name} sk input")) {{ free_device_ptrs(cleanup_device_ptrs); return result; }}',
+                    (
+                        f"    if (!acl_ok(aclrtMemcpy({baseline_var}, {name}_bytes, "
+                        f"{host_var}.data(), {name}_bytes, "
+                        f'ACL_MEMCPY_HOST_TO_DEVICE), result, "aclrtMemcpy {name} '
+                        'baseline input")) { free_device_ptrs(cleanup_device_ptrs); '
+                        "return result; }"
+                    ),
+                    (
+                        f"    if (!acl_ok(aclrtMemcpy({sk_var}, {name}_bytes, "
+                        f"{host_var}.data(), {name}_bytes, "
+                        f'ACL_MEMCPY_HOST_TO_DEVICE), result, "aclrtMemcpy {name} '
+                        'sk input")) { free_device_ptrs(cleanup_device_ptrs); '
+                        "return result; }"
+                    ),
                 ]
             )
             baseline_args.append(_standalone_buffer_cast(c_type, baseline_var))
@@ -2815,17 +2858,25 @@ def _render_real_device_compare_body(
             raise ValueError(
                 f"unsupported runtime fixture kind for {entry['entry_name']}.{name}: {kind}"
             )
+    baseline_arg_suffix = f"{', ' if baseline_args else ''}{', '.join(baseline_args)}"
     lines.append(
-        f"    launch_{wrapper}_baseline(entry_block_dim, stream{', ' if baseline_args else ''}{', '.join(baseline_args)});"
+        f"    launch_{wrapper}_baseline(entry_block_dim, stream{baseline_arg_suffix});"
     )
     lines.append(
-        '    if (!acl_ok(aclrtSynchronizeStream(acl_stream), result, "aclrtSynchronizeStream baseline")) { free_device_ptrs(cleanup_device_ptrs); return result; }'
+        '    if (!acl_ok(aclrtSynchronizeStream(acl_stream), result, '
+        '"aclrtSynchronizeStream baseline")) { '
+        "free_device_ptrs(cleanup_device_ptrs); return result; }"
+    )
+    sk_arg_suffix = f"{', ' if sk_args else ''}{', '.join(sk_args)}"
+    lines.append(
+        f"    if (!launch_{wrapper}_sk(entry_block_dim, stream, "
+        f"result{sk_arg_suffix})) {{ free_device_ptrs(cleanup_device_ptrs); "
+        "return result; }"
     )
     lines.append(
-        f"    if (!launch_{wrapper}_sk(entry_block_dim, stream, result{', ' if sk_args else ''}{', '.join(sk_args)})) {{ free_device_ptrs(cleanup_device_ptrs); return result; }}"
-    )
-    lines.append(
-        '    if (!acl_ok(aclrtSynchronizeStream(acl_stream), result, "aclrtSynchronizeStream sk")) { free_device_ptrs(cleanup_device_ptrs); return result; }'
+        '    if (!acl_ok(aclrtSynchronizeStream(acl_stream), result, '
+        '"aclrtSynchronizeStream sk")) { free_device_ptrs(cleanup_device_ptrs); '
+        "return result; }"
     )
     if compare_buffers:
         lines.append("    bool matched = true;")
@@ -2834,8 +2885,20 @@ def _render_real_device_compare_body(
                 [
                     f"    std::vector<uint8_t> {name}_baseline_host({name}_bytes);",
                     f"    std::vector<uint8_t> {name}_sk_host({name}_bytes);",
-                    f'    if (!acl_ok(aclrtMemcpy({name}_baseline_host.data(), {name}_bytes, {name}_baseline_device, {name}_bytes, ACL_MEMCPY_DEVICE_TO_HOST), result, "aclrtMemcpy {name} baseline output")) {{ free_device_ptrs(cleanup_device_ptrs); return result; }}',
-                    f'    if (!acl_ok(aclrtMemcpy({name}_sk_host.data(), {name}_bytes, {name}_sk_device, {name}_bytes, ACL_MEMCPY_DEVICE_TO_HOST), result, "aclrtMemcpy {name} sk output")) {{ free_device_ptrs(cleanup_device_ptrs); return result; }}',
+                    (
+                        f"    if (!acl_ok(aclrtMemcpy({name}_baseline_host.data(), "
+                        f"{name}_bytes, {name}_baseline_device, {name}_bytes, "
+                        f'ACL_MEMCPY_DEVICE_TO_HOST), result, "aclrtMemcpy {name} '
+                        'baseline output")) { '
+                        "free_device_ptrs(cleanup_device_ptrs); return result; }"
+                    ),
+                    (
+                        f"    if (!acl_ok(aclrtMemcpy({name}_sk_host.data(), "
+                        f"{name}_bytes, {name}_sk_device, {name}_bytes, "
+                        f'ACL_MEMCPY_DEVICE_TO_HOST), result, "aclrtMemcpy {name} '
+                        'sk output")) { free_device_ptrs(cleanup_device_ptrs); '
+                        "return result; }"
+                    ),
                     f"    result.baseline_hash = hash_combine(result.baseline_hash, fnv1a64({name}_baseline_host));",
                     f"    result.sk_hash = hash_combine(result.sk_hash, fnv1a64({name}_sk_host));",
                     f"    result.compared_bytes += {name}_bytes;",
@@ -2869,15 +2932,25 @@ def render_standalone_compare_source(
     """Render a standalone ASC executable source for bind-target differential routing."""
     entries = _manifest_entries(adapted_manifest)
     if source_stem is not None:
-        entries = [entry for entry in entries if entry["entry_name"] == source_stem]
-    csrc_includes = sorted(
-        f"csrc/{Path(item).stem}/{Path(item).name}"
-        for item in adapted_manifest.get("canonical_written_files", [])
-        if str(item).startswith("operator-sk-adapted/csrc/")
-        and str(item).endswith(".asc")
-        and not _is_aclgraph_pybind_source_name(Path(str(item)).name)
-        and (source_stem is None or Path(str(item)).stem == source_stem)
-    )
+        filtered_entries = []
+        for entry in entries:
+            if entry["entry_name"] == source_stem:
+                filtered_entries.append(entry)
+        entries = filtered_entries
+    csrc_includes = []
+    for item in adapted_manifest.get("canonical_written_files", []):
+        item_text = str(item)
+        item_path = Path(item_text)
+        if not item_text.startswith("operator-sk-adapted/csrc/"):
+            continue
+        if not item_text.endswith(".asc"):
+            continue
+        if _is_aclgraph_pybind_source_name(item_path.name):
+            continue
+        if source_stem is not None and item_path.stem != source_stem:
+            continue
+        csrc_includes.append(f"csrc/{item_path.stem}/{item_path.name}")
+    csrc_includes = sorted(csrc_includes)
     if not include_kernel:
         csrc_includes = []
     lines = [
@@ -2971,12 +3044,14 @@ def render_standalone_compare_source(
             '        has_failed = has_failed || result.status == "failed";',
             '        has_passed = has_passed || result.status == "passed";',
             '        has_skipped_no_npu = has_skipped_no_npu || result.status == "skipped-no-npu";',
-            '        has_skipped_insufficient = has_skipped_insufficient || result.status == "skipped-insufficient-runtime-spec";',
+            "        has_skipped_insufficient = has_skipped_insufficient || "
+            'result.status == "skipped-insufficient-runtime-spec";',
             "    }",
             '    if (has_failed) return "failed";',
             '    if (has_passed && !has_skipped_no_npu && !has_skipped_insufficient) return "passed";',
             '    if (!has_passed && has_skipped_no_npu && !has_skipped_insufficient) return "skipped-no-npu";',
-            '    if (!has_passed && !has_skipped_no_npu && has_skipped_insufficient) return "skipped-insufficient-runtime-spec";',
+            "    if (!has_passed && !has_skipped_no_npu && "
+            'has_skipped_insufficient) return "skipped-insufficient-runtime-spec";',
             '    return "mixed";',
             "}",
             "",
@@ -2990,7 +3065,9 @@ def render_standalone_compare_source(
             '            std::cout << ",";',
             "        }",
             "        print_json_string(results[i].entry_name);",
-            '        std::cout << ":{\\"baseline\\":[" << results[i].baseline_hash << "," << results[i].compared_bytes << "],\\"sk\\":[" << results[i].sk_hash << "," << results[i].compared_bytes << "]}";',
+            '        std::cout << ":{\\"baseline\\":[" << results[i].baseline_hash '
+            '<< "," << results[i].compared_bytes << "],\\"sk\\":[" '
+            '<< results[i].sk_hash << "," << results[i].compared_bytes << "]}";',
             "    }",
             '    std::cout << "},\\"calls\\":{";',
             "    for (size_t i = 0; i < results.size(); ++i) {",
@@ -3047,19 +3124,23 @@ def render_standalone_compare_source(
             )
             lines.append("    aclmdlRI model_ri;")
             lines.append(
-                '    if (!acl_ok(aclmdlRICaptureBegin(acl_stream, ACL_MODEL_RI_CAPTURE_MODE_GLOBAL), result, "aclmdlRICaptureBegin sk")) return false;'
+                "    if (!acl_ok(aclmdlRICaptureBegin(acl_stream, "
+                "ACL_MODEL_RI_CAPTURE_MODE_GLOBAL), result, "
+                '"aclmdlRICaptureBegin sk")) return false;'
             )
             lines.append(
                 f"    {bind_target}<<<block_dim, nullptr, stream>>>({arg_tail});"
             )
             lines.append(
-                '    if (!acl_ok(aclmdlRICaptureEnd(acl_stream, &model_ri), result, "aclmdlRICaptureEnd sk")) return false;'
+                '    if (!acl_ok(aclmdlRICaptureEnd(acl_stream, &model_ri), '
+                'result, "aclmdlRICaptureEnd sk")) return false;'
             )
             lines.append(
                 '    if (!acl_ok(aclskOptimize(model_ri, nullptr), result, "aclskOptimize sk")) return false;'
             )
             lines.append(
-                '    if (!acl_ok(aclmdlRIExecuteAsync(model_ri, acl_stream), result, "aclmdlRIExecuteAsync sk")) return false;'
+                '    if (!acl_ok(aclmdlRIExecuteAsync(model_ri, acl_stream), '
+                'result, "aclmdlRIExecuteAsync sk")) return false;'
             )
             lines.append("    return true;")
             lines.append("}")
@@ -3114,8 +3195,11 @@ def render_standalone_compare_source(
         [
             "int main()",
             "{",
-            '    if (!standalone_env_enabled("SK_OPERATOR_MOCK_NPU") && !standalone_env_enabled("SK_OPERATOR_RUN_DEVICE_COMPARE")) {',
-            '        std::cout << "{\\"backend\\":\\"standalone\\",\\"status\\":\\"skipped-no-npu\\",\\"outputs\\":{},\\"calls\\":{},\\"statuses\\":{}}" << std::endl;',
+            '    if (!standalone_env_enabled("SK_OPERATOR_MOCK_NPU") && '
+            '!standalone_env_enabled("SK_OPERATOR_RUN_DEVICE_COMPARE")) {',
+            '        std::cout << "{\\"backend\\":\\"standalone\\",'
+            '\\"status\\":\\"skipped-no-npu\\",\\"outputs\\":{},'
+            '\\"calls\\":{},\\"statuses\\":{}}" << std::endl;',
             "        return 0;",
             "    }",
             "    int32_t device_id = 0;",
@@ -3127,10 +3211,19 @@ def render_standalone_compare_source(
             "    std::vector<StandaloneEntryResult> results;",
             "    aclrtStream acl_stream = nullptr;",
             '    if (standalone_env_enabled("SK_OPERATOR_RUN_DEVICE_COMPARE")) {',
-            '        StandaloneEntryResult runtime_setup_result{"runtime_setup", "failed", "runtime_setup_failed", "acl_runtime_setup", "acl_runtime_setup"};',
-            '        if (!acl_ok(aclInit(nullptr), runtime_setup_result, "aclInit")) { results.push_back(runtime_setup_result); print_results(results); return 1; }',
-            '        if (!acl_ok(aclrtSetDevice(device_id), runtime_setup_result, "aclrtSetDevice")) { results.push_back(runtime_setup_result); print_results(results); aclFinalize(); return 1; }',
-            '        if (!acl_ok(aclrtCreateStream(&acl_stream), runtime_setup_result, "aclrtCreateStream")) { results.push_back(runtime_setup_result); print_results(results); aclrtResetDevice(device_id); aclFinalize(); return 1; }',
+            "        StandaloneEntryResult runtime_setup_result"
+            '{"runtime_setup", "failed", "runtime_setup_failed", '
+            '"acl_runtime_setup", "acl_runtime_setup"};',
+            '        if (!acl_ok(aclInit(nullptr), runtime_setup_result, "aclInit")) '
+            "{ results.push_back(runtime_setup_result); print_results(results); "
+            "return 1; }",
+            '        if (!acl_ok(aclrtSetDevice(device_id), runtime_setup_result, '
+            '"aclrtSetDevice")) { results.push_back(runtime_setup_result); '
+            "print_results(results); aclFinalize(); return 1; }",
+            '        if (!acl_ok(aclrtCreateStream(&acl_stream), runtime_setup_result, '
+            '"aclrtCreateStream")) { results.push_back(runtime_setup_result); '
+            "print_results(results); aclrtResetDevice(device_id); aclFinalize(); "
+            "return 1; }",
             "    }",
             "    uint32_t block_dim = 1;",
             "    void *stream = static_cast<void *>(acl_stream);",
@@ -3195,7 +3288,9 @@ foreach(runtime_target IN ITEMS {target_items})
     )
 
     target_link_libraries(${{runtime_target}} PRIVATE
-        ascendsk acl_rt acl_rtc ascendcl ascend_dump runtime error_manager c_sec unified_dlog ascendc_runtime profapi profimpl msprofiler stdc++ pthread
+        ascendsk acl_rt acl_rtc ascendcl ascend_dump runtime error_manager
+        c_sec unified_dlog ascendc_runtime profapi profimpl msprofiler
+        stdc++ pthread
     )
 
     target_link_options(${{runtime_target}} PRIVATE -Wl,--allow-shlib-undefined)
@@ -3472,17 +3567,20 @@ _QUOTED_INCLUDE_RE = re.compile(r'(?m)^(\s*#\s*include\s*)"([^"]+)"')
 
 
 def _aggregate_csrc_support_files(source_csrc_dir: Path) -> list[Path]:
-    return [
-        source_path
-        for source_path in sorted(
-            path for path in source_csrc_dir.rglob("*") if path.is_file()
-        )
-        if not (
+    support_files = []
+    for source_path in sorted(source_csrc_dir.rglob("*")):
+        if not source_path.is_file():
+            continue
+        is_top_level_asc = (
             len(source_path.relative_to(source_csrc_dir).parts) == 1
             and source_path.suffix == ".asc"
         )
-        and not _is_aclgraph_pybind_source_name(source_path.name)
-    ]
+        if is_top_level_asc:
+            continue
+        if _is_aclgraph_pybind_source_name(source_path.name):
+            continue
+        support_files.append(source_path)
+    return support_files
 
 
 def _rewrite_aggregate_support_includes(
@@ -4070,13 +4168,18 @@ def _run_spec_clean_loop_inline(
 
         for round_index in range(max_rounds):
             findings = _inline_pre_adapt_findings(asset_dir)
-            blockers = [f for f in findings if f.get("severity") == "blocker"]
-            auto_findings = [
-                f
-                for f in findings
-                if "codegen.apply-remediation" in f.get("actionable_by", [])
-                and f.get("remediation_hint", {}).get("kind") in AUTO_REMEDIATION_KINDS
-            ]
+            blockers = []
+            auto_findings = []
+            for finding in findings:
+                if finding.get("severity") == "blocker":
+                    blockers.append(finding)
+                actionable_by = finding.get("actionable_by", [])
+                remediation_kind = finding.get("remediation_hint", {}).get("kind")
+                if (
+                    "codegen.apply-remediation" in actionable_by
+                    and remediation_kind in AUTO_REMEDIATION_KINDS
+                ):
+                    auto_findings.append(finding)
             if not blockers and not auto_findings:
                 return source_path.read_text(encoding="utf-8"), inline_remediations, []
 

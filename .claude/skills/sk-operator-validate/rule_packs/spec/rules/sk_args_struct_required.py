@@ -83,7 +83,10 @@ def check(units):
                         "category": RULE["category"],
                         "actionable_by": ["human"],
                         "remediation_hint": {"kind": "human-decision"},
-                        "message": f"__sk__ function {m.group('name')!r} first parameter is {first!r}; expected `const <ArgsStruct> *args`.",
+                        "message": (
+                            f"__sk__ function {m.group('name')!r} first parameter "
+                            f"is {first!r}; expected `const <ArgsStruct> *args`."
+                        ),
                         "target_file": unit["rel"],
                         "evidence_signature": f"sk_args_first_param:{m.group('name')}",
                     }

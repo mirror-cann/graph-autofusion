@@ -32,7 +32,9 @@ RE_SCOPE_SUMMARY = re.compile(
     r"scopeBitFlags=([0-9a-fA-F]+), scopeNames=\[(.*)\]"
 )
 RE_SCOPE_NODE = re.compile(
-    r"\[(\d+)\] \[nodeId:(\d+), streamId:(-?\d+), streamIdxInGraph:(\d+), nodeIdxInStream:(\d+)(?:, ([^\]]+))?\](?: - (.+))?"
+    r"\[(\d+)\] \[nodeId:(\d+), streamId:(-?\d+), "
+    r"streamIdxInGraph:(\d+), nodeIdxInStream:(\d+)"
+    r"(?:, ([^\]]+))?\](?: - (.+))?"
 )
 RE_SCOPE_NODE_HEADER = re.compile(r"Scope (\d+) nodes: (\d+)")
 RE_SCOPE_STREAM = re.compile(
@@ -99,7 +101,9 @@ RE_SCOPE_UPDATE_BEGIN = re.compile(
     r"scope update begin:\s*(?:scopeName=([^,]+),\s*)?streamCount=(\d+)"
 )
 RE_UPDATE_STREAM_BEGIN = re.compile(
-    r"update stream begin:\s*(?:scopeName=([^,]+),\s*)?streamId=(\d+), headNodeId=(\d+), tailNodeId=(\d+), nodeSize=(\d+), customParamSize=(\d+)"
+    r"update stream begin:\s*(?:scopeName=([^,]+),\s*)?"
+    r"streamId=(\d+), headNodeId=(\d+), tailNodeId=(\d+), "
+    r"nodeSize=(\d+), customParamSize=(\d+)"
 )
 RE_UPDATING_NODE_TASK = re.compile(r"Updating node for task\s*:\s*(\d+)")
 RE_UPDATED_KERNEL_NODE = re.compile(
@@ -757,7 +761,10 @@ def _validate_model_instance_report(
             "scope_node_library_missing",
             model_dir=model_path,
             model_instance_id=model_instance_id,
-            message="scope library contains node ids, but graph node library is empty; scope graph rendering may be unavailable",
+            message=(
+                "scope library contains node ids, but graph node library is empty; "
+                "scope graph rendering may be unavailable"
+            ),
             details={
                 "scope_count": diagnostics["scope_count"],
                 "scope_node_count": diagnostics["scope_node_count"],
@@ -795,7 +802,10 @@ def _validate_model_instance_report(
             "node_update_registry_empty",
             model_dir=model_path,
             model_instance_id=model_instance_id,
-            message="node_update_registry is empty; scope nodes can still render, but update annotations will be unavailable",
+            message=(
+                "node_update_registry is empty; scope nodes can still render, "
+                "but update annotations will be unavailable"
+            ),
             details={
                 "scope_node_count": diagnostics["scope_node_count"],
                 "scope_count": diagnostics["scope_count"],
@@ -971,7 +981,10 @@ def _annotate_scope_library_for_output(scope_library: Any) -> Any:
                 continue
             scope["$field_comments"] = {
                 "scope_export_ordinal": "Stable display order inside the current scope-library file.",
-                "update": "Update-phase payload for this scope. Null means no update or synthesized custom payload was observed.",
+                "update": (
+                    "Update-phase payload for this scope. Null means no update "
+                    "or synthesized custom payload was observed."
+                ),
             }
             update_payload = scope.get("update")
             if isinstance(update_payload, dict):
@@ -1186,12 +1199,10 @@ def _parse_device_task_entry_line(
     task_index = _safe_parse_int(fields.get("idx"))
     block_count = _safe_parse_int(fields.get("blk"))
     entry_count = _safe_parse_int(fields.get("entries"))
-    if (
-        task_index is None
-        or block_count is None
-        or entry_count is None
-        or "args" not in fields
-    ):
+    missing_required_fields = (
+        task_index is None or block_count is None or entry_count is None
+    )
+    if missing_required_fields or "args" not in fields:
         return None
 
     task_type = match.group(2)
@@ -1458,12 +1469,12 @@ def _match_unscoped_task_queue_json(
     samples: list[dict[str, Any]],
 ) -> tuple[int | None, int | None]:
     json_counts = _json_queue_task_counts(unscoped_payload)
-    candidates = [
-        (index, section)
-        for index, section in enumerate(sections)
-        if index not in excluded_section_indexes
-        and _queue_task_counts(section) == json_counts
-    ]
+    candidates = []
+    for index, section in enumerate(sections):
+        if index in excluded_section_indexes:
+            continue
+        if _queue_task_counts(section) == json_counts:
+            candidates.append((index, section))
     if len(candidates) != 1:
         return None, None
     section_index, section = candidates[0]
@@ -1539,14 +1550,12 @@ def _validate_device_task_library_with_json(
     missing_in_log = sorted(
         scope_id for scope_id in scopes_by_id if scope_id not in sections_by_scope_id
     )
-    missing_in_json = sorted(
-        {
-            scope_id
-            for section_index, section in enumerate(sections)
-            for scope_id in [_safe_parse_int(section.get("sk_id"))]
-            if section_index not in matched_section_indexes and scope_id is not None
-        }
-    )
+    missing_scope_ids = set()
+    for section_index, section in enumerate(sections):
+        scope_id = _safe_parse_int(section.get("sk_id"))
+        if section_index not in matched_section_indexes and scope_id is not None:
+            missing_scope_ids.add(scope_id)
+    missing_in_json = sorted(missing_scope_ids)
     status = "passed"
     if mismatch_count:
         status = "mismatch"
@@ -1813,16 +1822,16 @@ def annotate_device_task_graph_identity(
     fused_functions = (
         fused_library.get("functions", []) if isinstance(fused_library, dict) else []
     )
-    node_ids_in_library = {
-        int(node.get("node_id"))
-        for node in node_library.get("nodes", [])
-        if isinstance(node, dict) and node.get("node_id") is not None
-    }
-    node_identity_by_id = {
-        int(node.get("node_id")): node
-        for node in node_library.get("nodes", [])
-        if isinstance(node, dict) and isinstance(node.get("node_id"), int)
-    }
+    node_ids_in_library = set()
+    node_identity_by_id = {}
+    for node in node_library.get("nodes", []):
+        if not isinstance(node, dict):
+            continue
+        node_id = node.get("node_id")
+        if node_id is not None:
+            node_ids_in_library.add(int(node_id))
+        if isinstance(node_id, int):
+            node_identity_by_id[int(node_id)] = node
     duplicate_samples_by_identity_key: dict[str, list[dict[str, Any]]] = {}
     excluded_reason_counts: dict[str, int] = {}
     valid_source_counts = {"explicit_node_id": 0, "fused_ordinal": 0}
@@ -1921,7 +1930,10 @@ def annotate_device_task_graph_identity(
                         section_valid_source_counts.get(source, 0) + 1
                     )
                     resolved_node_id = int(resolved["resolved_graph_node_id"])
-                    identity_key = f"{str(queue_name).upper()}:{str(task.get('task_type') or '').upper()}:{resolved_node_id}"
+                    task_type = str(task.get("task_type") or "").upper()
+                    identity_key = (
+                        f"{str(queue_name).upper()}:{task_type}:{resolved_node_id}"
+                    )
                     sample = _task_identity_sample(
                         section=section,
                         queue_name=str(queue_name),
@@ -3799,7 +3811,10 @@ def _group_scope_batches_by_terminal_final(
             "WARN",
             "scope_library_trailing_batches_ignored",
             model_dir=model_dir,
-            message="scope split batches remain after the terminal final pass grouping; trailing transitions are ignored",
+            message=(
+                "scope split batches remain after the terminal final pass grouping; "
+                "trailing transitions are ignored"
+            ),
             details={
                 "source_kind": source_kind,
                 "ignored_batch_count": len(batches) - start,
@@ -4321,7 +4336,10 @@ def _partition_entries_by_model_instance_timestamps(
             "WARN",
             "node_library_ambiguous_timestamp_entries",
             model_dir=model_dir,
-            message="some node detail entries match multiple optimize/model-instance timestamp windows and remain unassigned",
+            message=(
+                "some node detail entries match multiple optimize/model-instance "
+                "timestamp windows and remain unassigned"
+            ),
             details={
                 "source_kind": source_kind,
                 "ambiguous_entry_count": len(ambiguous_entries),
@@ -4337,7 +4355,10 @@ def _partition_entries_by_model_instance_timestamps(
             "WARN",
             "node_library_unassigned_timestamp_entries",
             model_dir=model_dir,
-            message="some timestamped node detail entries fall outside every optimize/model-instance window and remain unassigned",
+            message=(
+                "some timestamped node detail entries fall outside every "
+                "optimize/model-instance window and remain unassigned"
+            ),
             details={
                 "source_kind": source_kind,
                 "unassigned_entry_count": len(unassigned_entries),
@@ -4353,7 +4374,10 @@ def _partition_entries_by_model_instance_timestamps(
             "WARN",
             "node_library_untimestamped_entries",
             model_dir=model_dir,
-            message="some node detail entries do not carry timestamps and cannot participate in timestamp-based model-instance partitioning",
+            message=(
+                "some node detail entries do not carry timestamps and cannot "
+                "participate in timestamp-based model-instance partitioning"
+            ),
             details={
                 "source_kind": source_kind,
                 "untimestamped_entry_count": len(untimestamped_entries),
@@ -5067,15 +5091,14 @@ def _build_fused_function_descriptor(function: dict[str, Any]) -> dict[str, Any]
 
 
 def _build_device_section_descriptor(section: dict[str, Any]) -> dict[str, Any]:
-    queue_node_ids = sorted(
-        {
-            int(task.get("node_id"))
-            for queue in section.get("queues", {}).values()
-            if isinstance(queue, list)
-            for task in queue
-            if isinstance(task, dict) and isinstance(task.get("node_id"), int)
-        }
-    )
+    queue_node_id_set = set()
+    for queue in section.get("queues", {}).values():
+        if not isinstance(queue, list):
+            continue
+        for task in queue:
+            if isinstance(task, dict) and isinstance(task.get("node_id"), int):
+                queue_node_id_set.add(int(task.get("node_id")))
+    queue_node_ids = sorted(queue_node_id_set)
     return {
         "function_text": str(section.get("function_text") or ""),
         "sk_id": section.get("sk_id"),
@@ -5164,7 +5187,8 @@ def parse_fused_library_model_instances(
                 )
             if not matched_candidates:
                 reason = (
-                    f"fused_library cannot be safely model-instance partitioned for {_model_instance_id(model_instance)}: "
+                    "fused_library cannot be safely model-instance partitioned "
+                    f"for {_model_instance_id(model_instance)}: "
                     "no fused function matches the expected final-scope signature"
                 )
                 _parser_log(
@@ -5199,7 +5223,10 @@ def parse_fused_library_model_instances(
                         "fused_library_equivalent_candidates",
                         model_dir=model_dir,
                         model_instance_id=_model_instance_id(model_instance),
-                        message="multiple equivalent fused functions match the current final-scope signature; using the earliest unused function",
+                        message=(
+                            "multiple equivalent fused functions match the current "
+                            "final-scope signature; using the earliest unused function"
+                        ),
                         details={
                             "scope_id": scope_entry.get("scope_id"),
                             "candidate_function_count": len(matched_candidates),
@@ -5214,7 +5241,8 @@ def parse_fused_library_model_instances(
                     )
                 else:
                     reason = (
-                        f"fused_library cannot be safely model-instance partitioned for {_model_instance_id(model_instance)}: "
+                        "fused_library cannot be safely model-instance partitioned "
+                        f"for {_model_instance_id(model_instance)}: "
                         "multiple fused functions match the expected final-scope signature"
                     )
                     _parser_log(
@@ -5366,18 +5394,19 @@ def parse_device_task_library_model_instances(
             for _ in range(model_instance_count)
         ]
 
-    instance_universe_node_ids = [
-        {
-            int(node.get("node_id"))
-            for node in _expected_model_instance_universe_nodes(
-                raw_scope_model_instances[index]
-                if index < len(raw_scope_model_instances)
-                else raw_scope_model_instances[-1]
-            )
-            if isinstance(node.get("node_id"), int)
-        }
-        for index in range(model_instance_count)
-    ]
+    instance_universe_node_ids = []
+    for index in range(model_instance_count):
+        raw_scope_model_instance = (
+            raw_scope_model_instances[index]
+            if index < len(raw_scope_model_instances)
+            else raw_scope_model_instances[-1]
+        )
+        node_ids = set()
+        for node in _expected_model_instance_universe_nodes(raw_scope_model_instance):
+            node_id = node.get("node_id")
+            if isinstance(node_id, int):
+                node_ids.add(int(node_id))
+        instance_universe_node_ids.append(node_ids)
 
     remaining_expected: list[list[dict[str, Any]]] = [
         [
@@ -5412,14 +5441,18 @@ def parse_device_task_library_model_instances(
             tuple_matches = []
             for index in range(model_instance_count):
                 for expected_index, expected in enumerate(remaining_expected[index]):
-                    if (
+                    has_start_end = bool(
+                        descriptor["start_node_name"] and descriptor["end_node_name"]
+                    )
+                    sk_id_matches = (
                         descriptor["sk_id"] is not None
                         and descriptor["sk_id"] == expected["sk_id"]
-                        and descriptor["start_node_name"]
-                        and descriptor["end_node_name"]
-                        and descriptor["start_node_name"] == expected["start_node_name"]
+                    )
+                    start_end_matches = (
+                        descriptor["start_node_name"] == expected["start_node_name"]
                         and descriptor["end_node_name"] == expected["end_node_name"]
-                    ):
+                    )
+                    if has_start_end and sk_id_matches and start_end_matches:
                         tuple_matches.append((index, expected_index))
             if len(tuple_matches) == 1:
                 matched_instance, matched_index = tuple_matches[0]
@@ -5440,11 +5473,10 @@ def parse_device_task_library_model_instances(
 
         if matched_instance is None and descriptor["queue_node_ids"]:
             queue_node_id_set = set(descriptor["queue_node_ids"])
-            node_universe_matches = [
-                index
-                for index, universe_node_ids in enumerate(instance_universe_node_ids)
-                if queue_node_id_set.issubset(universe_node_ids)
-            ]
+            node_universe_matches = []
+            for index, universe_node_ids in enumerate(instance_universe_node_ids):
+                if queue_node_id_set.issubset(universe_node_ids):
+                    node_universe_matches.append(index)
             if len(node_universe_matches) == 1:
                 candidate_index = node_universe_matches[0]
                 if len(remaining_expected[candidate_index]) == 1:
@@ -5741,7 +5773,11 @@ def _scope_synthesized_custom_nodes(
                         "custom_instance_key": (
                             f"scope:{scope_export_ordinal}:{base_key}"
                             if base_key
-                            else f"scope:{scope_export_ordinal}:queue:{str(queue_name).upper()}:task:{task.get('task_id')}"
+                            else (
+                                f"scope:{scope_export_ordinal}:"
+                                f"queue:{str(queue_name).upper()}:"
+                                f"task:{task.get('task_id')}"
+                            )
                         ),
                         "scope_export_ordinal": scope_export_ordinal,
                         "scope_id": scope.get("scope_id"),
@@ -5822,6 +5858,24 @@ def build_scope_library_export(
         )
         update_payload = None
         if has_any_update_payload:
+            update_streams = []
+            update_stream_items = scope_update.get("streams", []) if scope_update else []
+            for item in update_stream_items:
+                update_streams.append(
+                    {
+                        "stream_id": item.get("stream_id"),
+                        "stream_idx_in_graph": item.get(
+                            "stream_idx_in_graph", item.get("stream_id")
+                        ),
+                        "head_node_id": item.get("head_node_id"),
+                        "tail_node_id": item.get("tail_node_id"),
+                        "node_size": item.get("node_size"),
+                        "custom_param_size": item.get("custom_param_size"),
+                        "visited_nodes": item.get("visited_nodes"),
+                        "begin_detail": item.get("begin_detail", ""),
+                        "end_detail": item.get("end_detail", ""),
+                    }
+                )
             update_payload = {
                 "begin_detail": scope_update.get("begin_detail", "")
                 if scope_update
@@ -5848,24 +5902,7 @@ def build_scope_library_export(
                     ),
                     "has_scope_update": scope_update is not None,
                 },
-                "streams": [
-                    {
-                        "stream_id": item.get("stream_id"),
-                        "stream_idx_in_graph": item.get(
-                            "stream_idx_in_graph", item.get("stream_id")
-                        ),
-                        "head_node_id": item.get("head_node_id"),
-                        "tail_node_id": item.get("tail_node_id"),
-                        "node_size": item.get("node_size"),
-                        "custom_param_size": item.get("custom_param_size"),
-                        "visited_nodes": item.get("visited_nodes"),
-                        "begin_detail": item.get("begin_detail", ""),
-                        "end_detail": item.get("end_detail", ""),
-                    }
-                    for item in (
-                        scope_update.get("streams", []) if scope_update else []
-                    )
-                ],
+                "streams": update_streams,
             }
         exported_scopes.append(
             {

@@ -23,7 +23,7 @@ import os
 import sys
 import json
 import argparse
-from typing import Dict, Optional
+from typing import Dict, NamedTuple, Optional
 
 from sk_visualizer_shared import (
     COMMON_DETAIL_TABLE_CSS,
@@ -124,19 +124,19 @@ def _scope_identity(section: dict, fused: Optional[dict], index: int) -> Dict[st
     display_name = f"SK节点 #{index}"
 
     subtitle = f"SK {sk_id}" if sk_id else ""
-    search_terms = " ".join(
-        part
-        for part in [
-            display_name,
-            subtitle,
-            normalized_scope,
-            start_node,
-            end_node,
-            sk_id,
-            scope_name,
-        ]
-        if part
-    )
+    search_parts = []
+    for part in [
+        display_name,
+        subtitle,
+        normalized_scope,
+        start_node,
+        end_node,
+        sk_id,
+        scope_name,
+    ]:
+        if part:
+            search_parts.append(part)
+    search_terms = " ".join(search_parts)
     return {
         "display_name": display_name,
         "subtitle": subtitle,
@@ -160,19 +160,26 @@ def _task_resolved_graph_node_id(
     return int(node_id) if node_id not in (None, "") else None
 
 
-def _library_task_to_payload(
-    task: dict,
-    queue_name: str,
-    log_seq: int,
-    section: dict,
-    node_lookup: Dict[int, dict],
-    ordinal_node_map: Dict[int, int],
-) -> dict:
+class LibraryTaskPayloadInput(NamedTuple):
+    task: dict
+    queue_name: str
+    log_seq: int
+    section: dict
+    node_lookup: Dict[int, dict]
+    ordinal_node_map: Dict[int, int]
+
+
+def _library_task_to_payload(payload_input: LibraryTaskPayloadInput) -> dict:
+    task = payload_input.task
     dispatch_type = str(task.get("task_type", "") or "").upper()
-    scope_name = section.get("scope_name", "")
+    scope_name = payload_input.section.get("scope_name", "")
     sync_type = str(task.get("sync_type", "") or "")
-    node_id = _task_resolved_graph_node_id(task, ordinal_node_map)
-    node_meta = node_lookup.get(int(node_id), {}) if node_id not in (None, "") else {}
+    node_id = _task_resolved_graph_node_id(task, payload_input.ordinal_node_map)
+    node_meta = (
+        payload_input.node_lookup.get(int(node_id), {})
+        if node_id not in (None, "")
+        else {}
+    )
     kernel_name = ""
     if dispatch_type in {"FUNC", "PRELOAD"}:
         kernel_name = str(node_meta.get("func_name") or scope_name or "")
@@ -291,18 +298,22 @@ def build_task_queue_result_from_scope_library(
         }
         aic_tasks = [
             _library_task_to_payload(
-                task, "AIC", log_seq, section, node_lookup, ordinal_node_map
+                LibraryTaskPayloadInput(
+                    task, "AIC", log_seq, section, node_lookup, ordinal_node_map
+                )
             )
             for log_seq, task in enumerate(section.get("queues", {}).get("AIC", []))
         ]
         aiv_tasks = [
             _library_task_to_payload(
-                task,
-                "AIV",
-                len(aic_tasks) + log_seq,
-                section,
-                node_lookup,
-                ordinal_node_map,
+                LibraryTaskPayloadInput(
+                    task,
+                    "AIV",
+                    len(aic_tasks) + log_seq,
+                    section,
+                    node_lookup,
+                    ordinal_node_map,
+                )
             )
             for log_seq, task in enumerate(section.get("queues", {}).get("AIV", []))
         ]
@@ -496,8 +507,14 @@ def generate_html(result: dict, output_path: str):
         nav_html=render_graph_nav(
             "sectionPrevBtn", "sectionNextBtn", "上一个 SK节点", "下一个 SK节点"
         ),
-        search_html='<input type="search" class="section-search toolbar-input" id="sectionSearchInput" placeholder="查找 SK节点名称、SK、起止节点名" />',
-        select_html='<select id="sectionSelect" class="toolbar-input graph-select" style="min-width: 360px; max-width: 580px;"></select>',
+        search_html=(
+            '<input type="search" class="section-search toolbar-input" '
+            'id="sectionSearchInput" placeholder="查找 SK节点名称、SK、起止节点名" />'
+        ),
+        select_html=(
+            '<select id="sectionSelect" class="toolbar-input graph-select" '
+            'style="min-width: 360px; max-width: 580px;"></select>'
+        ),
         index_chip_html=render_graph_index_chip(
             "sectionIndexChip", f"SK节点 1 / {section_count}"
         ),
@@ -663,7 +680,10 @@ def generate_html(result: dict, output_path: str):
     gap: 6px;
     margin-left: 4px;
 }}
-.filter-label {{ color: #8892a4; font-size: var(--sk-text-xs); font-weight: var(--sk-weight-medium); text-transform: uppercase; letter-spacing: 1px; margin-left: 4px; }}
+.filter-label {{
+    color: #8892a4; font-size: var(--sk-text-xs); font-weight: var(--sk-weight-medium);
+    text-transform: uppercase; letter-spacing: 1px; margin-left: 4px;
+}}
 .filter-btn {{
     padding: 6px 12px;
     border-radius: 999px;
@@ -1048,7 +1068,8 @@ function buildSectionOptionText(sec, idx) {{
     const dup = modelInstanceCount > 1 ? ` | 实例:${{modelInstanceCount}}` : '';
     const subtitle = sec.sk_subtitle ? ` | ${{sec.sk_subtitle}}` : '';
     const rawName = String(sec.sk_name || sec.sk_label || '').trim();
-    return `#${{idx + 1}} ${{rawName || 'SK节点'}} | AIC:${{aic}} AIV:${{aiv}} T:${{total}}${{subtitle}} | ${{sec.source_file}}:${{seq}}${{dup}}${{suffix}}`;
+    return `#${{idx + 1}} ${{rawName || 'SK节点'}} | AIC:${{aic}} AIV:${{aiv}} `
+        + `T:${{total}}${{subtitle}} | ${{sec.source_file}}:${{seq}}${{dup}}${{suffix}}`;
 }}
 
 function matchesSectionSearch(sec, idx) {{
@@ -1168,7 +1189,10 @@ function getStreamColor(streamIdx) {{
 }}
 
 function getColor(type, queue, streamIdxInGraph) {{
-    return COLORS_MAP[type] || {{ bg: '#475569', border: '#1e293b', text: '#fff', tagBg: '#e2e8f0', tagText: '#334155' }};
+    return COLORS_MAP[type] || {{
+        bg: '#475569', border: '#1e293b', text: '#fff',
+        tagBg: '#e2e8f0', tagText: '#334155'
+    }};
 }}
 
 function typeLabel(type) {{
@@ -1772,11 +1796,13 @@ function drawTaskNode(svg, task, x, y, idx, nodeW) {{
     if (taskIndexLabel) {{
         svgEl('rect', {{
             x: x + nodeW - idxW - 10, y: y + 8, width: idxW, height: 18,
-            rx: VIS.node.radiusPill, fill: 'rgba(255,255,255,0.24)', stroke: 'rgba(255,255,255,0.16)', 'stroke-width': '0.8',
+            rx: VIS.node.radiusPill, fill: 'rgba(255,255,255,0.24)',
+            stroke: 'rgba(255,255,255,0.16)', 'stroke-width': '0.8',
         }}, g);
         const idxText = svgEl('text', {{
             x: x + nodeW - idxW / 2 - 10, y: y + 20,
-            fill: 'rgba(255,255,255,0.96)', 'font-size': String(VIS.node.badgeMonoFontSize),
+            fill: 'rgba(255,255,255,0.96)',
+            'font-size': String(VIS.node.badgeMonoFontSize),
             'text-anchor': 'middle', 'font-family': "{VISUAL_FONT_MONO_STACK}",
             'font-weight': '700',
         }}, g);
@@ -1872,8 +1898,10 @@ function drawCrossQueueEdges(svg, links, aicY, aivY, nodeX0, aicPos, aivPos, cro
         const midY = (firstY + secondY) / 2 + ((pairIdx % 3) - 1) * 6;
         const railX = (firstNodeX + secondNodeX) / 2;
         const pathD = isCrossingLink
-            ? `M ${{firstNodeX}} ${{firstY}} C ${{firstNodeX}} ${{midY}}, ${{secondNodeX}} ${{midY}}, ${{secondNodeX}} ${{secondY}}`
-            : `M ${{firstNodeX}} ${{firstY}} L ${{railX}} ${{firstY}} L ${{railX}} ${{secondY}} L ${{secondNodeX}} ${{secondY}}`;
+            ? `M ${{firstNodeX}} ${{firstY}} C ${{firstNodeX}} ${{midY}}, `
+                + `${{secondNodeX}} ${{midY}}, ${{secondNodeX}} ${{secondY}}`
+            : `M ${{firstNodeX}} ${{firstY}} L ${{railX}} ${{firstY}} `
+                + `L ${{railX}} ${{secondY}} L ${{secondNodeX}} ${{secondY}}`;
 
         svgEl('path', {{
             d: pathD,
@@ -1891,7 +1919,8 @@ function drawCrossQueueEdges(svg, links, aicY, aivY, nodeX0, aicPos, aivPos, cro
         const labelWidth = Math.max(34, dirLabel.length * 7 + 14);
         svgEl('rect', {{
             x: labelX - labelWidth / 2, y: labelY - 11, width: labelWidth, height: 18,
-            rx: VIS.edge.labelRadiusMd, fill: 'rgba(255,255,255,0.96)', stroke: edgeTheme.pillStroke, 'stroke-width': '1',
+            rx: VIS.edge.labelRadiusMd, fill: 'rgba(255,255,255,0.96)',
+            stroke: edgeTheme.pillStroke, 'stroke-width': '1',
             'vector-effect': 'non-scaling-stroke',
         }}, svg);
         const labelText = svgEl('text', {{
@@ -1930,7 +1959,8 @@ function drawCrossQueueEdges(svg, links, aicY, aivY, nodeX0, aicPos, aivPos, cro
 
         svgEl('rect', {{
             x: setNodeX - 15, y: setLabelY - 9, width: 30, height: 14,
-            rx: VIS.edge.labelRadiusSm, fill: 'rgba(255,255,255,0.96)', stroke: edgeTheme.pillStroke, 'stroke-width': '1',
+            rx: VIS.edge.labelRadiusSm, fill: 'rgba(255,255,255,0.96)',
+            stroke: edgeTheme.pillStroke, 'stroke-width': '1',
         }}, svg);
         const setText = svgEl('text', {{
             x: setNodeX, y: setLabelY + 1,
@@ -1941,7 +1971,8 @@ function drawCrossQueueEdges(svg, links, aicY, aivY, nodeX0, aicPos, aivPos, cro
 
         svgEl('rect', {{
             x: waitNodeX - 17, y: waitLabelY - 9, width: 34, height: 14,
-            rx: VIS.edge.labelRadiusSm, fill: 'rgba(255,255,255,0.96)', stroke: edgeTheme.pillStroke, 'stroke-width': '1',
+            rx: VIS.edge.labelRadiusSm, fill: 'rgba(255,255,255,0.96)',
+            stroke: edgeTheme.pillStroke, 'stroke-width': '1',
         }}, svg);
         const waitText = svgEl('text', {{
             x: waitNodeX, y: waitLabelY + 1,
@@ -1950,6 +1981,11 @@ function drawCrossQueueEdges(svg, links, aicY, aivY, nodeX0, aicPos, aivPos, cro
         }}, svg);
         waitText.textContent = 'WAIT';
     }}
+}}
+
+function tooltipRow(label, value) {{
+    return `<div class="tt-row"><span class="tt-label">${{label}}:</span>`
+        + `<span class="tt-value">${{value}}</span></div>`;
 }}
 
 // ==================== Tooltip ====================
@@ -1962,39 +1998,50 @@ function showTooltip(e, task) {{
 
     let html = `<div class="tt-header">
         <div class="tt-title" style="color:${{c.bg}}">${{escapeHtml(label)}} Seq#${{task.task_id}}</div>
-        <span class="tt-queue" style="background:${{queueBg}};color:${{queueColor}}">${{task.queue.toUpperCase()}}</span>
+        <span class="tt-queue" style="background:${{queueBg}};color:${{queueColor}}">
+            ${{task.queue.toUpperCase()}}
+        </span>
     </div>`;
 
-    html += `<div class="tt-row"><span class="tt-label">TaskIdx:</span><span class="tt-value">${{taskIndexOf(task)}}</span></div>`;
-    html += `<div class="tt-row"><span class="tt-label">Type:</span><span class="tt-value">${{task.dispatch_type}}</span></div>`;
+    html += tooltipRow('TaskIdx', taskIndexOf(task));
+    html += tooltipRow('Type', task.dispatch_type);
     if (task.stream_id !== undefined && task.stream_id !== null && task.stream_id !== -1) {{
-        html += `<div class="tt-row"><span class="tt-label">StreamId:</span><span class="tt-value">${{task.stream_id}}</span></div>`;
-    }} else if (task.stream_idx_in_graph !== undefined && task.stream_idx_in_graph !== null && task.stream_idx_in_graph !== -1) {{
-        html += `<div class="tt-row"><span class="tt-label">GraphStreamIdx:</span><span class="tt-value">${{task.stream_idx_in_graph}}</span></div>`;
+        html += tooltipRow('StreamId', task.stream_id);
+    }} else if (
+        task.stream_idx_in_graph !== undefined
+        && task.stream_idx_in_graph !== null
+        && task.stream_idx_in_graph !== -1
+    ) {{
+        html += tooltipRow('GraphStreamIdx', task.stream_idx_in_graph);
     }}
 
     if (task.dispatch_type === 'FUNC' || task.dispatch_type === 'PRELOAD') {{
-        const kernelDisplay = (task.kernel_info && task.kernel_info.funcName) ? task.kernel_info.funcName : task.kernel_name;
-        if (kernelDisplay) html += `<div class="tt-row"><span class="tt-label">FuncName:</span><span class="tt-value">${{escapeHtml(kernelDisplay)}}</span></div>`;
-        if (task.num_blocks) html += `<div class="tt-row"><span class="tt-label">Blocks:</span><span class="tt-value">${{task.num_blocks}}</span></div>`;
+        const kernelDisplay = (task.kernel_info && task.kernel_info.funcName)
+            ? task.kernel_info.funcName
+            : task.kernel_name;
+        if (kernelDisplay) html += tooltipRow('FuncName', escapeHtml(kernelDisplay));
+        if (task.num_blocks) html += tooltipRow('Blocks', task.num_blocks);
         if (task.kernel_info && task.kernel_info.funcName) {{
-            html += `<div class="tt-row"><span class="tt-label">KernelType:</span><span class="tt-value">${{escapeHtml(task.kernel_info.kernelType)}}</span></div>`;
+            html += tooltipRow('KernelType', escapeHtml(task.kernel_info.kernelType));
             if (task.kernel_info.cubeNum || task.kernel_info.vecNum) {{
-                html += `<div class="tt-row"><span class="tt-label">Shape:</span><span class="tt-value">C:${{task.kernel_info.cubeNum||0}} / V:${{task.kernel_info.vecNum||0}}</span></div>`;
+                html += tooltipRow(
+                    'Shape',
+                    `C:${{task.kernel_info.cubeNum||0}} / V:${{task.kernel_info.vecNum||0}}`
+                );
             }}
         }}
     }} else if (task.dispatch_type === 'SYNC') {{
-        html += `<div class="tt-row"><span class="tt-label">SyncType:</span><span class="tt-value">${{task.sync_type || task.sync_flag}}</span></div>`;
-        html += `<div class="tt-row"><span class="tt-label">Direction:</span><span class="tt-value">${{task.sync_direction || '-'}}</span></div>`;
-        html += `<div class="tt-row"><span class="tt-label">Kind:</span><span class="tt-value">${{task.sync_kind || syncKind(task.sync_flag)}}</span></div>`;
-        html += `<div class="tt-row"><span class="tt-label">Args:</span><span class="tt-value">${{task.sync_raw_args || '-'}}</span></div>`;
+        html += tooltipRow('SyncType', task.sync_type || task.sync_flag);
+        html += tooltipRow('Direction', task.sync_direction || '-');
+        html += tooltipRow('Kind', task.sync_kind || syncKind(task.sync_flag));
+        html += tooltipRow('Args', task.sync_raw_args || '-');
     }} else if (isEvent(task.dispatch_type)) {{
-        html += `<div class="tt-row"><span class="tt-label">EventID:</span><span class="tt-value">${{task.event_id}}</span></div>`;
-        html += `<div class="tt-row"><span class="tt-label">ShortID:</span><span class="tt-value">${{shortEventId(task.event_id)}}</span></div>`;
-        html += `<div class="tt-row"><span class="tt-label">NodeID:</span><span class="tt-value">${{task.node_id}}</span></div>`;
-        html += `<div class="tt-row"><span class="tt-label">Args:</span><span class="tt-value">${{task.args || '-'}}</span></div>`;
+        html += tooltipRow('EventID', task.event_id);
+        html += tooltipRow('ShortID', shortEventId(task.event_id));
+        html += tooltipRow('NodeID', task.node_id);
+        html += tooltipRow('Args', task.args || '-');
         if (task.node_type) {{
-            html += `<div class="tt-row"><span class="tt-label">NodeType:</span><span class="tt-value">${{task.node_type}}</span></div>`;
+            html += tooltipRow('NodeType', task.node_type);
         }}
     }}
 
@@ -2051,7 +2098,12 @@ function toggleFilter(btn) {{
 const preferredSectionIndex = findPreferredSectionIndex(getTaskContext());
 if (preferredSectionIndex >= 0) currentSectionIndex = preferredSectionIndex;
 const detailToggleBtn = document.getElementById('detailToggleBtn');
-const detailToggleHead = document.querySelector('#detailContent') ? document.querySelector('#detailContent').closest('.detail-panel')?.querySelector('[data-detail-toggle]') : null;
+    const detailPanel = document.querySelector('#detailContent')
+        ? document.querySelector('#detailContent').closest('.detail-panel')
+        : null;
+    const detailToggleHead = detailPanel
+        ? detailPanel.querySelector('[data-detail-toggle]')
+        : null;
 const detailPrevBtn = document.getElementById('detailPrevBtn');
 const detailNextBtn = document.getElementById('detailNextBtn');
 const detailPageSizeSelect = document.getElementById('detailPageSize');

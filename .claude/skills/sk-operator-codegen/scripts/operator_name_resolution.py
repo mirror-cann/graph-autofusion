@@ -100,14 +100,11 @@ def build_name_resolution(
         public_name = base_name
         previous = used_public_names.get(public_name)
         public_name_collision = False
-        if (
-            policy == "namespace"
-            and previous is not None
-            and (
-                previous["asset_path"] != item["asset_path"]
-                or previous["source_entry_name"] != source_entry
-            )
-        ):
+        previous_is_different_asset = previous is not None and (
+            previous["asset_path"] != item["asset_path"]
+            or previous["source_entry_name"] != source_entry
+        )
+        if policy == "namespace" and previous_is_different_asset:
             public_name_collision = True
             public_name = f"{base_name}__{_short_hash(item['asset_namespace'], source_entry, item['asset_key'])}"
         used_public_names[public_name] = item

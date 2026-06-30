@@ -239,35 +239,30 @@ def build_target_resolution(
 ) -> dict[str, Any]:
     requested, unsupported = resolve_target_chips(target_chips)
     supported_norm = {normalize_chip(chip) for chip in supported_soc_versions}
-    supported_arch_norm = {
-        normalize_arch(resolved["arch"])
-        for chip in supported_soc_versions
-        for resolved in [resolve_chip_to_arch(chip)]
-        if resolved is not None
-    }
+    supported_arch_norm: set[str] = set()
+    for chip in supported_soc_versions:
+        resolved = resolve_chip_to_arch(chip)
+        if resolved is not None:
+            supported_arch_norm.add(normalize_arch(resolved["arch"]))
     has_declared_support = bool(supported_norm)
     resolutions: list[dict[str, Any]] = []
     skipped: list[dict[str, Any]] = []
-    candidate_chips = (
-        requested
-        if requested
-        else [
-            resolved
-            for chip in supported_soc_versions
-            for resolved in [resolve_chip_to_arch(chip)]
-            if resolved is not None
-        ]
-    )
+    candidate_chips = requested
+    if not candidate_chips:
+        candidate_chips = []
+        for chip in supported_soc_versions:
+            resolved = resolve_chip_to_arch(chip)
+            if resolved is not None:
+                candidate_chips.append(resolved)
     for item in candidate_chips:
         canonical_norm = normalize_chip(item["canonical_chip"])
         raw_norm = normalize_chip(item["chip"])
         arch_norm = normalize_arch(item["arch"])
-        if (
-            has_declared_support
-            and canonical_norm not in supported_norm
-            and raw_norm not in supported_norm
-            and arch_norm not in supported_arch_norm
-        ):
+        unsupported_chip = (
+            canonical_norm not in supported_norm and raw_norm not in supported_norm
+        )
+        unsupported_arch = arch_norm not in supported_arch_norm
+        if has_declared_support and unsupported_chip and unsupported_arch:
             skipped.append(
                 {
                     "chip": item["chip"],

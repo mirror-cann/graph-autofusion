@@ -377,7 +377,7 @@ def _run_asset_root_separately(
 
     layout = ArtifactLayout(output_dir)
     resolved_verify_backend, resolved_wheel_mode = (
-        orchestrator._resolve_profile_options(
+        orchestrator.resolve_profile_options(
             profile=args.profile,
             verify_backend=args.verify_backend,
             wheel_mode=wheel_mode,
@@ -385,7 +385,7 @@ def _run_asset_root_separately(
             no_package=bool(args.no_package),
         )
     )
-    selected_stages = PipelineOrchestrator._parse_stages(
+    selected_stages = PipelineOrchestrator.parse_stages(
         args.stages,
         do_package=not args.no_package,
         profile=args.profile,
@@ -459,15 +459,14 @@ def _run_asset_root_separately(
             source_path=Path(record["path"]),
             reason=record.get("reason", ""),
         )
-    selected_statuses = [
-        record["status"] for record in records if record["status"] != "skipped"
-    ]
-    failed = [
-        record
-        for record in records
-        if record["status"] not in _ASSET_ROOT_NON_BLOCKING_STATUSES
-        and record["status"] != "skipped"
-    ]
+    selected_statuses = []
+    failed = []
+    for record in records:
+        if record["status"] == "skipped":
+            continue
+        selected_statuses.append(record["status"])
+        if record["status"] not in _ASSET_ROOT_NON_BLOCKING_STATUSES:
+            failed.append(record)
     status = "completed" if not failed else "failed"
     release_success = (
         status == "completed"
@@ -851,11 +850,13 @@ def cmd_run_sk_pipeline(args: argparse.Namespace) -> int:
                 )
             )
             return rc
-        if (
+        aggregate_has_duplicates = bool(duplicates or duplicate_slugs)
+        should_explain_namespace_fix = (
             args.asset_root_mode == "aggregate"
-            and (duplicates or duplicate_slugs)
+            and aggregate_has_duplicates
             and not namespace_duplicates
-        ):
+        )
+        if should_explain_namespace_fix:
             details = {
                 "duplicate_entries": duplicates,
                 "duplicate_asset_slugs": duplicate_slugs,
@@ -986,7 +987,10 @@ def build_parser() -> argparse.ArgumentParser:
         "--asset-root-mode",
         choices=["auto", "aggregate", "separate"],
         default="auto",
-        help="How to run discovered --asset-root assets: aggregate one wheel, separate per asset, or auto-separate when samples collide",
+        help=(
+            "How to run discovered --asset-root assets: aggregate one wheel, "
+            "separate per asset, or auto-separate when samples collide"
+        ),
     )
     pipeline.add_argument(
         "--duplicate-entry-policy",
@@ -1030,7 +1034,10 @@ def build_parser() -> argparse.ArgumentParser:
     )
     pipeline.add_argument(
         "--io-contract",
-        help="JSON tensor IO contract forwarded to adapt-sk-from-global; required when multi-tensor output semantics are ambiguous",
+        help=(
+            "JSON tensor IO contract forwarded to adapt-sk-from-global; required "
+            "when multi-tensor output semantics are ambiguous"
+        ),
     )
     pipeline.add_argument(
         "--max-iterations",

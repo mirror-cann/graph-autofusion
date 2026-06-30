@@ -42,7 +42,10 @@ def check(units):
                     "category": RULE["category"],
                     "actionable_by": ["human"],
                     "remediation_hint": {"kind": "human-decision"},
-                    "message": "file has SK adaptation (__sk__/SK_BIND) but no original __global__ kernel; the original kernel must be preserved.",
+                    "message": (
+                        "file has SK adaptation (__sk__/SK_BIND) but no original "
+                        "__global__ kernel; the original kernel must be preserved."
+                    ),
                     "target_file": unit["rel"],
                     "evidence_signature": "global-missing",
                 }
