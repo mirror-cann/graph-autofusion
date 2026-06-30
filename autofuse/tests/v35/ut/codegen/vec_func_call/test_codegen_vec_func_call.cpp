@@ -27,6 +27,118 @@ using namespace af::ops;
 using namespace af::ascir_op;
 using namespace codegen;
 
+namespace {
+template <typename TensorLike>
+void SetTwoDimSchedule(TensorLike &tensor, const af::Axis &z0, const af::Axis &z1, const af::Expression &s0,
+                       const af::Expression &s1) {
+  *tensor.axis = {z0.id, z1.id};
+  *tensor.repeats = {s0, s1};
+  *tensor.strides = {s1, One};
+}
+
+void SetTwoDimVecInAttr(AscTensor &tensor, const af::Axis &z0, const af::Axis &z1, const af::Expression &stride,
+                        int64_t tensor_id) {
+  tensor.attr.vectorized_axis = {z0.id, z1.id};
+  tensor.attr.vectorized_strides = {stride, One};
+  tensor.attr.dtype = af::DT_FLOAT;
+  tensor.attr.mem.position = af::Position::kPositionVecIn;
+  tensor.attr.mem.tensor_id = tensor_id;
+}
+
+void InitScalarDataVfGraph(VectorFunc &vf_op, Store &store_op, Broadcast &sub_brc_op, Abs &abs_op, Store &sub_store_op,
+                           Output &sub_output_op, const ScalarData &scalar_data_op, const Scalar &sub_scalar_op,
+                           const af::Axis &z0, const af::Axis &z1, const af::Expression &s0, const af::Expression &s1) {
+  vf_op.InstanceOutputy(1);
+  vf_op.x = {scalar_data_op.y};
+  vf_op.attr.sched.axis = {z0.id, z1.id};
+  SetTwoDimSchedule(vf_op.y[0], z0, z1, s0, s1);
+
+  store_op.x = vf_op.y[0];
+  store_op.ir_attr.SetOffset(af::Symbol(0));
+  SetTwoDimSchedule(store_op.y, z0, z1, s0, s1);
+
+  sub_brc_op.x = sub_scalar_op.y;
+  sub_brc_op.attr.sched.axis = {z0.id, z1.id};
+  SetTwoDimSchedule(sub_brc_op.y, z0, z1, s0, s1);
+
+  abs_op.x = sub_brc_op.y;
+  abs_op.attr.sched.axis = {z0.id, z1.id};
+  SetTwoDimSchedule(abs_op.y, z0, z1, s0, s1);
+
+  sub_store_op.x = abs_op.y;
+  sub_store_op.attr.sched.axis = {z0.id, z1.id};
+  SetTwoDimSchedule(sub_store_op.y, z0, z1, s0, s1);
+  sub_output_op.x = sub_store_op.y;
+}
+
+void InitScalarDataVfTensorAttrs(AscGraph &graph, AscGraph &vf_sub_graph, const af::Axis &z0, const af::Axis &z1,
+                                 const af::Expression &s1) {
+  auto scalar_data = graph.FindNode("scalar_data");
+  scalar_data->outputs[0].attr.dtype = af::DT_FLOAT;
+  scalar_data->outputs[0].attr.mem.position = af::Position::kPositionVecIn;
+  scalar_data->outputs[0].attr.mem.tensor_id = 1;
+  scalar_data->outputs[0].attr.opt.merge_scope = af::kIdNone;
+
+  auto sub_scalar = vf_sub_graph.FindNode("sub_scalar");
+  sub_scalar->outputs[0].attr.vectorized_axis = {z0.id, z1.id};
+  sub_scalar->outputs[0].attr.vectorized_strides = {Zero, Zero};
+  sub_scalar->outputs[0].attr.dtype = af::DT_FLOAT;
+  sub_scalar->outputs[0].attr.mem.position = af::Position::kPositionVecIn;
+  sub_scalar->outputs[0].attr.mem.tensor_id = 1;
+
+  SetTwoDimVecInAttr(vf_sub_graph.FindNode("sub_brc")->outputs[0], z0, z1, s1, 2);
+  SetTwoDimVecInAttr(vf_sub_graph.FindNode("abs")->outputs[0], z0, z1, s1, 3);
+  SetTwoDimVecInAttr(vf_sub_graph.FindNode("sub_store")->outputs[0], z0, z1, s1, 4);
+
+  auto vf = graph.FindNode("vf");
+  SetTwoDimVecInAttr(vf->outputs[0], z0, z1, s1, 5);
+  vf->outputs[0].attr.mem.alloc_type = af::AllocType::kAllocTypeQueue;
+  vf->outputs[0].attr.que.id = 1;
+  vf->outputs[0].attr.opt.merge_scope = af::kIdNone;
+
+  auto store = graph.FindNode("store");
+  store->outputs[0].attr.vectorized_axis = {z0.id, z1.id};
+  store->outputs[0].attr.vectorized_strides = {s1, One};
+  store->outputs[0].attr.dtype = af::DT_FLOAT;
+  store->outputs[0].attr.mem.position = af::Position::kPositionVecOut;
+  store->outputs[0].attr.mem.tensor_id = 6;
+  store->outputs[0].attr.mem.alloc_type = af::AllocType::kAllocTypeQueue;
+  store->outputs[0].attr.que.id = 2;
+  store->outputs[0].attr.opt.merge_scope = af::kIdNone;
+}
+
+std::string GenerateScalarDataVfCall(AscGraph &graph, const af::Axis &z0, const af::Axis &z1, const af::Expression &s0,
+                                     const af::Expression &s1) {
+  auto scalar_data = graph.FindNode("scalar_data");
+  auto vf = graph.FindNode("vf");
+  codegen::Tiler tiler;
+  codegen::TPipe tpipe("tpipe", tiler);
+  EXPECT_EQ(tpipe.AddTensor(scalar_data->outputs[0], "scalar_data_y"), 0);
+  tpipe.AddTensor(vf->outputs[0]);
+
+  tiler.AddAxis(z0);
+  tiler.AddAxis(z1);
+  tiler.AddSizeVar(af::SizeVar(s0));
+  tiler.AddSizeVar(af::SizeVar(s1));
+
+  codegen::ApiTensor x1, x2;
+  x1.id = scalar_data->outputs[0].attr.mem.tensor_id;
+  x2.id = vf->outputs[0].attr.mem.tensor_id;
+
+  codegen::VfCall call;
+  EXPECT_EQ(call.Init(vf), 0);
+  call.inputs.push_back(&x1);
+  call.inputs.push_back(&x2);
+
+  std::stringstream func_def;
+  EXPECT_EQ(call.GenerateFuncDefinition(tpipe, tiler, func_def), 0);
+
+  std::string result;
+  EXPECT_EQ(call.Generate(tpipe, vector<af::AxisId>{}, result), 0);
+  return result;
+}
+}  // namespace
+
 TEST(CodegenKernel, VfCall_TwoDimLoad) {
   ge::SetupRuntimeStub();
   af::AscGraph graph("test_graph");
@@ -519,6 +631,46 @@ TEST(CodegenKernel, VfCall_TwoDim_Scalar) {
     "VFCallvf((__local_mem__ float *)local_1[0].GetPhyAddr(), (__local_mem__ float "
     "*)local_1[0].GetPhyAddr(), scalar_0, t->s0 * t->s1);\n"
     "#endif\n"});
+}
+
+TEST(CodegenKernel, VfCall_TwoDim_ScalarData) {
+  ge::SetupRuntimeStub();
+  af::AscGraph graph("test_graph");
+
+  auto s0 = graph.CreateSizeVar("s0");
+  auto s1 = graph.CreateSizeVar("s1");
+  auto z0 = graph.CreateAxis("z0", s0);
+  auto z1 = graph.CreateAxis("z1", s1);
+
+  ScalarData scalar_data_op("scalar_data", graph);
+  scalar_data_op.ir_attr.SetIndex(0);
+
+  std::string sub_graph_name = "vf_sub_graph1";
+  af::AscGraph vf_sub_graph(sub_graph_name.c_str());
+  VectorFunc vf_op("vf");
+  vf_op.SetAttr("sub_graph_name", sub_graph_name);
+
+  Scalar sub_scalar_op("sub_scalar", vf_sub_graph);
+  sub_scalar_op.ir_attr.SetIndex(0);
+
+  Broadcast sub_brc_op("sub_brc");
+  Abs abs_op("abs");
+  Store sub_store_op("sub_store");
+  Output sub_output_op("sub_output");
+  sub_output_op.ir_attr.SetIndex(0);
+
+  Store store_op("store");
+  graph.AddNode(scalar_data_op);
+  graph.AddSubGraph(vf_sub_graph);
+  graph.AddNode(store_op);
+
+  InitScalarDataVfGraph(vf_op, store_op, sub_brc_op, abs_op, sub_store_op, sub_output_op, scalar_data_op, sub_scalar_op,
+                        z0, z1, s0, s1);
+  InitScalarDataVfTensorAttrs(graph, vf_sub_graph, z0, z1, s1);
+
+  auto result = GenerateScalarDataVfCall(graph, z0, z1, s0, s1);
+  EXPECT_NE(result.find("scalar_data"), std::string::npos) << result;
+  EXPECT_EQ(result.find("scalar_1"), std::string::npos) << result;
 }
 
 TEST(CodegenKernel, VfCall_ThreeDimLoad) {
