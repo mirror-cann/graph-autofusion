@@ -15,6 +15,7 @@ metadata, and debug logs. This module builds the user-facing artifact map on
 top of that working tree: stable relative paths, clear deliverables, and a
 single place to answer "what should I look at?".
 """
+
 from __future__ import annotations
 
 import json
@@ -40,7 +41,9 @@ def package_name_for_slug(base_name: str, asset_slug: str) -> str:
     return f"{base}_{slug}"
 
 
-def prepare_output_dir(output_dir: Path, *, clean_output: bool = False, resume_from: Path | None = None) -> None:
+def prepare_output_dir(
+    output_dir: Path, *, clean_output: bool = False, resume_from: Path | None = None
+) -> None:
     if clean_output and resume_from is not None:
         raise ValueError("--clean-output cannot be combined with --resume-from")
     if clean_output and output_dir.exists():
@@ -56,7 +59,9 @@ def prepare_output_dir(output_dir: Path, *, clean_output: bool = False, resume_f
             raise ValueError("--resume-from must point inside --output-dir") from exc
         return
     if output_dir.exists() and any(output_dir.iterdir()):
-        raise ValueError(f"output directory is not empty: {output_dir}; use --clean-output or --resume-from")
+        raise ValueError(
+            f"output directory is not empty: {output_dir}; use --clean-output or --resume-from"
+        )
 
 
 class ArtifactLayout:
@@ -122,7 +127,9 @@ class ArtifactLayout:
             "| asset namespace | source entry | public entry | reason |",
             "|---|---|---|---|",
         ]
-        renamed = [item for item in payload.get("resolutions", []) if item.get("renamed")]
+        renamed = [
+            item for item in payload.get("resolutions", []) if item.get("renamed")
+        ]
         if renamed:
             for item in renamed:
                 lines.append(
@@ -135,13 +142,27 @@ class ArtifactLayout:
                 )
         else:
             lines.append("| none | none | none | none |")
-        self.write_text(self.root / "name-resolution-report.md", "\n".join(lines) + "\n")
+        self.write_text(
+            self.root / "name-resolution-report.md", "\n".join(lines) + "\n"
+        )
 
-    def stage_report_path(self, asset_slug: str, stage_id: str, stage_name: str, filename: str = "stage-manifest.json") -> Path:
-        directory_name = stage_name if stage_name.startswith(f"{stage_id}-") else f"{stage_id}-{stage_name}"
+    def stage_report_path(
+        self,
+        asset_slug: str,
+        stage_id: str,
+        stage_name: str,
+        filename: str = "stage-manifest.json",
+    ) -> Path:
+        directory_name = (
+            stage_name
+            if stage_name.startswith(f"{stage_id}-")
+            else f"{stage_id}-{stage_name}"
+        )
         return self.root / "assets" / asset_slug / "stages" / directory_name / filename
 
-    def _stage_records(self, state: dict[str, Any], asset_slug: str) -> dict[str, dict[str, Any]]:
+    def _stage_records(
+        self, state: dict[str, Any], asset_slug: str
+    ) -> dict[str, dict[str, Any]]:
         records: dict[str, dict[str, Any]] = {}
         for record in state.get("stages", []):
             stage_id = str(record.get("stage", ""))
@@ -150,8 +171,7 @@ class ArtifactLayout:
                 continue
             report_path = self.stage_report_path(asset_slug, stage_id, stage_name)
             payload = {
-                key: self._relativize_value(value)
-                for key, value in record.items()
+                key: self._relativize_value(value) for key, value in record.items()
             }
             self.write_json(report_path, payload)
             md_path = report_path.with_name("report.md")
@@ -191,7 +211,9 @@ class ArtifactLayout:
                 return self._copy_tree(candidate, dest)
         return ""
 
-    def _copy_existing_files(self, sources: Iterable[str | Path], dest_dir: Path) -> list[str]:
+    def _copy_existing_files(
+        self, sources: Iterable[str | Path], dest_dir: Path
+    ) -> list[str]:
         paths: list[str] = []
         for raw in sources:
             source = Path(raw)
@@ -220,18 +242,35 @@ class ArtifactLayout:
                 self.root / "artifacts" / "baseline-so" / asset_slug / op_slug,
             )
             sk_extensions = self._copy_existing_files(
-                (stage_root / "05-generate-pybind-binding" / "outputs" / "operator-sk-adapted" / "build").rglob("*.so")
-                if (stage_root / "05-generate-pybind-binding" / "outputs" / "operator-sk-adapted" / "build").exists()
+                (
+                    stage_root
+                    / "05-generate-pybind-binding"
+                    / "outputs"
+                    / "operator-sk-adapted"
+                    / "build"
+                ).rglob("*.so")
+                if (
+                    stage_root
+                    / "05-generate-pybind-binding"
+                    / "outputs"
+                    / "operator-sk-adapted"
+                    / "build"
+                ).exists()
                 else [],
                 self.root / "artifacts" / "sk-extensions" / asset_slug,
             )
             unit_payload = {
                 "name": op_name,
                 "entry_name": entry_name,
-                "source_entry_name": op_state.get("source_entry_name") or op_state.get("entry_name") or entry_name,
+                "source_entry_name": op_state.get("source_entry_name")
+                or op_state.get("entry_name")
+                or entry_name,
                 "public_entry_name": op_state.get("public_entry_name") or entry_name,
-                "internal_symbol_name": op_state.get("internal_symbol_name") or entry_name,
-                "bind_target": op_state.get("bind_target") or op_state.get("source_entry_name") or entry_name,
+                "internal_symbol_name": op_state.get("internal_symbol_name")
+                or entry_name,
+                "bind_target": op_state.get("bind_target")
+                or op_state.get("source_entry_name")
+                or entry_name,
                 "name_resolution": op_state.get("name_resolution", {}),
                 "kernel_source": self._relativize_value(op_state.get("kernel_source")),
                 "host_source": self._relativize_value(op_state.get("host_source")),
@@ -240,16 +279,27 @@ class ArtifactLayout:
                 "target_resolution": op_state.get("target_resolution", {}),
                 "source_origin": source_artifact,
             }
-            unit_path = self.root / "artifacts" / "operator-units" / asset_slug / f"{op_slug}.json"
+            unit_path = (
+                self.root
+                / "artifacts"
+                / "operator-units"
+                / asset_slug
+                / f"{op_slug}.json"
+            )
             self.write_json(unit_path, unit_payload)
             ops.append(
                 {
                     "name": op_name,
                     "entry_name": entry_name,
-                    "source_entry_name": op_state.get("source_entry_name") or entry_name,
-                    "public_entry_name": op_state.get("public_entry_name") or entry_name,
-                    "internal_symbol_name": op_state.get("internal_symbol_name") or entry_name,
-                    "bind_target": op_state.get("bind_target") or op_state.get("source_entry_name") or entry_name,
+                    "source_entry_name": op_state.get("source_entry_name")
+                    or entry_name,
+                    "public_entry_name": op_state.get("public_entry_name")
+                    or entry_name,
+                    "internal_symbol_name": op_state.get("internal_symbol_name")
+                    or entry_name,
+                    "bind_target": op_state.get("bind_target")
+                    or op_state.get("source_entry_name")
+                    or entry_name,
                     "name_resolution": op_state.get("name_resolution", {}),
                     "status": "completed",
                     "artifacts": {
@@ -277,18 +327,36 @@ class ArtifactLayout:
         asset_manifest_path = self.root / "assets" / asset_slug / "asset-manifest.json"
         source_artifact = ""
         if source_path is not None and source_path.exists():
-            source_artifact = self._copy_tree(source_path, self.root / "artifacts" / "sources" / asset_slug)
+            source_artifact = self._copy_tree(
+                source_path, self.root / "artifacts" / "sources" / asset_slug
+            )
 
         sk_source = self._copy_first_existing_tree(
             [
-                stage_root / "02-adapt-sk-from-global" / "_aggregate" / "outputs" / "operator-sk-adapted",
-                stage_root / "02-adapt-sk-from-global" / asset_slug / "outputs" / "operator-sk-adapted",
-                stage_root / "05-generate-pybind-binding" / "outputs" / "operator-sk-adapted",
+                stage_root
+                / "02-adapt-sk-from-global"
+                / "_aggregate"
+                / "outputs"
+                / "operator-sk-adapted",
+                stage_root
+                / "02-adapt-sk-from-global"
+                / asset_slug
+                / "outputs"
+                / "operator-sk-adapted",
+                stage_root
+                / "05-generate-pybind-binding"
+                / "outputs"
+                / "operator-sk-adapted",
             ],
             self.root / "artifacts" / "sk-source" / asset_slug,
         )
         pybind_project = self._copy_first_existing_tree(
-            [stage_root / "05-generate-pybind-binding" / "outputs" / "operator-sk-adapted"],
+            [
+                stage_root
+                / "05-generate-pybind-binding"
+                / "outputs"
+                / "operator-sk-adapted"
+            ],
             self.root / "artifacts" / "pybind-projects" / asset_slug,
         )
         deliverable_wheels = self._copy_existing_files(
@@ -296,9 +364,15 @@ class ArtifactLayout:
             self.root / "deliverables" / "wheels" / asset_slug,
         )
         if sk_source:
-            self._copy_tree(self.root / sk_source, self.root / "deliverables" / "sk-source" / asset_slug)
+            self._copy_tree(
+                self.root / sk_source,
+                self.root / "deliverables" / "sk-source" / asset_slug,
+            )
         if pybind_project:
-            self._copy_tree(self.root / pybind_project, self.root / "deliverables" / "pybind-projects" / asset_slug)
+            self._copy_tree(
+                self.root / pybind_project,
+                self.root / "deliverables" / "pybind-projects" / asset_slug,
+            )
 
         stages = self._stage_records(state, asset_slug)
         ops = self._build_ops(
@@ -319,16 +393,33 @@ class ArtifactLayout:
             "ops": ops,
             "deliverables": {
                 "wheels": deliverable_wheels,
-                "sk_source": self.rel(self.root / "deliverables" / "sk-source" / asset_slug) if sk_source else "",
-                "pybind_project": self.rel(self.root / "deliverables" / "pybind-projects" / asset_slug) if pybind_project else "",
+                "sk_source": self.rel(
+                    self.root / "deliverables" / "sk-source" / asset_slug
+                )
+                if sk_source
+                else "",
+                "pybind_project": self.rel(
+                    self.root / "deliverables" / "pybind-projects" / asset_slug
+                )
+                if pybind_project
+                else "",
             },
         }
         self.write_json(asset_manifest_path, asset_payload)
         for op in ops:
-            self.write_json(self.root / "assets" / asset_slug / "ops" / f"{safe_slug(op['entry_name'])}.json", op)
+            self.write_json(
+                self.root
+                / "assets"
+                / asset_slug
+                / "ops"
+                / f"{safe_slug(op['entry_name'])}.json",
+                op,
+            )
         return asset_payload
 
-    def skipped_asset(self, *, asset_slug: str, source_path: Path, reason: str) -> dict[str, Any]:
+    def skipped_asset(
+        self, *, asset_slug: str, source_path: Path, reason: str
+    ) -> dict[str, Any]:
         asset_slug = safe_slug(asset_slug)
         source_artifact = ""
         if source_path.exists():
@@ -336,7 +427,9 @@ class ArtifactLayout:
             if source_path.is_dir():
                 source_artifact = self._copy_tree(source_path, source_dest)
             elif source_path.is_file():
-                source_artifact = self._copy_file(source_path, source_dest / source_path.name)
+                source_artifact = self._copy_file(
+                    source_path, source_dest / source_path.name
+                )
         payload = {
             "asset_slug": asset_slug,
             "status": "skipped",
@@ -346,7 +439,9 @@ class ArtifactLayout:
             "ops": [],
             "deliverables": {"wheels": [], "sk_source": "", "pybind_project": ""},
         }
-        self.write_json(self.root / "assets" / asset_slug / "asset-manifest.json", payload)
+        self.write_json(
+            self.root / "assets" / asset_slug / "asset-manifest.json", payload
+        )
         return payload
 
     def build_map(
@@ -365,7 +460,9 @@ class ArtifactLayout:
         sk_sources: list[str] = []
         reports: list[str] = []
         for asset in all_assets:
-            deliverable_wheels.extend(asset.get("deliverables", {}).get("wheels", []) or [])
+            deliverable_wheels.extend(
+                asset.get("deliverables", {}).get("wheels", []) or []
+            )
             sk_source = asset.get("deliverables", {}).get("sk_source")
             if sk_source:
                 sk_sources.append(sk_source)
@@ -389,16 +486,24 @@ class ArtifactLayout:
         name_resolution_path = self.root / "name-resolution-report.json"
         if name_resolution_path.exists():
             try:
-                payload["name_resolution"] = json.loads(name_resolution_path.read_text(encoding="utf-8"))
+                payload["name_resolution"] = json.loads(
+                    name_resolution_path.read_text(encoding="utf-8")
+                )
             except (OSError, json.JSONDecodeError):
-                payload["name_resolution"] = {"status": "unreadable", "path": "name-resolution-report.json"}
+                payload["name_resolution"] = {
+                    "status": "unreadable",
+                    "path": "name-resolution-report.json",
+                }
         map_path = self.root / "artifact-map.json"
         self.write_json(map_path, payload)
         md_path = self.root / "artifact-map.md"
         self.write_text(md_path, self.render_markdown(payload))
         readme_path = self.root / "README.md"
         self.write_text(readme_path, self.render_readme(payload))
-        self.write_json(self.root / "run-manifest.json", {"artifact_map": "artifact-map.json", "status": status})
+        self.write_json(
+            self.root / "run-manifest.json",
+            {"artifact_map": "artifact-map.json", "status": status},
+        )
         return payload
 
     def render_markdown(self, payload: dict[str, Any]) -> str:
@@ -419,14 +524,18 @@ class ArtifactLayout:
             lines.append("- wheel: none")
         lines.extend(["", "## Assets", ""])
         for asset in payload.get("assets", []):
-            lines.append(f"- `{asset.get('asset_slug')}`: `{asset.get('status')}` ({len(asset.get('ops', []))} ops)")
+            lines.append(
+                f"- `{asset.get('asset_slug')}`: `{asset.get('status')}` ({len(asset.get('ops', []))} ops)"
+            )
             if asset.get("reason"):
                 lines.append(f"  - reason: {asset.get('reason')}")
         name_resolution = payload.get("name_resolution") or {}
         if name_resolution:
             lines.extend(["", "## Name Resolution", ""])
             lines.append(f"- policy: `{name_resolution.get('policy', '')}`")
-            lines.append(f"- renamed entries: `{name_resolution.get('renamed_entry_count', 0)}`")
+            lines.append(
+                f"- renamed entries: `{name_resolution.get('renamed_entry_count', 0)}`"
+            )
             lines.append("- report: `name-resolution-report.md`")
         lines.append("")
         return "\n".join(lines)
@@ -458,9 +567,19 @@ class ArtifactLayout:
         def collect(value: Any) -> None:
             if isinstance(value, str):
                 if value.startswith("/"):
-                    issues.append({"severity": "error", "message": f"user-facing absolute path: {value}"})
+                    issues.append(
+                        {
+                            "severity": "error",
+                            "message": f"user-facing absolute path: {value}",
+                        }
+                    )
                 elif value.startswith("external:"):
-                    issues.append({"severity": "warning", "message": f"user-facing external path reference: {value}"})
+                    issues.append(
+                        {
+                            "severity": "warning",
+                            "message": f"user-facing external path reference: {value}",
+                        }
+                    )
                 if value:
                     paths.append(value)
             elif isinstance(value, list):
@@ -477,11 +596,23 @@ class ArtifactLayout:
             wheel_names[name] = wheel_names.get(name, 0) + 1
         for name, count in wheel_names.items():
             if count > 1:
-                issues.append({"severity": "error", "message": f"duplicate delivery wheel filename: {name}"})
+                issues.append(
+                    {
+                        "severity": "error",
+                        "message": f"duplicate delivery wheel filename: {name}",
+                    }
+                )
         return issues
 
     def write_lint_report(self, payload: dict[str, Any]) -> list[dict[str, str]]:
         issues = self.lint(payload)
-        status = "passed" if not any(item["severity"] == "error" for item in issues) else "failed"
-        self.write_json(self.root / "artifact-layout-lint.json", {"status": status, "issues": issues})
+        status = (
+            "passed"
+            if not any(item["severity"] == "error" for item in issues)
+            else "failed"
+        )
+        self.write_json(
+            self.root / "artifact-layout-lint.json",
+            {"status": status, "issues": issues},
+        )
         return issues

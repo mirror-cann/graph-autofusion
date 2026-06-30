@@ -14,6 +14,7 @@ kernel-launch-adapt.md s3.1 rule 1 + rule 3: SK sub-functions take parameters vi
 struct pointer `const <ArgsStruct> *args` (optionally followed by `sk::SkSystemArgs
 *sysArgs`), never as positional kernel arguments.
 """
+
 import re
 
 RULE = {
@@ -53,7 +54,9 @@ def _split_top_level_commas(text: str) -> list[str]:
             depth_brace += 1
         elif char == "}" and depth_brace:
             depth_brace -= 1
-        elif char == "," and not any((depth_angle, depth_paren, depth_bracket, depth_brace)):
+        elif char == "," and not any(
+            (depth_angle, depth_paren, depth_bracket, depth_brace)
+        ):
             parts.append(text[start:index].strip())
             start = index + 1
     tail = text[start:].strip()

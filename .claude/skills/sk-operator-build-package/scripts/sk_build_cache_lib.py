@@ -9,6 +9,7 @@
 # ----------------------------------------------------------------------------------------------------------
 
 """Shared build cache helpers for standalone executable and wheel artifacts."""
+
 from __future__ import annotations
 
 import hashlib

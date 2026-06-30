@@ -60,6 +60,7 @@ from sk_visualizer_shared import (
 
 # ======================== Data Classes ========================
 
+
 class TaskQueueLibrarySource:
     """Resolve scope/graph library JSON input for task queue graph generation."""
 
@@ -80,7 +81,9 @@ class TaskQueueModel:
             scope_library = json.load(handle)
         with open(source.graph_library_path, "r", encoding="utf-8") as handle:
             graph_library = json.load(handle)
-        result = build_task_queue_result_from_scope_library(scope_library, graph_library)
+        result = build_task_queue_result_from_scope_library(
+            scope_library, graph_library
+        )
         if not result.get("sections"):
             raise ValueError("No task queue sections were found in scope-library.")
         return cls(result)
@@ -98,17 +101,27 @@ class TaskQueueRenderer:
     def render_html(self, model: "TaskQueueModel") -> None:
         generate_html(model.to_dict(), self.output_path)
 
+
 def _scope_identity(section: dict, fused: Optional[dict], index: int) -> Dict[str, str]:
-    scope_name = str(section.get("scope_name") or (fused or {}).get("scope_name") or "").strip()
+    scope_name = str(
+        section.get("scope_name") or (fused or {}).get("scope_name") or ""
+    ).strip()
     sk_id = str(section.get("sk_id") or (fused or {}).get("sk_id") or "").strip()
-    start_node = str(section.get("start_node_name") or (fused or {}).get("start_node_name") or "").strip()
-    end_node = str(section.get("end_node_name") or (fused or {}).get("end_node_name") or "").strip()
-    normalized_scope = scope_name if scope_name and scope_name not in {"(none)", "none", "-"} else ""
+    start_node = str(
+        section.get("start_node_name") or (fused or {}).get("start_node_name") or ""
+    ).strip()
+    end_node = str(
+        section.get("end_node_name") or (fused or {}).get("end_node_name") or ""
+    ).strip()
+    normalized_scope = (
+        scope_name if scope_name and scope_name not in {"(none)", "none", "-"} else ""
+    )
     display_name = f"SK节点 #{index}"
 
     subtitle = f"SK {sk_id}" if sk_id else ""
     search_terms = " ".join(
-        part for part in [
+        part
+        for part in [
             display_name,
             subtitle,
             normalized_scope,
@@ -116,7 +129,8 @@ def _scope_identity(section: dict, fused: Optional[dict], index: int) -> Dict[st
             end_node,
             sk_id,
             scope_name,
-        ] if part
+        ]
+        if part
     )
     return {
         "display_name": display_name,
@@ -127,7 +141,9 @@ def _scope_identity(section: dict, fused: Optional[dict], index: int) -> Dict[st
     }
 
 
-def _task_resolved_graph_node_id(task: dict, ordinal_node_map: Dict[int, int]) -> Optional[int]:
+def _task_resolved_graph_node_id(
+    task: dict, ordinal_node_map: Dict[int, int]
+) -> Optional[int]:
     if "graph_identity_valid" in task:
         if not task.get("graph_identity_valid"):
             return None
@@ -147,47 +163,53 @@ def _library_task_to_payload(
     node_lookup: Dict[int, dict],
     ordinal_node_map: Dict[int, int],
 ) -> dict:
-    dispatch_type = str(task.get('task_type', '') or '').upper()
-    scope_name = section.get('scope_name', '')
-    sync_type = str(task.get('sync_type', '') or '')
+    dispatch_type = str(task.get("task_type", "") or "").upper()
+    scope_name = section.get("scope_name", "")
+    sync_type = str(task.get("sync_type", "") or "")
     node_id = _task_resolved_graph_node_id(task, ordinal_node_map)
-    node_meta = node_lookup.get(int(node_id), {}) if node_id not in (None, '') else {}
-    kernel_name = ''
-    if dispatch_type in {'FUNC', 'PRELOAD'}:
-        kernel_name = str(node_meta.get('func_name') or scope_name or '')
+    node_meta = node_lookup.get(int(node_id), {}) if node_id not in (None, "") else {}
+    kernel_name = ""
+    if dispatch_type in {"FUNC", "PRELOAD"}:
+        kernel_name = str(node_meta.get("func_name") or scope_name or "")
     return {
-        'task_id': task.get('task_id', log_seq),
-        'task_idx': task.get('task_index', -1),
-        'stask_idx': task.get('task_index', -1),
-        'dispatch_type': dispatch_type,
-        'queue': str(queue_name).lower(),
-        'raw_log': task.get('detail', ''),
-        'args': str(task.get('args', '') or ''),
-        'entries': list(task.get('entries', []) or []),
-        'kernel_queue_type': '',
-        'kernel_name': kernel_name,
-        'num_blocks': task.get('block_count', 0),
-        'kernel_info': {},
-        'sync_flag': sync_type,
-        'prev_type': '',
-        'next_type': '',
-        'sync_type': sync_type,
-        'sync_kind': str(task.get('sync_kind', '') or ''),
-        'sync_direction': str(task.get('sync_direction', '') or ''),
-        'sync_raw_args': str(task.get('sync_raw_args', task.get('args', '')) or ''),
-        'sync_value': task.get('sync_value'),
-        'event_id': '',
-        'raw_node_id': task.get('raw_node_id', task.get('node_id')),
-        'resolved_graph_node_id': node_id if node_id not in (None, '') else None,
-        'graph_identity_valid': bool(task.get('graph_identity_valid')) if 'graph_identity_valid' in task else node_id not in (None, ''),
-        'graph_identity_source': str(task.get('graph_identity_source', '')) if task.get('graph_identity_source') else '',
-        'graph_identity_reason': str(task.get('graph_identity_reason', '')) if task.get('graph_identity_reason') else '',
-        'node_id': str(node_id) if node_id not in (None, '') else '',
-        'node_type': str(node_meta.get('node_type') or ''),
-        'log_seq': log_seq,
-        'graph_node_id': int(node_id) if node_id not in (None, '') else -1,
-        'stream_id': int(node_meta.get('stream_id', -1) or -1),
-        'stream_idx_in_graph': int(node_meta.get('stream_idx_in_graph', -1) or -1),
+        "task_id": task.get("task_id", log_seq),
+        "task_idx": task.get("task_index", -1),
+        "stask_idx": task.get("task_index", -1),
+        "dispatch_type": dispatch_type,
+        "queue": str(queue_name).lower(),
+        "raw_log": task.get("detail", ""),
+        "args": str(task.get("args", "") or ""),
+        "entries": list(task.get("entries", []) or []),
+        "kernel_queue_type": "",
+        "kernel_name": kernel_name,
+        "num_blocks": task.get("block_count", 0),
+        "kernel_info": {},
+        "sync_flag": sync_type,
+        "prev_type": "",
+        "next_type": "",
+        "sync_type": sync_type,
+        "sync_kind": str(task.get("sync_kind", "") or ""),
+        "sync_direction": str(task.get("sync_direction", "") or ""),
+        "sync_raw_args": str(task.get("sync_raw_args", task.get("args", "")) or ""),
+        "sync_value": task.get("sync_value"),
+        "event_id": "",
+        "raw_node_id": task.get("raw_node_id", task.get("node_id")),
+        "resolved_graph_node_id": node_id if node_id not in (None, "") else None,
+        "graph_identity_valid": bool(task.get("graph_identity_valid"))
+        if "graph_identity_valid" in task
+        else node_id not in (None, ""),
+        "graph_identity_source": str(task.get("graph_identity_source", ""))
+        if task.get("graph_identity_source")
+        else "",
+        "graph_identity_reason": str(task.get("graph_identity_reason", ""))
+        if task.get("graph_identity_reason")
+        else "",
+        "node_id": str(node_id) if node_id not in (None, "") else "",
+        "node_type": str(node_meta.get("node_type") or ""),
+        "log_seq": log_seq,
+        "graph_node_id": int(node_id) if node_id not in (None, "") else -1,
+        "stream_id": int(node_meta.get("stream_id", -1) or -1),
+        "stream_idx_in_graph": int(node_meta.get("stream_idx_in_graph", -1) or -1),
     }
 
 
@@ -201,8 +223,8 @@ def _find_library_pair(base_dir: str) -> tuple[str, str, str]:
         raise FileNotFoundError(f"输入路径不存在或不是目录: {base_dir}")
 
     def _bundle(root_dir):
-        scope_path = os.path.join(root_dir, 'scope-library.json')
-        graph_path = os.path.join(root_dir, 'graph-library.json')
+        scope_path = os.path.join(root_dir, "scope-library.json")
+        graph_path = os.path.join(root_dir, "graph-library.json")
         if os.path.isfile(scope_path) and os.path.isfile(graph_path):
             scope_mtime = os.path.getmtime(scope_path)
             graph_mtime = os.path.getmtime(graph_path)
@@ -213,7 +235,7 @@ def _find_library_pair(base_dir: str) -> tuple[str, str, str]:
 
     candidates = []
     scan_roots = [root]
-    for extra in ('reports', 'reports/data', 'data'):
+    for extra in ("reports", "reports/data", "data"):
         scan_roots.append(os.path.join(root, extra))
 
     for candidate_root in scan_roots:
@@ -227,72 +249,87 @@ def _find_library_pair(base_dir: str) -> tuple[str, str, str]:
             candidates.append(bundle)
 
     if not candidates:
-        raise FileNotFoundError(f"未在 {base_dir} 中找到 scope-library.json 与 graph-library.json")
+        raise FileNotFoundError(
+            f"未在 {base_dir} 中找到 scope-library.json 与 graph-library.json"
+        )
 
     candidates.sort(key=lambda item: (item[0], item[1]))
     _, _, bundle_root, scope_library, graph_library = candidates[0]
     return scope_library, graph_library, bundle_root
 
 
-def build_task_queue_result_from_scope_library(scope_library: dict, graph_library: Optional[dict] = None) -> dict:
-    device_task_library = scope_library.get('device_task_library', {})
-    fused_library = scope_library.get('fused_library', {})
-    source_path = device_task_library.get('path', '')
-    source_file = os.path.basename(source_path) if source_path else 'scope-library.json'
+def build_task_queue_result_from_scope_library(
+    scope_library: dict, graph_library: Optional[dict] = None
+) -> dict:
+    device_task_library = scope_library.get("device_task_library", {})
+    fused_library = scope_library.get("fused_library", {})
+    source_path = device_task_library.get("path", "")
+    source_file = os.path.basename(source_path) if source_path else "scope-library.json"
     node_lookup = {
-        int(node.get('node_id')): node
-        for node in (graph_library or {}).get('node_library', {}).get('nodes', [])
-        if node.get('node_id') is not None
+        int(node.get("node_id")): node
+        for node in (graph_library or {}).get("node_library", {}).get("nodes", [])
+        if node.get("node_id") is not None
     }
     fused_by_sk = {
-        item.get('sk_id'): item
-        for item in fused_library.get('functions', [])
-        if item.get('sk_id') is not None
+        item.get("sk_id"): item
+        for item in fused_library.get("functions", [])
+        if item.get("sk_id") is not None
     }
     sections = []
-    for index, section in enumerate(device_task_library.get('sections', []), start=1):
-        fused = fused_by_sk.get(section.get('sk_id'))
+    for index, section in enumerate(device_task_library.get("sections", []), start=1):
+        fused = fused_by_sk.get(section.get("sk_id"))
         scope_identity = _scope_identity(section, fused, index)
         ordinal_node_map = {
-            int(item.get('ordinal')): int(item.get('node_id'))
-            for item in (fused or {}).get('node_details', [])
-            if item.get('ordinal') is not None and item.get('node_id') is not None
+            int(item.get("ordinal")): int(item.get("node_id"))
+            for item in (fused or {}).get("node_details", [])
+            if item.get("ordinal") is not None and item.get("node_id") is not None
         }
         aic_tasks = [
-            _library_task_to_payload(task, 'AIC', log_seq, section, node_lookup, ordinal_node_map)
-            for log_seq, task in enumerate(section.get('queues', {}).get('AIC', []))
+            _library_task_to_payload(
+                task, "AIC", log_seq, section, node_lookup, ordinal_node_map
+            )
+            for log_seq, task in enumerate(section.get("queues", {}).get("AIC", []))
         ]
         aiv_tasks = [
-            _library_task_to_payload(task, 'AIV', len(aic_tasks) + log_seq, section, node_lookup, ordinal_node_map)
-            for log_seq, task in enumerate(section.get('queues', {}).get('AIV', []))
+            _library_task_to_payload(
+                task,
+                "AIV",
+                len(aic_tasks) + log_seq,
+                section,
+                node_lookup,
+                ordinal_node_map,
+            )
+            for log_seq, task in enumerate(section.get("queues", {}).get("AIV", []))
         ]
-        sections.append({
-            'global_section_seq': index,
-            'section_seq': index,
-            'sk_label': scope_identity["display_name"],
-            'sk_subtitle': scope_identity["subtitle"],
-            'sk_search_terms': scope_identity["search_terms"],
-            'sk_id': scope_identity["sk_id"],
-            'sk_name': scope_identity["raw_name"],
-            'source_file': source_file,
-            'start_line': -1,
-            'end_line': -1,
-            'incomplete': False,
-            'aic_count': len(aic_tasks),
-            'aiv_count': len(aiv_tasks),
-            'model_instances': [],
-            'model_instance_count': 0,
-            'aic_tasks': aic_tasks,
-            'aiv_tasks': aiv_tasks,
-        })
+        sections.append(
+            {
+                "global_section_seq": index,
+                "section_seq": index,
+                "sk_label": scope_identity["display_name"],
+                "sk_subtitle": scope_identity["subtitle"],
+                "sk_search_terms": scope_identity["search_terms"],
+                "sk_id": scope_identity["sk_id"],
+                "sk_name": scope_identity["raw_name"],
+                "source_file": source_file,
+                "start_line": -1,
+                "end_line": -1,
+                "incomplete": False,
+                "aic_count": len(aic_tasks),
+                "aiv_count": len(aiv_tasks),
+                "model_instances": [],
+                "model_instance_count": 0,
+                "aic_tasks": aic_tasks,
+                "aiv_tasks": aiv_tasks,
+            }
+        )
 
     return {
-        'sections': sections,
-        'stats': {
-            'files_scanned': 1 if sections else 0,
-            'sections_found': len(sections),
-            'sections_deduped': len(sections),
-            'dedupe_mode': 'library',
+        "sections": sections,
+        "stats": {
+            "files_scanned": 1 if sections else 0,
+            "sections_found": len(sections),
+            "sections_deduped": len(sections),
+            "dedupe_mode": "library",
         },
     }
 
@@ -301,53 +338,57 @@ def build_task_queue_result_from_scope_library(scope_library: dict, graph_librar
 
 # Color scheme
 COLORS = {
-    'FUNC':        {'bg': '#a8d4b4', 'border': '#96c8a4', 'text': '#2d5a3d'},
-    'PRELOAD':     {'bg': '#a0c8e0', 'border': '#90bcd4', 'text': '#2d4a5e'},
-    'SYNC':        {'bg': '#e0c8a0', 'border': '#d4bc94', 'text': '#5a4a2d'},
-    'EVENT_NOTIFY': {'bg': '#e0a8b8', 'border': '#d49cac', 'text': '#5a2d3d'},
-    'EVENT_WAIT':  {'bg': '#c0a8d8', 'border': '#b49ccc', 'text': '#3d2d52'},
-    'EVENT_RESET': {'bg': '#b0c4cc', 'border': '#a4b8c0', 'text': '#2d3a40'},
+    "FUNC": {"bg": "#a8d4b4", "border": "#96c8a4", "text": "#2d5a3d"},
+    "PRELOAD": {"bg": "#a0c8e0", "border": "#90bcd4", "text": "#2d4a5e"},
+    "SYNC": {"bg": "#e0c8a0", "border": "#d4bc94", "text": "#5a4a2d"},
+    "EVENT_NOTIFY": {"bg": "#e0a8b8", "border": "#d49cac", "text": "#5a2d3d"},
+    "EVENT_WAIT": {"bg": "#c0a8d8", "border": "#b49ccc", "text": "#3d2d52"},
+    "EVENT_RESET": {"bg": "#b0c4cc", "border": "#a4b8c0", "text": "#2d3a40"},
 }
 
 TASK_TYPE_LABELS = {
-    'FUNC':         'Func',
-    'PRELOAD':      'Preload',
-    'SYNC':         'Sync',
-    'EVENT_NOTIFY': 'Notify',
-    'EVENT_WAIT':   'Wait',
-    'EVENT_RESET':  'Reset',
+    "FUNC": "Func",
+    "PRELOAD": "Preload",
+    "SYNC": "Sync",
+    "EVENT_NOTIFY": "Notify",
+    "EVENT_WAIT": "Wait",
+    "EVENT_RESET": "Reset",
 }
 
 
 def generate_html(result: dict, output_path: str):
     """Generate the interactive HTML visualization."""
-    sections = result.get('sections', [])
-    stats = result.get('stats', {})
+    sections = result.get("sections", [])
+    stats = result.get("stats", {})
     output_file = os.path.abspath(output_path)
     output_dir = os.path.dirname(output_file)
 
     sections_json = []
     for sec in sections:
-        model_instance_list = sec.get('model_instances', [])
-        sections_json.append({
-            'global_section_seq': sec.get('global_section_seq', 0),
-            'section_seq': sec.get('section_seq', 0),
-            'sk_label': sec.get('sk_label', ''),
-            'sk_subtitle': sec.get('sk_subtitle', ''),
-            'sk_search_terms': sec.get('sk_search_terms', ''),
-            'sk_id': sec.get('sk_id', ''),
-            'sk_name': sec.get('sk_name', ''),
-            'source_file': sec.get('source_file', ''),
-            'start_line': sec.get('start_line', -1),
-            'end_line': sec.get('end_line', -1),
-            'incomplete': bool(sec.get('incomplete', False)),
-            'aic_count': sec.get('aic_count', 0),
-            'aiv_count': sec.get('aiv_count', 0),
-            'model_instances': model_instance_list,
-            'model_instance_count': sec.get('model_instance_count', len(model_instance_list)),
-            'aic_tasks': list(sec.get('aic_tasks', [])),
-            'aiv_tasks': list(sec.get('aiv_tasks', [])),
-        })
+        model_instance_list = sec.get("model_instances", [])
+        sections_json.append(
+            {
+                "global_section_seq": sec.get("global_section_seq", 0),
+                "section_seq": sec.get("section_seq", 0),
+                "sk_label": sec.get("sk_label", ""),
+                "sk_subtitle": sec.get("sk_subtitle", ""),
+                "sk_search_terms": sec.get("sk_search_terms", ""),
+                "sk_id": sec.get("sk_id", ""),
+                "sk_name": sec.get("sk_name", ""),
+                "source_file": sec.get("source_file", ""),
+                "start_line": sec.get("start_line", -1),
+                "end_line": sec.get("end_line", -1),
+                "incomplete": bool(sec.get("incomplete", False)),
+                "aic_count": sec.get("aic_count", 0),
+                "aiv_count": sec.get("aiv_count", 0),
+                "model_instances": model_instance_list,
+                "model_instance_count": sec.get(
+                    "model_instance_count", len(model_instance_list)
+                ),
+                "aic_tasks": list(sec.get("aic_tasks", [])),
+                "aiv_tasks": list(sec.get("aiv_tasks", [])),
+            }
+        )
 
     if sections_json:
         current_idx = len(sections_json) - 1
@@ -355,34 +396,34 @@ def generate_html(result: dict, output_path: str):
     else:
         current_idx = 0
         current_section = {
-            'sk_label': 'SK节点 #0',
-            'sk_subtitle': '',
-            'sk_search_terms': '',
-            'sk_id': '',
-            'sk_name': '',
-            'source_file': '',
-            'start_line': -1,
-            'end_line': -1,
-            'incomplete': False,
-            'aic_count': 0,
-            'aiv_count': 0,
-            'aic_tasks': [],
-            'aiv_tasks': [],
+            "sk_label": "SK节点 #0",
+            "sk_subtitle": "",
+            "sk_search_terms": "",
+            "sk_id": "",
+            "sk_name": "",
+            "source_file": "",
+            "start_line": -1,
+            "end_line": -1,
+            "incomplete": False,
+            "aic_count": 0,
+            "aiv_count": 0,
+            "aic_tasks": [],
+            "aiv_tasks": [],
         }
 
     sections_data_json = json.dumps(sections_json, ensure_ascii=False)
-    aic_data_json = json.dumps(current_section['aic_tasks'], ensure_ascii=False)
-    aiv_data_json = json.dumps(current_section['aiv_tasks'], ensure_ascii=False)
+    aic_data_json = json.dumps(current_section["aic_tasks"], ensure_ascii=False)
+    aiv_data_json = json.dumps(current_section["aiv_tasks"], ensure_ascii=False)
     section_count = len(sections_json)
-    files_scanned = int(stats.get('files_scanned', 0))
-    sections_found = int(stats.get('sections_found', section_count))
-    sections_deduped = int(stats.get('sections_deduped', section_count))
-    total_tasks = int(current_section['aic_count']) + int(current_section['aiv_count'])
+    files_scanned = int(stats.get("files_scanned", 0))
+    sections_found = int(stats.get("sections_found", section_count))
+    sections_deduped = int(stats.get("sections_deduped", section_count))
+    total_tasks = int(current_section["aic_count"]) + int(current_section["aiv_count"])
     header_html = render_page_header(
         icon="TQ",
         kicker="",
         title="TaskQue View",
-        note_html='当前页面直接承接单个 SK节点的 device task。图中保留英文任务语义，优先看谁在发、谁在收、谁在等。',
+        note_html="当前页面直接承接单个 SK节点的 device task。图中保留英文任务语义，优先看谁在发、谁在收、谁在等。",
         stat_badges_html="",
     )
     reports_dir = None
@@ -392,7 +433,11 @@ def generate_html(result: dict, output_path: str):
             reports_dir = cursor
             break
         cursor = os.path.dirname(cursor)
-    portal_href = os.path.relpath(os.path.join(reports_dir, "run-portal.html"), output_dir) if reports_dir else "../run-portal.html"
+    portal_href = (
+        os.path.relpath(os.path.join(reports_dir, "run-portal.html"), output_dir)
+        if reports_dir
+        else "../run-portal.html"
+    )
     view_nav_html = render_view_nav(
         [
             ("导航页面", portal_href, False),
@@ -420,7 +465,9 @@ def generate_html(result: dict, output_path: str):
                 "连边关系",
                 [
                     make_scope_explainer_line("队列内顺序边", color="#cbd5e1"),
-                    make_scope_explainer_line("同步匹配边（SET → WAIT）", color="#94a3b8", dash_style="dashed"),
+                    make_scope_explainer_line(
+                        "同步匹配边（SET → WAIT）", color="#94a3b8", dash_style="dashed"
+                    ),
                     make_scope_explainer_line("ALL-SYNC 边", color="#9bbdaa"),
                 ],
             ),
@@ -441,10 +488,14 @@ def generate_html(result: dict, output_path: str):
     )
     toolbar_html = render_graph_toolbar(
         label="SK节点切换",
-        nav_html=render_graph_nav("sectionPrevBtn", "sectionNextBtn", "上一个 SK节点", "下一个 SK节点"),
+        nav_html=render_graph_nav(
+            "sectionPrevBtn", "sectionNextBtn", "上一个 SK节点", "下一个 SK节点"
+        ),
         search_html='<input type="search" class="section-search toolbar-input" id="sectionSearchInput" placeholder="查找 SK节点名称、SK、起止节点名" />',
         select_html='<select id="sectionSelect" class="toolbar-input graph-select" style="min-width: 360px; max-width: 580px;"></select>',
-        index_chip_html=render_graph_index_chip("sectionIndexChip", f"SK节点 1 / {section_count}"),
+        index_chip_html=render_graph_index_chip(
+            "sectionIndexChip", f"SK节点 1 / {section_count}"
+        ),
         trailing_html=f'<span class="graph-meta-note" id="sectionHint">[{section_count} 个 SK节点]</span>',
         controls_html="""
         <button class="ctrl-btn toolbar-btn" onclick="zoomIn()">&#x2795; 放大</button>
@@ -489,8 +540,8 @@ def generate_html(result: dict, output_path: str):
         </article>
     </div>
     """.format(
-        aic_count=current_section['aic_count'],
-        aiv_count=current_section['aiv_count'],
+        aic_count=current_section["aic_count"],
+        aiv_count=current_section["aiv_count"],
         total_tasks=total_tasks,
     )
     detail_table_html = """
@@ -542,7 +593,12 @@ def generate_html(result: dict, output_path: str):
     )
     detail_panel_html = render_detail_table_panel(
         title="任务详情",
-        subtitle=(current_section.get('sk_name') or '当前 SK节点的任务参数和同步语义') + (' · 当前 SK节点的任务参数和同步语义' if current_section.get('sk_name') else ''),
+        subtitle=(current_section.get("sk_name") or "当前 SK节点的任务参数和同步语义")
+        + (
+            " · 当前 SK节点的任务参数和同步语义"
+            if current_section.get("sk_name")
+            else ""
+        ),
         subtitle_id="detailSubtitle",
         toggle_id="detailToggleBtn",
         content_id="detailContent",
@@ -2106,12 +2162,14 @@ requestAnimationFrame(() => {{ resetView(); }});
 </body>
 </html>'''
 
-    with open(output_path, 'w', encoding='utf-8') as f:
+    with open(output_path, "w", encoding="utf-8") as f:
         f.write(html_content)
 
     print(f"Generated HTML: {output_path} ({os.path.getsize(output_path)} bytes)")
 
+
 # ======================== Main ========================
+
 
 def main():
     parser = argparse.ArgumentParser(
@@ -2121,10 +2179,10 @@ def main():
             "Examples:\n"
             "  # 模式1：直接指定库文件\n"
             "  python sk_task_queue_visualizer.py \\\n"
-            "    --scope-library \"$SCOPE_LIBRARY\" \\\n"
-            "    --graph-library \"$GRAPH_LIBRARY\" -o task-queue-graph.html\n"
+            '    --scope-library "$SCOPE_LIBRARY" \\\n'
+            '    --graph-library "$GRAPH_LIBRARY" -o task-queue-graph.html\n'
             "  # 模式2：给定目录，自动搜索匹配库对\n"
-            "  python sk_task_queue_visualizer.py \"$RUN_OR_RESULT_DIR\" -o task-queue-graph.html\n"
+            '  python sk_task_queue_visualizer.py "$RUN_OR_RESULT_DIR" -o task-queue-graph.html\n'
         ),
     )
     parser.add_argument(
@@ -2148,7 +2206,9 @@ def main():
         default=None,
         help="输出 HTML 文件路径（默认 task-queue-graph.html）",
     )
-    parser.add_argument("output", nargs="?", default=None, help="兼容旧用法，推荐使用 --output")
+    parser.add_argument(
+        "output", nargs="?", default=None, help="兼容旧用法，推荐使用 --output"
+    )
     args = parser.parse_args()
 
     log_path = args.log_dir_or_file
@@ -2180,17 +2240,17 @@ def main():
     if result is None:
         sys.exit(1)
 
-    stats = result.get('stats', {})
+    stats = result.get("stats", {})
     print(
         "Summary: sections=%d, source_files=%d"
         % (
-            int(stats.get('sections_deduped', 0)),
-            int(stats.get('files_scanned', 1)),
+            int(stats.get("sections_deduped", 0)),
+            int(stats.get("files_scanned", 1)),
         )
     )
 
     generate_html(result, output_path)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

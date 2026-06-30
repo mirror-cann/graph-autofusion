@@ -26,10 +26,10 @@ class ParsedKernelEntry:
 
 _GLOBAL_FN_RE = re.compile(
     r'(?P<extern>extern\s+"C"\s+)?'
-    rf'(?P<qualifiers>(?:__global__|__aicore__|__vector__|__cube__|{_MIX_QUALIFIER_RE}|__inline__|inline|\s)+?)\s+'
-    r'(?P<rettype>void)\s+'
-    r'(?P<name>[A-Za-z_]\w*)\s*'
-    r'\((?P<params>[^()]*)\)\s*(?:\\\s*)?\{',
+    rf"(?P<qualifiers>(?:__global__|__aicore__|__vector__|__cube__|{_MIX_QUALIFIER_RE}|__inline__|inline|\s)+?)\s+"
+    r"(?P<rettype>void)\s+"
+    r"(?P<name>[A-Za-z_]\w*)\s*"
+    r"\((?P<params>[^()]*)\)\s*(?:\\\s*)?\{",
     re.MULTILINE,
 )
 

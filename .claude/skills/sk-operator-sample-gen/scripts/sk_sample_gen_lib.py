@@ -30,19 +30,24 @@ Pieces:
 - render_runner_script / build_target_runtime_command_spec: emit a runnable sample
   runner plus the command spec consumed by run-sk-target-runtime-validation.
 """
+
 from __future__ import annotations
 
 import importlib.util
-import os
 from pathlib import Path
 from typing import Any, Optional
 
 _SCALAR_CTYPE_TO_DTYPE = {
-    "uint8_t": "uint8", "int8_t": "int8",
-    "uint16_t": "uint16", "int16_t": "int16",
-    "uint32_t": "uint32", "int32_t": "int32",
-    "uint64_t": "uint64", "int64_t": "int64",
-    "float": "float32", "half": "float16",
+    "uint8_t": "uint8",
+    "int8_t": "int8",
+    "uint16_t": "uint16",
+    "int16_t": "int16",
+    "uint32_t": "uint32",
+    "int32_t": "int32",
+    "uint64_t": "uint64",
+    "int64_t": "int64",
+    "float": "float32",
+    "half": "float16",
 }
 
 _TENSOR_TYPE_MARKERS = ("GM_ADDR", "__gm__", "*")
@@ -96,7 +101,10 @@ def build_input_values_spec(
                         "shape": list(shape),
                         "dtype": dtype,
                         "layout": "ND",
-                        "value_source": {"kind": "inline_json", "value": _zero_nested(list(shape))},
+                        "value_source": {
+                            "kind": "inline_json",
+                            "value": _zero_nested(list(shape)),
+                        },
                     }
                 )
             else:
@@ -109,11 +117,14 @@ def build_input_values_spec(
                         "value_source": {"kind": "inline_json", "value": element_count},
                     }
                 )
-        input_values.append({"input_set_id": input_spec["id"], "parameter_values": parameter_values})
+        input_values.append(
+            {"input_set_id": input_spec["id"], "parameter_values": parameter_values}
+        )
     return {"input_values": input_values}
 
 
 # ---------- reference impl registry ----------
+
 
 class ReferenceImplRegistry:
     """Indexes reference_impls/<name>.py modules by kernel entry name.
@@ -136,7 +147,9 @@ class ReferenceImplRegistry:
         for path in sorted(reference_dir.glob("*.py")):
             if path.name.startswith("_"):
                 continue
-            spec = importlib.util.spec_from_file_location(f"sk_refimpl_{path.stem}", path)
+            spec = importlib.util.spec_from_file_location(
+                f"sk_refimpl_{path.stem}", path
+            )
             if spec is None or spec.loader is None:
                 continue
             module = importlib.util.module_from_spec(spec)
@@ -166,7 +179,9 @@ def build_oracle_spec(
     (the caller turns these into human-escalation findings).
     """
     # Map input_set_id -> entry_name via the runtime-input-spec.
-    entry_by_input_set = {spec["id"]: spec["entry_name"] for spec in runtime_input_spec["input_specs"]}
+    entry_by_input_set = {
+        spec["id"]: spec["entry_name"] for spec in runtime_input_spec["input_specs"]
+    }
 
     oracle_specs: list[dict[str, Any]] = []
     missing: list[str] = []
@@ -178,7 +193,11 @@ def build_oracle_spec(
             missing.append(input_set_id)
             continue
         inputs = {
-            pv["name"]: {"shape": pv["shape"], "dtype": pv["dtype"], "value": pv["value_source"]["value"]}
+            pv["name"]: {
+                "shape": pv["shape"],
+                "dtype": pv["dtype"],
+                "value": pv["value_source"]["value"],
+            }
             for pv in input_set["parameter_values"]
         }
         expected_value = ref["compute"](inputs)
@@ -201,7 +220,9 @@ def build_bind_target_oracle_spec(
     runtime_input_spec: dict[str, Any],
 ) -> dict[str, Any]:
     """Declare runner-produced bind-target baseline values as the oracle source."""
-    entry_by_input_set = {spec["id"]: spec["entry_name"] for spec in runtime_input_spec["input_specs"]}
+    entry_by_input_set = {
+        spec["id"]: spec["entry_name"] for spec in runtime_input_spec["input_specs"]
+    }
     oracle_specs: list[dict[str, Any]] = []
     for input_set in input_values_artifact["input_values"]:
         input_set_id = input_set["input_set_id"]
@@ -211,7 +232,10 @@ def build_bind_target_oracle_spec(
                 "input_set_id": input_set_id,
                 "expected_output": {
                     "kind": "inline_json",
-                    "value": {"source": "bind-target-on-wheel", "entry_name": entry_name},
+                    "value": {
+                        "source": "bind-target-on-wheel",
+                        "entry_name": entry_name,
+                    },
                 },
                 "comparator": "allclose",
                 "tolerance": {"rtol": 0, "atol": 0},
@@ -377,7 +401,9 @@ def render_runner_script(oracle_source: str = "bind-target-on-wheel") -> str:
     return _RUNNER_TEMPLATE
 
 
-def build_target_runtime_command_spec(runner_rel_path: str, values_manifest_rel: str) -> dict[str, Any]:
+def build_target_runtime_command_spec(
+    runner_rel_path: str, values_manifest_rel: str
+) -> dict[str, Any]:
     """Build the closed command spec consumed by run-sk-target-runtime-validation.
 
     The values manifest path is bound as argv[2] (1-based index 2) via the
@@ -394,7 +420,9 @@ def build_target_runtime_command_spec(runner_rel_path: str, values_manifest_rel:
     }
 
 
-def build_standalone_runtime_fixture_spec(entry_name: str, fixture_path: str, *, available: bool) -> dict[str, Any]:
+def build_standalone_runtime_fixture_spec(
+    entry_name: str, fixture_path: str, *, available: bool
+) -> dict[str, Any]:
     return {
         "backend": "standalone",
         "entry_name": entry_name,
@@ -405,7 +433,9 @@ def build_standalone_runtime_fixture_spec(entry_name: str, fixture_path: str, *,
     }
 
 
-def build_standalone_insufficient_fixture_verdict(entry_name: str, reason: str = "runtime fixture not available") -> dict[str, Any]:
+def build_standalone_insufficient_fixture_verdict(
+    entry_name: str, reason: str = "runtime fixture not available"
+) -> dict[str, Any]:
     return {
         "backend": "standalone",
         "entry_name": entry_name,
@@ -417,7 +447,15 @@ def build_standalone_insufficient_fixture_verdict(entry_name: str, reason: str =
 
 # ---------- single-op and network verification contracts ----------
 
-_PARAMETER_ROLES = {"input", "output", "workspace", "tiling", "scalar", "descriptor", "unknown"}
+_PARAMETER_ROLES = {
+    "input",
+    "output",
+    "workspace",
+    "tiling",
+    "scalar",
+    "descriptor",
+    "unknown",
+}
 _COMPARATORS = {"exact", "allclose", "bytewise"}
 
 
@@ -457,7 +495,9 @@ def _normalize_comparator(value: Any, label: str) -> str:
 def _normalize_tolerance(value: Any, comparator: str) -> dict[str, int | float] | None:
     if comparator != "allclose":
         return None
-    tolerance = _as_object(value if value is not None else {"rtol": 0, "atol": 0}, "tolerance")
+    tolerance = _as_object(
+        value if value is not None else {"rtol": 0, "atol": 0}, "tolerance"
+    )
     normalized: dict[str, int | float] = {}
     for key in ("rtol", "atol"):
         raw = tolerance.get(key, 0)
@@ -478,7 +518,9 @@ def _runtime_parameter_role(parameter: dict[str, Any]) -> str:
     return role
 
 
-def build_single_op_verification_contract(runtime_contract: dict[str, Any]) -> dict[str, Any]:
+def build_single_op_verification_contract(
+    runtime_contract: dict[str, Any],
+) -> dict[str, Any]:
     """Build the canonical single-op differential verification contract.
 
     This contract intentionally does not reference a wheel. It records that the
@@ -497,7 +539,9 @@ def build_single_op_verification_contract(runtime_contract: dict[str, Any]) -> d
         normalized = {
             "index": int(parameter.get("index", index)),
             "name": name,
-            "kind": _as_string(parameter.get("kind", "unknown"), f"parameter {name} kind"),
+            "kind": _as_string(
+                parameter.get("kind", "unknown"), f"parameter {name} kind"
+            ),
             "role": role,
             "compare": compare,
             "dtype": parameter.get("dtype"),
@@ -509,10 +553,17 @@ def build_single_op_verification_contract(runtime_contract: dict[str, Any]) -> d
 
     declared_outputs = [
         _as_string(item, "runtime contract comparison output")
-        for item in _as_list(_as_object(payload.get("comparison", {}), "runtime contract comparison").get("outputs", []), "runtime contract comparison outputs")
+        for item in _as_list(
+            _as_object(
+                payload.get("comparison", {}), "runtime contract comparison"
+            ).get("outputs", []),
+            "runtime contract comparison outputs",
+        )
     ]
     if not declared_outputs:
-        declared_outputs = [parameter["name"] for parameter in parameters if parameter["compare"]]
+        declared_outputs = [
+            parameter["name"] for parameter in parameters if parameter["compare"]
+        ]
 
     by_name = {parameter["name"]: parameter for parameter in parameters}
     unknown_outputs = [name for name in declared_outputs if name not in by_name]
@@ -521,7 +572,12 @@ def build_single_op_verification_contract(runtime_contract: dict[str, Any]) -> d
         for name in declared_outputs
         if name in by_name and by_name[name]["role"] not in {"output"}
     ]
-    device_runnable = _as_object(payload.get("fixture", {}), "runtime contract fixture").get("device_runnable") is True
+    device_runnable = (
+        _as_object(payload.get("fixture", {}), "runtime contract fixture").get(
+            "device_runnable"
+        )
+        is True
+    )
     required_user_declarations: list[str] = []
     checks: list[dict[str, Any]] = [
         {
@@ -590,7 +646,9 @@ def build_single_op_verification_contract(runtime_contract: dict[str, Any]) -> d
             }
         )
 
-    status = "available" if not required_user_declarations else "needs-user-confirmation"
+    status = (
+        "available" if not required_user_declarations else "needs-user-confirmation"
+    )
     reason = (
         "single_op_differential_verification_contract_available"
         if status == "available"
@@ -611,9 +669,13 @@ def build_single_op_verification_contract(runtime_contract: dict[str, Any]) -> d
         },
         "parameters": parameters,
         "comparison": {
-            "mode": _as_object(payload.get("comparison", {}), "runtime contract comparison").get("mode", "bytewise"),
+            "mode": _as_object(
+                payload.get("comparison", {}), "runtime contract comparison"
+            ).get("mode", "bytewise"),
             "outputs": declared_outputs,
-            "tolerance": _as_object(payload.get("comparison", {}), "runtime contract comparison").get("tolerance"),
+            "tolerance": _as_object(
+                payload.get("comparison", {}), "runtime contract comparison"
+            ).get("tolerance"),
         },
         "fixture": payload.get("fixture", {}),
         "required_user_declarations": required_user_declarations,
@@ -633,17 +695,27 @@ def normalize_network_sample_contract(payload: dict[str, Any]) -> dict[str, Any]
     schema_version = raw.get("schema_version", 1)
     if schema_version != 1:
         raise ValueError("network sample contract schema_version must be 1")
-    network_name = _as_string(raw.get("network_name"), "network sample contract network_name")
+    network_name = _as_string(
+        raw.get("network_name"), "network sample contract network_name"
+    )
     package = _as_object(raw.get("package"), "network sample contract package")
-    package_name = _as_string(package.get("name"), "network sample contract package.name")
+    package_name = _as_string(
+        package.get("name"), "network sample contract package.name"
+    )
     runner = _as_object(raw.get("runner"), "network sample contract runner")
     runner_kind = _as_string(runner.get("kind"), "network sample contract runner.kind")
     if runner_kind not in {"python_module", "generated_mock"}:
-        raise ValueError("network sample contract runner.kind must be python_module or generated_mock")
+        raise ValueError(
+            "network sample contract runner.kind must be python_module or generated_mock"
+        )
     canonical_runner = {"kind": runner_kind}
     if runner_kind == "python_module":
-        canonical_runner["module"] = _as_string(runner.get("module"), "network sample contract runner.module")
-        canonical_runner["callable"] = _as_string(runner.get("callable"), "network sample contract runner.callable")
+        canonical_runner["module"] = _as_string(
+            runner.get("module"), "network sample contract runner.module"
+        )
+        canonical_runner["callable"] = _as_string(
+            runner.get("callable"), "network sample contract runner.callable"
+        )
 
     nodes: list[dict[str, str]] = []
     seen_node_ids: set[str] = set()
@@ -663,7 +735,9 @@ def normalize_network_sample_contract(payload: dict[str, Any]) -> dict[str, Any]
         edge = _as_object(raw_edge, "network sample contract edge")
         edges.append(
             {
-                "from": _as_string(edge.get("from"), "network sample contract edge.from"),
+                "from": _as_string(
+                    edge.get("from"), "network sample contract edge.from"
+                ),
                 "to": _as_string(edge.get("to"), "network sample contract edge.to"),
             }
         )
@@ -674,8 +748,15 @@ def normalize_network_sample_contract(payload: dict[str, Any]) -> dict[str, Any]
         inputs.append(
             {
                 "id": _as_string(item.get("id"), "network sample contract input.id"),
-                "dtype": _as_string(item.get("dtype"), "network sample contract input.dtype"),
-                "shape": [int(dim) for dim in _as_list(item.get("shape"), "network sample contract input.shape")],
+                "dtype": _as_string(
+                    item.get("dtype"), "network sample contract input.dtype"
+                ),
+                "shape": [
+                    int(dim)
+                    for dim in _as_list(
+                        item.get("shape"), "network sample contract input.shape"
+                    )
+                ],
             }
         )
 
@@ -684,8 +765,12 @@ def normalize_network_sample_contract(payload: dict[str, Any]) -> dict[str, Any]
     for raw_output in _as_list(raw.get("outputs"), "network sample contract outputs"):
         item = _as_object(raw_output, "network sample contract output")
         output_id = _as_string(item.get("id"), "network sample contract output.id")
-        compare = _as_bool(item.get("compare"), "network sample contract output.compare")
-        comparator = _normalize_comparator(item.get("comparator", "exact"), "network sample contract output.comparator")
+        compare = _as_bool(
+            item.get("compare"), "network sample contract output.compare"
+        )
+        comparator = _normalize_comparator(
+            item.get("comparator", "exact"), "network sample contract output.comparator"
+        )
         tolerance = _normalize_tolerance(item.get("tolerance"), comparator)
         outputs.append(
             {
@@ -698,14 +783,23 @@ def normalize_network_sample_contract(payload: dict[str, Any]) -> dict[str, Any]
         if compare:
             comparable_outputs.append(output_id)
 
-    expected_fusion = _as_object(raw.get("expected_fusion"), "network sample contract expected_fusion")
+    expected_fusion = _as_object(
+        raw.get("expected_fusion"), "network sample contract expected_fusion"
+    )
     expected_ops = [
         _as_string(item, "network sample contract expected_fusion.ops item")
-        for item in _as_list(expected_fusion.get("ops"), "network sample contract expected_fusion.ops")
+        for item in _as_list(
+            expected_fusion.get("ops"), "network sample contract expected_fusion.ops"
+        )
     ]
-    require_all_fused = _as_bool(expected_fusion.get("require_all_fused", True), "network sample contract expected_fusion.require_all_fused")
+    require_all_fused = _as_bool(
+        expected_fusion.get("require_all_fused", True),
+        "network sample contract expected_fusion.require_all_fused",
+    )
     unknown_expected_ops = sorted(set(expected_ops) - set(node_ops))
-    missing_node_ops = sorted(set(node_ops) - set(expected_ops)) if require_all_fused else []
+    missing_node_ops = (
+        sorted(set(node_ops) - set(expected_ops)) if require_all_fused else []
+    )
 
     required_user_declarations: list[str] = []
     checks: list[dict[str, Any]] = []
@@ -766,7 +860,9 @@ def normalize_network_sample_contract(payload: dict[str, Any]) -> dict[str, Any]
         }
     )
 
-    status = "available" if not required_user_declarations else "needs-user-confirmation"
+    status = (
+        "available" if not required_user_declarations else "needs-user-confirmation"
+    )
     return {
         "schema_version": 1,
         "verification_level": "network",
@@ -775,11 +871,22 @@ def normalize_network_sample_contract(payload: dict[str, Any]) -> dict[str, Any]
         if status == "available"
         else "network_sample_contract_requires_explicit_user_declarations",
         "network_name": network_name,
-        "network_kind": _as_string(raw.get("network_kind", network_name), "network sample contract network_kind"),
+        "network_kind": _as_string(
+            raw.get("network_kind", network_name),
+            "network sample contract network_kind",
+        ),
         "package": {
             "name": package_name,
-            "wheel": _as_string(package.get("wheel", ""), "network sample contract package.wheel", allow_empty=True),
-            "arch": _as_string(package.get("arch", ""), "network sample contract package.arch", allow_empty=True),
+            "wheel": _as_string(
+                package.get("wheel", ""),
+                "network sample contract package.wheel",
+                allow_empty=True,
+            ),
+            "arch": _as_string(
+                package.get("arch", ""),
+                "network sample contract package.arch",
+                allow_empty=True,
+            ),
         },
         "runner": canonical_runner,
         "nodes": nodes,
@@ -787,10 +894,16 @@ def normalize_network_sample_contract(payload: dict[str, Any]) -> dict[str, Any]
         "inputs": inputs,
         "outputs": outputs,
         "run": _as_object(raw.get("run", {}), "network sample contract run"),
-        "adapter_config": _as_object(raw.get("adapter_config", {}), "network sample contract adapter_config"),
+        "adapter_config": _as_object(
+            raw.get("adapter_config", {}), "network sample contract adapter_config"
+        ),
         "prepare": _as_list(raw.get("prepare", []), "network sample contract prepare"),
         "expected_fusion": {
-            "scope": _as_string(expected_fusion.get("scope", ""), "network sample contract expected_fusion.scope", allow_empty=True),
+            "scope": _as_string(
+                expected_fusion.get("scope", ""),
+                "network sample contract expected_fusion.scope",
+                allow_empty=True,
+            ),
             "ops": expected_ops,
             "require_all_fused": require_all_fused,
         },
@@ -888,7 +1001,9 @@ def render_network_runner_script() -> str:
     return _NETWORK_RUNNER_TEMPLATE
 
 
-def build_network_target_runtime_command_spec(runner_rel_path: str, contract_rel_path: str) -> dict[str, Any]:
+def build_network_target_runtime_command_spec(
+    runner_rel_path: str, contract_rel_path: str
+) -> dict[str, Any]:
     return {
         "runtime_command": {
             "argv": ["python3", runner_rel_path, contract_rel_path],
@@ -900,7 +1015,9 @@ def build_network_target_runtime_command_spec(runner_rel_path: str, contract_rel
     }
 
 
-def build_network_fusion_expectation(network_contract: dict[str, Any]) -> dict[str, Any]:
+def build_network_fusion_expectation(
+    network_contract: dict[str, Any],
+) -> dict[str, Any]:
     contract = normalize_network_sample_contract(network_contract)
     return {
         "schema_version": 1,
@@ -916,7 +1033,9 @@ def build_network_fusion_expectation(network_contract: dict[str, Any]) -> dict[s
                 "reason": "expected_fusion_scope_declared"
                 if contract["expected_fusion"]["scope"]
                 else "expected_fusion_scope_optional",
-                "evidence": [contract["expected_fusion"]["scope"]] if contract["expected_fusion"]["scope"] else [],
+                "evidence": [contract["expected_fusion"]["scope"]]
+                if contract["expected_fusion"]["scope"]
+                else [],
             },
             {
                 "name": "expected_fusion_ops_declared",

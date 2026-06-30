@@ -46,14 +46,22 @@ SKIP_DIRS = {
     "tmp",
 }
 TEST_DIR_NAMES = {"test", "tests", "op_verify", "op_testcase", "op_testcases"}
-BUILD_FILENAMES = {"CMakeLists.txt", "setup.py", "pyproject.toml", "compile.sh", "build.sh"}
+BUILD_FILENAMES = {
+    "CMakeLists.txt",
+    "setup.py",
+    "pyproject.toml",
+    "compile.sh",
+    "build.sh",
+}
 OP_ADD_RE = re.compile(r"\bOP_ADD\s*\(\s*([A-Za-z_]\w*)\s*\)")
 QUOTED_INCLUDE_RE = re.compile(r"^\s*#\s*include\s+\"([^\"]+)\"", re.MULTILINE)
 NPU_OP_KERNEL_SOURCES_RE = re.compile(
     r"npu_op_kernel_sources\s*\([^)]*?OP_TYPE\s+([A-Za-z_]\w*)[^)]*?KERNEL_FILE\s+([^\s)]+)",
     re.DOTALL,
 )
-RAW_RTC_RE = re.compile(r"\baclrtc(?:CreateProg|CompileProg|AddNameExpr|GetLoweredName)\b|R\"{2,}\(")
+RAW_RTC_RE = re.compile(
+    r"\baclrtc(?:CreateProg|CompileProg|AddNameExpr|GetLoweredName)\b|R\"{2,}\("
+)
 
 
 def safe_slug(value: object) -> str:
@@ -106,20 +114,30 @@ def _file_role(path: Path, root: Path, text: str, entries: list[str]) -> str:
         return "host_runtime"
     if OP_ADD_RE.search(text) or "TilingFunc" in text or "npu_op" in text:
         return "host_registration"
-    if path.suffix in KERNEL_SOURCE_SUFFIXES and (path.suffix == ".asc" or "op_kernel" in rel_parts):
+    if path.suffix in KERNEL_SOURCE_SUFFIXES and (
+        path.suffix == ".asc" or "op_kernel" in rel_parts
+    ):
         return "kernel_candidate"
     if path.suffix == ".json":
         return "json_spec"
     return "support"
 
 
-def _source_records(scan_root: Path, rel_root: Path | None = None) -> list[dict[str, Any]]:
+def _source_records(
+    scan_root: Path, rel_root: Path | None = None
+) -> list[dict[str, Any]]:
     rel_root = rel_root or scan_root
     records: list[dict[str, Any]] = []
     for path in iter_files(scan_root):
         text = safe_read(path)
-        entries = [entry.name for entry in parse_global_entries(text)] if path.suffix in SOURCE_SUFFIXES else []
-        quoted_includes = QUOTED_INCLUDE_RE.findall(text) if path.suffix in SOURCE_SUFFIXES else []
+        entries = (
+            [entry.name for entry in parse_global_entries(text)]
+            if path.suffix in SOURCE_SUFFIXES
+            else []
+        )
+        quoted_includes = (
+            QUOTED_INCLUDE_RE.findall(text) if path.suffix in SOURCE_SUFFIXES else []
+        )
         unresolved_includes = []
         for include in quoted_includes:
             if not _resolve_include(rel_root, rel(path, rel_root), include):
@@ -130,7 +148,9 @@ def _source_records(scan_root: Path, rel_root: Path | None = None) -> list[dict[
                 "suffix": path.suffix,
                 "role": _file_role(path, rel_root, text, entries),
                 "kernel_entries": entries,
-                "op_add_entries": OP_ADD_RE.findall(text) if path.suffix in SOURCE_SUFFIXES else [],
+                "op_add_entries": OP_ADD_RE.findall(text)
+                if path.suffix in SOURCE_SUFFIXES
+                else [],
                 "quoted_includes": quoted_includes,
                 "unresolved_includes": unresolved_includes,
                 "has_raw_rtc": bool(RAW_RTC_RE.search(text)),
@@ -158,7 +178,12 @@ def _nearest_asset_root(root: Path, source_rel: str) -> Path:
 
 
 def _find_tiling_headers(root: Path, stem: str, source_rel: str) -> list[str]:
-    patterns = [f"{stem}_tiling.h", f"{stem}_tiling.hpp", f"tiling_key_{stem}.h", f"tiling_key_{stem}.hpp"]
+    patterns = [
+        f"{stem}_tiling.h",
+        f"{stem}_tiling.hpp",
+        f"tiling_key_{stem}.h",
+        f"tiling_key_{stem}.hpp",
+    ]
     results: list[str] = []
     seen: set[str] = set()
     search_root = _nearest_asset_root(root, source_rel)
@@ -208,7 +233,9 @@ def build_inventory(asset: Path) -> dict[str, Any]:
     base = root.parent if root.is_file() else root
     files = _source_records(root, base)
     kernel_records = [item for item in files if item["role"] == "kernel_source"]
-    kernel_candidate_records = [item for item in files if item["role"] == "kernel_candidate"]
+    kernel_candidate_records = [
+        item for item in files if item["role"] == "kernel_candidate"
+    ]
     rtc_records = [item for item in files if item["role"] == "rtc_host_program"]
     build_records = [item for item in files if item["role"] == "build"]
     cmake_kernel_sources: list[dict[str, str]] = []
@@ -217,7 +244,9 @@ def build_inventory(asset: Path) -> dict[str, Any]:
             continue
         text = safe_read((root if root.is_dir() else base) / str(item["path"]))
         for op_type, kernel_file in NPU_OP_KERNEL_SOURCES_RE.findall(text):
-            cmake_kernel_sources.append({"op_type": op_type, "kernel_file": kernel_file})
+            cmake_kernel_sources.append(
+                {"op_type": op_type, "kernel_file": kernel_file}
+            )
     return {
         "schema_version": 1,
         "asset_root": str(root),
@@ -232,17 +261,27 @@ def build_inventory(asset: Path) -> dict[str, Any]:
     }
 
 
-def _host_candidates_by_stem(root: Path, files: list[dict[str, Any]], stem: str, entry: str) -> list[str]:
+def _host_candidates_by_stem(
+    root: Path, files: list[dict[str, Any]], stem: str, entry: str
+) -> list[str]:
     candidates = [
         item
         for item in files
         if item["role"] == "host_registration"
-        and (Path(str(item["path"])).stem == stem or entry in item.get("op_add_entries", []))
+        and (
+            Path(str(item["path"])).stem == stem
+            or entry in item.get("op_add_entries", [])
+        )
     ]
-    return [str(item["path"]) for item in sorted(candidates, key=lambda item: str(item["path"]))]
+    return [
+        str(item["path"])
+        for item in sorted(candidates, key=lambda item: str(item["path"]))
+    ]
 
 
-def _asset_kind_for_unit(root: Path, kernel_rel: str, host_rel: str | None, files: list[dict[str, Any]]) -> str:
+def _asset_kind_for_unit(
+    root: Path, kernel_rel: str, host_rel: str | None, files: list[dict[str, Any]]
+) -> str:
     parts = Path(kernel_rel).parts
     if host_rel and "op_kernel" in parts:
         return "op_dev_pool"
@@ -262,7 +301,12 @@ def build_layout_from_inventory(inventory: dict[str, Any]) -> dict[str, Any]:
     if inventory.get("rtc_host_program_count", 0):
         for item in files:
             if item["role"] == "rtc_host_program":
-                skipped.append({"path": item["path"], "reason": "rtc-host-program-not-auto-converted"})
+                skipped.append(
+                    {
+                        "path": item["path"],
+                        "reason": "rtc-host-program-not-auto-converted",
+                    }
+                )
         questions.append(
             {
                 "id": "rtc-host-program",
@@ -271,15 +315,21 @@ def build_layout_from_inventory(inventory: dict[str, Any]) -> dict[str, Any]:
         )
     for item in files:
         if item["role"] == "kernel_candidate":
-            skipped.append({"path": item["path"], "reason": "kernel-source-without-global-entry"})
+            skipped.append(
+                {"path": item["path"], "reason": "kernel-source-without-global-entry"}
+            )
             continue
         if item["role"] != "kernel_source":
             continue
         kernel_rel = str(item["path"])
         stem = Path(kernel_rel).stem
-        support_files = _support_files_for_record(root if root.is_dir() else root.parent, item)
+        support_files = _support_files_for_record(
+            root if root.is_dir() else root.parent, item
+        )
         for entry in item.get("kernel_entries", []):
-            host_candidates = _host_candidates_by_stem(root if root.is_dir() else root.parent, files, stem, str(entry))
+            host_candidates = _host_candidates_by_stem(
+                root if root.is_dir() else root.parent, files, stem, str(entry)
+            )
             host_rel = host_candidates[0] if len(host_candidates) == 1 else None
             if len(host_candidates) > 1:
                 questions.append(
@@ -291,7 +341,9 @@ def build_layout_from_inventory(inventory: dict[str, Any]) -> dict[str, Any]:
                         "message": "Multiple host registration files match this kernel entry; provide an explicit asset layout.",
                     }
                 )
-            tiling_headers = _find_tiling_headers(root if root.is_dir() else root.parent, stem, kernel_rel)
+            tiling_headers = _find_tiling_headers(
+                root if root.is_dir() else root.parent, stem, kernel_rel
+            )
             support = sorted({*support_files, *tiling_headers})
             unit = {
                 "unit_id": safe_slug(entry),
@@ -327,7 +379,10 @@ def build_layout_from_inventory(inventory: dict[str, Any]) -> dict[str, Any]:
                     "candidate_kernel_sources": candidate_sources,
                 }
             )
-    units = sorted(deduped_units, key=lambda unit: (str(unit["kernel_source"]), str(unit["entry_name"])))
+    units = sorted(
+        deduped_units,
+        key=lambda unit: (str(unit["kernel_source"]), str(unit["entry_name"])),
+    )
     if duplicate_ids:
         questions.append(
             {
@@ -336,8 +391,17 @@ def build_layout_from_inventory(inventory: dict[str, Any]) -> dict[str, Any]:
                 "message": f"Duplicate unit ids require an explicit asset layout or namespace policy: {', '.join(duplicate_ids)}",
             }
         )
-    has_ambiguous_host = any(question.get("id") == "ambiguous-host-registration" for question in questions)
-    status = "ready" if units and not duplicate_ids and not has_ambiguous_host and not inventory.get("rtc_host_program_count", 0) else "needs-human"
+    has_ambiguous_host = any(
+        question.get("id") == "ambiguous-host-registration" for question in questions
+    )
+    status = (
+        "ready"
+        if units
+        and not duplicate_ids
+        and not has_ambiguous_host
+        and not inventory.get("rtc_host_program_count", 0)
+        else "needs-human"
+    )
     return {
         "schema_version": 1,
         "status": status,

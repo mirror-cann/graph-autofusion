@@ -20,6 +20,7 @@ value is the nested JSON list / scalar from the input-values spec. compute()
 returns the expected primary output value (the same JSON-list shape the runner
 emits), used directly as the oracle's expected_output.value.
 """
+
 import numpy as np
 
 REFERENCE_IMPL = {

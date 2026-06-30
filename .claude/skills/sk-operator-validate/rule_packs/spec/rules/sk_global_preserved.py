@@ -15,6 +15,7 @@ non-SuperKernel deployment. If a file has SK adaptation (__sk__ / SK_BIND) but n
 matching __global__ entry, the original was lost. Requires human review (cannot be
 auto-recreated).
 """
+
 import re
 
 RULE = {
@@ -29,7 +30,9 @@ def check(units):
     findings = []
     for unit in units:
         text = unit["text"]
-        has_sk = bool(re.search(r"__sk__\b", text)) or bool(re.search(r"\bSK_BIND\s*\(", text))
+        has_sk = bool(re.search(r"__sk__\b", text)) or bool(
+            re.search(r"\bSK_BIND\s*\(", text)
+        )
         has_global = bool(re.search(r"__global__\b", text))
         if has_sk and not has_global:
             findings.append(

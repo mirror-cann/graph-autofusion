@@ -25,6 +25,7 @@ This module validates that tree and returns the binding manifest consumed by
 `build-native-wheel`. It intentionally does not generate per-entry wrapper
 sources or an aggregate C++ module.
 """
+
 from __future__ import annotations
 
 import re
@@ -36,7 +37,9 @@ def _collect_entries(adapted_manifest: dict[str, Any]) -> list[dict[str, Any]]:
     entries_by_name: dict[str, dict[str, Any]] = {}
     for per_file in adapted_manifest.get("per_file", []):
         for entry in per_file.get("entries", []):
-            entries_by_name.setdefault(entry["entry_name"], {**entry, "source_file": per_file["file"]})
+            entries_by_name.setdefault(
+                entry["entry_name"], {**entry, "source_file": per_file["file"]}
+            )
     return list(entries_by_name.values())
 
 
@@ -92,15 +95,32 @@ def generate_pybind_artifacts(
     if not entries:
         raise ValueError("no kernel entries in adapted manifest; nothing to bind")
     if adapted_manifest.get("pybind_layout") != "aclgraph-canonical":
-        raise ValueError("adapted manifest is not aclgraph-canonical; rerun codegen.adapt-sk-from-global")
+        raise ValueError(
+            "adapted manifest is not aclgraph-canonical; rerun codegen.adapt-sk-from-global"
+        )
 
     package_name = adapted_manifest.get("package_name") or "op_extension"
-    package_dir_name = adapted_manifest.get("python_package") or re.sub(r"[^A-Za-z0-9_]", "_", package_name).strip("_") or "op_extension"
-    missing = [path for path in _required_tree_files(adapted_dir, package_dir_name) if not path.is_file()]
-    entry_pybind_paths = [adapted_dir / "csrc" / _entry_pybind_file(entry["entry_name"]) for entry in entries]
+    package_dir_name = (
+        adapted_manifest.get("python_package")
+        or re.sub(r"[^A-Za-z0-9_]", "_", package_name).strip("_")
+        or "op_extension"
+    )
+    missing = [
+        path
+        for path in _required_tree_files(adapted_dir, package_dir_name)
+        if not path.is_file()
+    ]
+    entry_pybind_paths = [
+        adapted_dir / "csrc" / _entry_pybind_file(entry["entry_name"])
+        for entry in entries
+    ]
     missing.extend(path for path in entry_pybind_paths if not path.is_file())
     pybind_names = {"pybind11.asc", *(path.name for path in entry_pybind_paths)}
-    csrc_sources = sorted(path for path in (adapted_dir / "csrc").glob("*.asc") if path.name not in pybind_names)
+    csrc_sources = sorted(
+        path
+        for path in (adapted_dir / "csrc").glob("*.asc")
+        if path.name not in pybind_names
+    )
     csrc_support = sorted(
         path
         for path in (adapted_dir / "csrc").rglob("*")
@@ -127,7 +147,9 @@ def generate_pybind_artifacts(
     )
 
     extension_modules_by_entry = {
-        entry["entry_name"]: f"{package_dir_name}.{_safe_entry_module_base(entry['entry_name'])}_<arch_suffix>"
+        entry[
+            "entry_name"
+        ]: f"{package_dir_name}.{_safe_entry_module_base(entry['entry_name'])}_<arch_suffix>"
         for entry in entries
     }
     supported_arches_by_entry = {
@@ -151,7 +173,9 @@ def generate_pybind_artifacts(
                 "entry_name": entry["entry_name"],
                 "source_file": entry["source_file"],
                 "param_count": entry["param_count"],
-                "supported_arches": supported_arches_by_entry.get(entry["entry_name"], []),
+                "supported_arches": supported_arches_by_entry.get(
+                    entry["entry_name"], []
+                ),
                 "supported_soc_versions": list(entry.get("supported_soc_versions", [])),
                 "support_source": entry.get("support_source", ""),
             }

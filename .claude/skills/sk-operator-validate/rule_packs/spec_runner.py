@@ -9,6 +9,7 @@
 # ----------------------------------------------------------------------------------------------------------
 
 """Spec rule-pack runner for sk-operator-validate."""
+
 from __future__ import annotations
 
 import hashlib
@@ -26,11 +27,20 @@ class CliUsageError(Exception):
     """Raised for user-facing usage errors."""
 
 
-def _stable_finding_id(rule_id: str, target_file: str, target_location: dict | None, evidence_signature: str) -> str:
+def _stable_finding_id(
+    rule_id: str,
+    target_file: str,
+    target_location: dict | None,
+    evidence_signature: str,
+) -> str:
     location_token = ""
     if target_location:
-        location_token = "|".join(f"{k}={target_location[k]}" for k in sorted(target_location))
-    base = "|".join([rule_id, target_file or "", location_token, evidence_signature or ""])
+        location_token = "|".join(
+            f"{k}={target_location[k]}" for k in sorted(target_location)
+        )
+    base = "|".join(
+        [rule_id, target_file or "", location_token, evidence_signature or ""]
+    )
     return f"{rule_id}:{hashlib.sha1(base.encode('utf-8')).hexdigest()[:12]}"
 
 
@@ -40,18 +50,24 @@ def _normalize_finding(raw: dict[str, Any]) -> dict[str, Any]:
     target_location = raw.get("target_location")
     evidence_signature = raw.get("evidence_signature", "")
     return {
-        "finding_id": _stable_finding_id(rule_id, target_file, target_location, evidence_signature),
+        "finding_id": _stable_finding_id(
+            rule_id, target_file, target_location, evidence_signature
+        ),
         "rule_id": rule_id,
         "severity": raw["severity"],
         "category": raw.get("category", "spec"),
         "actionable_by": list(raw.get("actionable_by", ["human"])),
-        "remediation_hint": dict(raw.get("remediation_hint", {"kind": "human-decision"})),
+        "remediation_hint": dict(
+            raw.get("remediation_hint", {"kind": "human-decision"})
+        ),
         "evidence": list(raw.get("evidence", [])),
         "message": raw["message"],
     }
 
 
-def _build_envelope(stage: str, iteration_index: int, findings: list[dict]) -> dict[str, Any]:
+def _build_envelope(
+    stage: str, iteration_index: int, findings: list[dict]
+) -> dict[str, Any]:
     return {
         "schema_version": SCHEMA_VERSION,
         "skill_source": "operator-validate",
@@ -85,16 +101,28 @@ def _collect_source_units(asset_path: Path) -> list[dict[str, Any]]:
         files = [asset_path]
         base = asset_path.parent
     else:
-        files = sorted(p for p in asset_path.rglob("*") if p.is_file() and p.suffix in SOURCE_SUFFIXES)
+        files = sorted(
+            p
+            for p in asset_path.rglob("*")
+            if p.is_file() and p.suffix in SOURCE_SUFFIXES
+        )
         base = asset_path
     units: list[dict[str, Any]] = []
     for path in files:
-        rel = str(path.relative_to(base)) if base in path.parents or path.parent == base else path.name
-        units.append({"rel": rel, "text": path.read_text(encoding="utf-8", errors="replace")})
+        rel = (
+            str(path.relative_to(base))
+            if base in path.parents or path.parent == base
+            else path.name
+        )
+        units.append(
+            {"rel": rel, "text": path.read_text(encoding="utf-8", errors="replace")}
+        )
     return units
 
 
-def run_spec_rules(asset_path: Path, *, stage: str, iteration_index: int) -> dict[str, Any]:
+def run_spec_rules(
+    asset_path: Path, *, stage: str, iteration_index: int
+) -> dict[str, Any]:
     asset_path = asset_path.resolve()
     if not asset_path.exists():
         raise CliUsageError(f"asset path not found: {asset_path}")
@@ -110,14 +138,20 @@ def run_spec_rules(asset_path: Path, *, stage: str, iteration_index: int) -> dic
         raw_findings.extend(produced)
 
     findings = [_normalize_finding(raw) for raw in raw_findings]
-    return _build_envelope(stage=stage, iteration_index=iteration_index, findings=findings)
+    return _build_envelope(
+        stage=stage, iteration_index=iteration_index, findings=findings
+    )
 
 
 def list_spec_rules() -> dict[str, Any]:
     rules = load_rule_modules(RULES_DIR)
     return {
         "rules": [
-            {"id": meta.get("id"), "severity": meta.get("severity"), "description": meta.get("description")}
+            {
+                "id": meta.get("id"),
+                "severity": meta.get("severity"),
+                "description": meta.get("description"),
+            }
             for meta, _ in rules
         ]
     }

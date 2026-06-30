@@ -9,6 +9,7 @@
 # ----------------------------------------------------------------------------------------------------------
 
 """Compatibility rule-pack runner for sk-operator-validate."""
+
 from __future__ import annotations
 
 import hashlib
@@ -26,7 +27,9 @@ _ACL_API_RE = re.compile(r"\bacl[A-Za-z][A-Za-z0-9]+\b")
 _MIX_RE = re.compile(r"__mix__\s*\(\s*(\d+)\s*,\s*(\d+)\s*\)")
 _ARCH_MARKER_RE = re.compile(r"//\s*sk-arch:\s*(?P<alias>[\w-]+)")
 _VERSION_NUMBER_RE = re.compile(r"\d+")
-_OFFICIAL_SOURCE_HOSTS = frozenset({"www.hiascend.com", "hiascend.com", "support.huawei.com"})
+_OFFICIAL_SOURCE_HOSTS = frozenset(
+    {"www.hiascend.com", "hiascend.com", "support.huawei.com"}
+)
 
 
 class CliUsageError(Exception):
@@ -35,12 +38,22 @@ class CliUsageError(Exception):
 
 # ---------- embedded finding builder ----------
 
+
 def _stable_finding_id(rule_id: str, target_file: str, evidence_signature: str) -> str:
     base = "|".join([rule_id, target_file or "", evidence_signature or ""])
     return f"{rule_id}:{hashlib.sha1(base.encode('utf-8')).hexdigest()[:12]}"
 
 
-def _finding(rule_id, severity, actionable_by, remediation_hint, message, target_file="", evidence_signature="", evidence=None):
+def _finding(
+    rule_id,
+    severity,
+    actionable_by,
+    remediation_hint,
+    message,
+    target_file="",
+    evidence_signature="",
+    evidence=None,
+):
     return {
         "finding_id": _stable_finding_id(rule_id, target_file, evidence_signature),
         "rule_id": rule_id,
@@ -89,7 +102,9 @@ def _validate_official_sources(chip: dict, matrix_path: Path) -> None:
     if not sources:
         return
     if not isinstance(sources, dict):
-        raise CliUsageError(f"{matrix_path}: official_sources for {chip.get('id')!r} must be a mapping of field -> official HTTPS URL")
+        raise CliUsageError(
+            f"{matrix_path}: official_sources for {chip.get('id')!r} must be a mapping of field -> official HTTPS URL"
+        )
     for field, source in sources.items():
         if not isinstance(source, str) or not _is_official_source_url(source):
             raise CliUsageError(
@@ -135,9 +150,15 @@ def _version_in_range(version: str, scope: dict) -> bool:
         return False
     min_version = scope.get("min") or scope.get("from")
     max_version = scope.get("max") or scope.get("to")
-    if min_version and _compare_version_keys(version_key, _version_key(str(min_version))) < 0:
+    if (
+        min_version
+        and _compare_version_keys(version_key, _version_key(str(min_version))) < 0
+    ):
         return False
-    if max_version and _compare_version_keys(version_key, _version_key(str(max_version))) > 0:
+    if (
+        max_version
+        and _compare_version_keys(version_key, _version_key(str(max_version))) > 0
+    ):
         return False
     return bool(min_version or max_version)
 
@@ -171,7 +192,9 @@ def _field_cann_scope(chip: dict, field: str) -> Any:
 def _field_applies_to_target_cann(chip: dict, field: str, target_cann: str) -> bool:
     scope = _field_cann_scope(chip, field)
     if not target_cann:
-        return scope in ("all", "*") or (isinstance(scope, dict) and scope.get("all") is True)
+        return scope in ("all", "*") or (
+            isinstance(scope, dict) and scope.get("all") is True
+        )
     return _cann_scope_applies(scope, target_cann)
 
 
@@ -185,11 +208,20 @@ def _rule_id_for_field(field: str) -> str:
 
 def _collect_sources(asset_path: Path) -> list[tuple[str, str]]:
     if asset_path.is_file():
-        return [(asset_path.name, asset_path.read_text(encoding="utf-8", errors="replace"))]
+        return [
+            (asset_path.name, asset_path.read_text(encoding="utf-8", errors="replace"))
+        ]
     base = asset_path
     units = []
-    for path in sorted(p for p in asset_path.rglob("*") if p.is_file() and p.suffix in SOURCE_SUFFIXES):
-        units.append((str(path.relative_to(base)), path.read_text(encoding="utf-8", errors="replace")))
+    for path in sorted(
+        p for p in asset_path.rglob("*") if p.is_file() and p.suffix in SOURCE_SUFFIXES
+    ):
+        units.append(
+            (
+                str(path.relative_to(base)),
+                path.read_text(encoding="utf-8", errors="replace"),
+            )
+        )
     return units
 
 
@@ -224,7 +256,11 @@ def run_compat_rules(
         for field in source_backed_fields
         if _field_applies_to_target_cann(chip, field, target_cann)
     }
-    arch_alias = chip.get("arch_alias", "") if "arch_alias" in applicable_source_backed_fields else ""
+    arch_alias = (
+        chip.get("arch_alias", "")
+        if "arch_alias" in applicable_source_backed_fields
+        else ""
+    )
     has_applicable_source_backed_checks = bool(applicable_source_backed_fields)
 
     findings: list[dict] = []
@@ -245,7 +281,10 @@ def run_compat_rules(
                             evidence=[api],
                         )
                     )
-        if "supports_mix_aic_aiv" in applicable_source_backed_fields and chip.get("supports_mix_aic_aiv") is False:
+        if (
+            "supports_mix_aic_aiv" in applicable_source_backed_fields
+            and chip.get("supports_mix_aic_aiv") is False
+        ):
             for m in _MIX_RE.finditer(text):
                 c, v = int(m.group(1)), int(m.group(2))
                 if c > 0 and v > 0:
@@ -324,7 +363,9 @@ def run_compat_rules(
         "recorded_cann_versions": list(recorded_cann_versions),
         "source_backed_fields": sorted(source_backed_fields),
         "applicable_source_backed_fields": sorted(applicable_source_backed_fields),
-        "checked_rules": sorted(_rule_id_for_field(field) for field in applicable_source_backed_fields),
+        "checked_rules": sorted(
+            _rule_id_for_field(field) for field in applicable_source_backed_fields
+        ),
         "verification": verification_note,
     }
     return envelope

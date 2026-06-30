@@ -16,8 +16,15 @@ fallback; to keep rules self-contained we instead duplicate the few tiny regex
 helpers each rule needs. This module exists for documentation of the shared
 patterns and is not imported by the bundled rules.
 """
+
 import re
 
-GLOBAL_QUALIFIER_RE = re.compile(r'extern\s+"C"\s+__global__\s+(?P<kt>__vector__|__cube__|__aicore__|__mix__\s*\([^)]*\))')
-SK_FN_RE = re.compile(r'__sk__\s+(?P<kt>__vector__|__cube__|__aicore__|__mix__\s*\([^)]*\))\s+void\s+(?P<name>\w+)\s*\((?P<params>[^)]*)\)')
-SK_BIND_RE = re.compile(r"SK_BIND\s*\(\s*(?P<orig>\w+)\s*,\s*(?P<mask>\d+)\s*,(?P<splits>[^)]*)\)")
+GLOBAL_QUALIFIER_RE = re.compile(
+    r'extern\s+"C"\s+__global__\s+(?P<kt>__vector__|__cube__|__aicore__|__mix__\s*\([^)]*\))'
+)
+SK_FN_RE = re.compile(
+    r"__sk__\s+(?P<kt>__vector__|__cube__|__aicore__|__mix__\s*\([^)]*\))\s+void\s+(?P<name>\w+)\s*\((?P<params>[^)]*)\)"
+)
+SK_BIND_RE = re.compile(
+    r"SK_BIND\s*\(\s*(?P<orig>\w+)\s*,\s*(?P<mask>\d+)\s*,(?P<splits>[^)]*)\)"
+)

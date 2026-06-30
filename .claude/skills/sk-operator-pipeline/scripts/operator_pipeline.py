@@ -28,14 +28,63 @@ REPO_ROOT_MARKERS = (".git", "AGENTS.md", "build.sh")
 DEFAULT_BUILD_CACHE_REL = Path("build") / "sk-operator-build-cache"
 
 ROUTING_RULES = [
-    ("sk-network-analysis", ["融合", "性能", "hang", "coredump", "卡死", "scope", "task", "queue", "update"]),
-    ("sk-operator-asset-adapter", ["资产", "asset", "layout", "adapter", "接入", "仓库", "repo"]),
-    ("sk-operator-validate", ["校验", "validate", "规范", "lint", "风险", "spec", "compat", "兼容", "cann", "sdk", "driver", "acl", "版本"]),
+    (
+        "sk-network-analysis",
+        [
+            "融合",
+            "性能",
+            "hang",
+            "coredump",
+            "卡死",
+            "scope",
+            "task",
+            "queue",
+            "update",
+        ],
+    ),
+    (
+        "sk-operator-asset-adapter",
+        ["资产", "asset", "layout", "adapter", "接入", "仓库", "repo"],
+    ),
+    (
+        "sk-operator-validate",
+        [
+            "校验",
+            "validate",
+            "规范",
+            "lint",
+            "风险",
+            "spec",
+            "compat",
+            "兼容",
+            "cann",
+            "sdk",
+            "driver",
+            "acl",
+            "版本",
+        ],
+    ),
     ("sk-operator-build-package", ["编译", "build", "打包", "wheel", "pybind"]),
-    ("sk-operator-sample-gen", ["样例", "sample", "runtime", "correctness", "verdict", "oracle"]),
-    ("sk-operator-codegen", ["算子", "operator", "codegen", "使能", "scaffold", "intake"]),
+    (
+        "sk-operator-sample-gen",
+        ["样例", "sample", "runtime", "correctness", "verdict", "oracle"],
+    ),
+    (
+        "sk-operator-codegen",
+        ["算子", "operator", "codegen", "使能", "scaffold", "intake"],
+    ),
 ]
-_ASSET_SKIP_DIRS = {"op_verify", "run", "runs", "input", "output", "outputs", "build", "build_out", "kernel_template"}
+_ASSET_SKIP_DIRS = {
+    "op_verify",
+    "run",
+    "runs",
+    "input",
+    "output",
+    "outputs",
+    "build",
+    "build_out",
+    "kernel_template",
+}
 _ASSET_ROOT_NON_BLOCKING_STATUSES = (
     "packaged",
     "verified",
@@ -76,7 +125,9 @@ def _find_repo_root(raw: str | os.PathLike[str] | None = None) -> Path:
 
 
 def _default_build_cache_dir(repo_root: Path) -> Path:
-    raw = os.environ.get("SK_OPERATOR_BUILD_CACHE_DIR") or os.environ.get("SK_TOOLS_BUILD_CACHE_DIR")
+    raw = os.environ.get("SK_OPERATOR_BUILD_CACHE_DIR") or os.environ.get(
+        "SK_TOOLS_BUILD_CACHE_DIR"
+    )
     if raw:
         return Path(raw).expanduser().resolve()
     return (repo_root / DEFAULT_BUILD_CACHE_REL).resolve()
@@ -100,10 +151,16 @@ def _ensure_script_import(skills_root: Path, skill_name: str) -> Path:
 
 
 def _discover_operator_assets(root: Path, *, skills_root: Path) -> list[Path]:
-    return [Path(item["path"]) for item in _discover_operator_asset_records(root, skills_root=skills_root) if item["status"] == "selected"]
+    return [
+        Path(item["path"])
+        for item in _discover_operator_asset_records(root, skills_root=skills_root)
+        if item["status"] == "selected"
+    ]
 
 
-def _discover_operator_asset_records(root: Path, *, skills_root: Path) -> list[dict[str, Any]]:
+def _discover_operator_asset_records(
+    root: Path, *, skills_root: Path
+) -> list[dict[str, Any]]:
     _ensure_script_import(skills_root, "sk-operator-codegen")
     from operator_asset_layout import build_inventory, build_layout_from_inventory
 
@@ -188,7 +245,9 @@ def _asset_run_name(root: Path | None, asset: Path, used: set[str]) -> str:
     return final_name
 
 
-def _entry_records_for_assets(asset_paths: list[Path], *, skills_root: Path) -> list[dict[str, Any]]:
+def _entry_records_for_assets(
+    asset_paths: list[Path], *, skills_root: Path
+) -> list[dict[str, Any]]:
     _ensure_script_import(skills_root, "sk-operator-codegen")
     from operator_asset_analyzer import analyze_asset
 
@@ -307,12 +366,14 @@ def _run_asset_root_separately(
     from sk_pipeline_orchestrator import PipelineOrchestrator
 
     layout = ArtifactLayout(output_dir)
-    resolved_verify_backend, resolved_wheel_mode = orchestrator._resolve_profile_options(
-        profile=args.profile,
-        verify_backend=args.verify_backend,
-        wheel_mode=wheel_mode,
-        no_verify=bool(args.no_verify),
-        no_package=bool(args.no_package),
+    resolved_verify_backend, resolved_wheel_mode = (
+        orchestrator._resolve_profile_options(
+            profile=args.profile,
+            verify_backend=args.verify_backend,
+            wheel_mode=wheel_mode,
+            no_verify=bool(args.no_verify),
+            no_package=bool(args.no_package),
+        )
     )
     selected_stages = PipelineOrchestrator._parse_stages(
         args.stages,
@@ -348,8 +409,12 @@ def _run_asset_root_separately(
                 build_cache_dir=build_cache_dir,
                 jobs=args.jobs,
                 run_slug=run_name,
-                io_contract=Path(args.io_contract).resolve() if getattr(args, "io_contract", None) else None,
-                allow_structural_toolchain=bool(getattr(args, "allow_structural_toolchain", False)),
+                io_contract=Path(args.io_contract).resolve()
+                if getattr(args, "io_contract", None)
+                else None,
+                allow_structural_toolchain=bool(
+                    getattr(args, "allow_structural_toolchain", False)
+                ),
                 allow_mock_npu=bool(getattr(args, "allow_mock_npu", False)),
             )
             status = state["status"]
@@ -384,21 +449,32 @@ def _run_asset_root_separately(
             source_path=Path(record["path"]),
             reason=record.get("reason", ""),
         )
-    selected_statuses = [record["status"] for record in records if record["status"] != "skipped"]
-    failed = [record for record in records if record["status"] not in _ASSET_ROOT_NON_BLOCKING_STATUSES and record["status"] != "skipped"]
+    selected_statuses = [
+        record["status"] for record in records if record["status"] != "skipped"
+    ]
+    failed = [
+        record
+        for record in records
+        if record["status"] not in _ASSET_ROOT_NON_BLOCKING_STATUSES
+        and record["status"] != "skipped"
+    ]
     status = "completed" if not failed else "failed"
     release_success = (
         status == "completed"
         and not skipped_records
         and bool(selected_statuses)
-        and all(item in _PIPELINE_TERMINAL_SUCCESS_STATUSES for item in selected_statuses)
+        and all(
+            item in _PIPELINE_TERMINAL_SUCCESS_STATUSES for item in selected_statuses
+        )
     )
     payload = {
         "schema_version": 1,
         "mode": "separate",
         "status": status,
         "release_success": release_success,
-        "reason": "duplicate-entry-names" if duplicate_entries else "asset-root-mode-separate",
+        "reason": "duplicate-entry-names"
+        if duplicate_entries
+        else "asset-root-mode-separate",
         "duplicate_entries": duplicate_entries,
         "duplicate_asset_slugs": duplicate_asset_slugs,
         "roots": [str(root) for root in roots],
@@ -435,12 +511,18 @@ def _run_asset_root_separately(
 
 
 def _index_section(directory: Path, *, label: str | None = None) -> dict[str, Any]:
-    files = sorted(path for path in directory.rglob("*") if path.is_file()) if directory.exists() else []
+    files = (
+        sorted(path for path in directory.rglob("*") if path.is_file())
+        if directory.exists()
+        else []
+    )
     return {
         "root": label or str(directory),
         "file_count": len(files),
         "sample_files": [
-            str(path.relative_to(directory)) if directory in path.parents or path.parent == directory else str(path)
+            str(path.relative_to(directory))
+            if directory in path.parents or path.parent == directory
+            else str(path)
             for path in files[:20]
         ],
     }
@@ -513,7 +595,9 @@ def _render_ai_hints(payload: dict[str, Any]) -> str:
 def cmd_index(args: argparse.Namespace) -> int:
     skills_root = _resolve_skills_root(args.skills_root)
     output_dir = _resolve_output_dir(args.output_dir)
-    index_roots = [Path(item).expanduser().resolve() for item in (args.index_root or [])]
+    index_roots = [
+        Path(item).expanduser().resolve() for item in (args.index_root or [])
+    ]
     if not index_roots:
         index_roots = [skills_root]
     payload = {
@@ -528,9 +612,14 @@ def cmd_index(args: argparse.Namespace) -> int:
         "sections": [_index_section(root, label=str(root)) for root in index_roots],
     }
     _write_json(output_dir / "operator-pipeline-index.json", payload)
-    _write_text(output_dir / "operator-pipeline-index-report.md", _render_index_report(payload))
+    _write_text(
+        output_dir / "operator-pipeline-index-report.md", _render_index_report(payload)
+    )
     if args.with_ai:
-        _write_text(output_dir / "operator-pipeline-index-ai-hints.md", _render_ai_hints(payload))
+        _write_text(
+            output_dir / "operator-pipeline-index-ai-hints.md",
+            _render_ai_hints(payload),
+        )
     return 0
 
 
@@ -538,17 +627,55 @@ def cmd_route(args: argparse.Namespace) -> int:
     skills_root = _resolve_skills_root(args.skills_root)
     output_dir = _resolve_output_dir(args.output_dir)
     target = _route_query(args.query)
+
     def entry(skill_name: str, script_name: str, *extra: str) -> str:
-        return " ".join(["python3", str(_skill_script(skills_root, skill_name, script_name)), *extra])
+        return " ".join(
+            [
+                "python3",
+                str(_skill_script(skills_root, skill_name, script_name)),
+                *extra,
+            ]
+        )
 
     entry = {
-        "sk-network-analysis": entry("sk-network-analysis", "network_analysis.py", "diagnose", "<run_dir>"),
-        "sk-operator-asset-adapter": entry("sk-operator-asset-adapter", "operator_asset_adapter.py", "adapt-asset", "<asset>", "--output-dir", "<dir>"),
-        "sk-operator-codegen": entry("sk-operator-codegen", "operator_codegen.py", "intake", "<asset>"),
-        "sk-operator-validate": entry("sk-operator-validate", "operator_validate.py", "validate-operator", "--asset", "<asset>", "--output-dir", "<dir>"),
-        "sk-operator-sample-gen": entry("sk-operator-sample-gen", "operator_sample_gen.py", "collect-runtime-input-spec", "<output_dir>"),
-        "sk-operator-build-package": entry("sk-operator-build-package", "operator_build_package.py", "run-sk-build-validation", "<output_dir>"),
-        "sk-operator-pipeline": entry("sk-operator-pipeline", "operator_pipeline.py", "index"),
+        "sk-network-analysis": entry(
+            "sk-network-analysis", "network_analysis.py", "diagnose", "<run_dir>"
+        ),
+        "sk-operator-asset-adapter": entry(
+            "sk-operator-asset-adapter",
+            "operator_asset_adapter.py",
+            "adapt-asset",
+            "<asset>",
+            "--output-dir",
+            "<dir>",
+        ),
+        "sk-operator-codegen": entry(
+            "sk-operator-codegen", "operator_codegen.py", "intake", "<asset>"
+        ),
+        "sk-operator-validate": entry(
+            "sk-operator-validate",
+            "operator_validate.py",
+            "validate-operator",
+            "--asset",
+            "<asset>",
+            "--output-dir",
+            "<dir>",
+        ),
+        "sk-operator-sample-gen": entry(
+            "sk-operator-sample-gen",
+            "operator_sample_gen.py",
+            "collect-runtime-input-spec",
+            "<output_dir>",
+        ),
+        "sk-operator-build-package": entry(
+            "sk-operator-build-package",
+            "operator_build_package.py",
+            "run-sk-build-validation",
+            "<output_dir>",
+        ),
+        "sk-operator-pipeline": entry(
+            "sk-operator-pipeline", "operator_pipeline.py", "index"
+        ),
     }[target]
     payload = {
         "skill": "sk-operator-pipeline",
@@ -567,9 +694,14 @@ def cmd_route(args: argparse.Namespace) -> int:
         },
     }
     _write_json(output_dir / "operator-pipeline-route.json", payload)
-    _write_text(output_dir / "operator-pipeline-route-report.md", _render_route_report(payload))
+    _write_text(
+        output_dir / "operator-pipeline-route-report.md", _render_route_report(payload)
+    )
     if args.with_ai:
-        _write_text(output_dir / "operator-pipeline-route-ai-hints.md", _render_ai_hints(payload))
+        _write_text(
+            output_dir / "operator-pipeline-route-ai-hints.md",
+            _render_ai_hints(payload),
+        )
     return 0
 
 
@@ -583,7 +715,11 @@ def cmd_run_sk_pipeline(args: argparse.Namespace) -> int:
 
     skills_root = _resolve_skills_root(args.skills_root)
     repo_root = _find_repo_root(args.repo_root)
-    build_cache_dir = Path(args.build_cache_dir).expanduser().resolve() if args.build_cache_dir else _default_build_cache_dir(repo_root)
+    build_cache_dir = (
+        Path(args.build_cache_dir).expanduser().resolve()
+        if args.build_cache_dir
+        else _default_build_cache_dir(repo_root)
+    )
     asset_paths: list[Path] = []
     root_paths: list[Path] = []
     root_skipped_records: list[dict[str, Any]] = []
@@ -595,8 +731,12 @@ def cmd_run_sk_pipeline(args: argparse.Namespace) -> int:
             raise SystemExit(f"asset root not found: {root}")
         root_paths.append(root)
         root_records = _discover_operator_asset_records(root, skills_root=skills_root)
-        asset_paths.extend(Path(item["path"]) for item in root_records if item["status"] == "selected")
-        root_skipped_records.extend(item for item in root_records if item["status"] == "skipped")
+        asset_paths.extend(
+            Path(item["path"]) for item in root_records if item["status"] == "selected"
+        )
+        root_skipped_records.extend(
+            item for item in root_records if item["status"] == "skipped"
+        )
     output_dir = _resolve_output_dir(args.output_dir)
     if not asset_paths:
         if root_skipped_records:
@@ -626,8 +766,12 @@ def cmd_run_sk_pipeline(args: argparse.Namespace) -> int:
             }
             output_dir.mkdir(parents=True, exist_ok=True)
             _write_asset_root_coverage(output_dir, payload)
-            raise SystemExit(f"asset layout required; inspect {output_dir / 'asset-root-coverage.json'}")
-        raise SystemExit("--asset or --asset-root must provide at least one operator asset")
+            raise SystemExit(
+                f"asset layout required; inspect {output_dir / 'asset-root-coverage.json'}"
+            )
+        raise SystemExit(
+            "--asset or --asset-root must provide at least one operator asset"
+        )
     for asset in asset_paths:
         if not asset.exists():
             raise SystemExit(f"asset path not found: {asset}")
@@ -640,8 +784,12 @@ def cmd_run_sk_pipeline(args: argparse.Namespace) -> int:
     except ValueError as exc:
         raise SystemExit(str(exc)) from exc
 
-    orchestrator = PipelineOrchestrator(skills_root, _sys.executable, repo_root=repo_root)
-    wheel_mode = "never" if args.no_package and args.wheel_mode is None else args.wheel_mode
+    orchestrator = PipelineOrchestrator(
+        skills_root, _sys.executable, repo_root=repo_root
+    )
+    wheel_mode = (
+        "never" if args.no_package and args.wheel_mode is None else args.wheel_mode
+    )
     only_asset_roots = bool(root_paths) and not (args.assets or [])
     asset_names: dict[str, str] | None = None
     if only_asset_roots:
@@ -649,16 +797,22 @@ def cmd_run_sk_pipeline(args: argparse.Namespace) -> int:
         duplicates = _duplicate_entries(entry_records)
         used_asset_names: set[str] = set()
         asset_names = {
-            str(asset.resolve()): _asset_run_name(_root_for_asset(asset, root_paths), asset, used_asset_names)
+            str(asset.resolve()): _asset_run_name(
+                _root_for_asset(asset, root_paths), asset, used_asset_names
+            )
             for asset in asset_paths
         }
         slugs: dict[str, list[str]] = {}
         for asset in asset_paths:
             slugs.setdefault(_safe_slug(asset.name), []).append(str(asset))
-        duplicate_slugs = {slug: paths for slug, paths in slugs.items() if len(paths) > 1}
+        duplicate_slugs = {
+            slug: paths for slug, paths in slugs.items() if len(paths) > 1
+        }
         namespace_duplicates = args.duplicate_entry_policy == "namespace"
         separate_mode = args.asset_root_mode == "separate" or (
-            args.asset_root_mode == "auto" and (bool(duplicates) or bool(duplicate_slugs)) and not namespace_duplicates
+            args.asset_root_mode == "auto"
+            and (bool(duplicates) or bool(duplicate_slugs))
+            and not namespace_duplicates
         )
         if separate_mode:
             rc, payload = _run_asset_root_separately(
@@ -687,9 +841,19 @@ def cmd_run_sk_pipeline(args: argparse.Namespace) -> int:
                 )
             )
             return rc
-        if args.asset_root_mode == "aggregate" and (duplicates or duplicate_slugs) and not namespace_duplicates:
-            details = {"duplicate_entries": duplicates, "duplicate_asset_slugs": duplicate_slugs}
-            raise SystemExit("asset-root aggregate mode cannot continue with duplicate identities: " + json.dumps(details, ensure_ascii=False))
+        if (
+            args.asset_root_mode == "aggregate"
+            and (duplicates or duplicate_slugs)
+            and not namespace_duplicates
+        ):
+            details = {
+                "duplicate_entries": duplicates,
+                "duplicate_asset_slugs": duplicate_slugs,
+            }
+            raise SystemExit(
+                "asset-root aggregate mode cannot continue with duplicate identities: "
+                + json.dumps(details, ensure_ascii=False)
+            )
         if namespace_duplicates and duplicates:
             from sk_artifact_layout import ArtifactLayout
 
@@ -704,12 +868,18 @@ def cmd_run_sk_pipeline(args: argparse.Namespace) -> int:
                 policy="namespace",
                 skills_root=skills_root,
             )
-            layout.write_name_resolution_reports(public_name_resolution_payload(name_resolution_payload))
-            internal_name_resolution = output_dir / "work" / "name-resolution-internal.json"
+            layout.write_name_resolution_reports(
+                public_name_resolution_payload(name_resolution_payload)
+            )
+            internal_name_resolution = (
+                output_dir / "work" / "name-resolution-internal.json"
+            )
             layout.write_json(internal_name_resolution, name_resolution_payload)
             args.name_resolution = str(internal_name_resolution)
     try:
-        run_slug = "aggregate" if len(asset_paths) > 1 else _safe_slug(asset_paths[0].name)
+        run_slug = (
+            "aggregate" if len(asset_paths) > 1 else _safe_slug(asset_paths[0].name)
+        )
         state = orchestrator.run(
             asset_paths,
             output_dir,
@@ -728,23 +898,39 @@ def cmd_run_sk_pipeline(args: argparse.Namespace) -> int:
             build_cache_dir=build_cache_dir,
             jobs=args.jobs,
             run_slug=run_slug,
-            name_resolution=Path(args.name_resolution).resolve() if getattr(args, "name_resolution", None) else None,
+            name_resolution=Path(args.name_resolution).resolve()
+            if getattr(args, "name_resolution", None)
+            else None,
             asset_names=asset_names,
-            io_contract=Path(args.io_contract).resolve() if getattr(args, "io_contract", None) else None,
-            allow_structural_toolchain=bool(getattr(args, "allow_structural_toolchain", False)),
+            io_contract=Path(args.io_contract).resolve()
+            if getattr(args, "io_contract", None)
+            else None,
+            allow_structural_toolchain=bool(
+                getattr(args, "allow_structural_toolchain", False)
+            ),
             allow_mock_npu=bool(getattr(args, "allow_mock_npu", False)),
         )
     except OrchestratorError as exc:
         raise SystemExit(str(exc)) from exc
-    summary = {"status": state["status"], "stages": len(state["stages"]), "asset_count": len(asset_paths)}
+    summary = {
+        "status": state["status"],
+        "stages": len(state["stages"]),
+        "asset_count": len(asset_paths),
+    }
     name_resolution_report = output_dir / "name-resolution-report.json"
     if name_resolution_report.exists():
         try:
-            name_resolution_payload = json.loads(name_resolution_report.read_text(encoding="utf-8"))
+            name_resolution_payload = json.loads(
+                name_resolution_report.read_text(encoding="utf-8")
+            )
             summary.update(
                 {
-                    "renamed_entry_count": name_resolution_payload.get("renamed_entry_count", 0),
-                    "duplicate_entry_group_count": len(name_resolution_payload.get("duplicate_entry_groups", {})),
+                    "renamed_entry_count": name_resolution_payload.get(
+                        "renamed_entry_count", 0
+                    ),
+                    "duplicate_entry_group_count": len(
+                        name_resolution_payload.get("duplicate_entry_groups", {})
+                    ),
                     "name_resolution_report": "name-resolution-report.json",
                 }
             )
@@ -756,17 +942,36 @@ def cmd_run_sk_pipeline(args: argparse.Namespace) -> int:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Top-level CLI for sk-operator-pipeline")
+    parser = argparse.ArgumentParser(
+        description="Top-level CLI for sk-operator-pipeline"
+    )
     subparsers = parser.add_subparsers(dest="subcommand", required=True)
 
     pipeline = subparsers.add_parser(
         "run-sk-pipeline",
         help="Drive the closed-loop SK operator pipeline (detect/adapt -> validate rule packs -> build/package)",
     )
-    pipeline.add_argument("--skills-root", help="Root directory containing SK skill directories; defaults to this skill's parent directory")
-    pipeline.add_argument("--repo-root", help="User workspace root for cache/workspace semantics; defaults to cwd marker discovery")
-    pipeline.add_argument("--asset", dest="assets", action="append", default=[], help="Operator asset directory or source file (repeatable)")
-    pipeline.add_argument("--asset-root", action="append", default=[], help="Parent directory whose direct child directories are operator assets")
+    pipeline.add_argument(
+        "--skills-root",
+        help="Root directory containing SK skill directories; defaults to this skill's parent directory",
+    )
+    pipeline.add_argument(
+        "--repo-root",
+        help="User workspace root for cache/workspace semantics; defaults to cwd marker discovery",
+    )
+    pipeline.add_argument(
+        "--asset",
+        dest="assets",
+        action="append",
+        default=[],
+        help="Operator asset directory or source file (repeatable)",
+    )
+    pipeline.add_argument(
+        "--asset-root",
+        action="append",
+        default=[],
+        help="Parent directory whose direct child directories are operator assets",
+    )
     pipeline.add_argument(
         "--asset-root-mode",
         choices=["auto", "aggregate", "separate"],
@@ -780,47 +985,133 @@ def build_parser() -> argparse.ArgumentParser:
         help="How aggregate asset-root runs handle duplicate entry names: reject or namespace colliding entries",
     )
     pipeline.add_argument("--name-resolution", help=argparse.SUPPRESS)
-    pipeline.add_argument("--stages", help="Comma-separated stage ids to run, e.g. 01,02,05,06 (default follows --profile)")
-    pipeline.add_argument("--output-dir", default="sk-pipeline-output", help="Pipeline working/output directory")
-    pipeline.add_argument("--clean-output", action="store_true", help="Remove an existing output directory before running")
-    pipeline.add_argument("--resume-from", help="Resume using an artifact-map.json inside --output-dir")
-    pipeline.add_argument("--target-chip", default="", help="Target chip id(s), comma/semicolon separated; used for sparse arch build resolution")
+    pipeline.add_argument(
+        "--stages",
+        help="Comma-separated stage ids to run, e.g. 01,02,05,06 (default follows --profile)",
+    )
+    pipeline.add_argument(
+        "--output-dir",
+        default="sk-pipeline-output",
+        help="Pipeline working/output directory",
+    )
+    pipeline.add_argument(
+        "--clean-output",
+        action="store_true",
+        help="Remove an existing output directory before running",
+    )
+    pipeline.add_argument(
+        "--resume-from", help="Resume using an artifact-map.json inside --output-dir"
+    )
+    pipeline.add_argument(
+        "--target-chip",
+        default="",
+        help="Target chip id(s), comma/semicolon separated; used for sparse arch build resolution",
+    )
     pipeline.add_argument("--target-cann", default="", help=argparse.SUPPRESS)
-    pipeline.add_argument("--aggregate-wheel-name", default="op_extension", help="Distribution name for the aggregate wheel")
-    pipeline.add_argument("--package-version", default="0.1.0", help="Distribution package version for the aggregate wheel")
+    pipeline.add_argument(
+        "--aggregate-wheel-name",
+        default="op_extension",
+        help="Distribution name for the aggregate wheel",
+    )
+    pipeline.add_argument(
+        "--package-version",
+        default="0.1.0",
+        help="Distribution package version for the aggregate wheel",
+    )
     pipeline.add_argument(
         "--io-contract",
         help="JSON tensor IO contract forwarded to adapt-sk-from-global; required when multi-tensor output semantics are ambiguous",
     )
-    pipeline.add_argument("--max-iterations", default="5", help="Convergence cap on remediation iterations")
-    pipeline.add_argument("--no-package", action="store_true", help="Stop after default validation stages unless --stages explicitly selects build/verify")
-    pipeline.add_argument("--no-verify", action="store_true", help="Skip differential verification after wheel build")
-    pipeline.add_argument("--allow-structural-toolchain", action="store_true", help="Use generated fake cmake/bisheng placeholders for development-only structural checks")
-    pipeline.add_argument("--allow-mock-npu", action="store_true", help="Allow mock NPU validation status for development-only route checks")
-    pipeline.add_argument("--profile", choices=["fast", "release"], default="release", help="Pipeline profile: fast skips wheel build; release keeps delivery packaging")
-    pipeline.add_argument("--verify-backend", choices=["standalone", "wheel", "both", "none"], help="Verification backend override")
-    pipeline.add_argument("--wheel-mode", choices=["never", "cache", "always"], help="Wheel build mode override")
-    pipeline.add_argument("--reuse-wheel", help="Existing aggregate wheel to reuse instead of invoking build-native-wheel")
+    pipeline.add_argument(
+        "--max-iterations",
+        default="5",
+        help="Convergence cap on remediation iterations",
+    )
+    pipeline.add_argument(
+        "--no-package",
+        action="store_true",
+        help="Stop after default validation stages unless --stages explicitly selects build/verify",
+    )
+    pipeline.add_argument(
+        "--no-verify",
+        action="store_true",
+        help="Skip differential verification after wheel build",
+    )
+    pipeline.add_argument(
+        "--allow-structural-toolchain",
+        action="store_true",
+        help="Use generated fake cmake/bisheng placeholders for development-only structural checks",
+    )
+    pipeline.add_argument(
+        "--allow-mock-npu",
+        action="store_true",
+        help="Allow mock NPU validation status for development-only route checks",
+    )
+    pipeline.add_argument(
+        "--profile",
+        choices=["fast", "release"],
+        default="release",
+        help="Pipeline profile: fast skips wheel build; release keeps delivery packaging",
+    )
+    pipeline.add_argument(
+        "--verify-backend",
+        choices=["standalone", "wheel", "both", "none"],
+        help="Verification backend override",
+    )
+    pipeline.add_argument(
+        "--wheel-mode",
+        choices=["never", "cache", "always"],
+        help="Wheel build mode override",
+    )
+    pipeline.add_argument(
+        "--reuse-wheel",
+        help="Existing aggregate wheel to reuse instead of invoking build-native-wheel",
+    )
     pipeline.add_argument(
         "--build-cache-dir",
         default=None,
         help="Directory for standalone and wheel build caches (default: <repo-root>/build/sk-operator-build-cache)",
     )
-    pipeline.add_argument("--jobs", type=int, help="Pipeline worker count and native wheel compile parallelism")
+    pipeline.add_argument(
+        "--jobs",
+        type=int,
+        help="Pipeline worker count and native wheel compile parallelism",
+    )
     pipeline.set_defaults(func=cmd_run_sk_pipeline)
 
     index = subparsers.add_parser("index", help="Build a local SK capability index")
-    index.add_argument("--skills-root", help="Root directory containing SK skill directories; defaults to this skill's parent directory")
-    index.add_argument("--index-root", action="append", default=[], help="Directory to index; repeatable. Defaults to --skills-root only")
-    index.add_argument("--output-dir", default="operator-pipeline-output", help="Output directory")
-    index.add_argument("--with-ai", action="store_true", help="Request optional AI-layer hints")
+    index.add_argument(
+        "--skills-root",
+        help="Root directory containing SK skill directories; defaults to this skill's parent directory",
+    )
+    index.add_argument(
+        "--index-root",
+        action="append",
+        default=[],
+        help="Directory to index; repeatable. Defaults to --skills-root only",
+    )
+    index.add_argument(
+        "--output-dir", default="operator-pipeline-output", help="Output directory"
+    )
+    index.add_argument(
+        "--with-ai", action="store_true", help="Request optional AI-layer hints"
+    )
     index.set_defaults(func=cmd_index)
 
-    route = subparsers.add_parser("route", help="Route one question to a built-in skill")
+    route = subparsers.add_parser(
+        "route", help="Route one question to a built-in skill"
+    )
     route.add_argument("query", help="Question or task description")
-    route.add_argument("--skills-root", help="Root directory containing SK skill directories; defaults to this skill's parent directory")
-    route.add_argument("--output-dir", default="operator-pipeline-output", help="Output directory")
-    route.add_argument("--with-ai", action="store_true", help="Request optional AI-layer hints")
+    route.add_argument(
+        "--skills-root",
+        help="Root directory containing SK skill directories; defaults to this skill's parent directory",
+    )
+    route.add_argument(
+        "--output-dir", default="operator-pipeline-output", help="Output directory"
+    )
+    route.add_argument(
+        "--with-ai", action="store_true", help="Request optional AI-layer hints"
+    )
     route.set_defaults(func=cmd_route)
 
     return parser

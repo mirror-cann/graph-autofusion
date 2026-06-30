@@ -54,21 +54,21 @@ from sk_library_extractor import (
 # ============================================================
 # 使用 hex 颜色值 (通过 color 字段而非 cname，避免 cname 受限)
 NODE_TYPE_COLORS = {
-    "Kernel":        "#22c55e",     # 绿色
-    "EventNotify":   "#f97316",     # 橙色
-    "EventWait":     "#3b82f6",     # 蓝色
-    "EventReset":    "#ef4444",     # 红色
-    "MemoryWrite":   "#a855f7",     # 紫色
-    "MemoryWait":    "#14b8a6",     # 青色
+    "Kernel": "#22c55e",  # 绿色
+    "EventNotify": "#f97316",  # 橙色
+    "EventWait": "#3b82f6",  # 蓝色
+    "EventReset": "#ef4444",  # 红色
+    "MemoryWrite": "#a855f7",  # 紫色
+    "MemoryWait": "#14b8a6",  # 青色
 }
 
 NODE_TYPE_CATEGORIES = {
-    "Kernel":        "kernel",
-    "EventNotify":   "event_notify",
-    "EventWait":     "event_wait",
-    "EventReset":    "event_reset",
-    "MemoryWrite":   "memory_write",
-    "MemoryWait":    "memory_wait",
+    "Kernel": "kernel",
+    "EventNotify": "event_notify",
+    "EventWait": "event_wait",
+    "EventReset": "event_reset",
+    "MemoryWrite": "memory_write",
+    "MemoryWait": "memory_wait",
 }
 
 TRACE_PROCESS_ID = 1
@@ -135,14 +135,19 @@ OLD_TYPE_MAP = {
 }
 
 # 起止标记
-RE_START = re.compile(r"(?:\[SK\])?\[UpdateNodeScopeBitFlags\]\s+Starting UpdateNodeScopeBitFlags")
-RE_END = re.compile(r"(?:\[SK\])?\[UpdateNodeScopeBitFlags\]\s+UpdateNodeScopeBitFlags completed")
+RE_START = re.compile(
+    r"(?:\[SK\])?\[UpdateNodeScopeBitFlags\]\s+Starting UpdateNodeScopeBitFlags"
+)
+RE_END = re.compile(
+    r"(?:\[SK\])?\[UpdateNodeScopeBitFlags\]\s+UpdateNodeScopeBitFlags completed"
+)
 RE_PROCESSED = re.compile(r"(?:\[SK\])?\[UpdateNodeScopeBitFlags\]\s+Processed node")
 
 
 # ============================================================
 # 解析函数
 # ============================================================
+
 
 def parse_node_line_new(line):
     """解析新版日志格式的节点行"""
@@ -322,7 +327,11 @@ def parse_log_file(filepath):
     except Exception as e:
         print(f"  [WARN] 读取文件出错: {e}", file=sys.stderr)
 
-    if not nodes and saw_processed and os.path.basename(filepath) == "sk_node_detail.log":
+    if (
+        not nodes
+        and saw_processed
+        and os.path.basename(filepath) == "sk_node_detail.log"
+    ):
         try:
             with open(filepath, "r", encoding="utf-8", errors="replace") as f:
                 for line in f:
@@ -347,7 +356,11 @@ def collect_log_files(input_path):
     if os.path.isdir(input_path):
         for root, _, names in os.walk(input_path):
             for fname in names:
-                if fname.endswith(".log") or fname.endswith(".txt") or fname.startswith("plog-"):
+                if (
+                    fname.endswith(".log")
+                    or fname.endswith(".txt")
+                    or fname.startswith("plog-")
+                ):
                     files.append(os.path.join(root, fname))
     files = sorted(set(files))
     return files
@@ -358,7 +371,13 @@ def _display_type_from_node_library(row):
     if node_type in NODE_LIBRARY_DISPLAY_TYPES:
         return NODE_LIBRARY_DISPLAY_TYPES[node_type]
     event_type = str(row.get("event_type") or "")
-    if event_type in {"EventNotify", "EventWait", "EventReset", "MemoryWrite", "MemoryWait"}:
+    if event_type in {
+        "EventNotify",
+        "EventWait",
+        "EventReset",
+        "MemoryWrite",
+        "MemoryWait",
+    }:
         return event_type
     if row.get("func_name"):
         return "Kernel"
@@ -399,7 +418,9 @@ def _normalize_model_instance_id(value, default="mi01"):
 def _report_model_instance_id(report, default="mi01"):
     if not isinstance(report, dict):
         return default
-    return _normalize_model_instance_id(report.get("model_instance_id"), default=default)
+    return _normalize_model_instance_id(
+        report.get("model_instance_id"), default=default
+    )
 
 
 def _report_model_instance_index(report, default=1):
@@ -424,7 +445,10 @@ def _normalize_partition_mode(value):
 def _stats_model_instance_partition_mode(stats, *, count):
     if not isinstance(stats, dict):
         return "single" if count <= 1 else "unknown"
-    return _normalize_partition_mode(stats.get("model_instance_partition_mode") or ("single" if count <= 1 else "unknown"))
+    return _normalize_partition_mode(
+        stats.get("model_instance_partition_mode")
+        or ("single" if count <= 1 else "unknown")
+    )
 
 
 def _stats_model_instance_partition_verified(stats, *, count):
@@ -437,7 +461,11 @@ def _resolve_model_instance_trace_context(input_path, model_instance_id):
     model_dir = find_model_dir(input_path)
     reports = collect_update_model_instance_reports(model_dir)
     model_instance_count = len(reports)
-    requested_model_instance_id = _normalize_model_instance_id(model_instance_id, default="") if model_instance_id else None
+    requested_model_instance_id = (
+        _normalize_model_instance_id(model_instance_id, default="")
+        if model_instance_id
+        else None
+    )
     if model_instance_count > 1 and not requested_model_instance_id:
         raise ValueError(
             "multi-model-instance tracing requires --model-instance-id; refusing to build a whole-model trace"
@@ -446,8 +474,13 @@ def _resolve_model_instance_trace_context(input_path, model_instance_id):
     selected_report = None
     if model_instance_count <= 1:
         selected_report = reports[0] if reports else None
-        selected_model_instance_id = _report_model_instance_id(selected_report) if selected_report else "mi01"
-        if requested_model_instance_id and requested_model_instance_id != selected_model_instance_id:
+        selected_model_instance_id = (
+            _report_model_instance_id(selected_report) if selected_report else "mi01"
+        )
+        if (
+            requested_model_instance_id
+            and requested_model_instance_id != selected_model_instance_id
+        ):
             raise ValueError(
                 f"model-instance-id {requested_model_instance_id} does not exist for single-model-instance input"
             )
@@ -465,35 +498,66 @@ def _resolve_model_instance_trace_context(input_path, model_instance_id):
         raise ValueError("failed to resolve tracing inputs from model-instance reports")
 
     graph_library = selected_report.get("graph_library", {})
-    node_library = graph_library.get("node_library", {}) if isinstance(graph_library, dict) else {}
+    node_library = (
+        graph_library.get("node_library", {}) if isinstance(graph_library, dict) else {}
+    )
     scope_library = selected_report.get("scope_library", {})
-    fused_library = scope_library.get("fused_library", {}) if isinstance(scope_library, dict) else {}
-    device_task_library = scope_library.get("device_task_library", {}) if isinstance(scope_library, dict) else {}
+    fused_library = (
+        scope_library.get("fused_library", {})
+        if isinstance(scope_library, dict)
+        else {}
+    )
+    device_task_library = (
+        scope_library.get("device_task_library", {})
+        if isinstance(scope_library, dict)
+        else {}
+    )
     stats = node_library.get("stats", {}) if isinstance(node_library, dict) else {}
-    model_instance_partition_verified = _stats_model_instance_partition_verified(stats, count=model_instance_count)
+    model_instance_partition_verified = _stats_model_instance_partition_verified(
+        stats, count=model_instance_count
+    )
     if model_instance_count > 1 and not model_instance_partition_verified:
         raise ValueError(
             f"model-instance-local tracing inputs for {_report_model_instance_id(selected_report)} are not safely partitioned"
         )
 
     node_rows = node_library.get("nodes", []) if isinstance(node_library, dict) else []
-    nodes = [_node_from_library_row(row) for row in node_rows if isinstance(row, dict) and row.get("node_id") is not None]
+    nodes = [
+        _node_from_library_row(row)
+        for row in node_rows
+        if isinstance(row, dict) and row.get("node_id") is not None
+    ]
     return {
         "model_dir": model_dir,
         "nodes": nodes,
         "source_file": os.path.basename(str(node_library.get("path") or "")),
-        "fused_functions": fused_library.get("functions", []) if isinstance(fused_library, dict) else [],
-        "device_sections": device_task_library.get("sections", []) if isinstance(device_task_library, dict) else [],
-        "task_identity_diagnostics": device_task_library.get("task_identity_diagnostics", {}) if isinstance(device_task_library, dict) else {},
-        "model_instance_scope_mode": "model_instance_id" if model_instance_count > 1 else "single",
+        "fused_functions": fused_library.get("functions", [])
+        if isinstance(fused_library, dict)
+        else [],
+        "device_sections": device_task_library.get("sections", [])
+        if isinstance(device_task_library, dict)
+        else [],
+        "task_identity_diagnostics": device_task_library.get(
+            "task_identity_diagnostics", {}
+        )
+        if isinstance(device_task_library, dict)
+        else {},
+        "model_instance_scope_mode": "model_instance_id"
+        if model_instance_count > 1
+        else "single",
         "model_instance_id": _report_model_instance_id(selected_report),
         "model_instance_index": _report_model_instance_index(selected_report),
-        "model_instance_count": _report_model_instance_count(selected_report, default=model_instance_count or 1),
-        "model_instance_partition_mode": _stats_model_instance_partition_mode(stats, count=model_instance_count),
+        "model_instance_count": _report_model_instance_count(
+            selected_report, default=model_instance_count or 1
+        ),
+        "model_instance_partition_mode": _stats_model_instance_partition_mode(
+            stats, count=model_instance_count
+        ),
         "model_instance_partition_verified": model_instance_partition_verified,
         "cross_report_index_scope_verified": True,
         "model_instance_partition_source": "model_instance_report",
     }
+
 
 def build_event_edges(nodes):
     """
@@ -504,8 +568,8 @@ def build_event_edges(nodes):
     """
     notify_nodes = defaultdict(list)  # eventId -> [node, ...]
     wait_nodes = defaultdict(list)
-    mw_nodes = defaultdict(list)     # eventId -> [node, ...] (MemoryWrite)
-    mrw_nodes = defaultdict(list)    # eventId -> [node, ...] (MemoryWait)
+    mw_nodes = defaultdict(list)  # eventId -> [node, ...] (MemoryWrite)
+    mrw_nodes = defaultdict(list)  # eventId -> [node, ...] (MemoryWait)
 
     for n in nodes:
         eid = n.get("eventId")
@@ -529,13 +593,15 @@ def build_event_edges(nodes):
         for nf in notifies:
             for wt in waits:
                 if nf["streamId"] != wt["streamId"]:
-                    edges.append({
-                        "from": nf["nodeId"],
-                        "to": wt["nodeId"],
-                        "eventId": eid,
-                        "type": "event",
-                        "label": f"Event {short_event_id(eid)}",
-                    })
+                    edges.append(
+                        {
+                            "from": nf["nodeId"],
+                            "to": wt["nodeId"],
+                            "eventId": eid,
+                            "type": "event",
+                            "label": f"Event {short_event_id(eid)}",
+                        }
+                    )
 
     # MemoryWrite -> MemoryWait 连边
     for eid, writes in mw_nodes.items():
@@ -543,13 +609,15 @@ def build_event_edges(nodes):
         for mw in writes:
             for mrw in waits:
                 if mw["streamId"] != mrw["streamId"]:
-                    edges.append({
-                        "from": mw["nodeId"],
-                        "to": mrw["nodeId"],
-                        "eventId": eid,
-                        "type": "memory",
-                        "label": f"Mem {short_event_id(eid)}",
-                    })
+                    edges.append(
+                        {
+                            "from": mw["nodeId"],
+                            "to": mrw["nodeId"],
+                            "eventId": eid,
+                            "type": "memory",
+                            "label": f"Mem {short_event_id(eid)}",
+                        }
+                    )
 
     return edges
 
@@ -557,6 +625,7 @@ def build_event_edges(nodes):
 # ============================================================
 # Chrome Tracing JSON 生成
 # ============================================================
+
 
 def build_trace_layout(nodes):
     """Build stable numeric pid/tid layout for tracing-compatible output."""
@@ -646,17 +715,19 @@ def generate_tracing_json(nodes, edges, layout):
                 args["kernelName"] = n["kernelName"]
 
             # 使用 complete event 展示节点（有宽度的色块）
-            events.append({
-                "ph": "X",  # Complete Event
-                "pid": pid,
-                "tid": tid,
-                "ts": ts,
-                "dur": SLOT - 1,  # 几乎占满 slot
-                "name": node_name,
-                "cat": cat,
-                "color": color,
-                "args": args,
-            })
+            events.append(
+                {
+                    "ph": "X",  # Complete Event
+                    "pid": pid,
+                    "tid": tid,
+                    "ts": ts,
+                    "dur": SLOT - 1,  # 几乎占满 slot
+                    "name": node_name,
+                    "cat": cat,
+                    "color": color,
+                    "args": args,
+                }
+            )
 
     # === 跨流连边: 双重可视化 ===
     # 1. Flow events (s/f): 在 Chrome Tracing 中显示为箭头连线
@@ -686,68 +757,74 @@ def generate_tracing_json(nodes, edges, layout):
         flow_id_str = f"flow_{flow_id}"
 
         # Flow start: 在 source 节点所在的 track 上
-        events.append({
-            "ph": "s",
-            "pid": pid,
-            "tid": thread_ids[src["streamId"]],
-            "ts": s_ts,
-            "id": flow_id_str,
-            "cat": edge["type"],
-            "name": edge_label,
-            "bp": "e",  # bind to end of slice
-            "args": {
-                "from_nodeId": src["nodeId"],
-                "to_nodeId": dst["nodeId"],
-                "eventId": edge["eventId"],
-                "edge_type": edge["type"],
-            },
-            "color": edge_color,
-        })
+        events.append(
+            {
+                "ph": "s",
+                "pid": pid,
+                "tid": thread_ids[src["streamId"]],
+                "ts": s_ts,
+                "id": flow_id_str,
+                "cat": edge["type"],
+                "name": edge_label,
+                "bp": "e",  # bind to end of slice
+                "args": {
+                    "from_nodeId": src["nodeId"],
+                    "to_nodeId": dst["nodeId"],
+                    "eventId": edge["eventId"],
+                    "edge_type": edge["type"],
+                },
+                "color": edge_color,
+            }
+        )
 
         # Flow finish: 在 dest 节点所在的 track 上
-        events.append({
-            "ph": "f",
-            "pid": pid,
-            "tid": thread_ids[dst["streamId"]],
-            "ts": f_ts,
-            "id": flow_id_str,
-            "cat": edge["type"],
-            "name": edge_label,
-            "bp": "s",  # bind to start of slice
-            "args": {
-                "from_nodeId": src["nodeId"],
-                "to_nodeId": dst["nodeId"],
-                "eventId": edge["eventId"],
-                "edge_type": edge["type"],
-            },
-            "color": edge_color,
-        })
+        events.append(
+            {
+                "ph": "f",
+                "pid": pid,
+                "tid": thread_ids[dst["streamId"]],
+                "ts": f_ts,
+                "id": flow_id_str,
+                "cat": edge["type"],
+                "name": edge_label,
+                "bp": "s",  # bind to start of slice
+                "args": {
+                    "from_nodeId": src["nodeId"],
+                    "to_nodeId": dst["nodeId"],
+                    "eventId": edge["eventId"],
+                    "edge_type": edge["type"],
+                },
+                "color": edge_color,
+            }
+        )
 
         # --- Edges track: instant event 标注连边 (备选可视化) ---
         edge_ts = edge_start_ts + SLOT // 4
         src_type = src.get("displayType", "?")
         dst_type = dst.get("displayType", "?")
         edge_name = f"{src_type}[{src['nodeId']}] -> {dst_type}[{dst['nodeId']}]  ({edge_label})"
-        events.append({
-            "ph": "i",  # Instant event
-            "pid": pid,
-            "tid": layout["edges_tid"],
-            "ts": edge_ts,
-            "name": edge_name,
-            "cat": f"edge_{edge['type']}",
-            "s": "g",  # global instant
-            "args": {
-                "from_nodeId": src["nodeId"],
-                "from_streamId": src["streamId"],
-                "from_type": src_type,
-                "to_nodeId": dst["nodeId"],
-                "to_streamId": dst["streamId"],
-                "to_type": dst_type,
-                "eventId": edge["eventId"],
-                "edge_type": edge["type"],
-            },
-            "color": edge_color,
-        })
+        events.append(
+            {
+                "ph": "i",  # Instant event
+                "pid": pid,
+                "tid": layout["edges_tid"],
+                "ts": edge_ts,
+                "name": edge_name,
+                "cat": f"edge_{edge['type']}",
+                "s": "g",  # global instant
+                "args": {
+                    "from_nodeId": src["nodeId"],
+                    "from_streamId": src["streamId"],
+                    "from_type": src_type,
+                    "to_nodeId": dst["nodeId"],
+                    "to_streamId": dst["streamId"],
+                    "to_type": dst_type,
+                    "eventId": edge["eventId"],
+                    "edge_type": edge["type"],
+                },
+                "color": edge_color,
+            }
+        )
 
         flow_id += 1
 
@@ -767,66 +844,82 @@ def generate_metadata(nodes, edges, layout):
 
     meta_events = []
 
-    meta_events.append({
-        "ph": "M",
-        "pid": layout["pid"],
-        "name": "process_name",
-        "args": {"name": "SuperKernel Graph"},
-    })
+    meta_events.append(
+        {
+            "ph": "M",
+            "pid": layout["pid"],
+            "name": "process_name",
+            "args": {"name": "SuperKernel Graph"},
+        }
+    )
 
-    meta_events.append({
-        "ph": "M",
-        "pid": layout["pid"],
-        "name": "process_sort_index",
-        "args": {"sort_index": 0},
-    })
+    meta_events.append(
+        {
+            "ph": "M",
+            "pid": layout["pid"],
+            "name": "process_sort_index",
+            "args": {"sort_index": 0},
+        }
+    )
 
     stream_ids_sorted = sorted(stream_ids)
     for idx, sid in enumerate(stream_ids_sorted):
-        meta_events.append({
+        meta_events.append(
+            {
+                "ph": "M",
+                "pid": layout["pid"],
+                "tid": layout["thread_ids"][sid],
+                "name": "thread_name",
+                "args": {"name": f"Stream {sid}"},
+            }
+        )
+        meta_events.append(
+            {
+                "ph": "M",
+                "pid": layout["pid"],
+                "tid": layout["thread_ids"][sid],
+                "name": "thread_sort_index",
+                "args": {"sort_index": idx},
+            }
+        )
+
+    meta_events.append(
+        {
             "ph": "M",
             "pid": layout["pid"],
-            "tid": layout["thread_ids"][sid],
+            "tid": layout["edges_tid"],
             "name": "thread_name",
-            "args": {"name": f"Stream {sid}"},
-        })
-        meta_events.append({
+            "args": {"name": "Edges (Notify↔Wait)"},
+        }
+    )
+    meta_events.append(
+        {
             "ph": "M",
             "pid": layout["pid"],
-            "tid": layout["thread_ids"][sid],
+            "tid": layout["edges_tid"],
             "name": "thread_sort_index",
-            "args": {"sort_index": idx},
-        })
+            "args": {"sort_index": len(stream_ids_sorted)},
+        }
+    )
 
-    meta_events.append({
-        "ph": "M",
-        "pid": layout["pid"],
-        "tid": layout["edges_tid"],
-        "name": "thread_name",
-        "args": {"name": "Edges (Notify↔Wait)"},
-    })
-    meta_events.append({
-        "ph": "M",
-        "pid": layout["pid"],
-        "tid": layout["edges_tid"],
-        "name": "thread_sort_index",
-        "args": {"sort_index": len(stream_ids_sorted)},
-    })
-
-    meta_events.append({
-        "ph": "M",
-        "pid": layout["pid"],
-        "tid": layout["summary_tid"],
-        "name": "thread_name",
-        "args": {"name": "Summary"},
-    })
-    meta_events.append({
-        "ph": "M",
-        "pid": layout["pid"],
-        "tid": layout["summary_tid"],
-        "name": "thread_sort_index",
-        "args": {"sort_index": len(stream_ids_sorted) + 1},
-    })
+    meta_events.append(
+        {
+            "ph": "M",
+            "pid": layout["pid"],
+            "tid": layout["summary_tid"],
+            "name": "thread_name",
+            "args": {"name": "Summary"},
+        }
+    )
+    meta_events.append(
+        {
+            "ph": "M",
+            "pid": layout["pid"],
+            "tid": layout["summary_tid"],
+            "name": "thread_sort_index",
+            "args": {"sort_index": len(stream_ids_sorted) + 1},
+        }
+    )
 
     summary_text = (
         f"Total Nodes: {len(nodes)} | "
@@ -835,15 +928,17 @@ def generate_metadata(nodes, edges, layout):
         f"Memory Edges: {memory_edge_count} | "
         + " | ".join(f"{t}: {c}" for t, c in sorted(type_counts.items()))
     )
-    meta_events.append({
-        "ph": "i",
-        "pid": layout["pid"],
-        "tid": layout["summary_tid"],
-        "ts": 0,
-        "name": summary_text,
-        "cat": "metadata",
-        "s": "g",
-    })
+    meta_events.append(
+        {
+            "ph": "i",
+            "pid": layout["pid"],
+            "tid": layout["summary_tid"],
+            "ts": 0,
+            "name": summary_text,
+            "cat": "metadata",
+            "s": "g",
+        }
+    )
 
     return meta_events
 
@@ -871,10 +966,14 @@ def _task_resolved_graph_node_id(task, node_lookup_by_id, node_lookup_by_ordinal
     return int(resolved) if resolved is not None else None
 
 
-def build_cross_report_index(nodes, fused_functions, device_sections, task_identity_diagnostics=None):
+def build_cross_report_index(
+    nodes, fused_functions, device_sections, task_identity_diagnostics=None
+):
     """构建 nodeId -> scope/sk/task 的跨报告索引。"""
     section_by_scope_name = {
-        section["scope_name"]: section for section in device_sections if section.get("scope_name")
+        section["scope_name"]: section
+        for section in device_sections
+        if section.get("scope_name")
     }
 
     node_index = {}
@@ -901,12 +1000,18 @@ def build_cross_report_index(nodes, fused_functions, device_sections, task_ident
             }
         for queue_name in ("AIC", "AIV"):
             for task in section.get("queues", {}).get(queue_name, []):
-                mapped_node_id = _task_resolved_graph_node_id(task, node_lookup_by_id, node_lookup_by_ordinal)
+                mapped_node_id = _task_resolved_graph_node_id(
+                    task, node_lookup_by_id, node_lookup_by_ordinal
+                )
                 task_index = task.get("task_index")
                 if mapped_node_id is None or task_index is None:
                     continue
-                mapped = node_lookup_by_id.get(mapped_node_id) or node_lookup_by_ordinal.get(task_index)
-                mapped_stream_id = mapped.get("stream_id", mapped.get("streamId")) if mapped else None
+                mapped = node_lookup_by_id.get(
+                    mapped_node_id
+                ) or node_lookup_by_ordinal.get(task_index)
+                mapped_stream_id = (
+                    mapped.get("stream_id", mapped.get("streamId")) if mapped else None
+                )
                 if mapped_node_id is None:
                     continue
                 if mapped_node_id not in task_index_to_node_ids[task_index]:
@@ -936,7 +1041,9 @@ def build_cross_report_index(nodes, fused_functions, device_sections, task_ident
 
     return {
         "node_index": {str(key): value for key, value in sorted(node_index.items())},
-        "task_index_to_node_ids": {str(key): value for key, value in sorted(task_index_to_node_ids.items())},
+        "task_index_to_node_ids": {
+            str(key): value for key, value in sorted(task_index_to_node_ids.items())
+        },
         "task_identity_diagnostics": task_identity_diagnostics or {},
     }
 
@@ -944,6 +1051,7 @@ def build_cross_report_index(nodes, fused_functions, device_sections, task_ident
 # ============================================================
 # 主函数
 # ============================================================
+
 
 def main():
     parser = argparse.ArgumentParser(
@@ -969,7 +1077,8 @@ def main():
         help="日志目录或日志文件路径",
     )
     parser.add_argument(
-        "-o", "--output",
+        "-o",
+        "--output",
         default=None,
         help="输出 JSON 文件路径 (默认: <input>_tracing.json)",
     )
@@ -999,7 +1108,9 @@ def main():
     device_sections = []
     trace_context = None
     try:
-        trace_context = _resolve_model_instance_trace_context(input_path, args.model_instance_id)
+        trace_context = _resolve_model_instance_trace_context(
+            input_path, args.model_instance_id
+        )
     except FileNotFoundError:
         trace_context = None
     except ValueError as exc:
@@ -1042,10 +1153,13 @@ def main():
 
     if not all_nodes:
         print("[ERROR] 未从任何日志文件中提取到节点数据", file=sys.stderr)
-        print("  请确保日志中包含 UpdateNodeScopeBitFlags 的 Processed node 行，或提供 sk_node_detail.log", file=sys.stderr)
+        print(
+            "  请确保日志中包含 UpdateNodeScopeBitFlags 的 Processed node 行，或提供 sk_node_detail.log",
+            file=sys.stderr,
+        )
         sys.exit(1)
 
-    print(f"\n解析结果:")
+    print("\n解析结果:")
     print(f"  来源文件: {os.path.basename(source_file) if source_file else ''}")
     print(f"  总节点数: {len(all_nodes)}")
 
@@ -1062,7 +1176,9 @@ def main():
     edges = build_event_edges(all_nodes)
     event_edges = [e for e in edges if e["type"] == "event"]
     memory_edges = [e for e in edges if e["type"] == "memory"]
-    print(f"  跨流连边: 事件={len(event_edges)}, 内存={len(memory_edges)}, 共={len(edges)}")
+    print(
+        f"  跨流连边: 事件={len(event_edges)}, 内存={len(memory_edges)}, 共={len(edges)}"
+    )
 
     # 生成 Chrome/Edge Tracing JSON
     trace_layout = build_trace_layout(all_nodes)
@@ -1073,7 +1189,9 @@ def main():
         all_nodes,
         fused_functions,
         device_sections,
-        trace_context.get("task_identity_diagnostics", {}) if isinstance(trace_context, dict) else {},
+        trace_context.get("task_identity_diagnostics", {})
+        if isinstance(trace_context, dict)
+        else {},
     )
     model_instance_metadata = trace_context or {
         "model_instance_scope_mode": "single",
@@ -1106,42 +1224,67 @@ def main():
     # 附加数据写入单独的 _meta.json 文件（不含 traceEvents，不影响 Chrome Tracing 解析）
     meta_output_path = output_path.rsplit(".", 1)[0] + "_meta.json"
     with open(meta_output_path, "w", encoding="utf-8") as f:
-        json.dump({
-            "metadata": {
-                "description": "SuperKernel ModelRI Graph Nodes",
-                "total_nodes": len(all_nodes),
-                "total_streams": len(stream_ids),
-                "stream_ids": stream_ids,
-                "event_edges": len(event_edges),
-                "memory_edges": len(memory_edges),
-                "type_counts": dict(type_counts),
-                "source": os.path.basename(source_file) if source_file else "",
-                "model_instance_scope_mode": model_instance_metadata["model_instance_scope_mode"],
-                "model_instance_id": model_instance_metadata["model_instance_id"],
-                "model_instance_index": model_instance_metadata["model_instance_index"],
-                "model_instance_count": model_instance_metadata["model_instance_count"],
-                "model_instance_partition_mode": model_instance_metadata["model_instance_partition_mode"],
-                "model_instance_partition_verified": model_instance_metadata["model_instance_partition_verified"],
-                "model_instance_partition_source": model_instance_metadata["model_instance_partition_source"],
-                "cross_report_index_scope_verified": model_instance_metadata["cross_report_index_scope_verified"],
-                "trace_compatibility": {
-                    "viewer_targets": ["edge://tracing", "chrome://tracing"],
-                    "pid_is_int": True,
-                    "tid_is_int": True,
-                    "display_time_unit": tracing_data["displayTimeUnit"],
+        json.dump(
+            {
+                "metadata": {
+                    "description": "SuperKernel ModelRI Graph Nodes",
+                    "total_nodes": len(all_nodes),
+                    "total_streams": len(stream_ids),
+                    "stream_ids": stream_ids,
+                    "event_edges": len(event_edges),
+                    "memory_edges": len(memory_edges),
+                    "type_counts": dict(type_counts),
+                    "source": os.path.basename(source_file) if source_file else "",
+                    "model_instance_scope_mode": model_instance_metadata[
+                        "model_instance_scope_mode"
+                    ],
+                    "model_instance_id": model_instance_metadata["model_instance_id"],
+                    "model_instance_index": model_instance_metadata[
+                        "model_instance_index"
+                    ],
+                    "model_instance_count": model_instance_metadata[
+                        "model_instance_count"
+                    ],
+                    "model_instance_partition_mode": model_instance_metadata[
+                        "model_instance_partition_mode"
+                    ],
+                    "model_instance_partition_verified": model_instance_metadata[
+                        "model_instance_partition_verified"
+                    ],
+                    "model_instance_partition_source": model_instance_metadata[
+                        "model_instance_partition_source"
+                    ],
+                    "cross_report_index_scope_verified": model_instance_metadata[
+                        "cross_report_index_scope_verified"
+                    ],
+                    "trace_compatibility": {
+                        "viewer_targets": ["edge://tracing", "chrome://tracing"],
+                        "pid_is_int": True,
+                        "tid_is_int": True,
+                        "display_time_unit": tracing_data["displayTimeUnit"],
+                    },
+                    "trace_layout": trace_layout,
+                    "cross_report_keys": [
+                        "nodeId",
+                        "streamId",
+                        "scopeId",
+                        "skId",
+                        "taskIndex",
+                    ],
                 },
-                "trace_layout": trace_layout,
-                "cross_report_keys": ["nodeId", "streamId", "scopeId", "skId", "taskIndex"],
+                "cross_report_index": cross_report_index,
+                "sk_nodes": all_nodes,
+                "sk_edges": edges,
             },
-            "cross_report_index": cross_report_index,
-            "sk_nodes": all_nodes,
-            "sk_edges": edges,
-        }, f, indent=2, ensure_ascii=False)
+            f,
+            indent=2,
+            ensure_ascii=False,
+        )
 
     file_size = os.path.getsize(output_path)
     print(f"\n✓ 输出文件: {output_path} ({file_size} bytes)")
     print(f"✓ 附加数据: {meta_output_path}")
-    print(f"  用 Chrome 浏览器打开 chrome://tracing/ → 点击 'Load' → 加载此文件即可查看")
+    print("  用 Chrome 浏览器打开 chrome://tracing/ → 点击 'Load' → 加载此文件即可查看")
 
 
 if __name__ == "__main__":

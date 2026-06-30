@@ -106,7 +106,10 @@ def resolve_chip_to_arch(chip: object) -> dict[str, Any] | None:
     except (TypeError, ValueError):
         enum_value = None
     for rule in SUPPORTED_CHIP_ARCH_RULES:
-        if any(normalized.startswith(normalize_chip(prefix)) for prefix in rule["string_prefixes"]):
+        if any(
+            normalized.startswith(normalize_chip(prefix))
+            for prefix in rule["string_prefixes"]
+        ):
             return {
                 "chip": raw,
                 "canonical_chip": rule["canonical_chip"],
@@ -125,7 +128,9 @@ def resolve_chip_to_arch(chip: object) -> dict[str, Any] | None:
     return None
 
 
-def resolve_target_chips(raw_chips: object) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+def resolve_target_chips(
+    raw_chips: object,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     resolved: list[dict[str, Any]] = []
     unsupported: list[dict[str, Any]] = []
     for chip in split_target_chips(raw_chips):
@@ -135,7 +140,9 @@ def resolve_target_chips(raw_chips: object) -> tuple[list[dict[str, Any]], list[
                 {
                     "chip": chip,
                     "reason": "unsupported-chip-arch-mapping",
-                    "supported_chips": [rule["canonical_chip"] for rule in SUPPORTED_CHIP_ARCH_RULES],
+                    "supported_chips": [
+                        rule["canonical_chip"] for rule in SUPPORTED_CHIP_ARCH_RULES
+                    ],
                 }
             )
         else:
@@ -185,7 +192,11 @@ def extract_supported_soc_versions_from_cmake_presets(path: Path) -> list[str]:
     seen: set[str] = set()
     for item in _walk_json_values(payload):
         text = str(item or "")
-        if not ASCEND_COMPUTE_UNIT_RE.search(json.dumps(item, ensure_ascii=False) if isinstance(item, (dict, list)) else text):
+        if not ASCEND_COMPUTE_UNIT_RE.search(
+            json.dumps(item, ensure_ascii=False)
+            if isinstance(item, (dict, list))
+            else text
+        ):
             # Also accept direct values because cacheVariables nesting separates key and value.
             pass
         for match in SOC_VALUE_RE.findall(text):
@@ -237,12 +248,16 @@ def build_target_resolution(
     has_declared_support = bool(supported_norm)
     resolutions: list[dict[str, Any]] = []
     skipped: list[dict[str, Any]] = []
-    candidate_chips = requested if requested else [
-        resolved
-        for chip in supported_soc_versions
-        for resolved in [resolve_chip_to_arch(chip)]
-        if resolved is not None
-    ]
+    candidate_chips = (
+        requested
+        if requested
+        else [
+            resolved
+            for chip in supported_soc_versions
+            for resolved in [resolve_chip_to_arch(chip)]
+            if resolved is not None
+        ]
+    )
     for item in candidate_chips:
         canonical_norm = normalize_chip(item["canonical_chip"])
         raw_norm = normalize_chip(item["chip"])

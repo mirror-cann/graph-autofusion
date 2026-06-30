@@ -18,9 +18,9 @@ from dataclasses import dataclass
 from html import escape as html_escape
 from typing import Iterable, Sequence
 
-VISUAL_FONT_UI_STACK = 'PingFang SC, Hiragino Sans GB, Noto Sans SC, sans-serif'
-VISUAL_FONT_DISPLAY_STACK = 'Songti SC, Noto Serif SC, Georgia, serif'
-VISUAL_FONT_MONO_STACK = 'JetBrains Mono, SFMono-Regular, Consolas, monospace'
+VISUAL_FONT_UI_STACK = "PingFang SC, Hiragino Sans GB, Noto Sans SC, sans-serif"
+VISUAL_FONT_DISPLAY_STACK = "Songti SC, Noto Serif SC, Georgia, serif"
+VISUAL_FONT_MONO_STACK = "JetBrains Mono, SFMono-Regular, Consolas, monospace"
 
 
 @dataclass(frozen=True)
@@ -86,11 +86,18 @@ SVG_LANE_TOKENS = {
 }
 
 
-COMMON_THEME_CSS = r"""
+COMMON_THEME_CSS = (
+    r"""
 :root {
-    --sk-font-ui: """ + VISUAL_FONT_UI_STACK + r""";
-    --sk-font-display: """ + VISUAL_FONT_DISPLAY_STACK + r""";
-    --sk-font-mono: """ + VISUAL_FONT_MONO_STACK + r""";
+    --sk-font-ui: """
+    + VISUAL_FONT_UI_STACK
+    + r""";
+    --sk-font-display: """
+    + VISUAL_FONT_DISPLAY_STACK
+    + r""";
+    --sk-font-mono: """
+    + VISUAL_FONT_MONO_STACK
+    + r""";
     --sk-bg-0: #edf2f7;
     --sk-bg-1: #e6edf5;
     --sk-bg-2: #f4f7fb;
@@ -249,9 +256,12 @@ a { color: var(--sk-accent); }
     line-height: 1.45;
 }
 """
+)
 
 
-COMMON_VISUALIZER_CSS = COMMON_THEME_CSS + r"""
+COMMON_VISUALIZER_CSS = (
+    COMMON_THEME_CSS
+    + r"""
 .page-shell {
     width: min(1760px, calc(100vw - 32px));
     margin: 18px auto 28px;
@@ -415,6 +425,7 @@ COMMON_VISUALIZER_CSS = COMMON_THEME_CSS + r"""
     .hero-stats { grid-template-columns: 1fr; }
 }
 """
+)
 
 
 COMMON_TOOLBAR_CSS = r"""
@@ -1088,7 +1099,12 @@ COMMON_SCOPE_SECTION_CSS = r"""
 """
 
 
-COMMON_REPORT_CSS = COMMON_THEME_CSS + COMMON_META_STRIP_CSS + COMMON_TABLE_CONTROLS_CSS + COMMON_DETAIL_TABLE_CSS + r"""
+COMMON_REPORT_CSS = (
+    COMMON_THEME_CSS
+    + COMMON_META_STRIP_CSS
+    + COMMON_TABLE_CONTROLS_CSS
+    + COMMON_DETAIL_TABLE_CSS
+    + r"""
 .page-shell {
     width: min(1760px, calc(100vw - 32px));
     margin: 18px auto 28px;
@@ -1547,6 +1563,7 @@ details.fold > div { padding: 0 16px 16px; }
     .stage-grid { grid-template-columns: 1fr; }
 }
 """
+)
 
 
 def build_visualizer_styles(extra_css: str = "") -> str:
@@ -1574,8 +1591,8 @@ def render_meta_strip(items: Sequence[tuple[str, str]]) -> str:
 
 
 def render_empty_note(message: str, dom_id: str = "", hidden: bool = False) -> str:
-    dom_attr = f" id=\"{html_escape(dom_id)}\"" if dom_id else ""
-    style_attr = " style=\"display:none;\"" if hidden else ""
+    dom_attr = f' id="{html_escape(dom_id)}"' if dom_id else ""
+    style_attr = ' style="display:none;"' if hidden else ""
     return f"<div class='empty-note'{dom_attr}{style_attr}>{html_escape(message)}</div>"
 
 
@@ -1594,7 +1611,9 @@ def render_legend_block(sections: Sequence[tuple[str, Sequence[str]]]) -> str:
             f"{rows}"
             "</div>"
         )
-    return "<div class='legend'><div class='legend-grid'>{}</div></div>".format("".join(blocks))
+    return "<div class='legend'><div class='legend-grid'>{}</div></div>".format(
+        "".join(blocks)
+    )
 
 
 def make_scope_explainer_box(
@@ -1674,7 +1693,9 @@ def _render_scope_explainer_item(item: ScopeExplainerEntry | str) -> str:
     )
 
 
-def render_scope_section_block(sections: Sequence[tuple[str, Sequence[ScopeExplainerEntry | str]]]) -> str:
+def render_scope_section_block(
+    sections: Sequence[tuple[str, Sequence[ScopeExplainerEntry | str]]],
+) -> str:
     groups: list[str] = []
     for title, items in sections:
         rows = "".join(_render_scope_explainer_item(item) for item in items)
@@ -1687,7 +1708,9 @@ def render_scope_section_block(sections: Sequence[tuple[str, Sequence[ScopeExpla
     return "<div class='scope-explainer'>{}</div>".format("".join(groups))
 
 
-def render_graph_nav(prev_id: str, next_id: str, prev_title: str, next_title: str) -> str:
+def render_graph_nav(
+    prev_id: str, next_id: str, prev_title: str, next_title: str
+) -> str:
     return (
         "<div class='graph-nav'>"
         f"<button type='button' class='graph-nav-btn' id='{html_escape(prev_id)}' title='{html_escape(prev_title)}'>‹</button>"
@@ -1722,7 +1745,11 @@ def render_graph_toolbar(
         if part
     )
     right_html = "".join(part for part in (index_chip_html, trailing_html) if part)
-    controls_row = f"<div class='toolbar-row controls'>{controls_html}</div>" if controls_html else ""
+    controls_row = (
+        f"<div class='toolbar-row controls'>{controls_html}</div>"
+        if controls_html
+        else ""
+    )
     return (
         "<div class='toolbar'>"
         "<div class='toolbar-row graph-toolbar-primary'>"
@@ -1780,7 +1807,9 @@ def render_detail_table_panel(
         else f"<span class='detail-head-state'>{html_escape('收起' if expanded else toggle_label)}</span>"
     )
     panel_class = "detail-panel is-open" if expanded else "detail-panel"
-    content_class = "detail-content is-collapsed" if initially_collapsed else "detail-content"
+    content_class = (
+        "detail-content is-collapsed" if initially_collapsed else "detail-content"
+    )
     content_attr = f" id='{html_escape(content_id)}'" if content_id else ""
     tools_markup = f"<div class='detail-tools'>{tools_html}</div>" if tools_html else ""
     head_markup = (
@@ -1897,7 +1926,6 @@ def render_paginated_table_shell(
         "<tbody>{rows_html}</tbody>"
         "</table>"
     ).format(
-        title=html_escape(title),
         table_id=html_escape(table_id),
         table_class=table_class,
         header_html=header_html,
@@ -2387,13 +2415,15 @@ def render_stat_badges(badges: Iterable[VisualStatBadge]) -> str:
     parts: list[str] = []
     for badge in badges:
         dom_id = f' id="{html_escape(badge.dom_id)}"' if badge.dom_id else ""
-        value_dom_id = f' id="{html_escape(badge.value_dom_id)}"' if badge.value_dom_id else ""
+        value_dom_id = (
+            f' id="{html_escape(badge.value_dom_id)}"' if badge.value_dom_id else ""
+        )
         parts.append(
             f'<div class="stat-badge stat-{html_escape(badge.tone)}"{dom_id}>'
             f'<span class="stat-caption">{html_escape(badge.caption)}</span>'
             f'<span class="stat-value"{value_dom_id}>{html_escape(str(badge.value))}</span>'
             f'<span class="stat-foot">{html_escape(badge.foot)}</span>'
-            f'</div>'
+            f"</div>"
         )
     return "".join(parts)
 
@@ -2406,21 +2436,25 @@ def render_page_header(
     note_html: str,
     stat_badges_html: str,
 ) -> str:
-    kicker_block = f'<div class="header-kicker">{html_escape(kicker)}</div>' if kicker else ""
+    kicker_block = (
+        f'<div class="header-kicker">{html_escape(kicker)}</div>' if kicker else ""
+    )
     note_block = f'<div class="header-note">{note_html}</div>' if note_html else ""
-    stats_block = f'<div class="hero-stats">{stat_badges_html}</div>' if stat_badges_html else ""
+    stats_block = (
+        f'<div class="hero-stats">{stat_badges_html}</div>' if stat_badges_html else ""
+    )
     return (
         '<div class="header">'
         '  <div class="header-left">'
         f'    <div class="header-icon">{html_escape(icon)}</div>'
         '    <div class="header-copy">'
-        f'      {kicker_block}'
-        f'      <h1>{html_escape(title)}</h1>'
-        f'      {note_block}'
-        '    </div>'
-        '  </div>'
-        f'  {stats_block}'
-        '</div>'
+        f"      {kicker_block}"
+        f"      <h1>{html_escape(title)}</h1>"
+        f"      {note_block}"
+        "    </div>"
+        "  </div>"
+        f"  {stats_block}"
+        "</div>"
     )
 
 
@@ -2443,7 +2477,9 @@ def render_report_header(
     return f"{page_header}{nav_block}"
 
 
-def render_report_summary(items: Sequence[tuple[str, str]], *, compact: bool = False) -> str:
+def render_report_summary(
+    items: Sequence[tuple[str, str]], *, compact: bool = False
+) -> str:
     if not items:
         return ""
     blocks = []
@@ -2507,12 +2543,13 @@ def render_report_section(
     note_block = f"<p class='report-section-note'>{note_html}</p>" if note_html else ""
     head_markup = ""
     if title or note_block:
-        title_block = f"<h2 class='report-section-title'>{html_escape(title)}</h2>" if title else ""
+        title_block = (
+            f"<h2 class='report-section-title'>{html_escape(title)}</h2>"
+            if title
+            else ""
+        )
         head_markup = (
-            "<div class='report-section-head'>"
-            f"{title_block}"
-            f"{note_block}"
-            "</div>"
+            f"<div class='report-section-head'>{title_block}{note_block}</div>"
         )
     return (
         f"<section class='{' '.join(classes)}'{id_attr}>"
@@ -2522,8 +2559,12 @@ def render_report_section(
     )
 
 
-def render_view_nav(items: Iterable[tuple[str, str, bool]], kicker: str = "Views") -> str:
-    links: list[str] = [f'<div class="view-nav-kicker">{html_escape(kicker)}</div>'] if kicker else []
+def render_view_nav(
+    items: Iterable[tuple[str, str, bool]], kicker: str = "Views"
+) -> str:
+    links: list[str] = (
+        [f'<div class="view-nav-kicker">{html_escape(kicker)}</div>'] if kicker else []
+    )
     for label, href, active in items:
         cls = "view-nav-link is-active" if active else "view-nav-link"
         links.append(

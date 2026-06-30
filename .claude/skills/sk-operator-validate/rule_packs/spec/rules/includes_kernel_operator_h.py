@@ -14,6 +14,7 @@ Any .asc/.cpp that defines a kernel entry (__global__ or __sk__) must include
 "kernel_operator.h" for the AscendC primitives. Auto-remediable by adding the
 include line.
 """
+
 import re
 
 RULE = {

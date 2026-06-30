@@ -49,14 +49,22 @@ def _assert_outputs(case_name: str, temp_root: Path) -> None:
         expected = ["run-portal.html"]
 
     roots = [reports_dir, reports_dir / "data", reports_dir / "views"]
-    missing = [name for name in expected if not any((root / name).exists() for root in roots)]
+    missing = [
+        name for name in expected if not any((root / name).exists() for root in roots)
+    ]
     if missing:
-        raise RuntimeError(f"{case_name}: missing expected outputs: {', '.join(missing)}")
+        raise RuntimeError(
+            f"{case_name}: missing expected outputs: {', '.join(missing)}"
+        )
 
 
-def run_case(sample_root: Path, case_name: str, command_name: str, relative_input: str) -> None:
+def run_case(
+    sample_root: Path, case_name: str, command_name: str, relative_input: str
+) -> None:
     script_path = Path(__file__).resolve().with_name("network_analysis.py")
-    with tempfile.TemporaryDirectory(prefix="sk-network-analysis-regression-") as temp_dir:
+    with tempfile.TemporaryDirectory(
+        prefix="sk-network-analysis-regression-"
+    ) as temp_dir:
         temp_root = Path(temp_dir) / sample_root.name
         shutil.copytree(sample_root, temp_root)
         if relative_input == "__AUTO_MODEL_DIR__":
@@ -64,15 +72,26 @@ def run_case(sample_root: Path, case_name: str, command_name: str, relative_inpu
         else:
             input_path = temp_root / relative_input
         command = [sys.executable, str(script_path), command_name, str(input_path)]
-        completed = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, check=False)
+        completed = subprocess.run(
+            command,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            check=False,
+        )
         if completed.returncode != 0:
             raise RuntimeError(f"{case_name}: command failed\n{completed.stdout}")
         _assert_outputs(case_name, temp_root)
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Run non-persistent sk-network-analysis regression cases")
-    parser.add_argument("sample_root", help="Existing result root sample to copy into a temporary workspace")
+    parser = argparse.ArgumentParser(
+        description="Run non-persistent sk-network-analysis regression cases"
+    )
+    parser.add_argument(
+        "sample_root",
+        help="Existing result root sample to copy into a temporary workspace",
+    )
     parser.add_argument(
         "--case",
         action="append",

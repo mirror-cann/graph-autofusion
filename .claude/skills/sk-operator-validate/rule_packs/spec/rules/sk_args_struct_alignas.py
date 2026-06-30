@@ -14,6 +14,7 @@ kernel-launch-adapt.md s3.1 rule 3 + s6.1: small integer fields (int8/uint8/
 int16/uint16/bool) in the SK Args struct must be declared `alignas(4)` for ABI
 correctness.
 """
+
 import re
 
 RULE = {
@@ -24,7 +25,9 @@ RULE = {
 }
 
 _SMALL_TYPES = ("int8_t", "uint8_t", "int16_t", "uint16_t", "bool")
-_ARGS_STRUCT_RE = re.compile(r"struct\s+(?P<name>\w*Args)\s*\{(?P<body>[^}]*)\}", re.DOTALL)
+_ARGS_STRUCT_RE = re.compile(
+    r"struct\s+(?P<name>\w*Args)\s*\{(?P<body>[^}]*)\}", re.DOTALL
+)
 
 
 def check(units):
@@ -37,7 +40,10 @@ def check(units):
                 if not stripped or stripped.startswith("//"):
                     continue
                 # A field line with a small type that is not preceded by alignas(.
-                if any(re.search(rf"\b{t}\b", stripped) for t in _SMALL_TYPES) and "alignas" not in stripped:
+                if (
+                    any(re.search(rf"\b{t}\b", stripped) for t in _SMALL_TYPES)
+                    and "alignas" not in stripped
+                ):
                     findings.append(
                         {
                             "rule_id": RULE["id"],

@@ -57,33 +57,55 @@ def _normalize_contract_finding(finding: dict[str, Any]) -> dict[str, Any]:
     return normalized
 
 
-def _contract_findings(args: argparse.Namespace, *, require_contracts: bool) -> list[dict[str, Any]]:
+def _contract_findings(
+    args: argparse.Namespace, *, require_contracts: bool
+) -> list[dict[str, Any]]:
     findings: list[dict[str, Any]] = []
     checks = [
         ("contract.asset-layout", args.layout, validate_asset_layout_contract),
         ("contract.build-context", args.build_context, validate_build_context_contract),
-        ("contract.verify-context", args.verify_context, validate_verify_context_contract),
+        (
+            "contract.verify-context",
+            args.verify_context,
+            validate_verify_context_contract,
+        ),
     ]
     for rule_id, raw_path, validator in checks:
         if not raw_path:
             if not require_contracts:
                 continue
             severity = "warning" if rule_id == "contract.verify-context" else "blocker"
-            findings.append(_normalize_contract_finding(contract_finding(rule_id, f"{raw_path or rule_id} not provided", severity=severity)))
+            findings.append(
+                _normalize_contract_finding(
+                    contract_finding(
+                        rule_id,
+                        f"{raw_path or rule_id} not provided",
+                        severity=severity,
+                    )
+                )
+            )
             continue
         path = Path(raw_path).resolve()
         try:
             validator(read_json(path), path.parent)
         except (OSError, json.JSONDecodeError, ContractError, ValueError) as exc:
-            findings.append(_normalize_contract_finding(contract_finding(rule_id, str(exc))))
+            findings.append(
+                _normalize_contract_finding(contract_finding(rule_id, str(exc)))
+            )
     return findings
 
 
-def _spec_findings(asset: Path, stage: str, iteration_index: int) -> list[dict[str, Any]]:
+def _spec_findings(
+    asset: Path, stage: str, iteration_index: int
+) -> list[dict[str, Any]]:
     try:
         payload = run_spec_rules(asset, stage=stage, iteration_index=iteration_index)
     except SpecRulePackError as exc:
-        return [_normalize_contract_finding(contract_finding("validate.spec-pack-error", str(exc)))]
+        return [
+            _normalize_contract_finding(
+                contract_finding("validate.spec-pack-error", str(exc))
+            )
+        ]
     return list(payload.get("findings", []))
 
 
@@ -103,7 +125,11 @@ def _compat_findings(
             iteration_index=iteration_index,
         )
     except CompatRulePackError as exc:
-        return [_normalize_contract_finding(contract_finding("validate.compat-pack-error", str(exc)))], {}
+        return [
+            _normalize_contract_finding(
+                contract_finding("validate.compat-pack-error", str(exc))
+            )
+        ], {}
     return list(payload.get("findings", [])), dict(payload.get("metadata", {}))
 
 
@@ -116,7 +142,11 @@ def cmd_validate_operator(args: argparse.Namespace) -> int:
 
     findings: list[dict[str, Any]] = []
     metadata: dict[str, Any] = {}
-    findings.extend(_contract_findings(args, require_contracts=args.rule_pack in {"all", "contract"}))
+    findings.extend(
+        _contract_findings(
+            args, require_contracts=args.rule_pack in {"all", "contract"}
+        )
+    )
     if args.rule_pack in {"all", "spec"}:
         findings.extend(_spec_findings(asset, args.stage, int(args.iteration_index)))
     if args.rule_pack in {"all", "compat"}:
@@ -190,21 +220,37 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Unified SK operator validation")
     subparsers = parser.add_subparsers(dest="subcommand", required=True)
 
-    validate = subparsers.add_parser("validate-operator", help="Validate operator contracts and rule packs")
-    validate.add_argument("--asset", required=True, help="Operator source tree to validate")
-    validate.add_argument("--output-dir", required=True, help="Where to write validation artifacts")
+    validate = subparsers.add_parser(
+        "validate-operator", help="Validate operator contracts and rule packs"
+    )
+    validate.add_argument(
+        "--asset", required=True, help="Operator source tree to validate"
+    )
+    validate.add_argument(
+        "--output-dir", required=True, help="Where to write validation artifacts"
+    )
     validate.add_argument("--layout", default="", help="operator-asset-layout.json")
-    validate.add_argument("--build-context", default="", help="operator-build-context.json")
-    validate.add_argument("--verify-context", default="", help="operator-verify-context.json")
+    validate.add_argument(
+        "--build-context", default="", help="operator-build-context.json"
+    )
+    validate.add_argument(
+        "--verify-context", default="", help="operator-verify-context.json"
+    )
     validate.add_argument("--target-chip", default="", help="Target chip id")
     validate.add_argument("--target-cann", default="", help=argparse.SUPPRESS)
-    validate.add_argument("--rule-pack", choices=["all", "contract", "spec", "compat"], default="all")
+    validate.add_argument(
+        "--rule-pack", choices=["all", "contract", "spec", "compat"], default="all"
+    )
     validate.add_argument("--stage", default="post-adapt")
     validate.add_argument("--iteration-index", default="0")
     validate.set_defaults(func=cmd_validate_operator)
 
-    list_rule_pack = subparsers.add_parser("list-rule-pack", help="List bundled validation rule-pack metadata")
-    list_rule_pack.add_argument("--rule-pack", choices=["spec", "compat"], required=True)
+    list_rule_pack = subparsers.add_parser(
+        "list-rule-pack", help="List bundled validation rule-pack metadata"
+    )
+    list_rule_pack.add_argument(
+        "--rule-pack", choices=["spec", "compat"], required=True
+    )
     list_rule_pack.set_defaults(func=cmd_list_rule_pack)
 
     return parser

@@ -22,8 +22,6 @@ import sys
 import json
 import argparse
 from collections import defaultdict, OrderedDict
-from datetime import datetime
-from html import escape as html_escape
 
 from sk_visualizer_shared import (
     COMMON_DETAIL_TABLE_CSS,
@@ -58,28 +56,76 @@ from sk_visualizer_shared import (
 # 数据结构
 # ============================================================================
 
+
 class SkNode:
     """表示日志中的单个节点"""
+
     __slots__ = [
-        'node_id', 'stream_id', 'stream_idx_in_graph', 'node_idx_in_stream',
-        'node_type', 'event_id', 'event_flag', 'kernel_name',
-        'scope_id', 'round_idx', 'index_in_list',
-        'kernel_type', 'task_ratio', 'num_blocks', 'cube_num', 'vec_num', 'resolved_num',
-        'scope_flags', 'is_fusible',
-        'update_type', 'update_addr', 'update_value', 'update_flag',
-        'update_op_info_ptr', 'update_op_info_size', 'update_func_handle', 'update_args', 'update_args_size', 'update_num_blocks',
-        'identity_kind', 'custom_instance_key', 'raw_node_id', 'queue_name',
-        'inherited_notify_node_ids', 'inherited_wait_node_ids', 'inherited_reset_node_ids',
-        'inherited_notify_addrs', 'inherited_wait_addrs', 'inherited_reset_addrs',
-        'inherited_write_facts', 'inherited_wait_facts',
+        "node_id",
+        "stream_id",
+        "stream_idx_in_graph",
+        "node_idx_in_stream",
+        "node_type",
+        "event_id",
+        "event_flag",
+        "kernel_name",
+        "scope_id",
+        "round_idx",
+        "index_in_list",
+        "kernel_type",
+        "task_ratio",
+        "num_blocks",
+        "cube_num",
+        "vec_num",
+        "resolved_num",
+        "scope_flags",
+        "is_fusible",
+        "update_type",
+        "update_addr",
+        "update_value",
+        "update_flag",
+        "update_op_info_ptr",
+        "update_op_info_size",
+        "update_func_handle",
+        "update_args",
+        "update_args_size",
+        "update_num_blocks",
+        "identity_kind",
+        "custom_instance_key",
+        "raw_node_id",
+        "queue_name",
+        "inherited_notify_node_ids",
+        "inherited_wait_node_ids",
+        "inherited_reset_node_ids",
+        "inherited_notify_addrs",
+        "inherited_wait_addrs",
+        "inherited_reset_addrs",
+        "inherited_write_facts",
+        "inherited_wait_facts",
     ]
 
-    def __init__(self, node_id, stream_id, stream_idx_in_graph, node_idx_in_stream,
-                 node_type, event_id=None, event_flag=None, kernel_name=None,
-                 scope_id=None, round_idx=None, index_in_list=None,
-                 kernel_type='', task_ratio=(0, 0), num_blocks=0,
-                 cube_num=0, vec_num=0, resolved_num=0,
-                 scope_flags='', is_fusible=True):
+    def __init__(
+        self,
+        node_id,
+        stream_id,
+        stream_idx_in_graph,
+        node_idx_in_stream,
+        node_type,
+        event_id=None,
+        event_flag=None,
+        kernel_name=None,
+        scope_id=None,
+        round_idx=None,
+        index_in_list=None,
+        kernel_type="",
+        task_ratio=(0, 0),
+        num_blocks=0,
+        cube_num=0,
+        vec_num=0,
+        resolved_num=0,
+        scope_flags="",
+        is_fusible=True,
+    ):
         self.node_id = node_id
         self.stream_id = stream_id
         self.stream_idx_in_graph = stream_idx_in_graph
@@ -99,20 +145,20 @@ class SkNode:
         self.resolved_num = resolved_num
         self.scope_flags = scope_flags
         self.is_fusible = is_fusible
-        self.update_type = ''
-        self.update_addr = ''
-        self.update_value = ''
-        self.update_flag = ''
-        self.update_op_info_ptr = ''
+        self.update_type = ""
+        self.update_addr = ""
+        self.update_value = ""
+        self.update_flag = ""
+        self.update_op_info_ptr = ""
         self.update_op_info_size = 0
-        self.update_func_handle = ''
-        self.update_args = ''
+        self.update_func_handle = ""
+        self.update_args = ""
         self.update_args_size = 0
         self.update_num_blocks = 0
-        self.identity_kind = 'graph_node'
-        self.custom_instance_key = ''
+        self.identity_kind = "graph_node"
+        self.custom_instance_key = ""
         self.raw_node_id = None
-        self.queue_name = ''
+        self.queue_name = ""
         self.inherited_notify_node_ids = []
         self.inherited_wait_node_ids = []
         self.inherited_reset_node_ids = []
@@ -125,69 +171,70 @@ class SkNode:
     @property
     def display_name(self):
         """用于表格展示的名称"""
-        if self.node_type == 'Kernel':
-            name = (self.kernel_name or '').replace('static_kernel_', '')
+        if self.node_type == "Kernel":
+            name = (self.kernel_name or "").replace("static_kernel_", "")
             # 去掉末尾的 _d0, __kernel0 等
-            name = re.sub(r'_d\d+(_?\w*)$', '', name)
-            return name if len(name) <= 40 else name[:37] + '...'
-        short = self.node_type.replace('Event', '')
-        eid = (self.event_id or 'N/A')[-8:]
-        return f'{short}(0x{eid})'
+            name = re.sub(r"_d\d+(_?\w*)$", "", name)
+            return name if len(name) <= 40 else name[:37] + "..."
+        short = self.node_type.replace("Event", "")
+        eid = (self.event_id or "N/A")[-8:]
+        return f"{short}(0x{eid})"
 
     @property
     def short_kernel_name(self):
         """截断的 kernel 名称用于 SVG 节点显示"""
-        name = (self.kernel_name or '').replace('static_kernel_', '')
-        name = re.sub(r'_d\d+(_?\w*)$', '', name)
-        return name if len(name) <= 17 else name[:15] + '..'
+        name = (self.kernel_name or "").replace("static_kernel_", "")
+        name = re.sub(r"_d\d+(_?\w*)$", "", name)
+        return name if len(name) <= 17 else name[:15] + ".."
 
     def to_dict(self):
         return {
-            'id': self.node_id,
-            'stream_id': self.stream_id,
-            'stream_idx': self.stream_idx_in_graph,
-            'node_idx_in_stream': self.node_idx_in_stream,
-            'type': self.node_type,
-            'event_id': self.event_id,
-            'event_flag': self.event_flag,
-            'kernel_name': self.kernel_name,
-            'scope_id': self.scope_id,
-            'display_name': self.display_name,
-            'kernel_type': self.kernel_type,
-            'task_ratio': list(self.task_ratio) if self.task_ratio else [0, 0],
-            'num_blocks': self.num_blocks,
-            'cube_num': self.cube_num,
-            'vec_num': self.vec_num,
-            'resolved_num': self.resolved_num,
-            'scope_flags': self.scope_flags,
-            'is_fusible': self.is_fusible,
-            'update_type': self.update_type,
-            'update_addr': self.update_addr,
-            'update_value': self.update_value,
-            'update_flag': self.update_flag,
-            'update_op_info_ptr': self.update_op_info_ptr,
-            'update_op_info_size': self.update_op_info_size,
-            'update_func_handle': self.update_func_handle,
-            'update_args': self.update_args,
-            'update_args_size': self.update_args_size,
-            'update_num_blocks': self.update_num_blocks,
-            'identity_kind': self.identity_kind,
-            'custom_instance_key': self.custom_instance_key,
-            'raw_node_id': self.raw_node_id,
-            'queue_name': self.queue_name,
-            'inherited_notify_node_ids': self.inherited_notify_node_ids,
-            'inherited_wait_node_ids': self.inherited_wait_node_ids,
-            'inherited_reset_node_ids': self.inherited_reset_node_ids,
-            'inherited_notify_addrs': self.inherited_notify_addrs,
-            'inherited_wait_addrs': self.inherited_wait_addrs,
-            'inherited_reset_addrs': self.inherited_reset_addrs,
-            'inherited_write_facts': self.inherited_write_facts,
-            'inherited_wait_facts': self.inherited_wait_facts,
+            "id": self.node_id,
+            "stream_id": self.stream_id,
+            "stream_idx": self.stream_idx_in_graph,
+            "node_idx_in_stream": self.node_idx_in_stream,
+            "type": self.node_type,
+            "event_id": self.event_id,
+            "event_flag": self.event_flag,
+            "kernel_name": self.kernel_name,
+            "scope_id": self.scope_id,
+            "display_name": self.display_name,
+            "kernel_type": self.kernel_type,
+            "task_ratio": list(self.task_ratio) if self.task_ratio else [0, 0],
+            "num_blocks": self.num_blocks,
+            "cube_num": self.cube_num,
+            "vec_num": self.vec_num,
+            "resolved_num": self.resolved_num,
+            "scope_flags": self.scope_flags,
+            "is_fusible": self.is_fusible,
+            "update_type": self.update_type,
+            "update_addr": self.update_addr,
+            "update_value": self.update_value,
+            "update_flag": self.update_flag,
+            "update_op_info_ptr": self.update_op_info_ptr,
+            "update_op_info_size": self.update_op_info_size,
+            "update_func_handle": self.update_func_handle,
+            "update_args": self.update_args,
+            "update_args_size": self.update_args_size,
+            "update_num_blocks": self.update_num_blocks,
+            "identity_kind": self.identity_kind,
+            "custom_instance_key": self.custom_instance_key,
+            "raw_node_id": self.raw_node_id,
+            "queue_name": self.queue_name,
+            "inherited_notify_node_ids": self.inherited_notify_node_ids,
+            "inherited_wait_node_ids": self.inherited_wait_node_ids,
+            "inherited_reset_node_ids": self.inherited_reset_node_ids,
+            "inherited_notify_addrs": self.inherited_notify_addrs,
+            "inherited_wait_addrs": self.inherited_wait_addrs,
+            "inherited_reset_addrs": self.inherited_reset_addrs,
+            "inherited_write_facts": self.inherited_write_facts,
+            "inherited_wait_facts": self.inherited_wait_facts,
         }
 
 
 class SkScope:
     """表示一个 Scope"""
+
     def __init__(self, scope_id, num_nodes, num_streams, bit_flags, names, round_idx):
         self.scope_id = scope_id
         self.num_nodes = num_nodes
@@ -199,22 +246,23 @@ class SkScope:
 
     def to_dict(self):
         return {
-            'id': self.scope_id,
-            'num_nodes': self.num_nodes,
-            'num_streams': self.num_streams,
-            'bit_flags': self.bit_flags,
-            'names': self.names,
+            "id": self.scope_id,
+            "num_nodes": self.num_nodes,
+            "num_streams": self.num_streams,
+            "bit_flags": self.bit_flags,
+            "names": self.names,
         }
 
 
 class SkScopeRound:
     """表示一轮 Scope 切分结果"""
-    def __init__(self, round_idx, line_content=''):
+
+    def __init__(self, round_idx, line_content=""):
         self.round_idx = round_idx
         self.line_content = line_content
         self.scopes = []
         self.all_nodes = {}  # node_id -> SkNode
-        self.source_file = ''
+        self.source_file = ""
         self.source_round_idx = -1
         self.model_instances = []
         self.custom_update_nodes = []
@@ -224,7 +272,8 @@ class SkScopeRound:
 
 class SkEdge:
     """表示节点间的连边"""
-    __slots__ = ['src_id', 'dst_id', 'edge_type', 'event_id']
+
+    __slots__ = ["src_id", "dst_id", "edge_type", "event_id"]
 
     def __init__(self, src_id, dst_id, edge_type, event_id=None):
         self.src_id = src_id
@@ -236,7 +285,7 @@ class SkEdge:
 class ScopeLibrarySource:
     """Resolve scope/graph library JSON inputs for scope graph generation."""
 
-    def __init__(self, scope_library_path, graph_library_path, mode='scope'):
+    def __init__(self, scope_library_path, graph_library_path, mode="scope"):
         self.scope_library_path = scope_library_path
         self.graph_library_path = graph_library_path
         self.mode = mode
@@ -252,7 +301,7 @@ class ScopeLibrarySource:
 class ScopeGraphModel:
     """Stable object wrapper around parsed scope rounds and metadata."""
 
-    def __init__(self, rounds, log_files, event_colors, init_nodes=None, mode='scope'):
+    def __init__(self, rounds, log_files, event_colors, init_nodes=None, mode="scope"):
         self.rounds = rounds
         self.log_files = log_files
         self.event_colors = event_colors
@@ -261,18 +310,26 @@ class ScopeGraphModel:
 
     @classmethod
     def from_libraries(cls, source):
-        if source.mode != 'scope':
-            raise ValueError("ScopeGraphModel.from_libraries currently only supports scope mode.")
+        if source.mode != "scope":
+            raise ValueError(
+                "ScopeGraphModel.from_libraries currently only supports scope mode."
+            )
 
         scope_library_path, graph_library_path = source.collect()
-        with open(scope_library_path, 'r', encoding='utf-8') as handle:
+        with open(scope_library_path, "r", encoding="utf-8") as handle:
             scope_library = json.load(handle)
-        with open(graph_library_path, 'r', encoding='utf-8') as handle:
+        with open(graph_library_path, "r", encoding="utf-8") as handle:
             graph_library = json.load(handle)
 
         rounds = build_rounds_from_libraries(scope_library, graph_library)
         event_colors = assign_event_colors(rounds)
-        return cls(rounds, [scope_library_path, graph_library_path], event_colors, {}, source.mode)
+        return cls(
+            rounds,
+            [scope_library_path, graph_library_path],
+            event_colors,
+            {},
+            source.mode,
+        )
 
 
 class ScopeGraphRenderer:
@@ -293,123 +350,148 @@ class ScopeGraphRenderer:
 
 
 def _normalize_library_node_type(node_entry):
-    node_type = str(node_entry.get('node_type') or '').upper()
-    event_type = node_entry.get('event_type')
-    if node_type == 'KERNEL':
-        return 'Kernel'
-    if event_type in {'EventNotify', 'EventWait', 'EventReset', 'MemoryWrite', 'MemoryWait'}:
+    node_type = str(node_entry.get("node_type") or "").upper()
+    event_type = node_entry.get("event_type")
+    if node_type == "KERNEL":
+        return "Kernel"
+    if event_type in {
+        "EventNotify",
+        "EventWait",
+        "EventReset",
+        "MemoryWrite",
+        "MemoryWait",
+    }:
         return event_type
     mapping = {
-        'EVENT_NOTIFY': 'EventNotify',
-        'EVENT_WAIT': 'EventWait',
-        'EVENT_RESET': 'EventReset',
-        'MEMORY_WRITE': 'MemoryWrite',
-        'MEMORY_WAIT': 'MemoryWait',
-        'NOTIFY': 'EventNotify',
-        'WAIT': 'EventWait',
-        'RESET': 'EventReset',
+        "EVENT_NOTIFY": "EventNotify",
+        "EVENT_WAIT": "EventWait",
+        "EVENT_RESET": "EventReset",
+        "MEMORY_WRITE": "MemoryWrite",
+        "MEMORY_WAIT": "MemoryWait",
+        "NOTIFY": "EventNotify",
+        "WAIT": "EventWait",
+        "RESET": "EventReset",
     }
-    return mapping.get(node_type, 'Unknown')
+    return mapping.get(node_type, "Unknown")
 
 
 def _update_type(row):
     if row is None:
-        return ''
-    return str(row.get('type') or '').strip().upper()
+        return ""
+    return str(row.get("type") or "").strip().upper()
 
 
 def build_rounds_from_libraries(scope_library, graph_library):
     """Build one scope graph round per final scope from scope/graph libraries."""
 
-    node_library = graph_library.get('node_library', {})
-    node_update_rows = graph_library.get('node_update_registry', {}).get('rows', [])
+    node_library = graph_library.get("node_library", {})
+    node_update_rows = graph_library.get("node_update_registry", {}).get("rows", [])
     node_by_id = {
-        node.get('node_id'): node
-        for node in node_library.get('nodes', [])
-        if isinstance(node.get('node_id'), int)
+        node.get("node_id"): node
+        for node in node_library.get("nodes", [])
+        if isinstance(node.get("node_id"), int)
     }
     node_update_by_id = {
-        row.get('node_id'): row
+        row.get("node_id"): row
         for row in node_update_rows
-        if isinstance(row.get('node_id'), int)
+        if isinstance(row.get("node_id"), int)
     }
-    event_addr_by_node_id, event_addr_facts = _build_event_addr_facts({
-        'scope_library': scope_library,
-        'graph_library': graph_library,
-    })
+    event_addr_by_node_id, event_addr_facts = _build_event_addr_facts(
+        {
+            "scope_library": scope_library,
+            "graph_library": graph_library,
+        }
+    )
     effective_node_update_rows = []
     for row in node_update_rows:
         merged = dict(row)
-        node_id = merged.get('node_id')
+        node_id = merged.get("node_id")
         merged_type = _update_type(merged)
-        if isinstance(node_id, int) and node_id in event_addr_by_node_id and merged_type in {'VALUE_WRITE', 'VALUE_WAIT'}:
-            merged['effective_addr'] = event_addr_by_node_id[node_id]
+        if (
+            isinstance(node_id, int)
+            and node_id in event_addr_by_node_id
+            and merged_type in {"VALUE_WRITE", "VALUE_WAIT"}
+        ):
+            merged["effective_addr"] = event_addr_by_node_id[node_id]
         else:
-            merged['effective_addr'] = merged.get('addr')
+            merged["effective_addr"] = merged.get("addr")
         effective_node_update_rows.append(merged)
     effective_node_update_by_id = {
-        row.get('node_id'): row
+        row.get("node_id"): row
         for row in effective_node_update_rows
-        if isinstance(row.get('node_id'), int)
+        if isinstance(row.get("node_id"), int)
     }
-    event_roles_by_node_id = defaultdict(lambda: {
-        'notify_node_ids': set(),
-        'wait_node_ids': set(),
-        'notify_addrs': set(),
-        'wait_addrs': set(),
-    })
+    event_roles_by_node_id = defaultdict(
+        lambda: {
+            "notify_node_ids": set(),
+            "wait_node_ids": set(),
+            "notify_addrs": set(),
+            "wait_addrs": set(),
+        }
+    )
     for addr, facts in event_addr_facts.items():
-        for node_id in facts.get('notify_node_ids', []):
+        for node_id in facts.get("notify_node_ids", []):
             role = event_roles_by_node_id[node_id]
-            role['notify_node_ids'].add(node_id)
-            role['notify_addrs'].add(addr)
-        for node_id in facts.get('wait_node_ids', []):
+            role["notify_node_ids"].add(node_id)
+            role["notify_addrs"].add(addr)
+        for node_id in facts.get("wait_node_ids", []):
             role = event_roles_by_node_id[node_id]
-            role['wait_node_ids'].add(node_id)
-            role['wait_addrs'].add(addr)
-        for row in facts.get('write_rows', []):
-            node_id = row.get('node_id')
+            role["wait_node_ids"].add(node_id)
+            role["wait_addrs"].add(addr)
+        for row in facts.get("write_rows", []):
+            node_id = row.get("node_id")
             if not isinstance(node_id, int):
                 continue
             role = event_roles_by_node_id[node_id]
-            role['notify_node_ids'].add(node_id)
-            role['notify_addrs'].add(addr)
-        for row in facts.get('wait_rows', []):
-            node_id = row.get('node_id')
+            role["notify_node_ids"].add(node_id)
+            role["notify_addrs"].add(addr)
+        for row in facts.get("wait_rows", []):
+            node_id = row.get("node_id")
             if not isinstance(node_id, int):
                 continue
             role = event_roles_by_node_id[node_id]
-            role['wait_node_ids'].add(node_id)
-            role['wait_addrs'].add(addr)
+            role["wait_node_ids"].add(node_id)
+            role["wait_addrs"].add(addr)
 
-    fused_functions = scope_library.get('fused_library', {}).get('functions', [])
-    device_sections = scope_library.get('device_task_library', {}).get('sections', [])
+    fused_functions = scope_library.get("fused_library", {}).get("functions", [])
+    device_sections = scope_library.get("device_task_library", {}).get("sections", [])
     device_section_by_scope_name = {
-        str(section.get('scope_name') or ''): section
+        str(section.get("scope_name") or ""): section
         for section in device_sections
-        if str(section.get('scope_name') or '')
+        if str(section.get("scope_name") or "")
     }
 
     rounds = []
-    for round_idx, scope in enumerate(scope_library.get('scopes', [])):
-        scope_id = scope.get('scope_id')
-        round_data = SkScopeRound(round_idx, f'scope {scope_id}')
-        round_data.source_file = os.path.basename(scope_library.get('path') or 'scope-library.json')
+    for round_idx, scope in enumerate(scope_library.get("scopes", [])):
+        scope_id = scope.get("scope_id")
+        round_data = SkScopeRound(round_idx, f"scope {scope_id}")
+        round_data.source_file = os.path.basename(
+            scope_library.get("path") or "scope-library.json"
+        )
         round_data.source_round_idx = 1
         round_data.model_instances = [1]
 
-        scope_name = str(scope.get('scope_names', [])[0] if scope.get('scope_names') else '') or ''
+        scope_name = (
+            str(scope.get("scope_names", [])[0] if scope.get("scope_names") else "")
+            or ""
+        )
         scope_obj = SkScope(
             scope_id=scope_id,
-            num_nodes=scope.get('node_count', 0),
-            num_streams=scope.get('stream_count', 0),
-            bit_flags=scope.get('scope_bit_flags'),
+            num_nodes=scope.get("node_count", 0),
+            num_streams=scope.get("stream_count", 0),
+            bit_flags=scope.get("scope_bit_flags"),
             names=[scope_name] if scope_name else [],
             round_idx=round_idx,
         )
         round_data.scopes.append(scope_obj)
-        update_payload = scope.get("update") if isinstance(scope.get("update"), dict) else {}
-        graph_backed_updates = update_payload.get("graph_backed_updates", []) if isinstance(update_payload, dict) else []
+        update_payload = (
+            scope.get("update") if isinstance(scope.get("update"), dict) else {}
+        )
+        graph_backed_updates = (
+            update_payload.get("graph_backed_updates", [])
+            if isinstance(update_payload, dict)
+            else []
+        )
         graph_backed_update_by_id = {
             item.get("node_id"): item
             for item in graph_backed_updates
@@ -420,61 +502,72 @@ def build_rounds_from_libraries(scope_library, graph_library):
             node_entry = node_by_id.get(node_id)
             if not node_entry:
                 return None
-            kernel_info = _parse_kernel_infos_from_detail(node_entry.get('detail', ''))
+            kernel_info = _parse_kernel_infos_from_detail(node_entry.get("detail", ""))
             node = SkNode(
-                node_id=node_entry.get('node_id'),
-                stream_id=node_entry.get('stream_id', -1),
-                stream_idx_in_graph=node_entry.get('stream_idx_in_graph', -1),
-                node_idx_in_stream=node_entry.get('node_idx_in_stream', -1),
+                node_id=node_entry.get("node_id"),
+                stream_id=node_entry.get("stream_id", -1),
+                stream_idx_in_graph=node_entry.get("stream_idx_in_graph", -1),
+                node_idx_in_stream=node_entry.get("node_idx_in_stream", -1),
                 node_type=_normalize_library_node_type(node_entry),
-                event_id=node_entry.get('event_id'),
-                event_flag=node_entry.get('event_flag'),
-                kernel_name=node_entry.get('func_name'),
+                event_id=node_entry.get("event_id"),
+                event_flag=node_entry.get("event_flag"),
+                kernel_name=node_entry.get("func_name"),
                 scope_id=node_scope_id,
                 round_idx=round_idx,
                 index_in_list=0,
-                kernel_type=node_entry.get('kernel_type') or kernel_info.get('kernel_type', ''),
-                task_ratio=kernel_info.get('task_ratio', (0, 0)),
-                num_blocks=kernel_info.get('num_blocks', 0),
-                cube_num=kernel_info.get('cube_num', 0),
-                vec_num=kernel_info.get('vec_num', 0),
-                resolved_num=kernel_info.get('resolved_num', 0),
+                kernel_type=node_entry.get("kernel_type")
+                or kernel_info.get("kernel_type", ""),
+                task_ratio=kernel_info.get("task_ratio", (0, 0)),
+                num_blocks=kernel_info.get("num_blocks", 0),
+                cube_num=kernel_info.get("cube_num", 0),
+                vec_num=kernel_info.get("vec_num", 0),
+                resolved_num=kernel_info.get("resolved_num", 0),
             )
             node_update = node_update_by_id.get(node.node_id)
             if node_update:
                 node.update_type = _update_type(node_update)
-                node.update_addr = str(node_update.get('addr') or '')
-                node.update_value = str(node_update.get('value') or '')
-                node.update_flag = str(node_update.get('flag') or '')
-                node.update_op_info_ptr = str(node_update.get('op_info_ptr') or '')
-                node.update_op_info_size = int(node_update.get('op_info_size') or 0)
-                node.update_func_handle = str(node_update.get('func_handle') or '')
-                node.update_args = str(node_update.get('args') or '')
-                node.update_args_size = int(node_update.get('args_size') or 0)
-                node.update_num_blocks = int(node_update.get('num_blocks') or 0)
+                node.update_addr = str(node_update.get("addr") or "")
+                node.update_value = str(node_update.get("value") or "")
+                node.update_flag = str(node_update.get("flag") or "")
+                node.update_op_info_ptr = str(node_update.get("op_info_ptr") or "")
+                node.update_op_info_size = int(node_update.get("op_info_size") or 0)
+                node.update_func_handle = str(node_update.get("func_handle") or "")
+                node.update_args = str(node_update.get("args") or "")
+                node.update_args_size = int(node_update.get("args_size") or 0)
+                node.update_num_blocks = int(node_update.get("num_blocks") or 0)
             return node
 
         scope_nodes = []
-        for node_id in scope.get('node_ids', []):
+        for node_id in scope.get("node_ids", []):
             node = _build_scope_node(node_id, scope_id)
             if not node:
                 continue
             graph_backed_update = graph_backed_update_by_id.get(node.node_id)
             if graph_backed_update:
-                node.update_type = str(graph_backed_update.get('update_type') or node.update_type or '')
-                node.update_addr = str(graph_backed_update.get('addr') or '')
-                node.update_value = str(graph_backed_update.get('value') or '')
-                node.update_flag = str(graph_backed_update.get('flag') or '')
-                node.update_op_info_ptr = str(graph_backed_update.get('op_info_ptr') or '')
-                node.update_op_info_size = int(graph_backed_update.get('op_info_size') or 0)
-                node.update_func_handle = str(graph_backed_update.get('func_handle') or '')
-                node.update_args = str(graph_backed_update.get('args') or '')
-                node.update_args_size = int(graph_backed_update.get('args_size') or 0)
-                node.update_num_blocks = int(graph_backed_update.get('num_blocks') or 0)
+                node.update_type = str(
+                    graph_backed_update.get("update_type") or node.update_type or ""
+                )
+                node.update_addr = str(graph_backed_update.get("addr") or "")
+                node.update_value = str(graph_backed_update.get("value") or "")
+                node.update_flag = str(graph_backed_update.get("flag") or "")
+                node.update_op_info_ptr = str(
+                    graph_backed_update.get("op_info_ptr") or ""
+                )
+                node.update_op_info_size = int(
+                    graph_backed_update.get("op_info_size") or 0
+                )
+                node.update_func_handle = str(
+                    graph_backed_update.get("func_handle") or ""
+                )
+                node.update_args = str(graph_backed_update.get("args") or "")
+                node.update_args_size = int(graph_backed_update.get("args_size") or 0)
+                node.update_num_blocks = int(graph_backed_update.get("num_blocks") or 0)
             scope_nodes.append(node)
             round_data.all_nodes[node.node_id] = node
 
-        scope_nodes.sort(key=lambda item: (item.stream_id, item.node_idx_in_stream, item.node_id))
+        scope_nodes.sort(
+            key=lambda item: (item.stream_id, item.node_idx_in_stream, item.node_id)
+        )
         for index, node in enumerate(scope_nodes):
             node.index_in_list = index
         scope_obj.nodes = scope_nodes
@@ -488,102 +581,129 @@ def build_rounds_from_libraries(scope_library, graph_library):
 
         scope_node_ids = {node.node_id for node in scope_nodes}
         fused_function = _match_fused_function(scope_node_ids, fused_functions)
-        fused_scope_name = str(fused_function.get('scope_name') or '')
+        fused_scope_name = str(fused_function.get("scope_name") or "")
         if fused_scope_name:
             scope_obj.names = [fused_scope_name]
         elif not scope_obj.names:
             section_by_scope_id = next(
                 (
-                    str(section.get('scope_name') or '')
+                    str(section.get("scope_name") or "")
                     for section in device_sections
-                    if section.get('scope_id') == scope_id and str(section.get('scope_name') or '')
+                    if section.get("scope_id") == scope_id
+                    and str(section.get("scope_name") or "")
                 ),
-                '',
+                "",
             )
             if section_by_scope_id:
                 scope_obj.names = [section_by_scope_id]
         fused_member_ids = [
-            node_id for node_id in fused_function.get('node_ids', [])
+            node_id
+            for node_id in fused_function.get("node_ids", [])
             if node_id in scope_node_ids
         ]
         carrier_node = None
         if fused_member_ids:
             kernel_update_ids = [
-                node_id for node_id in fused_member_ids
-                if _update_type(node_update_by_id.get(node_id, {})) == 'KERNEL'
+                node_id
+                for node_id in fused_member_ids
+                if _update_type(node_update_by_id.get(node_id, {})) == "KERNEL"
             ]
             carrier_candidates = kernel_update_ids or [
-                node_id for node_id in fused_member_ids
-                if str(node_by_id.get(node_id, {}).get('node_type') or '').upper() == 'KERNEL'
+                node_id
+                for node_id in fused_member_ids
+                if str(node_by_id.get(node_id, {}).get("node_type") or "").upper()
+                == "KERNEL"
             ]
             if carrier_candidates:
                 carrier_node = round_data.all_nodes.get(carrier_candidates[0])
         if carrier_node:
-            section = device_section_by_scope_name.get(str(fused_function.get('scope_name') or ''), {})
+            section = device_section_by_scope_name.get(
+                str(fused_function.get("scope_name") or ""), {}
+            )
             ordinal_to_node_id = {
-                item.get('ordinal'): item.get('node_id')
-                for item in fused_function.get('node_details', [])
-                if isinstance(item.get('ordinal'), int) and isinstance(item.get('node_id'), int)
+                item.get("ordinal"): item.get("node_id")
+                for item in fused_function.get("node_details", [])
+                if isinstance(item.get("ordinal"), int)
+                and isinstance(item.get("node_id"), int)
             }
             scope_node_by_id = {node.node_id: node for node in scope_nodes}
             inherited_notify_node_ids = set()
             inherited_wait_node_ids = set()
-            inherited_reset_node_ids = set()
             inherited_notify_addrs = set()
             inherited_wait_addrs = set()
-            inherited_reset_addrs = set()
             inherited_write_facts = OrderedDict()
             inherited_wait_facts = OrderedDict()
             section_tasks = []
-            for queue_name in ('AIC', 'AIV'):
-                section_tasks.extend(section.get('queues', {}).get(queue_name, []))
+            for queue_name in ("AIC", "AIV"):
+                section_tasks.extend(section.get("queues", {}).get(queue_name, []))
             if section_tasks:
                 for task in section_tasks:
-                    task_type = str(task.get('task_type') or '').strip().upper()
-                    if task_type not in {'EVENT_NOTIFY', 'EVENT_WAIT', 'EVENT_RESET'}:
+                    task_type = str(task.get("task_type") or "").strip().upper()
+                    if task_type not in {"EVENT_NOTIFY", "EVENT_WAIT", "EVENT_RESET"}:
                         continue
-                    task_addr = str(task.get('args') or '').strip()
+                    task_addr = str(task.get("args") or "").strip()
                     if not task_addr:
                         continue
-                    node_id = ordinal_to_node_id.get(task.get('task_index'))
-                    node_obj = scope_node_by_id.get(node_id) if isinstance(node_id, int) else None
-                    effective_row = effective_node_update_by_id.get(node_id) if isinstance(node_id, int) else None
-                    if task_type == 'EVENT_NOTIFY':
-                        fact = inherited_write_facts.setdefault(task_addr, {'addr': task_addr, 'values': [], 'node_ids': []})
+                    node_id = ordinal_to_node_id.get(task.get("task_index"))
+                    node_obj = (
+                        scope_node_by_id.get(node_id)
+                        if isinstance(node_id, int)
+                        else None
+                    )
+                    effective_row = (
+                        effective_node_update_by_id.get(node_id)
+                        if isinstance(node_id, int)
+                        else None
+                    )
+                    if task_type == "EVENT_NOTIFY":
+                        fact = inherited_write_facts.setdefault(
+                            task_addr, {"addr": task_addr, "values": [], "node_ids": []}
+                        )
                         if (
-                                node_obj
-                                and effective_row
-                                and node_obj.node_id != carrier_node.node_id
-                                and _update_type(effective_row) == 'VALUE_WRITE'
-                                and str(effective_row.get('effective_addr') or '') == task_addr
+                            node_obj
+                            and effective_row
+                            and node_obj.node_id != carrier_node.node_id
+                            and _update_type(effective_row) == "VALUE_WRITE"
+                            and str(effective_row.get("effective_addr") or "")
+                            == task_addr
                         ):
-                            if node_id not in fact['node_ids']:
-                                fact['node_ids'].append(node_id)
-                            val = str(effective_row.get('value') or '')
-                            if val and val not in fact['values']:
-                                fact['values'].append(val)
+                            if node_id not in fact["node_ids"]:
+                                fact["node_ids"].append(node_id)
+                            val = str(effective_row.get("value") or "")
+                            if val and val not in fact["values"]:
+                                fact["values"].append(val)
                             inherited_notify_node_ids.add(node_id)
                         inherited_notify_addrs.add(task_addr)
-                    elif task_type == 'EVENT_WAIT':
-                        fact = inherited_wait_facts.setdefault(task_addr, {'addr': task_addr, 'values': [], 'flags': [], 'rules': [], 'node_ids': []})
+                    elif task_type == "EVENT_WAIT":
+                        fact = inherited_wait_facts.setdefault(
+                            task_addr,
+                            {
+                                "addr": task_addr,
+                                "values": [],
+                                "flags": [],
+                                "rules": [],
+                                "node_ids": [],
+                            },
+                        )
                         if (
-                                node_obj
-                                and effective_row
-                                and node_obj.node_id != carrier_node.node_id
-                                and _update_type(effective_row) == 'VALUE_WAIT'
-                                and str(effective_row.get('effective_addr') or '') == task_addr
+                            node_obj
+                            and effective_row
+                            and node_obj.node_id != carrier_node.node_id
+                            and _update_type(effective_row) == "VALUE_WAIT"
+                            and str(effective_row.get("effective_addr") or "")
+                            == task_addr
                         ):
-                            if node_id not in fact['node_ids']:
-                                fact['node_ids'].append(node_id)
-                            val = str(effective_row.get('value') or '')
-                            flg = str(effective_row.get('flag') or '')
-                            if val and val not in fact['values']:
-                                fact['values'].append(val)
-                            if flg and flg not in fact['flags']:
-                                fact['flags'].append(flg)
+                            if node_id not in fact["node_ids"]:
+                                fact["node_ids"].append(node_id)
+                            val = str(effective_row.get("value") or "")
+                            flg = str(effective_row.get("flag") or "")
+                            if val and val not in fact["values"]:
+                                fact["values"].append(val)
+                            if flg and flg not in fact["flags"]:
+                                fact["flags"].append(flg)
                             rule = _wait_rule_text(flg)
-                            if rule and rule not in fact['rules']:
-                                fact['rules'].append(rule)
+                            if rule and rule not in fact["rules"]:
+                                fact["rules"].append(rule)
                             inherited_wait_node_ids.add(node_id)
                         inherited_wait_addrs.add(task_addr)
             else:
@@ -593,10 +713,10 @@ def build_rounds_from_libraries(scope_library, graph_library):
                     roles = event_roles_by_node_id.get(member_node_id)
                     if not roles:
                         continue
-                    inherited_notify_node_ids.update(roles['notify_node_ids'])
-                    inherited_wait_node_ids.update(roles['wait_node_ids'])
-                    inherited_notify_addrs.update(roles['notify_addrs'])
-                    inherited_wait_addrs.update(roles['wait_addrs'])
+                    inherited_notify_node_ids.update(roles["notify_node_ids"])
+                    inherited_wait_node_ids.update(roles["wait_node_ids"])
+                    inherited_notify_addrs.update(roles["notify_addrs"])
+                    inherited_wait_addrs.update(roles["wait_addrs"])
             carrier_node.inherited_notify_node_ids = sorted(inherited_notify_node_ids)
             carrier_node.inherited_wait_node_ids = sorted(inherited_wait_node_ids)
             carrier_node.inherited_reset_node_ids = []
@@ -617,74 +737,79 @@ def build_rounds_from_libraries(scope_library, graph_library):
             for member_id in node.inherited_notify_node_ids:
                 if member_id not in scope_node_ids or member_id == node.node_id:
                     continue
-                edge_key = ('sk_member_write', member_id, node.node_id)
+                edge_key = ("sk_member_write", member_id, node.node_id)
                 if edge_key in seen_update_edges:
                     continue
                 seen_update_edges.add(edge_key)
-                update_edges.append(SkEdge(member_id, node.node_id, 'update_sk_write'))
+                update_edges.append(SkEdge(member_id, node.node_id, "update_sk_write"))
             for member_id in node.inherited_wait_node_ids:
                 if member_id not in scope_node_ids or member_id == node.node_id:
                     continue
-                edge_key = ('sk_member_wait', node.node_id, member_id)
+                edge_key = ("sk_member_wait", node.node_id, member_id)
                 if edge_key in seen_update_edges:
                     continue
                 seen_update_edges.add(edge_key)
-                update_edges.append(SkEdge(node.node_id, member_id, 'update_sk_wait'))
+                update_edges.append(SkEdge(node.node_id, member_id, "update_sk_wait"))
             for member_id in node.inherited_reset_node_ids:
                 if member_id not in scope_node_ids or member_id == node.node_id:
                     continue
-                edge_key = ('sk_member_write', member_id, node.node_id)
+                edge_key = ("sk_member_write", member_id, node.node_id)
                 if edge_key in seen_update_edges:
                     continue
                 seen_update_edges.add(edge_key)
-                update_edges.append(SkEdge(member_id, node.node_id, 'update_sk_write'))
+                update_edges.append(SkEdge(member_id, node.node_id, "update_sk_write"))
 
         for addr, facts in event_addr_facts.items():
-            notify_rows = list(facts.get('write_rows', []))
-            wait_rows = list(facts.get('wait_rows', []))
+            notify_rows = list(facts.get("write_rows", []))
+            wait_rows = list(facts.get("wait_rows", []))
 
             for carrier_node_id, inherited_addrs in carrier_notify_addrs.items():
                 if addr not in inherited_addrs:
                     continue
                 for wait_row in wait_rows:
-                    dst_id = wait_row.get('node_id')
-                    if carrier_node_id not in scope_node_ids or dst_id not in scope_node_ids:
+                    dst_id = wait_row.get("node_id")
+                    if (
+                        carrier_node_id not in scope_node_ids
+                        or dst_id not in scope_node_ids
+                    ):
                         continue
                     if carrier_node_id == dst_id:
                         continue
-                    edge_key = ('notify_wait', carrier_node_id, dst_id, addr)
+                    edge_key = ("notify_wait", carrier_node_id, dst_id, addr)
                     if edge_key in seen_update_edges:
                         continue
                     seen_update_edges.add(edge_key)
                     notify_wait_count += 1
                     update_edges.append(
-                        SkEdge(carrier_node_id, dst_id, 'update_notify_wait', addr)
+                        SkEdge(carrier_node_id, dst_id, "update_notify_wait", addr)
                     )
 
             for write_row in notify_rows:
-                src_id = write_row.get('node_id')
+                src_id = write_row.get("node_id")
                 for wait_row in wait_rows:
                     if not _write_is_notify_for_wait(write_row, wait_row):
                         continue
-                    dst_id = wait_row.get('node_id')
+                    dst_id = wait_row.get("node_id")
                     if src_id not in scope_node_ids or dst_id not in scope_node_ids:
                         continue
-                    edge_key = ('notify_wait', src_id, dst_id, addr)
+                    edge_key = ("notify_wait", src_id, dst_id, addr)
                     if edge_key in seen_update_edges:
                         continue
                     seen_update_edges.add(edge_key)
                     notify_wait_count += 1
                     update_edges.append(
-                        SkEdge(src_id, dst_id, 'update_notify_wait', addr)
+                        SkEdge(src_id, dst_id, "update_notify_wait", addr)
                     )
 
         round_data.update_edges = update_edges
         round_data.update_summary = {
-            'updated_node_count': len(updated_node_ids),
-            'synthesized_custom_count': len(synthesized_custom_annotations),
-            'notify_wait_edge_count': notify_wait_count,
-            'wait_reset_edge_count': 0,
-            'addr_count': len({edge.event_id for edge in update_edges if edge.event_id}),
+            "updated_node_count": len(updated_node_ids),
+            "synthesized_custom_count": len(synthesized_custom_annotations),
+            "notify_wait_edge_count": notify_wait_count,
+            "wait_reset_edge_count": 0,
+            "addr_count": len(
+                {edge.event_id for edge in update_edges if edge.event_id}
+            ),
         }
         rounds.append(round_data)
 
@@ -696,17 +821,18 @@ def build_rounds_from_libraries(scope_library, graph_library):
 # ============================================================================
 
 # KernelInfos 字段提取
-RE_KI_FUNCNAME = re.compile(r'funcName:([^,}]+)')
-RE_KI_KERNELTYPE = re.compile(r'kernelType:(\w+)')
-RE_KI_TASKRATIO = re.compile(r'taskRatio:\[([^,]+),([^\]]+)\]')
-RE_KI_NUMBLOCKS = re.compile(r'numBlocks:(\d+)')
-RE_KI_CUBENUM = re.compile(r'cubeNum:(\d+)')
-RE_KI_VECNUM = re.compile(r'vecNum:(\d+)')
-RE_KI_RESOLVEDNUM = re.compile(r'resolvedNum:(\d+)')
+RE_KI_FUNCNAME = re.compile(r"funcName:([^,}]+)")
+RE_KI_KERNELTYPE = re.compile(r"kernelType:(\w+)")
+RE_KI_TASKRATIO = re.compile(r"taskRatio:\[([^,]+),([^\]]+)\]")
+RE_KI_NUMBLOCKS = re.compile(r"numBlocks:(\d+)")
+RE_KI_CUBENUM = re.compile(r"cubeNum:(\d+)")
+RE_KI_VECNUM = re.compile(r"vecNum:(\d+)")
+RE_KI_RESOLVEDNUM = re.compile(r"resolvedNum:(\d+)")
 
 # ============================================================================
 # 日志解析
 # ============================================================================
+
 
 def _parse_kernel_infos(ki_str):
     """解析 KernelInfos 字符串，返回字段字典"""
@@ -715,32 +841,32 @@ def _parse_kernel_infos(ki_str):
     result = {}
     m = RE_KI_FUNCNAME.search(ki_str)
     if m:
-        result['kernel_name'] = m.group(1).strip()
+        result["kernel_name"] = m.group(1).strip()
     m = RE_KI_KERNELTYPE.search(ki_str)
     if m:
-        result['kernel_type'] = m.group(1).strip()
+        result["kernel_type"] = m.group(1).strip()
     m = RE_KI_TASKRATIO.search(ki_str)
     if m:
-        result['task_ratio'] = (int(m.group(1).strip()), int(m.group(2).strip()))
+        result["task_ratio"] = (int(m.group(1).strip()), int(m.group(2).strip()))
     m = RE_KI_NUMBLOCKS.search(ki_str)
     if m:
-        result['num_blocks'] = int(m.group(1))
+        result["num_blocks"] = int(m.group(1))
     m = RE_KI_CUBENUM.search(ki_str)
     if m:
-        result['cube_num'] = int(m.group(1))
+        result["cube_num"] = int(m.group(1))
     m = RE_KI_VECNUM.search(ki_str)
     if m:
-        result['vec_num'] = int(m.group(1))
+        result["vec_num"] = int(m.group(1))
     m = RE_KI_RESOLVEDNUM.search(ki_str)
     if m:
-        result['resolved_num'] = int(m.group(1))
+        result["resolved_num"] = int(m.group(1))
     return result
 
 
 def _parse_kernel_infos_from_detail(detail_str):
     if not detail_str:
         return {}
-    match = re.search(r'KernelInfos\{([^}]*)\}', detail_str)
+    match = re.search(r"KernelInfos\{([^}]*)\}", detail_str)
     if not match:
         return {}
     return _parse_kernel_infos(match.group(1))
@@ -761,16 +887,16 @@ def _safe_parse_int(value):
 def _wait_rule_text(flag_value):
     flag = _safe_parse_int(flag_value)
     if flag == 0:
-        return 'write >= wait'
+        return "write >= wait"
     if flag == 1:
-        return 'write == wait'
+        return "write == wait"
     if flag == 2:
-        return '(write & wait) != 0'
+        return "(write & wait) != 0"
     if flag == 3:
-        return '(~(write | wait)) != 0'
+        return "(~(write | wait)) != 0"
     if flag_value:
         return str(flag_value)
-    return ''
+    return ""
 
 
 def _match_fused_function(scope_node_ids, fused_functions):
@@ -786,8 +912,16 @@ def _match_fused_function(scope_node_ids, fused_functions):
 
 
 def _build_event_addr_facts(report):
-    scope_library = report.get("scope_library", {}) if isinstance(report.get("scope_library"), dict) else {}
-    graph_library = report.get("graph_library", {}) if isinstance(report.get("graph_library"), dict) else {}
+    scope_library = (
+        report.get("scope_library", {})
+        if isinstance(report.get("scope_library"), dict)
+        else {}
+    )
+    graph_library = (
+        report.get("graph_library", {})
+        if isinstance(report.get("graph_library"), dict)
+        else {}
+    )
     node_updates = graph_library.get("node_update_registry", {}).get("rows", [])
 
     addr_by_node_id = {}
@@ -815,7 +949,11 @@ def _build_event_addr_facts(report):
         node_id = row.get("node_id")
         addr = explicit_addr_by_node_id.get(node_id) or row.get("addr")
         target_type = _update_type(row)
-        if node_id is None or not addr or target_type not in {"VALUE_WRITE", "VALUE_WAIT"}:
+        if (
+            node_id is None
+            or not addr
+            or target_type not in {"VALUE_WRITE", "VALUE_WAIT"}
+        ):
             continue
         addr_by_node_id[node_id] = addr
         bucket = grouped.setdefault(
@@ -963,10 +1101,10 @@ def _write_is_notify_for_wait(write_row, wait_row):
     return False
 
 
-
 # ============================================================================
 # 构建连边
 # ============================================================================
+
 
 def build_edges(round_data, extra_nodes=None):
     """
@@ -986,14 +1124,14 @@ def build_edges(round_data, extra_nodes=None):
         for nid, info in extra_nodes.items():
             if nid not in nodes:
                 nodes[nid] = SkNode(
-                    node_id=info['node_id'],
-                    stream_id=info['stream_id'],
-                    stream_idx_in_graph=info.get('stream_idx_in_graph', -1),
-                    node_idx_in_stream=info['node_idx_in_stream'],
-                    node_type=info['node_type'],
-                    event_id=info.get('event_id'),
-                    event_flag=info.get('event_flag'),
-                    kernel_name=info.get('kernel_name'),
+                    node_id=info["node_id"],
+                    stream_id=info["stream_id"],
+                    stream_idx_in_graph=info.get("stream_idx_in_graph", -1),
+                    node_idx_in_stream=info["node_idx_in_stream"],
+                    node_type=info["node_type"],
+                    event_id=info.get("event_id"),
+                    event_flag=info.get("event_flag"),
+                    kernel_name=info.get("kernel_name"),
                     scope_id=None,  # 不在任何 scope 中
                 )
 
@@ -1006,40 +1144,40 @@ def build_edges(round_data, extra_nodes=None):
     for sid, s_nodes in stream_nodes.items():
         s_nodes.sort(key=lambda n: n.node_idx_in_stream)
         for i in range(len(s_nodes) - 1):
-            edges.append(SkEdge(s_nodes[i].node_id, s_nodes[i + 1].node_id, 'stream'))
+            edges.append(SkEdge(s_nodes[i].node_id, s_nodes[i + 1].node_id, "stream"))
 
     # 2. 事件连边: Notify → Wait
-    notify_map = {}       # event_id -> [node, ...]
-    wait_map = defaultdict(list)   # event_id -> [node, ...]
+    notify_map = {}  # event_id -> [node, ...]
+    wait_map = defaultdict(list)  # event_id -> [node, ...]
     reset_map = defaultdict(list)  # event_id -> [node, ...]
 
     for node in nodes.values():
-        if node.node_type == 'EventNotify' and node.event_id:
+        if node.node_type == "EventNotify" and node.event_id:
             notify_map.setdefault(node.event_id, []).append(node)
-        elif node.node_type == 'EventWait' and node.event_id:
+        elif node.node_type == "EventWait" and node.event_id:
             wait_map[node.event_id].append(node)
-        elif node.node_type == 'EventReset' and node.event_id:
+        elif node.node_type == "EventReset" and node.event_id:
             reset_map[node.event_id].append(node)
 
     for eid, notifies in notify_map.items():
         for notify in notifies:
             for wait in wait_map.get(eid, []):
-                edges.append(SkEdge(notify.node_id, wait.node_id, 'event', eid))
+                edges.append(SkEdge(notify.node_id, wait.node_id, "event", eid))
 
     # 3. 内存连边: MemoryWrite → MemoryWait (相同 eventId)
     mw_map = defaultdict(list)
     mwait_map = defaultdict(list)
 
     for node in nodes.values():
-        if node.node_type == 'MemoryWrite' and node.event_id:
+        if node.node_type == "MemoryWrite" and node.event_id:
             mw_map[node.event_id].append(node)
-        elif node.node_type == 'MemoryWait' and node.event_id:
+        elif node.node_type == "MemoryWait" and node.event_id:
             mwait_map[node.event_id].append(node)
 
     for eid, writes in mw_map.items():
         for write in writes:
             for wait in mwait_map.get(eid, []):
-                edges.append(SkEdge(write.node_id, wait.node_id, 'memory', eid))
+                edges.append(SkEdge(write.node_id, wait.node_id, "memory", eid))
 
     return edges, nodes
 
@@ -1049,10 +1187,26 @@ def build_edges(round_data, extra_nodes=None):
 # ============================================================================
 
 EVENT_PALETTE = [
-    '#E91E63', '#9C27B0', '#673AB7', '#3F51B5', '#00BCD4',
-    '#009688', '#8BC34A', '#CDDC39', '#FFC107', '#FF5722',
-    '#795548', '#607D8B', '#FF6F61', '#6B5B95', '#88B04B',
-    '#92A8D1', '#034F84', '#F7CAC9', '#F7786B', '#CB99C9',
+    "#E91E63",
+    "#9C27B0",
+    "#673AB7",
+    "#3F51B5",
+    "#00BCD4",
+    "#009688",
+    "#8BC34A",
+    "#CDDC39",
+    "#FFC107",
+    "#FF5722",
+    "#795548",
+    "#607D8B",
+    "#FF6F61",
+    "#6B5B95",
+    "#88B04B",
+    "#92A8D1",
+    "#034F84",
+    "#F7CAC9",
+    "#F7786B",
+    "#CB99C9",
 ]
 
 
@@ -1069,22 +1223,20 @@ def assign_event_colors(all_rounds):
     return colors
 
 
-
-
 # ============================================================================
 # HTML 生成
 # ============================================================================
 
 # 节点颜色配置
 NODE_COLORS = {
-    'Kernel':        {'bg': '#43A047', 'border': '#2E7D32', 'text': '#FFF'},
-    'EventNotify':   {'bg': '#FB8C00', 'border': '#EF6C00', 'text': '#FFF'},
-    'EventWait':     {'bg': '#1E88E5', 'border': '#1565C0', 'text': '#FFF'},
-    'EventReset':    {'bg': '#E53935', 'border': '#C62828', 'text': '#FFF'},
-    'MemoryWrite':   {'bg': '#AB47BC', 'border': '#8E24AA', 'text': '#FFF'},
-    'MemoryWait':    {'bg': '#26A69A', 'border': '#00897B', 'text': '#FFF'},
-    'Default':       {'bg': '#78909C', 'border': '#546E7A', 'text': '#FFF'},
-    'Unknown':       {'bg': '#757575', 'border': '#616161', 'text': '#FFF'},
+    "Kernel": {"bg": "#43A047", "border": "#2E7D32", "text": "#FFF"},
+    "EventNotify": {"bg": "#FB8C00", "border": "#EF6C00", "text": "#FFF"},
+    "EventWait": {"bg": "#1E88E5", "border": "#1565C0", "text": "#FFF"},
+    "EventReset": {"bg": "#E53935", "border": "#C62828", "text": "#FFF"},
+    "MemoryWrite": {"bg": "#AB47BC", "border": "#8E24AA", "text": "#FFF"},
+    "MemoryWait": {"bg": "#26A69A", "border": "#00897B", "text": "#FFF"},
+    "Default": {"bg": "#78909C", "border": "#546E7A", "text": "#FFF"},
+    "Unknown": {"bg": "#757575", "border": "#616161", "text": "#FFF"},
 }
 
 
@@ -1093,7 +1245,9 @@ def _js_obj(d):
     return json.dumps(d, ensure_ascii=False)
 
 
-def generate_html(all_rounds, event_colors, log_files, output_path, init_nodes=None, mode='scope'):
+def generate_html(
+    all_rounds, event_colors, log_files, output_path, init_nodes=None, mode="scope"
+):
     """生成交互式 HTML 可视化文件
 
     mode: 仅支持 'scope'，用于区分视图数据来源（固定为 scope 库驱动）
@@ -1103,32 +1257,48 @@ def generate_html(all_rounds, event_colors, log_files, output_path, init_nodes=N
     rounds_json_list = []
     for rd in all_rounds:
         edges, merged_nodes = build_edges(rd, init_nodes)
-        rounds_json_list.append({
-            'nodes': [merged_nodes[nid].to_dict() for nid in sorted(merged_nodes.keys())],
-            'custom_update_nodes': [node.to_dict() for node in getattr(rd, 'custom_update_nodes', [])],
-            'synthesized_custom_annotations': getattr(rd, 'synthesized_custom_annotations', []),
-            'scopes': [sc.to_dict() for sc in rd.scopes],
-            'edges': [{'src': e.src_id, 'dst': e.dst_id, 'type': e.edge_type, 'event_id': e.event_id}
-                      for e in edges],
-            'update_edges': [{'src': e.src_id, 'dst': e.dst_id, 'type': e.edge_type, 'event_id': e.event_id}
-                             for e in getattr(rd, 'update_edges', [])],
-            'update_summary': getattr(rd, 'update_summary', {}),
-            'source_file': rd.source_file,
-            'source_round_idx': rd.source_round_idx,
-            'model_instance_count': len(getattr(rd, 'model_instances', []) or []),
-        })
+        rounds_json_list.append(
+            {
+                "nodes": [
+                    merged_nodes[nid].to_dict() for nid in sorted(merged_nodes.keys())
+                ],
+                "custom_update_nodes": [
+                    node.to_dict() for node in getattr(rd, "custom_update_nodes", [])
+                ],
+                "synthesized_custom_annotations": getattr(
+                    rd, "synthesized_custom_annotations", []
+                ),
+                "scopes": [sc.to_dict() for sc in rd.scopes],
+                "edges": [
+                    {
+                        "src": e.src_id,
+                        "dst": e.dst_id,
+                        "type": e.edge_type,
+                        "event_id": e.event_id,
+                    }
+                    for e in edges
+                ],
+                "update_edges": [
+                    {
+                        "src": e.src_id,
+                        "dst": e.dst_id,
+                        "type": e.edge_type,
+                        "event_id": e.event_id,
+                    }
+                    for e in getattr(rd, "update_edges", [])
+                ],
+                "update_summary": getattr(rd, "update_summary", {}),
+                "source_file": rd.source_file,
+                "source_round_idx": rd.source_round_idx,
+                "model_instance_count": len(getattr(rd, "model_instances", []) or []),
+            }
+        )
 
     rounds_json = _js_obj(rounds_json_list)
     event_colors_json = _js_obj(event_colors)
     node_colors_json = _js_obj(NODE_COLORS)
 
     default_round = max(len(all_rounds) - 1, 0)
-    current_round = all_rounds[default_round] if all_rounds else None
-    current_scope = current_round.scopes[0] if current_round and current_round.scopes else None
-    current_scope_name = ""
-    if current_scope:
-        scope_names = current_scope.names or []
-        current_scope_name = str(scope_names[0] if scope_names else f"scope_{current_scope.scope_id}")
     header_html = render_page_header(
         icon="SC",
         kicker="",
@@ -1144,7 +1314,11 @@ def generate_html(all_rounds, event_colors, log_files, output_path, init_nodes=N
             reports_dir = cursor
             break
         cursor = os.path.dirname(cursor)
-    portal_href = os.path.relpath(os.path.join(reports_dir, "run-portal.html"), output_dir) if reports_dir else "../run-portal.html"
+    portal_href = (
+        os.path.relpath(os.path.join(reports_dir, "run-portal.html"), output_dir)
+        if reports_dir
+        else "../run-portal.html"
+    )
     view_nav_html = render_view_nav(
         [
             ("导航页面", portal_href, False),
@@ -1160,39 +1334,95 @@ def generate_html(all_rounds, event_colors, log_files, output_path, init_nodes=N
             (
                 "节点类型",
                 [
-                    make_scope_explainer_box("算子", color="#43A047", extra_class="structure-only"),
-                    make_scope_explainer_box("事件通知", color="#FB8C00", extra_class="structure-only"),
-                    make_scope_explainer_box("事件等待", color="#1E88E5", extra_class="structure-only"),
-                    make_scope_explainer_box("事件重置", color="#E53935", extra_class="structure-only"),
-                    make_scope_explainer_box("内存写入", color="#AB47BC", extra_class="structure-only"),
-                    make_scope_explainer_box("内存等待", color="#26A69A", extra_class="structure-only"),
-                    make_scope_explainer_box("SK", color="#43A047", extra_class="update-only", hidden=True),
-                    make_scope_explainer_box("Value Write", color="#8E24AA", extra_class="update-only", hidden=True),
-                    make_scope_explainer_box("Value Wait", color="#00897B", extra_class="update-only", hidden=True),
-                    make_scope_explainer_box("Invalid", color="#9ca3af", extra_class="update-only", hidden=True),
+                    make_scope_explainer_box(
+                        "算子", color="#43A047", extra_class="structure-only"
+                    ),
+                    make_scope_explainer_box(
+                        "事件通知", color="#FB8C00", extra_class="structure-only"
+                    ),
+                    make_scope_explainer_box(
+                        "事件等待", color="#1E88E5", extra_class="structure-only"
+                    ),
+                    make_scope_explainer_box(
+                        "事件重置", color="#E53935", extra_class="structure-only"
+                    ),
+                    make_scope_explainer_box(
+                        "内存写入", color="#AB47BC", extra_class="structure-only"
+                    ),
+                    make_scope_explainer_box(
+                        "内存等待", color="#26A69A", extra_class="structure-only"
+                    ),
+                    make_scope_explainer_box(
+                        "SK", color="#43A047", extra_class="update-only", hidden=True
+                    ),
+                    make_scope_explainer_box(
+                        "Value Write",
+                        color="#8E24AA",
+                        extra_class="update-only",
+                        hidden=True,
+                    ),
+                    make_scope_explainer_box(
+                        "Value Wait",
+                        color="#00897B",
+                        extra_class="update-only",
+                        hidden=True,
+                    ),
+                    make_scope_explainer_box(
+                        "Invalid",
+                        color="#9ca3af",
+                        extra_class="update-only",
+                        hidden=True,
+                    ),
                 ],
             ),
             (
                 "连边关系",
                 [
-                    make_scope_explainer_line("流内连边", color="#a3a3a3", extra_class="structure-only"),
-                    make_scope_explainer_line("事件匹配边 (Notify→Wait)", color="#E91E63", dash_style="dashed", extra_class="structure-only"),
-                    make_scope_explainer_line("内存匹配边 (Write→Wait)", color="#AB47BC", dash_style="dashed", extra_class="structure-only"),
-                    make_scope_explainer_line("关系边", color="#AB47BC", dash_style="dashed", extra_class="update-only", hidden=True),
+                    make_scope_explainer_line(
+                        "流内连边", color="#a3a3a3", extra_class="structure-only"
+                    ),
+                    make_scope_explainer_line(
+                        "事件匹配边 (Notify→Wait)",
+                        color="#E91E63",
+                        dash_style="dashed",
+                        extra_class="structure-only",
+                    ),
+                    make_scope_explainer_line(
+                        "内存匹配边 (Write→Wait)",
+                        color="#AB47BC",
+                        dash_style="dashed",
+                        extra_class="structure-only",
+                    ),
+                    make_scope_explainer_line(
+                        "关系边",
+                        color="#AB47BC",
+                        dash_style="dashed",
+                        extra_class="update-only",
+                        hidden=True,
+                    ),
                 ],
             ),
             (
                 "视图说明",
                 [
-                    make_scope_explainer_text("结构模式展示 Scope 内部的真实节点和依赖关系。", extra_class="structure-only"),
-                    make_scope_explainer_text("Update 模式聚焦 Value Write / Value Wait / Invalid。", extra_class="update-only", hidden=True),
+                    make_scope_explainer_text(
+                        "结构模式展示 Scope 内部的真实节点和依赖关系。",
+                        extra_class="structure-only",
+                    ),
+                    make_scope_explainer_text(
+                        "Update 模式聚焦 Value Write / Value Wait / Invalid。",
+                        extra_class="update-only",
+                        hidden=True,
+                    ),
                 ],
             ),
         ]
     )
     toolbar_html = render_graph_toolbar(
         label="ScopeName 切换",
-        nav_html=render_graph_nav("scopePrevBtn", "scopeNextBtn", "上一个 Scope", "下一个 Scope"),
+        nav_html=render_graph_nav(
+            "scopePrevBtn", "scopeNextBtn", "上一个 Scope", "下一个 Scope"
+        ),
         select_html='<select class="toolbar-input graph-select" id="scopeSelect" style="width:560px; min-width:560px; max-width:560px;"></select>',
         index_chip_html=render_graph_index_chip("scopeIndexChip", "Scope 1 / 1"),
         trailing_html="""
@@ -2353,7 +2583,7 @@ init();
 </body>
 </html>'''
 
-    with open(output_path, 'w', encoding='utf-8') as f:
+    with open(output_path, "w", encoding="utf-8") as f:
         f.write(html_content)
     return output_path
 
@@ -2361,6 +2591,7 @@ init();
 # ============================================================================
 # Main
 # ============================================================================
+
 
 def _find_library_pair(base_dir):
     """Find a matching scope/graph library pair under a given root."""
@@ -2371,8 +2602,8 @@ def _find_library_pair(base_dir):
         raise FileNotFoundError(f"[ERROR] 输入路径不存在或不是目录: {base_dir}")
 
     def _bundle(root_dir):
-        scope_path = os.path.join(root_dir, 'scope-library.json')
-        graph_path = os.path.join(root_dir, 'graph-library.json')
+        scope_path = os.path.join(root_dir, "scope-library.json")
+        graph_path = os.path.join(root_dir, "graph-library.json")
         if os.path.isfile(scope_path) and os.path.isfile(graph_path):
             scope_mtime = os.path.getmtime(scope_path)
             graph_mtime = os.path.getmtime(graph_path)
@@ -2384,7 +2615,7 @@ def _find_library_pair(base_dir):
     candidates = []
 
     scan_roots = [root]
-    for extra in ('reports', 'reports/data', 'data'):
+    for extra in ("reports", "reports/data", "data"):
         scan_roots.append(os.path.join(root, extra))
 
     for candidate_root in scan_roots:
@@ -2398,7 +2629,9 @@ def _find_library_pair(base_dir):
             candidates.append(bundle)
 
     if not candidates:
-        raise FileNotFoundError(f"[ERROR] 未在 {base_dir} 中找到 scope-library.json 与 graph-library.json 的成对库文件")
+        raise FileNotFoundError(
+            f"[ERROR] 未在 {base_dir} 中找到 scope-library.json 与 graph-library.json 的成对库文件"
+        )
 
     # 优先选择更浅层目录 + 更晚更新时间
     candidates.sort(key=lambda item: (item[0], item[1]))
@@ -2408,35 +2641,35 @@ def _find_library_pair(base_dir):
 
 def main():
     parser = argparse.ArgumentParser(
-        description='Scope 可视化 - 从 scope-library + graph-library 生成 Scope / Update 视图',
+        description="Scope 可视化 - 从 scope-library + graph-library 生成 Scope / Update 视图",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=(
             "Examples:\n"
             "  # 模式1：直接指定库文件\n"
-            "  python sk_scope_visualizer.py --scope-library \"$SCOPE_LIBRARY\" --graph-library \"$GRAPH_LIBRARY\" -o scope-graph.html\n"
+            '  python sk_scope_visualizer.py --scope-library "$SCOPE_LIBRARY" --graph-library "$GRAPH_LIBRARY" -o scope-graph.html\n'
             "  # 模式2：给定目录，自动搜索匹配库对\n"
-            "  python sk_scope_visualizer.py \"$RUN_OR_RESULT_DIR\" -o scope-graph.html"
+            '  python sk_scope_visualizer.py "$RUN_OR_RESULT_DIR" -o scope-graph.html'
         ),
     )
     parser.add_argument(
-        'input',
-        nargs='?',
-        default='.',
-        help='目录（自动查找 scope-library.json 和 graph-library.json），或直接指定目录路径',
+        "input",
+        nargs="?",
+        default=".",
+        help="目录（自动查找 scope-library.json 和 graph-library.json），或直接指定目录路径",
     )
     parser.add_argument(
-        '-o',
-        '--output',
-        default='scope-graph.html',
-        help='输出 HTML 文件路径（默认: scope-graph.html）',
+        "-o",
+        "--output",
+        default="scope-graph.html",
+        help="输出 HTML 文件路径（默认: scope-graph.html）",
     )
     parser.add_argument(
-        '--scope-library',
-        help='直接指定 scope-library.json 路径。和 --graph-library 必须同时提供。',
+        "--scope-library",
+        help="直接指定 scope-library.json 路径。和 --graph-library 必须同时提供。",
     )
     parser.add_argument(
-        '--graph-library',
-        help='直接指定 graph-library.json 路径。和 --scope-library 必须同时提供。',
+        "--graph-library",
+        help="直接指定 graph-library.json 路径。和 --scope-library 必须同时提供。",
     )
     args = parser.parse_args()
 
@@ -2446,13 +2679,17 @@ def main():
         sys.exit(1)
 
     if (args.scope_library is None) ^ (args.graph_library is None):
-        print("Error: --scope-library 和 --graph-library 必须同时提供。", file=sys.stderr)
+        print(
+            "Error: --scope-library 和 --graph-library 必须同时提供。", file=sys.stderr
+        )
         sys.exit(1)
 
     if args.scope_library and args.graph_library:
         scope_library = args.scope_library
         graph_library = args.graph_library
-        bundle_root = os.path.dirname(scope_library) if os.path.isfile(scope_library) else '.'
+        bundle_root = (
+            os.path.dirname(scope_library) if os.path.isfile(scope_library) else "."
+        )
     else:
         try:
             scope_library, graph_library, bundle_root = _find_library_pair(input_path)
@@ -2468,7 +2705,7 @@ def main():
         print(f"[ERROR] graph 库不存在: {graph_library}", file=sys.stderr)
         sys.exit(1)
 
-    source = ScopeLibrarySource(scope_library, graph_library, mode='scope')
+    source = ScopeLibrarySource(scope_library, graph_library, mode="scope")
     model = ScopeGraphModel.from_libraries(source)
     if not model.rounds:
         print("[ERROR] scope-library 中未解析到可显示 scope", file=sys.stderr)
@@ -2481,5 +2718,5 @@ def main():
     print(f"     scope count={scope_count}, node count={node_count}")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

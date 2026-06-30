@@ -63,7 +63,9 @@ def cmd_adapt_asset(args: argparse.Namespace) -> int:
     write_json(output_dir / "operator-build-context.json", build_context)
     write_json(output_dir / "operator-verify-context.json", verify_context)
     write_json(output_dir / "adapter-report.json", report)
-    (output_dir / "adapter-report.md").write_text(_render_report(report), encoding="utf-8")
+    (output_dir / "adapter-report.md").write_text(
+        _render_report(report), encoding="utf-8"
+    )
 
     return 0 if report.get("readiness", {}).get("can_adapt") else 2
 
@@ -114,17 +116,31 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="SK operator asset adapter")
     subparsers = parser.add_subparsers(dest="subcommand", required=True)
 
-    adapt = subparsers.add_parser("adapt-asset", help="Generate stable SK operator contracts from an asset")
+    adapt = subparsers.add_parser(
+        "adapt-asset", help="Generate stable SK operator contracts from an asset"
+    )
     adapt.add_argument("asset", help="User operator asset directory or source file")
-    adapt.add_argument("--output-dir", required=True, help="Where to write adapter contracts")
-    adapt.add_argument("--target-chip", default="", help="Comma/semicolon separated target chips")
-    adapt.add_argument("--target-arch", default="", help="Comma/semicolon separated target NPU arches")
+    adapt.add_argument(
+        "--output-dir", required=True, help="Where to write adapter contracts"
+    )
+    adapt.add_argument(
+        "--target-chip", default="", help="Comma/semicolon separated target chips"
+    )
+    adapt.add_argument(
+        "--target-arch", default="", help="Comma/semicolon separated target NPU arches"
+    )
     adapt.set_defaults(func=cmd_adapt_asset)
 
-    validate = subparsers.add_parser("validate-contracts", help="Validate generated adapter contracts")
+    validate = subparsers.add_parser(
+        "validate-contracts", help="Validate generated adapter contracts"
+    )
     validate.add_argument("--layout", required=True, help="operator-asset-layout.json")
-    validate.add_argument("--build-context", required=True, help="operator-build-context.json")
-    validate.add_argument("--verify-context", required=True, help="operator-verify-context.json")
+    validate.add_argument(
+        "--build-context", required=True, help="operator-build-context.json"
+    )
+    validate.add_argument(
+        "--verify-context", required=True, help="operator-verify-context.json"
+    )
     validate.add_argument("--adapter-report", default="", help="adapter-report.json")
     validate.set_defaults(func=cmd_validate_contracts)
 

@@ -14,6 +14,7 @@ kernel-launch-adapt.md Q6: the current CANN headers renamed the SkSystemArgs
 members. Legacy `skBlockNum` / `SkGetBlockNum()` fail to compile and must be
 `skNumBlocks` / `SkGetNumBlocks()`.
 """
+
 import re
 
 RULE = {
