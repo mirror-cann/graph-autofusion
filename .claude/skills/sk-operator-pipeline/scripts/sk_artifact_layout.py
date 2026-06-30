@@ -79,6 +79,107 @@ class ArtifactLayout:
         path.write_text(text, encoding="utf-8")
 
     @staticmethod
+    def render_markdown(payload: dict[str, Any]) -> str:
+        lines = [
+            "# SK Pipeline Artifact Map",
+            "",
+            f"- status: `{payload.get('run', {}).get('status', '')}`",
+            f"- mode: `{payload.get('run', {}).get('mode', '')}`",
+            f"- profile: `{payload.get('run', {}).get('profile', '')}`",
+            "",
+            "## Deliverables",
+            "",
+        ]
+        wheels = payload.get("deliverables", {}).get("wheels", [])
+        if wheels:
+            lines.extend(f"- wheel: `{path}`" for path in wheels)
+        else:
+            lines.append("- wheel: none")
+        lines.extend(["", "## Assets", ""])
+        for asset in payload.get("assets", []):
+            lines.append(
+                f"- `{asset.get('asset_slug')}`: `{asset.get('status')}` ({len(asset.get('ops', []))} ops)"
+            )
+            if asset.get("reason"):
+                lines.append(f"  - reason: {asset.get('reason')}")
+        name_resolution = payload.get("name_resolution") or {}
+        if name_resolution:
+            lines.extend(["", "## Name Resolution", ""])
+            lines.append(f"- policy: `{name_resolution.get('policy', '')}`")
+            lines.append(
+                f"- renamed entries: `{name_resolution.get('renamed_entry_count', 0)}`"
+            )
+            lines.append("- report: `name-resolution-report.md`")
+        lines.append("")
+        return "\n".join(lines)
+
+    @staticmethod
+    def render_readme(payload: dict[str, Any]) -> str:
+        return "\n".join(
+            [
+                "# SK Pipeline Output",
+                "",
+                "Start here:",
+                "",
+                "- `artifact-map.md`: human-readable asset map.",
+                "- `artifact-map.json`: machine-readable asset map.",
+                "- `name-resolution-report.md`: duplicate entry rename map when present.",
+                "- `deliverables/`: files intended for handoff.",
+                "- `artifacts/`: canonical pipeline artifacts.",
+                "- `assets/`: per-asset and per-stage reports.",
+                "- `work/`: internal debug/build workspace.",
+                "",
+                f"Run status: `{payload.get('run', {}).get('status', '')}`",
+                "",
+            ]
+        )
+
+    @staticmethod
+    def lint(payload: dict[str, Any]) -> list[dict[str, str]]:
+        issues: list[dict[str, str]] = []
+        paths: list[str] = []
+
+        def collect(value: Any) -> None:
+            if isinstance(value, str):
+                if value.startswith("/"):
+                    issues.append(
+                        {
+                            "severity": "error",
+                            "message": f"user-facing absolute path: {value}",
+                        }
+                    )
+                elif value.startswith("external:"):
+                    issues.append(
+                        {
+                            "severity": "warning",
+                            "message": f"user-facing external path reference: {value}",
+                        }
+                    )
+                if value:
+                    paths.append(value)
+            elif isinstance(value, list):
+                for item in value:
+                    collect(item)
+            elif isinstance(value, dict):
+                for item in value.values():
+                    collect(item)
+
+        collect(payload)
+        wheel_names: dict[str, int] = {}
+        for wheel in payload.get("deliverables", {}).get("wheels", []):
+            name = Path(wheel).name
+            wheel_names[name] = wheel_names.get(name, 0) + 1
+        for name, count in wheel_names.items():
+            if count > 1:
+                issues.append(
+                    {
+                        "severity": "error",
+                        "message": f"duplicate delivery wheel filename: {name}",
+                    }
+                )
+        return issues
+
+    @staticmethod
     def _external_path_ref(path: Path) -> str:
         parts = [part for part in path.as_posix().lstrip("/").split("/") if part]
         if not parts:
@@ -163,158 +264,6 @@ class ArtifactLayout:
             {"status": status, "issues": issues},
         )
         return issues
-
-    def _stage_records(
-        self, state: dict[str, Any], asset_slug: str
-    ) -> dict[str, dict[str, Any]]:
-        records: dict[str, dict[str, Any]] = {}
-        for record in state.get("stages", []):
-            stage_id = str(record.get("stage", ""))
-            stage_name = str(record.get("name", stage_id))
-            if not stage_id:
-                continue
-            report_path = self.stage_report_path(asset_slug, stage_id, stage_name)
-            payload = {
-                key: self._relativize_value(value) for key, value in record.items()
-            }
-            self.write_json(report_path, payload)
-            md_path = report_path.with_name("report.md")
-            self.write_text(
-                md_path,
-                "\n".join(
-                    [
-                        f"# Stage {stage_id} {stage_name}",
-                        "",
-                        f"- status: `{record.get('status', '')}`",
-                        f"- started_at: `{record.get('started_at', '')}`",
-                        f"- finished_at: `{record.get('finished_at', '')}`",
-                        "",
-                    ]
-                ),
-            )
-            records[stage_id] = {
-                "status": record.get("status", "unknown"),
-                "name": stage_name,
-                "report": self.rel(report_path),
-                "summary": self.rel(md_path),
-            }
-        return records
-
-    def _relativize_value(self, value: Any) -> Any:
-        if isinstance(value, str):
-            return self.rel(value)
-        if isinstance(value, list):
-            return [self._relativize_value(item) for item in value]
-        if isinstance(value, dict):
-            return {key: self._relativize_value(item) for key, item in value.items()}
-        return value
-
-    def _copy_first_existing_tree(self, candidates: Iterable[Path], dest: Path) -> str:
-        for candidate in candidates:
-            if candidate.exists():
-                return self._copy_tree(candidate, dest)
-        return ""
-
-    def _copy_existing_files(
-        self, sources: Iterable[str | Path], dest_dir: Path
-    ) -> list[str]:
-        paths: list[str] = []
-        for raw in sources:
-            source = Path(raw)
-            if source.is_file():
-                paths.append(self._copy_file(source, dest_dir / source.name))
-        return paths
-
-    def _build_ops(
-        self,
-        *,
-        asset_slug: str,
-        state: dict[str, Any],
-        stage_root: Path,
-        deliverable_wheels: list[str],
-        source_artifact: str,
-    ) -> list[dict[str, Any]]:
-        baseline = state.get("baseline", {}).get("per_op", {})
-        ops: list[dict[str, Any]] = []
-        wheel_for_asset = deliverable_wheels[0] if deliverable_wheels else ""
-        for op_name, op_state in sorted(state.get("ops", {}).items()):
-            entry_name = str(op_state.get("entry_name") or op_name)
-            op_slug = safe_slug(entry_name, op_name)
-            baseline_artifacts = baseline.get(entry_name, {}).get("artifacts", {})
-            baseline_sos = self._copy_existing_files(
-                baseline_artifacts.get("shared_objects", []),
-                self.root / "artifacts" / "baseline-so" / asset_slug / op_slug,
-            )
-            sk_extensions = self._copy_existing_files(
-                (
-                    stage_root
-                    / "05-generate-pybind-binding"
-                    / "outputs"
-                    / "operator-sk-adapted"
-                    / "build"
-                ).rglob("*.so")
-                if (
-                    stage_root
-                    / "05-generate-pybind-binding"
-                    / "outputs"
-                    / "operator-sk-adapted"
-                    / "build"
-                ).exists()
-                else [],
-                self.root / "artifacts" / "sk-extensions" / asset_slug,
-            )
-            unit_payload = {
-                "name": op_name,
-                "entry_name": entry_name,
-                "source_entry_name": op_state.get("source_entry_name")
-                or op_state.get("entry_name")
-                or entry_name,
-                "public_entry_name": op_state.get("public_entry_name") or entry_name,
-                "internal_symbol_name": op_state.get("internal_symbol_name")
-                or entry_name,
-                "bind_target": op_state.get("bind_target")
-                or op_state.get("source_entry_name")
-                or entry_name,
-                "name_resolution": op_state.get("name_resolution", {}),
-                "kernel_source": self._relativize_value(op_state.get("kernel_source")),
-                "host_source": self._relativize_value(op_state.get("host_source")),
-                "supported_arches": op_state.get("supported_arches", []),
-                "supported_soc_versions": op_state.get("supported_soc_versions", []),
-                "target_resolution": op_state.get("target_resolution", {}),
-                "source_origin": source_artifact,
-            }
-            unit_path = (
-                self.root
-                / "artifacts"
-                / "operator-units"
-                / asset_slug
-                / f"{op_slug}.json"
-            )
-            self.write_json(unit_path, unit_payload)
-            ops.append(
-                {
-                    "name": op_name,
-                    "entry_name": entry_name,
-                    "source_entry_name": op_state.get("source_entry_name")
-                    or entry_name,
-                    "public_entry_name": op_state.get("public_entry_name")
-                    or entry_name,
-                    "internal_symbol_name": op_state.get("internal_symbol_name")
-                    or entry_name,
-                    "bind_target": op_state.get("bind_target")
-                    or op_state.get("source_entry_name")
-                    or entry_name,
-                    "name_resolution": op_state.get("name_resolution", {}),
-                    "status": "completed",
-                    "artifacts": {
-                        "operator_unit": self.rel(unit_path),
-                        "baseline_so": baseline_sos,
-                        "sk_extensions": sk_extensions,
-                        "wheel": wheel_for_asset,
-                    },
-                }
-            )
-        return ops
 
     def ingest_run(
         self,
@@ -510,106 +459,157 @@ class ArtifactLayout:
         )
         return payload
 
-    @staticmethod
-    def render_markdown(payload: dict[str, Any]) -> str:
-        lines = [
-            "# SK Pipeline Artifact Map",
-            "",
-            f"- status: `{payload.get('run', {}).get('status', '')}`",
-            f"- mode: `{payload.get('run', {}).get('mode', '')}`",
-            f"- profile: `{payload.get('run', {}).get('profile', '')}`",
-            "",
-            "## Deliverables",
-            "",
-        ]
-        wheels = payload.get("deliverables", {}).get("wheels", [])
-        if wheels:
-            lines.extend(f"- wheel: `{path}`" for path in wheels)
-        else:
-            lines.append("- wheel: none")
-        lines.extend(["", "## Assets", ""])
-        for asset in payload.get("assets", []):
-            lines.append(
-                f"- `{asset.get('asset_slug')}`: `{asset.get('status')}` ({len(asset.get('ops', []))} ops)"
+    def _stage_records(
+        self, state: dict[str, Any], asset_slug: str
+    ) -> dict[str, dict[str, Any]]:
+        records: dict[str, dict[str, Any]] = {}
+        for record in state.get("stages", []):
+            stage_id = str(record.get("stage", ""))
+            stage_name = str(record.get("name", stage_id))
+            if not stage_id:
+                continue
+            report_path = self.stage_report_path(asset_slug, stage_id, stage_name)
+            payload = {
+                key: self._relativize_value(value) for key, value in record.items()
+            }
+            self.write_json(report_path, payload)
+            md_path = report_path.with_name("report.md")
+            self.write_text(
+                md_path,
+                "\n".join(
+                    [
+                        f"# Stage {stage_id} {stage_name}",
+                        "",
+                        f"- status: `{record.get('status', '')}`",
+                        f"- started_at: `{record.get('started_at', '')}`",
+                        f"- finished_at: `{record.get('finished_at', '')}`",
+                        "",
+                    ]
+                ),
             )
-            if asset.get("reason"):
-                lines.append(f"  - reason: {asset.get('reason')}")
-        name_resolution = payload.get("name_resolution") or {}
-        if name_resolution:
-            lines.extend(["", "## Name Resolution", ""])
-            lines.append(f"- policy: `{name_resolution.get('policy', '')}`")
-            lines.append(
-                f"- renamed entries: `{name_resolution.get('renamed_entry_count', 0)}`"
-            )
-            lines.append("- report: `name-resolution-report.md`")
-        lines.append("")
-        return "\n".join(lines)
+            records[stage_id] = {
+                "status": record.get("status", "unknown"),
+                "name": stage_name,
+                "report": self.rel(report_path),
+                "summary": self.rel(md_path),
+            }
+        return records
 
-    @staticmethod
-    def render_readme(payload: dict[str, Any]) -> str:
-        return "\n".join(
-            [
-                "# SK Pipeline Output",
-                "",
-                "Start here:",
-                "",
-                "- `artifact-map.md`: human-readable asset map.",
-                "- `artifact-map.json`: machine-readable asset map.",
-                "- `name-resolution-report.md`: duplicate entry rename map when present.",
-                "- `deliverables/`: files intended for handoff.",
-                "- `artifacts/`: canonical pipeline artifacts.",
-                "- `assets/`: per-asset and per-stage reports.",
-                "- `work/`: internal debug/build workspace.",
-                "",
-                f"Run status: `{payload.get('run', {}).get('status', '')}`",
-                "",
-            ]
-        )
+    def _relativize_value(self, value: Any) -> Any:
+        if isinstance(value, str):
+            return self.rel(value)
+        if isinstance(value, list):
+            return [self._relativize_value(item) for item in value]
+        if isinstance(value, dict):
+            return {key: self._relativize_value(item) for key, item in value.items()}
+        return value
 
-    @staticmethod
-    def lint(payload: dict[str, Any]) -> list[dict[str, str]]:
-        issues: list[dict[str, str]] = []
+    def _copy_first_existing_tree(self, candidates: Iterable[Path], dest: Path) -> str:
+        for candidate in candidates:
+            if candidate.exists():
+                return self._copy_tree(candidate, dest)
+        return ""
+
+    def _copy_existing_files(
+        self, sources: Iterable[str | Path], dest_dir: Path
+    ) -> list[str]:
         paths: list[str] = []
+        for raw in sources:
+            source = Path(raw)
+            if source.is_file():
+                paths.append(self._copy_file(source, dest_dir / source.name))
+        return paths
 
-        def collect(value: Any) -> None:
-            if isinstance(value, str):
-                if value.startswith("/"):
-                    issues.append(
-                        {
-                            "severity": "error",
-                            "message": f"user-facing absolute path: {value}",
-                        }
-                    )
-                elif value.startswith("external:"):
-                    issues.append(
-                        {
-                            "severity": "warning",
-                            "message": f"user-facing external path reference: {value}",
-                        }
-                    )
-                if value:
-                    paths.append(value)
-            elif isinstance(value, list):
-                for item in value:
-                    collect(item)
-            elif isinstance(value, dict):
-                for item in value.values():
-                    collect(item)
-
-        collect(payload)
-        wheel_names: dict[str, int] = {}
-        for wheel in payload.get("deliverables", {}).get("wheels", []):
-            name = Path(wheel).name
-            wheel_names[name] = wheel_names.get(name, 0) + 1
-        for name, count in wheel_names.items():
-            if count > 1:
-                issues.append(
-                    {
-                        "severity": "error",
-                        "message": f"duplicate delivery wheel filename: {name}",
-                    }
-                )
-        return issues
+    def _build_ops(
+        self,
+        *,
+        asset_slug: str,
+        state: dict[str, Any],
+        stage_root: Path,
+        deliverable_wheels: list[str],
+        source_artifact: str,
+    ) -> list[dict[str, Any]]:
+        baseline = state.get("baseline", {}).get("per_op", {})
+        ops: list[dict[str, Any]] = []
+        wheel_for_asset = deliverable_wheels[0] if deliverable_wheels else ""
+        for op_name, op_state in sorted(state.get("ops", {}).items()):
+            entry_name = str(op_state.get("entry_name") or op_name)
+            op_slug = safe_slug(entry_name, op_name)
+            baseline_artifacts = baseline.get(entry_name, {}).get("artifacts", {})
+            baseline_sos = self._copy_existing_files(
+                baseline_artifacts.get("shared_objects", []),
+                self.root / "artifacts" / "baseline-so" / asset_slug / op_slug,
+            )
+            sk_extensions = self._copy_existing_files(
+                (
+                    stage_root
+                    / "05-generate-pybind-binding"
+                    / "outputs"
+                    / "operator-sk-adapted"
+                    / "build"
+                ).rglob("*.so")
+                if (
+                    stage_root
+                    / "05-generate-pybind-binding"
+                    / "outputs"
+                    / "operator-sk-adapted"
+                    / "build"
+                ).exists()
+                else [],
+                self.root / "artifacts" / "sk-extensions" / asset_slug,
+            )
+            unit_payload = {
+                "name": op_name,
+                "entry_name": entry_name,
+                "source_entry_name": op_state.get("source_entry_name")
+                or op_state.get("entry_name")
+                or entry_name,
+                "public_entry_name": op_state.get("public_entry_name") or entry_name,
+                "internal_symbol_name": op_state.get("internal_symbol_name")
+                or entry_name,
+                "bind_target": op_state.get("bind_target")
+                or op_state.get("source_entry_name")
+                or entry_name,
+                "name_resolution": op_state.get("name_resolution", {}),
+                "kernel_source": self._relativize_value(op_state.get("kernel_source")),
+                "host_source": self._relativize_value(op_state.get("host_source")),
+                "supported_arches": op_state.get("supported_arches", []),
+                "supported_soc_versions": op_state.get("supported_soc_versions", []),
+                "target_resolution": op_state.get("target_resolution", {}),
+                "source_origin": source_artifact,
+            }
+            unit_path = (
+                self.root
+                / "artifacts"
+                / "operator-units"
+                / asset_slug
+                / f"{op_slug}.json"
+            )
+            self.write_json(unit_path, unit_payload)
+            ops.append(
+                {
+                    "name": op_name,
+                    "entry_name": entry_name,
+                    "source_entry_name": op_state.get("source_entry_name")
+                    or entry_name,
+                    "public_entry_name": op_state.get("public_entry_name")
+                    or entry_name,
+                    "internal_symbol_name": op_state.get("internal_symbol_name")
+                    or entry_name,
+                    "bind_target": op_state.get("bind_target")
+                    or op_state.get("source_entry_name")
+                    or entry_name,
+                    "name_resolution": op_state.get("name_resolution", {}),
+                    "status": "completed",
+                    "artifacts": {
+                        "operator_unit": self.rel(unit_path),
+                        "baseline_so": baseline_sos,
+                        "sk_extensions": sk_extensions,
+                        "wheel": wheel_for_asset,
+                    },
+                }
+            )
+        return ops
 
     def _copy_file(self, source: Path, dest: Path) -> str:
         dest.parent.mkdir(parents=True, exist_ok=True)

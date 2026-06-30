@@ -213,116 +213,6 @@ class PipelineOrchestrator:
                 continue
         return assets
 
-    def _skill_path(self, key: str) -> Path:
-        skill_name, script_name = _SKILL_SCRIPTS[key]
-        return self.skills_root / skill_name / "scripts" / script_name
-
-    def _script_dir(self, skill_name: str) -> Path:
-        return self.skills_root / skill_name / "scripts"
-
-    def _run(self, key: str, *argv: str) -> subprocess.CompletedProcess:
-        script_path = self._skill_path(key)
-        if not script_path.is_file():
-            raise OrchestratorError(f"skill script not found for {key}: {script_path}")
-        return subprocess.run(
-            [self.python, str(script_path), *argv],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=True,
-            check=False,
-            env=self.env,
-        )
-
-    def _ensure_structural_toolchain_env(
-        self, output_dir: Path, *, allow_structural_toolchain: bool
-    ) -> None:
-        env = (self.env or os.environ).copy()
-        if env.get("SK_OPERATOR_USE_REAL_TOOLCHAIN") == "1":
-            self.env = env
-            self._toolchain_mode = "real"
-            return
-        if not allow_structural_toolchain:
-            env.pop("SK_OPERATOR_STRUCTURAL_TOOLCHAIN", None)
-            env.pop("SK_OPERATOR_ALLOW_STANDALONE_MOCK_EXECUTABLE", None)
-            self.env = env
-            self._toolchain_mode = "real"
-            return
-        if env.get("SK_OPERATOR_STRUCTURAL_TOOLCHAIN") == "1":
-            self.env = env
-            self._toolchain_mode = "structural"
-            return
-        tool_dir = output_dir / "operator-sk-structural-toolchain"
-        tool_dir.mkdir(parents=True, exist_ok=True)
-        cmake = tool_dir / "cmake"
-        cmake.write_text(
-            "#!/bin/sh\n"
-            'if [ "$1" = "--version" ]; then\n'
-            "  printf '%s\\n' 'cmake version 3.26.0-structural'\n"
-            "  exit 0\n"
-            "fi\n"
-            'if [ "$1" = "-S" ]; then\n'
-            '  mkdir -p "$4"\n'
-            "  printf '%s\\n' 'configured' > \"$4/configured.txt\"\n"
-            "  exit 0\n"
-            "fi\n"
-            'if [ "$1" = "--build" ]; then\n'
-            '  mkdir -p "$2"\n'
-            "  printf '%s\\n' 'built' > \"$2/built.txt\"\n"
-            "  exit 0\n"
-            "fi\n"
-            "printf '%s\\n' 'structural cmake: unsupported arguments' >&2\n"
-            "exit 2\n",
-            encoding="utf-8",
-        )
-        cmake.chmod(0o755)
-        bisheng = tool_dir / "bisheng"
-        bisheng.write_text(
-            "#!/bin/sh\n"
-            'if [ "$1" = "--version" ]; then\n'
-            "  printf '%s\\n' 'bisheng structural 1.0'\n"
-            "  exit 0\n"
-            "fi\n"
-            'out=""\n'
-            "while [ $# -gt 0 ]; do\n"
-            '  case "$1" in\n'
-            '    -o) out="$2"; shift 2 ;;\n'
-            '    -o*) out="${1#-o}"; shift ;;\n'
-            "    *) shift ;;\n"
-            "  esac\n"
-            "done\n"
-            'if [ -n "$out" ]; then\n'
-            '  mkdir -p "$(dirname "$out")"\n'
-            "  printf '%s\\n' 'STRUCTURAL BISHENG OUTPUT' > \"$out\"\n"
-            "fi\n"
-            "exit 0\n",
-            encoding="utf-8",
-        )
-        bisheng.chmod(0o755)
-        env["PATH"] = str(tool_dir) + os.pathsep + env.get("PATH", "")
-        env["SK_OPERATOR_STRUCTURAL_TOOLCHAIN"] = "1"
-        env["SK_OPERATOR_ALLOW_STANDALONE_MOCK_EXECUTABLE"] = "1"
-        self.env = env
-        self._toolchain_mode = "structural"
-
-    def _materialize_input(self, source: Path, dest: Path) -> str:
-        self._remove_existing(dest)
-        dest.parent.mkdir(parents=True, exist_ok=True)
-        if source.is_dir():
-            shutil.copytree(source, dest, symlinks=True)
-        else:
-            shutil.copy2(source, dest)
-        return "copy"
-
-    def _copy_contents(self, source_dir: Path, dest_dir: Path) -> None:
-        dest_dir.mkdir(parents=True, exist_ok=True)
-        for item in source_dir.iterdir():
-            dest = dest_dir / item.name
-            self._remove_existing(dest)
-            if item.is_dir() and not item.is_symlink():
-                shutil.copytree(item, dest, symlinks=True)
-            else:
-                shutil.copy2(item, dest, follow_symlinks=False)
-
     @staticmethod
     def _copy_support_headers(source_dir: Path, dest_dir: Path) -> list[str]:
         copied: list[str] = []
@@ -374,25 +264,6 @@ class PipelineOrchestrator:
                     support_dirs.setdefault(source_name, candidate)
         return sorted(support_dirs.items())
 
-    def _shared_support_dirs_for_stage_asset(
-        self, stage_asset: Path, source_asset: Path | None = None
-    ) -> list[tuple[str, Path]]:
-        support_dirs: dict[str, Path] = {}
-        for asset in [stage_asset, source_asset]:
-            if asset is None:
-                continue
-            for support_name, support_source in self._shared_support_dirs_for_asset(
-                asset
-            ):
-                resolved = support_source.resolve()
-                existing = support_dirs.get(support_name)
-                if existing is not None and existing.resolve() != resolved:
-                    raise OrchestratorError(
-                        f"conflicting shared support directory {support_name!r}: {existing} vs {support_source}"
-                    )
-                support_dirs[support_name] = support_source
-        return sorted(support_dirs.items())
-
     @staticmethod
     def _stage_dir(output_dir: Path, stage_id: str) -> Path:
         return output_dir / _STAGE_DIRS[stage_id]
@@ -403,221 +274,6 @@ class PipelineOrchestrator:
             r"[^A-Za-z0-9_.-]", "_", path.stem if path.is_file() else path.name
         ).strip("._-")
         return slug or "op"
-
-    def _normalize_assets(
-        self,
-        assets: Path | Sequence[Path],
-        asset_names: dict[str, str] | None = None,
-    ) -> list[dict[str, Any]]:
-        raw_assets = [assets] if isinstance(assets, Path) else list(assets)
-        if not raw_assets:
-            raise OrchestratorError(
-                "--asset or --asset-root must provide at least one asset"
-            )
-        seen_paths: set[Path] = set()
-        seen_slugs: set[str] = set()
-        normalized: list[dict[str, Any]] = []
-        for raw in raw_assets:
-            path = Path(raw).resolve()
-            if not path.exists():
-                raise OrchestratorError(f"asset path not found: {path}")
-            if path in seen_paths:
-                continue
-            seen_paths.add(path)
-            slug = safe_slug(
-                (asset_names or {}).get(str(path)) or self._safe_slug(path), "op"
-            )
-            if slug in seen_slugs:
-                raise OrchestratorError(f"duplicate op asset name: {slug}")
-            seen_slugs.add(slug)
-            normalized.append({"name": slug, "asset": path})
-        return normalized
-
-    def _understand_and_expand_assets(
-        self,
-        assets: Path | Sequence[Path],
-        output_dir: Path,
-        asset_names: dict[str, str] | None = None,
-    ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
-        raw_assets = self._normalize_assets(assets, asset_names=asset_names)
-        stage_root = self._stage_dir(output_dir, "00")
-        stage_root.mkdir(parents=True, exist_ok=True)
-        ops: list[dict[str, Any]] = []
-        asset_records: list[dict[str, Any]] = []
-        seen_names: set[str] = set()
-        for raw in raw_assets:
-            asset = Path(raw["asset"]).resolve()
-            asset_name = str(raw["name"])
-            op_root = stage_root / asset_name
-            inputs = op_root / "inputs"
-            outputs = op_root / "outputs"
-            self._materialize_input(asset, inputs / "asset")
-            scan_argv = [
-                "adapt-asset",
-                str(inputs / "asset"),
-                "--output-dir",
-                str(outputs),
-            ]
-            if self._current_target_chip:
-                scan_argv.extend(["--target-chip", self._current_target_chip])
-            scan = self._run("asset_adapter", *scan_argv)
-            if scan.returncode not in {0, 2}:
-                raise OrchestratorError(
-                    f"asset adapter failed for {asset_name}: {scan.stdout}"
-                )
-            layout_path = outputs / "operator-asset-layout.json"
-            if scan.returncode == 2:
-                raise OrchestratorError(
-                    f"asset adapter requires user input for {asset_name}; inspect "
-                    f"{outputs / 'adapter-report.json'} and provide explicit "
-                    "contracts"
-                )
-            analyze_argv = [
-                "analyze-operator-asset",
-                str(inputs / "asset"),
-                "--asset-layout",
-                str(layout_path),
-                "--output-dir",
-                str(outputs),
-            ]
-            if self._current_target_chip:
-                analyze_argv.extend(["--target-chip", self._current_target_chip])
-            analyze = self._run("codegen", *analyze_argv)
-            if analyze.returncode != 0:
-                raise OrchestratorError(
-                    f"analyze-operator-asset failed for {asset_name}: {analyze.stdout}"
-                )
-            normalize_argv = [
-                "normalize-operator-asset",
-                str(inputs / "asset"),
-                "--understanding",
-                str(outputs / "operator-asset-understanding.json"),
-                "--asset-layout",
-                str(layout_path),
-                "--output-dir",
-                str(outputs),
-            ]
-            if self._current_target_chip:
-                normalize_argv.extend(["--target-chip", self._current_target_chip])
-            normalize = self._run("codegen", *normalize_argv)
-            if normalize.returncode != 0:
-                raise OrchestratorError(
-                    f"normalize-operator-asset failed for {asset_name}: {normalize.stdout}"
-                )
-            understanding = self._read_json(
-                outputs / "operator-asset-understanding.json"
-            )
-            units_index = self._read_json(outputs / "operator-units.json")
-            unit_records = []
-            for unit in units_index.get("operator_units", []):
-                unit_name = str(unit["unit_id"])
-                if len(units_index.get("operator_units", [])) == 1:
-                    op_name = asset_name
-                else:
-                    op_name = f"{asset_name}_{unit_name}"
-                op_name = re.sub(r"[^A-Za-z0-9_.-]", "_", op_name).strip("._-") or "op"
-                if op_name in seen_names:
-                    raise OrchestratorError(
-                        f"duplicate operator unit name after asset understanding: {op_name}"
-                    )
-                seen_names.add(op_name)
-                op = {
-                    "name": op_name,
-                    "entry_name": unit.get("entry_name"),
-                    "source_entry_name": unit.get("source_entry_name")
-                    or unit.get("entry_name"),
-                    "public_entry_name": unit.get("public_entry_name")
-                    or unit.get("entry_name"),
-                    "internal_symbol_name": unit.get("internal_symbol_name")
-                    or unit.get("entry_name"),
-                    "bind_target": unit.get("bind_target")
-                    or unit.get("source_entry_name")
-                    or unit.get("entry_name"),
-                    "name_resolution": dict(unit.get("name_resolution", {})),
-                    "asset": Path(unit["asset"]).resolve(),
-                    "sk_asset": Path(unit.get("sk_asset") or unit["asset"]).resolve(),
-                    "source_asset": asset,
-                    "asset_kind": unit.get("asset_kind")
-                    or understanding.get("asset_kind"),
-                    "kernel_source": unit.get("kernel_source"),
-                    "host_source": unit.get("host_source"),
-                    "json_spec": unit.get("json_spec"),
-                    "tiling_headers": list(unit.get("tiling_headers", [])),
-                    "build_backends": list(unit.get("build_backends", [])),
-                    "supported_soc_versions": list(
-                        unit.get("supported_soc_versions", [])
-                    ),
-                    "supported_arches": list(unit.get("supported_arches", [])),
-                    "target_resolution": dict(unit.get("target_resolution", {})),
-                    "support_source": unit.get("support_source", ""),
-                    "understanding_outputs": outputs,
-                }
-                ops.append(op)
-                unit_records.append(
-                    {
-                        "name": op_name,
-                        "entry_name": op["entry_name"],
-                        "source_entry_name": op.get("source_entry_name"),
-                        "public_entry_name": op.get("public_entry_name"),
-                        "internal_symbol_name": op.get("internal_symbol_name"),
-                        "bind_target": op.get("bind_target"),
-                        "name_resolution": op.get("name_resolution", {}),
-                        "asset": str(op["asset"]),
-                        "sk_asset": str(op["sk_asset"]),
-                        "source_asset": str(asset),
-                        "asset_kind": op["asset_kind"],
-                        "kernel_source": op.get("kernel_source"),
-                        "host_source": op.get("host_source"),
-                        "json_spec": op.get("json_spec"),
-                        "tiling_headers": op.get("tiling_headers", []),
-                        "build_backends": op["build_backends"],
-                        "supported_soc_versions": op.get("supported_soc_versions", []),
-                        "supported_arches": op.get("supported_arches", []),
-                        "target_resolution": op.get("target_resolution", {}),
-                        "support_source": op.get("support_source", ""),
-                    }
-                )
-            asset_records.append(
-                {
-                    "name": asset_name,
-                    "path": str(asset),
-                    "asset_kind": understanding.get("asset_kind"),
-                    "understanding": str(outputs / "operator-asset-understanding.json"),
-                    "units": unit_records,
-                }
-            )
-        summary = {
-            "schema_version": 1,
-            "status": "analyzed",
-            "assets": asset_records,
-            "operator_units": [
-                {
-                    "name": op["name"],
-                    "entry_name": op.get("entry_name"),
-                    "source_entry_name": op.get("source_entry_name"),
-                    "public_entry_name": op.get("public_entry_name"),
-                    "internal_symbol_name": op.get("internal_symbol_name"),
-                    "bind_target": op.get("bind_target"),
-                    "name_resolution": op.get("name_resolution", {}),
-                    "asset": str(op["asset"]),
-                    "sk_asset": str(op["sk_asset"]),
-                    "source_asset": str(op["source_asset"]),
-                    "asset_kind": op.get("asset_kind"),
-                    "kernel_source": op.get("kernel_source"),
-                    "host_source": op.get("host_source"),
-                    "json_spec": op.get("json_spec"),
-                    "tiling_headers": op.get("tiling_headers", []),
-                    "build_backends": op.get("build_backends", []),
-                    "supported_soc_versions": op.get("supported_soc_versions", []),
-                    "supported_arches": op.get("supported_arches", []),
-                    "target_resolution": op.get("target_resolution", {}),
-                    "support_source": op.get("support_source", ""),
-                }
-                for op in ops
-            ],
-        }
-        self._write_json(stage_root / "operator-units.json", summary)
-        return ops, summary
 
     @staticmethod
     def _default_jobs(op_count: int, arch_count: int = 1) -> int:
@@ -734,51 +390,6 @@ class PipelineOrchestrator:
                     raise OrchestratorError(f"{stage} needs {prereq}")
         return [stage for stage in _STAGE_ORDER if stage in selected_set]
 
-    @classmethod
-    def parse_stages(
-        cls,
-        stages: str | Sequence[str] | None,
-        *,
-        do_package: bool,
-        profile: str,
-        wheel_mode: str,
-        verify_backend: str,
-        reuse_wheel: str | None,
-    ) -> list[str]:
-        return cls._parse_stages(
-            stages,
-            do_package=do_package,
-            profile=profile,
-            wheel_mode=wheel_mode,
-            verify_backend=verify_backend,
-            reuse_wheel=reuse_wheel,
-        )
-
-    def resolve_profile_options(
-        self,
-        *,
-        profile: str,
-        verify_backend: str | None,
-        wheel_mode: str | None,
-        no_verify: bool,
-        no_package: bool,
-    ) -> tuple[str, str]:
-        return self._resolve_profile_options(
-            profile=profile,
-            verify_backend=verify_backend,
-            wheel_mode=wheel_mode,
-            no_verify=no_verify,
-            no_package=no_package,
-        )
-
-    def _detect_form(self, source: Path, output_dir: Path) -> dict[str, Any]:
-        result = self._run(
-            "codegen", "detect-sk-form", str(source), "--output-dir", str(output_dir)
-        )
-        if result.returncode != 0:
-            raise OrchestratorError(f"detect-sk-form failed: {result.stdout}")
-        return self._read_json(output_dir / "operator-sk-form-analysis.json")
-
     @staticmethod
     def _run_parallel_ops(
         ops: list[dict[str, Any]],
@@ -817,578 +428,6 @@ class PipelineOrchestrator:
             "duration_seconds": round(time.monotonic() - started, 3),
         }
 
-    def _adapt(
-        self,
-        asset: Path,
-        output_dir: Path,
-        support_dirs: list[str] | None = None,
-        *,
-        understanding: Path | None = None,
-        target_chip: str = "",
-        package_name: str = "op_extension",
-        package_version: str = "0.1.0",
-        name_resolution: Path | None = None,
-        source_asset: Path | None = None,
-        io_contract: Path | None = None,
-    ) -> dict[str, Any]:
-        argv = ["adapt-sk-from-global", str(asset), "--output-dir", str(output_dir)]
-        argv.extend(
-            ["--package-name", package_name, "--package-version", package_version]
-        )
-        if understanding is not None:
-            argv.extend(["--understanding", str(understanding)])
-        if target_chip:
-            argv.extend(["--target-chip", target_chip])
-        if name_resolution is not None:
-            argv.extend(["--name-resolution", str(name_resolution)])
-        if source_asset is not None:
-            argv.extend(["--source-asset", str(source_asset)])
-        if io_contract is not None:
-            argv.extend(["--io-contract", str(io_contract)])
-        for support_dir in support_dirs or []:
-            argv.extend(["--support-dir", support_dir])
-        result = self._run("codegen", *argv)
-        if result.returncode != 0:
-            raise OrchestratorError(f"adapt-sk-from-global failed: {result.stdout}")
-        return self._read_json(output_dir / "operator-sk-adapted.json")
-
-    def _stage_io_contract(self, io_contract: Path | None, inputs: Path) -> Path | None:
-        if io_contract is None:
-            return None
-        dest = inputs / "operator-io-contract.json"
-        self._materialize_input(io_contract, dest)
-        return dest
-
-    def _scan_spec(self, source: Path, output_dir: Path) -> dict[str, Any]:
-        result = self._run(
-            "validate",
-            "validate-operator",
-            "--asset",
-            str(source),
-            "--output-dir",
-            str(output_dir),
-            "--rule-pack",
-            "spec",
-            "--stage",
-            "post-adapt",
-            "--iteration-index",
-            "0",
-        )
-        if result.returncode != 0:
-            raise OrchestratorError(f"validate spec failed: {result.stdout}")
-        return self._read_json(output_dir / "operator-validation-findings.json")
-
-    def _scan_compat(
-        self, source: Path, output_dir: Path, target_chip: str, target_cann: str
-    ) -> dict[str, Any]:
-        argv = [
-            "validate-operator",
-            "--asset",
-            str(source),
-            "--output-dir",
-            str(output_dir),
-            "--rule-pack",
-            "compat",
-            "--target-chip",
-            target_chip,
-            "--stage",
-            "post-adapt",
-            "--iteration-index",
-            "0",
-        ]
-        if target_cann:
-            argv.extend(["--target-cann", target_cann])
-        result = self._run("validate", *argv)
-        findings_path = output_dir / "operator-validation-findings.json"
-        if result.returncode != 0 and not findings_path.exists():
-            raise OrchestratorError(f"validate compat failed: {result.stdout}")
-        return self._read_json(findings_path)
-
-    def _aggregate(
-        self,
-        adapted_outputs: list[Path],
-        output_dir: Path,
-        package_name: str,
-        package_version: str,
-    ) -> dict[str, Any]:
-        argv: list[str] = ["aggregate-sk-adapted"]
-        for adapted_output in adapted_outputs:
-            argv.extend(["--adapted-output-dir", str(adapted_output)])
-        argv.extend(
-            [
-                "--output-dir",
-                str(output_dir),
-                "--aggregate-wheel-name",
-                package_name,
-                "--package-version",
-                package_version,
-            ]
-        )
-        result = self._run("codegen", *argv)
-        if result.returncode != 0:
-            raise OrchestratorError(f"aggregate-sk-adapted failed: {result.stdout}")
-        return self._read_json(output_dir / "operator-sk-adapted.json")
-
-    def _generate_pybind_binding(self, output_dir: Path) -> dict[str, Any]:
-        result = self._run("build_package", "generate-pybind-binding", str(output_dir))
-        if result.returncode != 0:
-            raise OrchestratorError(f"generate-pybind-binding failed: {result.stdout}")
-        return self._read_json(output_dir / "operator-sk-pybind-binding.json")
-
-    def _build_native_wheel(
-        self,
-        output_dir: Path,
-        *,
-        jobs: int | None = None,
-        target_chip: str = "",
-        allow_structural_toolchain: bool = False,
-    ) -> tuple[str, dict[str, Any], str]:
-        self._ensure_structural_toolchain_env(
-            output_dir, allow_structural_toolchain=allow_structural_toolchain
-        )
-        for stale in (
-            "operator-sk-native-wheel-build",
-            "operator-sk-native-wheel.json",
-        ):
-            self._remove_existing(output_dir / stale)
-        argv = ["build-native-wheel", str(output_dir)]
-        if jobs and jobs > 0:
-            argv.extend(["--jobs", str(jobs)])
-        if target_chip:
-            argv.extend(["--target-chip", target_chip])
-        result = self._run("build_package", *argv)
-        manifest_path = output_dir / "operator-sk-native-wheel.json"
-        manifest = self._read_json(manifest_path) if manifest_path.exists() else {}
-        log = ""
-        if manifest.get("log_path") and Path(manifest["log_path"]).exists():
-            log = Path(manifest["log_path"]).read_text(
-                encoding="utf-8", errors="replace"
-            )
-        status = manifest.get("status", "failed")
-        return status, manifest, result.stdout + "\n" + log
-
-    def _build_baseline(
-        self,
-        asset: Path,
-        output_dir: Path,
-        *,
-        entry_name: str,
-        allow_structural_toolchain: bool = False,
-    ) -> dict[str, Any]:
-        use_structural = allow_structural_toolchain
-        argv = [
-            "build-baseline",
-            str(asset),
-            "--output-dir",
-            str(output_dir),
-            "--entry-name",
-            entry_name,
-            "--backend",
-            "baseline_direct_asc",
-        ]
-        if use_structural:
-            argv.append("--structural")
-        result = self._run("build_package", *argv)
-        manifest_path = output_dir / "operator-baseline-build.json"
-        if result.returncode != 0 and not manifest_path.exists():
-            raise OrchestratorError(
-                f"build-baseline failed for {entry_name}: {result.stdout}"
-            )
-        return self._read_json(manifest_path)
-
-    def _build_differential_verdicts(
-        self,
-        output_dir: Path,
-        entries: list[dict[str, Any]],
-        *,
-        baseline_manifests: dict[str, Path],
-        runtime_contracts: dict[str, dict[str, Any]],
-        standalone_verification: dict[str, Any],
-        wheel_verification: dict[str, Any] | None,
-    ) -> dict[str, Any]:
-        sample_gen_dir = self._script_dir("sk-operator-sample-gen")
-        if str(sample_gen_dir) not in sys.path:
-            sys.path.insert(0, str(sample_gen_dir))
-        import operator_differential_verify
-
-        per_op: dict[str, Any] = {}
-        summary_rows = [
-            "# Operator Differential Verification",
-            "",
-            "| op | status | baseline | sk | wheel |",
-            "|---|---|---|---|---|",
-        ]
-        wheel_per_op = (
-            (wheel_verification or {}).get("per_op")
-            if isinstance(wheel_verification, dict)
-            else {}
-        )
-        if not isinstance(wheel_per_op, dict):
-            wheel_per_op = {}
-        standalone_per_op = (
-            standalone_verification.get("per_op")
-            if isinstance(standalone_verification, dict)
-            else {}
-        )
-        if not isinstance(standalone_per_op, dict):
-            standalone_per_op = {}
-        for entry in entries:
-            entry_name = entry["entry_name"]
-            verdict = operator_differential_verify.build_differential_verdict(
-                output_dir / entry_name,
-                entry_name=entry_name,
-                baseline_manifest=baseline_manifests.get(entry_name),
-                runtime_contract=runtime_contracts.get(entry_name, {}).get("path"),
-                sk_verdict=standalone_per_op.get(entry_name),
-                wheel_verdict=wheel_per_op.get(entry_name)
-                if wheel_verification
-                else None,
-            )
-            per_op[entry_name] = verdict
-            summary_rows.append(
-                "| `{}` | `{}` | `{}` | `{}` | `{}` |".format(
-                    entry_name,
-                    verdict["status"],
-                    verdict["baseline"]["build_status"],
-                    verdict["sk"].get("status"),
-                    verdict["wheel"].get("status"),
-                )
-            )
-        statuses = {str(item.get("status")) for item in per_op.values()}
-        if "failed" in statuses:
-            status = "failed"
-        elif not statuses:
-            status = "unavailable"
-        elif len(statuses) == 1:
-            status = next(iter(statuses))
-        elif statuses <= {"passed", "skipped-structural-baseline"}:
-            status = "skipped-structural-baseline"
-        elif all(item.startswith("skipped") for item in statuses):
-            status = "skipped"
-        else:
-            status = "mixed"
-        output_dir.mkdir(parents=True, exist_ok=True)
-        summary_path = output_dir / "summary.md"
-        summary_path.write_text("\n".join(summary_rows) + "\n", encoding="utf-8")
-        manifest = {"status": status, "per_op": per_op, "summary": str(summary_path)}
-        self._write_json(output_dir / "operator-differential-summary.json", manifest)
-        return manifest
-
-    def _build_runtime_contracts(
-        self,
-        output_dir: Path,
-        entries: list[dict[str, Any]],
-        *,
-        fixture_statuses: dict[str, dict[str, Any]],
-    ) -> dict[str, dict[str, Any]]:
-        sample_gen_dir = self._script_dir("sk-operator-sample-gen")
-        if str(sample_gen_dir) not in sys.path:
-            sys.path.insert(0, str(sample_gen_dir))
-        import operator_runtime_contract
-
-        contracts: dict[str, dict[str, Any]] = {}
-        for entry in entries:
-            entry_name = entry["entry_name"]
-            entry_dir = output_dir / entry_name
-            contract = operator_runtime_contract.build_runtime_contract(
-                entry_dir,
-                entry=entry,
-                fixture_status=fixture_statuses.get(
-                    entry_name, {"status": "insufficient"}
-                ),
-            )
-            contracts[entry_name] = {
-                "status": contract.get("status"),
-                "reason": contract.get("reason"),
-                "path": str(entry_dir / "operator-runtime-contract.json"),
-            }
-        self._write_json(
-            output_dir / "operator-runtime-contract-summary.json",
-            {"schema_version": 1, "contracts": contracts},
-        )
-        return contracts
-
-    def _cache_lib(self):
-        build_pkg_dir = self._script_dir("sk-operator-build-package")
-        if str(build_pkg_dir) not in sys.path:
-            sys.path.insert(0, str(build_pkg_dir))
-        import sk_build_cache_lib
-
-        return sk_build_cache_lib
-
-    def _generate_standalone_compare(
-        self,
-        aggregate_output_dir: Path,
-        output_dir: Path,
-        fixture_dir: Path,
-        target_chip: str,
-    ) -> dict[str, Any]:
-        result = self._run(
-            "codegen",
-            "generate-standalone-compare",
-            str(aggregate_output_dir),
-            "--output-dir",
-            str(output_dir),
-            "--runtime-fixture-dir",
-            str(fixture_dir),
-            "--target-chip",
-            target_chip,
-        )
-        if result.returncode != 0:
-            raise OrchestratorError(
-                f"generate-standalone-compare failed: {result.stdout}"
-            )
-        return self._read_json(output_dir / "operator-sk-standalone-verify.json")
-
-    def _build_standalone_executable(
-        self,
-        output_dir: Path,
-        target_chip: str,
-        target_cann: str,
-        *,
-        allow_structural_toolchain: bool = False,
-    ) -> tuple[str, dict[str, Any], str]:
-        self._ensure_structural_toolchain_env(
-            output_dir, allow_structural_toolchain=allow_structural_toolchain
-        )
-        for stale in (
-            "operator-sk-standalone-build.json",
-            "build-log.txt",
-            "executable-path.txt",
-        ):
-            self._remove_existing(output_dir / stale)
-        argv = [
-            "build-standalone-executable",
-            str(output_dir),
-            "--target-chip",
-            target_chip,
-        ]
-        if target_cann:
-            argv.extend(["--target-cann", target_cann])
-        result = self._run("build_package", *argv)
-        manifest_path = output_dir / "operator-sk-standalone-build.json"
-        manifest = self._read_json(manifest_path) if manifest_path.exists() else {}
-        log = (
-            (output_dir / "build-log.txt").read_text(encoding="utf-8", errors="replace")
-            if (output_dir / "build-log.txt").exists()
-            else ""
-        )
-        return manifest.get("status", "failed"), manifest, result.stdout + "\n" + log
-
-    def _cache_key_for_standalone(
-        self,
-        standalone_output_dir: Path,
-        *,
-        target_chip: str,
-        target_cann: str,
-        fixture_dir: Path,
-    ) -> str:
-        lib = self._cache_lib()
-        env = self.env if self.env is not None else os.environ
-        return lib.cache_key(
-            {
-                "kind": "standalone",
-                "toolchain_mode": self._toolchain_mode,
-                "target_chip": target_chip,
-                "target_cann": target_cann,
-                "ascend_home_path": str(Path(env.get("ASCEND_HOME_PATH", "")).resolve())
-                if env.get("ASCEND_HOME_PATH")
-                else "",
-                "cmake_version": lib.command_version("cmake", env=env),
-                "compiler_version": lib.command_version("bisheng", env=env),
-                "tool_files": lib.hash_paths(
-                    [
-                        self._skill_path("codegen"),
-                        self._script_dir("sk-operator-codegen") / "sk_codegen_lib.py",
-                        self._skill_path("build_package"),
-                        self._script_dir("sk-operator-build-package")
-                        / "sk_build_cache_lib.py",
-                    ]
-                ),
-                "files": lib.hash_paths(
-                    [
-                        standalone_output_dir
-                        / "operator-sk-standalone-verify"
-                        / "runtime_compare.asc",
-                        *(standalone_output_dir / "operator-sk-standalone-verify").glob(
-                            "runtime_compare_*.asc"
-                        ),
-                        standalone_output_dir
-                        / "operator-sk-standalone-verify"
-                        / "CMakeLists.txt",
-                        *(
-                            standalone_output_dir
-                            / "operator-sk-standalone-verify"
-                            / "csrc"
-                        ).rglob("*"),
-                        *fixture_dir.rglob("*"),
-                    ]
-                ),
-            }
-        )
-
-    def _cache_key_for_wheel(
-        self,
-        wheel_output_dir: Path,
-        *,
-        target_chip: str,
-        target_cann: str,
-        package_name: str,
-        package_version: str,
-    ) -> str:
-        lib = self._cache_lib()
-        package_root = wheel_output_dir / "operator-sk-adapted"
-        return lib.cache_key(
-            {
-                "kind": "wheel",
-                "toolchain_mode": self._toolchain_mode,
-                "python_version": sys.version,
-                "package_name": package_name,
-                "package_version": package_version,
-                "target_chip": target_chip,
-                "target_cann": target_cann,
-                "tool_files": lib.hash_paths(
-                    [
-                        self._skill_path("codegen"),
-                        self._script_dir("sk-operator-codegen") / "sk_codegen_lib.py",
-                        self._skill_path("build_package"),
-                        self._script_dir("sk-operator-build-package")
-                        / "sk_pybind_lib.py",
-                        self._script_dir("sk-operator-build-package")
-                        / "sk_build_cache_lib.py",
-                    ]
-                ),
-                "files": lib.hash_paths(
-                    [
-                        package_root / "setup.py",
-                        *(package_root / "op_extension").glob("*.py"),
-                        *(package_root / "csrc").rglob("*"),
-                    ]
-                ),
-            }
-        )
-
-    def _copy_cached_namespace(
-        self, cache_dir: Path, namespace: str, cache_key: str, dest: Path
-    ) -> str | None:
-        lib = self._cache_lib()
-        cached = lib.lookup_cache(cache_dir, namespace, cache_key)
-        if cached is None:
-            return None
-        lib.copy_cached_outputs(cached, dest)
-        return str(cached)
-
-    def _store_cached_namespace(
-        self, cache_dir: Path, namespace: str, cache_key: str, source: Path
-    ) -> str:
-        lib = self._cache_lib()
-        return str(lib.store_cache(cache_dir, namespace, cache_key, source))
-
-    def _relocate_standalone_build_manifest(self, output_dir: Path) -> dict[str, Any]:
-        manifest_path = output_dir / "operator-sk-standalone-build.json"
-        manifest = self._read_json(manifest_path)
-        source_root = output_dir / "operator-sk-standalone-verify"
-        build_dir = source_root / "build"
-        executable_targets = (
-            manifest.get("executable_targets")
-            if isinstance(manifest.get("executable_targets"), dict)
-            else {}
-        )
-        if executable_targets:
-            executable_targets = {
-                target: str(build_dir / Path(path).name)
-                for target, path in executable_targets.items()
-            }
-        else:
-            executable_targets = {"runtime_compare": str(build_dir / "runtime_compare")}
-        executables = (
-            manifest.get("executables")
-            if isinstance(manifest.get("executables"), dict)
-            else {}
-        )
-        if executables:
-            executables = {
-                entry: str(build_dir / Path(path).name)
-                for entry, path in executables.items()
-            }
-        executable = Path(next(iter(executable_targets.values())))
-        log_path = output_dir / "build-log.txt"
-        manifest.update(
-            {
-                "standalone_verify_dir": str(source_root),
-                "build_dir": str(build_dir),
-                "configure_command": [
-                    "cmake",
-                    "-S",
-                    str(source_root),
-                    "-B",
-                    str(build_dir),
-                ],
-                "build_command": ["cmake", "--build", str(build_dir)],
-                "executable": str(executable),
-                "executable_targets": executable_targets,
-                "executables": executables,
-                "log_path": str(log_path),
-            }
-        )
-        self._write_json(manifest_path, manifest)
-        (output_dir / "executable-path.txt").write_text(
-            str(executable) + "\n", encoding="utf-8"
-        )
-        return manifest
-
-    def _relocate_standalone_verify_manifest(self, output_dir: Path) -> dict[str, Any]:
-        manifest_path = output_dir / "operator-sk-standalone-verify.json"
-        manifest = self._read_json(manifest_path)
-        source_root = output_dir / "operator-sk-standalone-verify"
-        inputs_root = output_dir.parent / "inputs"
-        manifest.update(
-            {
-                "aggregate_output_dir": str(inputs_root / "aggregate-output"),
-                "standalone_verify_dir": str(source_root),
-            }
-        )
-        runtime_fixtures = manifest.get("runtime_fixtures")
-        if isinstance(runtime_fixtures, dict):
-            fixture_root = inputs_root / "runtime-fixtures"
-            for entry_name, fixture in runtime_fixtures.items():
-                if isinstance(fixture, dict) and "path" in fixture:
-                    fixture["path"] = str(fixture_root / entry_name)
-        self._write_json(manifest_path, manifest)
-        return manifest
-
-    def _relocate_wheel_build_manifest(self, output_dir: Path) -> dict[str, Any] | None:
-        manifest_path = output_dir / "operator-sk-native-wheel.json"
-        if not manifest_path.exists():
-            return None
-        manifest = self._read_json(manifest_path)
-        build_dir = output_dir / "operator-sk-native-wheel-build"
-        log_path = build_dir / "pip-wheel.log"
-        manifest.update(
-            {
-                "pybind_source_root": str(output_dir / "operator-sk-adapted"),
-                "build_dir": str(build_dir),
-                "command": [
-                    sys.executable,
-                    "-I",
-                    "-B",
-                    "-m",
-                    "pip",
-                    "--isolated",
-                    "wheel",
-                    "--no-deps",
-                    "--no-build-isolation",
-                    "--no-cache-dir",
-                    "--wheel-dir",
-                    str(output_dir / "operator-sk-native-wheel-build" / "wheels"),
-                    str(output_dir / "operator-sk-adapted"),
-                ],
-                "log_path": str(log_path),
-            }
-        )
-        self._write_json(manifest_path, manifest)
-        return manifest
-
     @staticmethod
     def _entries_from_manifest(manifest: dict[str, Any]) -> list[dict[str, Any]]:
         entries_by_name: dict[str, dict[str, Any]] = {}
@@ -1403,30 +442,6 @@ class PipelineOrchestrator:
         if "GM_ADDR" in c_type or "*" in c_type or "__gm__" in c_type:
             return [0] * 16
         return 16
-
-    def _auto_inputs_for_entry(self, entry: dict[str, Any]) -> dict[str, Any]:
-        params = []
-        for param in entry.get("parameters", []):
-            value = self._zero_value_for_param(param)
-            is_tensor = isinstance(value, list)
-            params.append(
-                {
-                    "name": param["name"],
-                    "shape": [len(value)] if is_tensor else [],
-                    "dtype": "float16" if is_tensor else "uint32",
-                    "layout": "ND",
-                    "value_source": {"kind": "inline_json", "value": value},
-                }
-            )
-        return {
-            "input_values": [
-                {
-                    "input_set_id": f"entry:{entry['entry_name']}:default",
-                    "entry_name": entry["entry_name"],
-                    "parameter_values": params,
-                }
-            ]
-        }
 
     @staticmethod
     def _runtime_input_spec_for_entry(entry: dict[str, Any]) -> dict[str, Any]:
@@ -1456,93 +471,6 @@ class PipelineOrchestrator:
             ]
         }
 
-    def _npu_verify_enabled(self, *, allow_mock_npu: bool = False) -> str:
-        env = self.env if self.env is not None else os.environ
-        if allow_mock_npu and env.get("SK_OPERATOR_MOCK_NPU") == "1":
-            return "mock-passed"
-        if env.get("SK_OPERATOR_RUN_DEVICE_COMPARE") != "1":
-            return "skipped-no-npu"
-        if any(
-            Path(path).exists()
-            for path in ("/dev/davinci_manager", "/dev/davinci0", "/dev/hisi_hdc")
-        ):
-            return "passed"
-        return "skipped-no-npu"
-
-    def _copy_runtime_fixtures(
-        self, ops: list[dict[str, Any]], fixture_root: Path
-    ) -> dict[str, dict[str, Any]]:
-        fixture_root.mkdir(parents=True, exist_ok=True)
-        statuses: dict[str, dict[str, Any]] = {}
-        for op in ops:
-            op_fixture_dir = fixture_root / op["name"]
-            op_fixture_dir.mkdir(parents=True, exist_ok=True)
-            asset = Path(op["asset"])
-            copied: list[str] = []
-            asset_root = asset if asset.is_dir() else asset.parent
-            test_main = (
-                asset / "tests" / "main.cpp"
-                if asset.is_dir()
-                else asset.parent / "tests" / "main.cpp"
-            )
-            if test_main.is_file():
-                dest = op_fixture_dir / "tests" / "main.cpp"
-                dest.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copy2(test_main, dest)
-                copied.append("tests/main.cpp")
-            runtime_spec = (
-                asset / "operator-sk-runtime-fixture.json"
-                if asset.is_dir()
-                else asset.parent / "operator-sk-runtime-fixture.json"
-            )
-            if runtime_spec.is_file():
-                shutil.copy2(
-                    runtime_spec, op_fixture_dir / "operator-sk-runtime-fixture.json"
-                )
-                copied.append("operator-sk-runtime-fixture.json")
-            for candidate in (
-                asset / "interface" if asset.is_dir() else asset.parent / "interface",
-                asset.parent / "interface",
-            ):
-                if candidate.is_dir():
-                    dest = op_fixture_dir / "interface"
-                    self._remove_existing(dest)
-                    shutil.copytree(candidate, dest, symlinks=True)
-                    copied.append("interface/")
-                    break
-            support_root = op_fixture_dir / "asset-support"
-            support_files = self._copy_support_headers(asset_root, support_root)
-            shared_common = asset_root.parent / "common"
-            if (
-                shared_common.is_dir()
-                and shared_common.resolve() != (asset_root / "common").resolve()
-            ):
-                support_files.extend(
-                    self._copy_support_headers(shared_common, support_root / "common")
-                )
-            shared_interface = asset_root.parent / "interface"
-            if (
-                shared_interface.is_dir()
-                and shared_interface.resolve() != (asset_root / "interface").resolve()
-            ):
-                support_files.extend(
-                    self._copy_support_headers(
-                        shared_interface, support_root / "interface"
-                    )
-                )
-            if support_files:
-                copied.append(f"asset-support/{len(support_files)} files")
-            status = "available" if copied else "insufficient"
-            statuses[op["name"]] = {
-                "status": status,
-                "path": str(op_fixture_dir),
-                "copied": copied,
-                "reason": "runtime fixture available"
-                if copied
-                else "runtime fixture not found",
-            }
-        return statuses
-
     @staticmethod
     def _standalone_runner_stdout(op_name: str, *, status: str) -> dict[str, Any]:
         return {
@@ -1552,410 +480,42 @@ class PipelineOrchestrator:
             "calls": {op_name: []},
         }
 
-    def _run_standalone_verification(
-        self,
-        verify_dir: Path,
-        entries: list[dict[str, Any]],
+    @classmethod
+    def parse_stages(
+        cls,
+        stages: str | Sequence[str] | None,
         *,
-        fixture_statuses: dict[str, dict[str, Any]],
-        verify_enabled: bool,
-        jobs: int,
-        executable_path: Path | None,
-        executable_paths: dict[str, Path] | None = None,
-        precheck_status: str | None = None,
-    ) -> dict[str, Any]:
-        verify_dir.mkdir(parents=True, exist_ok=True)
-
-        def worker(entry: dict[str, Any]) -> dict[str, Any]:
-            op_name = entry["entry_name"]
-            op_dir = verify_dir / op_name
-            op_dir.mkdir(parents=True, exist_ok=True)
-            fixture_status = fixture_statuses.get(op_name, {"status": "insufficient"})
-            if precheck_status == "skipped-target-arch":
-                runner_stdout = self._standalone_runner_stdout(
-                    op_name, status="skipped-target-arch"
-                )
-                comparison = {"status": "skipped-target-arch", "comparisons": []}
-                verdict = {
-                    "status": "skipped-target-arch",
-                    "reason": "standalone target arch is not resolved",
-                }
-            elif precheck_status == "mock-passed":
-                runner_stdout = self._standalone_runner_stdout(
-                    op_name, status="mock-passed"
-                )
-                comparison = {"status": "mock-passed", "comparisons": []}
-                verdict = {
-                    "status": "mock-passed",
-                    "reason": "mock NPU verification explicitly enabled",
-                }
-            elif precheck_status == "skipped-no-npu":
-                runner_stdout = self._standalone_runner_stdout(
-                    op_name, status="skipped-no-npu"
-                )
-                comparison = {"status": "skipped-no-npu", "comparisons": []}
-                verdict = {"status": "skipped-no-npu", "reason": "NPU not available"}
-            elif not verify_enabled:
-                runner_stdout = self._standalone_runner_stdout(
-                    op_name, status="skipped-by-user"
-                )
-                comparison = {"status": "skipped-by-user", "comparisons": []}
-                verdict = {
-                    "status": "skipped-by-user",
-                    "reason": "verification disabled by --no-verify",
-                }
-            elif (
-                fixture_status.get("status") != "available"
-                or fixture_status.get("device_runnable") is False
-            ):
-                reason = fixture_status.get("reason", "runtime fixture not available")
-                runner_stdout = self._standalone_runner_stdout(
-                    op_name, status="skipped-insufficient-runtime-spec"
-                )
-                comparison = {
-                    "status": "skipped-insufficient-runtime-spec",
-                    "comparisons": [],
-                }
-                verdict = {
-                    "status": "skipped-insufficient-runtime-spec",
-                    "reason": reason,
-                }
-            else:
-                selected_executable = (executable_paths or {}).get(
-                    op_name
-                ) or executable_path
-                if selected_executable is None or not selected_executable.exists():
-                    raise OrchestratorError(
-                        f"standalone executable not found for {op_name}: {selected_executable}"
-                    )
-                env = (self.env or os.environ).copy()
-                completed = subprocess.run(
-                    [str(selected_executable)],
-                    cwd=str(selected_executable.parent),
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.STDOUT,
-                    text=True,
-                    check=False,
-                    env=env,
-                    timeout=60,
-                )
-                if completed.returncode != 0:
-                    runner_stdout = {
-                        "backend": "standalone",
-                        "status": "failed",
-                        "stdout": completed.stdout,
-                        "outputs": {},
-                        "calls": {op_name: []},
-                    }
-                    comparison = {"status": "failed", "comparisons": []}
-                    verdict = {"status": "failed", "reason": "standalone_runner_failed"}
-                    self._write_json(op_dir / "runner-stdout.json", runner_stdout)
-                    self._write_json(op_dir / "comparison.json", comparison)
-                    self._write_json(op_dir / "verdict.json", verdict)
-                    return {
-                        "op_name": op_name,
-                        "status": verdict["status"],
-                        "verdict": verdict,
-                    }
-                stdout_lines = [
-                    line for line in completed.stdout.splitlines() if line.strip()
-                ]
-                json_payload = stdout_lines[-1] if stdout_lines else completed.stdout
-                try:
-                    full_stdout = json.loads(json_payload)
-                except json.JSONDecodeError as exc:
-                    raise OrchestratorError(
-                        f"standalone runner emitted invalid JSON for {op_name}: {completed.stdout}"
-                    ) from exc
-                outputs = full_stdout.get("outputs", {})
-                calls = full_stdout.get("calls", {})
-                statuses = full_stdout.get("statuses", {})
-                entry_status = (
-                    statuses.get(op_name, {}) if isinstance(statuses, dict) else {}
-                )
-                entry_status_value = entry_status.get(
-                    "status", full_stdout.get("status", "passed")
-                )
-                entry_reason = entry_status.get("reason", entry_status_value)
-                runner_stdout = {
-                    "backend": "standalone",
-                    "status": entry_status_value,
-                    "outputs": {op_name: outputs[op_name]}
-                    if op_name in outputs
-                    else {},
-                    "calls": {op_name: calls.get(op_name, [])},
-                }
-                self._write_json(op_dir / "runner-stdout.json", runner_stdout)
-                if entry_status_value != "passed":
-                    comparison = {"status": entry_status_value, "comparisons": []}
-                    verdict = {"status": entry_status_value, "reason": entry_reason}
-                elif op_name not in outputs:
-                    comparison = {"status": "failed", "comparisons": []}
-                    verdict = {
-                        "status": "failed",
-                        "reason": "standalone_runner_missing_outputs",
-                    }
-                else:
-                    compare = self._run(
-                        "sample_gen",
-                        "compare-sk-runtime-outputs",
-                        str(op_dir),
-                        str(op_dir / "runner-stdout.json"),
-                    )
-                    if compare.returncode != 0:
-                        raise OrchestratorError(
-                            f"standalone compare-sk-runtime-outputs failed for {op_name}: {compare.stdout}"
-                        )
-                    comparison = self._read_json(
-                        op_dir / "operator-sk-runtime-output-comparison.json"
-                    )
-                    verdict = {
-                        "status": "passed"
-                        if comparison.get("status") == "matched"
-                        else "failed",
-                        "reason": "differential_outputs_matched"
-                        if comparison.get("status") == "matched"
-                        else "differential_outputs_mismatched",
-                    }
-            self._write_json(op_dir / "runner-stdout.json", runner_stdout)
-            self._write_json(op_dir / "comparison.json", comparison)
-            self._write_json(op_dir / "verdict.json", verdict)
-            return {"op_name": op_name, "status": verdict["status"], "verdict": verdict}
-
-        results, parallel = self._run_parallel_ops(entries, jobs, worker)
-        per_op = {
-            item["op_name"]: item["verdict"] for item in results if "verdict" in item
-        }
-        status_values = {item["status"] for item in results}
-        if "failed" in status_values:
-            status = "failed"
-        elif status_values == {"skipped-target-arch"}:
-            status = "skipped-target-arch"
-        elif status_values == {"mock-passed"}:
-            status = "mock-passed"
-        elif status_values == {"skipped-no-npu"}:
-            status = "skipped-no-npu"
-        elif status_values == {"skipped-insufficient-runtime-spec"}:
-            status = "skipped-insufficient-runtime-spec"
-        elif status_values == {"skipped-by-user"}:
-            status = "skipped-by-user"
-        elif status_values <= {"passed"}:
-            status = "passed"
-        else:
-            status = "mixed"
-        rows = [
-            "# Standalone Differential Verification",
-            "",
-            "| op | status |",
-            "|---|---|",
-        ]
-        for op_name in sorted(per_op):
-            rows.append(f"| `{op_name}` | `{per_op[op_name]['status']}` |")
-        (verify_dir / "summary.md").write_text("\n".join(rows) + "\n", encoding="utf-8")
-        return {
-            "status": status,
-            "per_op": per_op,
-            "summary": str(verify_dir / "summary.md"),
-            "parallel": parallel,
-        }
-
-    def _run_sample_gen_verification(
-        self,
-        verify_dir: Path,
-        entries: list[dict[str, Any]],
-        *,
-        status: str,
-        wheel_paths: list[str],
-    ) -> dict[str, Any]:
-        verify_dir.mkdir(parents=True, exist_ok=True)
-        summary_rows = [
-            "# Differential Verification",
-            "",
-            "| op | status |",
-            "|---|---|",
-        ]
-        per_op: dict[str, Any] = {}
-        for entry in entries:
-            op_name = entry["entry_name"]
-            op_dir = verify_dir / op_name
-            op_dir.mkdir(parents=True, exist_ok=True)
-            self._write_json(
-                op_dir / "operator-sk-runtime-input-spec.json",
-                self._runtime_input_spec_for_entry(entry),
-            )
-            construct = self._run(
-                "sample_gen", "auto-construct-runtime-input-values", str(op_dir)
-            )
-            if construct.returncode != 0:
-                raise OrchestratorError(
-                    f"auto-construct-runtime-input-values failed for {op_name}: {construct.stdout}"
-                )
-            shutil.copy2(
-                op_dir / "operator-sk-auto-input-values-spec.json",
-                op_dir / "auto-inputs.json",
-            )
-            runtime_values = op_dir / "operator-sk-runtime-input-values.json"
-            if runtime_values.is_file():
-                oracle = self._run(
-                    "sample_gen", "auto-build-correctness-oracle", str(op_dir)
-                )
-                if oracle.returncode != 0:
-                    raise OrchestratorError(
-                        f"auto-build-correctness-oracle failed for {op_name}: {oracle.stdout}"
-                    )
-                runner = self._run("sample_gen", "generate-runner-script", str(op_dir))
-                if runner.returncode != 0:
-                    raise OrchestratorError(
-                        f"generate-runner-script failed for {op_name}: {runner.stdout}"
-                    )
-            runner_spec = {
-                "oracle_source": "bind-target-on-wheel",
-                "entry_name": op_name,
-                "functions": {
-                    "baseline": f"run_{op_name}",
-                    "sk": f"torch.ops.ascendc_ops.{op_name}",
-                },
-                "sample_gen_command_spec": self._read_json(
-                    op_dir / "operator-sk-target-runtime-command-spec.json"
-                )
-                if (op_dir / "operator-sk-target-runtime-command-spec.json").is_file()
-                else {},
-                "wheels": wheel_paths,
-            }
-            self._write_json(op_dir / "runner-spec.json", runner_spec)
-            if status == "skipped-by-user":
-                runner_stdout = {"status": "skipped-by-user", "outputs": {}}
-                comparison = {"status": "skipped-by-user", "comparisons": []}
-                verdict = {
-                    "status": "skipped-by-user",
-                    "reason": "verification disabled by --no-verify",
-                }
-            elif status == "skipped-no-npu":
-                runner_stdout = {"status": "skipped-no-npu", "outputs": {}}
-                comparison = {"status": "skipped-no-npu", "comparisons": []}
-                verdict = {"status": "skipped-no-npu", "reason": "NPU not available"}
-            elif status == "mock-passed":
-                runner_stdout = {"status": "mock-passed", "outputs": {}}
-                comparison = {"status": "mock-passed", "comparisons": []}
-                verdict = {
-                    "status": "mock-passed",
-                    "reason": "mock NPU verification explicitly enabled",
-                }
-            elif not runtime_values.is_file():
-                runner_stdout = {
-                    "status": "skipped-insufficient-runtime-spec",
-                    "outputs": {},
-                }
-                comparison = {
-                    "status": "skipped-insufficient-runtime-spec",
-                    "comparisons": [],
-                }
-                verdict = {
-                    "status": "skipped-insufficient-runtime-spec",
-                    "reason": "canonical runtime input values not provided",
-                    "auto_input_suggestion": "auto-inputs.json",
-                }
-            else:
-                env = (self.env or os.environ).copy()
-                completed = subprocess.run(
-                    [
-                        self.python,
-                        str(op_dir / "operator-sample-runner.py"),
-                        str(op_dir / "operator-sk-runtime-input-values.json"),
-                    ],
-                    cwd=str(op_dir),
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.STDOUT,
-                    text=True,
-                    check=False,
-                    env=env,
-                    timeout=60,
-                )
-                if completed.returncode != 0:
-                    runner_stdout = {
-                        "status": "failed",
-                        "stdout": completed.stdout,
-                        "outputs": {},
-                    }
-                    comparison = {"status": "failed", "comparisons": []}
-                    verdict = {"status": "failed", "reason": "runner_failed"}
-                else:
-                    runner_stdout = json.loads(completed.stdout)
-                    runner_stdout["status"] = "passed"
-                    self._write_json(op_dir / "runner-stdout.json", runner_stdout)
-                    compare = self._run(
-                        "sample_gen",
-                        "compare-sk-runtime-outputs",
-                        str(op_dir),
-                        str(op_dir / "runner-stdout.json"),
-                    )
-                    if compare.returncode != 0:
-                        raise OrchestratorError(
-                            f"compare-sk-runtime-outputs failed for {op_name}: {compare.stdout}"
-                        )
-                    comparison = self._read_json(
-                        op_dir / "operator-sk-runtime-output-comparison.json"
-                    )
-                    verdict = {
-                        "status": "passed"
-                        if comparison.get("status") == "matched"
-                        else "failed",
-                        "reason": "differential_outputs_matched"
-                        if comparison.get("status") == "matched"
-                        else "differential_outputs_mismatched",
-                    }
-            self._write_json(op_dir / "runner-stdout.json", runner_stdout)
-            self._write_json(op_dir / "comparison.json", comparison)
-            self._write_json(op_dir / "verdict.json", verdict)
-            per_op[op_name] = verdict
-            summary_rows.append(f"| `{op_name}` | `{verdict['status']}` |")
-        if status == "skipped-no-npu":
-            summary_rows.extend(
-                ["", "NPU not available; differential validation skipped."]
-            )
-        elif status == "skipped-by-user":
-            summary_rows.extend(["", "Differential validation skipped by --no-verify."])
-        elif status == "mock-passed":
-            summary_rows.extend(
-                [
-                    "",
-                    "Mock NPU validation was explicitly requested; numerical correctness was not executed.",
-                ]
-            )
-        (verify_dir / "summary.md").write_text(
-            "\n".join(summary_rows) + "\n", encoding="utf-8"
+        do_package: bool,
+        profile: str,
+        wheel_mode: str,
+        verify_backend: str,
+        reuse_wheel: str | None,
+    ) -> list[str]:
+        return cls._parse_stages(
+            stages,
+            do_package=do_package,
+            profile=profile,
+            wheel_mode=wheel_mode,
+            verify_backend=verify_backend,
+            reuse_wheel=reuse_wheel,
         )
-        status_values = {item.get("status") for item in per_op.values()}
-        if status_values == {"skipped-insufficient-runtime-spec"}:
-            final_status = "skipped-insufficient-runtime-spec"
-        else:
-            final_status = status
-        return {
-            "status": final_status,
-            "per_op": per_op,
-            "summary": str(verify_dir / "summary.md"),
-        }
 
-    def _stage_record(
+    def resolve_profile_options(
         self,
-        stage_id: str,
-        status: str,
-        path: Path,
-        extra: dict[str, Any] | None = None,
         *,
-        started_at: str | None = None,
-    ) -> dict[str, Any]:
-        record = {
-            "stage": stage_id,
-            "name": _STAGE_DIRS[stage_id],
-            "status": status,
-            "path": str(path),
-            "started_at": started_at or self._utc_now(),
-            "finished_at": self._utc_now(),
-        }
-        if extra:
-            record.update(extra)
-        return record
+        profile: str,
+        verify_backend: str | None,
+        wheel_mode: str | None,
+        no_verify: bool,
+        no_package: bool,
+    ) -> tuple[str, str]:
+        return self._resolve_profile_options(
+            profile=profile,
+            verify_backend=verify_backend,
+            wheel_mode=wheel_mode,
+            no_verify=no_verify,
+            no_package=no_package,
+        )
 
     def run(
         self,
@@ -3053,6 +1613,1446 @@ class PipelineOrchestrator:
                 selected_stages=selected_stages,
             )
         return state
+
+    def _skill_path(self, key: str) -> Path:
+        skill_name, script_name = _SKILL_SCRIPTS[key]
+        return self.skills_root / skill_name / "scripts" / script_name
+
+    def _script_dir(self, skill_name: str) -> Path:
+        return self.skills_root / skill_name / "scripts"
+
+    def _run(self, key: str, *argv: str) -> subprocess.CompletedProcess:
+        script_path = self._skill_path(key)
+        if not script_path.is_file():
+            raise OrchestratorError(f"skill script not found for {key}: {script_path}")
+        return subprocess.run(
+            [self.python, str(script_path), *argv],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            check=False,
+            env=self.env,
+        )
+
+    def _ensure_structural_toolchain_env(
+        self, output_dir: Path, *, allow_structural_toolchain: bool
+    ) -> None:
+        env = (self.env or os.environ).copy()
+        if env.get("SK_OPERATOR_USE_REAL_TOOLCHAIN") == "1":
+            self.env = env
+            self._toolchain_mode = "real"
+            return
+        if not allow_structural_toolchain:
+            env.pop("SK_OPERATOR_STRUCTURAL_TOOLCHAIN", None)
+            env.pop("SK_OPERATOR_ALLOW_STANDALONE_MOCK_EXECUTABLE", None)
+            self.env = env
+            self._toolchain_mode = "real"
+            return
+        if env.get("SK_OPERATOR_STRUCTURAL_TOOLCHAIN") == "1":
+            self.env = env
+            self._toolchain_mode = "structural"
+            return
+        tool_dir = output_dir / "operator-sk-structural-toolchain"
+        tool_dir.mkdir(parents=True, exist_ok=True)
+        cmake = tool_dir / "cmake"
+        cmake.write_text(
+            "#!/bin/sh\n"
+            'if [ "$1" = "--version" ]; then\n'
+            "  printf '%s\\n' 'cmake version 3.26.0-structural'\n"
+            "  exit 0\n"
+            "fi\n"
+            'if [ "$1" = "-S" ]; then\n'
+            '  mkdir -p "$4"\n'
+            "  printf '%s\\n' 'configured' > \"$4/configured.txt\"\n"
+            "  exit 0\n"
+            "fi\n"
+            'if [ "$1" = "--build" ]; then\n'
+            '  mkdir -p "$2"\n'
+            "  printf '%s\\n' 'built' > \"$2/built.txt\"\n"
+            "  exit 0\n"
+            "fi\n"
+            "printf '%s\\n' 'structural cmake: unsupported arguments' >&2\n"
+            "exit 2\n",
+            encoding="utf-8",
+        )
+        cmake.chmod(0o755)
+        bisheng = tool_dir / "bisheng"
+        bisheng.write_text(
+            "#!/bin/sh\n"
+            'if [ "$1" = "--version" ]; then\n'
+            "  printf '%s\\n' 'bisheng structural 1.0'\n"
+            "  exit 0\n"
+            "fi\n"
+            'out=""\n'
+            "while [ $# -gt 0 ]; do\n"
+            '  case "$1" in\n'
+            '    -o) out="$2"; shift 2 ;;\n'
+            '    -o*) out="${1#-o}"; shift ;;\n'
+            "    *) shift ;;\n"
+            "  esac\n"
+            "done\n"
+            'if [ -n "$out" ]; then\n'
+            '  mkdir -p "$(dirname "$out")"\n'
+            "  printf '%s\\n' 'STRUCTURAL BISHENG OUTPUT' > \"$out\"\n"
+            "fi\n"
+            "exit 0\n",
+            encoding="utf-8",
+        )
+        bisheng.chmod(0o755)
+        env["PATH"] = str(tool_dir) + os.pathsep + env.get("PATH", "")
+        env["SK_OPERATOR_STRUCTURAL_TOOLCHAIN"] = "1"
+        env["SK_OPERATOR_ALLOW_STANDALONE_MOCK_EXECUTABLE"] = "1"
+        self.env = env
+        self._toolchain_mode = "structural"
+
+    def _materialize_input(self, source: Path, dest: Path) -> str:
+        self._remove_existing(dest)
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        if source.is_dir():
+            shutil.copytree(source, dest, symlinks=True)
+        else:
+            shutil.copy2(source, dest)
+        return "copy"
+
+    def _copy_contents(self, source_dir: Path, dest_dir: Path) -> None:
+        dest_dir.mkdir(parents=True, exist_ok=True)
+        for item in source_dir.iterdir():
+            dest = dest_dir / item.name
+            self._remove_existing(dest)
+            if item.is_dir() and not item.is_symlink():
+                shutil.copytree(item, dest, symlinks=True)
+            else:
+                shutil.copy2(item, dest, follow_symlinks=False)
+
+    def _shared_support_dirs_for_stage_asset(
+        self, stage_asset: Path, source_asset: Path | None = None
+    ) -> list[tuple[str, Path]]:
+        support_dirs: dict[str, Path] = {}
+        for asset in [stage_asset, source_asset]:
+            if asset is None:
+                continue
+            for support_name, support_source in self._shared_support_dirs_for_asset(
+                asset
+            ):
+                resolved = support_source.resolve()
+                existing = support_dirs.get(support_name)
+                if existing is not None and existing.resolve() != resolved:
+                    raise OrchestratorError(
+                        f"conflicting shared support directory {support_name!r}: {existing} vs {support_source}"
+                    )
+                support_dirs[support_name] = support_source
+        return sorted(support_dirs.items())
+
+    def _normalize_assets(
+        self,
+        assets: Path | Sequence[Path],
+        asset_names: dict[str, str] | None = None,
+    ) -> list[dict[str, Any]]:
+        raw_assets = [assets] if isinstance(assets, Path) else list(assets)
+        if not raw_assets:
+            raise OrchestratorError(
+                "--asset or --asset-root must provide at least one asset"
+            )
+        seen_paths: set[Path] = set()
+        seen_slugs: set[str] = set()
+        normalized: list[dict[str, Any]] = []
+        for raw in raw_assets:
+            path = Path(raw).resolve()
+            if not path.exists():
+                raise OrchestratorError(f"asset path not found: {path}")
+            if path in seen_paths:
+                continue
+            seen_paths.add(path)
+            slug = safe_slug(
+                (asset_names or {}).get(str(path)) or self._safe_slug(path), "op"
+            )
+            if slug in seen_slugs:
+                raise OrchestratorError(f"duplicate op asset name: {slug}")
+            seen_slugs.add(slug)
+            normalized.append({"name": slug, "asset": path})
+        return normalized
+
+    def _understand_and_expand_assets(
+        self,
+        assets: Path | Sequence[Path],
+        output_dir: Path,
+        asset_names: dict[str, str] | None = None,
+    ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+        raw_assets = self._normalize_assets(assets, asset_names=asset_names)
+        stage_root = self._stage_dir(output_dir, "00")
+        stage_root.mkdir(parents=True, exist_ok=True)
+        ops: list[dict[str, Any]] = []
+        asset_records: list[dict[str, Any]] = []
+        seen_names: set[str] = set()
+        for raw in raw_assets:
+            asset = Path(raw["asset"]).resolve()
+            asset_name = str(raw["name"])
+            op_root = stage_root / asset_name
+            inputs = op_root / "inputs"
+            outputs = op_root / "outputs"
+            self._materialize_input(asset, inputs / "asset")
+            scan_argv = [
+                "adapt-asset",
+                str(inputs / "asset"),
+                "--output-dir",
+                str(outputs),
+            ]
+            if self._current_target_chip:
+                scan_argv.extend(["--target-chip", self._current_target_chip])
+            scan = self._run("asset_adapter", *scan_argv)
+            if scan.returncode not in {0, 2}:
+                raise OrchestratorError(
+                    f"asset adapter failed for {asset_name}: {scan.stdout}"
+                )
+            layout_path = outputs / "operator-asset-layout.json"
+            if scan.returncode == 2:
+                raise OrchestratorError(
+                    f"asset adapter requires user input for {asset_name}; inspect "
+                    f"{outputs / 'adapter-report.json'} and provide explicit "
+                    "contracts"
+                )
+            analyze_argv = [
+                "analyze-operator-asset",
+                str(inputs / "asset"),
+                "--asset-layout",
+                str(layout_path),
+                "--output-dir",
+                str(outputs),
+            ]
+            if self._current_target_chip:
+                analyze_argv.extend(["--target-chip", self._current_target_chip])
+            analyze = self._run("codegen", *analyze_argv)
+            if analyze.returncode != 0:
+                raise OrchestratorError(
+                    f"analyze-operator-asset failed for {asset_name}: {analyze.stdout}"
+                )
+            normalize_argv = [
+                "normalize-operator-asset",
+                str(inputs / "asset"),
+                "--understanding",
+                str(outputs / "operator-asset-understanding.json"),
+                "--asset-layout",
+                str(layout_path),
+                "--output-dir",
+                str(outputs),
+            ]
+            if self._current_target_chip:
+                normalize_argv.extend(["--target-chip", self._current_target_chip])
+            normalize = self._run("codegen", *normalize_argv)
+            if normalize.returncode != 0:
+                raise OrchestratorError(
+                    f"normalize-operator-asset failed for {asset_name}: {normalize.stdout}"
+                )
+            understanding = self._read_json(
+                outputs / "operator-asset-understanding.json"
+            )
+            units_index = self._read_json(outputs / "operator-units.json")
+            unit_records = []
+            for unit in units_index.get("operator_units", []):
+                unit_name = str(unit["unit_id"])
+                if len(units_index.get("operator_units", [])) == 1:
+                    op_name = asset_name
+                else:
+                    op_name = f"{asset_name}_{unit_name}"
+                op_name = re.sub(r"[^A-Za-z0-9_.-]", "_", op_name).strip("._-") or "op"
+                if op_name in seen_names:
+                    raise OrchestratorError(
+                        f"duplicate operator unit name after asset understanding: {op_name}"
+                    )
+                seen_names.add(op_name)
+                op = {
+                    "name": op_name,
+                    "entry_name": unit.get("entry_name"),
+                    "source_entry_name": unit.get("source_entry_name")
+                    or unit.get("entry_name"),
+                    "public_entry_name": unit.get("public_entry_name")
+                    or unit.get("entry_name"),
+                    "internal_symbol_name": unit.get("internal_symbol_name")
+                    or unit.get("entry_name"),
+                    "bind_target": unit.get("bind_target")
+                    or unit.get("source_entry_name")
+                    or unit.get("entry_name"),
+                    "name_resolution": dict(unit.get("name_resolution", {})),
+                    "asset": Path(unit["asset"]).resolve(),
+                    "sk_asset": Path(unit.get("sk_asset") or unit["asset"]).resolve(),
+                    "source_asset": asset,
+                    "asset_kind": unit.get("asset_kind")
+                    or understanding.get("asset_kind"),
+                    "kernel_source": unit.get("kernel_source"),
+                    "host_source": unit.get("host_source"),
+                    "json_spec": unit.get("json_spec"),
+                    "tiling_headers": list(unit.get("tiling_headers", [])),
+                    "build_backends": list(unit.get("build_backends", [])),
+                    "supported_soc_versions": list(
+                        unit.get("supported_soc_versions", [])
+                    ),
+                    "supported_arches": list(unit.get("supported_arches", [])),
+                    "target_resolution": dict(unit.get("target_resolution", {})),
+                    "support_source": unit.get("support_source", ""),
+                    "understanding_outputs": outputs,
+                }
+                ops.append(op)
+                unit_records.append(
+                    {
+                        "name": op_name,
+                        "entry_name": op["entry_name"],
+                        "source_entry_name": op.get("source_entry_name"),
+                        "public_entry_name": op.get("public_entry_name"),
+                        "internal_symbol_name": op.get("internal_symbol_name"),
+                        "bind_target": op.get("bind_target"),
+                        "name_resolution": op.get("name_resolution", {}),
+                        "asset": str(op["asset"]),
+                        "sk_asset": str(op["sk_asset"]),
+                        "source_asset": str(asset),
+                        "asset_kind": op["asset_kind"],
+                        "kernel_source": op.get("kernel_source"),
+                        "host_source": op.get("host_source"),
+                        "json_spec": op.get("json_spec"),
+                        "tiling_headers": op.get("tiling_headers", []),
+                        "build_backends": op["build_backends"],
+                        "supported_soc_versions": op.get("supported_soc_versions", []),
+                        "supported_arches": op.get("supported_arches", []),
+                        "target_resolution": op.get("target_resolution", {}),
+                        "support_source": op.get("support_source", ""),
+                    }
+                )
+            asset_records.append(
+                {
+                    "name": asset_name,
+                    "path": str(asset),
+                    "asset_kind": understanding.get("asset_kind"),
+                    "understanding": str(outputs / "operator-asset-understanding.json"),
+                    "units": unit_records,
+                }
+            )
+        summary = {
+            "schema_version": 1,
+            "status": "analyzed",
+            "assets": asset_records,
+            "operator_units": [
+                {
+                    "name": op["name"],
+                    "entry_name": op.get("entry_name"),
+                    "source_entry_name": op.get("source_entry_name"),
+                    "public_entry_name": op.get("public_entry_name"),
+                    "internal_symbol_name": op.get("internal_symbol_name"),
+                    "bind_target": op.get("bind_target"),
+                    "name_resolution": op.get("name_resolution", {}),
+                    "asset": str(op["asset"]),
+                    "sk_asset": str(op["sk_asset"]),
+                    "source_asset": str(op["source_asset"]),
+                    "asset_kind": op.get("asset_kind"),
+                    "kernel_source": op.get("kernel_source"),
+                    "host_source": op.get("host_source"),
+                    "json_spec": op.get("json_spec"),
+                    "tiling_headers": op.get("tiling_headers", []),
+                    "build_backends": op.get("build_backends", []),
+                    "supported_soc_versions": op.get("supported_soc_versions", []),
+                    "supported_arches": op.get("supported_arches", []),
+                    "target_resolution": op.get("target_resolution", {}),
+                    "support_source": op.get("support_source", ""),
+                }
+                for op in ops
+            ],
+        }
+        self._write_json(stage_root / "operator-units.json", summary)
+        return ops, summary
+
+    def _detect_form(self, source: Path, output_dir: Path) -> dict[str, Any]:
+        result = self._run(
+            "codegen", "detect-sk-form", str(source), "--output-dir", str(output_dir)
+        )
+        if result.returncode != 0:
+            raise OrchestratorError(f"detect-sk-form failed: {result.stdout}")
+        return self._read_json(output_dir / "operator-sk-form-analysis.json")
+
+    def _adapt(
+        self,
+        asset: Path,
+        output_dir: Path,
+        support_dirs: list[str] | None = None,
+        *,
+        understanding: Path | None = None,
+        target_chip: str = "",
+        package_name: str = "op_extension",
+        package_version: str = "0.1.0",
+        name_resolution: Path | None = None,
+        source_asset: Path | None = None,
+        io_contract: Path | None = None,
+    ) -> dict[str, Any]:
+        argv = ["adapt-sk-from-global", str(asset), "--output-dir", str(output_dir)]
+        argv.extend(
+            ["--package-name", package_name, "--package-version", package_version]
+        )
+        if understanding is not None:
+            argv.extend(["--understanding", str(understanding)])
+        if target_chip:
+            argv.extend(["--target-chip", target_chip])
+        if name_resolution is not None:
+            argv.extend(["--name-resolution", str(name_resolution)])
+        if source_asset is not None:
+            argv.extend(["--source-asset", str(source_asset)])
+        if io_contract is not None:
+            argv.extend(["--io-contract", str(io_contract)])
+        for support_dir in support_dirs or []:
+            argv.extend(["--support-dir", support_dir])
+        result = self._run("codegen", *argv)
+        if result.returncode != 0:
+            raise OrchestratorError(f"adapt-sk-from-global failed: {result.stdout}")
+        return self._read_json(output_dir / "operator-sk-adapted.json")
+
+    def _stage_io_contract(self, io_contract: Path | None, inputs: Path) -> Path | None:
+        if io_contract is None:
+            return None
+        dest = inputs / "operator-io-contract.json"
+        self._materialize_input(io_contract, dest)
+        return dest
+
+    def _scan_spec(self, source: Path, output_dir: Path) -> dict[str, Any]:
+        result = self._run(
+            "validate",
+            "validate-operator",
+            "--asset",
+            str(source),
+            "--output-dir",
+            str(output_dir),
+            "--rule-pack",
+            "spec",
+            "--stage",
+            "post-adapt",
+            "--iteration-index",
+            "0",
+        )
+        if result.returncode != 0:
+            raise OrchestratorError(f"validate spec failed: {result.stdout}")
+        return self._read_json(output_dir / "operator-validation-findings.json")
+
+    def _scan_compat(
+        self, source: Path, output_dir: Path, target_chip: str, target_cann: str
+    ) -> dict[str, Any]:
+        argv = [
+            "validate-operator",
+            "--asset",
+            str(source),
+            "--output-dir",
+            str(output_dir),
+            "--rule-pack",
+            "compat",
+            "--target-chip",
+            target_chip,
+            "--stage",
+            "post-adapt",
+            "--iteration-index",
+            "0",
+        ]
+        if target_cann:
+            argv.extend(["--target-cann", target_cann])
+        result = self._run("validate", *argv)
+        findings_path = output_dir / "operator-validation-findings.json"
+        if result.returncode != 0 and not findings_path.exists():
+            raise OrchestratorError(f"validate compat failed: {result.stdout}")
+        return self._read_json(findings_path)
+
+    def _aggregate(
+        self,
+        adapted_outputs: list[Path],
+        output_dir: Path,
+        package_name: str,
+        package_version: str,
+    ) -> dict[str, Any]:
+        argv: list[str] = ["aggregate-sk-adapted"]
+        for adapted_output in adapted_outputs:
+            argv.extend(["--adapted-output-dir", str(adapted_output)])
+        argv.extend(
+            [
+                "--output-dir",
+                str(output_dir),
+                "--aggregate-wheel-name",
+                package_name,
+                "--package-version",
+                package_version,
+            ]
+        )
+        result = self._run("codegen", *argv)
+        if result.returncode != 0:
+            raise OrchestratorError(f"aggregate-sk-adapted failed: {result.stdout}")
+        return self._read_json(output_dir / "operator-sk-adapted.json")
+
+    def _generate_pybind_binding(self, output_dir: Path) -> dict[str, Any]:
+        result = self._run("build_package", "generate-pybind-binding", str(output_dir))
+        if result.returncode != 0:
+            raise OrchestratorError(f"generate-pybind-binding failed: {result.stdout}")
+        return self._read_json(output_dir / "operator-sk-pybind-binding.json")
+
+    def _build_native_wheel(
+        self,
+        output_dir: Path,
+        *,
+        jobs: int | None = None,
+        target_chip: str = "",
+        allow_structural_toolchain: bool = False,
+    ) -> tuple[str, dict[str, Any], str]:
+        self._ensure_structural_toolchain_env(
+            output_dir, allow_structural_toolchain=allow_structural_toolchain
+        )
+        for stale in (
+            "operator-sk-native-wheel-build",
+            "operator-sk-native-wheel.json",
+        ):
+            self._remove_existing(output_dir / stale)
+        argv = ["build-native-wheel", str(output_dir)]
+        if jobs and jobs > 0:
+            argv.extend(["--jobs", str(jobs)])
+        if target_chip:
+            argv.extend(["--target-chip", target_chip])
+        result = self._run("build_package", *argv)
+        manifest_path = output_dir / "operator-sk-native-wheel.json"
+        manifest = self._read_json(manifest_path) if manifest_path.exists() else {}
+        log = ""
+        if manifest.get("log_path") and Path(manifest["log_path"]).exists():
+            log = Path(manifest["log_path"]).read_text(
+                encoding="utf-8", errors="replace"
+            )
+        status = manifest.get("status", "failed")
+        return status, manifest, result.stdout + "\n" + log
+
+    def _build_baseline(
+        self,
+        asset: Path,
+        output_dir: Path,
+        *,
+        entry_name: str,
+        allow_structural_toolchain: bool = False,
+    ) -> dict[str, Any]:
+        use_structural = allow_structural_toolchain
+        argv = [
+            "build-baseline",
+            str(asset),
+            "--output-dir",
+            str(output_dir),
+            "--entry-name",
+            entry_name,
+            "--backend",
+            "baseline_direct_asc",
+        ]
+        if use_structural:
+            argv.append("--structural")
+        result = self._run("build_package", *argv)
+        manifest_path = output_dir / "operator-baseline-build.json"
+        if result.returncode != 0 and not manifest_path.exists():
+            raise OrchestratorError(
+                f"build-baseline failed for {entry_name}: {result.stdout}"
+            )
+        return self._read_json(manifest_path)
+
+    def _build_differential_verdicts(
+        self,
+        output_dir: Path,
+        entries: list[dict[str, Any]],
+        *,
+        baseline_manifests: dict[str, Path],
+        runtime_contracts: dict[str, dict[str, Any]],
+        standalone_verification: dict[str, Any],
+        wheel_verification: dict[str, Any] | None,
+    ) -> dict[str, Any]:
+        sample_gen_dir = self._script_dir("sk-operator-sample-gen")
+        if str(sample_gen_dir) not in sys.path:
+            sys.path.insert(0, str(sample_gen_dir))
+        import operator_differential_verify
+
+        per_op: dict[str, Any] = {}
+        summary_rows = [
+            "# Operator Differential Verification",
+            "",
+            "| op | status | baseline | sk | wheel |",
+            "|---|---|---|---|---|",
+        ]
+        wheel_per_op = (
+            (wheel_verification or {}).get("per_op")
+            if isinstance(wheel_verification, dict)
+            else {}
+        )
+        if not isinstance(wheel_per_op, dict):
+            wheel_per_op = {}
+        standalone_per_op = (
+            standalone_verification.get("per_op")
+            if isinstance(standalone_verification, dict)
+            else {}
+        )
+        if not isinstance(standalone_per_op, dict):
+            standalone_per_op = {}
+        for entry in entries:
+            entry_name = entry["entry_name"]
+            verdict = operator_differential_verify.build_differential_verdict(
+                output_dir / entry_name,
+                entry_name=entry_name,
+                baseline_manifest=baseline_manifests.get(entry_name),
+                runtime_contract=runtime_contracts.get(entry_name, {}).get("path"),
+                sk_verdict=standalone_per_op.get(entry_name),
+                wheel_verdict=wheel_per_op.get(entry_name)
+                if wheel_verification
+                else None,
+            )
+            per_op[entry_name] = verdict
+            summary_rows.append(
+                "| `{}` | `{}` | `{}` | `{}` | `{}` |".format(
+                    entry_name,
+                    verdict["status"],
+                    verdict["baseline"]["build_status"],
+                    verdict["sk"].get("status"),
+                    verdict["wheel"].get("status"),
+                )
+            )
+        statuses = {str(item.get("status")) for item in per_op.values()}
+        if "failed" in statuses:
+            status = "failed"
+        elif not statuses:
+            status = "unavailable"
+        elif len(statuses) == 1:
+            status = next(iter(statuses))
+        elif statuses <= {"passed", "skipped-structural-baseline"}:
+            status = "skipped-structural-baseline"
+        elif all(item.startswith("skipped") for item in statuses):
+            status = "skipped"
+        else:
+            status = "mixed"
+        output_dir.mkdir(parents=True, exist_ok=True)
+        summary_path = output_dir / "summary.md"
+        summary_path.write_text("\n".join(summary_rows) + "\n", encoding="utf-8")
+        manifest = {"status": status, "per_op": per_op, "summary": str(summary_path)}
+        self._write_json(output_dir / "operator-differential-summary.json", manifest)
+        return manifest
+
+    def _build_runtime_contracts(
+        self,
+        output_dir: Path,
+        entries: list[dict[str, Any]],
+        *,
+        fixture_statuses: dict[str, dict[str, Any]],
+    ) -> dict[str, dict[str, Any]]:
+        sample_gen_dir = self._script_dir("sk-operator-sample-gen")
+        if str(sample_gen_dir) not in sys.path:
+            sys.path.insert(0, str(sample_gen_dir))
+        import operator_runtime_contract
+
+        contracts: dict[str, dict[str, Any]] = {}
+        for entry in entries:
+            entry_name = entry["entry_name"]
+            entry_dir = output_dir / entry_name
+            contract = operator_runtime_contract.build_runtime_contract(
+                entry_dir,
+                entry=entry,
+                fixture_status=fixture_statuses.get(
+                    entry_name, {"status": "insufficient"}
+                ),
+            )
+            contracts[entry_name] = {
+                "status": contract.get("status"),
+                "reason": contract.get("reason"),
+                "path": str(entry_dir / "operator-runtime-contract.json"),
+            }
+        self._write_json(
+            output_dir / "operator-runtime-contract-summary.json",
+            {"schema_version": 1, "contracts": contracts},
+        )
+        return contracts
+
+    def _cache_lib(self):
+        build_pkg_dir = self._script_dir("sk-operator-build-package")
+        if str(build_pkg_dir) not in sys.path:
+            sys.path.insert(0, str(build_pkg_dir))
+        import sk_build_cache_lib
+
+        return sk_build_cache_lib
+
+    def _generate_standalone_compare(
+        self,
+        aggregate_output_dir: Path,
+        output_dir: Path,
+        fixture_dir: Path,
+        target_chip: str,
+    ) -> dict[str, Any]:
+        result = self._run(
+            "codegen",
+            "generate-standalone-compare",
+            str(aggregate_output_dir),
+            "--output-dir",
+            str(output_dir),
+            "--runtime-fixture-dir",
+            str(fixture_dir),
+            "--target-chip",
+            target_chip,
+        )
+        if result.returncode != 0:
+            raise OrchestratorError(
+                f"generate-standalone-compare failed: {result.stdout}"
+            )
+        return self._read_json(output_dir / "operator-sk-standalone-verify.json")
+
+    def _build_standalone_executable(
+        self,
+        output_dir: Path,
+        target_chip: str,
+        target_cann: str,
+        *,
+        allow_structural_toolchain: bool = False,
+    ) -> tuple[str, dict[str, Any], str]:
+        self._ensure_structural_toolchain_env(
+            output_dir, allow_structural_toolchain=allow_structural_toolchain
+        )
+        for stale in (
+            "operator-sk-standalone-build.json",
+            "build-log.txt",
+            "executable-path.txt",
+        ):
+            self._remove_existing(output_dir / stale)
+        argv = [
+            "build-standalone-executable",
+            str(output_dir),
+            "--target-chip",
+            target_chip,
+        ]
+        if target_cann:
+            argv.extend(["--target-cann", target_cann])
+        result = self._run("build_package", *argv)
+        manifest_path = output_dir / "operator-sk-standalone-build.json"
+        manifest = self._read_json(manifest_path) if manifest_path.exists() else {}
+        log = (
+            (output_dir / "build-log.txt").read_text(encoding="utf-8", errors="replace")
+            if (output_dir / "build-log.txt").exists()
+            else ""
+        )
+        return manifest.get("status", "failed"), manifest, result.stdout + "\n" + log
+
+    def _cache_key_for_standalone(
+        self,
+        standalone_output_dir: Path,
+        *,
+        target_chip: str,
+        target_cann: str,
+        fixture_dir: Path,
+    ) -> str:
+        lib = self._cache_lib()
+        env = self.env if self.env is not None else os.environ
+        return lib.cache_key(
+            {
+                "kind": "standalone",
+                "toolchain_mode": self._toolchain_mode,
+                "target_chip": target_chip,
+                "target_cann": target_cann,
+                "ascend_home_path": str(Path(env.get("ASCEND_HOME_PATH", "")).resolve())
+                if env.get("ASCEND_HOME_PATH")
+                else "",
+                "cmake_version": lib.command_version("cmake", env=env),
+                "compiler_version": lib.command_version("bisheng", env=env),
+                "tool_files": lib.hash_paths(
+                    [
+                        self._skill_path("codegen"),
+                        self._script_dir("sk-operator-codegen") / "sk_codegen_lib.py",
+                        self._skill_path("build_package"),
+                        self._script_dir("sk-operator-build-package")
+                        / "sk_build_cache_lib.py",
+                    ]
+                ),
+                "files": lib.hash_paths(
+                    [
+                        standalone_output_dir
+                        / "operator-sk-standalone-verify"
+                        / "runtime_compare.asc",
+                        *(standalone_output_dir / "operator-sk-standalone-verify").glob(
+                            "runtime_compare_*.asc"
+                        ),
+                        standalone_output_dir
+                        / "operator-sk-standalone-verify"
+                        / "CMakeLists.txt",
+                        *(
+                            standalone_output_dir
+                            / "operator-sk-standalone-verify"
+                            / "csrc"
+                        ).rglob("*"),
+                        *fixture_dir.rglob("*"),
+                    ]
+                ),
+            }
+        )
+
+    def _cache_key_for_wheel(
+        self,
+        wheel_output_dir: Path,
+        *,
+        target_chip: str,
+        target_cann: str,
+        package_name: str,
+        package_version: str,
+    ) -> str:
+        lib = self._cache_lib()
+        package_root = wheel_output_dir / "operator-sk-adapted"
+        return lib.cache_key(
+            {
+                "kind": "wheel",
+                "toolchain_mode": self._toolchain_mode,
+                "python_version": sys.version,
+                "package_name": package_name,
+                "package_version": package_version,
+                "target_chip": target_chip,
+                "target_cann": target_cann,
+                "tool_files": lib.hash_paths(
+                    [
+                        self._skill_path("codegen"),
+                        self._script_dir("sk-operator-codegen") / "sk_codegen_lib.py",
+                        self._skill_path("build_package"),
+                        self._script_dir("sk-operator-build-package")
+                        / "sk_pybind_lib.py",
+                        self._script_dir("sk-operator-build-package")
+                        / "sk_build_cache_lib.py",
+                    ]
+                ),
+                "files": lib.hash_paths(
+                    [
+                        package_root / "setup.py",
+                        *(package_root / "op_extension").glob("*.py"),
+                        *(package_root / "csrc").rglob("*"),
+                    ]
+                ),
+            }
+        )
+
+    def _copy_cached_namespace(
+        self, cache_dir: Path, namespace: str, cache_key: str, dest: Path
+    ) -> str | None:
+        lib = self._cache_lib()
+        cached = lib.lookup_cache(cache_dir, namespace, cache_key)
+        if cached is None:
+            return None
+        lib.copy_cached_outputs(cached, dest)
+        return str(cached)
+
+    def _store_cached_namespace(
+        self, cache_dir: Path, namespace: str, cache_key: str, source: Path
+    ) -> str:
+        lib = self._cache_lib()
+        return str(lib.store_cache(cache_dir, namespace, cache_key, source))
+
+    def _relocate_standalone_build_manifest(self, output_dir: Path) -> dict[str, Any]:
+        manifest_path = output_dir / "operator-sk-standalone-build.json"
+        manifest = self._read_json(manifest_path)
+        source_root = output_dir / "operator-sk-standalone-verify"
+        build_dir = source_root / "build"
+        executable_targets = (
+            manifest.get("executable_targets")
+            if isinstance(manifest.get("executable_targets"), dict)
+            else {}
+        )
+        if executable_targets:
+            executable_targets = {
+                target: str(build_dir / Path(path).name)
+                for target, path in executable_targets.items()
+            }
+        else:
+            executable_targets = {"runtime_compare": str(build_dir / "runtime_compare")}
+        executables = (
+            manifest.get("executables")
+            if isinstance(manifest.get("executables"), dict)
+            else {}
+        )
+        if executables:
+            executables = {
+                entry: str(build_dir / Path(path).name)
+                for entry, path in executables.items()
+            }
+        executable = Path(next(iter(executable_targets.values())))
+        log_path = output_dir / "build-log.txt"
+        manifest.update(
+            {
+                "standalone_verify_dir": str(source_root),
+                "build_dir": str(build_dir),
+                "configure_command": [
+                    "cmake",
+                    "-S",
+                    str(source_root),
+                    "-B",
+                    str(build_dir),
+                ],
+                "build_command": ["cmake", "--build", str(build_dir)],
+                "executable": str(executable),
+                "executable_targets": executable_targets,
+                "executables": executables,
+                "log_path": str(log_path),
+            }
+        )
+        self._write_json(manifest_path, manifest)
+        (output_dir / "executable-path.txt").write_text(
+            str(executable) + "\n", encoding="utf-8"
+        )
+        return manifest
+
+    def _relocate_standalone_verify_manifest(self, output_dir: Path) -> dict[str, Any]:
+        manifest_path = output_dir / "operator-sk-standalone-verify.json"
+        manifest = self._read_json(manifest_path)
+        source_root = output_dir / "operator-sk-standalone-verify"
+        inputs_root = output_dir.parent / "inputs"
+        manifest.update(
+            {
+                "aggregate_output_dir": str(inputs_root / "aggregate-output"),
+                "standalone_verify_dir": str(source_root),
+            }
+        )
+        runtime_fixtures = manifest.get("runtime_fixtures")
+        if isinstance(runtime_fixtures, dict):
+            fixture_root = inputs_root / "runtime-fixtures"
+            for entry_name, fixture in runtime_fixtures.items():
+                if isinstance(fixture, dict) and "path" in fixture:
+                    fixture["path"] = str(fixture_root / entry_name)
+        self._write_json(manifest_path, manifest)
+        return manifest
+
+    def _relocate_wheel_build_manifest(self, output_dir: Path) -> dict[str, Any] | None:
+        manifest_path = output_dir / "operator-sk-native-wheel.json"
+        if not manifest_path.exists():
+            return None
+        manifest = self._read_json(manifest_path)
+        build_dir = output_dir / "operator-sk-native-wheel-build"
+        log_path = build_dir / "pip-wheel.log"
+        manifest.update(
+            {
+                "pybind_source_root": str(output_dir / "operator-sk-adapted"),
+                "build_dir": str(build_dir),
+                "command": [
+                    sys.executable,
+                    "-I",
+                    "-B",
+                    "-m",
+                    "pip",
+                    "--isolated",
+                    "wheel",
+                    "--no-deps",
+                    "--no-build-isolation",
+                    "--no-cache-dir",
+                    "--wheel-dir",
+                    str(output_dir / "operator-sk-native-wheel-build" / "wheels"),
+                    str(output_dir / "operator-sk-adapted"),
+                ],
+                "log_path": str(log_path),
+            }
+        )
+        self._write_json(manifest_path, manifest)
+        return manifest
+
+    def _auto_inputs_for_entry(self, entry: dict[str, Any]) -> dict[str, Any]:
+        params = []
+        for param in entry.get("parameters", []):
+            value = self._zero_value_for_param(param)
+            is_tensor = isinstance(value, list)
+            params.append(
+                {
+                    "name": param["name"],
+                    "shape": [len(value)] if is_tensor else [],
+                    "dtype": "float16" if is_tensor else "uint32",
+                    "layout": "ND",
+                    "value_source": {"kind": "inline_json", "value": value},
+                }
+            )
+        return {
+            "input_values": [
+                {
+                    "input_set_id": f"entry:{entry['entry_name']}:default",
+                    "entry_name": entry["entry_name"],
+                    "parameter_values": params,
+                }
+            ]
+        }
+
+    def _npu_verify_enabled(self, *, allow_mock_npu: bool = False) -> str:
+        env = self.env if self.env is not None else os.environ
+        if allow_mock_npu and env.get("SK_OPERATOR_MOCK_NPU") == "1":
+            return "mock-passed"
+        if env.get("SK_OPERATOR_RUN_DEVICE_COMPARE") != "1":
+            return "skipped-no-npu"
+        if any(
+            Path(path).exists()
+            for path in ("/dev/davinci_manager", "/dev/davinci0", "/dev/hisi_hdc")
+        ):
+            return "passed"
+        return "skipped-no-npu"
+
+    def _copy_runtime_fixtures(
+        self, ops: list[dict[str, Any]], fixture_root: Path
+    ) -> dict[str, dict[str, Any]]:
+        fixture_root.mkdir(parents=True, exist_ok=True)
+        statuses: dict[str, dict[str, Any]] = {}
+        for op in ops:
+            op_fixture_dir = fixture_root / op["name"]
+            op_fixture_dir.mkdir(parents=True, exist_ok=True)
+            asset = Path(op["asset"])
+            copied: list[str] = []
+            asset_root = asset if asset.is_dir() else asset.parent
+            test_main = (
+                asset / "tests" / "main.cpp"
+                if asset.is_dir()
+                else asset.parent / "tests" / "main.cpp"
+            )
+            if test_main.is_file():
+                dest = op_fixture_dir / "tests" / "main.cpp"
+                dest.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(test_main, dest)
+                copied.append("tests/main.cpp")
+            runtime_spec = (
+                asset / "operator-sk-runtime-fixture.json"
+                if asset.is_dir()
+                else asset.parent / "operator-sk-runtime-fixture.json"
+            )
+            if runtime_spec.is_file():
+                shutil.copy2(
+                    runtime_spec, op_fixture_dir / "operator-sk-runtime-fixture.json"
+                )
+                copied.append("operator-sk-runtime-fixture.json")
+            for candidate in (
+                asset / "interface" if asset.is_dir() else asset.parent / "interface",
+                asset.parent / "interface",
+            ):
+                if candidate.is_dir():
+                    dest = op_fixture_dir / "interface"
+                    self._remove_existing(dest)
+                    shutil.copytree(candidate, dest, symlinks=True)
+                    copied.append("interface/")
+                    break
+            support_root = op_fixture_dir / "asset-support"
+            support_files = self._copy_support_headers(asset_root, support_root)
+            shared_common = asset_root.parent / "common"
+            if (
+                shared_common.is_dir()
+                and shared_common.resolve() != (asset_root / "common").resolve()
+            ):
+                support_files.extend(
+                    self._copy_support_headers(shared_common, support_root / "common")
+                )
+            shared_interface = asset_root.parent / "interface"
+            if (
+                shared_interface.is_dir()
+                and shared_interface.resolve() != (asset_root / "interface").resolve()
+            ):
+                support_files.extend(
+                    self._copy_support_headers(
+                        shared_interface, support_root / "interface"
+                    )
+                )
+            if support_files:
+                copied.append(f"asset-support/{len(support_files)} files")
+            status = "available" if copied else "insufficient"
+            statuses[op["name"]] = {
+                "status": status,
+                "path": str(op_fixture_dir),
+                "copied": copied,
+                "reason": "runtime fixture available"
+                if copied
+                else "runtime fixture not found",
+            }
+        return statuses
+
+    def _run_standalone_verification(
+        self,
+        verify_dir: Path,
+        entries: list[dict[str, Any]],
+        *,
+        fixture_statuses: dict[str, dict[str, Any]],
+        verify_enabled: bool,
+        jobs: int,
+        executable_path: Path | None,
+        executable_paths: dict[str, Path] | None = None,
+        precheck_status: str | None = None,
+    ) -> dict[str, Any]:
+        verify_dir.mkdir(parents=True, exist_ok=True)
+
+        def worker(entry: dict[str, Any]) -> dict[str, Any]:
+            op_name = entry["entry_name"]
+            op_dir = verify_dir / op_name
+            op_dir.mkdir(parents=True, exist_ok=True)
+            fixture_status = fixture_statuses.get(op_name, {"status": "insufficient"})
+            if precheck_status == "skipped-target-arch":
+                runner_stdout = self._standalone_runner_stdout(
+                    op_name, status="skipped-target-arch"
+                )
+                comparison = {"status": "skipped-target-arch", "comparisons": []}
+                verdict = {
+                    "status": "skipped-target-arch",
+                    "reason": "standalone target arch is not resolved",
+                }
+            elif precheck_status == "mock-passed":
+                runner_stdout = self._standalone_runner_stdout(
+                    op_name, status="mock-passed"
+                )
+                comparison = {"status": "mock-passed", "comparisons": []}
+                verdict = {
+                    "status": "mock-passed",
+                    "reason": "mock NPU verification explicitly enabled",
+                }
+            elif precheck_status == "skipped-no-npu":
+                runner_stdout = self._standalone_runner_stdout(
+                    op_name, status="skipped-no-npu"
+                )
+                comparison = {"status": "skipped-no-npu", "comparisons": []}
+                verdict = {"status": "skipped-no-npu", "reason": "NPU not available"}
+            elif not verify_enabled:
+                runner_stdout = self._standalone_runner_stdout(
+                    op_name, status="skipped-by-user"
+                )
+                comparison = {"status": "skipped-by-user", "comparisons": []}
+                verdict = {
+                    "status": "skipped-by-user",
+                    "reason": "verification disabled by --no-verify",
+                }
+            elif (
+                fixture_status.get("status") != "available"
+                or fixture_status.get("device_runnable") is False
+            ):
+                reason = fixture_status.get("reason", "runtime fixture not available")
+                runner_stdout = self._standalone_runner_stdout(
+                    op_name, status="skipped-insufficient-runtime-spec"
+                )
+                comparison = {
+                    "status": "skipped-insufficient-runtime-spec",
+                    "comparisons": [],
+                }
+                verdict = {
+                    "status": "skipped-insufficient-runtime-spec",
+                    "reason": reason,
+                }
+            else:
+                selected_executable = (executable_paths or {}).get(
+                    op_name
+                ) or executable_path
+                if selected_executable is None or not selected_executable.exists():
+                    raise OrchestratorError(
+                        f"standalone executable not found for {op_name}: {selected_executable}"
+                    )
+                env = (self.env or os.environ).copy()
+                completed = subprocess.run(
+                    [str(selected_executable)],
+                    cwd=str(selected_executable.parent),
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    text=True,
+                    check=False,
+                    env=env,
+                    timeout=60,
+                )
+                if completed.returncode != 0:
+                    runner_stdout = {
+                        "backend": "standalone",
+                        "status": "failed",
+                        "stdout": completed.stdout,
+                        "outputs": {},
+                        "calls": {op_name: []},
+                    }
+                    comparison = {"status": "failed", "comparisons": []}
+                    verdict = {"status": "failed", "reason": "standalone_runner_failed"}
+                    self._write_json(op_dir / "runner-stdout.json", runner_stdout)
+                    self._write_json(op_dir / "comparison.json", comparison)
+                    self._write_json(op_dir / "verdict.json", verdict)
+                    return {
+                        "op_name": op_name,
+                        "status": verdict["status"],
+                        "verdict": verdict,
+                    }
+                stdout_lines = [
+                    line for line in completed.stdout.splitlines() if line.strip()
+                ]
+                json_payload = stdout_lines[-1] if stdout_lines else completed.stdout
+                try:
+                    full_stdout = json.loads(json_payload)
+                except json.JSONDecodeError as exc:
+                    raise OrchestratorError(
+                        f"standalone runner emitted invalid JSON for {op_name}: {completed.stdout}"
+                    ) from exc
+                outputs = full_stdout.get("outputs", {})
+                calls = full_stdout.get("calls", {})
+                statuses = full_stdout.get("statuses", {})
+                entry_status = (
+                    statuses.get(op_name, {}) if isinstance(statuses, dict) else {}
+                )
+                entry_status_value = entry_status.get(
+                    "status", full_stdout.get("status", "passed")
+                )
+                entry_reason = entry_status.get("reason", entry_status_value)
+                runner_stdout = {
+                    "backend": "standalone",
+                    "status": entry_status_value,
+                    "outputs": {op_name: outputs[op_name]}
+                    if op_name in outputs
+                    else {},
+                    "calls": {op_name: calls.get(op_name, [])},
+                }
+                self._write_json(op_dir / "runner-stdout.json", runner_stdout)
+                if entry_status_value != "passed":
+                    comparison = {"status": entry_status_value, "comparisons": []}
+                    verdict = {"status": entry_status_value, "reason": entry_reason}
+                elif op_name not in outputs:
+                    comparison = {"status": "failed", "comparisons": []}
+                    verdict = {
+                        "status": "failed",
+                        "reason": "standalone_runner_missing_outputs",
+                    }
+                else:
+                    compare = self._run(
+                        "sample_gen",
+                        "compare-sk-runtime-outputs",
+                        str(op_dir),
+                        str(op_dir / "runner-stdout.json"),
+                    )
+                    if compare.returncode != 0:
+                        raise OrchestratorError(
+                            f"standalone compare-sk-runtime-outputs failed for {op_name}: {compare.stdout}"
+                        )
+                    comparison = self._read_json(
+                        op_dir / "operator-sk-runtime-output-comparison.json"
+                    )
+                    verdict = {
+                        "status": "passed"
+                        if comparison.get("status") == "matched"
+                        else "failed",
+                        "reason": "differential_outputs_matched"
+                        if comparison.get("status") == "matched"
+                        else "differential_outputs_mismatched",
+                    }
+            self._write_json(op_dir / "runner-stdout.json", runner_stdout)
+            self._write_json(op_dir / "comparison.json", comparison)
+            self._write_json(op_dir / "verdict.json", verdict)
+            return {"op_name": op_name, "status": verdict["status"], "verdict": verdict}
+
+        results, parallel = self._run_parallel_ops(entries, jobs, worker)
+        per_op = {
+            item["op_name"]: item["verdict"] for item in results if "verdict" in item
+        }
+        status_values = {item["status"] for item in results}
+        if "failed" in status_values:
+            status = "failed"
+        elif status_values == {"skipped-target-arch"}:
+            status = "skipped-target-arch"
+        elif status_values == {"mock-passed"}:
+            status = "mock-passed"
+        elif status_values == {"skipped-no-npu"}:
+            status = "skipped-no-npu"
+        elif status_values == {"skipped-insufficient-runtime-spec"}:
+            status = "skipped-insufficient-runtime-spec"
+        elif status_values == {"skipped-by-user"}:
+            status = "skipped-by-user"
+        elif status_values <= {"passed"}:
+            status = "passed"
+        else:
+            status = "mixed"
+        rows = [
+            "# Standalone Differential Verification",
+            "",
+            "| op | status |",
+            "|---|---|",
+        ]
+        for op_name in sorted(per_op):
+            rows.append(f"| `{op_name}` | `{per_op[op_name]['status']}` |")
+        (verify_dir / "summary.md").write_text("\n".join(rows) + "\n", encoding="utf-8")
+        return {
+            "status": status,
+            "per_op": per_op,
+            "summary": str(verify_dir / "summary.md"),
+            "parallel": parallel,
+        }
+
+    def _run_sample_gen_verification(
+        self,
+        verify_dir: Path,
+        entries: list[dict[str, Any]],
+        *,
+        status: str,
+        wheel_paths: list[str],
+    ) -> dict[str, Any]:
+        verify_dir.mkdir(parents=True, exist_ok=True)
+        summary_rows = [
+            "# Differential Verification",
+            "",
+            "| op | status |",
+            "|---|---|",
+        ]
+        per_op: dict[str, Any] = {}
+        for entry in entries:
+            op_name = entry["entry_name"]
+            op_dir = verify_dir / op_name
+            op_dir.mkdir(parents=True, exist_ok=True)
+            self._write_json(
+                op_dir / "operator-sk-runtime-input-spec.json",
+                self._runtime_input_spec_for_entry(entry),
+            )
+            construct = self._run(
+                "sample_gen", "auto-construct-runtime-input-values", str(op_dir)
+            )
+            if construct.returncode != 0:
+                raise OrchestratorError(
+                    f"auto-construct-runtime-input-values failed for {op_name}: {construct.stdout}"
+                )
+            shutil.copy2(
+                op_dir / "operator-sk-auto-input-values-spec.json",
+                op_dir / "auto-inputs.json",
+            )
+            runtime_values = op_dir / "operator-sk-runtime-input-values.json"
+            if runtime_values.is_file():
+                oracle = self._run(
+                    "sample_gen", "auto-build-correctness-oracle", str(op_dir)
+                )
+                if oracle.returncode != 0:
+                    raise OrchestratorError(
+                        f"auto-build-correctness-oracle failed for {op_name}: {oracle.stdout}"
+                    )
+                runner = self._run("sample_gen", "generate-runner-script", str(op_dir))
+                if runner.returncode != 0:
+                    raise OrchestratorError(
+                        f"generate-runner-script failed for {op_name}: {runner.stdout}"
+                    )
+            runner_spec = {
+                "oracle_source": "bind-target-on-wheel",
+                "entry_name": op_name,
+                "functions": {
+                    "baseline": f"run_{op_name}",
+                    "sk": f"torch.ops.ascendc_ops.{op_name}",
+                },
+                "sample_gen_command_spec": self._read_json(
+                    op_dir / "operator-sk-target-runtime-command-spec.json"
+                )
+                if (op_dir / "operator-sk-target-runtime-command-spec.json").is_file()
+                else {},
+                "wheels": wheel_paths,
+            }
+            self._write_json(op_dir / "runner-spec.json", runner_spec)
+            if status == "skipped-by-user":
+                runner_stdout = {"status": "skipped-by-user", "outputs": {}}
+                comparison = {"status": "skipped-by-user", "comparisons": []}
+                verdict = {
+                    "status": "skipped-by-user",
+                    "reason": "verification disabled by --no-verify",
+                }
+            elif status == "skipped-no-npu":
+                runner_stdout = {"status": "skipped-no-npu", "outputs": {}}
+                comparison = {"status": "skipped-no-npu", "comparisons": []}
+                verdict = {"status": "skipped-no-npu", "reason": "NPU not available"}
+            elif status == "mock-passed":
+                runner_stdout = {"status": "mock-passed", "outputs": {}}
+                comparison = {"status": "mock-passed", "comparisons": []}
+                verdict = {
+                    "status": "mock-passed",
+                    "reason": "mock NPU verification explicitly enabled",
+                }
+            elif not runtime_values.is_file():
+                runner_stdout = {
+                    "status": "skipped-insufficient-runtime-spec",
+                    "outputs": {},
+                }
+                comparison = {
+                    "status": "skipped-insufficient-runtime-spec",
+                    "comparisons": [],
+                }
+                verdict = {
+                    "status": "skipped-insufficient-runtime-spec",
+                    "reason": "canonical runtime input values not provided",
+                    "auto_input_suggestion": "auto-inputs.json",
+                }
+            else:
+                env = (self.env or os.environ).copy()
+                completed = subprocess.run(
+                    [
+                        self.python,
+                        str(op_dir / "operator-sample-runner.py"),
+                        str(op_dir / "operator-sk-runtime-input-values.json"),
+                    ],
+                    cwd=str(op_dir),
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    text=True,
+                    check=False,
+                    env=env,
+                    timeout=60,
+                )
+                if completed.returncode != 0:
+                    runner_stdout = {
+                        "status": "failed",
+                        "stdout": completed.stdout,
+                        "outputs": {},
+                    }
+                    comparison = {"status": "failed", "comparisons": []}
+                    verdict = {"status": "failed", "reason": "runner_failed"}
+                else:
+                    runner_stdout = json.loads(completed.stdout)
+                    runner_stdout["status"] = "passed"
+                    self._write_json(op_dir / "runner-stdout.json", runner_stdout)
+                    compare = self._run(
+                        "sample_gen",
+                        "compare-sk-runtime-outputs",
+                        str(op_dir),
+                        str(op_dir / "runner-stdout.json"),
+                    )
+                    if compare.returncode != 0:
+                        raise OrchestratorError(
+                            f"compare-sk-runtime-outputs failed for {op_name}: {compare.stdout}"
+                        )
+                    comparison = self._read_json(
+                        op_dir / "operator-sk-runtime-output-comparison.json"
+                    )
+                    verdict = {
+                        "status": "passed"
+                        if comparison.get("status") == "matched"
+                        else "failed",
+                        "reason": "differential_outputs_matched"
+                        if comparison.get("status") == "matched"
+                        else "differential_outputs_mismatched",
+                    }
+            self._write_json(op_dir / "runner-stdout.json", runner_stdout)
+            self._write_json(op_dir / "comparison.json", comparison)
+            self._write_json(op_dir / "verdict.json", verdict)
+            per_op[op_name] = verdict
+            summary_rows.append(f"| `{op_name}` | `{verdict['status']}` |")
+        if status == "skipped-no-npu":
+            summary_rows.extend(
+                ["", "NPU not available; differential validation skipped."]
+            )
+        elif status == "skipped-by-user":
+            summary_rows.extend(["", "Differential validation skipped by --no-verify."])
+        elif status == "mock-passed":
+            summary_rows.extend(
+                [
+                    "",
+                    "Mock NPU validation was explicitly requested; numerical correctness was not executed.",
+                ]
+            )
+        (verify_dir / "summary.md").write_text(
+            "\n".join(summary_rows) + "\n", encoding="utf-8"
+        )
+        status_values = {item.get("status") for item in per_op.values()}
+        if status_values == {"skipped-insufficient-runtime-spec"}:
+            final_status = "skipped-insufficient-runtime-spec"
+        else:
+            final_status = status
+        return {
+            "status": final_status,
+            "per_op": per_op,
+            "summary": str(verify_dir / "summary.md"),
+        }
+
+    def _stage_record(
+        self,
+        stage_id: str,
+        status: str,
+        path: Path,
+        extra: dict[str, Any] | None = None,
+        *,
+        started_at: str | None = None,
+    ) -> dict[str, Any]:
+        record = {
+            "stage": stage_id,
+            "name": _STAGE_DIRS[stage_id],
+            "status": status,
+            "path": str(path),
+            "started_at": started_at or self._utc_now(),
+            "finished_at": self._utc_now(),
+        }
+        if extra:
+            record.update(extra)
+        return record
 
     def _emit_layout(
         self,
