@@ -1462,3 +1462,46 @@ TEST_F(SuperKernelGraphTest, RegisterFusibleScope_ExceedMaxScopeNum_EmptyScopeNa
   EXPECT_TRUE(addedNode->IsFusible());
   EXPECT_EQ(graph->scopeNameToIdx.size(), MAX_SCOPE_NUM);
 }
+
+TEST_F(SuperKernelGraphTest, UpdateNodeScopeBitFlags_ExceedScopeMaxReasonPropagatesToInnerNode) {
+  for (uint32_t i = 0; i < MAX_SCOPE_NUM; ++i) {
+    graph->scopeNameToIdx["scope_" + std::to_string(i)] = i;
+  }
+
+  auto scopeBegin = std::unique_ptr<SuperKernelBaseNode>(
+      new SuperKernelKernelNode(nullptr, ACL_MODEL_RI_TASK_KERNEL, 0, 0, INVALID_STREAM_ID, INVALID_TASK_ID));
+  scopeBegin->SetNodeId(1000);
+  scopeBegin->SetNodeType(SkNodeType::NODE_KERNEL);
+  scopeBegin->SetIsScopeNode(true);
+  static_cast<SuperKernelKernelNode *>(scopeBegin.get())->isScopeBegin = true;
+  scopeBegin->SetIsFusible(true);
+  static_cast<SuperKernelKernelNode *>(scopeBegin.get())->scopeName = "scope_exceed_limit";
+  graph->RegisterFusibleScope(scopeBegin);
+  graph->graphMap[1000] = std::move(scopeBegin);
+  EXPECT_EQ(graph->GetNodeById(1000)->GetFusionFailReason(), FusionFailReason::EXCEED_SCOPE_MAX);
+
+  auto innerNode = std::unique_ptr<SuperKernelBaseNode>(
+      new SuperKernelKernelNode(nullptr, ACL_MODEL_RI_TASK_KERNEL, 1, 0, INVALID_STREAM_ID, INVALID_TASK_ID));
+  innerNode->SetNodeId(1001);
+  innerNode->SetNodeType(SkNodeType::NODE_KERNEL);
+  innerNode->SetIsFusible(true);
+  graph->graphMap[1001] = std::move(innerNode);
+
+  auto scopeEnd = std::unique_ptr<SuperKernelBaseNode>(
+      new SuperKernelKernelNode(nullptr, ACL_MODEL_RI_TASK_KERNEL, 2, 0, INVALID_STREAM_ID, INVALID_TASK_ID));
+  scopeEnd->SetNodeId(1002);
+  scopeEnd->SetNodeType(SkNodeType::NODE_KERNEL);
+  scopeEnd->SetIsScopeNode(true);
+  static_cast<SuperKernelKernelNode *>(scopeEnd.get())->isScopeEnd = true;
+  scopeEnd->SetIsFusible(false);
+  static_cast<SuperKernelKernelNode *>(scopeEnd.get())->scopeName = "scope_exceed_limit";
+  graph->graphMap[1002] = std::move(scopeEnd);
+
+  graph->UpdateNodeScopeBitFlags();
+
+  auto *updatedInnerNode = graph->GetNodeById(1001);
+  ASSERT_NE(updatedInnerNode, nullptr);
+  EXPECT_FALSE(updatedInnerNode->IsFusible());
+  EXPECT_EQ(updatedInnerNode->GetFusionFailReason(), FusionFailReason::EXCEED_SCOPE_MAX);
+  EXPECT_EQ(updatedInnerNode->GetScopeBitFlags().count(), 0);
+}
