@@ -282,7 +282,7 @@ ge::Status NddmaTemplate::Generate([[maybe_unused]] const af::AscGraph &origin_g
   }
   if (is_transpose_nddma_generated) {
     GE_ASSERT_SUCCESS(
-      UnAlignmentStrategy::ModifyTransposeFusionVectorizedStrides(new_case, BaseAlignmentStrategy::GetAlignWidth()));
+        UnAlignmentStrategy::ModifyTransposeFusionVectorizedStrides(new_case, BaseAlignmentStrategy::GetAlignWidth()));
   }
   GE_ASSERT_SUCCESS(ScheduleUtils::TopologicalSorting(new_case));
   return ge::SUCCESS;
@@ -405,9 +405,12 @@ ge::Status NddmaTemplate::SwapCastBrcAndGenNddma(const af::AscNodePtr &node_cast
   return ge::SUCCESS;
 }
 
-bool NddmaTemplate::NeedDropBasedCase([[maybe_unused]] const af::AscGraph &origin_graph,
-                                      [[maybe_unused]] const af::AscGraph &based_case,
+bool NddmaTemplate::NeedDropBasedCase(const af::AscGraph &origin_graph, [[maybe_unused]] const af::AscGraph &based_case,
                                       [[maybe_unused]] const af::AscGraph &new_case) {
+  if (ScheduleUtils::HasComputeType(origin_graph, af::ComputeType::kComputeTranspose) &&
+      ScheduleUtils::HasComputeType(origin_graph, af::ComputeType::kComputeBroadcast)) {
+    return true;
+  }
   return false;
 }
 
