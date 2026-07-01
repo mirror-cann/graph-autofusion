@@ -504,8 +504,8 @@ Status RemoveDanglingNodes(af::AscGraph &graph) {
     GE_ASSERT_NOTNULL(node);
     if (node->GetType() == "Unsupported") {
       const auto *error_msg = af::AttrUtils::GetStr(node->GetOpDescBarePtr(), "error_msg");
-      GELOGE(af::FAILED, "Graph [%s] contains UnSupported node [%s]: %s", graph.GetName().c_str(),
-             node->GetNamePtr(), error_msg != nullptr ? error_msg->c_str() : "unknown reason");
+      GELOGE(af::FAILED, "Graph [%s] contains UnSupported node [%s]: %s", graph.GetName().c_str(), node->GetNamePtr(),
+             error_msg != nullptr ? error_msg->c_str() : "unknown reason");
       return af::FAILED;
     }
   }
@@ -515,6 +515,35 @@ Status RemoveDanglingNodes(af::AscGraph &graph) {
   return af::SUCCESS;
 }
 }  // namespace
+
+Status Optimizer::ExpandReduceFirstStageResults(std::vector<autoschedule::AutoScheduleOutput> &schedule_outputs,
+                                                std::vector<ascir::ScheduledResult> &scheduled_results_cur,
+                                                size_t index, ScheduleTask &schedule_task) const {
+  std::vector<ascir::ScheduledResult> scheduled_results_tmp;
+  for (auto &schedule_output : schedule_outputs) {
+    ScheduleGroup schedule_group = {{schedule_output.scheduled_graph}, {}};
+    for (auto &d : scheduled_results_cur) {
+      for (auto &existing_group : d.schedule_groups) {
+        ScheduleGroup copied_group;
+        copied_group.impl_graphs.reserve(existing_group.impl_graphs.size());
+        for (const auto &impl_graph : existing_group.impl_graphs) {
+          ascir::ImplGraph copied(impl_graph.GetName().c_str());
+          GE_ASSERT_TRUE(copied.CopyFrom(impl_graph));
+          copied_group.impl_graphs.push_back(std::move(copied));
+        }
+        copied_group.graph_name_to_score_funcs = existing_group.graph_name_to_score_funcs;
+        existing_group = std::move(copied_group);
+      }
+      d.schedule_groups.emplace_back(schedule_group);
+      RefreshGroupRelation(index, schedule_output.var_relations_, schedule_task, d);
+      scheduled_results_tmp.emplace_back(d);
+      d.schedule_groups.pop_back();
+    }
+    RegisterScoreFuncInScheduleGroup(schedule_output, schedule_group);
+  }
+  scheduled_results_tmp.swap(scheduled_results_cur);
+  return af::SUCCESS;
+}
 
 Optimizer::Optimizer(const OptimizerOptions &options) : options_(options) {}
 
@@ -1041,18 +1070,7 @@ Status Optimizer::AutoScheduler([[maybe_unused]] const HintGraph &hint_graph, Sc
     GELOGI("AutoScheduler end: %s, number of tiling cases = %zu", grouped_graph.GetName().c_str(),
            schedule_outputs.size());
     if (is_reduce_first_stage) {
-      std::vector<ascir::ScheduledResult> scheduled_results_tmp;
-      for (auto &schedule_output : schedule_outputs) {
-        ScheduleGroup schedule_group = {{schedule_output.scheduled_graph}, {}};
-        for (auto &d : scheduled_results_cur) {
-          d.schedule_groups.emplace_back(schedule_group);
-          RefreshGroupRelation(index, schedule_output.var_relations_, schedule_task, d);
-          scheduled_results_tmp.emplace_back(d);
-          d.schedule_groups.pop_back();
-        }
-        RegisterScoreFuncInScheduleGroup(schedule_output, schedule_group);
-      }
-      scheduled_results_tmp.swap(scheduled_results_cur);
+      GE_ASSERT_SUCCESS(ExpandReduceFirstStageResults(schedule_outputs, scheduled_results_cur, index, schedule_task));
     } else {
       if (schedule_task.reduce_type == ReduceTemplateType::kRCore) {
         GE_ASSERT_SUCCESS(CopyImplGraphs(schedule_outputs, scheduled_results_cur));
