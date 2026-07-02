@@ -1103,7 +1103,7 @@ Status Kernel::ParseOptimizeInfo(const ascir::NodeView &node, const ascir::Tenso
 
 Status Kernel::ParseScalarNeedGenBlkTensors(const ascir::NodeView &node, ascir::TensorId id) {
   // 是scalar的节点，判断下是否支持 blk tensor 输入的 Ascir
-  if (!IsOps<Scalar>(node)) {
+  if (!IsOps<Scalar>(node) && !IsOps<ScalarData>(node)) {
     return af::SUCCESS;
   }
   for (auto &out : node->outputs()) {
