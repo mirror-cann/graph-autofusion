@@ -112,109 +112,59 @@ def cmd_trace_nodes(args: argparse.Namespace) -> int:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
-        description="Top-level CLI for sk-network-analysis"
-    )
+    parser = argparse.ArgumentParser(description="Top-level CLI for sk-network-analysis")
     subparsers = parser.add_subparsers(dest="subcommand", required=True)
 
-    analyze = subparsers.add_parser(
-        "analyze", help="Analyze one user-provided result directory"
-    )
-    analyze.add_argument(
-        "input", help="Result root, model asset directory, or model directory"
-    )
-    analyze.add_argument(
-        "--with-ai", action="store_true", help="Request optional AI-layer hints"
-    )
-    analyze.add_argument(
-        "--jobs", type=int, help="Override worker count for multi-model execution"
-    )
+    analyze = subparsers.add_parser("analyze", help="Analyze one user-provided result directory")
+    analyze.add_argument("input", help="Result root, model asset directory, or model directory")
+    analyze.add_argument("--with-ai", action="store_true", help="Request optional AI-layer hints")
+    analyze.add_argument("--jobs", type=int, help="Override worker count for multi-model execution")
     analyze.add_argument(
         "--no-parallel",
         action="store_true",
         help="Disable multi-process execution even in multi-model mode",
     )
-    analyze.add_argument(
-        "--no-cache", action="store_true", help="Disable parser cache reads"
-    )
-    analyze.add_argument(
-        "--profile", action="store_true", help="Write diagnose timing profile"
-    )
+    analyze.add_argument("--no-cache", action="store_true", help="Disable parser cache reads")
+    analyze.add_argument("--profile", action="store_true", help="Write diagnose timing profile")
     analyze.set_defaults(func=cmd_analyze)
 
-    hang = subparsers.add_parser(
-        "diagnose-hang-crash", help="Generate hang and coredump oriented reports"
-    )
-    hang.add_argument(
-        "input", help="Result root, model asset directory, or model directory"
-    )
-    hang.add_argument(
-        "--with-ai", action="store_true", help="Request optional AI-layer hints"
-    )
-    hang.add_argument(
-        "--jobs", type=int, help="Override worker count for multi-model execution"
-    )
+    hang = subparsers.add_parser("diagnose-hang-crash", help="Generate hang and coredump oriented reports")
+    hang.add_argument("input", help="Result root, model asset directory, or model directory")
+    hang.add_argument("--with-ai", action="store_true", help="Request optional AI-layer hints")
+    hang.add_argument("--jobs", type=int, help="Override worker count for multi-model execution")
     hang.add_argument(
         "--no-parallel",
         action="store_true",
         help="Disable multi-process execution even in multi-model mode",
     )
-    hang.add_argument(
-        "--no-cache", action="store_true", help="Disable parser cache reads"
-    )
-    hang.add_argument(
-        "--profile", action="store_true", help="Write diagnose timing profile"
-    )
+    hang.add_argument("--no-cache", action="store_true", help="Disable parser cache reads")
+    hang.add_argument("--profile", action="store_true", help="Write diagnose timing profile")
     hang.set_defaults(func=cmd_diagnose_hang_crash)
 
-    perf = subparsers.add_parser(
-        "diagnose-performance", help="Generate performance oriented reports"
-    )
-    perf.add_argument(
-        "input", help="Result root, model asset directory, or model directory"
-    )
-    perf.add_argument(
-        "--with-ai", action="store_true", help="Request optional AI-layer hints"
-    )
-    perf.add_argument(
-        "--jobs", type=int, help="Override worker count for multi-model execution"
-    )
+    perf = subparsers.add_parser("diagnose-performance", help="Generate performance oriented reports")
+    perf.add_argument("input", help="Result root, model asset directory, or model directory")
+    perf.add_argument("--with-ai", action="store_true", help="Request optional AI-layer hints")
+    perf.add_argument("--jobs", type=int, help="Override worker count for multi-model execution")
     perf.add_argument(
         "--no-parallel",
         action="store_true",
         help="Disable multi-process execution even in multi-model mode",
     )
-    perf.add_argument(
-        "--no-cache", action="store_true", help="Disable parser cache reads"
-    )
-    perf.add_argument(
-        "--profile", action="store_true", help="Write diagnose timing profile"
-    )
+    perf.add_argument("--no-cache", action="store_true", help="Disable parser cache reads")
+    perf.add_argument("--profile", action="store_true", help="Write diagnose timing profile")
     perf.set_defaults(func=cmd_diagnose_performance)
 
-    trace = subparsers.add_parser(
-        "trace-nodes", help="Generate node tracing artifacts only"
-    )
-    trace.add_argument(
-        "input", help="Result root, model asset directory, or model directory"
-    )
-    trace.add_argument(
-        "--with-ai", action="store_true", help="Request optional AI-layer hints"
-    )
-    trace.add_argument(
-        "--jobs", type=int, help="Override worker count for multi-model execution"
-    )
+    trace = subparsers.add_parser("trace-nodes", help="Generate node tracing artifacts only")
+    trace.add_argument("input", help="Result root, model asset directory, or model directory")
+    trace.add_argument("--with-ai", action="store_true", help="Request optional AI-layer hints")
+    trace.add_argument("--jobs", type=int, help="Override worker count for multi-model execution")
     trace.add_argument(
         "--no-parallel",
         action="store_true",
         help="Disable multi-process execution even in multi-model mode",
     )
-    trace.add_argument(
-        "--no-cache", action="store_true", help="Disable parser cache reads"
-    )
-    trace.add_argument(
-        "--profile", action="store_true", help="Write diagnose timing profile"
-    )
+    trace.add_argument("--no-cache", action="store_true", help="Disable parser cache reads")
+    trace.add_argument("--profile", action="store_true", help="Write diagnose timing profile")
     trace.set_defaults(func=cmd_trace_nodes)
 
     return parser

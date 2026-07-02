@@ -32,18 +32,14 @@ def build_baseline(
     log_path = output_dir / "baseline-build.log"
     if structural:
         so_path.write_text("STRUCTURAL BASELINE OUTPUT\n", encoding="utf-8")
-        runner_path.write_text(
-            "#!/bin/sh\nprintf '%s\\n' structural-baseline\n", encoding="utf-8"
-        )
+        runner_path.write_text("#!/bin/sh\nprintf '%s\\n' structural-baseline\n", encoding="utf-8")
         runner_path.chmod(0o755)
         log_path.write_text(
             "structural baseline build; numerical correctness not executed\n",
             encoding="utf-8",
         )
     else:
-        log_path.write_text(
-            "real baseline backend not enabled in this environment\n", encoding="utf-8"
-        )
+        log_path.write_text("real baseline backend not enabled in this environment\n", encoding="utf-8")
     manifest = {
         "schema_version": 1,
         "status": status,
@@ -60,7 +56,5 @@ def build_baseline(
         "log_path": str(log_path),
         "correctness": "not-executed" if structural else "not-available",
     }
-    (output_dir / "operator-baseline-build.json").write_text(
-        json.dumps(manifest, indent=2), encoding="utf-8"
-    )
+    (output_dir / "operator-baseline-build.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
     return manifest

@@ -319,9 +319,7 @@ class ScopeGraphModel:
     @classmethod
     def from_libraries(cls, source):
         if source.mode != "scope":
-            raise ValueError(
-                "ScopeGraphModel.from_libraries currently only supports scope mode."
-            )
+            raise ValueError("ScopeGraphModel.from_libraries currently only supports scope mode.")
 
         scope_library_path, graph_library_path = source.collect()
         with open(scope_library_path, "r", encoding="utf-8") as handle:
@@ -397,15 +395,9 @@ def build_rounds_from_libraries(scope_library, graph_library):
     node_library = graph_library.get("node_library", {})
     node_update_rows = graph_library.get("node_update_registry", {}).get("rows", [])
     node_by_id = {
-        node.get("node_id"): node
-        for node in node_library.get("nodes", [])
-        if isinstance(node.get("node_id"), int)
+        node.get("node_id"): node for node in node_library.get("nodes", []) if isinstance(node.get("node_id"), int)
     }
-    node_update_by_id = {
-        row.get("node_id"): row
-        for row in node_update_rows
-        if isinstance(row.get("node_id"), int)
-    }
+    node_update_by_id = {row.get("node_id"): row for row in node_update_rows if isinstance(row.get("node_id"), int)}
     event_addr_by_node_id, event_addr_facts = _build_event_addr_facts(
         {
             "scope_library": scope_library,
@@ -427,9 +419,7 @@ def build_rounds_from_libraries(scope_library, graph_library):
             merged["effective_addr"] = merged.get("addr")
         effective_node_update_rows.append(merged)
     effective_node_update_by_id = {
-        row.get("node_id"): row
-        for row in effective_node_update_rows
-        if isinstance(row.get("node_id"), int)
+        row.get("node_id"): row for row in effective_node_update_rows if isinstance(row.get("node_id"), int)
     }
     event_roles_by_node_id = defaultdict(
         lambda: {
@@ -475,16 +465,11 @@ def build_rounds_from_libraries(scope_library, graph_library):
     for round_idx, scope in enumerate(scope_library.get("scopes", [])):
         scope_id = scope.get("scope_id")
         round_data = SkScopeRound(round_idx, f"scope {scope_id}")
-        round_data.source_file = os.path.basename(
-            scope_library.get("path") or "scope-library.json"
-        )
+        round_data.source_file = os.path.basename(scope_library.get("path") or "scope-library.json")
         round_data.source_round_idx = 1
         round_data.model_instances = [1]
 
-        scope_name = (
-            str(scope.get("scope_names", [])[0] if scope.get("scope_names") else "")
-            or ""
-        )
+        scope_name = str(scope.get("scope_names", [])[0] if scope.get("scope_names") else "") or ""
         scope_obj = SkScope(
             scope_id=scope_id,
             num_nodes=scope.get("node_count", 0),
@@ -494,13 +479,9 @@ def build_rounds_from_libraries(scope_library, graph_library):
             round_idx=round_idx,
         )
         round_data.scopes.append(scope_obj)
-        update_payload = (
-            scope.get("update") if isinstance(scope.get("update"), dict) else {}
-        )
+        update_payload = scope.get("update") if isinstance(scope.get("update"), dict) else {}
         graph_backed_updates = (
-            update_payload.get("graph_backed_updates", [])
-            if isinstance(update_payload, dict)
-            else []
+            update_payload.get("graph_backed_updates", []) if isinstance(update_payload, dict) else []
         )
         graph_backed_update_by_id = {
             item.get("node_id"): item
@@ -525,8 +506,7 @@ def build_rounds_from_libraries(scope_library, graph_library):
                 scope_id=node_scope_id,
                 round_idx=current_round_idx,
                 index_in_list=0,
-                kernel_type=node_entry.get("kernel_type")
-                or kernel_info.get("kernel_type", ""),
+                kernel_type=node_entry.get("kernel_type") or kernel_info.get("kernel_type", ""),
                 task_ratio=kernel_info.get("task_ratio", (0, 0)),
                 num_blocks=kernel_info.get("num_blocks", 0),
                 cube_num=kernel_info.get("cube_num", 0),
@@ -554,37 +534,25 @@ def build_rounds_from_libraries(scope_library, graph_library):
                 continue
             graph_backed_update = graph_backed_update_by_id.get(node.node_id)
             if graph_backed_update:
-                node.update_type = str(
-                    graph_backed_update.get("update_type") or node.update_type or ""
-                )
+                node.update_type = str(graph_backed_update.get("update_type") or node.update_type or "")
                 node.update_addr = str(graph_backed_update.get("addr") or "")
                 node.update_value = str(graph_backed_update.get("value") or "")
                 node.update_flag = str(graph_backed_update.get("flag") or "")
-                node.update_op_info_ptr = str(
-                    graph_backed_update.get("op_info_ptr") or ""
-                )
-                node.update_op_info_size = int(
-                    graph_backed_update.get("op_info_size") or 0
-                )
-                node.update_func_handle = str(
-                    graph_backed_update.get("func_handle") or ""
-                )
+                node.update_op_info_ptr = str(graph_backed_update.get("op_info_ptr") or "")
+                node.update_op_info_size = int(graph_backed_update.get("op_info_size") or 0)
+                node.update_func_handle = str(graph_backed_update.get("func_handle") or "")
                 node.update_args = str(graph_backed_update.get("args") or "")
                 node.update_args_size = int(graph_backed_update.get("args_size") or 0)
                 node.update_num_blocks = int(graph_backed_update.get("num_blocks") or 0)
             scope_nodes.append(node)
             round_data.all_nodes[node.node_id] = node
 
-        scope_nodes.sort(
-            key=lambda item: (item.stream_id, item.node_idx_in_stream, item.node_id)
-        )
+        scope_nodes.sort(key=lambda item: (item.stream_id, item.node_idx_in_stream, item.node_id))
         for index, node in enumerate(scope_nodes):
             node.index_in_list = index
         scope_obj.nodes = scope_nodes
         synthesized_custom_annotations = list(
-            update_payload.get("synthesized_custom_nodes", [])
-            if isinstance(update_payload, dict)
-            else []
+            update_payload.get("synthesized_custom_nodes", []) if isinstance(update_payload, dict) else []
         )
         round_data.custom_update_nodes = []
         round_data.synthesized_custom_annotations = synthesized_custom_annotations
@@ -603,33 +571,23 @@ def build_rounds_from_libraries(scope_library, graph_library):
                     break
             if section_by_scope_id:
                 scope_obj.names = [section_by_scope_id]
-        fused_member_ids = [
-            node_id
-            for node_id in fused_function.get("node_ids", [])
-            if node_id in scope_node_ids
-        ]
+        fused_member_ids = [node_id for node_id in fused_function.get("node_ids", []) if node_id in scope_node_ids]
         carrier_node = None
         if fused_member_ids:
             kernel_update_ids = [
-                node_id
-                for node_id in fused_member_ids
-                if _update_type(node_update_by_id.get(node_id, {})) == "KERNEL"
+                node_id for node_id in fused_member_ids if _update_type(node_update_by_id.get(node_id, {})) == "KERNEL"
             ]
             carrier_candidates = kernel_update_ids
             if not carrier_candidates:
                 carrier_candidates = []
                 for node_id in fused_member_ids:
-                    node_type = str(
-                        node_by_id.get(node_id, {}).get("node_type") or ""
-                    ).upper()
+                    node_type = str(node_by_id.get(node_id, {}).get("node_type") or "").upper()
                     if node_type == "KERNEL":
                         carrier_candidates.append(node_id)
             if carrier_candidates:
                 carrier_node = round_data.all_nodes.get(carrier_candidates[0])
         if carrier_node:
-            section = device_section_by_scope_name.get(
-                str(fused_function.get("scope_name") or ""), {}
-            )
+            section = device_section_by_scope_name.get(str(fused_function.get("scope_name") or ""), {})
             ordinal_to_node_id = {}
             for item in fused_function.get("node_details", []):
                 ordinal = item.get("ordinal")
@@ -661,10 +619,7 @@ def build_rounds_from_libraries(scope_library, graph_library):
                         return False
                     if _update_type(current_row) != expected_type:
                         return False
-                    return (
-                        str(current_row.get("effective_addr") or "")
-                        == current_task_addr
-                    )
+                    return str(current_row.get("effective_addr") or "") == current_task_addr
 
                 for task in section_tasks:
                     task_type = str(task.get("task_type") or "").strip().upper()
@@ -674,16 +629,8 @@ def build_rounds_from_libraries(scope_library, graph_library):
                     if not task_addr:
                         continue
                     node_id = ordinal_to_node_id.get(task.get("task_index"))
-                    node_obj = (
-                        scope_node_by_id.get(node_id)
-                        if isinstance(node_id, int)
-                        else None
-                    )
-                    effective_row = (
-                        effective_node_update_by_id.get(node_id)
-                        if isinstance(node_id, int)
-                        else None
-                    )
+                    node_obj = scope_node_by_id.get(node_id) if isinstance(node_id, int) else None
+                    effective_row = effective_node_update_by_id.get(node_id) if isinstance(node_id, int) else None
                     if task_type == "EVENT_NOTIFY":
                         fact = inherited_write_facts.setdefault(
                             task_addr, {"addr": task_addr, "values": [], "node_ids": []}
@@ -795,10 +742,7 @@ def build_rounds_from_libraries(scope_library, graph_library):
                     continue
                 for wait_row in wait_rows:
                     dst_id = wait_row.get("node_id")
-                    if (
-                        carrier_node_id not in scope_node_ids
-                        or dst_id not in scope_node_ids
-                    ):
+                    if carrier_node_id not in scope_node_ids or dst_id not in scope_node_ids:
                         continue
                     if carrier_node_id == dst_id:
                         continue
@@ -807,9 +751,7 @@ def build_rounds_from_libraries(scope_library, graph_library):
                         continue
                     seen_update_edges.add(edge_key)
                     notify_wait_count += 1
-                    update_edges.append(
-                        SkEdge(carrier_node_id, dst_id, "update_notify_wait", addr)
-                    )
+                    update_edges.append(SkEdge(carrier_node_id, dst_id, "update_notify_wait", addr))
 
             for write_row in notify_rows:
                 src_id = write_row.get("node_id")
@@ -824,9 +766,7 @@ def build_rounds_from_libraries(scope_library, graph_library):
                         continue
                     seen_update_edges.add(edge_key)
                     notify_wait_count += 1
-                    update_edges.append(
-                        SkEdge(src_id, dst_id, "update_notify_wait", addr)
-                    )
+                    update_edges.append(SkEdge(src_id, dst_id, "update_notify_wait", addr))
 
         round_data.update_edges = update_edges
         round_data.update_summary = {
@@ -834,9 +774,7 @@ def build_rounds_from_libraries(scope_library, graph_library):
             "synthesized_custom_count": len(synthesized_custom_annotations),
             "notify_wait_edge_count": notify_wait_count,
             "wait_reset_edge_count": 0,
-            "addr_count": len(
-                {edge.event_id for edge in update_edges if edge.event_id}
-            ),
+            "addr_count": len({edge.event_id for edge in update_edges if edge.event_id}),
         }
         rounds.append(round_data)
 
@@ -939,16 +877,8 @@ def _match_fused_function(scope_node_ids, fused_functions):
 
 
 def _build_event_addr_facts(report):
-    scope_library = (
-        report.get("scope_library", {})
-        if isinstance(report.get("scope_library"), dict)
-        else {}
-    )
-    graph_library = (
-        report.get("graph_library", {})
-        if isinstance(report.get("graph_library"), dict)
-        else {}
-    )
+    scope_library = report.get("scope_library", {}) if isinstance(report.get("scope_library"), dict) else {}
+    graph_library = report.get("graph_library", {}) if isinstance(report.get("graph_library"), dict) else {}
     node_updates = graph_library.get("node_update_registry", {}).get("rows", [])
 
     addr_by_node_id = {}
@@ -976,11 +906,7 @@ def _build_event_addr_facts(report):
         node_id = row.get("node_id")
         addr = explicit_addr_by_node_id.get(node_id) or row.get("addr")
         target_type = _update_type(row)
-        if (
-            node_id is None
-            or not addr
-            or target_type not in {"VALUE_WRITE", "VALUE_WAIT"}
-        ):
+        if node_id is None or not addr or target_type not in {"VALUE_WRITE", "VALUE_WAIT"}:
             continue
         addr_by_node_id[node_id] = addr
         bucket = grouped.setdefault(
@@ -1298,15 +1224,9 @@ def generate_html(html_input: ScopeHtmlInput):
         edges, merged_nodes = build_edges(rd, init_nodes)
         rounds_json_list.append(
             {
-                "nodes": [
-                    merged_nodes[nid].to_dict() for nid in sorted(merged_nodes.keys())
-                ],
-                "custom_update_nodes": [
-                    node.to_dict() for node in getattr(rd, "custom_update_nodes", [])
-                ],
-                "synthesized_custom_annotations": getattr(
-                    rd, "synthesized_custom_annotations", []
-                ),
+                "nodes": [merged_nodes[nid].to_dict() for nid in sorted(merged_nodes.keys())],
+                "custom_update_nodes": [node.to_dict() for node in getattr(rd, "custom_update_nodes", [])],
+                "synthesized_custom_annotations": getattr(rd, "synthesized_custom_annotations", []),
                 "scopes": [sc.to_dict() for sc in rd.scopes],
                 "edges": [
                     {
@@ -1373,27 +1293,13 @@ def generate_html(html_input: ScopeHtmlInput):
             (
                 "节点类型",
                 [
-                    make_scope_explainer_box(
-                        "算子", color="#43A047", extra_class="structure-only"
-                    ),
-                    make_scope_explainer_box(
-                        "事件通知", color="#FB8C00", extra_class="structure-only"
-                    ),
-                    make_scope_explainer_box(
-                        "事件等待", color="#1E88E5", extra_class="structure-only"
-                    ),
-                    make_scope_explainer_box(
-                        "事件重置", color="#E53935", extra_class="structure-only"
-                    ),
-                    make_scope_explainer_box(
-                        "内存写入", color="#AB47BC", extra_class="structure-only"
-                    ),
-                    make_scope_explainer_box(
-                        "内存等待", color="#26A69A", extra_class="structure-only"
-                    ),
-                    make_scope_explainer_box(
-                        "SK", color="#43A047", extra_class="update-only", hidden=True
-                    ),
+                    make_scope_explainer_box("算子", color="#43A047", extra_class="structure-only"),
+                    make_scope_explainer_box("事件通知", color="#FB8C00", extra_class="structure-only"),
+                    make_scope_explainer_box("事件等待", color="#1E88E5", extra_class="structure-only"),
+                    make_scope_explainer_box("事件重置", color="#E53935", extra_class="structure-only"),
+                    make_scope_explainer_box("内存写入", color="#AB47BC", extra_class="structure-only"),
+                    make_scope_explainer_box("内存等待", color="#26A69A", extra_class="structure-only"),
+                    make_scope_explainer_box("SK", color="#43A047", extra_class="update-only", hidden=True),
                     make_scope_explainer_box(
                         "Value Write",
                         color="#8E24AA",
@@ -1417,9 +1323,7 @@ def generate_html(html_input: ScopeHtmlInput):
             (
                 "连边关系",
                 [
-                    make_scope_explainer_line(
-                        "流内连边", color="#a3a3a3", extra_class="structure-only"
-                    ),
+                    make_scope_explainer_line("流内连边", color="#a3a3a3", extra_class="structure-only"),
                     make_scope_explainer_line(
                         "事件匹配边 (Notify→Wait)",
                         color="#E91E63",
@@ -1459,9 +1363,7 @@ def generate_html(html_input: ScopeHtmlInput):
     )
     toolbar_html = render_graph_toolbar(
         label="ScopeName 切换",
-        nav_html=render_graph_nav(
-            "scopePrevBtn", "scopeNextBtn", "上一个 Scope", "下一个 Scope"
-        ),
+        nav_html=render_graph_nav("scopePrevBtn", "scopeNextBtn", "上一个 Scope", "下一个 Scope"),
         select_html=(
             '<select class="toolbar-input graph-select" id="scopeSelect" '
             'style="width:560px; min-width:560px; max-width:560px;"></select>'
@@ -2775,9 +2677,7 @@ def _find_library_pair(base_dir):
             candidates.append(bundle)
 
     if not candidates:
-        raise FileNotFoundError(
-            f"[ERROR] 未在 {base_dir} 中找到 scope-library.json 与 graph-library.json 的成对库文件"
-        )
+        raise FileNotFoundError(f"[ERROR] 未在 {base_dir} 中找到 scope-library.json 与 graph-library.json 的成对库文件")
 
     # 优先选择更浅层目录 + 更晚更新时间
     candidates.sort(key=lambda item: (item[0], item[1]))
@@ -2826,17 +2726,13 @@ def main():
         sys.exit(1)
 
     if (args.scope_library is None) ^ (args.graph_library is None):
-        _emit(
-            "Error: --scope-library 和 --graph-library 必须同时提供。", file=sys.stderr
-        )
+        _emit("Error: --scope-library 和 --graph-library 必须同时提供。", file=sys.stderr)
         sys.exit(1)
 
     if args.scope_library and args.graph_library:
         scope_library = args.scope_library
         graph_library = args.graph_library
-        bundle_root = (
-            os.path.dirname(scope_library) if os.path.isfile(scope_library) else "."
-        )
+        bundle_root = os.path.dirname(scope_library) if os.path.isfile(scope_library) else "."
     else:
         try:
             scope_library, graph_library, bundle_root = _find_library_pair(input_path)

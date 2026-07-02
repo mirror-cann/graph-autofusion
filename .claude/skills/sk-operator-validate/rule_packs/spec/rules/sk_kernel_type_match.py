@@ -37,9 +37,7 @@ _MIX_RE = re.compile(r"__mix__\s*\(\s*(\d+)\s*,\s*(\d+)\s*\)")
 _GLOBAL_RE = re.compile(
     r"__global__\s+(?P<kt>__vector__|__cube__|__aicore__|__mix__\s*\([^)]*\))\s+void\s+(?P<name>\w+)"
 )
-_SK_RE = re.compile(
-    r"__sk__\s+(?P<kt>__vector__|__cube__|__aicore__|__mix__\s*\([^)]*\))\s+void\s+(?P<name>\w+)"
-)
+_SK_RE = re.compile(r"__sk__\s+(?P<kt>__vector__|__cube__|__aicore__|__mix__\s*\([^)]*\))\s+void\s+(?P<name>\w+)")
 
 
 def _expected_sk_type(global_kt: str) -> str:
@@ -61,10 +59,7 @@ def _canonical(kt: str) -> str:
 def check(units):
     findings = []
     for unit in units:
-        globals_by_base = {
-            m.group("name"): _expected_sk_type(m.group("kt"))
-            for m in _GLOBAL_RE.finditer(unit["text"])
-        }
+        globals_by_base = {m.group("name"): _expected_sk_type(m.group("kt")) for m in _GLOBAL_RE.finditer(unit["text"])}
         if not globals_by_base:
             continue
         for sm in _SK_RE.finditer(unit["text"]):

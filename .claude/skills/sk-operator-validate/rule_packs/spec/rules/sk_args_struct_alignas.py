@@ -25,9 +25,7 @@ RULE = {
 }
 
 _SMALL_TYPES = ("int8_t", "uint8_t", "int16_t", "uint16_t", "bool")
-_ARGS_STRUCT_RE = re.compile(
-    r"struct\s+(?P<name>\w*Args)\s*\{(?P<body>[^}]*)\}", re.DOTALL
-)
+_ARGS_STRUCT_RE = re.compile(r"struct\s+(?P<name>\w*Args)\s*\{(?P<body>[^}]*)\}", re.DOTALL)
 
 
 def check(units):
@@ -40,10 +38,7 @@ def check(units):
                 if not stripped or stripped.startswith("//"):
                     continue
                 # A field line with a small type that is not preceded by alignas(.
-                if (
-                    any(re.search(rf"\b{t}\b", stripped) for t in _SMALL_TYPES)
-                    and "alignas" not in stripped
-                ):
+                if any(re.search(rf"\b{t}\b", stripped) for t in _SMALL_TYPES) and "alignas" not in stripped:
                     findings.append(
                         {
                             "rule_id": RULE["id"],
@@ -52,8 +47,7 @@ def check(units):
                             "actionable_by": ["human"],
                             "remediation_hint": {"kind": "human-decision"},
                             "message": (
-                                f"struct {struct_name} field {stripped!r} is a "
-                                "sub-4-byte type and must use alignas(4)."
+                                f"struct {struct_name} field {stripped!r} is a sub-4-byte type and must use alignas(4)."
                             ),
                             "target_file": unit["rel"],
                             "evidence_signature": f"alignas:{struct_name}:{stripped}",

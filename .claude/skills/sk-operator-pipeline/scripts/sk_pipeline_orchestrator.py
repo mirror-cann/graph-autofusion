@@ -45,9 +45,7 @@ from typing import Any, Callable, Optional, Sequence
 
 from sk_artifact_layout import ArtifactLayout, safe_slug
 
-_AUTO_REMEDIATION_KINDS = frozenset(
-    {"remove-line-containing", "rename-symbol", "add-include", "replace-pattern"}
-)
+_AUTO_REMEDIATION_KINDS = frozenset({"remove-line-containing", "rename-symbol", "add-include", "replace-pattern"})
 
 _SKILL_SCRIPTS = {
     "asset_adapter": ("sk-operator-asset-adapter", "operator_asset_adapter.py"),
@@ -80,12 +78,8 @@ _VERIFY_BACKENDS = frozenset({"standalone", "wheel", "both", "none"})
 _WHEEL_MODES = frozenset({"never", "cache", "always"})
 DEFAULT_BUILD_CACHE_DIR = Path("build") / "sk-operator-build-cache"
 _SUPPORT_HEADER_SUFFIXES = frozenset({".h", ".hh", ".hpp", ".hxx", ".inc"})
-_LOCAL_INCLUDE_SOURCE_SUFFIXES = frozenset(
-    {".asc", ".c", ".cc", ".cpp", ".cxx", *_SUPPORT_HEADER_SUFFIXES}
-)
-_SUPPORT_SKIP_DIRS = frozenset(
-    {".git", "__pycache__", "build", "cmake-build-debug", "out", "tests"}
-)
+_LOCAL_INCLUDE_SOURCE_SUFFIXES = frozenset({".asc", ".c", ".cc", ".cpp", ".cxx", *_SUPPORT_HEADER_SUFFIXES})
+_SUPPORT_SKIP_DIRS = frozenset({".git", "__pycache__", "build", "cmake-build-debug", "out", "tests"})
 _QUOTED_INCLUDE_RE = re.compile(r'(?m)^\s*#\s*include\s+"([^"]+)"')
 
 
@@ -159,11 +153,7 @@ class PipelineOrchestrator:
         env: Optional[dict[str, str]] = None,
     ) -> None:
         self.skills_root = Path(skills_root).expanduser().resolve()
-        self.repo_root = (
-            Path(repo_root).expanduser().resolve()
-            if repo_root
-            else Path.cwd().resolve()
-        )
+        self.repo_root = Path(repo_root).expanduser().resolve() if repo_root else Path.cwd().resolve()
         self.python = python_exe
         self.env = env  # subprocess env (lets tests inject the fake toolchain PATH)
         self._current_target_chip = ""
@@ -267,15 +257,11 @@ class PipelineOrchestrator:
             verify_backend=resolved_verify_backend,
             reuse_wheel=reuse_wheel,
         )
-        ops, asset_understanding = self._understand_and_expand_assets(
-            assets, output_dir, asset_names=asset_names
-        )
+        ops, asset_understanding = self._understand_and_expand_assets(assets, output_dir, asset_names=asset_names)
         if explicit_run_slug:
             asset_slug = run_slug
         elif len(asset_understanding.get("assets", [])) == 1:
-            asset_slug = safe_slug(
-                str(asset_understanding["assets"][0].get("name") or "asset")
-            )
+            asset_slug = safe_slug(str(asset_understanding["assets"][0].get("name") or "asset"))
         else:
             asset_slug = safe_slug(aggregate_wheel_name, "run")
         source_path = None
@@ -283,11 +269,7 @@ class PipelineOrchestrator:
             raw_path = asset_understanding["assets"][0].get("path")
             source_path = Path(raw_path) if raw_path else None
         job_env = self.env if self.env is not None else os.environ
-        resolved_jobs = (
-            jobs
-            if jobs and jobs > 0
-            else self._default_jobs(len(ops), self._arch_count_from_env(job_env))
-        )
+        resolved_jobs = jobs if jobs and jobs > 0 else self._default_jobs(len(ops), self._arch_count_from_env(job_env))
         cache_dir = Path(build_cache_dir).expanduser()
         if not cache_dir.is_absolute():
             cache_dir = self.repo_root / cache_dir
@@ -352,9 +334,7 @@ class PipelineOrchestrator:
                 }
                 for op in ops
             },
-            "iterations": [
-                {"iteration_index": 0, "stages": [], "findings": [], "escalations": []}
-            ],
+            "iterations": [{"iteration_index": 0, "stages": [], "findings": [], "escalations": []}],
         }
         if "00" in selected_stages:
             state["stages"].append(
@@ -382,9 +362,7 @@ class PipelineOrchestrator:
                 op_root = stage_root / op["name"]
                 inputs = op_root / "inputs"
                 outputs = op_root / "outputs"
-                materialized = self._materialize_input(
-                    op.get("sk_asset", op["asset"]), inputs / "asset"
-                )
+                materialized = self._materialize_input(op.get("sk_asset", op["asset"]), inputs / "asset")
                 manifest = self._detect_form(inputs / "asset", outputs)
                 return {
                     "op_name": op["name"],
@@ -396,9 +374,7 @@ class PipelineOrchestrator:
 
             stage_results, parallel = self._run_parallel_ops(ops, resolved_jobs, worker)
             if parallel["failed_ops"]:
-                raise OrchestratorError(
-                    f"01 failed for: {', '.join(parallel['failed_ops'])}"
-                )
+                raise OrchestratorError(f"01 failed for: {', '.join(parallel['failed_ops'])}")
             for item in stage_results:
                 state["ops"][item["op_name"]]["form"] = item["form"]
                 state["ops"][item["op_name"]]["stage01"] = {
@@ -437,9 +413,7 @@ class PipelineOrchestrator:
                 for (
                     support_name,
                     support_source,
-                ) in self._shared_support_dirs_for_stage_asset(
-                    stage_asset, source_asset
-                ):
+                ) in self._shared_support_dirs_for_stage_asset(stage_asset, source_asset):
                     support_dest = inputs / "support" / support_name
                     self._materialize_input(support_source, support_dest)
                     support_args.append(f"{support_name}={support_dest}")
@@ -447,8 +421,7 @@ class PipelineOrchestrator:
                     inputs / "asset",
                     outputs,
                     support_args,
-                    understanding=Path(op["understanding_outputs"])
-                    / "operator-asset-understanding.json",
+                    understanding=Path(op["understanding_outputs"]) / "operator-asset-understanding.json",
                     target_chip=target_chip,
                     package_name=aggregate_wheel_name,
                     package_version=package_version,
@@ -466,9 +439,7 @@ class PipelineOrchestrator:
 
             stage_results, parallel = self._run_parallel_ops(ops, resolved_jobs, worker)
             if parallel["failed_ops"]:
-                raise OrchestratorError(
-                    f"02 failed for: {', '.join(parallel['failed_ops'])}"
-                )
+                raise OrchestratorError(f"02 failed for: {', '.join(parallel['failed_ops'])}")
             for item in stage_results:
                 manifest = item["manifest"]
                 op_name = item["op_name"]
@@ -479,24 +450,22 @@ class PipelineOrchestrator:
                             manifest_entries.append(entry)
                 if manifest_entries:
                     entry_meta = manifest_entries[0]
-                    state["ops"][op_name]["entry_name"] = entry_meta.get(
+                    state["ops"][op_name]["entry_name"] = entry_meta.get("entry_name") or state["ops"][op_name].get(
                         "entry_name"
-                    ) or state["ops"][op_name].get("entry_name")
-                    state["ops"][op_name]["source_entry_name"] = entry_meta.get(
-                        "source_entry_name"
-                    ) or state["ops"][op_name].get("source_entry_name")
-                    state["ops"][op_name]["public_entry_name"] = entry_meta.get(
-                        "public_entry_name"
-                    ) or state["ops"][op_name].get("entry_name")
-                    state["ops"][op_name]["internal_symbol_name"] = entry_meta.get(
-                        "internal_symbol_name"
-                    ) or state["ops"][op_name].get("entry_name")
-                    state["ops"][op_name]["bind_target"] = entry_meta.get(
-                        "bind_target"
-                    ) or state["ops"][op_name].get("source_entry_name")
-                    state["ops"][op_name]["name_resolution"] = entry_meta.get(
-                        "name_resolution", {}
                     )
+                    state["ops"][op_name]["source_entry_name"] = entry_meta.get("source_entry_name") or state["ops"][
+                        op_name
+                    ].get("source_entry_name")
+                    state["ops"][op_name]["public_entry_name"] = entry_meta.get("public_entry_name") or state["ops"][
+                        op_name
+                    ].get("entry_name")
+                    state["ops"][op_name]["internal_symbol_name"] = entry_meta.get("internal_symbol_name") or state[
+                        "ops"
+                    ][op_name].get("entry_name")
+                    state["ops"][op_name]["bind_target"] = entry_meta.get("bind_target") or state["ops"][op_name].get(
+                        "source_entry_name"
+                    )
+                    state["ops"][op_name]["name_resolution"] = entry_meta.get("name_resolution", {})
                 state["ops"][op_name]["stage02"] = {
                     "outputs": item["outputs"],
                     "pybind_layout": manifest.get("pybind_layout"),
@@ -504,12 +473,8 @@ class PipelineOrchestrator:
                 }
                 if manifest.get("status") == "needs-human":
                     state["status"] = "needs-human"
-                    state["ops"][op_name]["escalations"] = manifest.get(
-                        "escalations", []
-                    )
-                    state["iterations"][0]["escalations"].extend(
-                        manifest.get("escalations", [])
-                    )
+                    state["ops"][op_name]["escalations"] = manifest.get("escalations", [])
+                    state["iterations"][0]["escalations"].extend(manifest.get("escalations", []))
                     self._write_state(output_dir, state)
                     if emit_layout:
                         self._emit_layout(
@@ -551,9 +516,7 @@ class PipelineOrchestrator:
             aggregate_inputs = aggregate_root / "inputs"
             aggregate_outputs = aggregate_root / "outputs"
             for op in ops:
-                self._materialize_input(
-                    stage_root / op["name"] / "outputs", aggregate_inputs / op["name"]
-                )
+                self._materialize_input(stage_root / op["name"] / "outputs", aggregate_inputs / op["name"])
             aggregate_manifest = self._aggregate(
                 adapted_outputs,
                 aggregate_outputs,
@@ -562,10 +525,7 @@ class PipelineOrchestrator:
             )
             state["aggregate"] = {
                 "stage02_outputs": str(aggregate_outputs),
-                "entries": [
-                    entry["entry_name"]
-                    for entry in self._entries_from_manifest(aggregate_manifest)
-                ],
+                "entries": [entry["entry_name"] for entry in self._entries_from_manifest(aggregate_manifest)],
             }
             state["stages"].append(
                 self._stage_record(
@@ -592,9 +552,7 @@ class PipelineOrchestrator:
                     self._stage_dir(output_dir, "02") / op["name"] / "outputs",
                     inputs / "adapted-output",
                 )
-                result = self._scan_spec(
-                    inputs / "adapted-output" / "operator-sk-adapted", outputs
-                )
+                result = self._scan_spec(inputs / "adapted-output" / "operator-sk-adapted", outputs)
                 op_findings = result.get("findings", [])
                 return {
                     "op_name": op["name"],
@@ -605,9 +563,7 @@ class PipelineOrchestrator:
 
             stage_results, parallel = self._run_parallel_ops(ops, resolved_jobs, worker)
             if parallel["failed_ops"]:
-                raise OrchestratorError(
-                    f"03 failed for: {', '.join(parallel['failed_ops'])}"
-                )
+                raise OrchestratorError(f"03 failed for: {', '.join(parallel['failed_ops'])}")
             for item in stage_results:
                 op_findings = item["findings"]
                 findings.extend(op_findings)
@@ -656,9 +612,7 @@ class PipelineOrchestrator:
 
             stage_results, parallel = self._run_parallel_ops(ops, resolved_jobs, worker)
             if parallel["failed_ops"]:
-                raise OrchestratorError(
-                    f"04 failed for: {', '.join(parallel['failed_ops'])}"
-                )
+                raise OrchestratorError(f"04 failed for: {', '.join(parallel['failed_ops'])}")
             for item in stage_results:
                 op_findings = item["findings"]
                 findings.extend(op_findings)
@@ -678,9 +632,7 @@ class PipelineOrchestrator:
             state["iterations"][0]["stages"].append("operator-validate.compat")
             self._write_state(output_dir, state)
 
-        blocking = [
-            finding for finding in findings if finding.get("severity") == "blocker"
-        ]
+        blocking = [finding for finding in findings if finding.get("severity") == "blocker"]
         if blocking:
             state["status"] = "needs-human"
             state["iterations"][0]["findings"] = findings
@@ -706,9 +658,7 @@ class PipelineOrchestrator:
             stage_root = self._stage_dir(output_dir, "05")
             inputs = stage_root / "inputs"
             outputs = stage_root / "outputs"
-            aggregate_outputs = (
-                self._stage_dir(output_dir, "02") / "_aggregate" / "outputs"
-            )
+            aggregate_outputs = self._stage_dir(output_dir, "02") / "_aggregate" / "outputs"
             self._materialize_input(aggregate_outputs, inputs / "aggregate-output")
             self._copy_contents(aggregate_outputs, outputs)
             binding = self._generate_pybind_binding(outputs)
@@ -732,13 +682,9 @@ class PipelineOrchestrator:
             stage_started_at = self._utc_now()
             stage_root = self._stage_dir(output_dir, "06")
             inputs = stage_root / "inputs"
-            aggregate_outputs = (
-                self._stage_dir(output_dir, "02") / "_aggregate" / "outputs"
-            )
+            aggregate_outputs = self._stage_dir(output_dir, "02") / "_aggregate" / "outputs"
             self._materialize_input(aggregate_outputs, inputs / "aggregate-output")
-            aggregate_manifest = self._read_json(
-                aggregate_outputs / "operator-sk-adapted.json"
-            )
+            aggregate_manifest = self._read_json(aggregate_outputs / "operator-sk-adapted.json")
             entries = self._entries_from_manifest(aggregate_manifest)
             ops_by_entry: dict[str, dict[str, Any]] = {}
             for op in ops:
@@ -756,20 +702,14 @@ class PipelineOrchestrator:
 
             def baseline_worker(entry: dict[str, Any]) -> dict[str, Any]:
                 entry_name = entry["entry_name"]
-                source_entry_name = (
-                    entry.get("bind_target")
-                    or entry.get("source_entry_name")
-                    or entry_name
-                )
+                source_entry_name = entry.get("bind_target") or entry.get("source_entry_name") or entry_name
                 op = ops_by_entry.get(entry_name)
                 if op is None:
                     op = ops_by_entry.get(str(source_entry_name))
                 if op is None and len(ops) == 1:
                     op = ops[0]
                 if op is None:
-                    raise OrchestratorError(
-                        f"no normalized operator unit found for baseline entry {entry_name}"
-                    )
+                    raise OrchestratorError(f"no normalized operator unit found for baseline entry {entry_name}")
                 entry_root = baseline_root / entry_name
                 baseline_inputs = entry_root / "inputs"
                 baseline_outputs = entry_root / "outputs"
@@ -793,46 +733,26 @@ class PipelineOrchestrator:
                         else "failed"
                     ),
                     "manifest": manifest,
-                    "manifest_path": str(
-                        baseline_outputs / "operator-baseline-build.json"
-                    ),
+                    "manifest_path": str(baseline_outputs / "operator-baseline-build.json"),
                     "outputs": str(baseline_outputs),
                 }
 
-            baseline_results, baseline_parallel = self._run_parallel_ops(
-                entries, resolved_jobs, baseline_worker
-            )
+            baseline_results, baseline_parallel = self._run_parallel_ops(entries, resolved_jobs, baseline_worker)
             if baseline_parallel["failed_ops"]:
-                raise OrchestratorError(
-                    f"baseline build failed for: {', '.join(baseline_parallel['failed_ops'])}"
-                )
-            baseline_manifests = {
-                item["op_name"]: Path(item["manifest_path"])
-                for item in baseline_results
-            }
+                raise OrchestratorError(f"baseline build failed for: {', '.join(baseline_parallel['failed_ops'])}")
+            baseline_manifests = {item["op_name"]: Path(item["manifest_path"]) for item in baseline_results}
 
             standalone_root = stage_root / "standalone"
             standalone_inputs = standalone_root / "inputs"
             standalone_outputs = standalone_root / "outputs"
-            self._materialize_input(
-                aggregate_outputs, standalone_inputs / "aggregate-output"
-            )
-            fixture_statuses = self._copy_runtime_fixtures(
-                ops, standalone_inputs / "runtime-fixtures"
-            )
+            self._materialize_input(aggregate_outputs, standalone_inputs / "aggregate-output")
+            fixture_statuses = self._copy_runtime_fixtures(ops, standalone_inputs / "runtime-fixtures")
             if len(ops) == 1:
                 source_fixture_name = ops[0]["name"]
-                source_fixture_dir = (
-                    standalone_inputs / "runtime-fixtures" / source_fixture_name
-                )
+                source_fixture_dir = standalone_inputs / "runtime-fixtures" / source_fixture_name
                 for entry in entries:
-                    if (
-                        entry["entry_name"] not in fixture_statuses
-                        and source_fixture_dir.exists()
-                    ):
-                        entry_fixture_dir = (
-                            standalone_inputs / "runtime-fixtures" / entry["entry_name"]
-                        )
+                    if entry["entry_name"] not in fixture_statuses and source_fixture_dir.exists():
+                        entry_fixture_dir = standalone_inputs / "runtime-fixtures" / entry["entry_name"]
                         self._materialize_input(source_fixture_dir, entry_fixture_dir)
                         source_status = next(iter(fixture_statuses.values()))
                         fixture_statuses[entry["entry_name"]] = {
@@ -871,28 +791,20 @@ class PipelineOrchestrator:
                     cache_dir, "standalone", standalone_cache_key, standalone_outputs
                 )
                 if cached_standalone:
-                    standalone_manifest = self._relocate_standalone_verify_manifest(
-                        standalone_outputs
-                    )
-                    standalone_build = self._relocate_standalone_build_manifest(
-                        standalone_outputs
-                    )
+                    standalone_manifest = self._relocate_standalone_verify_manifest(standalone_outputs)
+                    standalone_build = self._relocate_standalone_build_manifest(standalone_outputs)
                     standalone_build_status = standalone_build.get("status", "reused")
                     standalone_cache_hit = True
                 else:
-                    standalone_build_status, standalone_build, standalone_log = (
-                        self._build_standalone_executable(
-                            standalone_outputs,
-                            target_chip,
-                            target_cann,
-                            allow_structural_toolchain=allow_structural_toolchain,
-                        )
+                    standalone_build_status, standalone_build, standalone_log = self._build_standalone_executable(
+                        standalone_outputs,
+                        target_chip,
+                        target_cann,
+                        allow_structural_toolchain=allow_structural_toolchain,
                     )
                     if standalone_build_status not in {"passed", "structural-passed"}:
                         state["status"] = "needs-human"
-                        state["iterations"][0]["findings"] = (
-                            findings + analyze_build_log(standalone_log)
-                        )
+                        state["iterations"][0]["findings"] = findings + analyze_build_log(standalone_log)
                         state["stages"].append(
                             self._stage_record(
                                 "06",
@@ -961,13 +873,10 @@ class PipelineOrchestrator:
                 standalone_outputs / "verify",
                 entries,
                 fixture_statuses=fixture_statuses,
-                verify_enabled=do_verify
-                and self._verify_uses_standalone(resolved_verify_backend),
+                verify_enabled=do_verify and self._verify_uses_standalone(resolved_verify_backend),
                 jobs=resolved_jobs,
                 executable_path=(
-                    Path(standalone_build.get("executable", ""))
-                    if standalone_build.get("executable")
-                    else None
+                    Path(standalone_build.get("executable", "")) if standalone_build.get("executable") else None
                 ),
                 executable_paths=standalone_executable_paths,
                 precheck_status=standalone_precheck_status,
@@ -984,9 +893,7 @@ class PipelineOrchestrator:
             }
             wheel_verification: dict[str, Any] | None = None
             wheel_paths: list[str] = []
-            if self._needs_wheel_stage(
-                resolved_wheel_mode, resolved_verify_backend, reuse_wheel
-            ):
+            if self._needs_wheel_stage(resolved_wheel_mode, resolved_verify_backend, reuse_wheel):
                 wheel_root = stage_root / "wheel"
                 wheel_inputs = wheel_root / "inputs"
                 wheel_outputs = wheel_root / "outputs"
@@ -1000,10 +907,7 @@ class PipelineOrchestrator:
                     expected_prefix = f"{aggregate_wheel_name}-{package_version}-"
                     if not reuse_path.is_file():
                         raise OrchestratorError(f"reuse wheel not found: {reuse_path}")
-                    if (
-                        not reuse_path.name.startswith(expected_prefix)
-                        or reuse_path.suffix != ".whl"
-                    ):
+                    if not reuse_path.name.startswith(expected_prefix) or reuse_path.suffix != ".whl":
                         raise OrchestratorError(
                             f"reuse wheel does not match {aggregate_wheel_name} {package_version}: {reuse_path.name}"
                         )
@@ -1033,29 +937,14 @@ class PipelineOrchestrator:
                     wheel_summary["cache_key"] = wheel_cache_key
                     cached_wheel = None
                     if resolved_wheel_mode == "cache":
-                        cached_wheel = self._copy_cached_namespace(
-                            cache_dir, "wheels", wheel_cache_key, wheel_outputs
-                        )
+                        cached_wheel = self._copy_cached_namespace(cache_dir, "wheels", wheel_cache_key, wheel_outputs)
                     if cached_wheel:
-                        cached_manifest = self._relocate_wheel_build_manifest(
-                            wheel_outputs
-                        )
-                        cached_status = (
-                            cached_manifest.get("status")
-                            if isinstance(cached_manifest, dict)
-                            else ""
-                        )
-                        wheel_paths = [
-                            str(path)
-                            for path in sorted((wheel_outputs / "wheels").glob("*.whl"))
-                        ]
+                        cached_manifest = self._relocate_wheel_build_manifest(wheel_outputs)
+                        cached_status = cached_manifest.get("status") if isinstance(cached_manifest, dict) else ""
+                        wheel_paths = [str(path) for path in sorted((wheel_outputs / "wheels").glob("*.whl"))]
                         wheel_summary.update(
                             {
-                                "status": (
-                                    "structural-reused"
-                                    if cached_status == "structural-passed"
-                                    else "reused"
-                                ),
+                                "status": ("structural-reused" if cached_status == "structural-passed" else "reused"),
                                 "cache_hit": True,
                                 "reused_from": cached_wheel,
                                 "wheel_paths": wheel_paths,
@@ -1063,23 +952,15 @@ class PipelineOrchestrator:
                             }
                         )
                     else:
-                        build_status, build_result, build_log = (
-                            self._build_native_wheel(
-                                wheel_outputs,
-                                jobs=resolved_jobs,
-                                target_chip=target_chip,
-                                allow_structural_toolchain=allow_structural_toolchain,
-                            )
+                        build_status, build_result, build_log = self._build_native_wheel(
+                            wheel_outputs,
+                            jobs=resolved_jobs,
+                            target_chip=target_chip,
+                            allow_structural_toolchain=allow_structural_toolchain,
                         )
-                        wheels_src = (
-                            wheel_outputs / "operator-sk-native-wheel-build" / "wheels"
-                        )
+                        wheels_src = wheel_outputs / "operator-sk-native-wheel-build" / "wheels"
                         wheel_paths = []
-                        for wheel in (
-                            sorted(wheels_src.glob("*.whl"))
-                            if wheels_src.exists()
-                            else []
-                        ):
+                        for wheel in sorted(wheels_src.glob("*.whl")) if wheels_src.exists() else []:
                             dest = wheels_dest / wheel.name
                             shutil.copy2(wheel, dest)
                             wheel_paths.append(str(dest))
@@ -1090,7 +971,9 @@ class PipelineOrchestrator:
                         wheel_status = (
                             "structural-built"
                             if build_status == "structural-passed"
-                            else "built" if build_status == "passed" else "failed"
+                            else "built"
+                            if build_status == "passed"
+                            else "failed"
                         )
                         wheel_summary.update(
                             {
@@ -1102,9 +985,7 @@ class PipelineOrchestrator:
                         )
                         if build_status not in {"passed", "structural-passed"}:
                             state["status"] = "needs-human"
-                            state["iterations"][0]["findings"] = (
-                                findings + analyze_build_log(build_log)
-                            )
+                            state["iterations"][0]["findings"] = findings + analyze_build_log(build_log)
                             state["stages"].append(
                                 self._stage_record(
                                     "06",
@@ -1128,14 +1009,10 @@ class PipelineOrchestrator:
                                     selected_stages=selected_stages,
                                 )
                             return state
-                        self._store_cached_namespace(
-                            cache_dir, "wheels", wheel_cache_key, wheel_outputs
-                        )
+                        self._store_cached_namespace(cache_dir, "wheels", wheel_cache_key, wheel_outputs)
                 if self._verify_uses_wheel(resolved_verify_backend):
                     if do_verify:
-                        verify_status = self._npu_verify_enabled(
-                            allow_mock_npu=allow_mock_npu
-                        )
+                        verify_status = self._npu_verify_enabled(allow_mock_npu=allow_mock_npu)
                     else:
                         verify_status = "skipped-by-user"
                     wheel_verification = self._run_sample_gen_verification(
@@ -1180,25 +1057,18 @@ class PipelineOrchestrator:
             state["differential"] = differential
             state["standalone"] = {
                 "status": standalone_verification["status"],
-                "build_status": (
-                    "reused" if standalone_cache_hit else standalone_build_status
-                ),
+                "build_status": ("reused" if standalone_cache_hit else standalone_build_status),
                 "verify_status": standalone_verification["status"],
                 "cache_key": standalone_cache_key,
                 "cache_hit": standalone_cache_hit,
                 "reused_from": cached_standalone if standalone_cache_hit else None,
-                "manifest": str(
-                    standalone_outputs / "operator-sk-standalone-verify.json"
-                ),
-                "build_manifest": str(
-                    standalone_outputs / "operator-sk-standalone-build.json"
-                ),
+                "manifest": str(standalone_outputs / "operator-sk-standalone-verify.json"),
+                "build_manifest": str(standalone_outputs / "operator-sk-standalone-build.json"),
             }
             state["wheel"] = wheel_summary
             legacy_build_status = (
                 "structural-passed"
-                if wheel_summary.get("status")
-                in {"structural-built", "structural-reused"}
+                if wheel_summary.get("status") in {"structural-built", "structural-reused"}
                 else (
                     "passed"
                     if wheel_summary.get("status") in {"built", "reused"}
@@ -1213,9 +1083,7 @@ class PipelineOrchestrator:
             legacy_verify = stage_root / "verify"
             self._remove_existing(legacy_verify)
             source_verify = (
-                (stage_root / "wheel" / "outputs" / "verify")
-                if wheel_verification
-                else (standalone_outputs / "verify")
+                (stage_root / "wheel" / "outputs" / "verify") if wheel_verification else (standalone_outputs / "verify")
             )
             shutil.copytree(source_verify, legacy_verify, symlinks=True)
             state["stages"].append(
@@ -1241,9 +1109,7 @@ class PipelineOrchestrator:
 
         if "06" in selected_stages:
             wheel_status = state.get("wheel", {}).get("status")
-            standalone_status = (
-                state.get("verification", {}).get("standalone", {}).get("status")
-            )
+            standalone_status = state.get("verification", {}).get("standalone", {}).get("status")
             wheel_verification_state = state.get("verification", {}).get("wheel")
             if not isinstance(wheel_verification_state, dict):
                 wheel_verification_state = {}
@@ -1254,10 +1120,7 @@ class PipelineOrchestrator:
                 or allow_structural_toolchain
             ):
                 state["status"] = "structural-only"
-            elif (
-                wheel_verify_status == "mock-passed"
-                or standalone_status == "mock-passed"
-            ):
+            elif wheel_verify_status == "mock-passed" or standalone_status == "mock-passed":
                 state["status"] = "mock-only"
             elif wheel_status in {"built", "reused"}:
                 if resolved_verify_backend == "none" or not do_verify:
@@ -1291,9 +1154,7 @@ class PipelineOrchestrator:
             state["status"] = "adapted"
         else:
             state["status"] = "analyzed"
-        if state["status"] == "adapted" and (
-            "03" in selected_stages or "04" in selected_stages
-        ):
+        if state["status"] == "adapted" and ("03" in selected_stages or "04" in selected_stages):
             state["status"] = "clean"
         self._write_state(output_dir, state)
         if emit_layout:
@@ -1312,12 +1173,7 @@ class PipelineOrchestrator:
 
     @staticmethod
     def _utc_now() -> str:
-        return (
-            datetime.now(timezone.utc)
-            .replace(microsecond=0)
-            .isoformat()
-            .replace("+00:00", "Z")
-        )
+        return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
     @staticmethod
     def _write_json(path: Path, payload: dict[str, Any]) -> None:
@@ -1327,12 +1183,8 @@ class PipelineOrchestrator:
     @staticmethod
     def _write_state(output_dir: Path, state: dict[str, Any]) -> None:
         state["updated_at"] = PipelineOrchestrator._utc_now()
-        state["final_iteration"] = (
-            len(state.get("iterations", [])) - 1 if state.get("iterations") else -1
-        )
-        (output_dir / "pipeline-state.json").write_text(
-            json.dumps(state, indent=2), encoding="utf-8"
-        )
+        state["final_iteration"] = len(state.get("iterations", [])) - 1 if state.get("iterations") else -1
+        (output_dir / "pipeline-state.json").write_text(json.dumps(state, indent=2), encoding="utf-8")
 
     @staticmethod
     def _read_json(path: Path) -> dict[str, Any]:
@@ -1348,9 +1200,7 @@ class PipelineOrchestrator:
     @staticmethod
     def _existing_asset_manifests(public_output_dir: Path) -> list[dict[str, Any]]:
         assets: list[dict[str, Any]] = []
-        for path in sorted(
-            (public_output_dir / "assets").glob("*/asset-manifest.json")
-        ):
+        for path in sorted((public_output_dir / "assets").glob("*/asset-manifest.json")):
             try:
                 assets.append(json.loads(path.read_text(encoding="utf-8")))
             except (OSError, json.JSONDecodeError):
@@ -1362,9 +1212,7 @@ class PipelineOrchestrator:
         copied: list[str] = []
         if not source_dir.is_dir():
             return copied
-        for source_path in sorted(
-            item for item in source_dir.rglob("*") if item.is_file()
-        ):
+        for source_path in sorted(item for item in source_dir.rglob("*") if item.is_file()):
             rel = source_path.relative_to(source_dir)
             if any(part in _SUPPORT_SKIP_DIRS for part in rel.parts[:-1]):
                 continue
@@ -1384,9 +1232,7 @@ class PipelineOrchestrator:
         support_dirs: dict[str, Path] = {}
         source_suffixes = {".asc", ".cpp"} | set(_SUPPORT_HEADER_SUFFIXES)
         for source in sorted(
-            item
-            for item in asset_root.rglob("*")
-            if item.is_file() and item.suffix in source_suffixes
+            item for item in asset_root.rglob("*") if item.is_file() and item.suffix in source_suffixes
         ):
             rel = source.relative_to(asset_root)
             if any(part in {"test", "tests"} for part in rel.parts):
@@ -1414,9 +1260,7 @@ class PipelineOrchestrator:
 
     @staticmethod
     def _safe_slug(path: Path) -> str:
-        slug = re.sub(
-            r"[^A-Za-z0-9_.-]", "_", path.stem if path.is_file() else path.name
-        ).strip("._-")
+        slug = re.sub(r"[^A-Za-z0-9_.-]", "_", path.stem if path.is_file() else path.name).strip("._-")
         return slug or "op"
 
     @staticmethod
@@ -1429,9 +1273,7 @@ class PipelineOrchestrator:
     def _arch_count_from_env(env: Any) -> int:
         raw_arches = env.get("SK_NPU_ARCHS", "")
         if raw_arches:
-            arches = [
-                arch.strip() for arch in re.split(r"[,;]", raw_arches) if arch.strip()
-            ]
+            arches = [arch.strip() for arch in re.split(r"[,;]", raw_arches) if arch.strip()]
             return max(1, len(dict.fromkeys(arches)))
         return 1
 
@@ -1452,14 +1294,10 @@ class PipelineOrchestrator:
             wheel_mode = "never"
             if verify_backend is None:
                 verify_backend = "standalone"
-        resolved_verify = verify_backend or (
-            "standalone" if profile == "fast" else "both"
-        )
+        resolved_verify = verify_backend or ("standalone" if profile == "fast" else "both")
         resolved_wheel = wheel_mode or ("never" if profile == "fast" else "cache")
         if resolved_verify not in _VERIFY_BACKENDS:
-            raise OrchestratorError(
-                "--verify-backend must be standalone, wheel, both, or none"
-            )
+            raise OrchestratorError("--verify-backend must be standalone, wheel, both, or none")
         if resolved_wheel not in _WHEEL_MODES:
             raise OrchestratorError("--wheel-mode must be never, cache, or always")
         if resolved_wheel == "never" and resolved_verify in {"wheel", "both"}:
@@ -1475,14 +1313,8 @@ class PipelineOrchestrator:
         return verify_backend in {"standalone", "both"}
 
     @staticmethod
-    def _needs_wheel_stage(
-        wheel_mode: str, verify_backend: str, reuse_wheel: str | None
-    ) -> bool:
-        return (
-            bool(reuse_wheel)
-            or wheel_mode != "never"
-            or PipelineOrchestrator._verify_uses_wheel(verify_backend)
-        )
+    def _needs_wheel_stage(wheel_mode: str, verify_backend: str, reuse_wheel: str | None) -> bool:
+        return bool(reuse_wheel) or wheel_mode != "never" or PipelineOrchestrator._verify_uses_wheel(verify_backend)
 
     @staticmethod
     def _parse_stages(
@@ -1504,17 +1336,9 @@ class PipelineOrchestrator:
             else:
                 selected = ["01", "02", "03", "05", "06"]
         elif isinstance(stages, str):
-            selected = [
-                item.strip().split("-", 1)[0]
-                for item in stages.split(",")
-                if item.strip()
-            ]
+            selected = [item.strip().split("-", 1)[0] for item in stages.split(",") if item.strip()]
         else:
-            selected = [
-                str(item).strip().split("-", 1)[0]
-                for item in stages
-                if str(item).strip()
-            ]
+            selected = [str(item).strip().split("-", 1)[0] for item in stages if str(item).strip()]
         if not selected:
             raise OrchestratorError("--stages must select at least one stage")
         if "00" not in selected:
@@ -1525,9 +1349,7 @@ class PipelineOrchestrator:
         selected_set = set(selected)
         for stage in selected:
             prereqs = set(_STAGE_PREREQS[stage])
-            if stage == "06" and PipelineOrchestrator._needs_wheel_stage(
-                wheel_mode, verify_backend, reuse_wheel
-            ):
+            if stage == "06" and PipelineOrchestrator._needs_wheel_stage(wheel_mode, verify_backend, reuse_wheel):
                 prereqs.add("05")
             for prereq in sorted(prereqs):
                 if prereq not in selected_set:
@@ -1544,10 +1366,7 @@ class PipelineOrchestrator:
         max_workers = max(1, min(jobs, len(ops) or 1))
         results: list[dict[str, Any]] = []
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            future_by_name = {
-                executor.submit(worker, op): (op.get("name") or op.get("entry_name"))
-                for op in ops
-            }
+            future_by_name = {executor.submit(worker, op): (op.get("name") or op.get("entry_name")) for op in ops}
             for future in as_completed(future_by_name):
                 op_name = future_by_name[future]
                 try:
@@ -1560,9 +1379,7 @@ class PipelineOrchestrator:
         failed = [item["op_name"] for item in results if item.get("status") == "failed"]
         passed = [item["op_name"] for item in results if item.get("status") != "failed"]
         failed_details = {
-            str(item["op_name"]): str(item.get("error", "failed"))
-            for item in results
-            if item.get("status") == "failed"
+            str(item["op_name"]): str(item.get("error", "failed")) for item in results if item.get("status") == "failed"
         }
         return results, {
             "jobs": max_workers,
@@ -1606,9 +1423,7 @@ class PipelineOrchestrator:
                 {
                     "id": f"entry:{entry['entry_name']}:default",
                     "entry_name": entry["entry_name"],
-                    "source_file": entry.get(
-                        "source_file", f"{entry['entry_name']}.asc"
-                    ),
+                    "source_file": entry.get("source_file", f"{entry['entry_name']}.asc"),
                     "parameters": parameters,
                     "requires_user_input": True,
                 }
@@ -1623,6 +1438,39 @@ class PipelineOrchestrator:
             "outputs": {},
             "calls": {op_name: []},
         }
+
+    @staticmethod
+    def _copy_file_asset_with_local_includes(source: Path, dest_dir: Path) -> None:
+        root = source.parent.resolve()
+        queue = [source.resolve()]
+        copied: set[Path] = set()
+        while queue:
+            current = queue.pop(0)
+            try:
+                current.relative_to(root)
+            except ValueError:
+                continue
+            if current in copied or not current.is_file():
+                continue
+            copied.add(current)
+            rel = current.relative_to(root)
+            target = dest_dir / rel
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(current, target)
+            if current.suffix not in _LOCAL_INCLUDE_SOURCE_SUFFIXES:
+                continue
+            text = current.read_text(encoding="utf-8", errors="replace")
+            for include in _QUOTED_INCLUDE_RE.findall(text):
+                include_path = Path(include)
+                if include_path.is_absolute() or ".." in include_path.parts:
+                    continue
+                candidate = (current.parent / include_path).resolve()
+                try:
+                    candidate.relative_to(root)
+                except ValueError:
+                    continue
+                if candidate.is_file() and candidate not in copied:
+                    queue.append(candidate)
 
     def _skill_path(self, key: str) -> Path:
         skill_name, script_name = _SKILL_SCRIPTS[key]
@@ -1644,9 +1492,7 @@ class PipelineOrchestrator:
             env=self.env,
         )
 
-    def _ensure_structural_toolchain_env(
-        self, output_dir: Path, *, allow_structural_toolchain: bool
-    ) -> None:
+    def _ensure_structural_toolchain_env(self, output_dir: Path, *, allow_structural_toolchain: bool) -> None:
         env = (self.env or os.environ).copy()
         if env.get("SK_OPERATOR_USE_REAL_TOOLCHAIN") == "1":
             self.env = env
@@ -1727,39 +1573,6 @@ class PipelineOrchestrator:
             shutil.copy2(source, dest)
         return "copy"
 
-    @staticmethod
-    def _copy_file_asset_with_local_includes(source: Path, dest_dir: Path) -> None:
-        root = source.parent.resolve()
-        queue = [source.resolve()]
-        copied: set[Path] = set()
-        while queue:
-            current = queue.pop(0)
-            try:
-                current.relative_to(root)
-            except ValueError:
-                continue
-            if current in copied or not current.is_file():
-                continue
-            copied.add(current)
-            rel = current.relative_to(root)
-            target = dest_dir / rel
-            target.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(current, target)
-            if current.suffix not in _LOCAL_INCLUDE_SOURCE_SUFFIXES:
-                continue
-            text = current.read_text(encoding="utf-8", errors="replace")
-            for include in _QUOTED_INCLUDE_RE.findall(text):
-                include_path = Path(include)
-                if include_path.is_absolute() or ".." in include_path.parts:
-                    continue
-                candidate = (current.parent / include_path).resolve()
-                try:
-                    candidate.relative_to(root)
-                except ValueError:
-                    continue
-                if candidate.is_file() and candidate not in copied:
-                    queue.append(candidate)
-
     def _copy_contents(self, source_dir: Path, dest_dir: Path) -> None:
         dest_dir.mkdir(parents=True, exist_ok=True)
         for item in source_dir.iterdir():
@@ -1777,9 +1590,7 @@ class PipelineOrchestrator:
         for asset in [stage_asset, source_asset]:
             if asset is None:
                 continue
-            for support_name, support_source in self._shared_support_dirs_for_asset(
-                asset
-            ):
+            for support_name, support_source in self._shared_support_dirs_for_asset(asset):
                 resolved = support_source.resolve()
                 existing = support_dirs.get(support_name)
                 if existing is not None and existing.resolve() != resolved:
@@ -1796,9 +1607,7 @@ class PipelineOrchestrator:
     ) -> list[dict[str, Any]]:
         raw_assets = [assets] if isinstance(assets, Path) else list(assets)
         if not raw_assets:
-            raise OrchestratorError(
-                "--asset or --asset-root must provide at least one asset"
-            )
+            raise OrchestratorError("--asset or --asset-root must provide at least one asset")
         seen_paths: set[Path] = set()
         seen_slugs: set[str] = set()
         normalized: list[dict[str, Any]] = []
@@ -1809,9 +1618,7 @@ class PipelineOrchestrator:
             if path in seen_paths:
                 continue
             seen_paths.add(path)
-            slug = safe_slug(
-                (asset_names or {}).get(str(path)) or self._safe_slug(path), "op"
-            )
+            slug = safe_slug((asset_names or {}).get(str(path)) or self._safe_slug(path), "op")
             if slug in seen_slugs:
                 raise OrchestratorError(f"duplicate op asset name: {slug}")
             seen_slugs.add(slug)
@@ -1847,9 +1654,7 @@ class PipelineOrchestrator:
                 scan_argv.extend(["--target-chip", self._current_target_chip])
             scan = self._run("asset_adapter", *scan_argv)
             if scan.returncode not in {0, 2}:
-                raise OrchestratorError(
-                    f"asset adapter failed for {asset_name}: {scan.stdout}"
-                )
+                raise OrchestratorError(f"asset adapter failed for {asset_name}: {scan.stdout}")
             layout_path = outputs / "operator-asset-layout.json"
             if scan.returncode == 2:
                 raise OrchestratorError(
@@ -1869,9 +1674,7 @@ class PipelineOrchestrator:
                 analyze_argv.extend(["--target-chip", self._current_target_chip])
             analyze = self._run("codegen", *analyze_argv)
             if analyze.returncode != 0:
-                raise OrchestratorError(
-                    f"analyze-operator-asset failed for {asset_name}: {analyze.stdout}"
-                )
+                raise OrchestratorError(f"analyze-operator-asset failed for {asset_name}: {analyze.stdout}")
             normalize_argv = [
                 "normalize-operator-asset",
                 str(inputs / "asset"),
@@ -1886,12 +1689,8 @@ class PipelineOrchestrator:
                 normalize_argv.extend(["--target-chip", self._current_target_chip])
             normalize = self._run("codegen", *normalize_argv)
             if normalize.returncode != 0:
-                raise OrchestratorError(
-                    f"normalize-operator-asset failed for {asset_name}: {normalize.stdout}"
-                )
-            understanding = self._read_json(
-                outputs / "operator-asset-understanding.json"
-            )
+                raise OrchestratorError(f"normalize-operator-asset failed for {asset_name}: {normalize.stdout}")
+            understanding = self._read_json(outputs / "operator-asset-understanding.json")
             units_index = self._read_json(outputs / "operator-units.json")
             unit_records = []
             for unit in units_index.get("operator_units", []):
@@ -1902,36 +1701,26 @@ class PipelineOrchestrator:
                     op_name = f"{asset_name}_{unit_name}"
                 op_name = re.sub(r"[^A-Za-z0-9_.-]", "_", op_name).strip("._-") or "op"
                 if op_name in seen_names:
-                    raise OrchestratorError(
-                        f"duplicate operator unit name after asset understanding: {op_name}"
-                    )
+                    raise OrchestratorError(f"duplicate operator unit name after asset understanding: {op_name}")
                 seen_names.add(op_name)
                 op = {
                     "name": op_name,
                     "entry_name": unit.get("entry_name"),
-                    "source_entry_name": unit.get("source_entry_name")
-                    or unit.get("entry_name"),
-                    "public_entry_name": unit.get("public_entry_name")
-                    or unit.get("entry_name"),
-                    "internal_symbol_name": unit.get("internal_symbol_name")
-                    or unit.get("entry_name"),
-                    "bind_target": unit.get("bind_target")
-                    or unit.get("source_entry_name")
-                    or unit.get("entry_name"),
+                    "source_entry_name": unit.get("source_entry_name") or unit.get("entry_name"),
+                    "public_entry_name": unit.get("public_entry_name") or unit.get("entry_name"),
+                    "internal_symbol_name": unit.get("internal_symbol_name") or unit.get("entry_name"),
+                    "bind_target": unit.get("bind_target") or unit.get("source_entry_name") or unit.get("entry_name"),
                     "name_resolution": dict(unit.get("name_resolution", {})),
                     "asset": Path(unit["asset"]).resolve(),
                     "sk_asset": Path(unit.get("sk_asset") or unit["asset"]).resolve(),
                     "source_asset": asset,
-                    "asset_kind": unit.get("asset_kind")
-                    or understanding.get("asset_kind"),
+                    "asset_kind": unit.get("asset_kind") or understanding.get("asset_kind"),
                     "kernel_source": unit.get("kernel_source"),
                     "host_source": unit.get("host_source"),
                     "json_spec": unit.get("json_spec"),
                     "tiling_headers": list(unit.get("tiling_headers", [])),
                     "build_backends": list(unit.get("build_backends", [])),
-                    "supported_soc_versions": list(
-                        unit.get("supported_soc_versions", [])
-                    ),
+                    "supported_soc_versions": list(unit.get("supported_soc_versions", [])),
                     "supported_arches": list(unit.get("supported_arches", [])),
                     "target_resolution": dict(unit.get("target_resolution", {})),
                     "support_source": unit.get("support_source", ""),
@@ -2005,9 +1794,7 @@ class PipelineOrchestrator:
         return ops, summary
 
     def _detect_form(self, source: Path, output_dir: Path) -> dict[str, Any]:
-        result = self._run(
-            "codegen", "detect-sk-form", str(source), "--output-dir", str(output_dir)
-        )
+        result = self._run("codegen", "detect-sk-form", str(source), "--output-dir", str(output_dir))
         if result.returncode != 0:
             raise OrchestratorError(f"detect-sk-form failed: {result.stdout}")
         return self._read_json(output_dir / "operator-sk-form-analysis.json")
@@ -2027,9 +1814,7 @@ class PipelineOrchestrator:
         io_contract: Path | None = None,
     ) -> dict[str, Any]:
         argv = ["adapt-sk-from-global", str(asset), "--output-dir", str(output_dir)]
-        argv.extend(
-            ["--package-name", package_name, "--package-version", package_version]
-        )
+        argv.extend(["--package-name", package_name, "--package-version", package_version])
         if understanding is not None:
             argv.extend(["--understanding", str(understanding)])
         if target_chip:
@@ -2073,9 +1858,7 @@ class PipelineOrchestrator:
             raise OrchestratorError(f"validate spec failed: {result.stdout}")
         return self._read_json(output_dir / "operator-validation-findings.json")
 
-    def _scan_compat(
-        self, source: Path, output_dir: Path, target_chip: str, target_cann: str
-    ) -> dict[str, Any]:
+    def _scan_compat(self, source: Path, output_dir: Path, target_chip: str, target_cann: str) -> dict[str, Any]:
         argv = [
             "validate-operator",
             "--asset",
@@ -2138,9 +1921,7 @@ class PipelineOrchestrator:
         target_chip: str = "",
         allow_structural_toolchain: bool = False,
     ) -> tuple[str, dict[str, Any], str]:
-        self._ensure_structural_toolchain_env(
-            output_dir, allow_structural_toolchain=allow_structural_toolchain
-        )
+        self._ensure_structural_toolchain_env(output_dir, allow_structural_toolchain=allow_structural_toolchain)
         for stale in (
             "operator-sk-native-wheel-build",
             "operator-sk-native-wheel.json",
@@ -2156,9 +1937,7 @@ class PipelineOrchestrator:
         manifest = self._read_json(manifest_path) if manifest_path.exists() else {}
         log = ""
         if manifest.get("log_path") and Path(manifest["log_path"]).exists():
-            log = Path(manifest["log_path"]).read_text(
-                encoding="utf-8", errors="replace"
-            )
+            log = Path(manifest["log_path"]).read_text(encoding="utf-8", errors="replace")
         status = manifest.get("status", "failed")
         return status, manifest, result.stdout + "\n" + log
 
@@ -2186,9 +1965,7 @@ class PipelineOrchestrator:
         result = self._run("build_package", *argv)
         manifest_path = output_dir / "operator-baseline-build.json"
         if result.returncode != 0 and not manifest_path.exists():
-            raise OrchestratorError(
-                f"build-baseline failed for {entry_name}: {result.stdout}"
-            )
+            raise OrchestratorError(f"build-baseline failed for {entry_name}: {result.stdout}")
         return self._read_json(manifest_path)
 
     def _build_differential_verdicts(
@@ -2213,18 +1990,10 @@ class PipelineOrchestrator:
             "| op | status | baseline | sk | wheel |",
             "|---|---|---|---|---|",
         ]
-        wheel_per_op = (
-            (wheel_verification or {}).get("per_op")
-            if isinstance(wheel_verification, dict)
-            else {}
-        )
+        wheel_per_op = (wheel_verification or {}).get("per_op") if isinstance(wheel_verification, dict) else {}
         if not isinstance(wheel_per_op, dict):
             wheel_per_op = {}
-        standalone_per_op = (
-            standalone_verification.get("per_op")
-            if isinstance(standalone_verification, dict)
-            else {}
-        )
+        standalone_per_op = standalone_verification.get("per_op") if isinstance(standalone_verification, dict) else {}
         if not isinstance(standalone_per_op, dict):
             standalone_per_op = {}
         for entry in entries:
@@ -2235,9 +2004,7 @@ class PipelineOrchestrator:
                 baseline_manifest=baseline_manifests.get(entry_name),
                 runtime_contract=runtime_contracts.get(entry_name, {}).get("path"),
                 sk_verdict=standalone_per_op.get(entry_name),
-                wheel_verdict=(
-                    wheel_per_op.get(entry_name) if wheel_verification else None
-                ),
+                wheel_verdict=(wheel_per_op.get(entry_name) if wheel_verification else None),
             )
             per_op[entry_name] = verdict
             summary_rows.append(
@@ -2288,9 +2055,7 @@ class PipelineOrchestrator:
             contract = operator_runtime_contract.build_runtime_contract(
                 entry_dir,
                 entry=entry,
-                fixture_status=fixture_statuses.get(
-                    entry_name, {"status": "insufficient"}
-                ),
+                fixture_status=fixture_statuses.get(entry_name, {"status": "insufficient"}),
             )
             contracts[entry_name] = {
                 "status": contract.get("status"),
@@ -2330,9 +2095,7 @@ class PipelineOrchestrator:
             target_chip,
         )
         if result.returncode != 0:
-            raise OrchestratorError(
-                f"generate-standalone-compare failed: {result.stdout}"
-            )
+            raise OrchestratorError(f"generate-standalone-compare failed: {result.stdout}")
         return self._read_json(output_dir / "operator-sk-standalone-verify.json")
 
     def _build_standalone_executable(
@@ -2343,9 +2106,7 @@ class PipelineOrchestrator:
         *,
         allow_structural_toolchain: bool = False,
     ) -> tuple[str, dict[str, Any], str]:
-        self._ensure_structural_toolchain_env(
-            output_dir, allow_structural_toolchain=allow_structural_toolchain
-        )
+        self._ensure_structural_toolchain_env(output_dir, allow_structural_toolchain=allow_structural_toolchain)
         for stale in (
             "operator-sk-standalone-build.json",
             "build-log.txt",
@@ -2387,9 +2148,7 @@ class PipelineOrchestrator:
                 "target_chip": target_chip,
                 "target_cann": target_cann,
                 "ascend_home_path": (
-                    str(Path(env.get("ASCEND_HOME_PATH", "")).resolve())
-                    if env.get("ASCEND_HOME_PATH")
-                    else ""
+                    str(Path(env.get("ASCEND_HOME_PATH", "")).resolve()) if env.get("ASCEND_HOME_PATH") else ""
                 ),
                 "cmake_version": lib.command_version("cmake", env=env),
                 "compiler_version": lib.command_version("bisheng", env=env),
@@ -2398,26 +2157,15 @@ class PipelineOrchestrator:
                         self._skill_path("codegen"),
                         self._script_dir("sk-operator-codegen") / "sk_codegen_lib.py",
                         self._skill_path("build_package"),
-                        self._script_dir("sk-operator-build-package")
-                        / "sk_build_cache_lib.py",
+                        self._script_dir("sk-operator-build-package") / "sk_build_cache_lib.py",
                     ]
                 ),
                 "files": lib.hash_paths(
                     [
-                        standalone_output_dir
-                        / "operator-sk-standalone-verify"
-                        / "runtime_compare.asc",
-                        *(standalone_output_dir / "operator-sk-standalone-verify").glob(
-                            "runtime_compare_*.asc"
-                        ),
-                        standalone_output_dir
-                        / "operator-sk-standalone-verify"
-                        / "CMakeLists.txt",
-                        *(
-                            standalone_output_dir
-                            / "operator-sk-standalone-verify"
-                            / "csrc"
-                        ).rglob("*"),
+                        standalone_output_dir / "operator-sk-standalone-verify" / "runtime_compare.asc",
+                        *(standalone_output_dir / "operator-sk-standalone-verify").glob("runtime_compare_*.asc"),
+                        standalone_output_dir / "operator-sk-standalone-verify" / "CMakeLists.txt",
+                        *(standalone_output_dir / "operator-sk-standalone-verify" / "csrc").rglob("*"),
                         *fixture_dir.rglob("*"),
                     ]
                 ),
@@ -2449,10 +2197,8 @@ class PipelineOrchestrator:
                         self._skill_path("codegen"),
                         self._script_dir("sk-operator-codegen") / "sk_codegen_lib.py",
                         self._skill_path("build_package"),
-                        self._script_dir("sk-operator-build-package")
-                        / "sk_pybind_lib.py",
-                        self._script_dir("sk-operator-build-package")
-                        / "sk_build_cache_lib.py",
+                        self._script_dir("sk-operator-build-package") / "sk_pybind_lib.py",
+                        self._script_dir("sk-operator-build-package") / "sk_build_cache_lib.py",
                     ]
                 ),
                 "files": lib.hash_paths(
@@ -2465,9 +2211,7 @@ class PipelineOrchestrator:
             }
         )
 
-    def _copy_cached_namespace(
-        self, cache_dir: Path, namespace: str, cache_key: str, dest: Path
-    ) -> str | None:
+    def _copy_cached_namespace(self, cache_dir: Path, namespace: str, cache_key: str, dest: Path) -> str | None:
         lib = self._cache_lib()
         cached = lib.lookup_cache(cache_dir, namespace, cache_key)
         if cached is None:
@@ -2475,9 +2219,7 @@ class PipelineOrchestrator:
         lib.copy_cached_outputs(cached, dest)
         return str(cached)
 
-    def _store_cached_namespace(
-        self, cache_dir: Path, namespace: str, cache_key: str, source: Path
-    ) -> str:
+    def _store_cached_namespace(self, cache_dir: Path, namespace: str, cache_key: str, source: Path) -> str:
         lib = self._cache_lib()
         return str(lib.store_cache(cache_dir, namespace, cache_key, source))
 
@@ -2487,27 +2229,17 @@ class PipelineOrchestrator:
         source_root = output_dir / "operator-sk-standalone-verify"
         build_dir = source_root / "build"
         executable_targets = (
-            manifest.get("executable_targets")
-            if isinstance(manifest.get("executable_targets"), dict)
-            else {}
+            manifest.get("executable_targets") if isinstance(manifest.get("executable_targets"), dict) else {}
         )
         if executable_targets:
             executable_targets = {
-                target: str(build_dir / Path(path).name)
-                for target, path in executable_targets.items()
+                target: str(build_dir / Path(path).name) for target, path in executable_targets.items()
             }
         else:
             executable_targets = {"runtime_compare": str(build_dir / "runtime_compare")}
-        executables = (
-            manifest.get("executables")
-            if isinstance(manifest.get("executables"), dict)
-            else {}
-        )
+        executables = manifest.get("executables") if isinstance(manifest.get("executables"), dict) else {}
         if executables:
-            executables = {
-                entry: str(build_dir / Path(path).name)
-                for entry, path in executables.items()
-            }
+            executables = {entry: str(build_dir / Path(path).name) for entry, path in executables.items()}
         executable = Path(next(iter(executable_targets.values())))
         log_path = output_dir / "build-log.txt"
         manifest.update(
@@ -2529,9 +2261,7 @@ class PipelineOrchestrator:
             }
         )
         self._write_json(manifest_path, manifest)
-        (output_dir / "executable-path.txt").write_text(
-            str(executable) + "\n", encoding="utf-8"
-        )
+        (output_dir / "executable-path.txt").write_text(str(executable) + "\n", encoding="utf-8")
         return manifest
 
     def _relocate_standalone_verify_manifest(self, output_dir: Path) -> dict[str, Any]:
@@ -2616,16 +2346,11 @@ class PipelineOrchestrator:
             return "mock-passed"
         if env.get("SK_OPERATOR_RUN_DEVICE_COMPARE") != "1":
             return "skipped-no-npu"
-        if any(
-            Path(path).exists()
-            for path in ("/dev/davinci_manager", "/dev/davinci0", "/dev/hisi_hdc")
-        ):
+        if any(Path(path).exists() for path in ("/dev/davinci_manager", "/dev/davinci0", "/dev/hisi_hdc")):
             return "passed"
         return "skipped-no-npu"
 
-    def _copy_runtime_fixtures(
-        self, ops: list[dict[str, Any]], fixture_root: Path
-    ) -> dict[str, dict[str, Any]]:
+    def _copy_runtime_fixtures(self, ops: list[dict[str, Any]], fixture_root: Path) -> dict[str, dict[str, Any]]:
         fixture_root.mkdir(parents=True, exist_ok=True)
         statuses: dict[str, dict[str, Any]] = {}
         for op in ops:
@@ -2634,11 +2359,7 @@ class PipelineOrchestrator:
             asset = Path(op["asset"])
             copied: list[str] = []
             asset_root = asset if asset.is_dir() else asset.parent
-            test_main = (
-                asset / "tests" / "main.cpp"
-                if asset.is_dir()
-                else asset.parent / "tests" / "main.cpp"
-            )
+            test_main = asset / "tests" / "main.cpp" if asset.is_dir() else asset.parent / "tests" / "main.cpp"
             if test_main.is_file():
                 dest = op_fixture_dir / "tests" / "main.cpp"
                 dest.parent.mkdir(parents=True, exist_ok=True)
@@ -2650,9 +2371,7 @@ class PipelineOrchestrator:
                 else asset.parent / "operator-sk-runtime-fixture.json"
             )
             if runtime_spec.is_file():
-                shutil.copy2(
-                    runtime_spec, op_fixture_dir / "operator-sk-runtime-fixture.json"
-                )
+                shutil.copy2(runtime_spec, op_fixture_dir / "operator-sk-runtime-fixture.json")
                 copied.append("operator-sk-runtime-fixture.json")
             for candidate in (
                 asset / "interface" if asset.is_dir() else asset.parent / "interface",
@@ -2667,23 +2386,11 @@ class PipelineOrchestrator:
             support_root = op_fixture_dir / "asset-support"
             support_files = self._copy_support_headers(asset_root, support_root)
             shared_common = asset_root.parent / "common"
-            if (
-                shared_common.is_dir()
-                and shared_common.resolve() != (asset_root / "common").resolve()
-            ):
-                support_files.extend(
-                    self._copy_support_headers(shared_common, support_root / "common")
-                )
+            if shared_common.is_dir() and shared_common.resolve() != (asset_root / "common").resolve():
+                support_files.extend(self._copy_support_headers(shared_common, support_root / "common"))
             shared_interface = asset_root.parent / "interface"
-            if (
-                shared_interface.is_dir()
-                and shared_interface.resolve() != (asset_root / "interface").resolve()
-            ):
-                support_files.extend(
-                    self._copy_support_headers(
-                        shared_interface, support_root / "interface"
-                    )
-                )
+            if shared_interface.is_dir() and shared_interface.resolve() != (asset_root / "interface").resolve():
+                support_files.extend(self._copy_support_headers(shared_interface, support_root / "interface"))
             if support_files:
                 copied.append(f"asset-support/{len(support_files)} files")
             status = "available" if copied else "insufficient"
@@ -2691,11 +2398,7 @@ class PipelineOrchestrator:
                 "status": status,
                 "path": str(op_fixture_dir),
                 "copied": copied,
-                "reason": (
-                    "runtime fixture available"
-                    if copied
-                    else "runtime fixture not found"
-                ),
+                "reason": ("runtime fixture available" if copied else "runtime fixture not found"),
             }
         return statuses
 
@@ -2719,46 +2422,33 @@ class PipelineOrchestrator:
             op_dir.mkdir(parents=True, exist_ok=True)
             fixture_status = fixture_statuses.get(op_name, {"status": "insufficient"})
             if precheck_status == "skipped-target-arch":
-                runner_stdout = self._standalone_runner_stdout(
-                    op_name, status="skipped-target-arch"
-                )
+                runner_stdout = self._standalone_runner_stdout(op_name, status="skipped-target-arch")
                 comparison = {"status": "skipped-target-arch", "comparisons": []}
                 verdict = {
                     "status": "skipped-target-arch",
                     "reason": "standalone target arch is not resolved",
                 }
             elif precheck_status == "mock-passed":
-                runner_stdout = self._standalone_runner_stdout(
-                    op_name, status="mock-passed"
-                )
+                runner_stdout = self._standalone_runner_stdout(op_name, status="mock-passed")
                 comparison = {"status": "mock-passed", "comparisons": []}
                 verdict = {
                     "status": "mock-passed",
                     "reason": "mock NPU verification explicitly enabled",
                 }
             elif precheck_status == "skipped-no-npu":
-                runner_stdout = self._standalone_runner_stdout(
-                    op_name, status="skipped-no-npu"
-                )
+                runner_stdout = self._standalone_runner_stdout(op_name, status="skipped-no-npu")
                 comparison = {"status": "skipped-no-npu", "comparisons": []}
                 verdict = {"status": "skipped-no-npu", "reason": "NPU not available"}
             elif not verify_enabled:
-                runner_stdout = self._standalone_runner_stdout(
-                    op_name, status="skipped-by-user"
-                )
+                runner_stdout = self._standalone_runner_stdout(op_name, status="skipped-by-user")
                 comparison = {"status": "skipped-by-user", "comparisons": []}
                 verdict = {
                     "status": "skipped-by-user",
                     "reason": "verification disabled by --no-verify",
                 }
-            elif (
-                fixture_status.get("status") != "available"
-                or fixture_status.get("device_runnable") is False
-            ):
+            elif fixture_status.get("status") != "available" or fixture_status.get("device_runnable") is False:
                 reason = fixture_status.get("reason", "runtime fixture not available")
-                runner_stdout = self._standalone_runner_stdout(
-                    op_name, status="skipped-insufficient-runtime-spec"
-                )
+                runner_stdout = self._standalone_runner_stdout(op_name, status="skipped-insufficient-runtime-spec")
                 comparison = {
                     "status": "skipped-insufficient-runtime-spec",
                     "comparisons": [],
@@ -2768,13 +2458,9 @@ class PipelineOrchestrator:
                     "reason": reason,
                 }
             else:
-                selected_executable = (executable_paths or {}).get(
-                    op_name
-                ) or executable_path
+                selected_executable = (executable_paths or {}).get(op_name) or executable_path
                 if selected_executable is None or not selected_executable.exists():
-                    raise OrchestratorError(
-                        f"standalone executable not found for {op_name}: {selected_executable}"
-                    )
+                    raise OrchestratorError(f"standalone executable not found for {op_name}: {selected_executable}")
                 env = (self.env or os.environ).copy()
                 completed = subprocess.run(
                     [str(selected_executable)],
@@ -2804,9 +2490,7 @@ class PipelineOrchestrator:
                         "status": verdict["status"],
                         "verdict": verdict,
                     }
-                stdout_lines = [
-                    line for line in completed.stdout.splitlines() if line.strip()
-                ]
+                stdout_lines = [line for line in completed.stdout.splitlines() if line.strip()]
                 json_payload = stdout_lines[-1] if stdout_lines else completed.stdout
                 try:
                     full_stdout = json.loads(json_payload)
@@ -2817,19 +2501,13 @@ class PipelineOrchestrator:
                 outputs = full_stdout.get("outputs", {})
                 calls = full_stdout.get("calls", {})
                 statuses = full_stdout.get("statuses", {})
-                entry_status = (
-                    statuses.get(op_name, {}) if isinstance(statuses, dict) else {}
-                )
-                entry_status_value = entry_status.get(
-                    "status", full_stdout.get("status", "passed")
-                )
+                entry_status = statuses.get(op_name, {}) if isinstance(statuses, dict) else {}
+                entry_status_value = entry_status.get("status", full_stdout.get("status", "passed"))
                 entry_reason = entry_status.get("reason", entry_status_value)
                 runner_stdout = {
                     "backend": "standalone",
                     "status": entry_status_value,
-                    "outputs": (
-                        {op_name: outputs[op_name]} if op_name in outputs else {}
-                    ),
+                    "outputs": ({op_name: outputs[op_name]} if op_name in outputs else {}),
                     "calls": {op_name: calls.get(op_name, [])},
                 }
                 self._write_json(op_dir / "runner-stdout.json", runner_stdout)
@@ -2853,15 +2531,9 @@ class PipelineOrchestrator:
                         raise OrchestratorError(
                             f"standalone compare-sk-runtime-outputs failed for {op_name}: {compare.stdout}"
                         )
-                    comparison = self._read_json(
-                        op_dir / "operator-sk-runtime-output-comparison.json"
-                    )
+                    comparison = self._read_json(op_dir / "operator-sk-runtime-output-comparison.json")
                     verdict = {
-                        "status": (
-                            "passed"
-                            if comparison.get("status") == "matched"
-                            else "failed"
-                        ),
+                        "status": ("passed" if comparison.get("status") == "matched" else "failed"),
                         "reason": (
                             "differential_outputs_matched"
                             if comparison.get("status") == "matched"
@@ -2874,9 +2546,7 @@ class PipelineOrchestrator:
             return {"op_name": op_name, "status": verdict["status"], "verdict": verdict}
 
         results, parallel = self._run_parallel_ops(entries, jobs, worker)
-        per_op = {
-            item["op_name"]: item["verdict"] for item in results if "verdict" in item
-        }
+        per_op = {item["op_name"]: item["verdict"] for item in results if "verdict" in item}
         status_values = {item["status"] for item in results}
         if "failed" in status_values:
             status = "failed"
@@ -2934,31 +2604,21 @@ class PipelineOrchestrator:
                 op_dir / "operator-sk-runtime-input-spec.json",
                 self._runtime_input_spec_for_entry(entry),
             )
-            construct = self._run(
-                "sample_gen", "auto-construct-runtime-input-values", str(op_dir)
-            )
+            construct = self._run("sample_gen", "auto-construct-runtime-input-values", str(op_dir))
             if construct.returncode != 0:
-                raise OrchestratorError(
-                    f"auto-construct-runtime-input-values failed for {op_name}: {construct.stdout}"
-                )
+                raise OrchestratorError(f"auto-construct-runtime-input-values failed for {op_name}: {construct.stdout}")
             shutil.copy2(
                 op_dir / "operator-sk-auto-input-values-spec.json",
                 op_dir / "auto-inputs.json",
             )
             runtime_values = op_dir / "operator-sk-runtime-input-values.json"
             if runtime_values.is_file():
-                oracle = self._run(
-                    "sample_gen", "auto-build-correctness-oracle", str(op_dir)
-                )
+                oracle = self._run("sample_gen", "auto-build-correctness-oracle", str(op_dir))
                 if oracle.returncode != 0:
-                    raise OrchestratorError(
-                        f"auto-build-correctness-oracle failed for {op_name}: {oracle.stdout}"
-                    )
+                    raise OrchestratorError(f"auto-build-correctness-oracle failed for {op_name}: {oracle.stdout}")
                 runner = self._run("sample_gen", "generate-runner-script", str(op_dir))
                 if runner.returncode != 0:
-                    raise OrchestratorError(
-                        f"generate-runner-script failed for {op_name}: {runner.stdout}"
-                    )
+                    raise OrchestratorError(f"generate-runner-script failed for {op_name}: {runner.stdout}")
             runner_spec = {
                 "oracle_source": "bind-target-on-wheel",
                 "entry_name": op_name,
@@ -2967,12 +2627,8 @@ class PipelineOrchestrator:
                     "sk": f"torch.ops.ascendc_ops.{op_name}",
                 },
                 "sample_gen_command_spec": (
-                    self._read_json(
-                        op_dir / "operator-sk-target-runtime-command-spec.json"
-                    )
-                    if (
-                        op_dir / "operator-sk-target-runtime-command-spec.json"
-                    ).is_file()
+                    self._read_json(op_dir / "operator-sk-target-runtime-command-spec.json")
+                    if (op_dir / "operator-sk-target-runtime-command-spec.json").is_file()
                     else {}
                 ),
                 "wheels": wheel_paths,
@@ -3045,18 +2701,10 @@ class PipelineOrchestrator:
                         str(op_dir / "runner-stdout.json"),
                     )
                     if compare.returncode != 0:
-                        raise OrchestratorError(
-                            f"compare-sk-runtime-outputs failed for {op_name}: {compare.stdout}"
-                        )
-                    comparison = self._read_json(
-                        op_dir / "operator-sk-runtime-output-comparison.json"
-                    )
+                        raise OrchestratorError(f"compare-sk-runtime-outputs failed for {op_name}: {compare.stdout}")
+                    comparison = self._read_json(op_dir / "operator-sk-runtime-output-comparison.json")
                     verdict = {
-                        "status": (
-                            "passed"
-                            if comparison.get("status") == "matched"
-                            else "failed"
-                        ),
+                        "status": ("passed" if comparison.get("status") == "matched" else "failed"),
                         "reason": (
                             "differential_outputs_matched"
                             if comparison.get("status") == "matched"
@@ -3069,9 +2717,7 @@ class PipelineOrchestrator:
             per_op[op_name] = verdict
             summary_rows.append(f"| `{op_name}` | `{verdict['status']}` |")
         if status == "skipped-no-npu":
-            summary_rows.extend(
-                ["", "NPU not available; differential validation skipped."]
-            )
+            summary_rows.extend(["", "NPU not available; differential validation skipped."])
         elif status == "skipped-by-user":
             summary_rows.extend(["", "Differential validation skipped by --no-verify."])
         elif status == "mock-passed":
@@ -3081,9 +2727,7 @@ class PipelineOrchestrator:
                     "Mock NPU validation was explicitly requested; numerical correctness was not executed.",
                 ]
             )
-        (verify_dir / "summary.md").write_text(
-            "\n".join(summary_rows) + "\n", encoding="utf-8"
-        )
+        (verify_dir / "summary.md").write_text("\n".join(summary_rows) + "\n", encoding="utf-8")
         status_values = {item.get("status") for item in per_op.values()}
         if status_values == {"skipped-insufficient-runtime-spec"}:
             final_status = "skipped-insufficient-runtime-spec"

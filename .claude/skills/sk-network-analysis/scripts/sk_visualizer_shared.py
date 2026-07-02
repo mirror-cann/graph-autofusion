@@ -1617,15 +1617,8 @@ def render_legend_block(sections: Sequence[tuple[str, Sequence[str]]]) -> str:
     blocks: list[str] = []
     for title, items in sections:
         rows = "".join(f"<div class='legend-item'>{item}</div>" for item in items)
-        blocks.append(
-            "<div class='legend-section'>"
-            f"<h3 class='legend-title'>{html_escape(title)}</h3>"
-            f"{rows}"
-            "</div>"
-        )
-    return "<div class='legend'><div class='legend-grid'>{}</div></div>".format(
-        "".join(blocks)
-    )
+        blocks.append(f"<div class='legend-section'><h3 class='legend-title'>{html_escape(title)}</h3>{rows}</div>")
+    return "<div class='legend'><div class='legend-grid'>{}</div></div>".format("".join(blocks))
 
 
 def make_scope_explainer_box(
@@ -1694,10 +1687,7 @@ def _render_scope_explainer_item(item: ScopeExplainerEntry | str) -> str:
         )
     if item.kind == "line":
         dash_style = html_escape(item.dash_style or "solid")
-        style = (
-            f"border-top-style:{dash_style};"
-            f"border-top-color:{html_escape(item.color)}{visibility_style}"
-        )
+        style = f"border-top-style:{dash_style};border-top-color:{html_escape(item.color)}{visibility_style}"
         return (
             "<div class='scope-explainer-item'>"
             f"<div class='scope-explainer-line{item_class_suffix}' "
@@ -1705,11 +1695,7 @@ def _render_scope_explainer_item(item: ScopeExplainerEntry | str) -> str:
             f"<span{class_attr}{hidden_attr}>{html_escape(item.label)}</span>"
             "</div>"
         )
-    return (
-        "<div class='scope-explainer-item'>"
-        f"<span{class_attr}{hidden_attr}>{html_escape(item.label)}</span>"
-        "</div>"
-    )
+    return f"<div class='scope-explainer-item'><span{class_attr}{hidden_attr}>{html_escape(item.label)}</span></div>"
 
 
 def render_scope_section_block(
@@ -1727,9 +1713,7 @@ def render_scope_section_block(
     return "<div class='scope-explainer'>{}</div>".format("".join(groups))
 
 
-def render_graph_nav(
-    prev_id: str, next_id: str, prev_title: str, next_title: str
-) -> str:
+def render_graph_nav(prev_id: str, next_id: str, prev_title: str, next_title: str) -> str:
     prev_button = (
         f"<button type='button' class='graph-nav-btn' id='{html_escape(prev_id)}' "
         f"title='{html_escape(prev_title)}'>‹</button>"
@@ -1772,11 +1756,7 @@ def render_graph_toolbar(
         if part:
             right_html_parts.append(part)
     right_html = "".join(right_html_parts)
-    controls_row = (
-        f"<div class='toolbar-row controls'>{controls_html}</div>"
-        if controls_html
-        else ""
-    )
+    controls_row = f"<div class='toolbar-row controls'>{controls_html}</div>" if controls_html else ""
     return (
         "<div class='toolbar'>"
         "<div class='toolbar-row graph-toolbar-primary'>"
@@ -1832,15 +1812,10 @@ def render_detail_table_panel(
         f"<span class='detail-head-state' id='{html_escape(toggle_id)}'>"
         f"{html_escape('收起' if expanded else toggle_label)}</span>"
         if toggle_id
-        else (
-            "<span class='detail-head-state'>"
-            f"{html_escape('收起' if expanded else toggle_label)}</span>"
-        )
+        else (f"<span class='detail-head-state'>{html_escape('收起' if expanded else toggle_label)}</span>")
     )
     panel_class = "detail-panel is-open" if expanded else "detail-panel"
-    content_class = (
-        "detail-content is-collapsed" if initially_collapsed else "detail-content"
-    )
+    content_class = "detail-content is-collapsed" if initially_collapsed else "detail-content"
     content_attr = f" id='{html_escape(content_id)}'" if content_id else ""
     tools_markup = f"<div class='detail-tools'>{tools_html}</div>" if tools_html else ""
     head_markup = (
@@ -2447,9 +2422,7 @@ def render_stat_badges(badges: Iterable[VisualStatBadge]) -> str:
     parts: list[str] = []
     for badge in badges:
         dom_id = f' id="{html_escape(badge.dom_id)}"' if badge.dom_id else ""
-        value_dom_id = (
-            f' id="{html_escape(badge.value_dom_id)}"' if badge.value_dom_id else ""
-        )
+        value_dom_id = f' id="{html_escape(badge.value_dom_id)}"' if badge.value_dom_id else ""
         parts.append(
             f'<div class="stat-badge stat-{html_escape(badge.tone)}"{dom_id}>'
             f'<span class="stat-caption">{html_escape(badge.caption)}</span>'
@@ -2468,13 +2441,9 @@ def render_page_header(
     note_html: str,
     stat_badges_html: str,
 ) -> str:
-    kicker_block = (
-        f'<div class="header-kicker">{html_escape(kicker)}</div>' if kicker else ""
-    )
+    kicker_block = f'<div class="header-kicker">{html_escape(kicker)}</div>' if kicker else ""
     note_block = f'<div class="header-note">{note_html}</div>' if note_html else ""
-    stats_block = (
-        f'<div class="hero-stats">{stat_badges_html}</div>' if stat_badges_html else ""
-    )
+    stats_block = f'<div class="hero-stats">{stat_badges_html}</div>' if stat_badges_html else ""
     return (
         '<div class="header">'
         '  <div class="header-left">'
@@ -2509,9 +2478,7 @@ def render_report_header(
     return f"{page_header}{nav_block}"
 
 
-def render_report_summary(
-    items: Sequence[tuple[str, str]], *, compact: bool = False
-) -> str:
+def render_report_summary(items: Sequence[tuple[str, str]], *, compact: bool = False) -> str:
     if not items:
         return ""
     blocks = []
@@ -2553,9 +2520,7 @@ def render_report_top_strip(
     if not chips_html and not note_block:
         return ""
     return (
-        "<section class='info-panel is-compact'>"
-        f"<div class='info-panel-body'>{chips_html}{note_block}</div>"
-        "</section>"
+        f"<section class='info-panel is-compact'><div class='info-panel-body'>{chips_html}{note_block}</div></section>"
     )
 
 
@@ -2579,14 +2544,8 @@ def render_report_section(
     note_block = f"<p class='report-section-note'>{note_html}</p>" if note_html else ""
     head_markup = ""
     if title or note_block:
-        title_block = (
-            f"<h2 class='report-section-title'>{html_escape(title)}</h2>"
-            if title
-            else ""
-        )
-        head_markup = (
-            f"<div class='report-section-head'>{title_block}{note_block}</div>"
-        )
+        title_block = f"<h2 class='report-section-title'>{html_escape(title)}</h2>" if title else ""
+        head_markup = f"<div class='report-section-head'>{title_block}{note_block}</div>"
     return (
         f"<section class='{' '.join(classes)}'{id_attr}>"
         f"{head_markup}"
@@ -2595,15 +2554,9 @@ def render_report_section(
     )
 
 
-def render_view_nav(
-    items: Iterable[tuple[str, str, bool]], kicker: str = "Views"
-) -> str:
-    links: list[str] = (
-        [f'<div class="view-nav-kicker">{html_escape(kicker)}</div>'] if kicker else []
-    )
+def render_view_nav(items: Iterable[tuple[str, str, bool]], kicker: str = "Views") -> str:
+    links: list[str] = [f'<div class="view-nav-kicker">{html_escape(kicker)}</div>'] if kicker else []
     for label, href, active in items:
         cls = "view-nav-link is-active" if active else "view-nav-link"
-        links.append(
-            f'<a class="{cls}" href="{html_escape(href)}">{html_escape(label)}</a>'
-        )
+        links.append(f'<a class="{cls}" href="{html_escape(href)}">{html_escape(label)}</a>')
     return f'<nav class="view-nav">{"".join(links)}</nav>'

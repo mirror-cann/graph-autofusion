@@ -62,11 +62,7 @@ def map_kernel_type_for_sk(original_qualifiers: str) -> str:
         return f"__mix__({c}, {v})"
     any_mix = _ANY_MIX_RE.search(text)
     if any_mix is not None:
-        return (
-            "__mix__("
-            + ", ".join(part.strip() for part in any_mix.group("body").split(","))
-            + ")"
-        )
+        return "__mix__(" + ", ".join(part.strip() for part in any_mix.group("body").split(",")) + ")"
     if re.search(r"\b__mix__\b", text):
         return "__mix__"
     if "__vector__" in text:
@@ -289,9 +285,7 @@ def _macro_invocation_end(source_text: str, start: int, macro_name: str) -> int:
     return end
 
 
-def _adaptation_insertion_end(
-    source_text: str, match: re.Match[str], close_brace: int
-) -> int:
+def _adaptation_insertion_end(source_text: str, match: re.Match[str], close_brace: int) -> int:
     context = _macro_definition_context(source_text, match.start())
     if context is None:
         return close_brace + 1
@@ -324,9 +318,7 @@ def parse_global_entries(source_text: str) -> list[ParsedKernelEntry]:
                 return_type=match.group("rettype"),
                 params=params,
                 body=body,
-                uses_get_block_num=bool(
-                    re.search(r"\bAscendC\s*::\s*GetBlockNum\s*\(", body)
-                ),
+                uses_get_block_num=bool(re.search(r"\bAscendC\s*::\s*GetBlockNum\s*\(", body)),
             )
         )
     return entries
@@ -363,9 +355,7 @@ def detect_sk_form(source_text: str) -> SKFormAnalysis:
     has_spk = bool(re.search(r"__spk__\b", source_text))
     has_sk = bool(re.search(r"__sk__\b", source_text))
     has_sk_bind = bool(re.search(r"\bSK_BIND\s*\(", source_text))
-    has_legacy_meta = bool(
-        _FUN_LEVEL_META_RE.search(source_text) or _ASCEND_META_RE.search(source_text)
-    )
+    has_legacy_meta = bool(_FUN_LEVEL_META_RE.search(source_text) or _ASCEND_META_RE.search(source_text))
 
     notes: list[str] = []
     if not has_global:
@@ -398,9 +388,7 @@ def detect_sk_form(source_text: str) -> SKFormAnalysis:
             has_sk_keyword=has_sk,
             has_sk_bind=has_sk_bind,
             has_legacy_meta_struct=True,
-            notes=[
-                "legacy __spk__ + FunLevelMixCoreType form; migration to current-sk-bind recommended"
-            ],
+            notes=["legacy __spk__ + FunLevelMixCoreType form; migration to current-sk-bind recommended"],
         )
     has_partial_sk_signal = has_sk or has_spk or has_sk_bind or has_legacy_meta
     if has_partial_sk_signal:
@@ -435,12 +423,8 @@ def _is_small_int_type(c_type: str) -> bool:
     return any(t in c_type for t in SMALL_INT_TYPES)
 
 
-def _type_references_template_params(
-    c_type: str, template_param_names: list[str]
-) -> bool:
-    return any(
-        re.search(rf"\b{re.escape(name)}\b", c_type) for name in template_param_names
-    )
+def _type_references_template_params(c_type: str, template_param_names: list[str]) -> bool:
+    return any(re.search(rf"\b{re.escape(name)}\b", c_type) for name in template_param_names)
 
 
 def _args_template_params_for_fields(
@@ -462,9 +446,7 @@ def _tpipe_declarations_with_depth(body: str) -> list[tuple[str, int]]:
         stripped = line.strip()
         if stripped.startswith("//"):
             continue
-        for match in re.finditer(
-            r"\b(?:AscendC::)?TPipe\s+([A-Za-z_]\w*)\s*(?:;|=)", line
-        ):
+        for match in re.finditer(r"\b(?:AscendC::)?TPipe\s+([A-Za-z_]\w*)\s*(?:;|=)", line):
             declarations.append((match.group(1), depth))
         depth += line.count("{") - line.count("}")
         if depth < 0:
@@ -501,29 +483,21 @@ def _ensure_tpipe_destroy_without_pipe_all(body: str) -> str:
     for index, line in enumerate(lines):
         if line.strip().startswith("//"):
             continue
-        for match in re.finditer(
-            r"\b(?:AscendC::)?TPipe\s+([A-Za-z_]\w*)\s*(?:;|=)", line
-        ):
+        for match in re.finditer(r"\b(?:AscendC::)?TPipe\s+([A-Za-z_]\w*)\s*(?:;|=)", line):
             name = match.group(1)
             close_index = None
             for probe in range(index + 1, len(lines)):
-                if depths[probe] == depths[index] and lines[probe].strip().startswith(
-                    "}"
-                ):
+                if depths[probe] == depths[index] and lines[probe].strip().startswith("}"):
                     close_index = probe
                     break
             if close_index is None:
                 close_index = len(lines)
             scope_text = "\n".join(lines[index:close_index])
-            if re.search(
-                rf"\b{re.escape(name)}\s*\.\s*DestroyWithoutPipeAll\s*\(", scope_text
-            ):
+            if re.search(rf"\b{re.escape(name)}\s*\.\s*DestroyWithoutPipeAll\s*\(", scope_text):
                 continue
             indent_end = len(line) - len(line.lstrip())
             indent = line[:indent_end]
-            insertions.setdefault(close_index, []).append(
-                f"{indent}{name}.DestroyWithoutPipeAll();"
-            )
+            insertions.setdefault(close_index, []).append(f"{indent}{name}.DestroyWithoutPipeAll();")
     if not insertions:
         return body
     rendered: list[str] = []
@@ -607,16 +581,10 @@ def render_sk_adaptation(
     args_name = f"{_camel_case(function_base.removesuffix('_sk'))}Args"
     bind_symbol = bind_target or entry.name
     template_param_decls = [param["decl"] for param in template_params]
-    args_template_params = _args_template_params_for_fields(
-        entry.params, template_params
-    )
+    args_template_params = _args_template_params_for_fields(entry.params, template_params)
     args_template_decls = [param["decl"] for param in args_template_params]
     args_template_names = [param["name"] for param in args_template_params]
-    args_type = (
-        f"{args_name}<{', '.join(args_template_names)}>"
-        if args_template_params
-        else args_name
-    )
+    args_type = f"{args_name}<{', '.join(args_template_names)}>" if args_template_params else args_name
 
     # ----- Args struct -----
     if entry.params:
@@ -640,9 +608,7 @@ def render_sk_adaptation(
     elif sys_args_mode == "auto":
         use_sys = entry.uses_get_block_num
     else:
-        raise ValueError(
-            f"sys_args_mode must be auto|always|never, got {sys_args_mode!r}"
-        )
+        raise ValueError(f"sys_args_mode must be auto|always|never, got {sys_args_mode!r}")
 
     sig_args = f"const {args_type} *args" if entry.params else ""
     if use_sys:
@@ -668,18 +634,12 @@ def render_sk_adaptation(
     sk_func = (
         f"template<{', '.join(template_param_decls + ['uint32_t splitidx'])}>\n"
         f"__sk__ {sk_kt} void {function_base}({sig_args})\n"
-        f"{{\n"
-        + "\n".join(unpack_lines)
-        + ("\n\n" if unpack_lines else "")
-        + rewritten_body.rstrip("\n")
-        + "\n}\n"
+        f"{{\n" + "\n".join(unpack_lines) + ("\n\n" if unpack_lines else "") + rewritten_body.rstrip("\n") + "\n}\n"
     )
 
     # ----- SK_BIND -----
     split_args = ", ".join(
-        f"{function_base}<{', '.join(template_args + [str(i)])}>"
-        if template_args
-        else f"{function_base}<{i}>"
+        f"{function_base}<{', '.join(template_args + [str(i)])}>" if template_args else f"{function_base}<{i}>"
         for i in range(num_splits)
     )
     sk_bind = f"SK_BIND({bind_symbol}, {mask}, {split_args});"
@@ -736,11 +696,7 @@ def adapt_source_text(
     last_end = 0
     metas: list[dict] = []
     for entry in entries:
-        m = next(
-            x
-            for x in _GLOBAL_FN_RE.finditer(source_text)
-            if x.group("name") == entry.name
-        )
+        m = next(x for x in _GLOBAL_FN_RE.finditer(source_text) if x.group("name") == entry.name)
         open_brace = m.end() - 1
         close_brace = _find_matching_brace(source_text, open_brace)
         if close_brace is None:
@@ -748,9 +704,7 @@ def adapt_source_text(
         insertion_end = _adaptation_insertion_end(source_text, m, close_brace)
         # Append text up to the point where the original entry is visible to SK_BIND.
         pieces.append(source_text[last_end:insertion_end])
-        rendered = render_sk_adaptation(
-            entry, mask=mask, num_splits=num_splits, sys_args_mode=sys_args_mode
-        )
+        rendered = render_sk_adaptation(entry, mask=mask, num_splits=num_splits, sys_args_mode=sys_args_mode)
         pieces.append(
             "\n\n// ---- SK adaptation (auto-generated) ----\n"
             + (rendered.args_struct_text + "\n\n" if rendered.args_struct_text else "")
@@ -767,9 +721,7 @@ def adapt_source_text(
                 "args_struct_name": rendered.args_struct_name,
                 "uses_sys_args": rendered.uses_sys_args,
                 "param_count": len(entry.params),
-                "parameters": [
-                    {"name": p.name, "c_type": p.c_type} for p in entry.params
-                ],
+                "parameters": [{"name": p.name, "c_type": p.c_type} for p in entry.params],
                 "original_qualifiers": entry.qualifiers_text,
                 "bind_target": entry.name,
                 "global_launch_target": entry.name,
@@ -787,20 +739,12 @@ _SPK_FN_RE = re.compile(
     re.MULTILINE,
 )
 _SPK_NAME_RE = re.compile(r"(?P<stem>.+)_sk(?P<index>\d*)$")
-_META_LINE_RE = re.compile(
-    r"(?m)^[^\n]*(?:FunLevel(?:MixCoreType|KType)|\.ascend\.meta)[^\n]*(?:\n|$)"
-)
-_LEGACY_IFDEF_RE = re.compile(
-    r"#ifdef\s+__(?:DAV_CUBE|DAV_VEC)__\s*(?P<body>.*?)#endif", re.DOTALL
-)
-_HELPER_FORWARD_CALL_RE = re.compile(
-    r"^\s*(?P<helper>[A-Za-z_]\w*)\s*\(\s*param\s*\)\s*;\s*$", re.DOTALL
-)
+_META_LINE_RE = re.compile(r"(?m)^[^\n]*(?:FunLevel(?:MixCoreType|KType)|\.ascend\.meta)[^\n]*(?:\n|$)")
+_LEGACY_IFDEF_RE = re.compile(r"#ifdef\s+__(?:DAV_CUBE|DAV_VEC)__\s*(?P<body>.*?)#endif", re.DOTALL)
+_HELPER_FORWARD_CALL_RE = re.compile(r"^\s*(?P<helper>[A-Za-z_]\w*)\s*\(\s*param\s*\)\s*;\s*$", re.DOTALL)
 
 
-def _human_finding(
-    finding_id: str, message: str, evidence: list[str] | None = None
-) -> dict:
+def _human_finding(finding_id: str, message: str, evidence: list[str] | None = None) -> dict:
     return {
         "finding_id": finding_id,
         "rule_id": finding_id,
@@ -898,9 +842,7 @@ def _contains_param_forward_call(body: str) -> bool:
     return bool(re.search(r"\b[A-Za-z_]\w*\s*\(\s*param\s*\)\s*;", body))
 
 
-def _find_named_void_function_span(
-    source_text: str, name: str
-) -> tuple[int, int] | None:
+def _find_named_void_function_span(source_text: str, name: str) -> tuple[int, int] | None:
     pattern = re.compile(
         rf"(?:inline\s+)?(?:__aicore__\s+)?(?:inline\s+)?void\s+{re.escape(name)}\s*"
         rf"\(\s*__gm__\s+uint64_t\s*\*\s*param\s*\)\s*\{{"
@@ -937,19 +879,13 @@ def _legacy_tiling_types(text: str) -> list[str]:
         re.DOTALL,
     ):
         found.append(match.group(1))
-    for match in re.finditer(
-        r"GET_TILING_PTR\s*\(\s*([A-Za-z_]\w*(?:::\w+)*)\s*\*", text
-    ):
+    for match in re.finditer(r"GET_TILING_PTR\s*\(\s*([A-Za-z_]\w*(?:::\w+)*)\s*\*", text):
         found.append(match.group(1))
     return list(dict.fromkeys(found))
 
 
-def _legacy_mix_semantics_require_human(
-    source_text: str, entry: ParsedKernelEntry, group: list[dict]
-) -> bool:
-    has_conditional_core_branch = bool(
-        re.search(r"\bASCEND_IS_AIC\b|\bASCEND_IS_AIV\b", source_text)
-    )
+def _legacy_mix_semantics_require_human(source_text: str, entry: ParsedKernelEntry, group: list[dict]) -> bool:
+    has_conditional_core_branch = bool(re.search(r"\bASCEND_IS_AIC\b|\bASCEND_IS_AIV\b", source_text))
     has_mix_meta = any(
         re.search(
             rf"\.ascend\.meta\.{re.escape(str(variant.get('name', '')))}_mix_ai[cv]",
@@ -962,9 +898,7 @@ def _legacy_mix_semantics_require_human(
 
 
 def _global_template_specializations(source_text: str, global_name: str) -> list[str]:
-    pattern = re.compile(
-        rf"\b{re.escape(global_name)}\s*<(?P<args>[^;\n{{}}]+?)>\s*<<<", re.DOTALL
-    )
+    pattern = re.compile(rf"\b{re.escape(global_name)}\s*<(?P<args>[^;\n{{}}]+?)>\s*<<<", re.DOTALL)
     specs: list[str] = []
     for match in pattern.finditer(source_text):
         args = " ".join(match.group("args").split())
@@ -995,9 +929,7 @@ def _split_top_level_commas(text: str) -> list[str]:
     return items
 
 
-def _template_params_for_global(
-    source_text: str, global_name: str
-) -> list[dict[str, str]]:
+def _template_params_for_global(source_text: str, global_name: str) -> list[dict[str, str]]:
     pattern = re.compile(
         r"template\s*<(?P<params>[^>]+)>\s*"
         r'(?:extern\s+"C"\s+)?'
@@ -1046,9 +978,7 @@ def _metadata_parameters(
     template_args: list[str],
 ) -> list[dict[str, str]]:
     type_param_values = {
-        param["name"]: arg
-        for param, arg in zip(template_params, template_args)
-        if param.get("kind") == "type"
+        param["name"]: arg for param, arg in zip(template_params, template_args) if param.get("kind") == "type"
     }
     rendered: list[dict[str, str]] = []
     for param in entry.params:
@@ -1101,9 +1031,7 @@ def _render_helper_forward_body(entry: ParsedKernelEntry, helper_name: str) -> s
     lines = [f"    uint64_t fake_param[{len(entry.params)}];"]
     for index, param in enumerate(entry.params):
         is_last_param = index == len(entry.params) - 1
-        is_pointer_like = (
-            "GM_ADDR" in param.c_type or "*" in param.c_type or "__gm__" in param.c_type
-        )
+        is_pointer_like = "GM_ADDR" in param.c_type or "*" in param.c_type or "__gm__" in param.c_type
         if is_last_param and not is_pointer_like:
             value = f"&args->{param.name}"
         else:
@@ -1113,13 +1041,9 @@ def _render_helper_forward_body(entry: ParsedKernelEntry, helper_name: str) -> s
     return "\n".join(lines)
 
 
-def _rewrite_legacy_spk_body(
-    body: str, entry: ParsedKernelEntry
-) -> tuple[str, list[dict]]:
+def _rewrite_legacy_spk_body(body: str, entry: ParsedKernelEntry) -> tuple[str, list[dict]]:
     pointer_replacements: dict[str, str] = {}
-    for match in re.finditer(
-        r"GET_STRUCT_PTR\s*\(\s*param\s*\+\s*(\d+)\s*,\s*([A-Za-z_]\w*)\s*\)", body
-    ):
+    for match in re.finditer(r"GET_STRUCT_PTR\s*\(\s*param\s*\+\s*(\d+)\s*,\s*([A-Za-z_]\w*)\s*\)", body):
         index = int(match.group(1))
         local_name = match.group(2)
         if index >= len(entry.params):
@@ -1132,11 +1056,7 @@ def _rewrite_legacy_spk_body(
                 )
             ]
         param = entry.params[index]
-        replacement = (
-            param.name
-            if ("*" in param.c_type or "GM_ADDR" in param.c_type)
-            else f"&{param.name}"
-        )
+        replacement = param.name if ("*" in param.c_type or "GM_ADDR" in param.c_type) else f"&{param.name}"
         pointer_replacements[local_name] = replacement
 
     rewritten_lines: list[str] = []
@@ -1156,9 +1076,7 @@ def _rewrite_legacy_spk_body(
             continue
         declaration_removed = False
         for local_name in pointer_replacements:
-            if re.match(
-                rf"^[A-Za-z_][\w:<>,\s*&]*\s+\**{re.escape(local_name)}\s*;", stripped
-            ):
+            if re.match(rf"^[A-Za-z_][\w:<>,\s*&]*\s+\**{re.escape(local_name)}\s*;", stripped):
                 declaration_removed = True
                 break
         if declaration_removed:
@@ -1209,11 +1127,7 @@ def _find_spk_variants(source_text: str) -> list[dict]:
 
 
 def _map_spk_stem_to_global(stem: str, entries: list[ParsedKernelEntry]) -> str | None:
-    candidates = [
-        entry.name
-        for entry in entries
-        if stem == entry.name or stem.startswith(entry.name + "_")
-    ]
+    candidates = [entry.name for entry in entries if stem == entry.name or stem.startswith(entry.name + "_")]
     return max(candidates, key=len) if candidates else None
 
 
@@ -1231,11 +1145,7 @@ def _legacy_kernel_launch_warnings(source_text: str) -> list[dict]:
         body = source_text[body_start:close_brace].strip()
         if "<<<" not in body or ">>>" not in body:
             continue
-        lines = [
-            line.strip()
-            for line in body.splitlines()
-            if line.strip() and not line.strip().startswith("//")
-        ]
+        lines = [line.strip() for line in body.splitlines() if line.strip() and not line.strip().startswith("//")]
         chevron_only = len(lines) == 1 and "<<<" in lines[0] and ">>>" in lines[0]
         if not chevron_only:
             warnings.append(
@@ -1243,8 +1153,7 @@ def _legacy_kernel_launch_warnings(source_text: str) -> list[dict]:
                     "finding_id": "codegen.legacy-kernel-launch-preserved-as-is",
                     "severity": "warning",
                     "message": (
-                        f"KernelLaunch function {match.group('name')} has "
-                        "non-chevron logic and was preserved as-is."
+                        f"KernelLaunch function {match.group('name')} has non-chevron logic and was preserved as-is."
                     ),
                 }
             )
@@ -1316,13 +1225,8 @@ def migrate_legacy_spk_to_sk_bind(
             return original_text, meta
         entry = entries_by_name[global_name]
         migration_contract = migration_contract or {}
-        mix_semantics_confirmed = bool(
-            migration_contract.get("confirm_legacy_mix_semantics")
-        )
-        if (
-            _legacy_mix_semantics_require_human(source_text, entry, group)
-            and not mix_semantics_confirmed
-        ):
+        mix_semantics_confirmed = bool(migration_contract.get("confirm_legacy_mix_semantics"))
+        if _legacy_mix_semantics_require_human(source_text, entry, group) and not mix_semantics_confirmed:
             meta["to_form"] = "legacy-spk"
             meta["escalations"].append(
                 _human_finding(
@@ -1349,9 +1253,7 @@ def migrate_legacy_spk_to_sk_bind(
                 if helper_span is not None:
                     helper_spans_to_remove.append(helper_span)
             if len(unique_helpers) == 1:
-                helper_body = _find_named_void_function_body(
-                    source_text, unique_helpers[0]
-                )
+                helper_body = _find_named_void_function_body(source_text, unique_helpers[0])
 
         bind_target, specialization_meta = _select_bind_target(
             source_text,
@@ -1371,11 +1273,7 @@ def migrate_legacy_spk_to_sk_bind(
                 )
             )
             return original_text, meta
-        contract_bind_target = (
-            bind_targets_by_stem.get(stem)
-            or bind_targets_by_stem.get(global_name)
-            or ""
-        )
+        contract_bind_target = bind_targets_by_stem.get(stem) or bind_targets_by_stem.get(global_name) or ""
         if contract_bind_target and bind_target != contract_bind_target:
             skipped_by_bind_target.append(
                 {
@@ -1413,9 +1311,7 @@ def migrate_legacy_spk_to_sk_bind(
             return_type=entry.return_type,
             params=entry.params,
             body=rewritten_body,
-            uses_get_block_num=bool(
-                re.search(r"\bAscendC\s*::\s*GetBlockNum\s*\(", rewritten_body)
-            ),
+            uses_get_block_num=bool(re.search(r"\bAscendC\s*::\s*GetBlockNum\s*\(", rewritten_body)),
         )
         try:
             rendered = render_sk_adaptation(
@@ -1458,9 +1354,7 @@ def migrate_legacy_spk_to_sk_bind(
             entry_meta["template_parameters"] = template_params
             entry_meta["template_arguments"] = template_args
         if helper_body is not None:
-            entry_meta["legacy_helper_evidence"] = (
-                "used-only-for-specialization-selection"
-            )
+            entry_meta["legacy_helper_evidence"] = "used-only-for-specialization-selection"
         if specialization_meta and bind_target != entry.name:
             entry_meta["template_specialization"] = specialization_meta
         if contract_bind_target:
@@ -1510,13 +1404,9 @@ def migrate_legacy_spk_to_sk_bind(
         rendered_items = rendered_by_global[name]
         body_end = close_brace + 1
         pieces.append(cleaned[last_end:body_end])
-        rendered_blocks: list[str] = [
-            "\n\n// ---- SK adaptation (auto-generated from legacy entry) ----\n"
-        ]
+        rendered_blocks: list[str] = ["\n\n// ---- SK adaptation (auto-generated from legacy entry) ----\n"]
         for rendered, entry_meta in rendered_items:
-            rendered_blocks.append(
-                rendered.args_struct_text + "\n\n" if rendered.args_struct_text else ""
-            )
+            rendered_blocks.append(rendered.args_struct_text + "\n\n" if rendered.args_struct_text else "")
             rendered_blocks.append(rendered.sk_function_text)
             rendered_blocks.append("\n")
             rendered_blocks.append(rendered.sk_bind_text)
@@ -1582,21 +1472,15 @@ def _is_scalar_param(param: dict[str, Any]) -> bool:
         "bool",
         "size_t",
     )
-    return not _is_tensor_like_param(param) and any(
-        marker in c_type for marker in scalar_markers
-    )
+    return not _is_tensor_like_param(param) and any(marker in c_type for marker in scalar_markers)
 
 
-def _runtime_param_kind(
-    param: dict[str, Any], entry: dict[str, Any] | None = None
-) -> str:
+def _runtime_param_kind(param: dict[str, Any], entry: dict[str, Any] | None = None) -> str:
     io_params = {}
     if entry is not None:
         io_params = dict(entry.get("io_contract", {}).get("parameters", {}) or {})
     declared = io_params.get(str(param.get("name") or ""))
-    declared_kind = (
-        str(declared.get("kind") or "") if isinstance(declared, dict) else ""
-    )
+    declared_kind = str(declared.get("kind") or "") if isinstance(declared, dict) else ""
     if declared_kind and (_is_tensor_like_param(param) or not _is_scalar_param(param)):
         return declared_kind
     if _is_tensor_like_param(param):
@@ -1606,29 +1490,21 @@ def _runtime_param_kind(
     return "host_struct"
 
 
-def _runtime_param_contract(
-    param: dict[str, Any], entry: dict[str, Any] | None = None
-) -> dict[str, Any]:
+def _runtime_param_contract(param: dict[str, Any], entry: dict[str, Any] | None = None) -> dict[str, Any]:
     if entry is None:
         return {}
-    declared = dict(entry.get("io_contract", {}).get("parameters", {}) or {}).get(
-        str(param.get("name") or "")
-    )
+    declared = dict(entry.get("io_contract", {}).get("parameters", {}) or {}).get(str(param.get("name") or ""))
     return declared if isinstance(declared, dict) else {}
 
 
-def _is_nullable_runtime_param(
-    param: dict[str, Any], entry: dict[str, Any] | None = None
-) -> bool:
+def _is_nullable_runtime_param(param: dict[str, Any], entry: dict[str, Any] | None = None) -> bool:
     return bool(_runtime_param_contract(param, entry).get("nullable"))
 
 
 def _runtime_wrapper_contract(entry: dict[str, Any] | None = None) -> dict[str, Any]:
     if entry is None:
         return {}
-    wrapper = entry.get("runtime_wrapper") or entry.get("io_contract", {}).get(
-        "runtime_wrapper", {}
-    )
+    wrapper = entry.get("runtime_wrapper") or entry.get("io_contract", {}).get("runtime_wrapper", {})
     return wrapper if isinstance(wrapper, dict) else {}
 
 
@@ -1673,9 +1549,7 @@ def _run_signature_params(entry: dict[str, Any]) -> list[str]:
                 )
             rendered.append(f"const at::Tensor &{param['name']}")
         else:
-            raise ValueError(
-                f"unsupported runtime parameter kind {kind!r} for {param['name']}"
-            )
+            raise ValueError(f"unsupported runtime parameter kind {kind!r} for {param['name']}")
     return rendered
 
 
@@ -1699,9 +1573,7 @@ def _launch_args(entry: dict[str, Any]) -> list[str]:
                 "requires a user/adapter-provided runtime wrapper"
             )
         else:
-            raise ValueError(
-                f"unsupported runtime parameter kind {kind!r} for {param['name']}"
-            )
+            raise ValueError(f"unsupported runtime parameter kind {kind!r} for {param['name']}")
     return rendered
 
 
@@ -1786,9 +1658,7 @@ def _torch_schema(entry: dict[str, Any]) -> str:
         kind = _runtime_param_kind(param, entry)
         if kind == "tensor":
             rendered.append(
-                f"Tensor? {param['name']}"
-                if _is_nullable_runtime_param(param, entry)
-                else f"Tensor {param['name']}"
+                f"Tensor? {param['name']}" if _is_nullable_runtime_param(param, entry) else f"Tensor {param['name']}"
             )
         elif kind == "host_struct":
             rendered.append(f"int[] {param['name']}")
@@ -1839,9 +1709,7 @@ def _entry_block_dim_line(entry: dict[str, Any]) -> str:
     return "    uint32_t blockDim = ascendc_ops::get_current_aicore_num();"
 
 
-def render_aclgraph_kernel_source(
-    source_text: str, entries: list[dict[str, Any]]
-) -> str:
+def render_aclgraph_kernel_source(source_text: str, entries: list[dict[str, Any]]) -> str:
     """Append aclgraph-style run_<op> wrappers to an adapted SK source."""
     lines = [
         _ensure_aclgraph_includes(source_text).rstrip(),
@@ -1860,14 +1728,10 @@ def render_aclgraph_kernel_source(
         return_tensor = _return_tensor_param(entry)
         lines.append(f"at::Tensor run_{name}({signature})")
         lines.append("{")
-        lines.append(
-            "    auto acl_stream = c10_npu::getCurrentNPUStream().stream(true);"
-        )
+        lines.append("    auto acl_stream = c10_npu::getCurrentNPUStream().stream(true);")
         lines.append(_entry_block_dim_line(entry))
         lines.extend(_runtime_setup_lines(entry))
-        lines.append(
-            f"    {sk_launch_target}<<<blockDim, nullptr, acl_stream>>>({launch_args});"
-        )
+        lines.append(f"    {sk_launch_target}<<<blockDim, nullptr, acl_stream>>>({launch_args});")
         lines.append(f"    return {return_tensor};")
         lines.append("}")
         lines.append("")
@@ -1907,9 +1771,7 @@ def render_pybind11_asc(module_name: str, entries: list[dict[str, Any]]) -> str:
 
 
 def _is_aclgraph_pybind_source_name(name: str) -> bool:
-    return name == "pybind11.asc" or (
-        name.startswith("pybind11_") and name.endswith(".asc")
-    )
+    return name == "pybind11.asc" or (name.startswith("pybind11_") and name.endswith(".asc"))
 
 
 def _aclgraph_entry_module_base(entry: dict[str, Any]) -> str:
@@ -1979,12 +1841,8 @@ def _aclgraph_entry_specs(entries: list[dict[str, Any]]) -> list[dict[str, Any]]
                 "supported_soc_versions": list(entry.get("supported_soc_versions", [])),
                 "target_resolution": dict(entry.get("target_resolution", {})),
                 "support_source": entry.get("support_source", ""),
-                "compile_defines": list(
-                    dict.fromkeys(entry.get("compile", {}).get("defines", []))
-                ),
-                "compile_options": list(
-                    dict.fromkeys(entry.get("compile", {}).get("options", []))
-                ),
+                "compile_defines": list(dict.fromkeys(entry.get("compile", {}).get("defines", []))),
+                "compile_options": list(dict.fromkeys(entry.get("compile", {}).get("options", []))),
             }
         )
     if len(module_base_by_entry) != len(entries):
@@ -1997,13 +1855,9 @@ def render_pybind11_entry_asc(entry: dict[str, Any]) -> str:
 
 
 def render_arch_selector_py(module_name: str, entries: list[dict[str, Any]]) -> str:
-    entry_modules = {
-        spec["entry_name"]: spec["module_base"]
-        for spec in _aclgraph_entry_specs(entries)
-    }
+    entry_modules = {spec["entry_name"]: spec["module_base"] for spec in _aclgraph_entry_specs(entries)}
     entry_supported_arches = {
-        spec["entry_name"]: spec.get("supported_arches", [])
-        for spec in _aclgraph_entry_specs(entries)
+        spec["entry_name"]: spec.get("supported_arches", []) for spec in _aclgraph_entry_specs(entries)
     }
     template = '''"""Runtime NPU arch selection for ACLGraph custom ops."""
 from __future__ import annotations
@@ -2248,9 +2102,7 @@ def render_op_extension_init_py(module_name: str, entries: list[dict[str, Any]])
             f"        raise RuntimeError('ACLGraph custom op {name} is not "
             "packaged for selected NPU arch %s' % SELECTED_NPU_ARCH)"
         )
-        lines.append(
-            f"    return custom_ops_libs[{name!r}].run_{name}(*args, **kwargs)"
-        )
+        lines.append(f"    return custom_ops_libs[{name!r}].run_{name}(*args, **kwargs)")
         exports.append(f"run_{name}")
     lines.extend(
         [
@@ -2267,8 +2119,7 @@ def render_op_extension_init_py(module_name: str, entries: list[dict[str, Any]])
 
 def render_torch_library_py(module_name: str, entries: list[dict[str, Any]]) -> str:
     entry_supported_arches = {
-        str(entry["entry_name"]): _normalize_arch_list(entry.get("supported_arches"))
-        for entry in entries
+        str(entry["entry_name"]): _normalize_arch_list(entry.get("supported_arches")) for entry in entries
     }
     lines = [
         "import torch",
@@ -2642,10 +2493,7 @@ def _standalone_param_decls(entry: dict[str, Any]) -> str:
 
 
 def _standalone_arg_names(entry: dict[str, Any]) -> str:
-    return ", ".join(
-        param.get("name", f"arg{index}")
-        for index, param in enumerate(entry.get("parameters", []))
-    )
+    return ", ".join(param.get("name", f"arg{index}") for index, param in enumerate(entry.get("parameters", [])))
 
 
 def _standalone_default_arg_lines(entry: dict[str, Any]) -> list[str]:
@@ -2660,9 +2508,7 @@ def _standalone_default_arg_lines(entry: dict[str, Any]) -> list[str]:
     return lines
 
 
-def _standalone_fixture_status(
-    entry: dict[str, Any], op_fixture: Path
-) -> dict[str, Any]:
+def _standalone_fixture_status(entry: dict[str, Any], op_fixture: Path) -> dict[str, Any]:
     if not op_fixture.exists() or not any(op_fixture.rglob("*")):
         return {
             "status": "insufficient",
@@ -2695,11 +2541,7 @@ def _standalone_fixture_status(
             "reason": "operator-sk-runtime-fixture.json must contain a parameters list",
         }
     by_name = {item.get("name"): item for item in params if isinstance(item, dict)}
-    missing = [
-        param.get("name")
-        for param in entry.get("parameters", [])
-        if param.get("name") not in by_name
-    ]
+    missing = [param.get("name") for param in entry.get("parameters", []) if param.get("name") not in by_name]
     if missing:
         return {
             "status": "insufficient",
@@ -2717,20 +2559,14 @@ def _standalone_fixture_status(
         kind = spec_item.get("kind", "device_buffer")
         if kind == "device_buffer":
             bytes_value = spec_item.get("bytes")
-            if (
-                not isinstance(bytes_value, int)
-                or isinstance(bytes_value, bool)
-                or bytes_value <= 0
-            ):
+            if not isinstance(bytes_value, int) or isinstance(bytes_value, bool) or bytes_value <= 0:
                 return {
                     "status": "insufficient",
                     "path": str(op_fixture),
                     "device_runnable": False,
                     "reason": f"operator-sk-runtime-fixture.json has invalid byte size for {name}",
                 }
-            has_compare_buffer = has_compare_buffer or bool(
-                spec_item.get("compare", False)
-            )
+            has_compare_buffer = has_compare_buffer or bool(spec_item.get("compare", False))
         elif kind not in {"scalar", "literal"}:
             return {
                 "status": "insufficient",
@@ -2776,16 +2612,10 @@ def _standalone_buffer_cast(c_type: str, variable: str) -> str:
 
 
 def _fixture_param_by_name(fixture: dict[str, Any]) -> dict[str, dict[str, Any]]:
-    return {
-        item["name"]: item
-        for item in fixture.get("parameters", [])
-        if isinstance(item, dict) and "name" in item
-    }
+    return {item["name"]: item for item in fixture.get("parameters", []) if isinstance(item, dict) and "name" in item}
 
 
-def _render_real_device_compare_body(
-    entry: dict[str, Any], fixture: dict[str, Any]
-) -> list[str]:
+def _render_real_device_compare_body(entry: dict[str, Any], fixture: dict[str, Any]) -> list[str]:
     wrapper = _cpp_identifier_from_symbol(entry["entry_name"])
     params_by_name = _fixture_param_by_name(fixture)
     block_dim = int(fixture.get("block_dim", 1))
@@ -2855,13 +2685,9 @@ def _render_real_device_compare_body(
             baseline_args.append(name)
             sk_args.append(name)
         else:
-            raise ValueError(
-                f"unsupported runtime fixture kind for {entry['entry_name']}.{name}: {kind}"
-            )
+            raise ValueError(f"unsupported runtime fixture kind for {entry['entry_name']}.{name}: {kind}")
     baseline_arg_suffix = f"{', ' if baseline_args else ''}{', '.join(baseline_args)}"
-    lines.append(
-        f"    launch_{wrapper}_baseline(entry_block_dim, stream{baseline_arg_suffix});"
-    )
+    lines.append(f"    launch_{wrapper}_baseline(entry_block_dim, stream{baseline_arg_suffix});")
     lines.append(
         "    if (!acl_ok(aclrtSynchronizeStream(acl_stream), result, "
         '"aclrtSynchronizeStream baseline")) { '
@@ -2915,9 +2741,7 @@ def _render_real_device_compare_body(
         )
     else:
         lines.append('    result.status = "skipped-insufficient-runtime-spec";')
-        lines.append(
-            '    result.reason = "standalone_bind_target_baseline_and_sk_executed_no_compare_buffer";'
-        )
+        lines.append('    result.reason = "standalone_bind_target_baseline_and_sk_executed_no_compare_buffer";')
     lines.append("    free_device_ptrs(cleanup_device_ptrs);")
     return lines
 
@@ -3106,38 +2930,28 @@ def render_standalone_compare_source(
         param_tail = f", {params}" if params else ""
         arg_tail = f"{args}" if args else ""
         if include_kernel:
-            lines.append(
-                f"void launch_{wrapper}_baseline(uint32_t block_dim, void *stream{param_tail})"
-            )
+            lines.append(f"void launch_{wrapper}_baseline(uint32_t block_dim, void *stream{param_tail})")
             lines.append("{")
-            lines.append(
-                f"    {bind_target}<<<block_dim, nullptr, stream>>>({arg_tail});"
-            )
+            lines.append(f"    {bind_target}<<<block_dim, nullptr, stream>>>({arg_tail});")
             lines.append("}")
             lines.append("")
             lines.append(
                 f"bool launch_{wrapper}_sk(uint32_t block_dim, void *stream, StandaloneEntryResult &result{param_tail})"
             )
             lines.append("{")
-            lines.append(
-                "    aclrtStream acl_stream = static_cast<aclrtStream>(stream);"
-            )
+            lines.append("    aclrtStream acl_stream = static_cast<aclrtStream>(stream);")
             lines.append("    aclmdlRI model_ri;")
             lines.append(
                 "    if (!acl_ok(aclmdlRICaptureBegin(acl_stream, "
                 "ACL_MODEL_RI_CAPTURE_MODE_GLOBAL), result, "
                 '"aclmdlRICaptureBegin sk")) return false;'
             )
-            lines.append(
-                f"    {bind_target}<<<block_dim, nullptr, stream>>>({arg_tail});"
-            )
+            lines.append(f"    {bind_target}<<<block_dim, nullptr, stream>>>({arg_tail});")
             lines.append(
                 "    if (!acl_ok(aclmdlRICaptureEnd(acl_stream, &model_ri), "
                 'result, "aclmdlRICaptureEnd sk")) return false;'
             )
-            lines.append(
-                '    if (!acl_ok(aclskOptimize(model_ri, nullptr), result, "aclskOptimize sk")) return false;'
-            )
+            lines.append('    if (!acl_ok(aclskOptimize(model_ri, nullptr), result, "aclskOptimize sk")) return false;')
             lines.append(
                 "    if (!acl_ok(aclmdlRIExecuteAsync(model_ri, acl_stream), "
                 'result, "aclmdlRIExecuteAsync sk")) return false;'
@@ -3145,26 +2959,18 @@ def render_standalone_compare_source(
             lines.append("    return true;")
             lines.append("}")
             lines.append("")
-            lines.append(
-                f"static void device_launch_{wrapper}(uint32_t block_dim, void *stream)"
-            )
+            lines.append(f"static void device_launch_{wrapper}(uint32_t block_dim, void *stream)")
             lines.append("{")
             lines.extend(_standalone_default_arg_lines(entry))
             call_args = (", " + args) if args else ""
             lines.append(
                 '    StandaloneEntryResult result{"device_launch", "passed", "device_launch_route", "baseline", "sk"};'
             )
-            lines.append(
-                f"    launch_{wrapper}_baseline(block_dim, stream{call_args});"
-            )
-            lines.append(
-                f"    launch_{wrapper}_sk(block_dim, stream, result{call_args});"
-            )
+            lines.append(f"    launch_{wrapper}_baseline(block_dim, stream{call_args});")
+            lines.append(f"    launch_{wrapper}_sk(block_dim, stream, result{call_args});")
             lines.append("}")
             lines.append("")
-        lines.append(
-            f"static StandaloneEntryResult compare_{wrapper}(uint32_t block_dim, void *stream)"
-        )
+        lines.append(f"static StandaloneEntryResult compare_{wrapper}(uint32_t block_dim, void *stream)")
         lines.append("{")
         lines.append("    aclrtStream acl_stream = static_cast<aclrtStream>(stream);")
         lines.append("    StandaloneEntryResult result{")
@@ -3176,9 +2982,7 @@ def render_standalone_compare_source(
         lines.append("    };")
         fixture = (runtime_fixtures or {}).get(entry["entry_name"], {})
         if fixture.get("device_runnable") and isinstance(fixture.get("spec"), dict):
-            lines.append(
-                '    if (standalone_env_enabled("SK_OPERATOR_RUN_DEVICE_COMPARE")) {'
-            )
+            lines.append('    if (standalone_env_enabled("SK_OPERATOR_RUN_DEVICE_COMPARE")) {')
             lines.extend(_render_real_device_compare_body(entry, fixture["spec"]))
             lines.append("    }")
         else:
@@ -3250,9 +3054,7 @@ def render_standalone_compare_source(
     return "\n".join(lines) + "\n"
 
 
-def render_standalone_cmake(
-    *, npu_arch: str, runtime_sources: dict[str, str] | None = None
-) -> str:
+def render_standalone_cmake(*, npu_arch: str, runtime_sources: dict[str, str] | None = None) -> str:
     resolved_npu_arch = str(npu_arch or "").strip()
     if not resolved_npu_arch:
         raise ValueError("standalone CMake rendering requires an explicit --npu-arch")
@@ -3302,9 +3104,7 @@ endforeach()
 """
 
 
-def _standalone_target_arch_resolution(
-    *, target_chip: str, npu_arch: str
-) -> dict[str, Any]:
+def _standalone_target_arch_resolution(*, target_chip: str, npu_arch: str) -> dict[str, Any]:
     explicit_arch = str(npu_arch or "").strip()
     if explicit_arch:
         return {
@@ -3328,13 +3128,7 @@ def _standalone_target_arch_resolution(
     from operator_target_arch import resolve_target_chips
 
     resolved, unsupported = resolve_target_chips(target_chip)
-    arches = sorted(
-        {
-            str(item.get("arch", "")).strip()
-            for item in resolved
-            if str(item.get("arch", "")).strip()
-        }
-    )
+    arches = sorted({str(item.get("arch", "")).strip() for item in resolved if str(item.get("arch", "")).strip()})
     if unsupported:
         return {
             "status": "needs-target-arch",
@@ -3349,9 +3143,7 @@ def _standalone_target_arch_resolution(
         return {
             "status": "needs-target-arch",
             "npu_arch": "",
-            "reason": "ambiguous-target-chip-arches"
-            if arches
-            else "missing-target-chip-arch",
+            "reason": "ambiguous-target-chip-arches" if arches else "missing-target-chip-arch",
             "message": "Target chip must resolve to exactly one source-backed NPU arch; pass --npu-arch explicitly.",
             "target_chip": target_chip,
             "resolved": resolved,
@@ -3379,9 +3171,7 @@ def _strip_aclgraph_pybind_wrappers(source_text: str) -> str:
         '#include "third_party/acl/inc/acl/acl_rt.h"',
         '#include "torch_npu/csrc/core/npu/NPUStream.h"',
     ]
-    lines = [
-        line for line in stripped.splitlines() if line.strip() not in removable_includes
-    ]
+    lines = [line for line in stripped.splitlines() if line.strip() not in removable_includes]
     return "\n".join(lines).rstrip() + "\n"
 
 
@@ -3409,21 +3199,13 @@ def generate_standalone_compare_artifacts(
     manifest_path = aggregate_output_dir / "operator-sk-adapted.json"
     source_dir = aggregate_output_dir / "operator-sk-adapted"
     if not manifest_path.is_file():
-        raise ValueError(
-            f"operator-sk-adapted.json not found in {aggregate_output_dir}"
-        )
+        raise ValueError(f"operator-sk-adapted.json not found in {aggregate_output_dir}")
     if not source_dir.is_dir():
-        raise ValueError(
-            f"operator-sk-adapted directory not found in {aggregate_output_dir}"
-        )
+        raise ValueError(f"operator-sk-adapted directory not found in {aggregate_output_dir}")
     adapted_manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     if adapted_manifest.get("pybind_layout") != "aclgraph-canonical":
-        raise ValueError(
-            "standalone compare requires aclgraph-canonical adapted output"
-        )
-    target_arch_resolution = _standalone_target_arch_resolution(
-        target_chip=target_chip, npu_arch=npu_arch
-    )
+        raise ValueError("standalone compare requires aclgraph-canonical adapted output")
+    target_arch_resolution = _standalone_target_arch_resolution(target_chip=target_chip, npu_arch=npu_arch)
     resolved_npu_arch = str(target_arch_resolution.get("npu_arch", "") or "")
 
     verify_dir = output_root / "operator-sk-standalone-verify"
@@ -3443,9 +3225,7 @@ def generate_standalone_compare_artifacts(
     if runtime_fixture_dir is not None and runtime_fixture_dir.exists():
         for entry in entries:
             op_fixture = runtime_fixture_dir / entry["entry_name"]
-            fixture_statuses[entry["entry_name"]] = _standalone_fixture_status(
-                entry, op_fixture
-            )
+            fixture_statuses[entry["entry_name"]] = _standalone_fixture_status(entry, op_fixture)
 
     runtime_sources: dict[str, str] = {}
     entry_targets: dict[str, str] = {}
@@ -3455,40 +3235,24 @@ def generate_standalone_compare_artifacts(
             continue
         source_dest_dir = csrc_dest / source_path.stem
         source_dest_dir.mkdir(parents=True, exist_ok=True)
-        kernel_only = _strip_aclgraph_pybind_wrappers(
-            source_path.read_text(encoding="utf-8")
-        )
+        kernel_only = _strip_aclgraph_pybind_wrappers(source_path.read_text(encoding="utf-8"))
         (source_dest_dir / source_path.name).write_text(kernel_only, encoding="utf-8")
-        copied_sources.append(
-            f"operator-sk-standalone-verify/csrc/{source_path.stem}/{source_path.name}"
-        )
+        copied_sources.append(f"operator-sk-standalone-verify/csrc/{source_path.stem}/{source_path.name}")
         if runtime_fixture_dir is not None:
             support_source = runtime_fixture_dir / source_path.stem / "asset-support"
-            support_files = _copy_standalone_support_tree(
-                support_source, source_dest_dir
-            )
+            support_files = _copy_standalone_support_tree(support_source, source_dest_dir)
             if support_files:
                 copied_support[source_path.stem] = [
-                    f"operator-sk-standalone-verify/csrc/{source_path.stem}/{rel}"
-                    for rel in support_files
+                    f"operator-sk-standalone-verify/csrc/{source_path.stem}/{rel}" for rel in support_files
                 ]
-        source_entries = [
-            entry for entry in entries if entry["entry_name"] == source_path.stem
-        ]
+        source_entries = [entry for entry in entries if entry["entry_name"] == source_path.stem]
         has_device_runnable = any(
-            fixture_statuses.get(entry["entry_name"], {}).get("device_runnable") is True
-            for entry in source_entries
+            fixture_statuses.get(entry["entry_name"], {}).get("device_runnable") is True for entry in source_entries
         )
         include_kernel = runtime_fixture_dir is None or has_device_runnable
-        runtime_source_name = (
-            "runtime_compare.asc"
-            if single_source
-            else f"runtime_compare_{source_path.stem}.asc"
-        )
+        runtime_source_name = "runtime_compare.asc" if single_source else f"runtime_compare_{source_path.stem}.asc"
         target_name = (
-            "runtime_compare"
-            if single_source
-            else f"runtime_compare_{_cpp_identifier_from_symbol(source_path.stem)}"
+            "runtime_compare" if single_source else f"runtime_compare_{_cpp_identifier_from_symbol(source_path.stem)}"
         )
         (verify_dir / runtime_source_name).write_text(
             render_standalone_compare_source(
@@ -3499,9 +3263,7 @@ def generate_standalone_compare_artifacts(
             ),
             encoding="utf-8",
         )
-        runtime_sources[target_name] = (
-            f"operator-sk-standalone-verify/{runtime_source_name}"
-        )
+        runtime_sources[target_name] = f"operator-sk-standalone-verify/{runtime_source_name}"
         for entry in source_entries:
             entry_targets[entry["entry_name"]] = target_name
     if target_arch_resolution["status"] == "resolved":
@@ -3517,9 +3279,7 @@ def generate_standalone_compare_artifacts(
         "operator-sk-standalone-verify/runtime_compare.asc",
     )
     manifest = {
-        "status": "generated"
-        if target_arch_resolution["status"] == "resolved"
-        else "needs-target-arch",
+        "status": "generated" if target_arch_resolution["status"] == "resolved" else "needs-target-arch",
         "aggregate_output_dir": str(aggregate_output_dir),
         "standalone_verify_dir": str(verify_dir),
         "target_chip": target_chip,
@@ -3540,9 +3300,7 @@ def generate_standalone_compare_artifacts(
         manifest["reason"] = target_arch_resolution.get("reason", "needs-target-arch")
         manifest["message"] = target_arch_resolution.get("message", "")
     output_root.mkdir(parents=True, exist_ok=True)
-    (output_root / "operator-sk-standalone-verify.json").write_text(
-        json.dumps(manifest, indent=2), encoding="utf-8"
-    )
+    (output_root / "operator-sk-standalone-verify.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
     return manifest
 
 
@@ -3571,10 +3329,7 @@ def _aggregate_csrc_support_files(source_csrc_dir: Path) -> list[Path]:
     for source_path in sorted(source_csrc_dir.rglob("*")):
         if not source_path.is_file():
             continue
-        is_top_level_asc = (
-            len(source_path.relative_to(source_csrc_dir).parts) == 1
-            and source_path.suffix == ".asc"
-        )
+        is_top_level_asc = len(source_path.relative_to(source_csrc_dir).parts) == 1 and source_path.suffix == ".asc"
         if is_top_level_asc:
             continue
         if _is_aclgraph_pybind_source_name(source_path.name):
@@ -3583,9 +3338,7 @@ def _aggregate_csrc_support_files(source_csrc_dir: Path) -> list[Path]:
     return support_files
 
 
-def _rewrite_aggregate_support_includes(
-    source_text: str, support_rel_paths: set[str], namespace: str
-) -> str:
+def _rewrite_aggregate_support_includes(source_text: str, support_rel_paths: set[str], namespace: str) -> str:
     def replace(match: re.Match[str]) -> str:
         prefix = match.group(1)
         include_path = Path(match.group(2)).as_posix()
@@ -3596,9 +3349,7 @@ def _rewrite_aggregate_support_includes(
     return _QUOTED_INCLUDE_RE.sub(replace, source_text)
 
 
-def _copy_aggregate_csrc_support(
-    source_csrc_dir: Path, dest_csrc_dir: Path, namespace: str
-) -> list[str]:
+def _copy_aggregate_csrc_support(source_csrc_dir: Path, dest_csrc_dir: Path, namespace: str) -> list[str]:
     copied: list[str] = []
     support_root = dest_csrc_dir / "_support" / namespace
     for source_path in _aggregate_csrc_support_files(source_csrc_dir):
@@ -3607,9 +3358,7 @@ def _copy_aggregate_csrc_support(
         dest_path.parent.mkdir(parents=True, exist_ok=True)
         if dest_path.exists():
             if dest_path.read_bytes() != source_path.read_bytes():
-                raise ValueError(
-                    f"conflicting aggregate csrc support file: {namespace}/{rel.as_posix()}"
-                )
+                raise ValueError(f"conflicting aggregate csrc support file: {namespace}/{rel.as_posix()}")
             continue
         shutil.copy2(source_path, dest_path)
         copied.append(f"operator-sk-adapted/csrc/_support/{namespace}/{rel.as_posix()}")
@@ -3647,45 +3396,34 @@ def aggregate_aclgraph_adapted_trees(
         if not manifest_path.is_file():
             raise ValueError(f"operator-sk-adapted.json not found in {adapted_root}")
         if not source_dir.is_dir():
-            raise ValueError(
-                f"operator-sk-adapted directory not found in {adapted_root}"
-            )
+            raise ValueError(f"operator-sk-adapted directory not found in {adapted_root}")
         adapted_manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-        if name_resolution_payload is None and isinstance(
-            adapted_manifest.get("name_resolution"), dict
-        ):
+        if name_resolution_payload is None and isinstance(adapted_manifest.get("name_resolution"), dict):
             payload = adapted_manifest["name_resolution"]
             if payload.get("policy") not in {None, "", "none"}:
                 name_resolution_payload = payload
         if adapted_manifest.get("status") != "completed":
             raise ValueError(f"adapted output is not completed: {adapted_root}")
         if adapted_manifest.get("pybind_layout") != "aclgraph-canonical":
-            raise ValueError(
-                f"adapted output is not aclgraph-canonical: {adapted_root}"
-            )
+            raise ValueError(f"adapted output is not aclgraph-canonical: {adapted_root}")
         entries = _manifest_entries(adapted_manifest)
         if not entries:
             raise ValueError(f"adapted output has no kernel entries: {adapted_root}")
         for entry in entries:
             name = entry["entry_name"]
             if name in pybind_entries_by_name:
-                raise ValueError(
-                    f"duplicate kernel entry across adapted outputs: {name}"
-                )
+                raise ValueError(f"duplicate kernel entry across adapted outputs: {name}")
             pybind_entries_by_name[name] = entry
         asset_path = str(adapted_manifest.get("asset_path", adapted_root))
         asset_paths.append(asset_path)
         if adapted_manifest.get("target_chips"):
             target_chips.append(str(adapted_manifest.get("target_chips")))
         root_label = _safe_identifier(Path(asset_path).name, "asset")
-        entry_label = _safe_identifier(
-            str(entries[0].get("entry_name", root_label)), root_label
-        )
+        entry_label = _safe_identifier(str(entries[0].get("entry_name", root_label)), root_label)
         support_namespace = f"{entry_label}_{adapted_index}"
         source_csrc_dir = source_dir / "csrc"
         support_rel_paths = {
-            path.relative_to(source_csrc_dir).as_posix()
-            for path in _aggregate_csrc_support_files(source_csrc_dir)
+            path.relative_to(source_csrc_dir).as_posix() for path in _aggregate_csrc_support_files(source_csrc_dir)
         }
 
         for source_path in sorted(source_csrc_dir.glob("*.asc")):
@@ -3693,27 +3431,18 @@ def aggregate_aclgraph_adapted_trees(
                 continue
             final_name = source_path.name
             if final_name in used_csrc_names:
-                final_name = (
-                    f"{source_path.stem}_{len(used_csrc_names)}{source_path.suffix}"
-                )
+                final_name = f"{source_path.stem}_{len(used_csrc_names)}{source_path.suffix}"
             if final_name in used_csrc_names:
                 raise ValueError(f"duplicate aggregate csrc name: {final_name}")
             used_csrc_names.add(final_name)
             source_text = source_path.read_text(encoding="utf-8", errors="replace")
-            rendered_text = _rewrite_aggregate_support_includes(
-                source_text, support_rel_paths, support_namespace
-            )
+            rendered_text = _rewrite_aggregate_support_includes(source_text, support_rel_paths, support_namespace)
             (csrc_dir / final_name).write_text(rendered_text, encoding="utf-8")
             for entry in entries:
-                if (
-                    entry.get("csrc_file") == source_path.name
-                    or entry["entry_name"] == source_path.stem
-                ):
+                if entry.get("csrc_file") == source_path.name or entry["entry_name"] == source_path.stem:
                     entry["csrc_file"] = final_name
             canonical_written.append(f"operator-sk-adapted/csrc/{final_name}")
-        canonical_written.extend(
-            _copy_aggregate_csrc_support(source_csrc_dir, csrc_dir, support_namespace)
-        )
+        canonical_written.extend(_copy_aggregate_csrc_support(source_csrc_dir, csrc_dir, support_namespace))
         for entry in entries:
             wrapper = _runtime_wrapper_contract(entry)
             wrapper_csrc_file = str(wrapper.get("csrc_file") or "").strip()
@@ -3737,23 +3466,17 @@ def aggregate_aclgraph_adapted_trees(
                 {
                     **per_file,
                     "file": f"{root_label}/{per_file.get('file', '')}".rstrip("/"),
-                    "source_asset": str(
-                        adapted_manifest.get("asset_path", adapted_root)
-                    ),
+                    "source_asset": str(adapted_manifest.get("asset_path", adapted_root)),
                 }
             )
 
     pybind_entries = list(pybind_entries_by_name.values())
     module_name = f"{_safe_identifier(package_name, 'op_extension')}_lib"
-    (csrc_dir / "pybind11.asc").write_text(
-        render_pybind11_asc(module_name, pybind_entries), encoding="utf-8"
-    )
+    (csrc_dir / "pybind11.asc").write_text(render_pybind11_asc(module_name, pybind_entries), encoding="utf-8")
     canonical_written.append("operator-sk-adapted/csrc/pybind11.asc")
     for entry in pybind_entries:
         pybind_name = _aclgraph_entry_pybind_name(entry)
-        (csrc_dir / pybind_name).write_text(
-            render_pybind11_entry_asc(entry), encoding="utf-8"
-        )
+        (csrc_dir / pybind_name).write_text(render_pybind11_entry_asc(entry), encoding="utf-8")
         canonical_written.append(f"operator-sk-adapted/csrc/{pybind_name}")
 
     package_dir_name = _safe_identifier(package_name, "op_extension")
@@ -3807,15 +3530,12 @@ def aggregate_aclgraph_adapted_trees(
         "pybind_module": module_name,
         "canonical_written_files": canonical_written,
         "target_chips": ",".join(dict.fromkeys(target_chips)),
-        "name_resolution": name_resolution_payload
-        or {"policy": "none", "renamed_entry_count": 0, "resolutions": []},
+        "name_resolution": name_resolution_payload or {"policy": "none", "renamed_entry_count": 0, "resolutions": []},
         "per_file": aggregate_per_file,
         "ignored_support_files": [],
         "escalations": [],
     }
-    (output_root / "operator-sk-adapted.json").write_text(
-        json.dumps(manifest, indent=2), encoding="utf-8"
-    )
+    (output_root / "operator-sk-adapted.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
     return manifest
 
 
@@ -3841,9 +3561,7 @@ def _load_yaml_safe(text: str) -> Any:
     # - top-level list:   - item
     # - block scalar:    key: | + indented content
     # This is hand-rolled and intentionally limited.
-    raise RuntimeError(
-        "PyYAML not installed and built-in fallback insufficient; install pyyaml"
-    )
+    raise RuntimeError("PyYAML not installed and built-in fallback insufficient; install pyyaml")
 
 
 def load_template(template_path: Path) -> dict[str, Any]:
@@ -3888,16 +3606,12 @@ def _coerce_param_value(spec: dict, raw: Any) -> Any:
     if kind == "choice":
         allowed = spec.get("allowed") or []
         if raw not in allowed:
-            raise ValueError(
-                f"value {raw!r} not in allowed {allowed!r} for parameter {spec.get('name')!r}"
-            )
+            raise ValueError(f"value {raw!r} not in allowed {allowed!r} for parameter {spec.get('name')!r}")
         return raw
     return str(raw)
 
 
-def resolve_template_params(
-    template: dict, overrides: dict[str, Any]
-) -> dict[str, Any]:
+def resolve_template_params(template: dict, overrides: dict[str, Any]) -> dict[str, Any]:
     out: dict[str, Any] = {}
     seen: set[str] = set()
     for spec in template["parameters"]:
@@ -3905,9 +3619,7 @@ def resolve_template_params(
         seen.add(name)
         raw = overrides.get(name, spec.get("default"))
         if raw is None:
-            raise ValueError(
-                f"parameter {name!r} missing (no value supplied and no default)"
-            )
+            raise ValueError(f"parameter {name!r} missing (no value supplied and no default)")
         out[name] = _coerce_param_value(spec, raw)
     extras = set(overrides) - seen
     if extras:
@@ -3923,9 +3635,7 @@ _DTYPE_TO_CTYPE = {
 }
 
 
-def render_template_files(
-    template: dict, params: dict[str, Any]
-) -> list[tuple[str, str]]:
+def render_template_files(template: dict, params: dict[str, Any]) -> list[tuple[str, str]]:
     """Render every file entry in the template, returning [(rel_path, content), ...].
 
     Uses string.Template's safe_substitute ($key syntax) to avoid clashing with
@@ -3947,9 +3657,7 @@ def render_template_files(
 
 # ---------- Remediation applier ----------
 
-AUTO_REMEDIATION_KINDS = frozenset(
-    {"remove-line-containing", "rename-symbol", "add-include", "replace-pattern"}
-)
+AUTO_REMEDIATION_KINDS = frozenset({"remove-line-containing", "rename-symbol", "add-include", "replace-pattern"})
 INLINE_CLEAN_SCHEMA_VERSION = 1
 INLINE_CLEAN_CANONICAL_OWNER = "sk-operator-codegen"
 _INLINE_LEGACY_SYS_ARGS = (
@@ -4011,10 +3719,7 @@ def apply_remediation(
         finding_id = finding.get("finding_id", "<unknown>")
         actionable = finding.get("actionable_by", [])
 
-        if (
-            "codegen.apply-remediation" not in actionable
-            or kind not in AUTO_REMEDIATION_KINDS
-        ):
+        if "codegen.apply-remediation" not in actionable or kind not in AUTO_REMEDIATION_KINDS:
             results.append(
                 {
                     "finding_id": finding_id,
@@ -4064,9 +3769,7 @@ def apply_remediation(
         before_size = len(text)
         if kind == "remove-line-containing":
             needle = hint.get("old_value", "")
-            new_text = "\n".join(
-                line for line in text.splitlines(keepends=False) if needle not in line
-            )
+            new_text = "\n".join(line for line in text.splitlines(keepends=False) if needle not in line)
             if text.endswith("\n"):
                 new_text += "\n"
         elif kind == "rename-symbol":
@@ -4175,10 +3878,7 @@ def _run_spec_clean_loop_inline(
                     blockers.append(finding)
                 actionable_by = finding.get("actionable_by", [])
                 remediation_kind = finding.get("remediation_hint", {}).get("kind")
-                if (
-                    "codegen.apply-remediation" in actionable_by
-                    and remediation_kind in AUTO_REMEDIATION_KINDS
-                ):
+                if "codegen.apply-remediation" in actionable_by and remediation_kind in AUTO_REMEDIATION_KINDS:
                     auto_findings.append(finding)
             if not blockers and not auto_findings:
                 return source_path.read_text(encoding="utf-8"), inline_remediations, []

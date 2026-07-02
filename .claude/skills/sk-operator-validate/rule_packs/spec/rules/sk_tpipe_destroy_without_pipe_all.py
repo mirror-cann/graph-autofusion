@@ -49,9 +49,7 @@ def _tpipe_declarations(body: str) -> list[str]:
     for line in body.splitlines():
         if line.strip().startswith("//"):
             continue
-        for match in re.finditer(
-            r"\b(?:AscendC::)?TPipe\s+([A-Za-z_]\w*)\s*(?:;|=)", line
-        ):
+        for match in re.finditer(r"\b(?:AscendC::)?TPipe\s+([A-Za-z_]\w*)\s*(?:;|=)", line):
             names.append(match.group(1))
     return list(dict.fromkeys(names))
 
@@ -67,9 +65,7 @@ def check(units):
             body_start = open_brace + 1
             body = unit["text"][body_start:close_brace]
             for name in _tpipe_declarations(body):
-                if re.search(
-                    rf"\b{re.escape(name)}\s*\.\s*DestroyWithoutPipeAll\s*\(", body
-                ):
+                if re.search(rf"\b{re.escape(name)}\s*\.\s*DestroyWithoutPipeAll\s*\(", body):
                     continue
                 findings.append(
                     {
