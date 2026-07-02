@@ -169,320 +169,6 @@ class PipelineOrchestrator:
         self._current_target_chip = ""
         self._toolchain_mode = "real"
 
-    @staticmethod
-    def _utc_now() -> str:
-        return (
-            datetime.now(timezone.utc)
-            .replace(microsecond=0)
-            .isoformat()
-            .replace("+00:00", "Z")
-        )
-
-    @staticmethod
-    def _write_json(path: Path, payload: dict[str, Any]) -> None:
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
-
-    @staticmethod
-    def _write_state(output_dir: Path, state: dict[str, Any]) -> None:
-        state["updated_at"] = PipelineOrchestrator._utc_now()
-        state["final_iteration"] = (
-            len(state.get("iterations", [])) - 1 if state.get("iterations") else -1
-        )
-        (output_dir / "pipeline-state.json").write_text(
-            json.dumps(state, indent=2), encoding="utf-8"
-        )
-
-    @staticmethod
-    def _read_json(path: Path) -> dict[str, Any]:
-        return json.loads(path.read_text(encoding="utf-8"))
-
-    @staticmethod
-    def _remove_existing(path: Path) -> None:
-        if path.is_dir() and not path.is_symlink():
-            shutil.rmtree(path)
-        elif path.exists() or path.is_symlink():
-            path.unlink()
-
-    @staticmethod
-    def _existing_asset_manifests(public_output_dir: Path) -> list[dict[str, Any]]:
-        assets: list[dict[str, Any]] = []
-        for path in sorted(
-            (public_output_dir / "assets").glob("*/asset-manifest.json")
-        ):
-            try:
-                assets.append(json.loads(path.read_text(encoding="utf-8")))
-            except (OSError, json.JSONDecodeError):
-                continue
-        return assets
-
-    @staticmethod
-    def _copy_support_headers(source_dir: Path, dest_dir: Path) -> list[str]:
-        copied: list[str] = []
-        if not source_dir.is_dir():
-            return copied
-        for source_path in sorted(
-            item for item in source_dir.rglob("*") if item.is_file()
-        ):
-            rel = source_path.relative_to(source_dir)
-            if any(part in _SUPPORT_SKIP_DIRS for part in rel.parts[:-1]):
-                continue
-            if source_path.suffix not in _SUPPORT_HEADER_SUFFIXES:
-                continue
-            dest_path = dest_dir / rel
-            dest_path.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(source_path, dest_path, follow_symlinks=False)
-            copied.append(rel.as_posix())
-        return copied
-
-    @staticmethod
-    def _shared_support_dirs_for_asset(asset: Path) -> list[tuple[str, Path]]:
-        asset_root = asset if asset.is_dir() else asset.parent
-        if not asset_root.is_dir():
-            return []
-        support_dirs: dict[str, Path] = {}
-        source_suffixes = {".asc", ".cpp"} | set(_SUPPORT_HEADER_SUFFIXES)
-        for source in sorted(
-            item
-            for item in asset_root.rglob("*")
-            if item.is_file() and item.suffix in source_suffixes
-        ):
-            rel = source.relative_to(asset_root)
-            if any(part in {"test", "tests"} for part in rel.parts):
-                continue
-            text = source.read_text(encoding="utf-8", errors="replace")
-            for include in _QUOTED_INCLUDE_RE.findall(text):
-                include_path = Path(include)
-                if include_path.is_absolute() or len(include_path.parts) < 2:
-                    continue
-                source_name = include_path.parts[0]
-                if source_name in {".", ".."}:
-                    continue
-                candidate = (asset_root.parent / source_name).resolve()
-                asset_include = (asset_root / include_path).resolve()
-                if asset_include.is_file():
-                    continue
-                support_rel = Path(*include_path.parts[1:])
-                if candidate.is_dir() and (candidate / support_rel).is_file():
-                    support_dirs.setdefault(source_name, candidate)
-        return sorted(support_dirs.items())
-
-    @staticmethod
-    def _stage_dir(output_dir: Path, stage_id: str) -> Path:
-        return output_dir / _STAGE_DIRS[stage_id]
-
-    @staticmethod
-    def _safe_slug(path: Path) -> str:
-        slug = re.sub(
-            r"[^A-Za-z0-9_.-]", "_", path.stem if path.is_file() else path.name
-        ).strip("._-")
-        return slug or "op"
-
-    @staticmethod
-    def _default_jobs(op_count: int, arch_count: int = 1) -> int:
-        cpu_count = os.cpu_count() or 1
-        work_items = max(1, op_count) * max(1, arch_count)
-        return max(1, min(work_items, cpu_count))
-
-    @staticmethod
-    def _arch_count_from_env(env: Any) -> int:
-        raw_arches = env.get("SK_NPU_ARCHS", "")
-        if raw_arches:
-            arches = [
-                arch.strip() for arch in re.split(r"[,;]", raw_arches) if arch.strip()
-            ]
-            return max(1, len(dict.fromkeys(arches)))
-        return 1
-
-    @staticmethod
-    def _resolve_profile_options(
-        *,
-        profile: str,
-        verify_backend: str | None,
-        wheel_mode: str | None,
-        no_verify: bool,
-        no_package: bool,
-    ) -> tuple[str, str]:
-        if profile not in {"fast", "release"}:
-            raise OrchestratorError("--profile must be fast or release")
-        if no_verify:
-            verify_backend = "none"
-        if no_package:
-            wheel_mode = "never"
-            if verify_backend is None:
-                verify_backend = "standalone"
-        resolved_verify = verify_backend or (
-            "standalone" if profile == "fast" else "both"
-        )
-        resolved_wheel = wheel_mode or ("never" if profile == "fast" else "cache")
-        if resolved_verify not in _VERIFY_BACKENDS:
-            raise OrchestratorError(
-                "--verify-backend must be standalone, wheel, both, or none"
-            )
-        if resolved_wheel not in _WHEEL_MODES:
-            raise OrchestratorError("--wheel-mode must be never, cache, or always")
-        if resolved_wheel == "never" and resolved_verify in {"wheel", "both"}:
-            resolved_verify = "standalone" if resolved_verify == "both" else "none"
-        return resolved_verify, resolved_wheel
-
-    @staticmethod
-    def _verify_uses_wheel(verify_backend: str) -> bool:
-        return verify_backend in {"wheel", "both"}
-
-    @staticmethod
-    def _verify_uses_standalone(verify_backend: str) -> bool:
-        return verify_backend in {"standalone", "both"}
-
-    @staticmethod
-    def _needs_wheel_stage(
-        wheel_mode: str, verify_backend: str, reuse_wheel: str | None
-    ) -> bool:
-        return (
-            bool(reuse_wheel)
-            or wheel_mode != "never"
-            or PipelineOrchestrator._verify_uses_wheel(verify_backend)
-        )
-
-    @staticmethod
-    def _parse_stages(
-        stages: str | Sequence[str] | None,
-        *,
-        do_package: bool,
-        profile: str,
-        wheel_mode: str,
-        verify_backend: str,
-        reuse_wheel: str | None,
-    ) -> list[str]:
-        if stages is None:
-            if not do_package:
-                selected = ["01", "02", "03"]
-            elif profile == "fast" or not PipelineOrchestrator._needs_wheel_stage(
-                wheel_mode, verify_backend, reuse_wheel
-            ):
-                selected = ["01", "02", "03", "06"]
-            else:
-                selected = ["01", "02", "03", "05", "06"]
-        elif isinstance(stages, str):
-            selected = [
-                item.strip().split("-", 1)[0]
-                for item in stages.split(",")
-                if item.strip()
-            ]
-        else:
-            selected = [
-                str(item).strip().split("-", 1)[0]
-                for item in stages
-                if str(item).strip()
-            ]
-        if not selected:
-            raise OrchestratorError("--stages must select at least one stage")
-        if "00" not in selected:
-            selected = ["00", *selected]
-        unknown = [stage for stage in selected if stage not in _STAGE_DIRS]
-        if unknown:
-            raise OrchestratorError(f"unknown stage: {unknown[0]}")
-        selected_set = set(selected)
-        for stage in selected:
-            prereqs = set(_STAGE_PREREQS[stage])
-            if stage == "06" and PipelineOrchestrator._needs_wheel_stage(
-                wheel_mode, verify_backend, reuse_wheel
-            ):
-                prereqs.add("05")
-            for prereq in sorted(prereqs):
-                if prereq not in selected_set:
-                    raise OrchestratorError(f"{stage} needs {prereq}")
-        return [stage for stage in _STAGE_ORDER if stage in selected_set]
-
-    @staticmethod
-    def _run_parallel_ops(
-        ops: list[dict[str, Any]],
-        jobs: int,
-        worker: Callable[[dict[str, Any]], dict[str, Any]],
-    ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
-        started = time.monotonic()
-        max_workers = max(1, min(jobs, len(ops) or 1))
-        results: list[dict[str, Any]] = []
-        with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            future_by_name = {
-                executor.submit(worker, op): (op.get("name") or op.get("entry_name"))
-                for op in ops
-            }
-            for future in as_completed(future_by_name):
-                op_name = future_by_name[future]
-                try:
-                    result = future.result()
-                except Exception as exc:
-                    result = {"op_name": op_name, "status": "failed", "error": str(exc)}
-                result.setdefault("op_name", op_name)
-                results.append(result)
-        results.sort(key=lambda item: item["op_name"])
-        failed = [item["op_name"] for item in results if item.get("status") == "failed"]
-        passed = [item["op_name"] for item in results if item.get("status") != "failed"]
-        failed_details = {
-            str(item["op_name"]): str(item.get("error", "failed"))
-            for item in results
-            if item.get("status") == "failed"
-        }
-        return results, {
-            "jobs": max_workers,
-            "failed_ops": failed,
-            "failed_details": failed_details,
-            "passed_ops": passed,
-            "duration_seconds": round(time.monotonic() - started, 3),
-        }
-
-    @staticmethod
-    def _entries_from_manifest(manifest: dict[str, Any]) -> list[dict[str, Any]]:
-        entries_by_name: dict[str, dict[str, Any]] = {}
-        for per_file in manifest.get("per_file", []):
-            for entry in per_file.get("entries", []):
-                entries_by_name.setdefault(entry["entry_name"], entry)
-        return list(entries_by_name.values())
-
-    @staticmethod
-    def _zero_value_for_param(param: dict[str, Any]) -> Any:
-        c_type = param.get("c_type", "")
-        if "GM_ADDR" in c_type or "*" in c_type or "__gm__" in c_type:
-            return [0] * 16
-        return 16
-
-    @staticmethod
-    def _runtime_input_spec_for_entry(entry: dict[str, Any]) -> dict[str, Any]:
-        parameters = []
-        for index, param in enumerate(entry.get("parameters", [])):
-            c_type = param.get("c_type", "GM_ADDR")
-            name = param["name"]
-            parameters.append(
-                {
-                    "index": index,
-                    "name": name,
-                    "type": c_type,
-                    "source": f"{c_type} {name}",
-                }
-            )
-        return {
-            "input_specs": [
-                {
-                    "id": f"entry:{entry['entry_name']}:default",
-                    "entry_name": entry["entry_name"],
-                    "source_file": entry.get(
-                        "source_file", f"{entry['entry_name']}.asc"
-                    ),
-                    "parameters": parameters,
-                    "requires_user_input": True,
-                }
-            ]
-        }
-
-    @staticmethod
-    def _standalone_runner_stdout(op_name: str, *, status: str) -> dict[str, Any]:
-        return {
-            "backend": "standalone",
-            "status": status,
-            "outputs": {},
-            "calls": {op_name: []},
-        }
-
     @classmethod
     def parse_stages(
         cls,
@@ -1623,6 +1309,320 @@ class PipelineOrchestrator:
                 selected_stages=selected_stages,
             )
         return state
+
+    @staticmethod
+    def _utc_now() -> str:
+        return (
+            datetime.now(timezone.utc)
+            .replace(microsecond=0)
+            .isoformat()
+            .replace("+00:00", "Z")
+        )
+
+    @staticmethod
+    def _write_json(path: Path, payload: dict[str, Any]) -> None:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+
+    @staticmethod
+    def _write_state(output_dir: Path, state: dict[str, Any]) -> None:
+        state["updated_at"] = PipelineOrchestrator._utc_now()
+        state["final_iteration"] = (
+            len(state.get("iterations", [])) - 1 if state.get("iterations") else -1
+        )
+        (output_dir / "pipeline-state.json").write_text(
+            json.dumps(state, indent=2), encoding="utf-8"
+        )
+
+    @staticmethod
+    def _read_json(path: Path) -> dict[str, Any]:
+        return json.loads(path.read_text(encoding="utf-8"))
+
+    @staticmethod
+    def _remove_existing(path: Path) -> None:
+        if path.is_dir() and not path.is_symlink():
+            shutil.rmtree(path)
+        elif path.exists() or path.is_symlink():
+            path.unlink()
+
+    @staticmethod
+    def _existing_asset_manifests(public_output_dir: Path) -> list[dict[str, Any]]:
+        assets: list[dict[str, Any]] = []
+        for path in sorted(
+            (public_output_dir / "assets").glob("*/asset-manifest.json")
+        ):
+            try:
+                assets.append(json.loads(path.read_text(encoding="utf-8")))
+            except (OSError, json.JSONDecodeError):
+                continue
+        return assets
+
+    @staticmethod
+    def _copy_support_headers(source_dir: Path, dest_dir: Path) -> list[str]:
+        copied: list[str] = []
+        if not source_dir.is_dir():
+            return copied
+        for source_path in sorted(
+            item for item in source_dir.rglob("*") if item.is_file()
+        ):
+            rel = source_path.relative_to(source_dir)
+            if any(part in _SUPPORT_SKIP_DIRS for part in rel.parts[:-1]):
+                continue
+            if source_path.suffix not in _SUPPORT_HEADER_SUFFIXES:
+                continue
+            dest_path = dest_dir / rel
+            dest_path.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(source_path, dest_path, follow_symlinks=False)
+            copied.append(rel.as_posix())
+        return copied
+
+    @staticmethod
+    def _shared_support_dirs_for_asset(asset: Path) -> list[tuple[str, Path]]:
+        asset_root = asset if asset.is_dir() else asset.parent
+        if not asset_root.is_dir():
+            return []
+        support_dirs: dict[str, Path] = {}
+        source_suffixes = {".asc", ".cpp"} | set(_SUPPORT_HEADER_SUFFIXES)
+        for source in sorted(
+            item
+            for item in asset_root.rglob("*")
+            if item.is_file() and item.suffix in source_suffixes
+        ):
+            rel = source.relative_to(asset_root)
+            if any(part in {"test", "tests"} for part in rel.parts):
+                continue
+            text = source.read_text(encoding="utf-8", errors="replace")
+            for include in _QUOTED_INCLUDE_RE.findall(text):
+                include_path = Path(include)
+                if include_path.is_absolute() or len(include_path.parts) < 2:
+                    continue
+                source_name = include_path.parts[0]
+                if source_name in {".", ".."}:
+                    continue
+                candidate = (asset_root.parent / source_name).resolve()
+                asset_include = (asset_root / include_path).resolve()
+                if asset_include.is_file():
+                    continue
+                support_rel = Path(*include_path.parts[1:])
+                if candidate.is_dir() and (candidate / support_rel).is_file():
+                    support_dirs.setdefault(source_name, candidate)
+        return sorted(support_dirs.items())
+
+    @staticmethod
+    def _stage_dir(output_dir: Path, stage_id: str) -> Path:
+        return output_dir / _STAGE_DIRS[stage_id]
+
+    @staticmethod
+    def _safe_slug(path: Path) -> str:
+        slug = re.sub(
+            r"[^A-Za-z0-9_.-]", "_", path.stem if path.is_file() else path.name
+        ).strip("._-")
+        return slug or "op"
+
+    @staticmethod
+    def _default_jobs(op_count: int, arch_count: int = 1) -> int:
+        cpu_count = os.cpu_count() or 1
+        work_items = max(1, op_count) * max(1, arch_count)
+        return max(1, min(work_items, cpu_count))
+
+    @staticmethod
+    def _arch_count_from_env(env: Any) -> int:
+        raw_arches = env.get("SK_NPU_ARCHS", "")
+        if raw_arches:
+            arches = [
+                arch.strip() for arch in re.split(r"[,;]", raw_arches) if arch.strip()
+            ]
+            return max(1, len(dict.fromkeys(arches)))
+        return 1
+
+    @staticmethod
+    def _resolve_profile_options(
+        *,
+        profile: str,
+        verify_backend: str | None,
+        wheel_mode: str | None,
+        no_verify: bool,
+        no_package: bool,
+    ) -> tuple[str, str]:
+        if profile not in {"fast", "release"}:
+            raise OrchestratorError("--profile must be fast or release")
+        if no_verify:
+            verify_backend = "none"
+        if no_package:
+            wheel_mode = "never"
+            if verify_backend is None:
+                verify_backend = "standalone"
+        resolved_verify = verify_backend or (
+            "standalone" if profile == "fast" else "both"
+        )
+        resolved_wheel = wheel_mode or ("never" if profile == "fast" else "cache")
+        if resolved_verify not in _VERIFY_BACKENDS:
+            raise OrchestratorError(
+                "--verify-backend must be standalone, wheel, both, or none"
+            )
+        if resolved_wheel not in _WHEEL_MODES:
+            raise OrchestratorError("--wheel-mode must be never, cache, or always")
+        if resolved_wheel == "never" and resolved_verify in {"wheel", "both"}:
+            resolved_verify = "standalone" if resolved_verify == "both" else "none"
+        return resolved_verify, resolved_wheel
+
+    @staticmethod
+    def _verify_uses_wheel(verify_backend: str) -> bool:
+        return verify_backend in {"wheel", "both"}
+
+    @staticmethod
+    def _verify_uses_standalone(verify_backend: str) -> bool:
+        return verify_backend in {"standalone", "both"}
+
+    @staticmethod
+    def _needs_wheel_stage(
+        wheel_mode: str, verify_backend: str, reuse_wheel: str | None
+    ) -> bool:
+        return (
+            bool(reuse_wheel)
+            or wheel_mode != "never"
+            or PipelineOrchestrator._verify_uses_wheel(verify_backend)
+        )
+
+    @staticmethod
+    def _parse_stages(
+        stages: str | Sequence[str] | None,
+        *,
+        do_package: bool,
+        profile: str,
+        wheel_mode: str,
+        verify_backend: str,
+        reuse_wheel: str | None,
+    ) -> list[str]:
+        if stages is None:
+            if not do_package:
+                selected = ["01", "02", "03"]
+            elif profile == "fast" or not PipelineOrchestrator._needs_wheel_stage(
+                wheel_mode, verify_backend, reuse_wheel
+            ):
+                selected = ["01", "02", "03", "06"]
+            else:
+                selected = ["01", "02", "03", "05", "06"]
+        elif isinstance(stages, str):
+            selected = [
+                item.strip().split("-", 1)[0]
+                for item in stages.split(",")
+                if item.strip()
+            ]
+        else:
+            selected = [
+                str(item).strip().split("-", 1)[0]
+                for item in stages
+                if str(item).strip()
+            ]
+        if not selected:
+            raise OrchestratorError("--stages must select at least one stage")
+        if "00" not in selected:
+            selected = ["00", *selected]
+        unknown = [stage for stage in selected if stage not in _STAGE_DIRS]
+        if unknown:
+            raise OrchestratorError(f"unknown stage: {unknown[0]}")
+        selected_set = set(selected)
+        for stage in selected:
+            prereqs = set(_STAGE_PREREQS[stage])
+            if stage == "06" and PipelineOrchestrator._needs_wheel_stage(
+                wheel_mode, verify_backend, reuse_wheel
+            ):
+                prereqs.add("05")
+            for prereq in sorted(prereqs):
+                if prereq not in selected_set:
+                    raise OrchestratorError(f"{stage} needs {prereq}")
+        return [stage for stage in _STAGE_ORDER if stage in selected_set]
+
+    @staticmethod
+    def _run_parallel_ops(
+        ops: list[dict[str, Any]],
+        jobs: int,
+        worker: Callable[[dict[str, Any]], dict[str, Any]],
+    ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+        started = time.monotonic()
+        max_workers = max(1, min(jobs, len(ops) or 1))
+        results: list[dict[str, Any]] = []
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            future_by_name = {
+                executor.submit(worker, op): (op.get("name") or op.get("entry_name"))
+                for op in ops
+            }
+            for future in as_completed(future_by_name):
+                op_name = future_by_name[future]
+                try:
+                    result = future.result()
+                except Exception as exc:
+                    result = {"op_name": op_name, "status": "failed", "error": str(exc)}
+                result.setdefault("op_name", op_name)
+                results.append(result)
+        results.sort(key=lambda item: item["op_name"])
+        failed = [item["op_name"] for item in results if item.get("status") == "failed"]
+        passed = [item["op_name"] for item in results if item.get("status") != "failed"]
+        failed_details = {
+            str(item["op_name"]): str(item.get("error", "failed"))
+            for item in results
+            if item.get("status") == "failed"
+        }
+        return results, {
+            "jobs": max_workers,
+            "failed_ops": failed,
+            "failed_details": failed_details,
+            "passed_ops": passed,
+            "duration_seconds": round(time.monotonic() - started, 3),
+        }
+
+    @staticmethod
+    def _entries_from_manifest(manifest: dict[str, Any]) -> list[dict[str, Any]]:
+        entries_by_name: dict[str, dict[str, Any]] = {}
+        for per_file in manifest.get("per_file", []):
+            for entry in per_file.get("entries", []):
+                entries_by_name.setdefault(entry["entry_name"], entry)
+        return list(entries_by_name.values())
+
+    @staticmethod
+    def _zero_value_for_param(param: dict[str, Any]) -> Any:
+        c_type = param.get("c_type", "")
+        if "GM_ADDR" in c_type or "*" in c_type or "__gm__" in c_type:
+            return [0] * 16
+        return 16
+
+    @staticmethod
+    def _runtime_input_spec_for_entry(entry: dict[str, Any]) -> dict[str, Any]:
+        parameters = []
+        for index, param in enumerate(entry.get("parameters", [])):
+            c_type = param.get("c_type", "GM_ADDR")
+            name = param["name"]
+            parameters.append(
+                {
+                    "index": index,
+                    "name": name,
+                    "type": c_type,
+                    "source": f"{c_type} {name}",
+                }
+            )
+        return {
+            "input_specs": [
+                {
+                    "id": f"entry:{entry['entry_name']}:default",
+                    "entry_name": entry["entry_name"],
+                    "source_file": entry.get(
+                        "source_file", f"{entry['entry_name']}.asc"
+                    ),
+                    "parameters": parameters,
+                    "requires_user_input": True,
+                }
+            ]
+        }
+
+    @staticmethod
+    def _standalone_runner_stdout(op_name: str, *, status: str) -> dict[str, Any]:
+        return {
+            "backend": "standalone",
+            "status": status,
+            "outputs": {},
+            "calls": {op_name: []},
+        }
 
     def _skill_path(self, key: str) -> Path:
         skill_name, script_name = _SKILL_SCRIPTS[key]
