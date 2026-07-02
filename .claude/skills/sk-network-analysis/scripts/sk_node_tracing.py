@@ -1055,11 +1055,13 @@ def build_cross_report_index(
             },
         )
 
+    task_index_to_node_id_payload = {}
+    for key, value in sorted(task_index_to_node_ids.items()):
+        task_index_to_node_id_payload[str(key)] = value
+
     return {
         "node_index": {str(key): value for key, value in sorted(node_index.items())},
-        "task_index_to_node_ids": {
-            str(key): value for key, value in sorted(task_index_to_node_ids.items())
-        },
+        "task_index_to_node_ids": task_index_to_node_id_payload,
         "task_identity_diagnostics": task_identity_diagnostics or {},
     }
 

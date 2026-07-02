@@ -54,9 +54,10 @@ def _assert_outputs(case_name: str, temp_root: Path) -> None:
         expected = ["run-portal.html"]
 
     roots = [reports_dir, reports_dir / "data", reports_dir / "views"]
-    missing = [
-        name for name in expected if not any((root / name).exists() for root in roots)
-    ]
+    missing = []
+    for name in expected:
+        if not any((root / name).exists() for root in roots):
+            missing.append(name)
     if missing:
         raise RuntimeError(
             f"{case_name}: missing expected outputs: {', '.join(missing)}"

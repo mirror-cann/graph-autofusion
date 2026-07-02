@@ -179,9 +179,9 @@ def build_oracle_spec(
     (the caller turns these into human-escalation findings).
     """
     # Map input_set_id -> entry_name via the runtime-input-spec.
-    entry_by_input_set = {
-        spec["id"]: spec["entry_name"] for spec in runtime_input_spec["input_specs"]
-    }
+    entry_by_input_set = {}
+    for spec in runtime_input_spec["input_specs"]:
+        entry_by_input_set[spec["id"]] = spec["entry_name"]
 
     oracle_specs: list[dict[str, Any]] = []
     missing: list[str] = []
@@ -220,9 +220,9 @@ def build_bind_target_oracle_spec(
     runtime_input_spec: dict[str, Any],
 ) -> dict[str, Any]:
     """Declare runner-produced bind-target baseline values as the oracle source."""
-    entry_by_input_set = {
-        spec["id"]: spec["entry_name"] for spec in runtime_input_spec["input_specs"]
-    }
+    entry_by_input_set = {}
+    for spec in runtime_input_spec["input_specs"]:
+        entry_by_input_set[spec["id"]] = spec["entry_name"]
     oracle_specs: list[dict[str, Any]] = []
     for input_set in input_values_artifact["input_values"]:
         input_set_id = input_set["input_set_id"]

@@ -375,9 +375,9 @@ def _discover_shallow_event_files(context: dict[str, Any]) -> list[str]:
     collected: list[str] = []
     for directory in search_dirs.values():
         for pattern in EVENT_FILE_PATTERNS:
-            collected.extend(
-                str(path) for path in directory.glob(pattern) if path.is_file()
-            )
+            for path in directory.glob(pattern):
+                if path.is_file():
+                    collected.append(str(path))
     return sorted(set(collected))
 
 
@@ -1005,12 +1005,12 @@ def _merge_event_stats(stats_items: list[dict[str, Any]]) -> dict[str, Any]:
         merged["event_file_count"] += int(stats.get("event_file_count", 0) or 0)
         merged["event_count"] += int(stats.get("event_count", 0) or 0)
         merged["parse_error_count"] += int(stats.get("parse_error_count", 0) or 0)
-        devices.update(
-            str(item) for item in stats.get("devices", []) if item is not None
-        )
-        node_ids.update(
-            item for item in stats.get("node_ids", []) if isinstance(item, int)
-        )
+        for item in stats.get("devices", []):
+            if item is not None:
+                devices.add(str(item))
+        for item in stats.get("node_ids", []):
+            if isinstance(item, int):
+                node_ids.add(item)
         sk_ids.update(item for item in stats.get("sk_ids", []) if isinstance(item, int))
         for group in stats.get("event_groups", []):
             if not isinstance(group, dict):
@@ -1036,18 +1036,18 @@ def _merge_event_stats(stats_items: list[dict[str, Any]]) -> dict[str, Any]:
                     "sample_names": [],
                 },
             )
-            target["node_ids"].update(
-                item for item in group.get("node_ids", []) if isinstance(item, int)
-            )
-            target["devices"].update(
-                str(item) for item in group.get("devices", []) if item is not None
-            )
-            target["pid_labels"].update(
-                str(item) for item in group.get("pid_labels", []) if item is not None
-            )
-            target["tid_labels"].update(
-                str(item) for item in group.get("tid_labels", []) if item is not None
-            )
+            for item in group.get("node_ids", []):
+                if isinstance(item, int):
+                    target["node_ids"].add(item)
+            for item in group.get("devices", []):
+                if item is not None:
+                    target["devices"].add(str(item))
+            for item in group.get("pid_labels", []):
+                if item is not None:
+                    target["pid_labels"].add(str(item))
+            for item in group.get("tid_labels", []):
+                if item is not None:
+                    target["tid_labels"].add(str(item))
             target["model_ri_values"].update(
                 item
                 for item in group.get("model_ri_values", [])
@@ -1202,9 +1202,9 @@ class EventStatsProvider:
         missing_labels = self.pending_process_labels(labels)
         active_workers = min(max(1, workers), len(missing_labels))
         if active_workers > 1:
-            event_file_count = sum(
-                len(self._process_paths[label]) for label in missing_labels
-            )
+            event_file_count = 0
+            for label in missing_labels:
+                event_file_count += len(self._process_paths[label])
             with self._profile_section(
                 "collect_process_event_stats_batch",
                 process_count=len(missing_labels),
@@ -1264,9 +1264,9 @@ class EventStatsProvider:
             )
             if labels not in self._global_stats:
                 process_stats = self.for_processes(list(labels), workers=workers)
-                stats_items = [
-                    process_stats.get(label, _empty_event_stats()) for label in labels
-                ]
+                stats_items = []
+                for label in labels:
+                    stats_items.append(process_stats.get(label, _empty_event_stats()))
                 with self._profile_section(
                     "merge_event_stats",
                     process_count=len(labels),
@@ -2776,12 +2776,13 @@ def _model_parse_fingerprint(model_dir: Path) -> dict[str, Any]:
         "sk_device_args.log",
         "sk_task_queue.json",
     )
+    source_fingerprints = []
+    for name in source_names:
+        source_fingerprints.append(_source_file_fingerprint(model_dir / name))
     return {
         "cache_version": PARSE_CACHE_VERSION,
         "model_dir": str(model_dir),
-        "sources": [
-            _source_file_fingerprint(model_dir / name) for name in source_names
-        ],
+        "sources": source_fingerprints,
     }
 
 
@@ -3654,9 +3655,9 @@ def _build_multi_model_update_report(
             for scope_id in item.get("scope_ids", [])
             if isinstance(scope_id, int)
         )
-        node_ids.update(
-            node_id for node_id in item.get("node_ids", []) if isinstance(node_id, int)
-        )
+        for node_id in item.get("node_ids", []):
+            if isinstance(node_id, int):
+                node_ids.add(node_id)
         stream_ids.update(
             stream_id
             for stream_id in item.get("stream_ids", [])
@@ -4209,9 +4210,10 @@ def _collect_node_trace_summary(
         summary["cross_report_keys"] = metadata.get("cross_report_keys", [])
         cross_index = meta_payload.get("cross_report_index", {})
         if isinstance(cross_index, dict):
-            summary["covered_node_ids"] = [
-                int(item) for item in cross_index.get("node_index", {}).keys()
-            ]
+            covered_node_ids = []
+            for item in cross_index.get("node_index", {}).keys():
+                covered_node_ids.append(int(item))
+            summary["covered_node_ids"] = covered_node_ids
     return summary
 
 
@@ -4327,15 +4329,16 @@ def _summarize_performance_diagnosis(
     performance_correlations: list[dict[str, Any]],
 ) -> dict[str, Any]:
     event_group_count = len(performance_correlations)
-    mapped_group_count = sum(
-        1 for item in performance_correlations if item.get("has_structure_match")
-    )
-    queue_backed_group_count = sum(
-        1 for item in performance_correlations if item.get("has_queue_link")
-    )
-    task_backed_group_count = sum(
-        1 for item in performance_correlations if item.get("has_task_link")
-    )
+    mapped_group_count = 0
+    queue_backed_group_count = 0
+    task_backed_group_count = 0
+    for item in performance_correlations:
+        if item.get("has_structure_match"):
+            mapped_group_count += 1
+        if item.get("has_queue_link"):
+            queue_backed_group_count += 1
+        if item.get("has_task_link"):
+            task_backed_group_count += 1
     if event_stats["event_file_count"] == 0:
         focus = "structure_first"
         reason = "当前没有找到 SK time-event 文件，应优先查看 scope、fused node 和 queue 结构。"
@@ -4468,9 +4471,9 @@ def _view_state_text_lines(
     lines: list[str] = []
     if include_summary and state.get("summary"):
         lines.append(str(state.get("summary")))
-    lines.extend(
-        str(line) for line in state.get("detail_lines", []) if str(line).strip()
-    )
+    for line in state.get("detail_lines", []):
+        if str(line).strip():
+            lines.append(str(line))
     if include_hints:
         lines.extend(
             str(line)
@@ -4720,9 +4723,10 @@ def _build_scope_view_state(
     node_library_count = int(parser.get("node_library_count") or len(node_library))
     scope_node_count = int(parser.get("scope_node_count") or 0)
     missing_node_id_count = int(parser.get("missing_node_id_count") or 0)
-    empty_scope_ids = [
-        int(item) for item in parser.get("empty_scope_ids", []) if isinstance(item, int)
-    ]
+    empty_scope_ids = []
+    for item in parser.get("empty_scope_ids", []):
+        if isinstance(item, int):
+            empty_scope_ids.append(int(item))
     partial_scope_ids = [
         int(item)
         for item in parser.get("partial_scope_ids", [])
@@ -5746,10 +5750,7 @@ def _render_hang_report_html(
                 idx=idx,
                 func=html.escape(str(item.get("function_text", "unknown"))),
                 reasons=html.escape(
-                    ", ".join(
-                        str(reason) for reason in item.get("evidence_reasons", [])
-                    )
-                    or "无"
+                    ", ".join(map(str, item.get("evidence_reasons", []))) or "无"
                 ),
                 table=_wrap_table_markup(
                     (
@@ -6451,7 +6452,10 @@ def _render_performance_report_html(
         "<th>pid</th><th>tid</th><th>时长</th><th>skId</th><th>nodeId</th>"
         "</tr></thead><tbody>{}</tbody></table>"
     )
-    top_event_more_row_template = "<tr><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td></tr>"
+    top_event_more_row_template = (
+        "<tr><td>{}</td><td>{}</td><td>{}</td><td>{}</td>"
+        "<td>{}</td><td>{}</td><td>{}</td><td>{}</td></tr>"
+    )
     matrix_rows = []
     for item in visible_rows:
         judgment = _performance_judgment_label(_performance_judgment(item, event_stats))
@@ -6916,9 +6920,10 @@ def _render_run_portal(
     ]
     updated_models = [item for item in multi_models if item.get("has_update")]
     no_update_models = [item for item in multi_models if not item.get("has_update")]
-    scope_only_count = sum(
-        1 for item in multi_models if _model_fusion_state(item) == "scope_only"
-    )
+    scope_only_count = 0
+    for item in multi_models:
+        if _model_fusion_state(item) == "scope_only":
+            scope_only_count += 1
 
     header_nav_items = [("运行总览", "#run-summary", False)]
     if has_multi_model and dfx_abnormal_models:
@@ -7507,9 +7512,10 @@ def main() -> None:
                 event_stage.step(len(event_process_labels))
         copied_event_files = event_stats_provider.copied_paths()
         if copied_event_files and not bundle_mode:
-            report_links["event_data_files"] = [
-                os.path.relpath(path, run_dir) for path in copied_event_files
-            ]
+            event_data_files = []
+            for path in copied_event_files:
+                event_data_files.append(os.path.relpath(path, run_dir))
+            report_links["event_data_files"] = event_data_files
 
     if model_report_entries:
         with profile.section(

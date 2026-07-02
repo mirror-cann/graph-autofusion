@@ -624,13 +624,16 @@ def _run_asset_root_separately(
         if record["status"] not in _ASSET_ROOT_NON_BLOCKING_STATUSES:
             failed.append(record)
     status = "completed" if not failed else "failed"
+    selected_statuses_are_successful = True
+    for item in selected_statuses:
+        if item not in _PIPELINE_TERMINAL_SUCCESS_STATUSES:
+            selected_statuses_are_successful = False
+            break
     release_success = (
         status == "completed"
         and not skipped_records
         and bool(selected_statuses)
-        and all(
-            item in _PIPELINE_TERMINAL_SUCCESS_STATUSES for item in selected_statuses
-        )
+        and selected_statuses_are_successful
     )
     payload = {
         "schema_version": 1,
@@ -762,9 +765,9 @@ def _render_ai_hints(payload: dict[str, Any]) -> str:
 def cmd_index(args: argparse.Namespace) -> int:
     skills_root = _resolve_skills_root(args.skills_root)
     output_dir = _resolve_output_dir(args.output_dir)
-    index_roots = [
-        Path(item).expanduser().resolve() for item in (args.index_root or [])
-    ]
+    index_roots = []
+    for item in args.index_root or []:
+        index_roots.append(Path(item).expanduser().resolve())
     if not index_roots:
         index_roots = [skills_root]
     payload = {
@@ -898,12 +901,11 @@ def cmd_run_sk_pipeline(args: argparse.Namespace) -> int:
             raise CliUsageError(f"asset root not found: {root}")
         root_paths.append(root)
         root_records = _discover_operator_asset_records(root, skills_root=skills_root)
-        asset_paths.extend(
-            Path(item["path"]) for item in root_records if item["status"] == "selected"
-        )
-        root_skipped_records.extend(
-            item for item in root_records if item["status"] == "skipped"
-        )
+        for item in root_records:
+            if item["status"] == "selected":
+                asset_paths.append(Path(item["path"]))
+            if item["status"] == "skipped":
+                root_skipped_records.append(item)
     output_dir = _resolve_output_dir(args.output_dir)
     if not asset_paths:
         if root_skipped_records:
@@ -972,9 +974,10 @@ def cmd_run_sk_pipeline(args: argparse.Namespace) -> int:
         slugs: dict[str, list[str]] = {}
         for asset in asset_paths:
             slugs.setdefault(_safe_slug(asset.name), []).append(str(asset))
-        duplicate_slugs = {
-            slug: paths for slug, paths in slugs.items() if len(paths) > 1
-        }
+        duplicate_slugs = {}
+        for slug, paths in slugs.items():
+            if len(paths) > 1:
+                duplicate_slugs[slug] = paths
         namespace_duplicates = args.duplicate_entry_policy == "namespace"
         separate_mode = args.asset_root_mode == "separate" or (
             args.asset_root_mode == "auto"

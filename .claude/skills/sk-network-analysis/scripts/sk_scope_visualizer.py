@@ -1296,14 +1296,16 @@ def generate_html(html_input: ScopeHtmlInput):
     rounds_json_list = []
     for rd in all_rounds:
         edges, merged_nodes = build_edges(rd, init_nodes)
+        round_nodes = []
+        for nid in sorted(merged_nodes.keys()):
+            round_nodes.append(merged_nodes[nid].to_dict())
+        custom_update_nodes = []
+        for node in getattr(rd, "custom_update_nodes", []):
+            custom_update_nodes.append(node.to_dict())
         rounds_json_list.append(
             {
-                "nodes": [
-                    merged_nodes[nid].to_dict() for nid in sorted(merged_nodes.keys())
-                ],
-                "custom_update_nodes": [
-                    node.to_dict() for node in getattr(rd, "custom_update_nodes", [])
-                ],
+                "nodes": round_nodes,
+                "custom_update_nodes": custom_update_nodes,
                 "synthesized_custom_annotations": getattr(
                     rd, "synthesized_custom_annotations", []
                 ),

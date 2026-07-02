@@ -495,9 +495,11 @@ def _collect_kernel_entries(files: list[Path], base_dir: Path) -> list[dict[str,
 
 
 def _collect_sk_markers(files: list[Path]) -> dict[str, bool]:
-    joined = "\n".join(
-        _source_text(path) for path in files if path.suffix in SOURCE_SUFFIXES
-    )
+    source_texts = []
+    for path in files:
+        if path.suffix in SOURCE_SUFFIXES:
+            source_texts.append(_source_text(path))
+    joined = "\n".join(source_texts)
     return {
         "__sk__": "__sk__" in joined,
         "__spk__": "__spk__" in joined,
@@ -624,9 +626,15 @@ def _detect_archetype(
         ge_evidence.append(
             {"kind": "symbol", "path": "", "value": "register_fx_node_ge_converter"}
         )
-    if "OpDef" in raw_text or any(
-        part in path for path in relative_paths for part in ("op_host/", "op_kernel/")
-    ):
+    has_op_dev_path = False
+    for path in relative_paths:
+        for part in ("op_host/", "op_kernel/"):
+            if part in path:
+                has_op_dev_path = True
+                break
+        if has_op_dev_path:
+            break
+    if "OpDef" in raw_text or has_op_dev_path:
         ge_evidence.append(
             {"kind": "directory", "path": "", "value": "op_host/op_kernel"}
         )
@@ -2637,9 +2645,11 @@ def _resolve_string_path_list(
 
 
 def _bounded_pytest_evidence(output: str) -> list[str]:
-    lines = [
-        line[:300] for line in (item.strip() for item in output.splitlines()) if line
-    ]
+    lines = []
+    for item in output.splitlines():
+        line = item.strip()
+        if line:
+            lines.append(line[:300])
     if len(lines) <= 20:
         return lines
     return lines[:10] + ["... truncated ..."] + lines[-10:]
@@ -3109,6 +3119,9 @@ def _fill_blocked_sk_build_validation_checks(
 def _sk_build_validation_manifest(
     request: "SkBuildValidationManifestInput",
 ) -> dict[str, Any]:
+    checks = []
+    for name in SK_BUILD_VALIDATION_CHECK_NAMES:
+        checks.append(request.check_results[name])
     return {
         "status": request.status,
         "analysis_output_dir": str(request.output_dir.resolve()),
@@ -3117,9 +3130,7 @@ def _sk_build_validation_manifest(
         "build_validation_path": "operator-sk-build-validation.json",
         "build_dir": request.build_dir,
         "commands": request.commands,
-        "checks": [
-            request.check_results[name] for name in SK_BUILD_VALIDATION_CHECK_NAMES
-        ],
+        "checks": checks,
         "supported_next_actions": request.supported_next_actions,
         "execution_boundary": SK_BUILD_VALIDATION_BOUNDARY,
     }
@@ -3204,9 +3215,9 @@ def _validate_sk_build_validation_passed_prefix(
     source_scaffold: dict[str, Any],
     names: list[str],
 ) -> None:
-    copied_evidence = [
-        item["scaffold_path"] for item in source_scaffold["copied_source_files"]
-    ]
+    copied_evidence = []
+    for item in source_scaffold["copied_source_files"]:
+        copied_evidence.append(item["scaffold_path"])
     validators = {
         "sk_source_scaffold_generated": lambda: _require_sk_build_validation_check(
             checks,
@@ -4205,6 +4216,9 @@ def _sk_source_version_validation_manifest(
         execution_boundary = SK_SOURCE_VERSION_VALIDATION_BLOCKED_BOUNDARY
     else:
         execution_boundary = SK_SOURCE_VERSION_VALIDATION_FAILED_BOUNDARY
+    validation_checks = []
+    for name in SK_SOURCE_VERSION_VALIDATION_CHECK_NAMES:
+        validation_checks.append(check_results[name])
     return {
         "status": status,
         "analysis_output_dir": str(output_dir.resolve()),
@@ -4214,9 +4228,7 @@ def _sk_source_version_validation_manifest(
         "source_version_validation_path": SK_SOURCE_VERSION_VALIDATION_PATH,
         "build_dir": SK_SOURCE_VERSION_BUILD_DIR,
         "commands": commands,
-        "checks": [
-            check_results[name] for name in SK_SOURCE_VERSION_VALIDATION_CHECK_NAMES
-        ],
+        "checks": validation_checks,
         "supported_next_actions": supported_next_actions,
         "execution_boundary": execution_boundary,
     }
@@ -4777,9 +4789,11 @@ def _load_scaffold_manifest_for_validation(scaffold_output_dir: Path) -> dict[st
     _require_string(manifest["asset_level"], "asset_level", allow_empty=False)
 
     source_files = _require_list(manifest["source_files"], "source_files")
-    manifest["source_files"] = [
-        _validate_manifest_path(item, "source_files path") for item in source_files
-    ]
+    manifest["source_files"] = []
+    for item in source_files:
+        manifest["source_files"].append(
+            _validate_manifest_path(item, "source_files path")
+        )
 
     kernel_entries = _require_list(manifest["kernel_entries"], "kernel_entries")
     normalized_entries: list[dict[str, str]] = []
@@ -4810,9 +4824,11 @@ def _load_scaffold_manifest_for_validation(scaffold_output_dir: Path) -> dict[st
     manifest["copied_source_files"] = normalized_copied
 
     generated_files = _require_list(manifest["generated_files"], "generated_files")
-    manifest["generated_files"] = [
-        _validate_manifest_path(item, "generated file path") for item in generated_files
-    ]
+    manifest["generated_files"] = []
+    for item in generated_files:
+        manifest["generated_files"].append(
+            _validate_manifest_path(item, "generated file path")
+        )
 
     skipped_items = _require_list(manifest["skipped_items"], "skipped_items")
     normalized_skipped: list[dict[str, str]] = []
@@ -4834,13 +4850,15 @@ def _load_scaffold_manifest_for_validation(scaffold_output_dir: Path) -> dict[st
     manifest["skipped_items"] = normalized_skipped
 
     blocked_reasons = _require_list(manifest["blocked_reasons"], "blocked_reasons")
-    manifest["blocked_reasons"] = [
-        _require_string(item, "blocked reason") for item in blocked_reasons
-    ]
+    manifest["blocked_reasons"] = []
+    for item in blocked_reasons:
+        manifest["blocked_reasons"].append(_require_string(item, "blocked reason"))
     boundary = _require_list(manifest["execution_boundary"], "execution_boundary")
-    manifest["execution_boundary"] = [
-        _require_string(item, "execution boundary") for item in boundary
-    ]
+    manifest["execution_boundary"] = []
+    for item in boundary:
+        manifest["execution_boundary"].append(
+            _require_string(item, "execution boundary")
+        )
 
     if status == "generated" and manifest["blocked_reasons"]:
         raise CliUsageError(
@@ -4898,9 +4916,12 @@ def _load_validation_manifest_for_preflight(
     boundary = _require_list(
         manifest["execution_boundary"], "validation execution_boundary"
     )
-    if [
-        _require_string(item, "validation execution boundary") for item in boundary
-    ] != VALIDATION_BOUNDARY:
+    validation_boundary = []
+    for item in boundary:
+        validation_boundary.append(
+            _require_string(item, "validation execution boundary")
+        )
+    if validation_boundary != VALIDATION_BOUNDARY:
         raise CliUsageError("validation execution_boundary mismatch")
 
     checks = _require_list(manifest["checks"], "validation checks")
@@ -5238,9 +5259,10 @@ def _load_preflight_manifest_for_test_run(scaffold_output_dir: Path) -> dict[str
     boundary = _require_list(
         manifest["execution_boundary"], "preflight execution_boundary"
     )
-    if [
-        _require_string(item, "preflight execution boundary") for item in boundary
-    ] != PREFLIGHT_BOUNDARY:
+    preflight_boundary = []
+    for item in boundary:
+        preflight_boundary.append(_require_string(item, "preflight execution boundary"))
+    if preflight_boundary != PREFLIGHT_BOUNDARY:
         raise CliUsageError("preflight execution_boundary mismatch")
 
     checks = _normalize_preflight_manifest_checks(
@@ -5450,9 +5472,11 @@ def _load_scaffold_test_result_for_build(
         raise CliUsageError("scaffold test result execution_boundary mismatch")
 
     command = _require_list(manifest["command"], "scaffold test result command")
-    normalized_command = [
-        _require_string(item, "scaffold test result command item") for item in command
-    ]
+    normalized_command = []
+    for item in command:
+        normalized_command.append(
+            _require_string(item, "scaffold test result command item")
+        )
     expected_command = _expected_scaffold_test_command(scaffold_manifest)
     if status == "blocked":
         if normalized_command:
@@ -5872,14 +5896,15 @@ class ReadinessManifestInput(NamedTuple):
 def _readiness_manifest(
     request: ReadinessManifestInput,
 ) -> dict[str, Any]:
+    readiness_checks = []
+    for name in SCAFFOLD_READINESS_CHECK_NAMES:
+        readiness_checks.append(request.checks[name])
     return {
         "status": request.status,
         "scaffold_output_dir": str(request.scaffold_output_dir.resolve()),
         "artifact_paths": request.artifact_paths,
         "artifact_statuses": request.artifact_statuses,
-        "readiness_checks": [
-            request.checks[name] for name in SCAFFOLD_READINESS_CHECK_NAMES
-        ],
+        "readiness_checks": readiness_checks,
         "supported_next_actions": request.supported_next_actions,
         "execution_boundary": SCAFFOLD_READINESS_BOUNDARY,
     }
@@ -6602,9 +6627,9 @@ def _copy_package_staging_source(
     source_dir: Path,
 ) -> dict[str, Any]:
     scaffold_dir = scaffold_output_dir / "operator-scaffold"
-    expected_files = [
-        _staging_relative_path(path) for path in package_contract["package_files"]
-    ]
+    expected_files = []
+    for path in package_contract["package_files"]:
+        expected_files.append(_staging_relative_path(path))
     for relative in expected_files:
         source_path = scaffold_dir / relative
         target_path = source_dir / relative
@@ -7206,9 +7231,12 @@ def cmd_build_standalone_executable(args: argparse.Namespace) -> int:
         }
     else:
         runtime_sources = {"runtime_compare": source_root / "runtime_compare.asc"}
-    if not cmake_path.is_file() or any(
-        not source.is_file() for source in runtime_sources.values()
-    ):
+    missing_runtime_source = False
+    for source in runtime_sources.values():
+        if not source.is_file():
+            missing_runtime_source = True
+            break
+    if not cmake_path.is_file() or missing_runtime_source:
         raise CliUsageError(f"standalone CMake project missing under {source_root}")
 
     build_dir = source_root / "build"
@@ -7323,6 +7351,9 @@ def cmd_build_standalone_executable(args: argparse.Namespace) -> int:
     (output_root / "executable-path.txt").write_text(
         str(executable) + "\n", encoding="utf-8"
     )
+    executable_target_paths = {}
+    for target, path in executable_targets.items():
+        executable_target_paths[target] = str(path)
     result_manifest = {
         "status": status,
         "standalone_verify_dir": verify_manifest["standalone_verify_dir"],
@@ -7334,9 +7365,7 @@ def cmd_build_standalone_executable(args: argparse.Namespace) -> int:
         "configure_return_code": configure.returncode,
         "build_return_code": build.returncode,
         "executable": str(executable),
-        "executable_targets": {
-            target: str(path) for target, path in executable_targets.items()
-        },
+        "executable_targets": executable_target_paths,
         "executables": entry_executables,
         "missing_executables": missing_executables,
         "mock_executable_allowed": allow_mock_executable,

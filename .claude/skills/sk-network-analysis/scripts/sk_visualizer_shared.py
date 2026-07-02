@@ -2541,7 +2541,10 @@ def render_report_top_strip(
     note_block = f"<p class='info-panel-note'>{note_html}</p>" if note_html else ""
     if not chips_html and not note_block:
         return ""
-    return f"<section class='info-panel is-compact'><div class='info-panel-body'>{chips_html}{note_block}</div></section>"
+    return (
+        "<section class='info-panel is-compact'>"
+        f"<div class='info-panel-body'>{chips_html}{note_block}</div></section>"
+    )
 
 
 def render_report_section(

@@ -438,9 +438,10 @@ def _is_small_int_type(c_type: str) -> bool:
 def _type_references_template_params(
     c_type: str, template_param_names: list[str]
 ) -> bool:
-    return any(
-        re.search(rf"\b{re.escape(name)}\b", c_type) for name in template_param_names
-    )
+    for name in template_param_names:
+        if re.search(rf"\b{re.escape(name)}\b", c_type):
+            return True
+    return False
 
 
 def _args_template_params_for_fields(
@@ -760,6 +761,9 @@ def adapt_source_text(
             + "\n// ---- end SK adaptation ----\n"
         )
         last_end = insertion_end
+        parameters = []
+        for p in entry.params:
+            parameters.append({"name": p.name, "c_type": p.c_type})
         metas.append(
             {
                 "entry_name": entry.name,
@@ -767,9 +771,7 @@ def adapt_source_text(
                 "args_struct_name": rendered.args_struct_name,
                 "uses_sys_args": rendered.uses_sys_args,
                 "param_count": len(entry.params),
-                "parameters": [
-                    {"name": p.name, "c_type": p.c_type} for p in entry.params
-                ],
+                "parameters": parameters,
                 "original_qualifiers": entry.qualifiers_text,
                 "bind_target": entry.name,
                 "global_launch_target": entry.name,
@@ -1581,9 +1583,12 @@ def _is_scalar_param(param: dict[str, Any]) -> bool:
         "bool",
         "size_t",
     )
-    return not _is_tensor_like_param(param) and any(
-        marker in c_type for marker in scalar_markers
-    )
+    has_scalar_marker = False
+    for marker in scalar_markers:
+        if marker in c_type:
+            has_scalar_marker = True
+            break
+    return not _is_tensor_like_param(param) and has_scalar_marker
 
 
 def _runtime_param_kind(
@@ -3378,9 +3383,10 @@ def _strip_aclgraph_pybind_wrappers(source_text: str) -> str:
         '#include "third_party/acl/inc/acl/acl_rt.h"',
         '#include "torch_npu/csrc/core/npu/NPUStream.h"',
     ]
-    lines = [
-        line for line in stripped.splitlines() if line.strip() not in removable_includes
-    ]
+    lines = []
+    for line in stripped.splitlines():
+        if line.strip() not in removable_includes:
+            lines.append(line)
     return "\n".join(lines).rstrip() + "\n"
 
 
@@ -3471,9 +3477,10 @@ def generate_standalone_compare_artifacts(
                     f"operator-sk-standalone-verify/csrc/{source_path.stem}/{rel}"
                     for rel in support_files
                 ]
-        source_entries = [
-            entry for entry in entries if entry["entry_name"] == source_path.stem
-        ]
+        source_entries = []
+        for entry in entries:
+            if entry["entry_name"] == source_path.stem:
+                source_entries.append(entry)
         has_device_runnable = any(
             fixture_statuses.get(entry["entry_name"], {}).get("device_runnable") is True
             for entry in source_entries
@@ -4063,9 +4070,11 @@ def apply_remediation(
         before_size = len(text)
         if kind == "remove-line-containing":
             needle = hint.get("old_value", "")
-            new_text = "\n".join(
-                line for line in text.splitlines(keepends=False) if needle not in line
-            )
+            kept_lines = []
+            for line in text.splitlines(keepends=False):
+                if needle not in line:
+                    kept_lines.append(line)
+            new_text = "\n".join(kept_lines)
             if text.endswith("\n"):
                 new_text += "\n"
         elif kind == "rename-symbol":

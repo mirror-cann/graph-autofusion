@@ -83,9 +83,10 @@ def build_name_resolution(
     by_entry: dict[str, list[dict[str, Any]]] = {}
     for item in entries:
         by_entry.setdefault(item["source_entry_name"], []).append(item)
-    duplicate_groups = {
-        entry: items for entry, items in by_entry.items() if len(items) > 1
-    }
+    duplicate_groups = {}
+    for entry, items in by_entry.items():
+        if len(items) > 1:
+            duplicate_groups[entry] = items
     used_public_names: dict[str, dict[str, Any]] = {}
     resolutions: list[dict[str, Any]] = []
     for item in entries:

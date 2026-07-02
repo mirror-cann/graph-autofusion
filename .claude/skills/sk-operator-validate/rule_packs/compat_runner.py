@@ -219,9 +219,11 @@ def _collect_sources(asset_path: Path) -> list[tuple[str, str]]:
         ]
     base = asset_path
     units = []
-    for path in sorted(
-        p for p in asset_path.rglob("*") if p.is_file() and p.suffix in SOURCE_SUFFIXES
-    ):
+    source_paths = []
+    for path in asset_path.rglob("*"):
+        if path.is_file() and path.suffix in SOURCE_SUFFIXES:
+            source_paths.append(path)
+    for path in sorted(source_paths):
         units.append(
             (
                 str(path.relative_to(base)),
@@ -355,7 +357,10 @@ def run_compat_rules(
     elif not source_backed_fields:
         verification_note = "target chip is recorded, but no official-source-backed capability checks were declared"
     elif not target_cann and not has_applicable_source_backed_checks:
-        verification_note = "target CANN was not provided, so CANN-scoped official-source-backed compatibility checks were not applied"
+        verification_note = (
+            "target CANN was not provided, so CANN-scoped "
+            "official-source-backed compatibility checks were not applied"
+        )
     elif not has_applicable_source_backed_checks:
         verification_note = (
             f"no official-source-backed checks were applicable to target CANN {target_cann!r}; "
@@ -370,6 +375,9 @@ def run_compat_rules(
         verification_note = (
             "official-source-backed checks produced findings for the target context"
         )
+    checked_rules = []
+    for field in applicable_source_backed_fields:
+        checked_rules.append(_rule_id_for_field(field))
     envelope["metadata"] = {
         "rule_pack": "compat",
         "overall_verdict": overall,
@@ -379,9 +387,7 @@ def run_compat_rules(
         "recorded_cann_versions": list(recorded_cann_versions),
         "source_backed_fields": sorted(source_backed_fields),
         "applicable_source_backed_fields": sorted(applicable_source_backed_fields),
-        "checked_rules": sorted(
-            _rule_id_for_field(field) for field in applicable_source_backed_fields
-        ),
+        "checked_rules": sorted(checked_rules),
         "verification": verification_note,
     }
     return envelope

@@ -259,9 +259,12 @@ def _soc_versions_for_sources(
     preset_values: list[str] = []
     search_root = root if root.is_dir() else root.parent
     for preset in sorted(search_root.glob("**/CMakePresets.json")):
-        if any(
-            part in SKIP_DIRS for part in preset.relative_to(search_root).parts[:-1]
-        ):
+        skip_preset = False
+        for part in preset.relative_to(search_root).parts[:-1]:
+            if part in SKIP_DIRS:
+                skip_preset = True
+                break
+        if skip_preset:
             continue
         preset_values.extend(extract_supported_soc_versions_from_cmake_presets(preset))
     soc_versions = _dedupe(preset_values)
@@ -270,9 +273,12 @@ def _soc_versions_for_sources(
     misc_values: list[str] = []
     for name in ("run.sh", "*.yaml", "*.yml"):
         for path in sorted(search_root.glob(f"**/{name}")):
-            if any(
-                part in SKIP_DIRS for part in path.relative_to(search_root).parts[:-1]
-            ):
+            skip_path = False
+            for part in path.relative_to(search_root).parts[:-1]:
+                if part in SKIP_DIRS:
+                    skip_path = True
+                    break
+            if skip_path:
                 continue
             misc_values.extend(
                 extract_supported_soc_versions_from_misc_text(_safe_read(path))
@@ -491,13 +497,15 @@ def _analyze_generic(root: Path, asset_kind: str) -> AssetUnderstanding:
     units: list[OperatorUnit] = []
     warnings: list[dict[str, Any]] = []
     candidates: list[tuple[Path, list[str]]] = []
-    source_files = [
-        path for path in _source_files(root) if path.suffix in KERNEL_SOURCE_SUFFIXES
-    ]
+    source_files = []
+    for path in _source_files(root):
+        if path.suffix in KERNEL_SOURCE_SUFFIXES:
+            source_files.append(path)
     if root.is_dir():
-        op_kernel_sources = [
-            path for path in source_files if "op_kernel" in path.relative_to(root).parts
-        ]
+        op_kernel_sources = []
+        for path in source_files:
+            if "op_kernel" in path.relative_to(root).parts:
+                op_kernel_sources.append(path)
         if op_kernel_sources:
             source_files = op_kernel_sources
     for source in sorted(source_files):
@@ -588,12 +596,12 @@ def analyze_asset(asset: Path) -> AssetUnderstanding:
         custom = root / "custom_op"
         if (custom / "op_kernel").is_dir() and (custom / "op_host").is_dir():
             manifest = _analyze_op_dev(custom)
-            return AssetUnderstanding(
-                schema_version=1,
-                status=manifest.status,
-                asset_root=str(root),
-                asset_kind="custom_op_package",
-                operator_units=[
+            operator_units = []
+            for unit in manifest.operator_units:
+                tiling_headers = []
+                for item in unit.tiling_headers:
+                    tiling_headers.append(f"custom_op/{item}")
+                operator_units.append(
                     OperatorUnit(
                         **{
                             **unit.__dict__,
@@ -606,14 +614,17 @@ def analyze_asset(asset: Path) -> AssetUnderstanding:
                             "json_spec": f"custom_op/{unit.json_spec}"
                             if unit.json_spec
                             else None,
-                            "tiling_headers": [
-                                f"custom_op/{item}" for item in unit.tiling_headers
-                            ],
+                            "tiling_headers": tiling_headers,
                             "source_asset": str(root),
                         }
                     )
-                    for unit in manifest.operator_units
-                ],
+                )
+            return AssetUnderstanding(
+                schema_version=1,
+                status=manifest.status,
+                asset_root=str(root),
+                asset_kind="custom_op_package",
+                operator_units=operator_units,
                 unsupported_items=manifest.unsupported_items,
                 warnings=manifest.warnings,
             )

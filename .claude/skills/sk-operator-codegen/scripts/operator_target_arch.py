@@ -136,13 +136,14 @@ def resolve_target_chips(
     for chip in split_target_chips(raw_chips):
         item = resolve_chip_to_arch(chip)
         if item is None:
+            supported_chips = []
+            for rule in SUPPORTED_CHIP_ARCH_RULES:
+                supported_chips.append(rule["canonical_chip"])
             unsupported.append(
                 {
                     "chip": chip,
                     "reason": "unsupported-chip-arch-mapping",
-                    "supported_chips": [
-                        rule["canonical_chip"] for rule in SUPPORTED_CHIP_ARCH_RULES
-                    ],
+                    "supported_chips": supported_chips,
                 }
             )
         else:

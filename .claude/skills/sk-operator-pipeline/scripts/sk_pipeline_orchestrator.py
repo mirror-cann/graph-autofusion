@@ -221,9 +221,11 @@ class PipelineOrchestrator:
         copied: list[str] = []
         if not source_dir.is_dir():
             return copied
-        for source_path in sorted(
-            item for item in source_dir.rglob("*") if item.is_file()
-        ):
+        source_paths = []
+        for item in source_dir.rglob("*"):
+            if item.is_file():
+                source_paths.append(item)
+        for source_path in sorted(source_paths):
             rel = source_path.relative_to(source_dir)
             if any(part in _SUPPORT_SKIP_DIRS for part in rel.parts[:-1]):
                 continue
@@ -288,9 +290,10 @@ class PipelineOrchestrator:
     def _arch_count_from_env(env: Any) -> int:
         raw_arches = env.get("SK_NPU_ARCHS", "")
         if raw_arches:
-            arches = [
-                arch.strip() for arch in re.split(r"[,;]", raw_arches) if arch.strip()
-            ]
+            arches = []
+            for arch in re.split(r"[,;]", raw_arches):
+                if arch.strip():
+                    arches.append(arch.strip())
             return max(1, len(dict.fromkeys(arches)))
         return 1
 
@@ -1025,9 +1028,10 @@ class PipelineOrchestrator:
             state["iterations"][0]["stages"].append("operator-validate.compat")
             self._write_state(output_dir, state)
 
-        blocking = [
-            finding for finding in findings if finding.get("severity") == "blocker"
-        ]
+        blocking = []
+        for finding in findings:
+            if finding.get("severity") == "blocker":
+                blocking.append(finding)
         if blocking:
             state["status"] = "needs-human"
             state["iterations"][0]["findings"] = findings
@@ -2806,9 +2810,10 @@ class PipelineOrchestrator:
                         "status": verdict["status"],
                         "verdict": verdict,
                     }
-                stdout_lines = [
-                    line for line in completed.stdout.splitlines() if line.strip()
-                ]
+                stdout_lines = []
+                for line in completed.stdout.splitlines():
+                    if line.strip():
+                        stdout_lines.append(line)
                 json_payload = stdout_lines[-1] if stdout_lines else completed.stdout
                 try:
                     full_stdout = json.loads(json_payload)
@@ -2876,9 +2881,10 @@ class PipelineOrchestrator:
             return {"op_name": op_name, "status": verdict["status"], "verdict": verdict}
 
         results, parallel = self._run_parallel_ops(entries, jobs, worker)
-        per_op = {
-            item["op_name"]: item["verdict"] for item in results if "verdict" in item
-        }
+        per_op = {}
+        for item in results:
+            if "verdict" in item:
+                per_op[item["op_name"]] = item["verdict"]
         status_values = {item["status"] for item in results}
         if "failed" in status_values:
             status = "failed"

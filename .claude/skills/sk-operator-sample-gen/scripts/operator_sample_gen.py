@@ -419,9 +419,11 @@ def _collect_kernel_entries(files: list[Path], base_dir: Path) -> list[dict[str,
 
 
 def _collect_sk_markers(files: list[Path]) -> dict[str, bool]:
-    joined = "\n".join(
-        _source_text(path) for path in files if path.suffix in SOURCE_SUFFIXES
-    )
+    source_texts = []
+    for path in files:
+        if path.suffix in SOURCE_SUFFIXES:
+            source_texts.append(_source_text(path))
+    joined = "\n".join(source_texts)
     return {
         "__sk__": "__sk__" in joined,
         "__spk__": "__spk__" in joined,
@@ -548,9 +550,15 @@ def _detect_archetype(
         ge_evidence.append(
             {"kind": "symbol", "path": "", "value": "register_fx_node_ge_converter"}
         )
-    if "OpDef" in raw_text or any(
-        part in path for path in relative_paths for part in ("op_host/", "op_kernel/")
-    ):
+    has_op_dev_path = False
+    for path in relative_paths:
+        for part in ("op_host/", "op_kernel/"):
+            if part in path:
+                has_op_dev_path = True
+                break
+        if has_op_dev_path:
+            break
+    if "OpDef" in raw_text or has_op_dev_path:
         ge_evidence.append(
             {"kind": "directory", "path": "", "value": "op_host/op_kernel"}
         )
@@ -2911,9 +2919,9 @@ def _validate_sk_build_validation_passed_prefix(
     source_scaffold: dict[str, Any],
     names: list[str],
 ) -> None:
-    copied_evidence = [
-        item["scaffold_path"] for item in source_scaffold["copied_source_files"]
-    ]
+    copied_evidence = []
+    for item in source_scaffold["copied_source_files"]:
+        copied_evidence.append(item["scaffold_path"])
     validators = {
         "sk_source_scaffold_generated": lambda: _require_sk_build_validation_check(
             checks,
@@ -3312,6 +3320,9 @@ class RuntimeInputSpecManifestInput(NamedTuple):
 def _sk_runtime_input_spec_manifest(
     request: RuntimeInputSpecManifestInput,
 ) -> dict[str, Any]:
+    runtime_input_value_checks = []
+    for name in SK_RUNTIME_INPUT_VALUES_CHECK_NAMES:
+        runtime_input_value_checks.append(request.check_results[name])
     return {
         "status": request.status,
         "analysis_output_dir": str(request.output_dir.resolve()),
@@ -3643,6 +3654,9 @@ class RuntimeInputValuesManifestInput(NamedTuple):
 def _sk_runtime_input_values_manifest(
     request: RuntimeInputValuesManifestInput,
 ) -> dict[str, Any]:
+    runtime_input_value_checks = []
+    for name in SK_RUNTIME_INPUT_VALUES_CHECK_NAMES:
+        runtime_input_value_checks.append(request.check_results[name])
     return {
         "status": "defined",
         "analysis_output_dir": str(request.output_dir.resolve()),
@@ -3653,9 +3667,7 @@ def _sk_runtime_input_values_manifest(
         "input_value_spec_sha256": hashlib.sha256(request.spec_bytes).hexdigest(),
         "input_values": request.input_values,
         "unresolved_inputs": [],
-        "checks": [
-            request.check_results[name] for name in SK_RUNTIME_INPUT_VALUES_CHECK_NAMES
-        ],
+        "checks": runtime_input_value_checks,
         "supported_next_actions": ["collect_correctness_oracle_spec"],
         "execution_boundary": SK_RUNTIME_INPUT_VALUES_BOUNDARY,
     }
@@ -3676,9 +3688,9 @@ def _summarize_sk_runtime_input_values(
     input_values: list[dict[str, Any]] = []
     for input_spec in runtime_spec["input_specs"]:
         spec_item = by_input_set_id[input_spec["id"]]
-        by_parameter_name = {
-            item["name"]: item for item in spec_item["parameter_values"]
-        }
+        by_parameter_name = {}
+        for item in spec_item["parameter_values"]:
+            by_parameter_name[item["name"]] = item
         expected_names = [item["name"] for item in input_spec["parameters"]]
         if set(by_parameter_name) != set(expected_names):
             raise CliUsageError("sk parameter value set mismatch")
@@ -6424,6 +6436,9 @@ def _sk_operator_correctness_verdict_result_manifest(
     check_results: dict[str, dict[str, Any]],
     supported_next_actions: list[str],
 ) -> dict[str, Any]:
+    correctness_verdict_checks = []
+    for name in SK_OPERATOR_CORRECTNESS_VERDICT_CHECK_NAMES:
+        correctness_verdict_checks.append(check_results[name])
     return {
         "status": status,
         "analysis_output_dir": str(output_dir.resolve()),
@@ -6431,9 +6446,7 @@ def _sk_operator_correctness_verdict_result_manifest(
         "correctness_verdict_path": "operator-sk-correctness-verdict.json",
         "verdict_scope": "declared_oracle_and_captured_runtime_evidence",
         "verdict_items": verdict_items,
-        "checks": [
-            check_results[name] for name in SK_OPERATOR_CORRECTNESS_VERDICT_CHECK_NAMES
-        ],
+        "checks": correctness_verdict_checks,
         "supported_next_actions": supported_next_actions,
         "execution_boundary": SK_OPERATOR_CORRECTNESS_VERDICT_BOUNDARY,
     }
@@ -6444,9 +6457,9 @@ def _sk_operator_correctness_verdict_items(
     comparison: dict[str, Any],
     actual_outputs_by_id: dict[str, dict[str, Any]],
 ) -> list[dict[str, Any]]:
-    comparison_by_id = {
-        item["oracle_set_id"]: item for item in comparison["comparisons"]
-    }
+    comparison_by_id = {}
+    for item in comparison["comparisons"]:
+        comparison_by_id[item["oracle_set_id"]] = item
     items: list[dict[str, Any]] = []
     for oracle_item in oracle_spec["oracle_specs"]:
         oracle_set_id = oracle_item["oracle_set_id"]

@@ -339,9 +339,10 @@ def _read_pybind_io_contract(path_text: str) -> dict[str, dict[str, Any]]:
                     f"IO contract entry {entry_name!r} field {field_name!r} parameter {param_name!r} "
                     "nullable must be a boolean"
                 )
-            normalized[param_name] = {
-                key: value for key, value in raw_spec.items() if key != "kind"
-            }
+            normalized[param_name] = {}
+            for key, value in raw_spec.items():
+                if key != "kind":
+                    normalized[param_name][key] = value
             normalized[param_name]["kind"] = kind
         return normalized
 
@@ -577,9 +578,12 @@ def _is_scalar_c_type(c_type: str) -> bool:
         "bool",
         "size_t",
     )
-    return not _is_tensor_c_type(c_type) and any(
-        marker in c_type for marker in scalar_markers
-    )
+    has_scalar_marker = False
+    for marker in scalar_markers:
+        if marker in c_type:
+            has_scalar_marker = True
+            break
+    return not _is_tensor_c_type(c_type) and has_scalar_marker
 
 
 def _entry_param_kinds(entry: dict[str, Any]) -> dict[str, str]:
@@ -626,9 +630,11 @@ def _io_contract_runtime_tensor_param_names(entry: dict[str, Any]) -> list[str]:
 
 
 def _io_contract_tensor_param_names(entry: dict[str, Any]) -> list[str]:
-    return [
-        name for name, kind in _entry_param_kinds(entry).items() if kind == "tensor"
-    ]
+    names = []
+    for name, kind in _entry_param_kinds(entry).items():
+        if kind == "tensor":
+            names.append(name)
+    return names
 
 
 def _io_contract_host_struct_param_names(entry: dict[str, Any]) -> list[str]:
@@ -743,9 +749,11 @@ def _collect_kernel_entries(files: list[Path], base_dir: Path) -> list[dict[str,
 
 
 def _collect_sk_markers(files: list[Path]) -> dict[str, bool]:
-    joined = "\n".join(
-        _source_text(path) for path in files if path.suffix in SOURCE_SUFFIXES
-    )
+    source_texts = []
+    for path in files:
+        if path.suffix in SOURCE_SUFFIXES:
+            source_texts.append(_source_text(path))
+    joined = "\n".join(source_texts)
     return {
         "__sk__": "__sk__" in joined,
         "__spk__": "__spk__" in joined,
@@ -872,9 +880,15 @@ def _detect_archetype(
         ge_evidence.append(
             {"kind": "symbol", "path": "", "value": "register_fx_node_ge_converter"}
         )
-    if "OpDef" in raw_text or any(
-        part in path for path in relative_paths for part in ("op_host/", "op_kernel/")
-    ):
+    has_op_dev_path = False
+    for path in relative_paths:
+        for part in ("op_host/", "op_kernel/"):
+            if part in path:
+                has_op_dev_path = True
+                break
+        if has_op_dev_path:
+            break
+    if "OpDef" in raw_text or has_op_dev_path:
         ge_evidence.append(
             {"kind": "directory", "path": "", "value": "op_host/op_kernel"}
         )
@@ -1559,6 +1573,13 @@ def _render_execution_plan(summary: dict[str, Any]) -> str:
 
 def _render_checklist(summary: dict[str, Any]) -> str:
     manifest = summary["manifest"]
+    missing_operator_entry_contract = False
+    missing_sk_binding_contract = False
+    for item in manifest["missing_contracts"]:
+        if item == "operator_entry_contract":
+            missing_operator_entry_contract = True
+        if item == "sk_binding_contract":
+            missing_sk_binding_contract = True
     lines = [
         "# Operator Delivery Checklist",
         "",
@@ -1568,10 +1589,7 @@ def _render_checklist(summary: dict[str, Any]) -> str:
     checks = [
         (
             "kernel entry contract",
-            not any(
-                item == "operator_entry_contract"
-                for item in manifest["missing_contracts"]
-            ),
+            not missing_operator_entry_contract,
         ),
         ("build contract", bool(manifest["build_system"])),
         ("test contract", bool(manifest["test_system"])),
@@ -1579,9 +1597,7 @@ def _render_checklist(summary: dict[str, Any]) -> str:
         ("delivery docs contract", bool(manifest["doc_files"])),
         (
             "SK binding contract",
-            not any(
-                item == "sk_binding_contract" for item in manifest["missing_contracts"]
-            ),
+            not missing_sk_binding_contract,
         ),
     ]
     for label, ok in checks:
@@ -3012,9 +3028,9 @@ def _generate_sk_binding_scaffold(
         generated_sources.append((adapted_entry["generated_path"], content))
 
     copied_sources = _copy_sk_binding_sources(output_dir, analysis)
-    generated_files = [f"{SK_BINDING_SCAFFOLD_DIR}/README.md"] + [
-        path for path, _ in generated_sources
-    ]
+    generated_files = [f"{SK_BINDING_SCAFFOLD_DIR}/README.md"]
+    for path, _ in generated_sources:
+        generated_files.append(path)
     manifest = {
         "status": "generated",
         "analysis_output_dir": str(output_dir.resolve()),
@@ -4565,9 +4581,9 @@ def cmd_adapt_sk_from_global(args: argparse.Namespace) -> int:
             )
         elif form.form == "legacy-spk":
             migration_contract: dict[str, Any] = {}
-            possible_contract_names = [
-                match.group(1) for match in KERNEL_ENTRY_RE.finditer(text)
-            ]
+            possible_contract_names = []
+            for match in KERNEL_ENTRY_RE.finditer(text):
+                possible_contract_names.append(match.group(1))
             for possible_name in possible_contract_names:
                 _, matched_contract = find_io_contract(possible_name)
                 if matched_contract and matched_contract.get("migration"):
@@ -4890,15 +4906,16 @@ def cmd_aggregate_sk_adapted(args: argparse.Namespace) -> int:
         package_name=args.aggregate_wheel_name,
         package_version=args.package_version,
     )
+    entry_count = 0
+    for item in manifest["per_file"]:
+        entry_count += len(item.get("entries", []))
     _emit(
         json.dumps(
             {
                 "status": manifest["status"],
                 "package_name": manifest["package_name"],
                 "package_version": manifest["package_version"],
-                "entries": sum(
-                    len(item.get("entries", [])) for item in manifest["per_file"]
-                ),
+                "entries": entry_count,
             }
         )
     )

@@ -233,9 +233,10 @@ def build_inventory(asset: Path) -> dict[str, Any]:
     base = root.parent if root.is_file() else root
     files = _source_records(root, base)
     kernel_records = [item for item in files if item["role"] == "kernel_source"]
-    kernel_candidate_records = [
-        item for item in files if item["role"] == "kernel_candidate"
-    ]
+    kernel_candidate_records = []
+    for item in files:
+        if item["role"] == "kernel_candidate":
+            kernel_candidate_records.append(item)
     rtc_records = [item for item in files if item["role"] == "rtc_host_program"]
     build_records = [item for item in files if item["role"] == "build"]
     cmake_kernel_sources: list[dict[str, str]] = []
@@ -400,9 +401,11 @@ def build_layout_from_inventory(inventory: dict[str, Any]) -> dict[str, Any]:
                 ),
             }
         )
-    has_ambiguous_host = any(
-        question.get("id") == "ambiguous-host-registration" for question in questions
-    )
+    has_ambiguous_host = False
+    for question in questions:
+        if question.get("id") == "ambiguous-host-registration":
+            has_ambiguous_host = True
+            break
     status = (
         "ready"
         if units

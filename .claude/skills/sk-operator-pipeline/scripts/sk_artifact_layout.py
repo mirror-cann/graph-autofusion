@@ -219,9 +219,10 @@ class ArtifactLayout:
             "| asset namespace | source entry | public entry | reason |",
             "|---|---|---|---|",
         ]
-        renamed = [
-            item for item in payload.get("resolutions", []) if item.get("renamed")
-        ]
+        renamed = []
+        for item in payload.get("resolutions", []):
+            if item.get("renamed"):
+                renamed.append(item)
         if renamed:
             for item in renamed:
                 lines.append(
@@ -469,9 +470,9 @@ class ArtifactLayout:
             if not stage_id:
                 continue
             report_path = self.stage_report_path(asset_slug, stage_id, stage_name)
-            payload = {
-                key: self._relativize_value(value) for key, value in record.items()
-            }
+            payload = {}
+            for key, value in record.items():
+                payload[key] = self._relativize_value(value)
             self.write_json(report_path, payload)
             md_path = report_path.with_name("report.md")
             self.write_text(

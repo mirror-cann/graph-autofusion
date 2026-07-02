@@ -347,9 +347,9 @@ def infer_model_asset_root(
     model_dirs: list[Path] | None = None,
 ) -> Path | None:
     input_dir = _resolve_input_dir(input_path)
-    resolved_model_dirs = [
-        item.resolve() for item in (model_dirs or find_model_dirs(input_dir))
-    ]
+    resolved_model_dirs = []
+    for item in model_dirs or find_model_dirs(input_dir):
+        resolved_model_dirs.append(item.resolve())
     if not resolved_model_dirs:
         return None
 
@@ -374,9 +374,9 @@ def infer_result_root(
         return input_dir
     if model_asset_root is not None and model_asset_root.parent != model_asset_root:
         return model_asset_root.parent
-    resolved_model_dirs = [
-        item.resolve() for item in (model_dirs or find_model_dirs(input_dir))
-    ]
+    resolved_model_dirs = []
+    for item in model_dirs or find_model_dirs(input_dir):
+        resolved_model_dirs.append(item.resolve())
     if resolved_model_dirs:
         first_model_dir = resolved_model_dirs[0]
         parent = first_model_dir.parent.parent
@@ -654,9 +654,10 @@ def _scope_graph_alignment_diagnostics(
     per_scope: list[dict[str, Any]] = []
     for scope in scopes:
         scope_id = scope.get("scope_id")
-        node_ids = [
-            node_id for node_id in scope.get("node_ids", []) if isinstance(node_id, int)
-        ]
+        node_ids = []
+        for node_id in scope.get("node_ids", []):
+            if isinstance(node_id, int):
+                node_ids.append(node_id)
         scope_node_ids.update(node_ids)
         matched_count = sum(1 for node_id in node_ids if node_id in node_ids_in_library)
         missing_count = len(node_ids) - matched_count
@@ -772,11 +773,12 @@ def _validate_model_instance_report(
         )
 
     if diagnostics["empty_scope_ids"] and diagnostics["node_library_count"] > 0:
+        empty_scope_id_sample = []
+        for scope_id in diagnostics["empty_scope_ids"][:10]:
+            empty_scope_id_sample.append(str(scope_id))
         raise ValueError(
             "some scopes contain node ids but none of them can be matched in graph node library: "
-            + ",".join(
-                str(scope_id) for scope_id in diagnostics["empty_scope_ids"][:10]
-            )
+            + ",".join(empty_scope_id_sample)
         )
 
     if diagnostics["missing_node_id_count"] > 0:
@@ -1546,9 +1548,11 @@ def _validate_device_task_library_with_json(
         matched_section_indexes.add(section_index)
         mismatch_count += unscoped_mismatch_count
 
-    missing_in_log = sorted(
-        scope_id for scope_id in scopes_by_id if scope_id not in sections_by_scope_id
-    )
+    missing_in_log = []
+    for scope_id in scopes_by_id:
+        if scope_id not in sections_by_scope_id:
+            missing_in_log.append(scope_id)
+    missing_in_log.sort()
     missing_scope_ids = set()
     for section_index, section in enumerate(sections):
         scope_id = _safe_parse_int(section.get("sk_id"))
@@ -2767,16 +2771,20 @@ def _build_diagnostic_pc_registry(
                 }
             )
 
+    has_reported_start_pc = False
+    has_reported_current_pc = False
+    for item in events:
+        if item.get("reported_start_pc"):
+            has_reported_start_pc = True
+        if item.get("reported_current_pc"):
+            has_reported_current_pc = True
+
     return {
         "summary": {
             "issue_kind": counter_kind,
             "target_count": len(events),
-            "has_reported_start_pc": any(
-                item.get("reported_start_pc") for item in events
-            ),
-            "has_reported_current_pc": any(
-                item.get("reported_current_pc") for item in events
-            ),
+            "has_reported_start_pc": has_reported_start_pc,
+            "has_reported_current_pc": has_reported_current_pc,
         },
         "events": events,
     }
@@ -2789,12 +2797,13 @@ def _build_pc_localization_registry(super_kernel: dict[str, Any]) -> dict[str, A
         else []
     )
     items = items if isinstance(items, list) else []
-    matched_count = sum(
-        1 for item in items if item.get("pc_match_status") == "matched_sub_kernel"
-    )
-    unresolved_count = sum(
-        1 for item in items if item.get("pc_match_status") == "no_sub_kernel_matched"
-    )
+    matched_count = 0
+    unresolved_count = 0
+    for item in items:
+        if item.get("pc_match_status") == "matched_sub_kernel":
+            matched_count += 1
+        if item.get("pc_match_status") == "no_sub_kernel_matched":
+            unresolved_count += 1
     return {
         "summary": {
             "event_count": len(items),
@@ -2992,13 +3001,16 @@ def build_dfx_evidence(
             }
         )
 
+    has_explicit_exception = False
+    has_inferred_exception = False
+    for item in mapped_exception_events:
+        if item.get("evidence_level") == "explicit":
+            has_explicit_exception = True
+        if item.get("evidence_level") == "inferred":
+            has_inferred_exception = True
     exception_level = _to_evidence_level(
-        any(
-            item.get("evidence_level") == "explicit" for item in mapped_exception_events
-        ),
-        any(
-            item.get("evidence_level") == "inferred" for item in mapped_exception_events
-        ),
+        has_explicit_exception,
+        has_inferred_exception,
     )
     core_symbol_level = _to_evidence_level(
         bool(super_kernel.get("exception_symbol_events"))
@@ -3509,9 +3521,9 @@ def _finalize_scope_batch(scopes: dict[int, dict[str, Any]]) -> list[dict[str, A
         latest_stream_by_idx: dict[int, dict[str, Any]] = {}
         for stream in scope["streams"]:
             latest_stream_by_idx[stream["stream_idx"]] = stream
-        dedup_streams = [
-            latest_stream_by_idx[idx] for idx in sorted(latest_stream_by_idx)
-        ]
+        dedup_streams = []
+        for idx in sorted(latest_stream_by_idx):
+            dedup_streams.append(latest_stream_by_idx[idx])
         expected_stream_count = scope.get("stream_count", 0)
         if isinstance(expected_stream_count, int) and expected_stream_count > 0:
             dedup_streams = dedup_streams[:expected_stream_count]
@@ -3771,9 +3783,10 @@ def _group_scope_batches_by_terminal_final(
     if not batches:
         return [[] for _ in range(model_instance_count)]
 
-    final_indices = [
-        index for index, batch in enumerate(batches) if _is_terminal_final_pass(batch)
-    ]
+    final_indices = []
+    for index, batch in enumerate(batches):
+        if _is_terminal_final_pass(batch):
+            final_indices.append(index)
     if len(final_indices) != model_instance_count:
         reason = (
             "scope_library cannot be safely model-instance isolated: "
@@ -3805,6 +3818,9 @@ def _group_scope_batches_by_terminal_final(
 
     if start < len(batches):
         ignored_end = start + 20
+        ignored_passes = []
+        for batch in batches[start:ignored_end]:
+            ignored_passes.append(str(batch.get("pass") or ""))
         _parser_log(
             "WARN",
             "scope_library_trailing_batches_ignored",
@@ -3815,9 +3831,7 @@ def _group_scope_batches_by_terminal_final(
             details={
                 "source_kind": source_kind,
                 "ignored_batch_count": len(batches) - start,
-                "ignored_passes": [
-                    str(batch.get("pass") or "") for batch in batches[start:ignored_end]
-                ],
+                "ignored_passes": ignored_passes,
             },
         )
 
@@ -4114,12 +4128,13 @@ def _build_node_library_from_entries(
             message="node library contains duplicated nodeId entries; later entries overwrite earlier ones",
             details=stats,
         )
+    sanitized_nodes = []
+    for node_id in sorted(node_by_id):
+        sanitized_nodes.append(_sanitize_node_entry(node_by_id[node_id]))
     return {
         "path": str(path),
         "source_kind": source_kind,
-        "nodes": [
-            _sanitize_node_entry(node_by_id[node_id]) for node_id in sorted(node_by_id)
-        ],
+        "nodes": sanitized_nodes,
         "stats": stats,
     }
 
@@ -4469,9 +4484,10 @@ def _warn_model_instance_timestamp_drift(
 ) -> None:
     begin_timestamp = model_instance.get("begin_timestamp")
     end_timestamp = model_instance.get("end_timestamp")
-    assigned_timestamps = [
-        entry.get("_timestamp") for entry in assigned_entries if entry.get("_timestamp")
-    ]
+    assigned_timestamps = []
+    for entry in assigned_entries:
+        if entry.get("_timestamp"):
+            assigned_timestamps.append(entry.get("_timestamp"))
     if not assigned_timestamps:
         return
     min_timestamp = min(assigned_timestamps)
@@ -4598,6 +4614,9 @@ def parse_node_library_model_instances(
             ambiguous_entries + unassigned_entries + untimestamped_entries
         )
         if leftover_detail_entries:
+            assigned_detail_entry_count = 0
+            for item in assigned_entries:
+                assigned_detail_entry_count += len(item)
             _parser_log(
                 "WARN",
                 "node_library_leftover_detail_entries",
@@ -4605,9 +4624,7 @@ def parse_node_library_model_instances(
                 message="unassigned node detail entries remain after model-instance timestamp partitioning",
                 details={
                     "detail_source_kind": source_kind,
-                    "assigned_detail_entry_count": sum(
-                        len(item) for item in assigned_entries
-                    ),
+                    "assigned_detail_entry_count": assigned_detail_entry_count,
                     "total_detail_entry_count": len(detail_entries),
                     "leftover_detail_entry_count": len(leftover_detail_entries),
                     "leftover_detail_key_sample": [
@@ -4922,6 +4939,15 @@ def _build_fused_library_subset(
     }
 
 
+def _build_fused_library_subsets(
+    fused_library: dict[str, Any], groups: list[list[dict[str, Any]]]
+) -> list[dict[str, Any]]:
+    subsets = []
+    for group in groups:
+        subsets.append(_build_fused_library_subset(fused_library, group))
+    return subsets
+
+
 def _build_device_task_library_subset_json_validation(
     device_task_library: dict[str, Any],
 ) -> dict[str, Any]:
@@ -4949,6 +4975,15 @@ def _build_device_task_library_subset(
     }
 
 
+def _build_device_task_library_subsets(
+    device_task_library: dict[str, Any], groups: list[list[dict[str, Any]]]
+) -> list[dict[str, Any]]:
+    subsets = []
+    for group in groups:
+        subsets.append(_build_device_task_library_subset(device_task_library, group))
+    return subsets
+
+
 def _empty_fused_model_instance_libraries(
     model_dir: Path,
     model_instance_count: int,
@@ -4962,9 +4997,10 @@ def _empty_device_model_instance_libraries(
     model_instance_count: int,
 ) -> list[dict[str, Any]]:
     base = parse_device_task_library(model_dir)
-    return [
-        _build_device_task_library_subset(base, []) for _ in range(model_instance_count)
-    ]
+    reports = []
+    for _ in range(model_instance_count):
+        reports.append(_build_device_task_library_subset(base, []))
+    return reports
 
 
 def _scope_signatures(
@@ -5118,9 +5154,8 @@ def parse_fused_library_model_instances(
         return [base]
     functions = list(base.get("functions", []))
     if not functions:
-        return [
-            _build_fused_library_subset(base, []) for _ in range(model_instance_count)
-        ]
+        empty_groups = [[] for _ in range(model_instance_count)]
+        return _build_fused_library_subsets(base, empty_groups)
 
     expected_signatures = []
     universe_signatures = []
@@ -5204,9 +5239,7 @@ def parse_fused_library_model_instances(
                 )
                 raise ModelInstancePartitionError(
                     reason,
-                    partial_result=[
-                        _build_fused_library_subset(base, group) for group in groups
-                    ],
+                    partial_result=_build_fused_library_subsets(base, groups),
                     failed_model_instance_ids=[_model_instance_id(model_instance)],
                 )
             if len(matched_candidates) > 1:
@@ -5262,9 +5295,7 @@ def parse_fused_library_model_instances(
                     )
                     raise ModelInstancePartitionError(
                         reason,
-                        partial_result=[
-                            _build_fused_library_subset(base, group) for group in groups
-                        ],
+                        partial_result=_build_fused_library_subsets(base, groups),
                         failed_model_instance_ids=[_model_instance_id(model_instance)],
                     )
             matched_index, filtered_signature, filtered_nodes = matched_candidates[0]
@@ -5288,9 +5319,10 @@ def parse_fused_library_model_instances(
             used_indices.add(matched_index)
             groups[index].append(functions[matched_index])
 
-    leftover_function_indices = [
-        index for index in range(len(functions)) if index not in used_indices
-    ]
+    leftover_function_indices = []
+    for index in range(len(functions)):
+        if index not in used_indices:
+            leftover_function_indices.append(index)
     ambiguous_functions: list[dict[str, Any]] = []
     unmatched_functions: list[dict[str, Any]] = []
     for function_index in leftover_function_indices:
@@ -5341,9 +5373,7 @@ def parse_fused_library_model_instances(
         )
         raise ModelInstancePartitionError(
             reason,
-            partial_result=[
-                _build_fused_library_subset(base, group) for group in groups
-            ],
+            partial_result=_build_fused_library_subsets(base, groups),
         )
 
     if unmatched_functions:
@@ -5366,12 +5396,10 @@ def parse_fused_library_model_instances(
         )
         raise ModelInstancePartitionError(
             reason,
-            partial_result=[
-                _build_fused_library_subset(base, group) for group in groups
-            ],
+            partial_result=_build_fused_library_subsets(base, groups),
         )
 
-    return [_build_fused_library_subset(base, group) for group in groups]
+    return _build_fused_library_subsets(base, groups)
 
 
 def parse_device_task_library_model_instances(
@@ -5535,9 +5563,7 @@ def parse_device_task_library_model_instances(
         )
         raise ModelInstancePartitionError(
             reason,
-            partial_result=[
-                _build_device_task_library_subset(base, group) for group in groups
-            ],
+            partial_result=_build_device_task_library_subsets(base, groups),
             failed_model_instance_ids=[
                 _model_instance_id(model_instances[index])
                 for index in missing_expectations
@@ -5564,12 +5590,10 @@ def parse_device_task_library_model_instances(
         )
         raise ModelInstancePartitionError(
             reason,
-            partial_result=[
-                _build_device_task_library_subset(base, group) for group in groups
-            ],
+            partial_result=_build_device_task_library_subsets(base, groups),
         )
 
-    return [_build_device_task_library_subset(base, group) for group in groups]
+    return _build_device_task_library_subsets(base, groups)
 
 
 def _match_scope_update(
@@ -5707,9 +5731,10 @@ def _bind_scope_device_sections(
             )
             continue
 
-        fallback_matches = [
-            scope for scope in scopes if _match_scope_device_sections(scope, [section])
-        ]
+        fallback_matches = []
+        for scope in scopes:
+            if _match_scope_device_sections(scope, [section]):
+                fallback_matches.append(scope)
         if len(fallback_matches) == 1:
             fallback_bound_count += 1
             fallback_scope_id = fallback_matches[0].get("scope_id")
@@ -6163,9 +6188,9 @@ def collect_update_model_instance_reports(
     node_libraries = parse_node_library_model_instances(
         model_path, model_instances, raw_scope_model_instances
     )
-    collection_errors: dict[str, list[str]] = {
-        _model_instance_id(model_instance): [] for model_instance in model_instances
-    }
+    collection_errors: dict[str, list[str]] = {}
+    for model_instance in model_instances:
+        collection_errors[_model_instance_id(model_instance)] = []
 
     try:
         fused_model_instances = parse_fused_library_model_instances(
@@ -6249,9 +6274,9 @@ def collect_update_model_instance_reports(
         reports.sort(key=lambda item: int(item.get("model_instance_index") or 0))
         return reports
 
-    reports = [
-        _build_model_instance_report_from_parts(**payload) for payload in payloads
-    ]
+    reports = []
+    for payload in payloads:
+        reports.append(_build_model_instance_report_from_parts(**payload))
     reports.sort(key=lambda item: int(item.get("model_instance_index") or 0))
     return reports
 

@@ -35,9 +35,10 @@ def _stable_finding_id(
 ) -> str:
     location_token = ""
     if target_location:
-        location_token = "|".join(
-            f"{k}={target_location[k]}" for k in sorted(target_location)
-        )
+        location_items = []
+        for key in sorted(target_location):
+            location_items.append(f"{key}={target_location[key]}")
+        location_token = "|".join(location_items)
     base = "|".join(
         [rule_id, target_file or "", location_token, evidence_signature or ""]
     )
