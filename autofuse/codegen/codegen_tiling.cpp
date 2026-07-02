@@ -3144,11 +3144,13 @@ std::string TilingLib::CalculateTensorMemorySizeStr(const ascir::TensorAttr &ten
       {ge::DT_UINT32, af::Expression::Parse("4")},   // sizeof(uint32_t)
       {ge::DT_UINT64, af::Expression::Parse("8")},   // sizeof(uint64_t)
       {ge::DT_DOUBLE, af::Expression::Parse("8")},   // sizeof(double)
+      {ge::DT_BF16, af::Expression::Parse("2")},     // bf16 is 2 bytes
       {ge::DT_BOOL, af::Expression::Parse("1")}      // sizeof(bool)
   };
-  auto it = type_size_map.find(tensor.attr.dtype);
+  const auto dtype = tensor.attr.dtype.operator ge::DataType();
+  auto it = type_size_map.find(dtype);
   if (it == type_size_map.end()) {
-    GELOGE(ge::GRAPH_FAILED, "Unsupported data type: %d", tensor.attr.dtype);
+    GELOGE(ge::GRAPH_FAILED, "Unsupported data type: %d", static_cast<int32_t>(dtype));
     return "0";
   }
   af::Expression type_size = it->second;

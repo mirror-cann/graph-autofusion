@@ -1988,6 +1988,29 @@ TEST_F(TestCodegenTiling, TestCalculateTensorMemorySizeStrWithZeroFirstStride) {
   ASSERT_EQ(memory_size, expect);
 }
 
+TEST_F(TestCodegenTiling, TestCalculateTensorMemorySizeStrWithBfloat16) {
+  af::AscGraph graph("test_graph");
+  auto s0 = graph.CreateSizeVar("s0");
+  auto z0 = graph.CreateAxis("z0", s0);
+
+  af::ascir_op::Data x_op("x", graph);
+  x_op.ir_attr.SetIndex(0);
+
+  auto x = graph.FindNode("x");
+
+  x->outputs[0].attr.mem.alloc_type = af::AllocType::kAllocTypeGlobal;
+  x->outputs[0].attr.mem.tensor_id = 0;
+  x->attr.api.unit = af::ComputeUnit::kUnitNone;
+  x->outputs[0].attr.dtype = ge::DT_BF16;
+  x->outputs[0].attr.axis = {z0.id};
+  x->outputs[0].attr.repeats = {s0};
+  x->outputs[0].attr.strides = {af::ops::One};
+
+  std::string memory_size = this->CalculateTensorMemorySizeStr(x->outputs[0]);
+  const std::string expect = std::string(af::sym::Mul(s0, af::Expression::Parse("2")).Simplify().Str().get());
+  ASSERT_EQ(memory_size, expect);
+}
+
 TEST_F(TestCodegenTiling, TestCalculateTensorMemorySizeStrWithOnlyZeroStride) {
   af::AscGraph graph("test_graph");
   auto s0 = graph.CreateSizeVar("s0");
