@@ -568,9 +568,10 @@ def build_single_op_verification_contract(
     unknown_outputs = []
     non_output_roles = []
     for name in declared_outputs:
-        if name not in by_name:
+        parameter = by_name.get(name)
+        if parameter is None:
             unknown_outputs.append(name)
-        elif by_name[name]["role"] not in {"output"}:
+        elif parameter["role"] not in {"output"}:
             non_output_roles.append(name)
     device_runnable = (
         _as_object(payload.get("fixture", {}), "runtime contract fixture").get(

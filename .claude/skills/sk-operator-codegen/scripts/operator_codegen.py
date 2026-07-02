@@ -2079,7 +2079,10 @@ def _sk_conversion_inputs(manifest: dict[str, Any]) -> list[dict[str, Any]]:
             "delivery_docs_missing",
         ),
     ):
-        evidence = _sk_file_evidence(manifest[manifest_key])
+        manifest_value = _require_mapping_value(
+            manifest, manifest_key, "sk conversion manifest"
+        )
+        evidence = _sk_file_evidence(manifest_value)
         if not has_source:
             inputs.append(
                 _sk_conversion_input(
@@ -2211,7 +2214,10 @@ def _sk_conversion_plan(
             "package_contract_missing",
         ),
     ):
-        evidence = _sk_file_evidence(manifest[manifest_key])
+        manifest_value = _require_mapping_value(
+            manifest, manifest_key, "sk conversion manifest"
+        )
+        evidence = _sk_file_evidence(manifest_value)
         if not has_source:
             plan.append(
                 _sk_generation_step(
@@ -3445,6 +3451,13 @@ def _require_exact_keys(
     if unexpected:
         raise CliUsageError(f"unexpected {label} field: {sorted(unexpected)[0]}")
     return payload
+
+
+def _require_mapping_value(mapping: dict[Any, Any], key: Any, label: str) -> Any:
+    value = mapping.get(key)
+    if value is None:
+        raise CliUsageError(f"{label} missing required key: {key!r}")
+    return value
 
 
 def _require_string(value: Any, label: str, *, allow_empty: bool = False) -> str:

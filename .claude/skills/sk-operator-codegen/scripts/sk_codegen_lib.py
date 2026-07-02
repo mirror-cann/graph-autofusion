@@ -41,6 +41,13 @@ _ANY_MIX_RE = re.compile(r"__mix__\s*\((?P<body>[^)]*)\)")
 _MIX_QUALIFIER_RE = r"__mix__(?:\s*\([^)]*\))?"
 
 
+def _require_mapping_value(mapping: dict[Any, Any], key: Any, label: str) -> Any:
+    value = mapping.get(key)
+    if value is None:
+        raise ValueError(f"{label} missing required key: {key!r}")
+    return value
+
+
 def map_kernel_type_for_sk(original_qualifiers: str) -> str:
     """Map an original __global__ function's kernel-type qualifier to the SK qualifier.
 
@@ -1304,7 +1311,9 @@ def migrate_legacy_spk_to_sk_bind(
     skipped_by_bind_target: list[dict[str, Any]] = []
     bind_targets_by_stem = bind_targets_by_stem or {}
     for stem, group in variants_by_stem.items():
-        global_name = stem_to_global[stem]
+        global_name = _require_mapping_value(
+            stem_to_global, stem, "legacy SPK stem mapping"
+        )
         if len(group) > 4:
             meta["to_form"] = "legacy-spk"
             meta["escalations"].append(
@@ -1315,7 +1324,7 @@ def migrate_legacy_spk_to_sk_bind(
                 )
             )
             return original_text, meta
-        entry = entries_by_name[global_name]
+        entry = _require_mapping_value(entries_by_name, global_name, "kernel entries")
         migration_contract = migration_contract or {}
         mix_semantics_confirmed = bool(
             migration_contract.get("confirm_legacy_mix_semantics")
@@ -1508,7 +1517,9 @@ def migrate_legacy_spk_to_sk_bind(
         close_brace = _find_matching_brace(cleaned, open_brace)
         if close_brace is None:
             continue
-        rendered_items = rendered_by_global[name]
+        rendered_items = _require_mapping_value(
+            rendered_by_global, name, "rendered SK adaptations"
+        )
         body_end = close_brace + 1
         pieces.append(cleaned[last_end:body_end])
         rendered_blocks: list[str] = [

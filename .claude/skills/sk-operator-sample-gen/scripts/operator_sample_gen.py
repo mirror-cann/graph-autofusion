@@ -1511,7 +1511,10 @@ def _sk_conversion_inputs(manifest: dict[str, Any]) -> list[dict[str, Any]]:
             "delivery_docs_missing",
         ),
     ):
-        evidence = _sk_file_evidence(manifest[manifest_key])
+        manifest_value = _require_mapping_value(
+            manifest, manifest_key, "sk conversion manifest"
+        )
+        evidence = _sk_file_evidence(manifest_value)
         if not has_source:
             inputs.append(
                 _sk_conversion_input(
@@ -1643,7 +1646,10 @@ def _sk_conversion_plan(
             "package_contract_missing",
         ),
     ):
-        evidence = _sk_file_evidence(manifest[manifest_key])
+        manifest_value = _require_mapping_value(
+            manifest, manifest_key, "sk conversion manifest"
+        )
+        evidence = _sk_file_evidence(manifest_value)
         if not has_source:
             plan.append(
                 _sk_generation_step(
@@ -2421,6 +2427,13 @@ def _require_exact_keys(
     return payload
 
 
+def _require_mapping_value(mapping: dict[Any, Any], key: Any, label: str) -> Any:
+    value = mapping.get(key)
+    if value is None:
+        raise CliUsageError(f"{label} missing required key: {key!r}")
+    return value
+
+
 def _require_string(value: Any, label: str, *, allow_empty: bool = False) -> str:
     if not isinstance(value, str):
         raise CliUsageError(f"{label} must be a string")
@@ -2890,7 +2903,7 @@ def _require_sk_build_validation_check(
     reason: str,
     evidence: list[str] | None = None,
 ) -> None:
-    check = checks[name]
+    check = _require_mapping_value(checks, name, "sk build validation checks")
     if check["status"] != status or check["reason"] != reason:
         raise CliUsageError("sk build validation checks semantics mismatch")
     if evidence is not None and check["evidence"] != evidence:
@@ -2992,8 +3005,12 @@ def _validate_sk_build_validation_semantics(
 
     if status == "failed":
         _validate_sk_build_validation_passed_checks(checks, source_scaffold)
-        configure = checks["cmake_configure"]
-        build = checks["cmake_build"]
+        configure = _require_mapping_value(
+            checks, "cmake_configure", "sk build validation checks"
+        )
+        build = _require_mapping_value(
+            checks, "cmake_build", "sk build validation checks"
+        )
         if configure["status"] == "failed":
             if configure["reason"] not in {
                 "cmake_configure_failed",
@@ -3033,13 +3050,17 @@ def _validate_sk_build_validation_semantics(
     blocked_indexes = [
         index
         for index, name in enumerate(SK_BUILD_VALIDATION_CHECK_NAMES)
-        if checks[name]["status"] == "blocked"
+        if _require_mapping_value(checks, name, "sk build validation checks")["status"]
+        == "blocked"
     ]
     if not blocked_indexes:
         raise CliUsageError("sk build validation checks semantics mismatch")
     first_blocked_index = blocked_indexes[0]
     first_blocked_name = SK_BUILD_VALIDATION_CHECK_NAMES[first_blocked_index]
-    blocked_reason = checks[first_blocked_name]["reason"]
+    first_blocked_check = _require_mapping_value(
+        checks, first_blocked_name, "sk build validation checks"
+    )
+    blocked_reason = first_blocked_check["reason"]
     allowed_first_reasons = {
         "sk_source_scaffold_generated": "sk_source_scaffold_not_generated",
         "cmake_command_available": "cmake_command_not_found",
@@ -3065,10 +3086,8 @@ def _validate_sk_build_validation_semantics(
     remaining_check_start = first_blocked_index + 1
     remaining_check_names = SK_BUILD_VALIDATION_CHECK_NAMES[remaining_check_start:]
     for name in remaining_check_names:
-        if (
-            checks[name]["status"] != "blocked"
-            or checks[name]["reason"] != blocked_reason
-        ):
+        check = _require_mapping_value(checks, name, "sk build validation checks")
+        if check["status"] != "blocked" or check["reason"] != blocked_reason:
             raise CliUsageError("sk build validation checks semantics mismatch")
     expected_next = (
         source_scaffold["supported_next_actions"]
@@ -3687,7 +3706,10 @@ def _summarize_sk_runtime_input_values(
         raise CliUsageError("sk input value set mismatch")
     input_values: list[dict[str, Any]] = []
     for input_spec in runtime_spec["input_specs"]:
-        spec_item = by_input_set_id[input_spec["id"]]
+        input_spec_id = input_spec["id"]
+        spec_item = _require_mapping_value(
+            by_input_set_id, input_spec_id, "sk input value spec"
+        )
         by_parameter_name = {}
         for item in spec_item["parameter_values"]:
             by_parameter_name[item["name"]] = item
@@ -3696,7 +3718,10 @@ def _summarize_sk_runtime_input_values(
             raise CliUsageError("sk parameter value set mismatch")
         parameter_values: list[dict[str, Any]] = []
         for parameter in input_spec["parameters"]:
-            value = by_parameter_name[parameter["name"]]
+            parameter_name = parameter["name"]
+            value = _require_mapping_value(
+                by_parameter_name, parameter_name, "sk parameter value spec"
+            )
             parameter_values.append(
                 {
                     "index": parameter["index"],
@@ -3711,7 +3736,7 @@ def _summarize_sk_runtime_input_values(
             )
         input_values.append(
             {
-                "input_set_id": input_spec["id"],
+                "input_set_id": input_spec_id,
                 "entry_name": input_spec["entry_name"],
                 "source_file": input_spec["source_file"],
                 "parameter_values": parameter_values,
@@ -3917,8 +3942,12 @@ def _summarize_sk_correctness_oracle_spec(
     oracle_specs: list[dict[str, Any]] = []
     for input_value in runtime_values["input_values"]:
         input_set_id = input_value["input_set_id"]
-        input_spec = input_specs_by_id[input_set_id]
-        spec_item = by_input_set_id[input_set_id]
+        input_spec = _require_mapping_value(
+            input_specs_by_id, input_set_id, "sk runtime input spec"
+        )
+        spec_item = _require_mapping_value(
+            by_input_set_id, input_set_id, "sk correctness oracle spec"
+        )
         oracle_specs.append(
             {
                 "oracle_set_id": f"oracle:{input_set_id}",
@@ -5782,7 +5811,11 @@ def _compare_runtime_outputs(
 ) -> list[dict[str, Any]]:
     comparisons: list[dict[str, Any]] = []
     for oracle_set in oracle["oracle_sets"]:
-        actual_output = actual_outputs_by_id[oracle_set["id"]]["actual_output"]
+        oracle_set_id = oracle_set["id"]
+        actual_output_item = _require_mapping_value(
+            actual_outputs_by_id, oracle_set_id, "runtime output binding"
+        )
+        actual_output = actual_output_item["actual_output"]
         expected_output = oracle_set["expected_output"]
         actual_value = actual_output["value"]
         expected_value = expected_output["value"]
@@ -5807,7 +5840,7 @@ def _compare_runtime_outputs(
         )
         comparisons.append(
             {
-                "oracle_set_id": oracle_set["id"],
+                "oracle_set_id": oracle_set_id,
                 "input_set_id": oracle_set["input_set_id"],
                 "entry_name": oracle_set["entry_name"],
                 "comparator": oracle_set["comparator"],
@@ -6438,7 +6471,9 @@ def _sk_operator_correctness_verdict_result_manifest(
 ) -> dict[str, Any]:
     correctness_verdict_checks = []
     for name in SK_OPERATOR_CORRECTNESS_VERDICT_CHECK_NAMES:
-        correctness_verdict_checks.append(check_results[name])
+        correctness_verdict_checks.append(
+            _require_mapping_value(check_results, name, "sk correctness verdict checks")
+        )
     return {
         "status": status,
         "analysis_output_dir": str(output_dir.resolve()),
@@ -6463,8 +6498,13 @@ def _sk_operator_correctness_verdict_items(
     items: list[dict[str, Any]] = []
     for oracle_item in oracle_spec["oracle_specs"]:
         oracle_set_id = oracle_item["oracle_set_id"]
-        comparison_item = comparison_by_id[oracle_set_id]
-        actual_output = actual_outputs_by_id[oracle_set_id]["actual_output"]
+        comparison_item = _require_mapping_value(
+            comparison_by_id, oracle_set_id, "runtime output comparison"
+        )
+        actual_output_item = _require_mapping_value(
+            actual_outputs_by_id, oracle_set_id, "runtime output binding"
+        )
+        actual_output = actual_output_item["actual_output"]
         expected_output = oracle_item["expected_output"]
         comp_status = comparison_item["status"]
         if comp_status == "matched":

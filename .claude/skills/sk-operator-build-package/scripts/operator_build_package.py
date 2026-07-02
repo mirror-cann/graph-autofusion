@@ -1592,7 +1592,10 @@ def _sk_conversion_inputs(manifest: dict[str, Any]) -> list[dict[str, Any]]:
             "delivery_docs_missing",
         ),
     ):
-        evidence = _sk_file_evidence(manifest[manifest_key])
+        manifest_value = _require_mapping_value(
+            manifest, manifest_key, "sk conversion manifest"
+        )
+        evidence = _sk_file_evidence(manifest_value)
         if not has_source:
             inputs.append(
                 _sk_conversion_input(
@@ -1724,7 +1727,10 @@ def _sk_conversion_plan(
             "package_contract_missing",
         ),
     ):
-        evidence = _sk_file_evidence(manifest[manifest_key])
+        manifest_value = _require_mapping_value(
+            manifest, manifest_key, "sk conversion manifest"
+        )
+        evidence = _sk_file_evidence(manifest_value)
         if not has_source:
             plan.append(
                 _sk_generation_step(
@@ -2564,6 +2570,13 @@ def _require_exact_keys(
     return payload
 
 
+def _require_mapping_value(mapping: dict[Any, Any], key: Any, label: str) -> Any:
+    value = mapping.get(key)
+    if value is None:
+        raise CliUsageError(f"{label} missing required key: {key!r}")
+    return value
+
+
 def _require_string(value: Any, label: str, *, allow_empty: bool = False) -> str:
     if not isinstance(value, str):
         raise CliUsageError(f"{label} must be a string")
@@ -3186,7 +3199,7 @@ def _require_sk_build_validation_check(
     reason: str,
     evidence: list[str] | None = None,
 ) -> None:
-    check = checks[name]
+    check = _require_mapping_value(checks, name, "sk build validation checks")
     if check["status"] != status or check["reason"] != reason:
         raise CliUsageError("sk build validation checks semantics mismatch")
     if evidence is not None and check["evidence"] != evidence:
@@ -3288,8 +3301,12 @@ def _validate_sk_build_validation_semantics(
 
     if status == "failed":
         _validate_sk_build_validation_passed_checks(checks, source_scaffold)
-        configure = checks["cmake_configure"]
-        build = checks["cmake_build"]
+        configure = _require_mapping_value(
+            checks, "cmake_configure", "sk build validation checks"
+        )
+        build = _require_mapping_value(
+            checks, "cmake_build", "sk build validation checks"
+        )
         if configure["status"] == "failed":
             if configure["reason"] not in {
                 "cmake_configure_failed",
@@ -3329,13 +3346,17 @@ def _validate_sk_build_validation_semantics(
     blocked_indexes = [
         index
         for index, name in enumerate(SK_BUILD_VALIDATION_CHECK_NAMES)
-        if checks[name]["status"] == "blocked"
+        if _require_mapping_value(checks, name, "sk build validation checks")["status"]
+        == "blocked"
     ]
     if not blocked_indexes:
         raise CliUsageError("sk build validation checks semantics mismatch")
     first_blocked_index = blocked_indexes[0]
     first_blocked_name = SK_BUILD_VALIDATION_CHECK_NAMES[first_blocked_index]
-    blocked_reason = checks[first_blocked_name]["reason"]
+    first_blocked_check = _require_mapping_value(
+        checks, first_blocked_name, "sk build validation checks"
+    )
+    blocked_reason = first_blocked_check["reason"]
     allowed_first_reasons = {
         "sk_source_scaffold_generated": "sk_source_scaffold_not_generated",
         "cmake_command_available": "cmake_command_not_found",
@@ -3361,10 +3382,8 @@ def _validate_sk_build_validation_semantics(
     remaining_check_start = first_blocked_index + 1
     remaining_check_names = SK_BUILD_VALIDATION_CHECK_NAMES[remaining_check_start:]
     for name in remaining_check_names:
-        if (
-            checks[name]["status"] != "blocked"
-            or checks[name]["reason"] != blocked_reason
-        ):
+        check = _require_mapping_value(checks, name, "sk build validation checks")
+        if check["status"] != "blocked" or check["reason"] != blocked_reason:
             raise CliUsageError("sk build validation checks semantics mismatch")
     expected_next = (
         source_scaffold["supported_next_actions"]
@@ -4218,7 +4237,11 @@ def _sk_source_version_validation_manifest(
         execution_boundary = SK_SOURCE_VERSION_VALIDATION_FAILED_BOUNDARY
     validation_checks = []
     for name in SK_SOURCE_VERSION_VALIDATION_CHECK_NAMES:
-        validation_checks.append(check_results[name])
+        validation_checks.append(
+            _require_mapping_value(
+                check_results, name, "sk source version validation checks"
+            )
+        )
     return {
         "status": status,
         "analysis_output_dir": str(output_dir.resolve()),
@@ -4980,12 +5003,17 @@ def _load_validation_manifest_for_preflight(
             raise CliUsageError("blocked validation must not contain failed checks")
 
     _validate_validation_check_semantics(status, normalized_checks)
+    ordered_checks = []
+    for name in VALIDATION_CHECK_NAMES:
+        ordered_checks.append(
+            _require_mapping_value(normalized_checks, name, "validation checks")
+        )
 
     return {
         "status": status,
         "scaffold_output_dir": expected_output_dir,
         "scaffold_manifest_path": "operator-scaffold-manifest.json",
-        "checks": [normalized_checks[name] for name in VALIDATION_CHECK_NAMES],
+        "checks": ordered_checks,
         "checks_by_name": normalized_checks,
         "execution_boundary": VALIDATION_BOUNDARY,
     }
@@ -5176,8 +5204,10 @@ def _validate_preflight_check_semantics(
             "cmake_contract_present",
             "package_contract_present",
         }
-        if any(checks[name]["status"] != "passed" for name in required_checks):
-            raise CliUsageError("ready preflight required checks must pass")
+        for name in required_checks:
+            check = _require_mapping_value(checks, name, "preflight checks")
+            if check["status"] != "passed":
+                raise CliUsageError("ready preflight required checks must pass")
         return
 
     if status == "environment-missing":
@@ -5717,15 +5747,22 @@ def _validate_scaffold_build_result_semantics(
         first_blocked_index = next(
             index
             for index, name in enumerate(SCAFFOLD_BUILD_CHECK_NAMES)
-            if checks[name]["status"] == "blocked"
+            if _require_mapping_value(checks, name, "scaffold build checks")["status"]
+            == "blocked"
         )
         if SCAFFOLD_BUILD_CHECK_NAMES[first_blocked_index] not in set(
             SCAFFOLD_BUILD_CHECK_NAMES[:6]
         ):
             raise CliUsageError("blocked scaffold build result semantics mismatch")
         first_blocked_name = SCAFFOLD_BUILD_CHECK_NAMES[first_blocked_index]
-        blocked_reason = checks[first_blocked_name]["reason"]
-        if blocked_reason not in direct_blocked_reasons[first_blocked_name]:
+        first_blocked_check = _require_mapping_value(
+            checks, first_blocked_name, "scaffold build checks"
+        )
+        blocked_reason = first_blocked_check["reason"]
+        allowed_reasons = _require_mapping_value(
+            direct_blocked_reasons, first_blocked_name, "scaffold build blocked reasons"
+        )
+        if blocked_reason not in allowed_reasons:
             raise CliUsageError("blocked scaffold build result semantics mismatch")
         for name in SCAFFOLD_BUILD_CHECK_NAMES[:first_blocked_index]:
             if not _is_passed_shape(name):
@@ -5733,7 +5770,7 @@ def _validate_scaffold_build_result_semantics(
         remaining_check_start = first_blocked_index + 1
         remaining_check_names = SCAFFOLD_BUILD_CHECK_NAMES[remaining_check_start:]
         for name in remaining_check_names:
-            check = checks[name]
+            check = _require_mapping_value(checks, name, "scaffold build checks")
             if check["status"] != "blocked" or check["reason"] != blocked_reason:
                 raise CliUsageError("blocked scaffold build result semantics mismatch")
 
@@ -6320,13 +6357,18 @@ def _package_contract_manifest(
     check_results: dict[str, dict[str, Any]],
     supported_next_actions: list[str],
 ) -> dict[str, Any]:
+    package_contract_checks = []
+    for name in PACKAGE_CONTRACT_CHECK_NAMES:
+        package_contract_checks.append(
+            _require_mapping_value(check_results, name, "package contract checks")
+        )
     return {
         "status": status,
         "scaffold_output_dir": str(scaffold_output_dir.resolve()),
         "readiness_manifest_path": "operator-scaffold-readiness.json",
         "package_contract_path": "operator-scaffold/pyproject.toml",
         "package_files": PACKAGE_CONTRACT_FILES,
-        "checks": [check_results[name] for name in PACKAGE_CONTRACT_CHECK_NAMES],
+        "checks": package_contract_checks,
         "supported_next_actions": supported_next_actions,
         "execution_boundary": PACKAGE_CONTRACT_BOUNDARY,
     }
@@ -6528,6 +6570,11 @@ def _package_build_result_manifest(
     commands: list[dict[str, Any]] | None = None,
     artifacts: list[str] | None = None,
 ) -> dict[str, Any]:
+    package_build_checks = []
+    for name in PACKAGE_BUILD_CHECK_NAMES:
+        package_build_checks.append(
+            _require_mapping_value(check_results, name, "package build checks")
+        )
     return {
         "status": status,
         "scaffold_output_dir": str(scaffold_output_dir.resolve()),
@@ -6535,7 +6582,7 @@ def _package_build_result_manifest(
         "build_dir": "operator-package-build",
         "source_dir": "operator-package-build/source",
         "wheel_dir": "operator-package-build/wheels",
-        "checks": [check_results[name] for name in PACKAGE_BUILD_CHECK_NAMES],
+        "checks": package_build_checks,
         "commands": commands or [],
         "artifacts": artifacts or [],
         "execution_boundary": PACKAGE_BUILD_BOUNDARY,
@@ -7340,14 +7387,15 @@ def cmd_build_standalone_executable(args: argparse.Namespace) -> int:
     if missing_executables:
         status = "failed"
     executable = next(iter(executable_targets.values()))
-    entry_executables = {
-        entry["entry_name"]: str(
-            executable_targets[
-                entry_targets.get(entry["entry_name"], next(iter(executable_targets)))
-            ]
+    entry_executables = {}
+    default_target = next(iter(executable_targets))
+    for entry in entries:
+        entry_name = entry["entry_name"]
+        target_name = entry_targets.get(entry_name, default_target)
+        target_path = _require_mapping_value(
+            executable_targets, target_name, "standalone executable targets"
         )
-        for entry in entries
-    }
+        entry_executables[entry_name] = str(target_path)
     (output_root / "executable-path.txt").write_text(
         str(executable) + "\n", encoding="utf-8"
     )

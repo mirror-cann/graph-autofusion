@@ -747,16 +747,18 @@ def materialize_operator_units(
             unit_dir / "operator-asset-understanding.json", unit_manifest
         )
         materialized[unit.unit_id] = str(unit_dir)
-    index = {
-        "schema_version": 1,
-        "asset_root": str(root),
-        "asset_kind": manifest.asset_kind,
-        "operator_units": [
+    operator_units = []
+    for unit in manifest.operator_units:
+        asset_path = materialized.get(unit.unit_id)
+        sk_asset_path = sk_assets.get(unit.unit_id)
+        if asset_path is None or sk_asset_path is None:
+            raise RuntimeError(f"materialized operator unit is missing: {unit.unit_id}")
+        operator_units.append(
             {
                 "unit_id": unit.unit_id,
                 "entry_name": unit.entry_name,
-                "asset": materialized[unit.unit_id],
-                "sk_asset": sk_assets[unit.unit_id],
+                "asset": asset_path,
+                "sk_asset": sk_asset_path,
                 "source_asset": str(root),
                 "asset_kind": manifest.asset_kind,
                 "kernel_source": unit.kernel_source,
@@ -770,8 +772,12 @@ def materialize_operator_units(
                 "support_source": unit.support_source,
                 "build_backends": unit.build_backends,
             }
-            for unit in manifest.operator_units
-        ],
+        )
+    index = {
+        "schema_version": 1,
+        "asset_root": str(root),
+        "asset_kind": manifest.asset_kind,
+        "operator_units": operator_units,
     }
     output_dir.mkdir(parents=True, exist_ok=True)
     (output_dir / "operator-units.json").write_text(

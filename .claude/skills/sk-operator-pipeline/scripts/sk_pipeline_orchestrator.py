@@ -411,7 +411,11 @@ class PipelineOrchestrator:
                 for op in ops
             }
             for future in as_completed(future_by_name):
-                op_name = future_by_name[future]
+                op_name = future_by_name.get(future)
+                if op_name is None:
+                    raise OrchestratorError(
+                        "parallel operation future was not registered"
+                    )
                 try:
                     result = future.result()
                 except Exception as exc:
@@ -2908,8 +2912,13 @@ class PipelineOrchestrator:
             "| op | status |",
             "|---|---|",
         ]
-        for op_name in sorted(per_op):
-            rows.append(f"| `{op_name}` | `{per_op[op_name]['status']}` |")
+        for op_name, verdict in sorted(per_op.items()):
+            verdict_status = verdict.get("status")
+            if verdict_status is None:
+                raise OrchestratorError(
+                    f"standalone verification verdict missing status for op: {op_name}"
+                )
+            rows.append(f"| `{op_name}` | `{verdict_status}` |")
         (verify_dir / "summary.md").write_text("\n".join(rows) + "\n", encoding="utf-8")
         return {
             "status": status,
