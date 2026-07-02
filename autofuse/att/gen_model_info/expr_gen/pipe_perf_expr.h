@@ -51,6 +51,9 @@ class PipePerfExpr {
   // 将NodeInfo转换为性能公式使用的NodePerfInfo
   ge::Status ConvertToPerfInfo(const std::vector<NodeInfo> &node_infos,
                                std::vector<NodePerfInfo> &node_perf_infos) const;
+  ge::Status ConvertToPerfInfo(const std::vector<NodeInfo> &node_infos, std::vector<NodePerfInfo> &node_perf_infos,
+                               const std::vector<Expr> &vector_func_dims) const;
+  ge::Status GetVectorFuncDims(const NodeInfo &node, std::vector<Expr> &vector_func_dims) const;
 
   // 获取node 性能计算表达式
   ge::Status GetNodePerf(const NodeInfo &node, std::map<PipeType, Expr> &node_perf,

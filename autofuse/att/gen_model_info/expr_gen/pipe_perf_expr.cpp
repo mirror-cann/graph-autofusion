@@ -324,10 +324,17 @@ ge::Status PipePerfExpr::GetTensorShapes(const NodeInfo &node, std::vector<Tenso
 
 ge::Status PipePerfExpr::ConvertToPerfInfo(const std::vector<NodeInfo> &node_infos,
                                            std::vector<NodePerfInfo> &node_perf_infos) const {
-  std::vector<TensorShapeInfo> inputs;
-  std::vector<TensorShapeInfo> outputs;
+  std::vector<Expr> vector_func_dims;
+  return ConvertToPerfInfo(node_infos, node_perf_infos, vector_func_dims);
+}
+
+ge::Status PipePerfExpr::ConvertToPerfInfo(const std::vector<NodeInfo> &node_infos,
+                                           std::vector<NodePerfInfo> &node_perf_infos,
+                                           const std::vector<Expr> &vector_func_dims) const {
   std::map<Expr, TernaryOp, ExprCmp> ternary_ops;  // 当前暂不使用
   for (const auto &sub_node_info : node_infos) {
+    std::vector<TensorShapeInfo> inputs;
+    std::vector<TensorShapeInfo> outputs;
     NodePerfInfo node_perf;
     node_perf.optype = sub_node_info.node_type;
     if (!sub_node_info.inputs.empty()) {
@@ -337,9 +344,32 @@ ge::Status PipePerfExpr::ConvertToPerfInfo(const std::vector<NodeInfo> &node_inf
       node_perf.output_dtype = sub_node_info.outputs[0]->data_type;
       GE_ASSERT_SUCCESS(GetTensorShapes(sub_node_info, inputs, outputs, ternary_ops),
                         "Get tensor shape failed, node[%s].", sub_node_info.name.c_str());
+      GE_ASSERT_TRUE(!outputs.empty(), "Get empty output shape, node[%s].", sub_node_info.name.c_str());
       node_perf.dims = outputs[0].dims;
+      if (!vector_func_dims.empty()) {
+        // VF子图轴名不会生成外层tiling变量，性能公式使用父VectorFunc实际维度。
+        node_perf.dims = vector_func_dims;
+      }
     }
+    GELOGI("[VF_PERF_DFX] convert vf sub node [%s][%s], input_dtype[%s], output_dtype[%s], dims[%s]",
+           sub_node_info.name.c_str(), sub_node_info.node_type.c_str(), node_perf.input_dtype.c_str(),
+           node_perf.output_dtype.c_str(), GetVecString(node_perf.dims).c_str());
     node_perf_infos.emplace_back(node_perf);
+  }
+  return ge::SUCCESS;
+}
+
+ge::Status PipePerfExpr::GetVectorFuncDims(const NodeInfo &node, std::vector<Expr> &vector_func_dims) const {
+  std::map<Expr, TernaryOp, ExprCmp> ternary_ops;
+  std::vector<TensorShapeInfo> inputs;
+  std::vector<TensorShapeInfo> outputs;
+  GE_ASSERT_SUCCESS(GetTensorShapes(node, inputs, outputs, ternary_ops), "Get vector function tensor shape failed.");
+  if (!outputs.empty()) {
+    vector_func_dims = outputs[0].dims;
+    return ge::SUCCESS;
+  }
+  if (!inputs.empty()) {
+    vector_func_dims = inputs[0].dims;
   }
   return ge::SUCCESS;
 }
@@ -561,7 +591,10 @@ ge::Status PipePerfExpr::GetNodePerfInternal(const NodeInfo &node, std::map<Pipe
   if (node.node_type == kVectorFunc) {
     // VectorFunc节点特殊处理
     std::vector<NodePerfInfo> node_perf_infos;
-    GE_ASSERT_SUCCESS(ConvertToPerfInfo(node.sub_nodes_infos, node_perf_infos),
+    std::vector<Expr> vector_func_dims;
+    GE_ASSERT_SUCCESS(GetVectorFuncDims(node, vector_func_dims), "Get vector function dims failed, node = %s %s",
+                      node.name.c_str(), node.node_type.c_str());
+    GE_ASSERT_SUCCESS(ConvertToPerfInfo(node.sub_nodes_infos, node_perf_infos, vector_func_dims),
                       "Convert to perf info failed, node = %s %s", node.name.c_str(), node.node_type.c_str());
     Expr res;
     GE_ASSERT_SUCCESS(VfPerfUtils::GetVectorFunctionPerf(node_perf_infos, res),

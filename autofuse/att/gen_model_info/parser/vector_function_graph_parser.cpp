@@ -9,11 +9,13 @@
  */
 
 #include "vector_function_graph_parser.h"
+#include <algorithm>
 #include "base/att_const_values.h"
 #include "common/checker.h"
 #include "ascir_ops.h"
 #include "base_types_printer.h"
 #include "ascir/meta/ascir_ops_utils.h"
+#include "common_utils.h"
 namespace att {
 namespace {
 constexpr af::char_t kSubGraphName[] = "sub_graph_name";
@@ -22,69 +24,93 @@ constexpr af::char_t kOutputPrefix[] = "_output_";
 }  // namespace
 using namespace af::ops;
 using namespace af::ascir_op;
-af::Status VectorFunctionGraphParser::ParseNodeInfos(NodeInfo &node_info) {
-  GE_ASSERT_SUCCESS(ParseInputTensors(node_info), "Parse input tensors failed, node name:%s, %s.",
-                    asc_node_->GetNamePtr(), asc_node_->GetTypePtr());
-  GE_ASSERT_SUCCESS(ParseOutputTensors(node_info), "Parse output tensors failed, node name:%s, %s.",
-                    asc_node_->GetNamePtr(), asc_node_->GetTypePtr());
+af::Status VectorFunctionGraphParser::ParseNodeInfos(const af::AscNodePtr &node, NodeInfo &node_info) {
+  GE_ASSERT_SUCCESS(ParseInputTensors(node, node_info), "Parse input tensors failed, node name:%s, %s.",
+                    node->GetNamePtr(), node->GetTypePtr());
+  GE_ASSERT_SUCCESS(ParseOutputTensors(node, node_info), "Parse output tensors failed, node name:%s, %s.",
+                    node->GetNamePtr(), node->GetTypePtr());
   return af::SUCCESS;
+}
+
+bool VectorFunctionGraphParser::GetVectorizedAxisInfo(const af::AscTensorAttr &tensor_attr, int64_t axis_id,
+                                                      size_t vectorized_axis_index, Expr &repeat, Expr &stride) const {
+  if (vectorized_axis_index < tensor_attr.vectorized_strides.size()) {
+    for (const auto &axis : graph_.GetAllAxis()) {
+      if (axis != nullptr && axis->id == axis_id) {
+        repeat = axis->size;
+        stride = tensor_attr.vectorized_strides[vectorized_axis_index];
+        return true;
+      }
+    }
+  }
+
+  const auto axis_iter = std::find(tensor_attr.axis.begin(), tensor_attr.axis.end(), axis_id);
+  if (axis_iter == tensor_attr.axis.end()) {
+    return false;
+  }
+  const auto axis_index = static_cast<size_t>(std::distance(tensor_attr.axis.begin(), axis_iter));
+  if (axis_index >= tensor_attr.repeats.size() || axis_index >= tensor_attr.strides.size()) {
+    return false;
+  }
+  repeat = tensor_attr.repeats[axis_index];
+  stride = tensor_attr.strides[axis_index];
+  return true;
 }
 
 af::Status VectorFunctionGraphParser::GetVectorizedAxes(const TensorPtr &tensor,
                                                         const af::AscTensorAttr &tensor_attr) const {
-  std::unordered_map<size_t, size_t> axis_id_to_index;
-  for (size_t i = 0UL; i < tensor_attr.axis.size(); i++) {
-    axis_id_to_index[tensor_attr.axis[i]] = i;
-  }
-  for (auto &vectorized_axis_id : tensor_attr.vectorized_axis) {
-    auto axis_index_iter = axis_id_to_index.find(vectorized_axis_id);
-    GE_ASSERT_TRUE(axis_index_iter != axis_id_to_index.end(),
-                   "Vectorized axis[%ld] not in tensor axis, tensor info is %s.", vectorized_axis_id,
-                   tensor->ToString().c_str());
-    const auto vectorized_axis_index = axis_index_iter->second;
-    const auto vectorized_axis_repeat = tensor_attr.repeats[vectorized_axis_index];
-    const auto vectorized_axis_stride = tensor_attr.strides[vectorized_axis_index];
+  for (size_t i = 0UL; i < tensor_attr.vectorized_axis.size(); ++i) {
+    const auto vectorized_axis_id = tensor_attr.vectorized_axis[i];
+    Expr vectorized_axis_repeat;
+    Expr vectorized_axis_stride;
+    GE_ASSERT_TRUE(
+        GetVectorizedAxisInfo(tensor_attr, vectorized_axis_id, i, vectorized_axis_repeat, vectorized_axis_stride),
+        "Vectorized axis[%ld] not in graph axis or tensor axis, tensor info is %s, tensor attr axis=%s, "
+        "repeats=%s, strides=%s, vectorized_axis=%s, vectorized_strides=%s.",
+        vectorized_axis_id, tensor->ToString().c_str(), ascgen_utils::VectorToStr(tensor_attr.axis).c_str(),
+        ascgen_utils::VectorToStr(tensor_attr.repeats).c_str(), ascgen_utils::VectorToStr(tensor_attr.strides).c_str(),
+        ascgen_utils::VectorToStr(tensor_attr.vectorized_axis).c_str(),
+        ascgen_utils::VectorToStr(tensor_attr.vectorized_strides).c_str());
     tensor->repeat.emplace_back(vectorized_axis_repeat);
     tensor->stride.emplace_back(vectorized_axis_stride);
   }
   return af::SUCCESS;
 }
 
-af::Status VectorFunctionGraphParser::ParseTensorInfo(const af::AscTensorAttr &attr, const TensorPtr &tensor,
-                                                      size_t index) {
+af::Status VectorFunctionGraphParser::ParseTensorInfo(const af::AscNodePtr &node, const af::AscTensorAttr &attr,
+                                                      const TensorPtr &tensor, size_t index) {
   GE_ASSERT_SUCCESS(GetVectorizedAxes(tensor, attr), "Get vectorized axis tensor size[%s] failed, graph name[%s].",
                     tensor->name.c_str(), graph_.GetName().c_str());
-  tensor->owner_node = asc_node_.get();
+  tensor->owner_node = node.get();
   tensor->data_type = BaseTypeUtils::DtypeToStr(attr.dtype);
   tensor->data_type_size = af::GetSizeByDataType(attr.dtype);
   // Vector function默认都放在UB
   tensor->loc = HardwareDef::UB;
-  GELOGD("Get node [%s] input[%zu] datatype [%d] name[%s], tensor info is %s", asc_node_->GetNamePtr(), index,
-         static_cast<int32_t>(attr.dtype), tensor->name.c_str(), tensor->ToString().c_str());
+  GELOGI("[VF_PERF_DFX] vf node [%s] sub node [%s] tensor[%zu] datatype [%d] name[%s], tensor info is %s",
+         asc_node_->GetNamePtr(), node->GetNamePtr(), index, static_cast<int32_t>(attr.dtype), tensor->name.c_str(),
+         tensor->ToString().c_str());
   return af::SUCCESS;
 }
 
-af::Status VectorFunctionGraphParser::ParseInputTensors(NodeInfo &node_info) {
-  for (size_t in_id = 0U; in_id < asc_node_->inputs.Size(); in_id++) {
+af::Status VectorFunctionGraphParser::ParseInputTensors(const af::AscNodePtr &node, NodeInfo &node_info) {
+  for (size_t in_id = 0U; in_id < node->inputs.Size(); in_id++) {
     TensorPtr tensor = std::make_shared<Tensor>();
-    GE_ASSERT_NOTNULL(tensor, "Create tensor failed, node name:%s, %s.", asc_node_->GetNamePtr(),
-                      asc_node_->GetTypePtr());
-    tensor->name = asc_node_->GetName() + kInputPrefix + std::to_string(in_id);
-    GE_ASSERT_SUCCESS(ParseTensorInfo(asc_node_->inputs[in_id].attr, tensor, in_id),
-                      "Parse tensor info failed, node name:%s, %s.", asc_node_->GetNamePtr(), asc_node_->GetTypePtr());
+    GE_ASSERT_NOTNULL(tensor, "Create tensor failed, node name:%s, %s.", node->GetNamePtr(), node->GetTypePtr());
+    tensor->name = node->GetName() + kInputPrefix + std::to_string(in_id);
+    GE_ASSERT_SUCCESS(ParseTensorInfo(node, node->inputs[in_id].attr, tensor, in_id),
+                      "Parse tensor info failed, node name:%s, %s.", node->GetNamePtr(), node->GetTypePtr());
     node_info.inputs.emplace_back(tensor);
   }
   return af::SUCCESS;
 }
 
-af::Status VectorFunctionGraphParser::ParseOutputTensors(NodeInfo &node_info) {
-  for (size_t out_id = 0U; out_id < asc_node_->outputs().size(); out_id++) {
+af::Status VectorFunctionGraphParser::ParseOutputTensors(const af::AscNodePtr &node, NodeInfo &node_info) {
+  for (size_t out_id = 0U; out_id < node->outputs().size(); out_id++) {
     TensorPtr tensor = std::make_shared<Tensor>();
-    GE_ASSERT_NOTNULL(tensor, "Create tensor failed, node name:%s, %s.", asc_node_->GetNamePtr(),
-                      asc_node_->GetTypePtr());
-    tensor->name = asc_node_->GetName() + kOutputPrefix + std::to_string(out_id);
-    GE_ASSERT_SUCCESS(ParseTensorInfo(asc_node_->outputs[out_id].attr, tensor, out_id),
-                      "Parse tensor info failed, node name:%s, %s.", asc_node_->GetNamePtr(), asc_node_->GetTypePtr());
+    GE_ASSERT_NOTNULL(tensor, "Create tensor failed, node name:%s, %s.", node->GetNamePtr(), node->GetTypePtr());
+    tensor->name = node->GetName() + kOutputPrefix + std::to_string(out_id);
+    GE_ASSERT_SUCCESS(ParseTensorInfo(node, node->outputs[out_id].attr, tensor, out_id),
+                      "Parse tensor info failed, node name:%s, %s.", node->GetNamePtr(), node->GetTypePtr());
     node_info.outputs.emplace_back(tensor);
   }
   return af::SUCCESS;
@@ -111,7 +137,7 @@ af::Status VectorFunctionGraphParser::Parse() {
     NodeInfo node_info;
     node_info.node_type = node->GetType();
     node_info.name = node->GetName();
-    GE_ASSERT_SUCCESS(ParseNodeInfos(node_info), "Parse node infos failed, node name:%s, %s.", node->GetNamePtr(),
+    GE_ASSERT_SUCCESS(ParseNodeInfos(node, node_info), "Parse node infos failed, node name:%s, %s.", node->GetNamePtr(),
                       node->GetTypePtr());
     nodes_infos_.emplace_back(node_info);
   }

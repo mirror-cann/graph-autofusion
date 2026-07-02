@@ -26,11 +26,14 @@ class VectorFunctionGraphParser {
   }
 
  private:
-  af::Status ParseNodeInfos(NodeInfo &node_info);
-  af::Status ParseInputTensors(NodeInfo &node_info);
-  af::Status ParseOutputTensors(NodeInfo &node_info);
+  af::Status ParseNodeInfos(const af::AscNodePtr &node, NodeInfo &node_info);
+  af::Status ParseInputTensors(const af::AscNodePtr &node, NodeInfo &node_info);
+  af::Status ParseOutputTensors(const af::AscNodePtr &node, NodeInfo &node_info);
   af::Status GetVectorizedAxes(const TensorPtr &tensor, const af::AscTensorAttr &tensor_attr) const;
-  af::Status ParseTensorInfo(const af::AscTensorAttr &attr, const TensorPtr &tensor, size_t index);
+  bool GetVectorizedAxisInfo(const af::AscTensorAttr &tensor_attr, int64_t axis_id, size_t vectorized_axis_index,
+                             Expr &repeat, Expr &stride) const;
+  af::Status ParseTensorInfo(const af::AscNodePtr &node, const af::AscTensorAttr &attr, const TensorPtr &tensor,
+                             size_t index);
 
   std::vector<NodeInfo> nodes_infos_;
   const af::AscNodePtr &asc_node_;

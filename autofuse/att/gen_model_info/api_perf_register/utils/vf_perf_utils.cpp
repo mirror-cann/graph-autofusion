@@ -34,14 +34,16 @@ af::Status GetVFNodePerf(const NodePerfInfo &node_info, const uint32_t micro_api
                                      [](const Expr &a, const Expr &b) { return a * b; });
   // 简化计算，后续进一步考虑每个op的latency和throughput的掩盖
   Expr shape_size = dim_product * GetDataTypeSize(node_info.input_dtype);
-  uint64_t shape_size_value = 0U;
   Expr api_count = af::sym::Ceiling(shape_size / CreateExpr(micro_api_len));
   api_count = api_count.Simplify();
   throughput = throughput * api_count;
   throughput = throughput.Simplify();
-  GELOGD("Got node %s input %s reg base latency %s, throughput %s, api_count %s, shape_size_value %lu",
-         node_info.optype.c_str(), node_info.input_dtype.c_str(), latency.Serialize().get(),
-         throughput.Serialize().get(), api_count.Serialize().get(), shape_size_value);
+  GELOGD(
+      "[VF_PERF_DFX] node[%s], input_dtype[%s], dims[%s], dim_product[%s], shape_size[%s], micro_api_len[%u], "
+      "api_count[%s], latency[%s], throughput[%s]",
+      node_info.optype.c_str(), node_info.input_dtype.c_str(), GetVecString(node_info.dims).c_str(),
+      dim_product.Serialize().get(), shape_size.Serialize().get(), micro_api_len, api_count.Serialize().get(),
+      latency.Serialize().get(), throughput.Serialize().get());
   return af::SUCCESS;
 }
 
