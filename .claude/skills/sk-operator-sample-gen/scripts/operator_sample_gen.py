@@ -3044,15 +3044,14 @@ def _validate_sk_build_validation_semantics(
             raise CliUsageError("sk build validation supported_next_actions mismatch")
         return
 
-    failed_checks = [check for check in checks.values() if check["status"] == "failed"]
-    if failed_checks:
-        raise CliUsageError("sk build validation checks semantics mismatch")
-    blocked_indexes = [
-        index
-        for index, name in enumerate(SK_BUILD_VALIDATION_CHECK_NAMES)
-        if _require_mapping_value(checks, name, "sk build validation checks")["status"]
-        == "blocked"
-    ]
+    for check in checks.values():
+        if check["status"] == "failed":
+            raise CliUsageError("sk build validation checks semantics mismatch")
+    blocked_indexes = []
+    for index, name in enumerate(SK_BUILD_VALIDATION_CHECK_NAMES):
+        check = _require_mapping_value(checks, name, "sk build validation checks")
+        if check["status"] == "blocked":
+            blocked_indexes.append(index)
     if not blocked_indexes:
         raise CliUsageError("sk build validation checks semantics mismatch")
     first_blocked_index = blocked_indexes[0]
