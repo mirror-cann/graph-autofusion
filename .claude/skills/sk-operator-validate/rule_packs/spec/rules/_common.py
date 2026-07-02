@@ -27,4 +27,6 @@ SK_FN_RE = re.compile(
     r"(?P<kt>__vector__|__cube__|__aicore__|__mix__\s*\([^)]*\))"
     r"\s+void\s+(?P<name>\w+)\s*\((?P<params>[^)]*)\)"
 )
-SK_BIND_RE = re.compile(r"SK_BIND\s*\(\s*(?P<orig>\w+)\s*,\s*(?P<mask>\d+)\s*,(?P<splits>[^)]*)\)")
+SK_BIND_RE = re.compile(
+    r"SK_BIND\s*\(\s*(?P<orig>\w+)\s*,\s*(?P<mask>\d+)\s*,(?P<splits>[^)]*)\)"
+)

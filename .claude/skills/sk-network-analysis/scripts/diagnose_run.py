@@ -37,7 +37,9 @@ except ImportError:  # pragma: no cover - exercised by fallback tests via monkey
 
 try:
     from tqdm import tqdm
-except ImportError:  # pragma: no cover - exercised by fallback behavior when tqdm is not installed
+except (
+    ImportError
+):  # pragma: no cover - exercised by fallback behavior when tqdm is not installed
     tqdm = None
 
 from sk_scope_visualizer import (
@@ -190,19 +192,25 @@ def _normalize_model_instance_id(value: Any, *, default: str = "mi01") -> str:
     return text
 
 
-def _entry_model_instance_id(entry: dict[str, Any] | None, *, default: str = "mi01") -> str:
+def _entry_model_instance_id(
+    entry: dict[str, Any] | None, *, default: str = "mi01"
+) -> str:
     if not isinstance(entry, dict):
         return default
     return _normalize_model_instance_id(entry.get("model_instance_id"), default=default)
 
 
-def _entry_model_instance_index(entry: dict[str, Any] | None, *, default: int = 1) -> int:
+def _entry_model_instance_index(
+    entry: dict[str, Any] | None, *, default: int = 1
+) -> int:
     if not isinstance(entry, dict):
         return default
     return int(entry.get("model_instance_index") or default)
 
 
-def _entry_model_instance_count(entry: dict[str, Any] | None, *, default: int = 1) -> int:
+def _entry_model_instance_count(
+    entry: dict[str, Any] | None, *, default: int = 1
+) -> int:
     if not isinstance(entry, dict):
         return default
     return int(entry.get("model_instance_count") or default)
@@ -286,7 +294,9 @@ def _find_model_asset_root(input_dir: Path, model_dirs: list[Path]) -> Path | No
     return infer_model_asset_root(input_dir, model_dirs)
 
 
-def _find_result_root(input_dir: Path, model_asset_root: Path | None, model_dirs: list[Path]) -> Path:
+def _find_result_root(
+    input_dir: Path, model_asset_root: Path | None, model_dirs: list[Path]
+) -> Path:
     return infer_result_root(input_dir, model_asset_root, model_dirs)
 
 
@@ -324,7 +334,9 @@ def _discover_context(input_path: str | os.PathLike[str]) -> dict[str, Any]:
 
     return {
         "input_dir": input_dir,
-        "input_classification": _classify_input(input_dir, result_root, model_asset_root, model_dir),
+        "input_classification": _classify_input(
+            input_dir, result_root, model_asset_root, model_dir
+        ),
         "result_root": result_root,
         "reports_dir": reports_dir,
         "log_dir": log_dir,
@@ -363,11 +375,15 @@ def _discover_shallow_event_files(context: dict[str, Any]) -> list[str]:
     collected: list[str] = []
     for directory in search_dirs.values():
         for pattern in EVENT_FILE_PATTERNS:
-            collected.extend(str(path) for path in directory.glob(pattern) if path.is_file())
+            collected.extend(
+                str(path) for path in directory.glob(pattern) if path.is_file()
+            )
     return sorted(set(collected))
 
 
-def _discover_assets(context: dict[str, Any], event_files: list[str] | None = None) -> dict[str, Any]:
+def _discover_assets(
+    context: dict[str, Any], event_files: list[str] | None = None
+) -> dict[str, Any]:
     input_dir = context["input_dir"]
     result_root = context["result_root"]
     log_dir = context["log_dir"]
@@ -376,7 +392,11 @@ def _discover_assets(context: dict[str, Any], event_files: list[str] | None = No
     model_dir = context["model_dir"]
     model_dirs = context.get("model_dirs", [])
     discovered_event_files = sorted(
-        set(event_files if event_files is not None else _discover_shallow_event_files(context))
+        set(
+            event_files
+            if event_files is not None
+            else _discover_shallow_event_files(context)
+        )
     )
     log_file_count = _capped_log_file_count(log_dir)
 
@@ -390,8 +410,13 @@ def _discover_assets(context: dict[str, Any], event_files: list[str] | None = No
             "result_root": {"path": str(result_root), "exists": result_root.is_dir()},
             "log_dir": {"path": str(log_dir), "exists": log_dir.is_dir()},
             "model_asset_root": {
-                "path": str(context["model_asset_root"]) if context.get("model_asset_root") else None,
-                "exists": bool(context.get("model_asset_root") and context["model_asset_root"].is_dir()),
+                "path": str(context["model_asset_root"])
+                if context.get("model_asset_root")
+                else None,
+                "exists": bool(
+                    context.get("model_asset_root")
+                    and context["model_asset_root"].is_dir()
+                ),
             },
             "sk_meta_dir": {
                 "path": str(model_asset_root) if model_asset_root else None,
@@ -424,7 +449,9 @@ def _discover_assets(context: dict[str, Any], event_files: list[str] | None = No
         "event_files": discovered_event_files,
         "event_file_count": len(discovered_event_files),
         "log_file_count": log_file_count,
-        "log_file_count_capped": bool(log_dir.is_dir() and log_file_count >= LOG_FILE_COUNT_LIMIT),
+        "log_file_count_capped": bool(
+            log_dir.is_dir() and log_file_count >= LOG_FILE_COUNT_LIMIT
+        ),
     }
     return inventory
 
@@ -445,7 +472,9 @@ def _build_asset_advice(asset_inventory: dict[str, Any]) -> dict[str, dict[str, 
     advice: dict[str, dict[str, Any]] = {}
     for asset_name, guidance in ASSET_GUIDANCE.items():
         advice[asset_name] = {
-            "status": "available" if _asset_status(asset_inventory, asset_name) else "missing",
+            "status": "available"
+            if _asset_status(asset_inventory, asset_name)
+            else "missing",
             "diagnosis_value": guidance["diagnosis_value"],
             "acquisition_hint": guidance["acquisition_hint"],
             "fallback_if_missing": guidance["fallback_if_missing"],
@@ -518,7 +547,9 @@ def _build_missing_assets(asset_inventory: dict[str, Any]) -> list[dict[str, str
     return missing
 
 
-def _can_run(asset_inventory: dict[str, Any], report_name: str) -> tuple[bool, str | None]:
+def _can_run(
+    asset_inventory: dict[str, Any], report_name: str
+) -> tuple[bool, str | None]:
     files = asset_inventory["files"]
     directories = asset_inventory["directories"]
     if report_name == "scope_graph":
@@ -615,11 +646,17 @@ def _portal_href(href: str) -> str:
 
 
 def _display_join(values: list[Any], default: str = "无") -> str:
-    rendered = [_display_optional(item, "").strip() for item in values if _display_optional(item, "").strip()]
+    rendered = [
+        _display_optional(item, "").strip()
+        for item in values
+        if _display_optional(item, "").strip()
+    ]
     return "、".join(rendered) if rendered else default
 
 
-def _event_group_label(group_type: str, sk_id: int | None, node_id: int | None, device: str) -> str:
+def _event_group_label(
+    group_type: str, sk_id: int | None, node_id: int | None, device: str
+) -> str:
     if group_type == "sk" and sk_id is not None:
         return f"SK {sk_id}"
     if group_type == "node" and node_id is not None:
@@ -627,7 +664,9 @@ def _event_group_label(group_type: str, sk_id: int | None, node_id: int | None, 
     return f"设备 {device}"
 
 
-def _event_display_name(raw_name: str, sk_id: int | None, node_id: int | None, device: str) -> str:
+def _event_display_name(
+    raw_name: str, sk_id: int | None, node_id: int | None, device: str
+) -> str:
     if sk_id is not None and node_id is not None:
         return f"SK {sk_id} / 节点 {node_id}"
     if sk_id is not None:
@@ -652,7 +691,9 @@ def _copy_raw_event_files(event_file_paths: list[str], data_dir: Path) -> list[s
     return copied
 
 
-def _event_files_by_process(event_file_paths: list[str], model_asset_root: Path | None) -> dict[str, list[str]]:
+def _event_files_by_process(
+    event_file_paths: list[str], model_asset_root: Path | None
+) -> dict[str, list[str]]:
     grouped: dict[str, list[str]] = {}
     for raw_path in event_file_paths:
         src = Path(raw_path)
@@ -703,10 +744,14 @@ def _ijson_parse_errors() -> tuple[type[BaseException], ...]:
 def _suppress_streams(*, stdout: bool = True, stderr: bool = False):
     with ExitStack() as stack:
         if stdout:
-            stdout_target = stack.enter_context(Path(os.devnull).open("w", encoding="utf-8"))
+            stdout_target = stack.enter_context(
+                Path(os.devnull).open("w", encoding="utf-8")
+            )
             stack.enter_context(redirect_stdout(stdout_target))
         if stderr:
-            stderr_target = stack.enter_context(Path(os.devnull).open("w", encoding="utf-8"))
+            stderr_target = stack.enter_context(
+                Path(os.devnull).open("w", encoding="utf-8")
+            )
             stack.enter_context(redirect_stderr(stderr_target))
         yield
 
@@ -860,11 +905,17 @@ def _update_event_stats_from_event(
     return event_order + 1
 
 
-def _collect_event_stats(run_dir: Path, event_file_paths: list[str] | None = None) -> dict[str, Any]:
+def _collect_event_stats(
+    run_dir: Path, event_file_paths: list[str] | None = None
+) -> dict[str, Any]:
     if event_file_paths is not None:
         event_files = [Path(path) for path in event_file_paths if Path(path).is_file()]
     else:
-        event_files = sorted(path for pattern in EVENT_FILE_PATTERNS for path in run_dir.glob(f"**/{pattern}"))
+        event_files = sorted(
+            path
+            for pattern in EVENT_FILE_PATTERNS
+            for path in run_dir.glob(f"**/{pattern}")
+        )
     stats = _empty_event_stats()
     node_ids: set[int] = set()
     sk_ids: set[int] = set()
@@ -930,7 +981,9 @@ def _collect_event_stats(run_dir: Path, event_file_paths: list[str] | None = Non
         key=lambda item: (item["total_duration"], item["event_count"]),
         reverse=True,
     )
-    top_events = sorted(top_events_heap, key=lambda current: (current[0], current[1]), reverse=True)
+    top_events = sorted(
+        top_events_heap, key=lambda current: (current[0], current[1]), reverse=True
+    )
     stats["top_events"] = []
     for item in top_events:
         stats["top_events"].append(item[-1])
@@ -952,8 +1005,12 @@ def _merge_event_stats(stats_items: list[dict[str, Any]]) -> dict[str, Any]:
         merged["event_file_count"] += int(stats.get("event_file_count", 0) or 0)
         merged["event_count"] += int(stats.get("event_count", 0) or 0)
         merged["parse_error_count"] += int(stats.get("parse_error_count", 0) or 0)
-        devices.update(str(item) for item in stats.get("devices", []) if item is not None)
-        node_ids.update(item for item in stats.get("node_ids", []) if isinstance(item, int))
+        devices.update(
+            str(item) for item in stats.get("devices", []) if item is not None
+        )
+        node_ids.update(
+            item for item in stats.get("node_ids", []) if isinstance(item, int)
+        )
         sk_ids.update(item for item in stats.get("sk_ids", []) if isinstance(item, int))
         for group in stats.get("event_groups", []):
             if not isinstance(group, dict):
@@ -979,11 +1036,23 @@ def _merge_event_stats(stats_items: list[dict[str, Any]]) -> dict[str, Any]:
                     "sample_names": [],
                 },
             )
-            target["node_ids"].update(item for item in group.get("node_ids", []) if isinstance(item, int))
-            target["devices"].update(str(item) for item in group.get("devices", []) if item is not None)
-            target["pid_labels"].update(str(item) for item in group.get("pid_labels", []) if item is not None)
-            target["tid_labels"].update(str(item) for item in group.get("tid_labels", []) if item is not None)
-            target["model_ri_values"].update(item for item in group.get("model_ri_values", []) if isinstance(item, int))
+            target["node_ids"].update(
+                item for item in group.get("node_ids", []) if isinstance(item, int)
+            )
+            target["devices"].update(
+                str(item) for item in group.get("devices", []) if item is not None
+            )
+            target["pid_labels"].update(
+                str(item) for item in group.get("pid_labels", []) if item is not None
+            )
+            target["tid_labels"].update(
+                str(item) for item in group.get("tid_labels", []) if item is not None
+            )
+            target["model_ri_values"].update(
+                item
+                for item in group.get("model_ri_values", [])
+                if isinstance(item, int)
+            )
             target["event_count"] += int(group.get("event_count", 0) or 0)
             target["total_duration"] += float(group.get("total_duration", 0.0) or 0.0)
             target["max_duration"] = max(
@@ -1027,7 +1096,9 @@ def _merge_event_stats(stats_items: list[dict[str, Any]]) -> dict[str, Any]:
         key=lambda item: (item["total_duration"], item["event_count"]),
         reverse=True,
     )
-    top_events = sorted(top_events_heap, key=lambda current: (current[0], current[1]), reverse=True)
+    top_events = sorted(
+        top_events_heap, key=lambda current: (current[0], current[1]), reverse=True
+    )
     merged["top_events"] = []
     for item in top_events:
         merged["top_events"].append(item[-1])
@@ -1079,7 +1150,9 @@ class EventStatsProvider:
         self._process_stats.pop(label, None)
         self._global_stats.clear()
 
-    def register_fallback(self, event_file_paths: list[str], data_dir: Path | None = None) -> None:
+    def register_fallback(
+        self, event_file_paths: list[str], data_dir: Path | None = None
+    ) -> None:
         self._fallback_paths = list(event_file_paths)
         self._fallback_data_dir = data_dir
         self._fallback_copied_paths = None
@@ -1112,7 +1185,11 @@ class EventStatsProvider:
 
     def pending_process_labels(self, process_labels: list[str]) -> list[str]:
         labels = sorted(set(str(item) for item in process_labels))
-        return [label for label in labels if label in self._process_paths and label not in self._process_stats]
+        return [
+            label
+            for label in labels
+            if label in self._process_paths and label not in self._process_stats
+        ]
 
     def for_processes(
         self,
@@ -1125,7 +1202,9 @@ class EventStatsProvider:
         missing_labels = self.pending_process_labels(labels)
         active_workers = min(max(1, workers), len(missing_labels))
         if active_workers > 1:
-            event_file_count = sum(len(self._process_paths[label]) for label in missing_labels)
+            event_file_count = sum(
+                len(self._process_paths[label]) for label in missing_labels
+            )
             with self._profile_section(
                 "collect_process_event_stats_batch",
                 process_count=len(missing_labels),
@@ -1151,9 +1230,13 @@ class EventStatsProvider:
                         label = str(result.get("process_label") or "")
                         if not label:
                             continue
-                        self._process_copied_paths[label] = list(result.get("copied_paths") or [])
+                        self._process_copied_paths[label] = list(
+                            result.get("copied_paths") or []
+                        )
                         stats = result.get("stats")
-                        self._process_stats[label] = stats if isinstance(stats, dict) else _empty_event_stats()
+                        self._process_stats[label] = (
+                            stats if isinstance(stats, dict) else _empty_event_stats()
+                        )
                         if on_process_done is not None:
                             on_process_done(label)
                 self._global_stats.clear()
@@ -1162,14 +1245,28 @@ class EventStatsProvider:
                 self.for_process(label)
                 if on_process_done is not None:
                     on_process_done(label)
-        return {label: self._process_stats.get(label, _empty_event_stats()) for label in labels}
+        return {
+            label: self._process_stats.get(label, _empty_event_stats())
+            for label in labels
+        }
 
-    def global_stats(self, process_labels: list[str] | None = None, *, workers: int = 1) -> dict[str, Any]:
+    def global_stats(
+        self, process_labels: list[str] | None = None, *, workers: int = 1
+    ) -> dict[str, Any]:
         if self._process_paths:
-            labels = tuple(sorted(set(str(item) for item in (process_labels or self._process_paths.keys()))))
+            labels = tuple(
+                sorted(
+                    set(
+                        str(item)
+                        for item in (process_labels or self._process_paths.keys())
+                    )
+                )
+            )
             if labels not in self._global_stats:
                 process_stats = self.for_processes(list(labels), workers=workers)
-                stats_items = [process_stats.get(label, _empty_event_stats()) for label in labels]
+                stats_items = [
+                    process_stats.get(label, _empty_event_stats()) for label in labels
+                ]
                 with self._profile_section(
                     "merge_event_stats",
                     process_count=len(labels),
@@ -1202,31 +1299,41 @@ class EventStatsProvider:
         if data_dir is None:
             return list(raw_paths)
         if label not in self._process_copied_paths:
-            self._process_copied_paths[label] = _copy_raw_event_files(raw_paths, data_dir)
+            self._process_copied_paths[label] = _copy_raw_event_files(
+                raw_paths, data_dir
+            )
         return list(self._process_copied_paths[label] or raw_paths)
 
     def _paths_for_fallback_stats(self) -> list[str]:
         if self._fallback_data_dir is None:
             return list(self._fallback_paths)
         if self._fallback_copied_paths is None:
-            self._fallback_copied_paths = _copy_raw_event_files(self._fallback_paths, self._fallback_data_dir)
+            self._fallback_copied_paths = _copy_raw_event_files(
+                self._fallback_paths, self._fallback_data_dir
+            )
         return list(self._fallback_copied_paths or self._fallback_paths)
 
 
 def _update_scope_library(update_report: dict[str, Any]) -> dict[str, Any]:
-    if "scope_library" in update_report and isinstance(update_report["scope_library"], dict):
+    if "scope_library" in update_report and isinstance(
+        update_report["scope_library"], dict
+    ):
         return update_report["scope_library"]
     return {}
 
 
 def _update_graph_library(update_report: dict[str, Any]) -> dict[str, Any]:
-    if "graph_library" in update_report and isinstance(update_report["graph_library"], dict):
+    if "graph_library" in update_report and isinstance(
+        update_report["graph_library"], dict
+    ):
         return update_report["graph_library"]
     return {}
 
 
 def _update_dfx_library(update_report: dict[str, Any]) -> dict[str, Any]:
-    if "dfx_library" in update_report and isinstance(update_report["dfx_library"], dict):
+    if "dfx_library" in update_report and isinstance(
+        update_report["dfx_library"], dict
+    ):
         return update_report["dfx_library"]
     return {}
 
@@ -1264,16 +1371,28 @@ def _build_dfx_phase_correlated_signals(
     update_report: dict[str, Any],
 ) -> list[dict[str, Any]]:
     dfx_library = _update_dfx_library(update_report)
-    phase_registry = dfx_library.get("phase_registry", {}) if isinstance(dfx_library, dict) else {}
-    exception_registry = dfx_library.get("exception_registry", {}) if isinstance(dfx_library, dict) else {}
+    phase_registry = (
+        dfx_library.get("phase_registry", {}) if isinstance(dfx_library, dict) else {}
+    )
+    exception_registry = (
+        dfx_library.get("exception_registry", {})
+        if isinstance(dfx_library, dict)
+        else {}
+    )
     source = dfx_library.get("source", {}) if isinstance(dfx_library, dict) else {}
     super_kernel_log = source.get("super_kernel_log", "super_kernel.log")
 
     correlated: list[dict[str, Any]] = []
-    for item in exception_registry.get("events", []) if isinstance(exception_registry.get("events"), list) else []:
+    for item in (
+        exception_registry.get("events", [])
+        if isinstance(exception_registry.get("events"), list)
+        else []
+    ):
         correlated.append(
             {
-                "bucket": "hard_failure_signals" if item.get("candidate_count", 0) else "runtime_warnings",
+                "bucket": "hard_failure_signals"
+                if item.get("candidate_count", 0)
+                else "runtime_warnings",
                 "phase_key": _phase_key_for_line(phase_registry, item.get("line")),
                 "file": super_kernel_log,
                 "line": item.get("line"),
@@ -1341,20 +1460,50 @@ def _build_dfx_phase_assertions(update_report: dict[str, Any]) -> dict[str, bool
 
 def _build_dfx_hang_summary(update_report: dict[str, Any]) -> dict[str, Any]:
     dfx_library = _update_dfx_library(update_report)
-    payload_registry = dfx_library.get("payload_registry", {}) if isinstance(dfx_library, dict) else {}
-    exception_registry = dfx_library.get("exception_registry", {}) if isinstance(dfx_library, dict) else {}
-    counter_registry = dfx_library.get("counter_registry", {}) if isinstance(dfx_library, dict) else {}
-    pc_localization_registry = dfx_library.get("pc_localization_registry", {}) if isinstance(dfx_library, dict) else {}
-    evidence = dfx_library.get("evidence", {}) if isinstance(dfx_library.get("evidence", {}), dict) else {}
-    exception_evidence = evidence.get("exception", {}) if isinstance(evidence, dict) else {}
+    payload_registry = (
+        dfx_library.get("payload_registry", {}) if isinstance(dfx_library, dict) else {}
+    )
+    exception_registry = (
+        dfx_library.get("exception_registry", {})
+        if isinstance(dfx_library, dict)
+        else {}
+    )
+    counter_registry = (
+        dfx_library.get("counter_registry", {}) if isinstance(dfx_library, dict) else {}
+    )
+    pc_localization_registry = (
+        dfx_library.get("pc_localization_registry", {})
+        if isinstance(dfx_library, dict)
+        else {}
+    )
+    evidence = (
+        dfx_library.get("evidence", {})
+        if isinstance(dfx_library.get("evidence", {}), dict)
+        else {}
+    )
+    exception_evidence = (
+        evidence.get("exception", {}) if isinstance(evidence, dict) else {}
+    )
     counter_evidence = evidence.get("counter", {}) if isinstance(evidence, dict) else {}
-    payload_summary = payload_registry.get("summary", {}) if isinstance(payload_registry, dict) else {}
-    counter_summary = counter_registry.get("summary", {}) if isinstance(counter_registry, dict) else {}
+    payload_summary = (
+        payload_registry.get("summary", {})
+        if isinstance(payload_registry, dict)
+        else {}
+    )
+    counter_summary = (
+        counter_registry.get("summary", {})
+        if isinstance(counter_registry, dict)
+        else {}
+    )
     pc_localization_summary = (
-        pc_localization_registry.get("summary", {}) if isinstance(pc_localization_registry, dict) else {}
+        pc_localization_registry.get("summary", {})
+        if isinstance(pc_localization_registry, dict)
+        else {}
     )
     exception_events = (
-        exception_registry.get("events", []) if isinstance(exception_registry.get("events"), list) else []
+        exception_registry.get("events", [])
+        if isinstance(exception_registry.get("events"), list)
+        else []
     )
     core_symbol_events = (
         exception_registry.get("core_symbol_events", [])
@@ -1371,7 +1520,9 @@ def _build_dfx_hang_summary(update_report: dict[str, Any]) -> dict[str, Any]:
     exception_level = str(exception_evidence.get("evidence_level", "unknown"))
     has_core_symbols = bool(core_symbol_events)
     has_pc_localization = pc_localization_summary.get("matched_count", 0) > 0
-    has_counter_localization = bool(counter_summary.get("dominant_active_function_name"))
+    has_counter_localization = bool(
+        counter_summary.get("dominant_active_function_name")
+    )
     counter_problem_kind = str(counter_summary.get("counter_problem_kind", "unknown"))
     counter_disabled_by_op_trace = counter_problem_kind == "op_trace_disabled"
     needs_op_trace_rerun = bool(
@@ -1379,12 +1530,18 @@ def _build_dfx_hang_summary(update_report: dict[str, Any]) -> dict[str, Any]:
         and (exception_events or runtime_errors)
         and (
             counter_disabled_by_op_trace
-            or (not has_core_symbols and not has_pc_localization and not has_counter_localization)
+            or (
+                not has_core_symbols
+                and not has_pc_localization
+                and not has_counter_localization
+            )
         )
     )
 
     actionable_signals: list[dict[str, Any]] = []
-    super_kernel_log = dfx_library.get("source", {}).get("super_kernel_log", "super_kernel.log")
+    super_kernel_log = dfx_library.get("source", {}).get(
+        "super_kernel_log", "super_kernel.log"
+    )
 
     for event in exception_events[:4]:
         priority = "high" if event.get("candidate_count", 0) else "medium"
@@ -1394,7 +1551,9 @@ def _build_dfx_hang_summary(update_report: dict[str, Any]) -> dict[str, Any]:
                 "line": event.get("line"),
                 "kind": "function_name",
                 "text": event.get("raw_line", ""),
-                "phase_key": _phase_key_for_line(_update_phase_summary_data(update_report), event.get("line")),
+                "phase_key": _phase_key_for_line(
+                    _update_phase_summary_data(update_report), event.get("line")
+                ),
                 "priority": priority,
             }
         )
@@ -1405,7 +1564,9 @@ def _build_dfx_hang_summary(update_report: dict[str, Any]) -> dict[str, Any]:
                 "line": event.get("line"),
                 "kind": "exception_core_symbol",
                 "text": event.get("text", ""),
-                "phase_key": _phase_key_for_line(_update_phase_summary_data(update_report), event.get("line")),
+                "phase_key": _phase_key_for_line(
+                    _update_phase_summary_data(update_report), event.get("line")
+                ),
                 "priority": "high",
             }
         )
@@ -1429,7 +1590,9 @@ def _build_dfx_hang_summary(update_report: dict[str, Any]) -> dict[str, Any]:
                 "file": super_kernel_log,
                 "line": "?",
                 "kind": "counter_localization",
-                "text": ("SkCounterInfo shows {count} cores still running opId={op_id} -> {func}").format(
+                "text": (
+                    "SkCounterInfo shows {count} cores still running opId={op_id} -> {func}"
+                ).format(
                     count=counter_summary.get("dominant_active_core_count", 0),
                     op_id=counter_summary.get("dominant_active_op_id"),
                     func=counter_summary.get("dominant_active_function_name"),
@@ -1477,7 +1640,9 @@ def _build_dfx_hang_summary(update_report: dict[str, Any]) -> dict[str, Any]:
                 "line": item["line"],
                 "kind": "runtime_warning_or_error",
                 "text": item["text"],
-                "phase_key": _phase_key_for_line(_update_phase_summary_data(update_report), item.get("line")),
+                "phase_key": _phase_key_for_line(
+                    _update_phase_summary_data(update_report), item.get("line")
+                ),
                 "priority": "high",
             }
         )
@@ -1488,7 +1653,9 @@ def _build_dfx_hang_summary(update_report: dict[str, Any]) -> dict[str, Any]:
                 "line": item["line"],
                 "kind": "runtime_warning_or_error",
                 "text": item["text"],
-                "phase_key": _phase_key_for_line(_update_phase_summary_data(update_report), item.get("line")),
+                "phase_key": _phase_key_for_line(
+                    _update_phase_summary_data(update_report), item.get("line")
+                ),
                 "priority": "low",
             }
         )
@@ -1537,10 +1704,14 @@ def _build_dfx_hang_summary(update_report: dict[str, Any]) -> dict[str, Any]:
         conclusion = "维测分析发现异常信号，建议优先围绕 Exception Registry 与 Core Symbol Events 继续定位。"
     elif runtime_warnings:
         analysis_status = "warning"
-        conclusion = "维测分析未发现明确异常，但存在 warning，需要结合 Warning 明细继续关注。"
+        conclusion = (
+            "维测分析未发现明确异常，但存在 warning，需要结合 Warning 明细继续关注。"
+        )
     else:
         analysis_status = "clean"
-        conclusion = "维测分析未见异常，当前模型资产证据显示阶段推进和异常链路都没有明显问题。"
+        conclusion = (
+            "维测分析未见异常，当前模型资产证据显示阶段推进和异常链路都没有明显问题。"
+        )
 
     if not phase_assertions["entered_aclsk_optimize"]:
         likely_failure_stage = "before_aclsk_optimize"
@@ -1548,7 +1719,9 @@ def _build_dfx_hang_summary(update_report: dict[str, Any]) -> dict[str, Any]:
         likely_failure_stage = "update_node_scope_flags"
     elif not phase_assertions["built_tasks_begin"]:
         likely_failure_stage = "before_task_build"
-    elif (exception_events or runtime_errors) and not phase_assertions["built_tasks_finish"]:
+    elif (exception_events or runtime_errors) and not phase_assertions[
+        "built_tasks_finish"
+    ]:
         likely_failure_stage = "during_task_build_with_hard_failure"
     elif not phase_assertions["built_tasks_finish"]:
         likely_failure_stage = "during_task_build"
@@ -1566,7 +1739,10 @@ def _build_dfx_hang_summary(update_report: dict[str, Any]) -> dict[str, Any]:
             "维测分析发现异常信号，但当前 `op_trace=false`，因此不能启用 counter 侧子核诊断；"
             "请先使用 `export ASCEND_SK_OP_TRACE_ON=1` 重新复现。"
         )
-    elif counter_summary.get("dominant_active_function_name") and analysis_status == "abnormal":
+    elif (
+        counter_summary.get("dominant_active_function_name")
+        and analysis_status == "abnormal"
+    ):
         conclusion = (
             "维测分析发现异常信号，并且 SkCounterInfo 已将当前运行热点收敛到 "
             f"opId={counter_summary.get('dominant_active_op_id')} / "
@@ -1588,7 +1764,9 @@ def _build_dfx_hang_summary(update_report: dict[str, Any]) -> dict[str, Any]:
         "conclusion": conclusion,
         "likely_failure_stage": likely_failure_stage,
         "signal_confidence": signal_confidence,
-        "hard_failure_count": len(exception_events) + len(core_symbol_events) + len(runtime_errors),
+        "hard_failure_count": len(exception_events)
+        + len(core_symbol_events)
+        + len(runtime_errors),
         "runtime_warning_count": len(runtime_warnings),
         "environment_noise_count": 0,
         "top_actionable_signals": actionable_signals[:6],
@@ -1636,7 +1814,13 @@ def _update_scope_ids(update_report: dict[str, Any]) -> list[int]:
     scope_library = _update_scope_library(update_report)
     scopes = scope_library.get("scopes", [])
     if scopes:
-        return sorted({scope.get("scope_id") for scope in scopes if isinstance(scope.get("scope_id"), int)})
+        return sorted(
+            {
+                scope.get("scope_id")
+                for scope in scopes
+                if isinstance(scope.get("scope_id"), int)
+            }
+        )
     return update_report.get("scope_ids", [])
 
 
@@ -1675,7 +1859,11 @@ def _update_scope_count(update_report: dict[str, Any]) -> int:
 
 
 def _update_function_count(update_report: dict[str, Any]) -> int:
-    fused_functions = _update_scope_library(update_report).get("fused_library", {}).get("functions", [])
+    fused_functions = (
+        _update_scope_library(update_report)
+        .get("fused_library", {})
+        .get("functions", [])
+    )
     if fused_functions:
         return len(fused_functions)
     return len(update_report.get("functions", []))
@@ -1694,7 +1882,9 @@ def _summarize_queue_dfx(update_report: dict[str, Any]) -> dict[str, Any]:
         for section in scope_library.get("device_task_library", {}).get("sections", [])
         if section.get("scope_name")
     }
-    fused_functions = scope_library.get("fused_library", {}).get("functions", []) or update_report.get("functions", [])
+    fused_functions = scope_library.get("fused_library", {}).get(
+        "functions", []
+    ) or update_report.get("functions", [])
     for function in fused_functions:
         device_section = device_sections_by_key.get(function.get("scope_name")) or {}
         aic_tasks = device_section.get("queues", {}).get("AIC", [])
@@ -1717,7 +1907,9 @@ def _summarize_queue_dfx(update_report: dict[str, Any]) -> dict[str, Any]:
     return summary
 
 
-def _correlate_performance(update_report: dict[str, Any], event_stats: dict[str, Any]) -> list[dict[str, Any]]:
+def _correlate_performance(
+    update_report: dict[str, Any], event_stats: dict[str, Any]
+) -> list[dict[str, Any]]:
     functions_by_sk: dict[int, list[dict[str, Any]]] = {}
     functions_by_node: dict[int, list[dict[str, Any]]] = {}
     fused_functions = _update_scope_library(update_report).get("fused_library", {}).get(
@@ -1732,7 +1924,11 @@ def _correlate_performance(update_report: dict[str, Any], event_stats: dict[str,
                 functions_by_node.setdefault(node_id, []).append(function)
 
     device_sections_by_key = {}
-    device_sections = _update_scope_library(update_report).get("device_task_library", {}).get("sections", [])
+    device_sections = (
+        _update_scope_library(update_report)
+        .get("device_task_library", {})
+        .get("sections", [])
+    )
     for section in device_sections:
         scope_name = section.get("scope_name")
         if scope_name:
@@ -1758,7 +1954,11 @@ def _correlate_performance(update_report: dict[str, Any], event_stats: dict[str,
                     seen_function_keys.add(key)
 
         matched_scope_ids = sorted(
-            {function.get("scope_id") for function in matched_functions if function.get("scope_id") is not None}
+            {
+                function.get("scope_id")
+                for function in matched_functions
+                if function.get("scope_id") is not None
+            }
         )
         matched_node_id_set = set()
         group_node_ids = set(group.get("node_ids", []))
@@ -1778,13 +1978,17 @@ def _correlate_performance(update_report: dict[str, Any], event_stats: dict[str,
         for function in matched_functions:
             section = device_sections_by_key.get(function.get("scope_name")) or {}
             for task in section.get("queues", {}).get("AIC", []):
-                if isinstance(task.get("task_index"), int) and _task_is_graph_identity_valid(task):
+                if isinstance(
+                    task.get("task_index"), int
+                ) and _task_is_graph_identity_valid(task):
                     function_task_indices.add(task.get("task_index"))
                 queue_value = task.get("task_type") or task.get("queue") or "AIC"
                 if queue_value:
                     function_queue_types.add(str(queue_value))
             for task in section.get("queues", {}).get("AIV", []):
-                if isinstance(task.get("task_index"), int) and _task_is_graph_identity_valid(task):
+                if isinstance(
+                    task.get("task_index"), int
+                ) and _task_is_graph_identity_valid(task):
                     function_task_indices.add(task.get("task_index"))
                 queue_value = task.get("task_type") or task.get("queue") or "AIV"
                 if queue_value:
@@ -1812,7 +2016,9 @@ def _correlate_performance(update_report: dict[str, Any], event_stats: dict[str,
                 "task_indices": task_indices,
                 "queue_types": queue_types,
                 "matched_scope_ids": matched_scope_ids,
-                "linked_update_scope": matched_scope_ids[0] if matched_scope_ids else None,
+                "linked_update_scope": matched_scope_ids[0]
+                if matched_scope_ids
+                else None,
                 "has_structure_match": bool(matched_functions),
                 "has_queue_link": bool(queue_types),
                 "has_task_link": bool(task_indices),
@@ -1824,7 +2030,9 @@ def _correlate_performance(update_report: dict[str, Any], event_stats: dict[str,
 def _performance_judgment(item: dict[str, Any], event_stats: dict[str, Any]) -> str:
     if event_stats["event_file_count"] == 0:
         return "structure-first"
-    if item.get("has_structure_match") and (item.get("has_queue_link") or item.get("has_task_link")):
+    if item.get("has_structure_match") and (
+        item.get("has_queue_link") or item.get("has_task_link")
+    ):
         return "time-covered"
     if item.get("has_structure_match"):
         return "queue-first"
@@ -2061,13 +2269,24 @@ def _linked_objects_summary(linked_objects: dict[str, Any]) -> str:
         return "无"
     parts: list[str] = []
     if linked_objects.get("scope_ids"):
-        parts.append("作用域 " + _display_join([str(item) for item in linked_objects["scope_ids"]]))
+        parts.append(
+            "作用域 "
+            + _display_join([str(item) for item in linked_objects["scope_ids"]])
+        )
     if linked_objects.get("node_ids"):
-        parts.append("节点 " + _display_join([str(item) for item in linked_objects["node_ids"]]))
+        parts.append(
+            "节点 " + _display_join([str(item) for item in linked_objects["node_ids"]])
+        )
     if linked_objects.get("task_indices"):
-        parts.append("任务 " + _display_join([str(item) for item in linked_objects["task_indices"]]))
+        parts.append(
+            "任务 "
+            + _display_join([str(item) for item in linked_objects["task_indices"]])
+        )
     if linked_objects.get("likely_failure_stage"):
-        parts.append("失败阶段：" + _failure_stage_label(str(linked_objects["likely_failure_stage"])))
+        parts.append(
+            "失败阶段："
+            + _failure_stage_label(str(linked_objects["likely_failure_stage"]))
+        )
     return "；".join(parts) if parts else "无"
 
 
@@ -2095,13 +2314,17 @@ def _build_validation(
             tool_run = tool_runs[key]
             path = report_links.get(key)
             reports[key] = {
-                "status": "ok" if tool_run["ok"] and path else _status_from_ok(tool_run["ok"]),
+                "status": "ok"
+                if tool_run["ok"] and path
+                else _status_from_ok(tool_run["ok"]),
                 "path": path,
                 "message": tool_run["output"][-400:] if tool_run["output"] else "",
             }
             if tool_run["ok"] and path is None:
                 reports[key]["status"] = "partial"
-                reports[key]["message"] = "tool exited successfully but expected report file was not found"
+                reports[key]["message"] = (
+                    "tool exited successfully but expected report file was not found"
+                )
             continue
 
         reports[key] = {
@@ -2214,12 +2437,18 @@ class ProgressTracker:
             self._bar.close()
             self._bar = None
         else:
-            _emit(self._fallback_line("done" if complete else "stopped"), file=sys.stderr)
+            _emit(
+                self._fallback_line("done" if complete else "stopped"), file=sys.stderr
+            )
         self._started = False
 
     def _description(self) -> str:
-        worker_text = f" · workers {self.worker_count}" if self.worker_count is not None else ""
-        return f"Stage {self.stage_index}/{self.total_stages}: {self.label}{worker_text}"
+        worker_text = (
+            f" · workers {self.worker_count}" if self.worker_count is not None else ""
+        )
+        return (
+            f"Stage {self.stage_index}/{self.total_stages}: {self.label}{worker_text}"
+        )
 
     def _fallback_line(self, state: str) -> str:
         elapsed = max(0.0, time.monotonic() - self.started_at)
@@ -2256,7 +2485,9 @@ class ProfileRecorder:
             **metadata,
         }
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
+        path.write_text(
+            json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8"
+        )
 
 
 def _collect_model_bundle_worker(
@@ -2303,7 +2534,9 @@ def _collect_model_bundle_worker(
             bundle_dir_name = (
                 current_model_dir.name
                 if model_instance_count == 1
-                else _model_instance_bundle_dirname(model_ri, model_instance_id, current_model_dir)
+                else _model_instance_bundle_dirname(
+                    model_ri, model_instance_id, current_model_dir
+                )
             )
             model_key = (
                 f"{process_label}__{bundle_dir_name}"
@@ -2316,11 +2549,21 @@ def _collect_model_bundle_worker(
                 else _model_bundle_label(current_model_dir, model_asset_root)
             )
             model_ir_label = (
-                current_model_dir.name if model_instance_count == 1 else f"{current_model_dir.name}-{model_instance_id}"
+                current_model_dir.name
+                if model_instance_count == 1
+                else f"{current_model_dir.name}-{model_instance_id}"
             )
-            model_bundle_root = reports_dir / process_label / bundle_dir_name if bundle_mode else reports_dir
-            model_data_dir = model_bundle_root / "data" if bundle_mode else reports_dir / "data"
-            model_views_dir = model_bundle_root / "views" if bundle_mode else reports_dir / "views"
+            model_bundle_root = (
+                reports_dir / process_label / bundle_dir_name
+                if bundle_mode
+                else reports_dir
+            )
+            model_data_dir = (
+                model_bundle_root / "data" if bundle_mode else reports_dir / "data"
+            )
+            model_views_dir = (
+                model_bundle_root / "views" if bundle_mode else reports_dir / "views"
+            )
             model_views_dir.mkdir(parents=True, exist_ok=True)
             (
                 model_scope_library_json,
@@ -2340,15 +2583,21 @@ def _collect_model_bundle_worker(
                     "model_ir_label": model_ir_label,
                     "model_ri": model_ri,
                     "model_instance_id": model_instance_id,
-                    "model_instance_index": _entry_model_instance_index(model_instance_report),
+                    "model_instance_index": _entry_model_instance_index(
+                        model_instance_report
+                    ),
                     "model_instance_count": _entry_model_instance_count(
                         model_instance_report, default=model_instance_count
                     ),
                     "scope_count": _update_scope_count(model_instance_report),
                     "function_count": _update_function_count(model_instance_report),
                     "has_update": _model_has_update(model_instance_report),
-                    "scope_graph_available": _scope_graph_has_content(model_instance_report),
-                    "task_queue_available": _task_queue_graph_has_content(model_instance_report),
+                    "scope_graph_available": _scope_graph_has_content(
+                        model_instance_report
+                    ),
+                    "task_queue_available": _task_queue_graph_has_content(
+                        model_instance_report
+                    ),
                     "is_unfused": _model_is_unfused(model_instance_report),
                     "dfx_status": "clean",
                     "dfx_conclusion": "",
@@ -2357,7 +2606,9 @@ def _collect_model_bundle_worker(
                     "node_ids": _update_node_ids(model_instance_report),
                     "stream_ids": _update_stream_ids(model_instance_report),
                     "task_indices": _update_task_indices(model_instance_report),
-                    "phase_keys": _update_phase_summary_data(model_instance_report).get("phase_keys", []),
+                    "phase_keys": _update_phase_summary_data(model_instance_report).get(
+                        "phase_keys", []
+                    ),
                     "scope_library_json": str(model_scope_library_json),
                     "graph_library_json": str(model_graph_library_json),
                     "dfx_library_json": str(model_dfx_library_json),
@@ -2381,8 +2632,14 @@ def _collect_model_bundle_worker(
             "cache_hit": False,
         }
     except Exception as exc:  # pragma: no cover - defensive worker boundary
-        bundle_dir_name = _model_instance_bundle_dirname(None, "mi01", current_model_dir)
-        model_bundle_root = reports_dir / process_label / bundle_dir_name if multi_model_mode else reports_dir
+        bundle_dir_name = _model_instance_bundle_dirname(
+            None, "mi01", current_model_dir
+        )
+        model_bundle_root = (
+            reports_dir / process_label / bundle_dir_name
+            if multi_model_mode
+            else reports_dir
+        )
         return {
             "index": index,
             "entries": [
@@ -2441,14 +2698,28 @@ def _normalize_model_report_entries(
         item["model_dir"] = Path(str(item["model_dir"]))
         item["bundle_root"] = Path(str(item["bundle_root"]))
         item["views_dir"] = Path(str(item["views_dir"]))
-        item["scope_library_json"] = Path(str(item["scope_library_json"])) if item.get("scope_library_json") else None
-        item["graph_library_json"] = Path(str(item["graph_library_json"])) if item.get("graph_library_json") else None
-        item["dfx_library_json"] = Path(str(item["dfx_library_json"])) if item.get("dfx_library_json") else None
+        item["scope_library_json"] = (
+            Path(str(item["scope_library_json"]))
+            if item.get("scope_library_json")
+            else None
+        )
+        item["graph_library_json"] = (
+            Path(str(item["graph_library_json"]))
+            if item.get("graph_library_json")
+            else None
+        )
+        item["dfx_library_json"] = (
+            Path(str(item["dfx_library_json"]))
+            if item.get("dfx_library_json")
+            else None
+        )
         normalized.append(item)
     return normalized
 
 
-def _model_collection_failure_summary(entries: list[dict[str, Any]], *, limit: int = 5) -> str:
+def _model_collection_failure_summary(
+    entries: list[dict[str, Any]], *, limit: int = 5
+) -> str:
     if not entries:
         return "no model report entries were collected"
 
@@ -2460,7 +2731,9 @@ def _model_collection_failure_summary(entries: list[dict[str, Any]], *, limit: i
             or entry.get("model_dir")
             or f"model_index={entry.get('index', '?')}"
         )
-        reason = str(entry.get("processing_error") or entry.get("collection_error") or "").strip()
+        reason = str(
+            entry.get("processing_error") or entry.get("collection_error") or ""
+        ).strip()
         if not reason:
             missing_outputs = []
             for key in (
@@ -2506,19 +2779,27 @@ def _model_parse_fingerprint(model_dir: Path) -> dict[str, Any]:
     return {
         "cache_version": PARSE_CACHE_VERSION,
         "model_dir": str(model_dir),
-        "sources": [_source_file_fingerprint(model_dir / name) for name in source_names],
+        "sources": [
+            _source_file_fingerprint(model_dir / name) for name in source_names
+        ],
     }
 
 
 def _cache_key_for_fingerprint(fingerprint: dict[str, Any]) -> str:
-    payload = json.dumps(fingerprint, sort_keys=True, ensure_ascii=False).encode("utf-8")
+    payload = json.dumps(fingerprint, sort_keys=True, ensure_ascii=False).encode(
+        "utf-8"
+    )
     return hashlib.sha256(payload).hexdigest()[:24]
 
 
 def _model_cache_dir(reports_dir: Path, model_dir: Path) -> Path:
     fingerprint = _model_parse_fingerprint(model_dir)
     return (
-        reports_dir / ".cache" / "sk-network-analysis" / PARSE_CACHE_VERSION / _cache_key_for_fingerprint(fingerprint)
+        reports_dir
+        / ".cache"
+        / "sk-network-analysis"
+        / PARSE_CACHE_VERSION
+        / _cache_key_for_fingerprint(fingerprint)
     )
 
 
@@ -2534,7 +2815,9 @@ def _load_cached_model_entries(
     if not manifest_path.is_file():
         return None
     try:
-        manifest = json.loads(manifest_path.read_text(encoding="utf-8", errors="replace"))
+        manifest = json.loads(
+            manifest_path.read_text(encoding="utf-8", errors="replace")
+        )
     except Exception:
         return None
     if manifest.get("fingerprint") != _model_parse_fingerprint(model_dir):
@@ -2552,7 +2835,10 @@ def _load_cached_model_entries(
             if not path.is_file():
                 return None
         model_instance_count = int(
-            entry.get("model_instance_count") or manifest.get("model_instance_count") or len(entries) or 1
+            entry.get("model_instance_count")
+            or manifest.get("model_instance_count")
+            or len(entries)
+            or 1
         )
         model_instance_id = _entry_model_instance_id(entry)
         model_ri = entry.get("model_ri")
@@ -2563,19 +2849,31 @@ def _load_cached_model_entries(
             if model_instance_count == 1
             else _model_instance_bundle_dirname(model_ri, model_instance_id, model_dir)
         )
-        model_bundle_root = reports_dir / process_label / bundle_dir_name if bundle_mode else reports_dir
+        model_bundle_root = (
+            reports_dir / process_label / bundle_dir_name
+            if bundle_mode
+            else reports_dir
+        )
         entry["model_key"] = (
-            f"{process_label}__{bundle_dir_name}" if bundle_mode else _model_bundle_key(model_dir, model_asset_root)
+            f"{process_label}__{bundle_dir_name}"
+            if bundle_mode
+            else _model_bundle_key(model_dir, model_asset_root)
         )
         entry["model_label"] = (
-            f"{process_label}/{bundle_dir_name}" if bundle_mode else _model_bundle_label(model_dir, model_asset_root)
+            f"{process_label}/{bundle_dir_name}"
+            if bundle_mode
+            else _model_bundle_label(model_dir, model_asset_root)
         )
         entry["process_label"] = process_label
         entry["model_ir_label"] = (
-            model_dir.name if model_instance_count == 1 else f"{model_dir.name}-{model_instance_id}"
+            model_dir.name
+            if model_instance_count == 1
+            else f"{model_dir.name}-{model_instance_id}"
         )
         entry["bundle_root"] = str(model_bundle_root)
-        entry["views_dir"] = str((model_bundle_root / "views") if bundle_mode else (reports_dir / "views"))
+        entry["views_dir"] = str(
+            (model_bundle_root / "views") if bundle_mode else (reports_dir / "views")
+        )
         entry["report_paths"] = {}
         entry["dfx_status"] = "clean"
         entry["dfx_conclusion"] = ""
@@ -2583,7 +2881,9 @@ def _load_cached_model_entries(
         rebuilt_entries.append(entry)
     return {
         "entries": rebuilt_entries,
-        "model_instance_count": int(manifest.get("model_instance_count") or len(entries) or 1),
+        "model_instance_count": int(
+            manifest.get("model_instance_count") or len(entries) or 1
+        ),
     }
 
 
@@ -2617,7 +2917,9 @@ def _write_cached_model_entries(
         "model_instance_count": model_instance_count,
         "entries": cached_entries,
     }
-    (cache_dir / "manifest.json").write_text(json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8")
+    (cache_dir / "manifest.json").write_text(
+        json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
 
 
 def _allocate_instance_workers(
@@ -2632,7 +2934,9 @@ def _allocate_instance_workers(
     if model_instance_count is None:
         total_workers = max(1, requested_jobs or (os.cpu_count() or 1))
     else:
-        total_workers = _resolve_parallel_workers(max(model_instance_count, model_dir_count), requested_jobs)
+        total_workers = _resolve_parallel_workers(
+            max(model_instance_count, model_dir_count), requested_jobs
+        )
     model_workers = max(1, min(model_dir_count, total_workers))
     instance_workers = max(1, total_workers // model_workers)
     return model_workers, instance_workers
@@ -2669,7 +2973,9 @@ def _collect_model_report_entries(
                     _collect_model_bundle_worker,
                     index=index,
                     model_dir_str=str(current_model_dir),
-                    model_asset_root_str=str(model_asset_root) if model_asset_root else None,
+                    model_asset_root_str=str(model_asset_root)
+                    if model_asset_root
+                    else None,
                     reports_dir_str=str(reports_dir),
                     multi_model_mode=True,
                     instance_workers=instance_workers,
@@ -2697,7 +3003,9 @@ def _collect_model_report_entries(
             _collect_model_bundle_worker(
                 index=index,
                 model_dir_str=str(current_model_dir),
-                model_asset_root_str=str(model_asset_root) if model_asset_root else None,
+                model_asset_root_str=str(model_asset_root)
+                if model_asset_root
+                else None,
                 reports_dir_str=str(reports_dir),
                 multi_model_mode=multi_model_mode,
                 instance_workers=instance_workers,
@@ -2712,7 +3020,9 @@ def _reports_relative_path(target_path: Path, reports_dir: Path) -> str:
     return os.path.relpath(target_path, reports_dir)
 
 
-def _run_relative_path_from_reports(relative_path: str, reports_dir: Path, run_dir: Path) -> str:
+def _run_relative_path_from_reports(
+    relative_path: str, reports_dir: Path, run_dir: Path
+) -> str:
     return os.path.relpath(reports_dir / relative_path, run_dir)
 
 
@@ -2742,9 +3052,15 @@ def _load_model_update_report_from_libraries(
     return {
         "model_dir": str(model_dir),
         "model_ri": model_ri,
-        "model_instance_id": _entry_model_instance_id({"model_instance_id": model_instance_id}),
-        "model_instance_index": _entry_model_instance_index({"model_instance_index": model_instance_index}),
-        "model_instance_count": _entry_model_instance_count({"model_instance_count": model_instance_count}),
+        "model_instance_id": _entry_model_instance_id(
+            {"model_instance_id": model_instance_id}
+        ),
+        "model_instance_index": _entry_model_instance_index(
+            {"model_instance_index": model_instance_index}
+        ),
+        "model_instance_count": _entry_model_instance_count(
+            {"model_instance_count": model_instance_count}
+        ),
         "scope_library": scope_library,
         "graph_library": graph_library,
         "dfx_library": dfx_library,
@@ -2759,9 +3075,15 @@ def _serialize_model_report_entry(entry: dict[str, Any]) -> dict[str, Any]:
         "model_instance_id": entry.get("model_instance_id"),
         "model_instance_index": entry.get("model_instance_index"),
         "model_instance_count": entry.get("model_instance_count"),
-        "scope_library_json": str(entry["scope_library_json"]) if entry.get("scope_library_json") else "",
-        "graph_library_json": str(entry["graph_library_json"]) if entry.get("graph_library_json") else "",
-        "dfx_library_json": str(entry["dfx_library_json"]) if entry.get("dfx_library_json") else "",
+        "scope_library_json": str(entry["scope_library_json"])
+        if entry.get("scope_library_json")
+        else "",
+        "graph_library_json": str(entry["graph_library_json"])
+        if entry.get("graph_library_json")
+        else "",
+        "dfx_library_json": str(entry["dfx_library_json"])
+        if entry.get("dfx_library_json")
+        else "",
         "views_dir": str(entry["views_dir"]),
         "report_paths": dict(entry.get("report_paths", {})),
         "collection_error": str(entry.get("collection_error") or ""),
@@ -2790,7 +3112,10 @@ def _render_model_report_entries(
 
     render_results: list[dict[str, Any]] = []
     event_stats_by_process = event_stats_by_process or {}
-    performance_enabled = "performance_report" in expected_reports and "performance_report" not in blocked_reports
+    performance_enabled = (
+        "performance_report" in expected_reports
+        and "performance_report" not in blocked_reports
+    )
     render_workers = parallel_workers if use_parallel else 1
     stage2 = ProgressTracker(
         stage_index=stage_index,
@@ -2812,10 +3137,16 @@ def _render_model_report_entries(
                     blocked_reports=blocked_reports,
                     run_dir_str=str(run_dir),
                     reports_dir_str=str(reports_dir),
-                    model_asset_root_str=str(model_asset_root) if model_asset_root else None,
+                    model_asset_root_str=str(model_asset_root)
+                    if model_asset_root
+                    else None,
                     process_label=str(entry["process_label"]),
-                    event_file_paths=event_file_paths_by_process.get(str(entry["process_label"]), []),
-                    event_stats=event_stats_by_process.get(str(entry["process_label"]), {})
+                    event_file_paths=event_file_paths_by_process.get(
+                        str(entry["process_label"]), []
+                    ),
+                    event_stats=event_stats_by_process.get(
+                        str(entry["process_label"]), {}
+                    )
                     if performance_enabled
                     else {},
                     entry=_serialize_model_report_entry(entry),
@@ -2835,10 +3166,16 @@ def _render_model_report_entries(
                     blocked_reports=blocked_reports,
                     run_dir_str=str(run_dir),
                     reports_dir_str=str(reports_dir),
-                    model_asset_root_str=str(model_asset_root) if model_asset_root else None,
+                    model_asset_root_str=str(model_asset_root)
+                    if model_asset_root
+                    else None,
                     process_label=str(entry["process_label"]),
-                    event_file_paths=event_file_paths_by_process.get(str(entry["process_label"]), []),
-                    event_stats=event_stats_by_process.get(str(entry["process_label"]), {})
+                    event_file_paths=event_file_paths_by_process.get(
+                        str(entry["process_label"]), []
+                    ),
+                    event_stats=event_stats_by_process.get(
+                        str(entry["process_label"]), {}
+                    )
                     if performance_enabled
                     else {},
                     entry=_serialize_model_report_entry(entry),
@@ -2879,9 +3216,19 @@ def _render_model_bundle_worker(
     reports_dir = Path(reports_dir_str)
     model_dir = Path(str(entry["model_dir"]))
     views_dir = Path(str(entry["views_dir"]))
-    scope_library_json = Path(str(entry["scope_library_json"])) if entry.get("scope_library_json") else None
-    graph_library_json = Path(str(entry["graph_library_json"])) if entry.get("graph_library_json") else None
-    dfx_library_json = Path(str(entry["dfx_library_json"])) if entry.get("dfx_library_json") else None
+    scope_library_json = (
+        Path(str(entry["scope_library_json"]))
+        if entry.get("scope_library_json")
+        else None
+    )
+    graph_library_json = (
+        Path(str(entry["graph_library_json"]))
+        if entry.get("graph_library_json")
+        else None
+    )
+    dfx_library_json = (
+        Path(str(entry["dfx_library_json"])) if entry.get("dfx_library_json") else None
+    )
     local_update_report = _load_model_update_report_from_libraries(
         model_dir=model_dir,
         model_ri=entry.get("model_ri"),
@@ -2907,7 +3254,9 @@ def _render_model_bundle_worker(
         "view_states": {},
     }
 
-    has_required_libraries = bool(scope_library_json and graph_library_json and dfx_library_json)
+    has_required_libraries = bool(
+        scope_library_json and graph_library_json and dfx_library_json
+    )
     if result["processing_error"] and not has_required_libraries:
         return result
 
@@ -2922,9 +3271,13 @@ def _render_model_bundle_worker(
                 "sk_node_detail.log": (model_dir / "sk_node_detail.log").is_file(),
                 "sk_device_args.log": (model_dir / "sk_device_args.log").is_file(),
             },
-            "event_file_count": len([path for path in event_file_paths if Path(path).is_file()]),
+            "event_file_count": len(
+                [path for path in event_file_paths if Path(path).is_file()]
+            ),
         }
-        if ("performance_report" in expected_reports or "node_trace" in expected_reports) and model_dir.exists():
+        if (
+            "performance_report" in expected_reports or "node_trace" in expected_reports
+        ) and model_dir.exists():
             node_detail_log = model_dir / "sk_node_detail.log"
             if node_detail_log.exists():
                 node_trace_path = data_dir / "node-trace.json"
@@ -2938,7 +3291,9 @@ def _render_model_bundle_worker(
                 model_instance_count = _entry_model_instance_count(entry)
                 model_instance_id = _entry_model_instance_id(entry)
                 if model_instance_count > 1:
-                    node_trace_command.extend(["--model-instance-id", model_instance_id])
+                    node_trace_command.extend(
+                        ["--model-instance-id", model_instance_id]
+                    )
                 ok, output = _run_tool(node_trace_command)
                 local_tool_runs["node_trace"] = {
                     "ok": ok,
@@ -2946,23 +3301,39 @@ def _render_model_bundle_worker(
                     "output": output[-3000:],
                 }
                 if ok and node_trace_path.exists():
-                    local_node_trace_report_links["node_trace"] = os.path.relpath(node_trace_path, run_dir)
-                    result["report_paths"]["node_trace"] = os.path.relpath(node_trace_path, reports_dir)
+                    local_node_trace_report_links["node_trace"] = os.path.relpath(
+                        node_trace_path, run_dir
+                    )
+                    result["report_paths"]["node_trace"] = os.path.relpath(
+                        node_trace_path, reports_dir
+                    )
             else:
                 local_tool_runs["node_trace"] = {
                     "ok": False,
                     "status": "missing",
                     "output": "sk_node_detail.log is missing",
                 }
-        local_node_trace_summary = _collect_node_trace_summary(run_dir, local_node_trace_report_links, local_tool_runs)
-        local_scope_view_state = _build_scope_view_state(local_asset_inventory, local_update_report)
-        local_task_queue_view_state = _build_task_queue_view_state(local_asset_inventory, local_update_report)
+        local_node_trace_summary = _collect_node_trace_summary(
+            run_dir, local_node_trace_report_links, local_tool_runs
+        )
+        local_scope_view_state = _build_scope_view_state(
+            local_asset_inventory, local_update_report
+        )
+        local_task_queue_view_state = _build_task_queue_view_state(
+            local_asset_inventory, local_update_report
+        )
 
         if args_mode == "full":
             child_scope_path = views_dir / "scope-graph.html"
-            if _scope_graph_has_content(local_update_report) and scope_library_json and graph_library_json:
+            if (
+                _scope_graph_has_content(local_update_report)
+                and scope_library_json
+                and graph_library_json
+            ):
                 with _suppress_stdout():
-                    _render_scope_graph_html(scope_library_json, graph_library_json, child_scope_path)
+                    _render_scope_graph_html(
+                        scope_library_json, graph_library_json, child_scope_path
+                    )
                 _decorate_graph_view(
                     child_scope_path,
                     "Scope View",
@@ -2982,12 +3353,20 @@ def _render_model_bundle_worker(
                     update_report=local_update_report,
                     view_state=local_scope_view_state,
                 )
-            result["report_paths"]["scope_graph"] = os.path.relpath(child_scope_path, reports_dir)
+            result["report_paths"]["scope_graph"] = os.path.relpath(
+                child_scope_path, reports_dir
+            )
 
             child_task_path = views_dir / "task-queue-graph.html"
-            if _task_queue_graph_has_content(local_update_report) and scope_library_json and graph_library_json:
+            if (
+                _task_queue_graph_has_content(local_update_report)
+                and scope_library_json
+                and graph_library_json
+            ):
                 with _suppress_stdout():
-                    _render_task_queue_graph_html(scope_library_json, graph_library_json, child_task_path)
+                    _render_task_queue_graph_html(
+                        scope_library_json, graph_library_json, child_task_path
+                    )
                 _decorate_graph_view(
                     child_task_path,
                     "TaskQue View",
@@ -3007,16 +3386,27 @@ def _render_model_bundle_worker(
                     update_report=local_update_report,
                     view_state=local_task_queue_view_state,
                 )
-            result["report_paths"]["task_queue_graph"] = os.path.relpath(child_task_path, reports_dir)
+            result["report_paths"]["task_queue_graph"] = os.path.relpath(
+                child_task_path, reports_dir
+            )
 
         local_hang_summary = _build_dfx_hang_summary(local_update_report)
-        local_dfx_view_state = _build_dfx_view_state(local_asset_inventory, local_update_report, local_hang_summary)
+        local_dfx_view_state = _build_dfx_view_state(
+            local_asset_inventory, local_update_report, local_hang_summary
+        )
         result["dfx_status"] = str(local_hang_summary.get("analysis_status") or "clean")
         result["dfx_conclusion"] = str(local_hang_summary.get("conclusion") or "")
-        local_phase_correlated_signals = local_hang_summary.get("phase_correlated_signals", [])
-        local_hang_presentation_state = _hang_presentation_state(local_hang_summary, local_phase_correlated_signals)
+        local_phase_correlated_signals = local_hang_summary.get(
+            "phase_correlated_signals", []
+        )
+        local_hang_presentation_state = _hang_presentation_state(
+            local_hang_summary, local_phase_correlated_signals
+        )
 
-        if "hang_crash_report" in expected_reports and "hang_crash_report" not in blocked_reports:
+        if (
+            "hang_crash_report" in expected_reports
+            and "hang_crash_report" not in blocked_reports
+        ):
             child_hang_path = views_dir / "hang-crash-report.html"
             _render_hang_report_html(
                 HangReportHtmlInput(
@@ -3030,22 +3420,37 @@ def _render_model_bundle_worker(
                     local_portal_href,
                 )
             )
-            result["report_paths"]["hang_crash_report"] = os.path.relpath(child_hang_path, reports_dir)
+            result["report_paths"]["hang_crash_report"] = os.path.relpath(
+                child_hang_path, reports_dir
+            )
 
-        if "performance_report" in expected_reports and "performance_report" not in blocked_reports:
-            local_event_stats = event_stats if event_stats else _collect_event_stats(run_dir, event_file_paths)
-            local_performance_correlations = _correlate_performance(local_update_report, local_event_stats)
+        if (
+            "performance_report" in expected_reports
+            and "performance_report" not in blocked_reports
+        ):
+            local_event_stats = (
+                event_stats
+                if event_stats
+                else _collect_event_stats(run_dir, event_file_paths)
+            )
+            local_performance_correlations = _correlate_performance(
+                local_update_report, local_event_stats
+            )
             local_performance_summary = _summarize_performance_diagnosis(
                 local_update_report,
                 local_event_stats,
                 local_performance_correlations,
             )
-            local_analysis_view_state, local_analysis_resource_state = _build_analysis_view_state(
-                local_asset_inventory,
-                local_event_stats,
-                local_node_trace_summary,
+            local_analysis_view_state, local_analysis_resource_state = (
+                _build_analysis_view_state(
+                    local_asset_inventory,
+                    local_event_stats,
+                    local_node_trace_summary,
+                )
             )
-            local_performance_presentation_state = _performance_presentation_state(local_performance_correlations)
+            local_performance_presentation_state = _performance_presentation_state(
+                local_performance_correlations
+            )
             child_performance_path = views_dir / "performance-report.html"
             _render_performance_report_html(
                 PerformanceReportHtmlInput(
@@ -3063,9 +3468,13 @@ def _render_model_bundle_worker(
                     local_portal_href,
                 )
             )
-            result["report_paths"]["performance_report"] = os.path.relpath(child_performance_path, reports_dir)
+            result["report_paths"]["performance_report"] = os.path.relpath(
+                child_performance_path, reports_dir
+            )
         else:
-            local_analysis_view_state = _view_state("missing", "当前没有生成 Analysis View。", "analysis_not_generated")
+            local_analysis_view_state = _view_state(
+                "missing", "当前没有生成 Analysis View。", "analysis_not_generated"
+            )
 
         result["view_states"] = {
             "scope_graph": local_scope_view_state,
@@ -3133,7 +3542,9 @@ def _model_ir_label(model_dir: Path, model_asset_root: Path | None) -> str:
     return model_dir.name
 
 
-def _model_instance_bundle_dirname(model_ri: Any, model_instance_id: str, model_dir: Path) -> str:
+def _model_instance_bundle_dirname(
+    model_ri: Any, model_instance_id: str, model_dir: Path
+) -> str:
     return f"{str(model_ri or model_dir.name)}-{model_instance_id}"
 
 
@@ -3151,12 +3562,18 @@ def _model_has_update(update_report: dict[str, Any]) -> bool:
 def _scope_graph_has_content(update_report: dict[str, Any]) -> bool:
     if _update_scope_count(update_report) > 0:
         return True
-    node_rows = _update_graph_library(update_report).get("node_library", {}).get("nodes", [])
+    node_rows = (
+        _update_graph_library(update_report).get("node_library", {}).get("nodes", [])
+    )
     return bool(node_rows)
 
 
 def _task_queue_graph_has_content(update_report: dict[str, Any]) -> bool:
-    sections = _update_scope_library(update_report).get("device_task_library", {}).get("sections", [])
+    sections = (
+        _update_scope_library(update_report)
+        .get("device_task_library", {})
+        .get("sections", [])
+    )
     if sections:
         return True
     return _update_function_count(update_report) > 0
@@ -3166,10 +3583,16 @@ def _model_is_unfused(update_report: dict[str, Any]) -> bool:
     scope_library = _update_scope_library(update_report)
     fused_functions = scope_library.get("fused_library", {}).get("functions", [])
     task_sections = scope_library.get("device_task_library", {}).get("sections", [])
-    return (not _model_has_update(update_report)) and (not fused_functions) and (not task_sections)
+    return (
+        (not _model_has_update(update_report))
+        and (not fused_functions)
+        and (not task_sections)
+    )
 
 
-def _missing_view_messages(current_view_key: str, update_report: dict[str, Any]) -> tuple[str, str, list[str]]:
+def _missing_view_messages(
+    current_view_key: str, update_report: dict[str, Any]
+) -> tuple[str, str, list[str]]:
     if current_view_key == "task_queue_graph":
         if _model_is_unfused(update_report):
             return (
@@ -3226,10 +3649,24 @@ def _build_multi_model_update_report(
     models: list[dict[str, Any]] = []
 
     for item in model_reports:
-        scope_ids.update(scope_id for scope_id in item.get("scope_ids", []) if isinstance(scope_id, int))
-        node_ids.update(node_id for node_id in item.get("node_ids", []) if isinstance(node_id, int))
-        stream_ids.update(stream_id for stream_id in item.get("stream_ids", []) if isinstance(stream_id, int))
-        task_indices.update(task_index for task_index in item.get("task_indices", []) if isinstance(task_index, int))
+        scope_ids.update(
+            scope_id
+            for scope_id in item.get("scope_ids", [])
+            if isinstance(scope_id, int)
+        )
+        node_ids.update(
+            node_id for node_id in item.get("node_ids", []) if isinstance(node_id, int)
+        )
+        stream_ids.update(
+            stream_id
+            for stream_id in item.get("stream_ids", [])
+            if isinstance(stream_id, int)
+        )
+        task_indices.update(
+            task_index
+            for task_index in item.get("task_indices", [])
+            if isinstance(task_index, int)
+        )
         phase_keys.update(str(key) for key in item.get("phase_keys", []) if key)
         models.append(
             {
@@ -3332,7 +3769,9 @@ def _render_model_selector_page(
                 "<td>{function_count}</td><td>{action}</td></tr>"
             ).format(
                 process=html.escape(str(entry.get("process_label", "-"))),
-                model=html.escape(str(entry.get("model_ir_label", entry.get("model_label", "-")))),
+                model=html.escape(
+                    str(entry.get("model_ir_label", entry.get("model_label", "-")))
+                ),
                 ri=html.escape(str(entry.get("model_ri") or "unknown")),
                 update=html.escape("yes" if entry.get("has_update") else "no"),
                 scope_count=html.escape(str(entry.get("scope_count", 0))),
@@ -3367,7 +3806,10 @@ def _render_model_selector_page(
                     "<th>modelRI</th><th>Update</th><th>Scope Count</th>"
                     "<th>Function Count</th><th>Action</th></tr></thead>"
                     "<tbody>{}</tbody></table>"
-                ).format("".join(rows) or "<tr><td colspan='7'>当前没有可展示的模型入口。</td></tr>"),
+                ).format(
+                    "".join(rows)
+                    or "<tr><td colspan='7'>当前没有可展示的模型入口。</td></tr>"
+                ),
                 panel_id="model-selection",
                 title="模型入口",
                 subtitle="先定位 process、模型目录和 modelRI，再进入对应的分析视图。",
@@ -3394,7 +3836,11 @@ def _render_summary_grid(items: list[tuple[str, str] | tuple[str, str, str]]) ->
     for item in items:
         label, value = item[0], item[1]
         note = item[2] if len(item) > 2 else ""
-        note_block = f"<div class='summary-metric-note'>{html.escape(str(note))}</div>" if str(note).strip() else ""
+        note_block = (
+            f"<div class='summary-metric-note'>{html.escape(str(note))}</div>"
+            if str(note).strip()
+            else ""
+        )
         blocks.append(
             "<article class='summary-metric-card'>"
             f"<div class='summary-metric-label'>{html.escape(str(label))}</div>"
@@ -3532,13 +3978,19 @@ def _wrap_paginated_table_markup(
     )
 
 
-def _render_scope_graph_html(scope_library_path: Path, graph_library_path: Path, output_path: Path) -> None:
-    source = ScopeLibrarySource(str(scope_library_path), str(graph_library_path), mode="scope")
+def _render_scope_graph_html(
+    scope_library_path: Path, graph_library_path: Path, output_path: Path
+) -> None:
+    source = ScopeLibrarySource(
+        str(scope_library_path), str(graph_library_path), mode="scope"
+    )
     model = ScopeGraphModel.from_libraries(source)
     ScopeGraphRenderer(str(output_path)).render_html(model)
 
 
-def _render_task_queue_graph_html(scope_library_path: Path, graph_library_path: Path, output_path: Path) -> None:
+def _render_task_queue_graph_html(
+    scope_library_path: Path, graph_library_path: Path, output_path: Path
+) -> None:
     source = TaskQueueLibrarySource(str(scope_library_path), str(graph_library_path))
     model = TaskQueueModel.from_libraries(source)
     TaskQueueRenderer(str(output_path)).render_html(model)
@@ -3570,7 +4022,9 @@ def _render_update_missing_view_html(
         ("DFX View", "hang-crash-report.html", current_view_key == "hang_crash_report"),
     ]
     nav_markup = render_view_nav(nav_links, kicker="")
-    section_title, lead_text, detail_lines = _missing_view_messages(current_view_key, update_report)
+    section_title, lead_text, detail_lines = _missing_view_messages(
+        current_view_key, update_report
+    )
     if view_state:
         lead_text = str(view_state.get("summary") or lead_text)
         detail_lines = (
@@ -3589,8 +4043,13 @@ def _render_update_missing_view_html(
             "blocked": "当前受阻",
             "partial": "当前内容不完整",
         }.get(str(view_state.get("level") or ""), section_title)
-    details_markup = "".join(f'<p class="hint">{_analysis_format_resource_text(line)}</p>' for line in detail_lines)
-    title_label = "TaskQue View" if current_view_key == "task_queue_graph" else "Scope View"
+    details_markup = "".join(
+        f'<p class="hint">{_analysis_format_resource_text(line)}</p>'
+        for line in detail_lines
+    )
+    title_label = (
+        "TaskQue View" if current_view_key == "task_queue_graph" else "Scope View"
+    )
     header_note = (
         "当前页面没有可供渲染的任务排布；这里直接说明原因，避免误判成工具异常。"
         if current_view_key == "task_queue_graph"
@@ -3610,7 +4069,10 @@ def _render_update_missing_view_html(
         controls_html="",
     )
     explainer_markup = _view_state_graph_markup(
-        view_state or _view_state("empty", lead_text, "graph_view_empty", detail_lines=detail_lines)
+        view_state
+        or _view_state(
+            "empty", lead_text, "graph_view_empty", detail_lines=detail_lines
+        )
     )
     empty_markup = render_empty_note(lead_text)
     html_text = """<!DOCTYPE html>
@@ -3690,7 +4152,9 @@ def _collect_node_trace_summary(
         "status": tool_runs.get("node_trace", {}).get("status", "unknown"),
         "trace_compatible": False,
         "trace_file": relative,
-        "meta_file": os.path.relpath(meta_path, run_dir) if meta_path.exists() else None,
+        "meta_file": os.path.relpath(meta_path, run_dir)
+        if meta_path.exists()
+        else None,
         "trace_event_count": 0,
         "total_nodes": 0,
         "total_streams": 0,
@@ -3709,7 +4173,9 @@ def _collect_node_trace_summary(
     except json.JSONDecodeError:
         return summary
 
-    events = trace_payload.get("traceEvents", []) if isinstance(trace_payload, dict) else []
+    events = (
+        trace_payload.get("traceEvents", []) if isinstance(trace_payload, dict) else []
+    )
     summary["trace_event_count"] = len(events)
     summary["trace_compatible"] = (
         isinstance(trace_payload, dict)
@@ -3732,7 +4198,9 @@ def _collect_node_trace_summary(
         summary["covered_stream_ids"] = metadata.get("stream_ids", [])
         compatibility = metadata.get("trace_compatibility", {})
         if isinstance(compatibility, dict):
-            summary["viewer_targets"] = compatibility.get("viewer_targets", summary["viewer_targets"])
+            summary["viewer_targets"] = compatibility.get(
+                "viewer_targets", summary["viewer_targets"]
+            )
             summary["trace_compatible"] = (
                 summary["trace_compatible"]
                 and compatibility.get("pid_is_int", False)
@@ -3741,7 +4209,9 @@ def _collect_node_trace_summary(
         summary["cross_report_keys"] = metadata.get("cross_report_keys", [])
         cross_index = meta_payload.get("cross_report_index", {})
         if isinstance(cross_index, dict):
-            summary["covered_node_ids"] = [int(item) for item in cross_index.get("node_index", {}).keys()]
+            summary["covered_node_ids"] = [
+                int(item) for item in cross_index.get("node_index", {}).keys()
+            ]
     return summary
 
 
@@ -3811,7 +4281,9 @@ def _hang_presentation_state(
         + len(phase_correlated_signals)
     )
     if total > PRESENTATION_LIMITS["hang_secondary"]:
-        return _presentation_state("focused", "Hang/crash 证据较噪，默认只展开最高优先级子集。")
+        return _presentation_state(
+            "focused", "Hang/crash 证据较噪，默认只展开最高优先级子集。"
+        )
     return _presentation_state("expanded", "Hang/crash 证据较紧凑，可以保持展开视图。")
 
 
@@ -3819,7 +4291,9 @@ def _performance_presentation_state(
     performance_correlations: list[dict[str, Any]],
 ) -> dict[str, str]:
     if len(performance_correlations) > PRESENTATION_LIMITS["performance_matrix"]:
-        return _presentation_state("focused", "性能矩阵较大，默认只展开最高相关的 function。")
+        return _presentation_state(
+            "focused", "性能矩阵较大，默认只展开最高相关的 function。"
+        )
     return _presentation_state("expanded", "性能关联数量较少，可以保持展开矩阵视图。")
 
 
@@ -3833,10 +4307,18 @@ def _portal_presentation_state(
             "focused",
             "summary-only 模式应优先突出少量引导块，而不是铺开展示大量报告卡片。",
         )
-    visible_views = sum(1 for artifact in report_artifacts.values() if artifact.get("generation_status") == "ok")
+    visible_views = sum(
+        1
+        for artifact in report_artifacts.values()
+        if artifact.get("generation_status") == "ok"
+    )
     if len(missing_assets) > 2 or visible_views > 8:
-        return _presentation_state("focused", "当前 run 的视图和缺口都较多，运行总览应优先突出主路径。")
-    return _presentation_state("expanded", "当前 run 规模较小，可以采用更展开的运行总览布局。")
+        return _presentation_state(
+            "focused", "当前 run 的视图和缺口都较多，运行总览应优先突出主路径。"
+        )
+    return _presentation_state(
+        "expanded", "当前 run 规模较小，可以采用更展开的运行总览布局。"
+    )
 
 
 def _summarize_performance_diagnosis(
@@ -3845,9 +4327,15 @@ def _summarize_performance_diagnosis(
     performance_correlations: list[dict[str, Any]],
 ) -> dict[str, Any]:
     event_group_count = len(performance_correlations)
-    mapped_group_count = sum(1 for item in performance_correlations if item.get("has_structure_match"))
-    queue_backed_group_count = sum(1 for item in performance_correlations if item.get("has_queue_link"))
-    task_backed_group_count = sum(1 for item in performance_correlations if item.get("has_task_link"))
+    mapped_group_count = sum(
+        1 for item in performance_correlations if item.get("has_structure_match")
+    )
+    queue_backed_group_count = sum(
+        1 for item in performance_correlations if item.get("has_queue_link")
+    )
+    task_backed_group_count = sum(
+        1 for item in performance_correlations if item.get("has_task_link")
+    )
     if event_stats["event_file_count"] == 0:
         focus = "structure_first"
         reason = "当前没有找到 SK time-event 文件，应优先查看 scope、fused node 和 queue 结构。"
@@ -3856,14 +4344,18 @@ def _summarize_performance_diagnosis(
         reason = "虽然存在 time-event 文件，但当前还没有解析出可稳定组织的事件主视角。"
     elif mapped_group_count == 0:
         focus = "timing_coverage_gap"
-        reason = "虽然存在 time-event 文件，但它们还不能稳定映射到当前 SK function 或 node。"
+        reason = (
+            "虽然存在 time-event 文件，但它们还不能稳定映射到当前 SK function 或 node。"
+        )
     elif queue_backed_group_count == 0 or task_backed_group_count == 0:
         focus = "queue_mapping_gap"
         reason = "虽然已有事件主视角和结构锚点，但推断出的 task 或 queue 仍不足以支撑稳定的队列级归因。"
     else:
         focus = "structure_queue_time_correlation"
         reason = "事件主视角、结构锚点和 task/queue 证据都已存在，可以做第一轮结构/队列/时间关联。"
-    diagnostic_completeness = "complete" if focus == "structure_queue_time_correlation" else "limited"
+    diagnostic_completeness = (
+        "complete" if focus == "structure_queue_time_correlation" else "limited"
+    )
     recommended_next_step = {
         "structure_first": "先看 scope 和 fused-node 结构，再尝试做时间归因。",
         "timing_coverage_gap": "先补齐或重新核对 time-event 资产，再尝试把事件与 function/node 稳定对齐。",
@@ -3879,7 +4371,11 @@ def _summarize_performance_diagnosis(
     linked_task_indices: list[int] = []
     trace_covered_node_ids: list[int] = []
     prioritized = next(
-        (item for item in performance_correlations if item.get("has_structure_match") or item.get("has_task_link")),
+        (
+            item
+            for item in performance_correlations
+            if item.get("has_structure_match") or item.get("has_task_link")
+        ),
         performance_correlations[0] if performance_correlations else None,
     )
     if prioritized is not None:
@@ -3972,11 +4468,21 @@ def _view_state_text_lines(
     lines: list[str] = []
     if include_summary and state.get("summary"):
         lines.append(str(state.get("summary")))
-    lines.extend(str(line) for line in state.get("detail_lines", []) if str(line).strip())
+    lines.extend(
+        str(line) for line in state.get("detail_lines", []) if str(line).strip()
+    )
     if include_hints:
-        lines.extend(str(line) for line in state.get("acquisition_hints", []) if str(line).strip())
+        lines.extend(
+            str(line)
+            for line in state.get("acquisition_hints", [])
+            if str(line).strip()
+        )
     if include_fallbacks:
-        lines.extend(str(line) for line in state.get("fallback_guidance", []) if str(line).strip())
+        lines.extend(
+            str(line)
+            for line in state.get("fallback_guidance", [])
+            if str(line).strip()
+        )
     deduped: list[str] = []
     seen: set[str] = set()
     for line in lines:
@@ -4006,8 +4512,12 @@ def _view_state_graph_markup(state: dict[str, Any]) -> str:
     if str(state.get("level") or "available") == "available":
         return ""
     current = [str(state.get("summary") or "当前视图存在受限状态。")]
-    explain = _view_state_text_lines(state, include_hints=False, include_fallbacks=False, include_summary=False)[:3]
-    next_steps = _view_state_text_lines(state, include_hints=True, include_fallbacks=True, include_summary=False)[:3]
+    explain = _view_state_text_lines(
+        state, include_hints=False, include_fallbacks=False, include_summary=False
+    )[:3]
+    next_steps = _view_state_text_lines(
+        state, include_hints=True, include_fallbacks=True, include_summary=False
+    )[:3]
     sections: list[tuple[str, list[str]]] = [("当前状态", current)]
     if explain:
         sections.append(("该怎么理解", explain))
@@ -4034,23 +4544,37 @@ def _analysis_resource_context_html(
     if include_tracing:
         tracing = analysis_resource_state.get("tracing", {})
         if tracing.get("level") != "available":
-            parts.append(_analysis_format_resource_text(str(tracing.get("summary") or "")))
+            parts.append(
+                _analysis_format_resource_text(str(tracing.get("summary") or ""))
+            )
             if tracing.get("hint"):
-                parts.append(_analysis_format_resource_text(str(tracing.get("hint") or "")))
+                parts.append(
+                    _analysis_format_resource_text(str(tracing.get("hint") or ""))
+                )
     if include_timing:
         timing = analysis_resource_state.get("timing", {})
         if timing.get("level") != "available":
-            parts.append(_analysis_format_resource_text(str(timing.get("summary") or "")))
+            parts.append(
+                _analysis_format_resource_text(str(timing.get("summary") or ""))
+            )
             if timing.get("hint"):
-                parts.append(_analysis_format_resource_text(str(timing.get("hint") or "")))
+                parts.append(
+                    _analysis_format_resource_text(str(timing.get("hint") or ""))
+                )
     if include_kernel_meta:
         kernel_meta = analysis_resource_state.get("kernel_meta", {})
         if kernel_meta.get("level") != "available":
-            parts.append(_analysis_format_resource_text(str(kernel_meta.get("summary") or "")))
+            parts.append(
+                _analysis_format_resource_text(str(kernel_meta.get("summary") or ""))
+            )
             if kernel_meta.get("hint"):
-                parts.append(_analysis_format_resource_text(str(kernel_meta.get("hint") or "")))
+                parts.append(
+                    _analysis_format_resource_text(str(kernel_meta.get("hint") or ""))
+                )
     if include_path_hint and parts:
-        parts.append("如果你确认已经打开了相关环境变量，请再检查输入路径是否真的指向本轮结果目录。")
+        parts.append(
+            "如果你确认已经打开了相关环境变量，请再检查输入路径是否真的指向本轮结果目录。"
+        )
     deduped: list[str] = []
     seen: set[str] = set()
     for part in parts:
@@ -4066,7 +4590,9 @@ def _build_analysis_resource_state(
     event_stats: dict[str, Any],
     node_trace_summary: dict[str, Any],
 ) -> dict[str, Any]:
-    files = asset_inventory.get("files", {}) if isinstance(asset_inventory, dict) else {}
+    files = (
+        asset_inventory.get("files", {}) if isinstance(asset_inventory, dict) else {}
+    )
     trace_file = node_trace_summary.get("trace_file")
     trace_status = str(node_trace_summary.get("status") or "unknown")
 
@@ -4156,7 +4682,11 @@ def _build_analysis_resource_state(
     )
     if primary is None:
         primary = next(
-            ({"key": key, **state} for key, state in states if state["level"] in {"missing", "empty"}),
+            (
+                {"key": key, **state}
+                for key, state in states
+                if state["level"] in {"missing", "empty"}
+            ),
             None,
         )
     if primary is None:
@@ -4179,15 +4709,25 @@ def _build_scope_view_state(
     asset_inventory: dict[str, Any],
     update_report: dict[str, Any],
 ) -> dict[str, Any]:
-    files = asset_inventory.get("files", {}) if isinstance(asset_inventory, dict) else {}
+    files = (
+        asset_inventory.get("files", {}) if isinstance(asset_inventory, dict) else {}
+    )
     parser = _graph_parser_diagnostics(update_report)
     scope_count = _update_scope_count(update_report)
-    node_library = _update_graph_library(update_report).get("node_library", {}).get("nodes", [])
+    node_library = (
+        _update_graph_library(update_report).get("node_library", {}).get("nodes", [])
+    )
     node_library_count = int(parser.get("node_library_count") or len(node_library))
     scope_node_count = int(parser.get("scope_node_count") or 0)
     missing_node_id_count = int(parser.get("missing_node_id_count") or 0)
-    empty_scope_ids = [int(item) for item in parser.get("empty_scope_ids", []) if isinstance(item, int)]
-    partial_scope_ids = [int(item) for item in parser.get("partial_scope_ids", []) if isinstance(item, int)]
+    empty_scope_ids = [
+        int(item) for item in parser.get("empty_scope_ids", []) if isinstance(item, int)
+    ]
+    partial_scope_ids = [
+        int(item)
+        for item in parser.get("partial_scope_ids", [])
+        if isinstance(item, int)
+    ]
     diagnostic_refs = {
         "scope_count": scope_count,
         "node_library_count": node_library_count,
@@ -4201,8 +4741,12 @@ def _build_scope_view_state(
             "missing",
             "当前缺少 `sk_scope_split.log`，Scope 结构无法建立。",
             "missing_scope_split_log",
-            acquisition_hints=["如需完整的 Scope 结构，请先 export ASCEND_OP_COMPILE_SAVE_KERNEL_META=1 后重新采集。"],
-            fallback_guidance=["你仍可以先看 TaskQue、Analysis 或 DFX，但 Scope 图当前不会有稳定结构。"],
+            acquisition_hints=[
+                "如需完整的 Scope 结构，请先 export ASCEND_OP_COMPILE_SAVE_KERNEL_META=1 后重新采集。"
+            ],
+            fallback_guidance=[
+                "你仍可以先看 TaskQue、Analysis 或 DFX，但 Scope 图当前不会有稳定结构。"
+            ],
             diagnostic_refs=diagnostic_refs,
         )
     if scope_node_count > 0 and node_library_count <= 0:
@@ -4217,7 +4761,9 @@ def _build_scope_view_state(
             acquisition_hints=[
                 "如需补齐 node 级结构日志，请先 export ASCEND_OP_COMPILE_SAVE_KERNEL_META=1 后重新采集。"
             ],
-            fallback_guidance=["当前可先回到 DFX 或 TaskQue 继续定位，但不要把这个结果当作“当前没有 Scope”。"],
+            fallback_guidance=[
+                "当前可先回到 DFX 或 TaskQue 继续定位，但不要把这个结果当作“当前没有 Scope”。"
+            ],
             diagnostic_refs=diagnostic_refs,
         )
     if empty_scope_ids and scope_count > 0 and len(empty_scope_ids) >= scope_count:
@@ -4229,7 +4775,9 @@ def _build_scope_view_state(
                 "这更像是 scope 与 node library 的对齐异常，而不是当前真的没有 Scope。",
                 "请优先检查 parser diagnostics 中的 missing/empty scope 统计。",
             ],
-            acquisition_hints=["如需重新采集结构日志，请先 export ASCEND_OP_COMPILE_SAVE_KERNEL_META=1 后重新采集。"],
+            acquisition_hints=[
+                "如需重新采集结构日志，请先 export ASCEND_OP_COMPILE_SAVE_KERNEL_META=1 后重新采集。"
+            ],
             fallback_guidance=[
                 "如果同一 modelRI 在同一文件里包含多个 model instance，请优先检查 model-instance 切分是否正确。"
             ],
@@ -4247,7 +4795,9 @@ def _build_scope_view_state(
             acquisition_hints=[
                 "如果这是非预期结果，请先对照 parser diagnostics 检查 empty_scope_ids / partial_scope_ids。"
             ],
-            fallback_guidance=["你仍可优先查看那些已经正常显示的 Scope，再结合 DFX/TaskQue 做交叉确认。"],
+            fallback_guidance=[
+                "你仍可优先查看那些已经正常显示的 Scope，再结合 DFX/TaskQue 做交叉确认。"
+            ],
             diagnostic_refs=diagnostic_refs,
         )
     if scope_count <= 0 and node_library_count <= 0:
@@ -4255,8 +4805,12 @@ def _build_scope_view_state(
             "empty",
             "当前没有可展示的 Scope 结构。",
             "scope_graph_empty",
-            detail_lines=["当前结果里既没有 Scope，也没有可用于重建节点图的 node library。"],
-            fallback_guidance=["如果这不是预期结果，请先检查输入路径或确认当前 modelRI 是否真的产生了 Scope。"],
+            detail_lines=[
+                "当前结果里既没有 Scope，也没有可用于重建节点图的 node library。"
+            ],
+            fallback_guidance=[
+                "如果这不是预期结果，请先检查输入路径或确认当前 modelRI 是否真的产生了 Scope。"
+            ],
             diagnostic_refs=diagnostic_refs,
         )
     return _view_state(
@@ -4271,7 +4825,9 @@ def _build_task_queue_view_state(
     asset_inventory: dict[str, Any],
     update_report: dict[str, Any],
 ) -> dict[str, Any]:
-    files = asset_inventory.get("files", {}) if isinstance(asset_inventory, dict) else {}
+    files = (
+        asset_inventory.get("files", {}) if isinstance(asset_inventory, dict) else {}
+    )
     scope_library = _update_scope_library(update_report)
     sections = scope_library.get("device_task_library", {}).get("sections", [])
     functions = scope_library.get("fused_library", {}).get("functions", [])
@@ -4280,11 +4836,17 @@ def _build_task_queue_view_state(
             "blocked",
             "当前未融合，因此没有 update 相关内容，也没有 TaskQue 内容。",
             "task_queue_unfused",
-            detail_lines=["这不是解析异常，而是当前 modelRI 没有形成融合后的任务排布。"],
+            detail_lines=[
+                "这不是解析异常，而是当前 modelRI 没有形成融合后的任务排布。"
+            ],
             fallback_guidance=["如果当前仍保留 Scope 结构，请先回到 Scope View。"],
         )
     if not files.get("sk_device_args.log") or not files.get("sk_fused_nodes.log"):
-        missing_names = [name for name in ("sk_device_args.log", "sk_fused_nodes.log") if not files.get(name)]
+        missing_names = [
+            name
+            for name in ("sk_device_args.log", "sk_fused_nodes.log")
+            if not files.get(name)
+        ]
         return _view_state(
             "missing",
             "缺少 " + "、".join(missing_names) + "，TaskQue 视图无法完整建立。",
@@ -4292,7 +4854,9 @@ def _build_task_queue_view_state(
             acquisition_hints=[
                 "如需完整的 fused function 和 queue 证据，请先 export ASCEND_OP_COMPILE_SAVE_KERNEL_META=1 后重新采集。"
             ],
-            fallback_guidance=["你仍可先看 Scope、Analysis 或 DFX，但当前 queue 解释会明显退化。"],
+            fallback_guidance=[
+                "你仍可先看 Scope、Analysis 或 DFX，但当前 queue 解释会明显退化。"
+            ],
         )
     if sections or functions:
         return _view_state(
@@ -4304,8 +4868,12 @@ def _build_task_queue_view_state(
         "empty",
         "当前没有可展示的 TaskQue 事实源。",
         "task_queue_empty",
-        detail_lines=["当前既没有可用的 device task section，也没有足够的 fused function 结构来重建任务排布。"],
-        fallback_guidance=["如果这不是预期结果，请先检查 `sk_device_args.log` 和 `sk_fused_nodes.log` 的原始内容。"],
+        detail_lines=[
+            "当前既没有可用的 device task section，也没有足够的 fused function 结构来重建任务排布。"
+        ],
+        fallback_guidance=[
+            "如果这不是预期结果，请先检查 `sk_device_args.log` 和 `sk_fused_nodes.log` 的原始内容。"
+        ],
     )
 
 
@@ -4314,7 +4882,9 @@ def _build_analysis_view_state(
     event_stats: dict[str, Any],
     node_trace_summary: dict[str, Any],
 ) -> tuple[dict[str, Any], dict[str, Any]]:
-    resource_state = _build_analysis_resource_state(asset_inventory, event_stats, node_trace_summary)
+    resource_state = _build_analysis_resource_state(
+        asset_inventory, event_stats, node_trace_summary
+    )
     tracing = resource_state["tracing"]
     timing = resource_state["timing"]
     kernel_meta = resource_state["kernel_meta"]
@@ -4333,7 +4903,9 @@ def _build_analysis_view_state(
             "analysis_timing_error",
             detail_lines=detail_lines,
             acquisition_hints=acquisition_hints,
-            fallback_guidance=["当前可以先利用 Scope/TaskQue/DFX 做结构和运行期排查，暂时不要把事件矩阵当作稳定依据。"],
+            fallback_guidance=[
+                "当前可以先利用 Scope/TaskQue/DFX 做结构和运行期排查，暂时不要把事件矩阵当作稳定依据。"
+            ],
         )
     elif timing.get("level") in {"missing", "empty"}:
         state = _view_state(
@@ -4342,9 +4914,14 @@ def _build_analysis_view_state(
             f"analysis_timing_{timing.get('level')}",
             detail_lines=detail_lines,
             acquisition_hints=acquisition_hints,
-            fallback_guidance=["当前 Analysis 仍可作为结构索引页，但时间结论会明显减弱。"],
+            fallback_guidance=[
+                "当前 Analysis 仍可作为结构索引页，但时间结论会明显减弱。"
+            ],
         )
-    elif tracing.get("level") in {"missing", "error"} or kernel_meta.get("level") != "available":
+    elif (
+        tracing.get("level") in {"missing", "error"}
+        or kernel_meta.get("level") != "available"
+    ):
         state = _view_state(
             "partial",
             "当前 Analysis 可渲染，但 tracing 或结构资源不完整，部分跳转和解释会受限。",
@@ -4367,13 +4944,19 @@ def _build_dfx_view_state(
     update_report: dict[str, Any],
     hang_crash_summary: dict[str, Any],
 ) -> dict[str, Any]:
-    files = asset_inventory.get("files", {}) if isinstance(asset_inventory, dict) else {}
+    files = (
+        asset_inventory.get("files", {}) if isinstance(asset_inventory, dict) else {}
+    )
     dfx_library = _update_dfx_library(update_report)
     payload_summary = (
-        dfx_library.get("payload_registry", {}).get("summary", {}) if isinstance(dfx_library, dict) else {}
+        dfx_library.get("payload_registry", {}).get("summary", {})
+        if isinstance(dfx_library, dict)
+        else {}
     )
     counter_summary = (
-        dfx_library.get("counter_registry", {}).get("summary", {}) if isinstance(dfx_library, dict) else {}
+        dfx_library.get("counter_registry", {}).get("summary", {})
+        if isinstance(dfx_library, dict)
+        else {}
     )
     runtime_status = str(payload_summary.get("runtime_status") or "unknown")
     counter_problem_kind = str(counter_summary.get("counter_problem_kind") or "unknown")
@@ -4382,7 +4965,9 @@ def _build_dfx_view_state(
             "missing",
             "当前缺少 `super_kernel.log`，DFX 证据链无法完整建立。",
             "dfx_missing_super_kernel",
-            acquisition_hints=["如需完整的 DFX 证据，请先 export ASCEND_OP_COMPILE_SAVE_KERNEL_META=1 后重新采集。"],
+            acquisition_hints=[
+                "如需完整的 DFX 证据，请先 export ASCEND_OP_COMPILE_SAVE_KERNEL_META=1 后重新采集。"
+            ],
             fallback_guidance=["当前页面里的结论不能被视为完整 DFX 结果。"],
         )
     if counter_problem_kind == "op_trace_disabled":
@@ -4390,8 +4975,12 @@ def _build_dfx_view_state(
             "blocked",
             "当前 `op_trace=false`，counter 侧诊断被阻断；DFX 仍可渲染，但不能把 counter 结果当作可用依据。",
             "dfx_counter_blocked",
-            acquisition_hints=["如需子核级 counter 诊断，请先 export ASCEND_SK_OP_TRACE_ON=1 后重新复现。"],
-            fallback_guidance=["当前请优先结合 Exception Registry、Source Status 和已有异常信号继续判断。"],
+            acquisition_hints=[
+                "如需子核级 counter 诊断，请先 export ASCEND_SK_OP_TRACE_ON=1 后重新复现。"
+            ],
+            fallback_guidance=[
+                "当前请优先结合 Exception Registry、Source Status 和已有异常信号继续判断。"
+            ],
         )
     if runtime_status in {
         "missing_exception_handler_dump",
@@ -4404,13 +4993,17 @@ def _build_dfx_view_state(
             "当前 DFX 可渲染，但 runtime/payload 证据不完整，结论可信度会下降。",
             "dfx_partial_payload",
             detail_lines=[f"当前 Source Status 为 `{runtime_status}`。"],
-            fallback_guidance=["当前请优先看 Actionable Signals 和 Source Status，不要只依赖单一 target 结论。"],
+            fallback_guidance=[
+                "当前请优先看 Actionable Signals 和 Source Status，不要只依赖单一 target 结论。"
+            ],
         )
     return _view_state(
         "available",
         "当前 DFX 证据链完整，可直接围绕主诊断表继续定位。",
         "dfx_available",
-        detail_lines=[str(hang_crash_summary.get("conclusion") or "")] if hang_crash_summary.get("conclusion") else [],
+        detail_lines=[str(hang_crash_summary.get("conclusion") or "")]
+        if hang_crash_summary.get("conclusion")
+        else [],
     )
 
 
@@ -4425,7 +5018,9 @@ def _analysis_trace_notice_html(
         trace_path = run_dir / str(trace_relative)
         trace_link = ""
         if trace_path.exists():
-            trace_href = html.escape(os.path.relpath(trace_path, output_path.parent), quote=True)
+            trace_href = html.escape(
+                os.path.relpath(trace_path, output_path.parent), quote=True
+            )
             trace_link = f"<a href='{trace_href}' target='_blank' rel='noreferrer'>{html.escape(trace_path.name)}</a>"
         viewer_links = " / ".join(
             (
@@ -4469,12 +5064,16 @@ def _analysis_trace_action_markup(
     analysis_resource_state: dict[str, Any],
 ) -> str:
     task_indices = item.get("task_indices", [])[:4]
-    task_label = " / ".join(f"task {task_index}" for task_index in task_indices) or "无 task"
+    task_label = (
+        " / ".join(f"task {task_index}" for task_index in task_indices) or "无 task"
+    )
     trace_relative = node_trace_summary.get("trace_file")
     if trace_relative:
         trace_path = run_dir / str(trace_relative)
         if trace_path.exists():
-            trace_href = html.escape(os.path.relpath(trace_path, output_path.parent), quote=True)
+            trace_href = html.escape(
+                os.path.relpath(trace_path, output_path.parent), quote=True
+            )
             viewer_targets = [
                 (
                     f"<a href='{html.escape(str(target), quote=True)}' "
@@ -4482,7 +5081,9 @@ def _analysis_trace_action_markup(
                 )
                 for target in node_trace_summary.get("viewer_targets", [])[:2]
             ]
-            link_parts = [f"<a href='{trace_href}' target='_blank' rel='noreferrer'>tracing 文件</a>"]
+            link_parts = [
+                f"<a href='{trace_href}' target='_blank' rel='noreferrer'>tracing 文件</a>"
+            ]
             link_parts.extend(viewer_targets)
             return f"<div><div>{html.escape(task_label)}</div><div>{' · '.join(link_parts)}</div></div>"
     trace_state = analysis_resource_state.get("tracing", {})
@@ -4507,7 +5108,9 @@ def _analysis_trace_action_markup(
         include_kernel_meta=True,
         include_path_hint=False,
     )
-    fallback_hint = '未采集原始 tracing；请先 <span class="mono">export ASCEND_PROF_SK_ON=1</span>'
+    fallback_hint = (
+        '未采集原始 tracing；请先 <span class="mono">export ASCEND_PROF_SK_ON=1</span>'
+    )
     return f"<div><div>{html.escape(task_label)}</div><div>{hint or fallback_hint}</div></div>"
 
 
@@ -4643,7 +5246,9 @@ def _build_report_artifacts(
                 entry_points.append(performance_summary["recommended_entry"])
             elif scope_ids:
                 entry_points.append(f"scope-graph.html?scopeId={scope_ids[0]}")
-            trace_entry = report_links.get("node_trace") or node_trace_summary.get("trace_file")
+            trace_entry = report_links.get("node_trace") or node_trace_summary.get(
+                "trace_file"
+            )
             if trace_entry:
                 entry_points.append(str(trace_entry))
             linked_objects = {
@@ -4651,12 +5256,16 @@ def _build_report_artifacts(
                 "task_indices": task_indices[:8],
                 "node_ids": node_ids[:6],
                 "linked_update_scope": performance_summary.get("linked_update_scope"),
-                "trace_covered_node_ids": performance_summary.get("trace_covered_node_ids", [])[:8],
+                "trace_covered_node_ids": performance_summary.get(
+                    "trace_covered_node_ids", []
+                )[:8],
             }
         elif report_key == "node_trace":
             linked_objects = {
                 "covered_node_ids": node_trace_summary.get("covered_node_ids", [])[:8],
-                "covered_stream_ids": node_trace_summary.get("covered_stream_ids", [])[:8],
+                "covered_stream_ids": node_trace_summary.get("covered_stream_ids", [])[
+                    :8
+                ],
             }
         return entry_points, linked_objects
 
@@ -4666,7 +5275,9 @@ def _build_report_artifacts(
         if not guidance:
             continue
         report_state = validation["reports"].get(key, {})
-        generation_status = report_state.get("status", "ok" if key in report_links else "failed")
+        generation_status = report_state.get(
+            "status", "ok" if key in report_links else "failed"
+        )
         tool_message = report_state.get("message", "") or None
         blocking_reason = None
         acquisition_hint = None
@@ -4677,14 +5288,19 @@ def _build_report_artifacts(
                 next_information_needed.append(asset_name)
         if generation_status != "ok" and report_state.get("message"):
             blocking_reason = report_state["message"]
-        if key == "performance_report" and performance_summary["focus"] != "structure_queue_time_correlation":
+        if (
+            key == "performance_report"
+            and performance_summary["focus"] != "structure_queue_time_correlation"
+        ):
             blocking_reason = blocking_reason or performance_summary["reason"]
             next_information_needed.extend(["performance_correlation_gap"])
         if key == "hang_crash_report" and hang_crash_summary["signal_confidence"] in {
             "none",
             "low",
         }:
-            blocking_reason = blocking_reason or "Current crash evidence is still low-confidence."
+            blocking_reason = (
+                blocking_reason or "Current crash evidence is still low-confidence."
+            )
             next_information_needed.extend(["higher_confidence_failure_signal"])
         diagnostic_completeness, completeness_reason = _artifact_diagnostic_state(
             ArtifactDiagnosticStateInput(
@@ -4697,9 +5313,17 @@ def _build_report_artifacts(
                 node_trace_summary,
             )
         )
-        if completeness_reason and not blocking_reason and diagnostic_completeness != "complete":
+        if (
+            completeness_reason
+            and not blocking_reason
+            and diagnostic_completeness != "complete"
+        ):
             blocking_reason = completeness_reason
-        if generation_status != "ok" and not blocking_reason and next_information_needed:
+        if (
+            generation_status != "ok"
+            and not blocking_reason
+            and next_information_needed
+        ):
             blocking_reason = "Required evidence for this view is currently missing."
         recommended_entry_points, linked_objects = navigation_hints(key)
         artifacts[key] = {
@@ -4718,11 +5342,17 @@ def _build_report_artifacts(
             "next_information_needed": next_information_needed,
             "structured_output": guidance.get("structured_output"),
             "structured_path": report_links.get(f"{key}_data"),
-            "recommended_next_step": next_information_needed[0] if next_information_needed else None,
+            "recommended_next_step": next_information_needed[0]
+            if next_information_needed
+            else None,
             "recommended_entry_points": recommended_entry_points,
             "linked_objects": linked_objects,
-            "presentation_mode": presentation_states.get(key, {}).get("presentation_mode", "expanded"),
-            "presentation_reason": presentation_states.get(key, {}).get("presentation_reason", "默认完整展示"),
+            "presentation_mode": presentation_states.get(key, {}).get(
+                "presentation_mode", "expanded"
+            ),
+            "presentation_reason": presentation_states.get(key, {}).get(
+                "presentation_reason", "默认完整展示"
+            ),
         }
     return artifacts
 
@@ -4850,12 +5480,30 @@ def _render_hang_report_html(
     output_path = request.output_path
     portal_href = request.portal_href
     dfx_library = _update_dfx_library(update_report)
-    phase_registry = dfx_library.get("phase_registry", {}) if isinstance(dfx_library, dict) else {}
-    payload_registry = dfx_library.get("payload_registry", {}) if isinstance(dfx_library, dict) else {}
-    exception_registry = dfx_library.get("exception_registry", {}) if isinstance(dfx_library, dict) else {}
-    counter_registry = dfx_library.get("counter_registry", {}) if isinstance(dfx_library, dict) else {}
-    pc_localization_registry = dfx_library.get("pc_localization_registry", {}) if isinstance(dfx_library, dict) else {}
-    diagnostic_pc_registry = dfx_library.get("diagnostic_pc_registry", {}) if isinstance(dfx_library, dict) else {}
+    phase_registry = (
+        dfx_library.get("phase_registry", {}) if isinstance(dfx_library, dict) else {}
+    )
+    payload_registry = (
+        dfx_library.get("payload_registry", {}) if isinstance(dfx_library, dict) else {}
+    )
+    exception_registry = (
+        dfx_library.get("exception_registry", {})
+        if isinstance(dfx_library, dict)
+        else {}
+    )
+    counter_registry = (
+        dfx_library.get("counter_registry", {}) if isinstance(dfx_library, dict) else {}
+    )
+    pc_localization_registry = (
+        dfx_library.get("pc_localization_registry", {})
+        if isinstance(dfx_library, dict)
+        else {}
+    )
+    diagnostic_pc_registry = (
+        dfx_library.get("diagnostic_pc_registry", {})
+        if isinstance(dfx_library, dict)
+        else {}
+    )
     presentation_mode = presentation_state["presentation_mode"]
     visible_actionable, hidden_actionable = _split_visible_hidden(
         hang_crash_summary.get("top_actionable_signals", []),
@@ -4874,7 +5522,9 @@ def _render_hang_report_html(
         )
     visible_phase_rows, hidden_phase_rows = _split_visible_hidden(
         phase_correlated_signals,
-        PRESENTATION_LIMITS["hang_secondary"] if presentation_mode == "focused" else 9999,
+        PRESENTATION_LIMITS["hang_secondary"]
+        if presentation_mode == "focused"
+        else 9999,
     )
     phase_rows = []
     for item in visible_phase_rows:
@@ -4889,35 +5539,72 @@ def _render_hang_report_html(
             )
         )
 
-    payload_summary = payload_registry.get("summary", {}) if isinstance(payload_registry, dict) else {}
-    counter_summary = counter_registry.get("summary", {}) if isinstance(counter_registry, dict) else {}
-    pc_localization_summary = (
-        pc_localization_registry.get("summary", {}) if isinstance(pc_localization_registry, dict) else {}
+    payload_summary = (
+        payload_registry.get("summary", {})
+        if isinstance(payload_registry, dict)
+        else {}
     )
-    payload_functions = payload_registry.get("functions", []) if isinstance(payload_registry, dict) else []
+    counter_summary = (
+        counter_registry.get("summary", {})
+        if isinstance(counter_registry, dict)
+        else {}
+    )
+    pc_localization_summary = (
+        pc_localization_registry.get("summary", {})
+        if isinstance(pc_localization_registry, dict)
+        else {}
+    )
+    payload_functions = (
+        payload_registry.get("functions", [])
+        if isinstance(payload_registry, dict)
+        else []
+    )
     payload_functions = payload_functions if isinstance(payload_functions, list) else []
-    counter_cores = counter_registry.get("cores", []) if isinstance(counter_registry.get("cores"), list) else []
+    counter_cores = (
+        counter_registry.get("cores", [])
+        if isinstance(counter_registry.get("cores"), list)
+        else []
+    )
     pc_localization_events = (
-        pc_localization_registry.get("events", []) if isinstance(pc_localization_registry.get("events"), list) else []
+        pc_localization_registry.get("events", [])
+        if isinstance(pc_localization_registry.get("events"), list)
+        else []
     )
     diagnostic_pc_events = (
-        diagnostic_pc_registry.get("events", []) if isinstance(diagnostic_pc_registry.get("events"), list) else []
+        diagnostic_pc_registry.get("events", [])
+        if isinstance(diagnostic_pc_registry.get("events"), list)
+        else []
     )
-    exception_events = exception_registry.get("events", []) if isinstance(exception_registry, dict) else []
+    exception_events = (
+        exception_registry.get("events", [])
+        if isinstance(exception_registry, dict)
+        else []
+    )
     exception_events = exception_events if isinstance(exception_events, list) else []
     core_symbol_events = (
-        exception_registry.get("core_symbol_events", []) if isinstance(exception_registry, dict) else []
+        exception_registry.get("core_symbol_events", [])
+        if isinstance(exception_registry, dict)
+        else []
     )
-    core_symbol_events = core_symbol_events if isinstance(core_symbol_events, list) else []
+    core_symbol_events = (
+        core_symbol_events if isinstance(core_symbol_events, list) else []
+    )
     warning_signals = hang_crash_summary.get("warning_signals", [])
     warning_signals = warning_signals if isinstance(warning_signals, list) else []
-    phase_stats = phase_registry.get("phase_stats", []) if isinstance(phase_registry, dict) else []
+    phase_stats = (
+        phase_registry.get("phase_stats", [])
+        if isinstance(phase_registry, dict)
+        else []
+    )
     phase_stats = phase_stats if isinstance(phase_stats, list) else []
 
     def _chips(values: list[str]) -> str:
         if not values:
             return "<span class='capability-chip'>无</span>"
-        return "".join("<span class='capability-chip'>{}</span>".format(html.escape(str(value))) for value in values)
+        return "".join(
+            "<span class='capability-chip'>{}</span>".format(html.escape(str(value)))
+            for value in values
+        )
 
     def _candidate_text(candidates: list[dict[str, Any]]) -> str:
         parts = []
@@ -4926,7 +5613,8 @@ def _render_hang_report_html(
                 "scope={scope}, sk={sk}, nodes={nodes}".format(
                     scope=candidate.get("scope_id"),
                     sk=candidate.get("sk_id"),
-                    nodes=",".join(str(item) for item in candidate.get("node_ids", [])) or "无",
+                    nodes=",".join(str(item) for item in candidate.get("node_ids", []))
+                    or "无",
                 )
             )
         return "；".join(parts) if parts else "无"
@@ -4934,13 +5622,13 @@ def _render_hang_report_html(
     analysis_status = str(hang_crash_summary.get("analysis_status", "clean"))
     counter_problem_kind = str(counter_summary.get("counter_problem_kind", "unknown"))
     if analysis_status == "clean":
-        current_decision = "当前模型资产侧维测分析未见异常，不需要再围绕 payload 缺失做过度判断。"
+        current_decision = (
+            "当前模型资产侧维测分析未见异常，不需要再围绕 payload 缺失做过度判断。"
+        )
     elif analysis_status == "warning":
         current_decision = "当前未发现明确异常，但存在 warning；请先看 Warning 明细，再决定是否需要继续深挖。"
     elif counter_problem_kind == "op_trace_disabled":
-        current_decision = (
-            "当前 `op_trace=false`，counter 侧诊断已禁用；请先打开 `ASCEND_SK_OP_TRACE_ON=1` 后重新复现。"
-        )
+        current_decision = "当前 `op_trace=false`，counter 侧诊断已禁用；请先打开 `ASCEND_SK_OP_TRACE_ON=1` 后重新复现。"
     elif counter_problem_kind == "sk_level_issue":
         current_decision = "当前没有 launch=2，且已使用 core 都停在 launch=3；这更像是 SK 级逻辑/同步问题，应优先检查 SK 自身状态，而不是继续按子算子或异常 core 去定位。"
     elif pc_localization_summary.get("matched_count", 0) > 0:
@@ -4952,9 +5640,7 @@ def _render_hang_report_html(
     elif payload_summary.get("runtime_status") == "missing_exception_handler_rows":
         current_decision = "当前拿到了 runtime dump 头，但没有 node rows；需要继续确认异常处理日志是否完整。"
     elif payload_functions:
-        current_decision = (
-            "当前已具备 runtime payload 事实，但还没有 superkernel exception；先确认样例是否真的进入异常链路。"
-        )
+        current_decision = "当前已具备 runtime payload 事实，但还没有 superkernel exception；先确认样例是否真的进入异常链路。"
     elif exception_events:
         current_decision = "先用异常函数和 runtime payload 建立落点，再结合 core symbol 线索缩小到具体 SK 或 node。"
     else:
@@ -4987,7 +5673,9 @@ def _render_hang_report_html(
     phase_registry_rows = []
     for item in phase_stats:
         phase_registry_rows.append(
-            ("<tr><td>{key}</td><td>{count}</td><td>{first}</td><td>{last}</td><td>{sample}</td></tr>").format(
+            (
+                "<tr><td>{key}</td><td>{count}</td><td>{first}</td><td>{last}</td><td>{sample}</td></tr>"
+            ).format(
                 key=html.escape(_phase_key_label(str(item.get("key", "unknown")))),
                 count=html.escape(str(item.get("count", 0))),
                 first=html.escape(str(item.get("first_line", "?"))),
@@ -5006,7 +5694,9 @@ def _render_hang_report_html(
                 sk=html.escape(str(item.get("sk_id", "unknown"))),
                 count=html.escape(str(item.get("dfx_entry_count", 0))),
                 status=html.escape(str(item.get("dfx_count_status", "unknown"))),
-                level=html.escape(_evidence_level_label(str(item.get("evidence_level", "unknown")))),
+                level=html.escape(
+                    _evidence_level_label(str(item.get("evidence_level", "unknown")))
+                ),
                 func=html.escape(str(item.get("function_text", "unknown"))),
             )
         )
@@ -5023,10 +5713,26 @@ def _render_hang_report_html(
                     "<td>{cmp_ori}</td></tr>"
                 ).format(
                     node=html.escape(str(row.get("node_index", "?"))),
-                    eh_bin=html.escape(str(row.get("exception_handler", {}).get("bin_handle", "unknown"))),
-                    eh_ori=html.escape(str(row.get("exception_handler", {}).get("original_handle", "unknown"))),
-                    eh_aic=html.escape(str(row.get("exception_handler", {}).get("aic_size", "unknown"))),
-                    eh_aiv=html.escape(str(row.get("exception_handler", {}).get("aiv_size", "unknown"))),
+                    eh_bin=html.escape(
+                        str(
+                            row.get("exception_handler", {}).get(
+                                "bin_handle", "unknown"
+                            )
+                        )
+                    ),
+                    eh_ori=html.escape(
+                        str(
+                            row.get("exception_handler", {}).get(
+                                "original_handle", "unknown"
+                            )
+                        )
+                    ),
+                    eh_aic=html.escape(
+                        str(row.get("exception_handler", {}).get("aic_size", "unknown"))
+                    ),
+                    eh_aiv=html.escape(
+                        str(row.get("exception_handler", {}).get("aiv_size", "unknown"))
+                    ),
                     cmp_bin=html.escape(str(compare.get("bin_handle", "-"))),
                     cmp_ori=html.escape(str(compare.get("original_handle", "-"))),
                 )
@@ -5039,14 +5745,22 @@ def _render_hang_report_html(
             ).format(
                 idx=idx,
                 func=html.escape(str(item.get("function_text", "unknown"))),
-                reasons=html.escape(", ".join(str(reason) for reason in item.get("evidence_reasons", [])) or "无"),
+                reasons=html.escape(
+                    ", ".join(
+                        str(reason) for reason in item.get("evidence_reasons", [])
+                    )
+                    or "无"
+                ),
                 table=_wrap_table_markup(
                     (
                         "<table><thead><tr><th>nodeIndex</th><th>EH bin</th>"
                         "<th>EH ori</th><th>EH aic</th><th>EH aiv</th>"
                         "<th>Compare bin</th><th>Compare ori</th></tr></thead>"
                         "<tbody>{}</tbody></table>"
-                    ).format("".join(row_markup) or "<tr><td colspan='7'>当前没有 payload rows。</td></tr>"),
+                    ).format(
+                        "".join(row_markup)
+                        or "<tr><td colspan='7'>当前没有 payload rows。</td></tr>"
+                    ),
                     panel_id=f"payload-function-{idx}",
                     title="Payload Function Detail",
                     subtitle="这里保留当前 payload function 的原始对照行，按需展开查看。",
@@ -5098,7 +5812,9 @@ def _render_hang_report_html(
                 status=html.escape(
                     "Unused"
                     if item.get("is_unused_core")
-                    else _counter_launch_state_label(str(item.get("launch_state", "UNKNOWN")))
+                    else _counter_launch_state_label(
+                        str(item.get("launch_state", "UNKNOWN"))
+                    )
                 ),
                 index=html.escape(str(item.get("index", "?"))),
                 func=html.escape(str(item.get("function_name", "-"))),
@@ -5108,7 +5824,11 @@ def _render_hang_report_html(
 
     affected_target_rows = []
     for item in diagnostic_pc_events:
-        rule_text = str(item.get("entry_slot_rule")) if item.get("entry_slot_rule") is not None else ""
+        rule_text = (
+            str(item.get("entry_slot_rule"))
+            if item.get("entry_slot_rule") is not None
+            else ""
+        )
         affected_target_rows.append(
             (
                 "<tr title='{title}'><td>{core}</td><td>{type}</td>"
@@ -5118,20 +5838,42 @@ def _render_hang_report_html(
                 title=html.escape(rule_text or "final diagnostic target"),
                 core=html.escape(str(item.get("core_id", "?"))),
                 type=html.escape(str(item.get("core_type", "-"))),
-                func=html.escape(str(item.get("function_name") if item.get("function_name") is not None else "-")),
+                func=html.escape(
+                    str(
+                        item.get("function_name")
+                        if item.get("function_name") is not None
+                        else "-"
+                    )
+                ),
                 start=html.escape(
-                    str(item.get("reported_start_pc") if item.get("reported_start_pc") is not None else "-")
+                    str(
+                        item.get("reported_start_pc")
+                        if item.get("reported_start_pc") is not None
+                        else "-"
+                    )
                 ),
                 current=html.escape(
-                    str(item.get("reported_current_pc") if item.get("reported_current_pc") is not None else "-")
+                    str(
+                        item.get("reported_current_pc")
+                        if item.get("reported_current_pc") is not None
+                        else "-"
+                    )
                 ),
-                summary=html.escape("SK issue" if str(item.get("issue_kind", "-")) == "sk" else "Subkernel issue"),
+                summary=html.escape(
+                    "SK issue"
+                    if str(item.get("issue_kind", "-")) == "sk"
+                    else "Subkernel issue"
+                ),
             )
         )
 
     diagnostic_pc_rows = []
     for item in diagnostic_pc_events:
-        rule_text = str(item.get("entry_slot_rule")) if item.get("entry_slot_rule") is not None else ""
+        rule_text = (
+            str(item.get("entry_slot_rule"))
+            if item.get("entry_slot_rule") is not None
+            else ""
+        )
         diagnostic_pc_rows.append(
             (
                 "<tr title='{title}'><td>{core}</td><td>{type}</td>"
@@ -5141,13 +5883,29 @@ def _render_hang_report_html(
                 title=html.escape(rule_text or "diagnostic pc target"),
                 core=html.escape(str(item.get("core_id", "?"))),
                 type=html.escape(str(item.get("core_type", "-"))),
-                op=html.escape(str(item.get("op_id") if item.get("op_id") is not None else "-")),
-                func=html.escape(str(item.get("function_name") if item.get("function_name") is not None else "-")),
+                op=html.escape(
+                    str(item.get("op_id") if item.get("op_id") is not None else "-")
+                ),
+                func=html.escape(
+                    str(
+                        item.get("function_name")
+                        if item.get("function_name") is not None
+                        else "-"
+                    )
+                ),
                 start=html.escape(
-                    str(item.get("reported_start_pc") if item.get("reported_start_pc") is not None else "-")
+                    str(
+                        item.get("reported_start_pc")
+                        if item.get("reported_start_pc") is not None
+                        else "-"
+                    )
                 ),
                 current=html.escape(
-                    str(item.get("reported_current_pc") if item.get("reported_current_pc") is not None else "-")
+                    str(
+                        item.get("reported_current_pc")
+                        if item.get("reported_current_pc") is not None
+                        else "-"
+                    )
                 ),
                 basis=html.escape(str(item.get("reported_pc_basis", "-"))),
             )
@@ -5208,11 +5966,15 @@ def _render_hang_report_html(
             ("Conclusion", _analysis_status_label(analysis_status)),
             (
                 "Signal",
-                _signal_confidence_label(str(hang_crash_summary.get("signal_confidence", "unknown"))),
+                _signal_confidence_label(
+                    str(hang_crash_summary.get("signal_confidence", "unknown"))
+                ),
             ),
             (
                 "Failure Stage",
-                _failure_stage_label(str(hang_crash_summary.get("likely_failure_stage", "unknown"))),
+                _failure_stage_label(
+                    str(hang_crash_summary.get("likely_failure_stage", "unknown"))
+                ),
             ),
             ("State", _view_state_label(dfx_view_state)),
         ],
@@ -5225,11 +5987,15 @@ def _render_hang_report_html(
                 ("Conclusion", _analysis_status_label(analysis_status)),
                 (
                     "Signal",
-                    _signal_confidence_label(str(hang_crash_summary.get("signal_confidence", "unknown"))),
+                    _signal_confidence_label(
+                        str(hang_crash_summary.get("signal_confidence", "unknown"))
+                    ),
                 ),
                 (
                     "Stage",
-                    _failure_stage_label(str(hang_crash_summary.get("likely_failure_stage", "unknown"))),
+                    _failure_stage_label(
+                        str(hang_crash_summary.get("likely_failure_stage", "unknown"))
+                    ),
                 ),
             ],
             compact=True,
@@ -5239,7 +6005,10 @@ def _render_hang_report_html(
         (
             "<table><thead><tr><th>优先级</th><th>信号类型</th>"
             "<th>来源</th><th>内容</th></tr></thead><tbody>{}</tbody></table>"
-        ).format("".join(actionable_rows) or "<tr><td colspan='4'>当前没有可直接执行的主信号。</td></tr>"),
+        ).format(
+            "".join(actionable_rows)
+            or "<tr><td colspan='4'>当前没有可直接执行的主信号。</td></tr>"
+        ),
         panel_id="actionable-signals",
         title="Actionable Signals",
         subtitle=(
@@ -5252,12 +6021,15 @@ def _render_hang_report_html(
                     include_fallbacks=False,
                     include_summary=False,
                 )
-                if str(dfx_view_state.get("level")) in {"blocked", "partial", "error", "missing"}
+                if str(dfx_view_state.get("level"))
+                in {"blocked", "partial", "error", "missing"}
                 else ""
             )
         ),
         min_width=960,
-        collapsed=_collapse_by_importance(row_count=len(actionable_rows), importance="primary"),
+        collapsed=_collapse_by_importance(
+            row_count=len(actionable_rows), importance="primary"
+        ),
         prominent=True,
         search_placeholder="查找优先级、信号类型、来源、内容",
     )
@@ -5272,7 +6044,9 @@ def _render_hang_report_html(
                 ).format(
                     "".join(
                         "<tr><td>{}</td><td>{}</td><td>{}:{}</td><td>{}</td></tr>".format(
-                            html.escape(_priority_label(item.get("priority", "unknown"))),
+                            html.escape(
+                                _priority_label(item.get("priority", "unknown"))
+                            ),
                             html.escape(_signal_kind_label(item.get("kind", "signal"))),
                             html.escape(Path(item.get("file", "")).name),
                             html.escape(str(item.get("line", "?"))),
@@ -5356,7 +6130,10 @@ document.querySelectorAll('[data-standard-table]').forEach(initStandardTablePane
                 "<table><thead><tr><th>Phase</th><th>Count</th>"
                 "<th>First Line</th><th>Last Line</th><th>Sample</th>"
                 "</tr></thead><tbody>{}</tbody></table>"
-            ).format("".join(phase_registry_rows) or "<tr><td colspan='5'>当前没有可展示的 phase registry。</td></tr>"),
+            ).format(
+                "".join(phase_registry_rows)
+                or "<tr><td colspan='5'>当前没有可展示的 phase registry。</td></tr>"
+            ),
             panel_id="phase-registry",
             title="Phase Registry",
             subtitle="这里汇总优化阶段的关键里程碑，按需展开查看。",
@@ -5398,7 +6175,10 @@ document.querySelectorAll('[data-standard-table]').forEach(initStandardTablePane
                 "<table><thead><tr><th>阶段</th><th>信号桶</th>"
                 "<th>信号类型</th><th>来源</th><th>内容</th></tr></thead>"
                 "<tbody>{}</tbody></table>"
-            ).format("".join(phase_rows) or "<tr><td colspan='5'>当前没有可稳定提取的阶段关联信号。</td></tr>"),
+            ).format(
+                "".join(phase_rows)
+                or "<tr><td colspan='5'>当前没有可稳定提取的阶段关联信号。</td></tr>"
+            ),
             panel_id="phase-correlations",
             title="Phase Correlations",
             subtitle="这里保留阶段与信号的关联，适合在主结论之外继续深挖。",
@@ -5432,7 +6212,9 @@ document.querySelectorAll('[data-standard-table]').forEach(initStandardTablePane
             min_width=980,
             page_size=6,
             prominent=True,
-            collapsed=_collapse_by_importance(row_count=len(affected_target_rows), importance="primary"),
+            collapsed=_collapse_by_importance(
+                row_count=len(affected_target_rows), importance="primary"
+            ),
             search_placeholder="查找 core、函数、startPC、currentPC",
             empty_message="当前还没有足够证据直接收敛到具体 target。",
         ),
@@ -5449,7 +6231,9 @@ document.querySelectorAll('[data-standard-table]').forEach(initStandardTablePane
             min_width=920,
             page_size=8,
             collapsed=_collapse_by_importance(
-                row_count=len(counter_rows if counter_problem_kind != "op_trace_disabled" else []),
+                row_count=len(
+                    counter_rows if counter_problem_kind != "op_trace_disabled" else []
+                ),
                 importance="primary",
                 has_empty_message=False,
             ),
@@ -5472,7 +6256,9 @@ document.querySelectorAll('[data-standard-table]').forEach(initStandardTablePane
             subtitle="这里只保留最终诊断需要的 PC 字段：core、函数、startPC、currentPC 和判定来源。",
             min_width=1040,
             page_size=6,
-            collapsed=_collapse_by_importance(row_count=len(diagnostic_pc_rows), importance="primary"),
+            collapsed=_collapse_by_importance(
+                row_count=len(diagnostic_pc_rows), importance="primary"
+            ),
             search_placeholder="查找 core、函数、reported pc、basis",
             empty_message="当前没有可展示的 diagnostic pc targets。",
         ),
@@ -5513,7 +6299,9 @@ document.querySelectorAll('[data-standard-table]').forEach(initStandardTablePane
             subtitle="这里只保留异常函数和映射对象，足够作为跳转入口。",
             min_width=1120,
             page_size=6,
-            collapsed=_collapse_by_importance(row_count=len(exception_rows), importance="secondary"),
+            collapsed=_collapse_by_importance(
+                row_count=len(exception_rows), importance="secondary"
+            ),
             search_placeholder="查找异常函数、op_trace、映射对象",
             empty_message="当前没有可展示的 exception event。",
         ),
@@ -5525,7 +6313,9 @@ document.querySelectorAll('[data-standard-table]').forEach(initStandardTablePane
             subtitle="这里保留当前 run 中最值得继续追踪的 warning 明细。",
             min_width=1120,
             page_size=8,
-            collapsed=_collapse_by_importance(row_count=len(warning_rows), importance="secondary"),
+            collapsed=_collapse_by_importance(
+                row_count=len(warning_rows), importance="secondary"
+            ),
             search_placeholder="查找 warning 内容",
             empty_message="当前没有需要额外关注的 warning。",
         ),
@@ -5534,7 +6324,10 @@ document.querySelectorAll('[data-standard-table]').forEach(initStandardTablePane
                 "<table><thead><tr><th>Kind</th><th>Line</th><th>Core</th>"
                 "<th>nodeIndex</th><th>entryIndex</th><th>Function</th></tr></thead>"
                 "<tbody>{}</tbody></table>"
-            ).format("".join(core_symbol_rows) or "<tr><td colspan='6'>当前没有可展示的 core symbol event。</td></tr>"),
+            ).format(
+                "".join(core_symbol_rows)
+                or "<tr><td colspan='6'>当前没有可展示的 core symbol event。</td></tr>"
+            ),
             panel_id="core-symbol-events",
             title="Core Symbol Events",
             subtitle="这里保留 core symbol 侧的原始事件，按需展开查看。",
@@ -5552,10 +6345,18 @@ document.querySelectorAll('[data-standard-table]').forEach(initStandardTablePane
                         "<tbody>{}</tbody></table>"
                     ).format(
                         "".join(
-                            ("<tr><td>{}</td><td>{}</td><td>{}</td><td>{}:{}</td><td>{}</td></tr>").format(
-                                html.escape(_phase_key_label(item.get("phase_key", "unknown"))),
-                                html.escape(_signal_bucket_label(item.get("bucket", "unknown"))),
-                                html.escape(_signal_kind_label(item.get("kind", "signal"))),
+                            (
+                                "<tr><td>{}</td><td>{}</td><td>{}</td><td>{}:{}</td><td>{}</td></tr>"
+                            ).format(
+                                html.escape(
+                                    _phase_key_label(item.get("phase_key", "unknown"))
+                                ),
+                                html.escape(
+                                    _signal_bucket_label(item.get("bucket", "unknown"))
+                                ),
+                                html.escape(
+                                    _signal_kind_label(item.get("kind", "signal"))
+                                ),
                                 html.escape(Path(item.get("file", "")).name),
                                 html.escape(str(item.get("line", "?"))),
                                 html.escape(item.get("text", "")),
@@ -5617,7 +6418,9 @@ def _render_performance_report_html(
     presentation_mode = presentation_state["presentation_mode"]
     visible_rows, hidden_rows = _split_visible_hidden(
         performance_correlations,
-        PRESENTATION_LIMITS["performance_matrix"] if presentation_mode == "focused" else 9999,
+        PRESENTATION_LIMITS["performance_matrix"]
+        if presentation_mode == "focused"
+        else 9999,
     )
     visible_top_events, hidden_top_events = _split_visible_hidden(
         performance_summary.get("top_events", []),
@@ -5648,9 +6451,7 @@ def _render_performance_report_html(
         "<th>pid</th><th>tid</th><th>时长</th><th>skId</th><th>nodeId</th>"
         "</tr></thead><tbody>{}</tbody></table>"
     )
-    top_event_more_row_template = (
-        "<tr><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td></tr>"
-    )
+    top_event_more_row_template = "<tr><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td></tr>"
     matrix_rows = []
     for item in visible_rows:
         judgment = _performance_judgment_label(_performance_judgment(item, event_stats))
@@ -5670,8 +6471,12 @@ def _render_performance_report_html(
                 devices=html.escape(",".join(item.get("devices", [])) or "无"),
                 event_count=html.escape(str(item.get("event_count", 0))),
                 total_dur=html.escape(str(item.get("total_duration", 0))),
-                matched_scopes=html.escape(_comma_join_ids(item.get("matched_scope_ids", [])) or "无"),
-                matched_nodes=html.escape(_comma_join_ids(item.get("matched_event_node_ids", [])) or "无"),
+                matched_scopes=html.escape(
+                    _comma_join_ids(item.get("matched_scope_ids", [])) or "无"
+                ),
+                matched_nodes=html.escape(
+                    _comma_join_ids(item.get("matched_event_node_ids", [])) or "无"
+                ),
                 judgment=html.escape(judgment),
                 trace_links=trace_links,
             )
@@ -5726,22 +6531,29 @@ def _render_performance_report_html(
                 include_fallbacks=True,
                 include_summary=True,
             ),
-            _analysis_trace_notice_html(node_trace_summary, run_dir, output_path, analysis_resource_state),
+            _analysis_trace_notice_html(
+                node_trace_summary, run_dir, output_path, analysis_resource_state
+            ),
         ),
         items=[
             (
                 "Focus",
-                _performance_focus_label(str(performance_summary.get("focus", "unknown"))),
+                _performance_focus_label(
+                    str(performance_summary.get("focus", "unknown"))
+                ),
             ),
             (
                 "Completeness",
-                _diagnostic_completeness_label(str(performance_summary.get("diagnostic_completeness", "unknown"))),
+                _diagnostic_completeness_label(
+                    str(performance_summary.get("diagnostic_completeness", "unknown"))
+                ),
             ),
             ("Tracing", _analysis_trace_status_label(node_trace_summary)),
             ("State", _view_state_label(analysis_view_state)),
             (
                 "Next Step",
-                str(performance_summary.get("recommended_next_step", "")) or "先从事件矩阵进入。",
+                str(performance_summary.get("recommended_next_step", ""))
+                or "先从事件矩阵进入。",
             ),
         ],
     )
@@ -5752,11 +6564,19 @@ def _render_performance_report_html(
             [
                 (
                     "Focus",
-                    _performance_focus_label(str(performance_summary.get("focus", "unknown"))),
+                    _performance_focus_label(
+                        str(performance_summary.get("focus", "unknown"))
+                    ),
                 ),
                 (
                     "Completeness",
-                    _diagnostic_completeness_label(str(performance_summary.get("diagnostic_completeness", "unknown"))),
+                    _diagnostic_completeness_label(
+                        str(
+                            performance_summary.get(
+                                "diagnostic_completeness", "unknown"
+                            )
+                        )
+                    ),
                 ),
                 ("Tracing", _analysis_trace_status_label(node_trace_summary)),
             ],
@@ -5765,7 +6585,8 @@ def _render_performance_report_html(
     )
     top_event_table_markup = _wrap_table_markup(
         top_event_table_template.format(
-            "".join(top_event_rows) or "<tr><td colspan='7'>当前没有可展示的时间热点事件。</td></tr>"
+            "".join(top_event_rows)
+            or "<tr><td colspan='7'>当前没有可展示的时间热点事件。</td></tr>"
         ),
         panel_id="top-events",
         title="热点事件",
@@ -5805,7 +6626,13 @@ def _render_performance_report_html(
                                     )
                                 )
                             ),
-                            html.escape(str(item.get("raw_name") or item.get("name") or "未命名事件")),
+                            html.escape(
+                                str(
+                                    item.get("raw_name")
+                                    or item.get("name")
+                                    or "未命名事件"
+                                )
+                            ),
                             html.escape(_display_optional(item.get("device"), "未知")),
                             html.escape(_display_optional(item.get("pid"), "无")),
                             html.escape(_display_optional(item.get("tid"), "无")),
@@ -5829,7 +6656,8 @@ def _render_performance_report_html(
     )
     matrix_table_markup = _wrap_table_markup(
         event_matrix_table_template.format(
-            "".join(matrix_rows) or "<tr><td colspan='9'>当前没有可稳定组织的事件主视角。</td></tr>"
+            "".join(matrix_rows)
+            or "<tr><td colspan='9'>当前没有可稳定组织的事件主视角。</td></tr>"
         ),
         panel_id="event-matrix",
         title="事件矩阵",
@@ -5866,14 +6694,24 @@ def _render_performance_report_html(
                             ),
                             group=html.escape(str(item.get("group_label"))),
                             sk=html.escape(str(item.get("sk_id"))),
-                            devices=html.escape(",".join(item.get("devices", [])) or "none"),
+                            devices=html.escape(
+                                ",".join(item.get("devices", [])) or "none"
+                            ),
                             event_count=html.escape(str(item.get("event_count", 0))),
                             total_dur=html.escape(str(item.get("total_duration", 0))),
-                            matched_scopes=html.escape(_comma_join_ids(item.get("matched_scope_ids", [])) or "none"),
-                            matched_nodes=html.escape(
-                                _comma_join_ids(item.get("matched_event_node_ids", [])) or "none"
+                            matched_scopes=html.escape(
+                                _comma_join_ids(item.get("matched_scope_ids", []))
+                                or "none"
                             ),
-                            judgment=html.escape(_performance_judgment_label(_performance_judgment(item, event_stats))),
+                            matched_nodes=html.escape(
+                                _comma_join_ids(item.get("matched_event_node_ids", []))
+                                or "none"
+                            ),
+                            judgment=html.escape(
+                                _performance_judgment_label(
+                                    _performance_judgment(item, event_stats)
+                                )
+                            ),
                             trace_links=_analysis_trace_action_markup(
                                 item,
                                 run_dir,
@@ -5941,7 +6779,9 @@ def _render_run_portal(
     hang_crash_summary = run_summary.get("hang_crash_summary", {})
     capability_mode = str(run_summary.get("capability_mode") or "summary-only")
     multi_model_index = (
-        run_summary.get("multi_model_index", {}) if isinstance(run_summary.get("multi_model_index"), dict) else {}
+        run_summary.get("multi_model_index", {})
+        if isinstance(run_summary.get("multi_model_index"), dict)
+        else {}
     )
 
     def _build_multi_model_rows(models: list[dict[str, Any]]) -> str:
@@ -5960,7 +6800,11 @@ def _render_run_portal(
         ):
             paths = item.get("report_paths", {})
             processing_error = str(item.get("processing_error") or "").strip()
-            view_states = item.get("view_states", {}) if isinstance(item.get("view_states"), dict) else {}
+            view_states = (
+                item.get("view_states", {})
+                if isinstance(item.get("view_states"), dict)
+                else {}
+            )
 
             def _view_link(
                 key: str,
@@ -5974,9 +6818,17 @@ def _render_run_portal(
                     return "<span class='hint' title='{reason}'>生成失败</span>".format(
                         reason=html.escape(current_processing_error),
                     )
-                view_state = current_view_states.get(key, {}) if isinstance(current_view_states.get(key), dict) else {}
+                view_state = (
+                    current_view_states.get(key, {})
+                    if isinstance(current_view_states.get(key), dict)
+                    else {}
+                )
                 state_level = str(view_state.get("level") or "available")
-                state_title = f"{label} 当前{_view_state_label(view_state)}" if state_level != "available" else ""
+                state_title = (
+                    f"{label} 当前{_view_state_label(view_state)}"
+                    if state_level != "available"
+                    else ""
+                )
                 if href:
                     link = f"<a href='{html.escape(href)}'>{html.escape(label)}</a>"
                     if current_processing_error:
@@ -5994,7 +6846,9 @@ def _render_run_portal(
                     return "<span class='hint' title='{summary}'>{label}</span>".format(
                         summary=html.escape(state_title or "当前模型未生成该视图"),
                         label=html.escape(
-                            _view_state_label(view_state) if state_level != "available" else "当前模型未生成该视图"
+                            _view_state_label(view_state)
+                            if state_level != "available"
+                            else "当前模型未生成该视图"
                         ),
                     )
                 if state_level != "available":
@@ -6017,13 +6871,17 @@ def _render_run_portal(
                     dfx_view=_view_link("hang_crash_report", "DFX"),
                 )
             )
-        return "".join(rows) or "<tr><td colspan='9'>当前没有可展示的 modelRI。</td></tr>"
+        return (
+            "".join(rows) or "<tr><td colspan='9'>当前没有可展示的 modelRI。</td></tr>"
+        )
 
     def _dfx_rank(value: str) -> int:
         return {"abnormal": 3, "warning": 2, "clean": 1}.get(str(value), 0)
 
     def _model_fusion_state(item: dict[str, Any]) -> str:
-        has_task_or_update = bool(item.get("task_queue_available") or item.get("has_update"))
+        has_task_or_update = bool(
+            item.get("task_queue_available") or item.get("has_update")
+        )
         has_fused_function = int(item.get("function_count", 0) or 0) > 0
         if has_task_or_update or has_fused_function:
             return "fused"
@@ -6036,19 +6894,37 @@ def _render_run_portal(
         model_ri = str(item.get("model_ri") or "unknown")
         return f"{process_label} / {model_ri}"
 
-    multi_models = multi_model_index.get("models", []) if isinstance(multi_model_index.get("models"), list) else []
-    multi_model_count = int(multi_model_index.get("model_count", 0) or 0) or max(len(multi_models), 1)
+    multi_models = (
+        multi_model_index.get("models", [])
+        if isinstance(multi_model_index.get("models"), list)
+        else []
+    )
+    multi_model_count = int(multi_model_index.get("model_count", 0) or 0) or max(
+        len(multi_models), 1
+    )
     has_multi_model = multi_model_count > 1
 
-    dfx_abnormal_models = [item for item in multi_models if str(item.get("dfx_status", "clean")) == "abnormal"]
-    dfx_non_abnormal_models = [item for item in multi_models if str(item.get("dfx_status", "clean")) != "abnormal"]
+    dfx_abnormal_models = [
+        item
+        for item in multi_models
+        if str(item.get("dfx_status", "clean")) == "abnormal"
+    ]
+    dfx_non_abnormal_models = [
+        item
+        for item in multi_models
+        if str(item.get("dfx_status", "clean")) != "abnormal"
+    ]
     updated_models = [item for item in multi_models if item.get("has_update")]
     no_update_models = [item for item in multi_models if not item.get("has_update")]
-    scope_only_count = sum(1 for item in multi_models if _model_fusion_state(item) == "scope_only")
+    scope_only_count = sum(
+        1 for item in multi_models if _model_fusion_state(item) == "scope_only"
+    )
 
     header_nav_items = [("运行总览", "#run-summary", False)]
     if has_multi_model and dfx_abnormal_models:
-        header_nav_items.append(("存在 DFX 问题的 modelRI", "#dfx-problem-models", False))
+        header_nav_items.append(
+            ("存在 DFX 问题的 modelRI", "#dfx-problem-models", False)
+        )
         header_nav_items.append(("其余 modelRI", "#non-dfx-problem-models", False))
     elif has_multi_model:
         header_nav_items.append(("有更新的 modelRI", "#updated-models", False))
@@ -6072,7 +6948,9 @@ def _render_run_portal(
             default="abnormal",
         )
         highest_status_models = [
-            item for item in dfx_abnormal_models if str(item.get("dfx_status", "clean")) == highest_status
+            item
+            for item in dfx_abnormal_models
+            if str(item.get("dfx_status", "clean")) == highest_status
         ]
         preferred_item = sorted(
             highest_status_models,
@@ -6112,22 +6990,40 @@ def _render_run_portal(
                 ("modelRI", str(run_summary.get("model_ri") or "unknown")),
                 (
                     "诊断完整度",
-                    _diagnostic_completeness_label(str(run_summary.get("overall_diagnostic_completeness", "unknown"))),
+                    _diagnostic_completeness_label(
+                        str(
+                            run_summary.get(
+                                "overall_diagnostic_completeness", "unknown"
+                            )
+                        )
+                    ),
                 ),
                 ("能力模式", _capability_mode_label(capability_mode)),
             ]
         else:
             has_task_content = bool(run_summary.get("task_indices"))
             has_scope_content = bool(run_summary.get("scope_ids"))
-            fusion_label = "已融合" if has_task_content else ("仅 Scope" if has_scope_content else "未融合")
+            fusion_label = (
+                "已融合"
+                if has_task_content
+                else ("仅 Scope" if has_scope_content else "未融合")
+            )
             summary_title = "融合总览"
-            summary_note = "当前 run 没有明显 DFX 问题，因此这里优先汇报当前 modelRI 的融合情况。"
+            summary_note = (
+                "当前 run 没有明显 DFX 问题，因此这里优先汇报当前 modelRI 的融合情况。"
+            )
             summary_items = [
                 ("modelRI", str(run_summary.get("model_ri") or "unknown")),
                 ("融合状态", fusion_label),
                 (
                     "诊断完整度",
-                    _diagnostic_completeness_label(str(run_summary.get("overall_diagnostic_completeness", "unknown"))),
+                    _diagnostic_completeness_label(
+                        str(
+                            run_summary.get(
+                                "overall_diagnostic_completeness", "unknown"
+                            )
+                        )
+                    ),
                 ),
                 ("能力模式", _capability_mode_label(capability_mode)),
             ]
@@ -6165,7 +7061,9 @@ def _render_run_portal(
         if dfx_abnormal_models:
             multi_model_sections = (
                 _wrap_table_markup(
-                    table_template.format(rows=_build_multi_model_rows(dfx_abnormal_models)),
+                    table_template.format(
+                        rows=_build_multi_model_rows(dfx_abnormal_models)
+                    ),
                     panel_id="portal-dfx-problems",
                     title="存在 DFX 问题的 modelRI",
                     subtitle="这些 modelRI 的 DFX 结论达到 abnormal，应优先进入对应 DFX View；处理完 DFX 之后，再回头检查 update 和融合情况。",
@@ -6176,7 +7074,9 @@ def _render_run_portal(
                 )
                 + "\n"
                 + _wrap_table_markup(
-                    table_template.format(rows=_build_multi_model_rows(dfx_non_abnormal_models)),
+                    table_template.format(
+                        rows=_build_multi_model_rows(dfx_non_abnormal_models)
+                    ),
                     panel_id="portal-dfx-clean",
                     title="其余 modelRI",
                     subtitle="这些 modelRI 当前没有 abnormal 级别的 DFX 问题；若还需要继续确认，请再看对应的 Scope、TaskQue 和 Analysis。",
@@ -6199,7 +7099,9 @@ def _render_run_portal(
                 )
                 + "\n"
                 + _wrap_table_markup(
-                    table_template.format(rows=_build_multi_model_rows(no_update_models)),
+                    table_template.format(
+                        rows=_build_multi_model_rows(no_update_models)
+                    ),
                     panel_id="portal-no-update",
                     title="无更新的 modelRI",
                     subtitle="这些 modelRI 当前还没有形成 update 相关事实；若仍保留 Scope 结构，就依然可以继续查看 Scope。",
@@ -6260,7 +7162,9 @@ def _render_ai_hints(
     if not phase_assertions["built_tasks_finish"]:
         focus.append("重点先排查 build tasks 前后的日志区段。")
     if validation["reports"].get("node_trace", {}).get("status") != "ok":
-        focus.append("当前 node tracing 未稳定产出，优先回查 `sk_node_tracing.py` 输入格式。")
+        focus.append(
+            "当前 node tracing 未稳定产出，优先回查 `sk_node_tracing.py` 输入格式。"
+        )
     if event_stats["event_file_count"] == 0:
         focus.append("当前没有 time event 文件，性能判断先停留在结构与队列层。")
     if not focus:
@@ -6316,7 +7220,9 @@ def _expected_reports_for_mode(mode: str) -> list[str]:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Generate run-level SK diagnostic reports")
+    parser = argparse.ArgumentParser(
+        description="Generate run-level SK diagnostic reports"
+    )
     parser.add_argument(
         "--mode",
         choices=sorted(REPORT_MODES),
@@ -6328,7 +7234,9 @@ def main() -> None:
         action="store_true",
         help="Generate optional AI-layer hints on top of base reports",
     )
-    parser.add_argument("--jobs", type=int, help="Override worker count for multi-model execution")
+    parser.add_argument(
+        "--jobs", type=int, help="Override worker count for multi-model execution"
+    )
     parser.add_argument(
         "--no-parallel",
         action="store_true",
@@ -6344,7 +7252,9 @@ def main() -> None:
         action="store_true",
         help="Write stage timing details to reports/data/diagnose-profile.json",
     )
-    parser.add_argument("input", help="Result root, model asset directory, or model directory")
+    parser.add_argument(
+        "input", help="Result root, model asset directory, or model directory"
+    )
     args = parser.parse_args()
     profile = ProfileRecorder(bool(args.profile))
 
@@ -6444,14 +7354,19 @@ def main() -> None:
                 total_stages=total_runtime_stages,
             )
         total_model_instances = sum(
-            max(1, int(entry.get("model_instance_count") or 1)) for entry in model_report_entries
+            max(1, int(entry.get("model_instance_count") or 1))
+            for entry in model_report_entries
         ) or len(model_dirs)
         if not any(
-            entry.get("scope_library_json") and entry.get("graph_library_json") and entry.get("dfx_library_json")
+            entry.get("scope_library_json")
+            and entry.get("graph_library_json")
+            and entry.get("dfx_library_json")
             for entry in model_report_entries
         ):
             failure_summary = _model_collection_failure_summary(model_report_entries)
-            raise RuntimeError(f"all model library collection tasks failed: {failure_summary}")
+            raise RuntimeError(
+                f"all model library collection tasks failed: {failure_summary}"
+            )
         bundle_mode = len(model_report_entries) > 1
         if bundle_mode and not multi_model_mode:
             for stale_dir in (views_dir, data_dir):
@@ -6470,7 +7385,9 @@ def main() -> None:
             scope_library_json = primary_entry.get("scope_library_json")
             graph_library_json = primary_entry.get("graph_library_json")
             dfx_library_json = primary_entry.get("dfx_library_json")
-            has_required_libraries = bool(scope_library_json and graph_library_json and dfx_library_json)
+            has_required_libraries = bool(
+                scope_library_json and graph_library_json and dfx_library_json
+            )
             if not bundle_mode and has_required_libraries:
                 report_links["scope_library"] = _run_relative_path_from_reports(
                     _reports_relative_path(scope_library_json, reports_dir),
@@ -6493,26 +7410,41 @@ def main() -> None:
             bundle_mode=bundle_mode,
         ):
             update_report = (
-                _build_multi_model_update_report(model_report_entries, context.get("model_asset_root"))
+                _build_multi_model_update_report(
+                    model_report_entries, context.get("model_asset_root")
+                )
                 if bundle_mode
                 else _load_model_update_report_from_libraries(
                     model_dir=model_report_entries[0]["model_dir"],
                     model_ri=model_report_entries[0].get("model_ri"),
                     model_instance_id=model_report_entries[0].get("model_instance_id"),
-                    model_instance_index=model_report_entries[0].get("model_instance_index"),
-                    model_instance_count=model_report_entries[0].get("model_instance_count"),
-                    scope_library_json=model_report_entries[0].get("scope_library_json"),
-                    graph_library_json=model_report_entries[0].get("graph_library_json"),
+                    model_instance_index=model_report_entries[0].get(
+                        "model_instance_index"
+                    ),
+                    model_instance_count=model_report_entries[0].get(
+                        "model_instance_count"
+                    ),
+                    scope_library_json=model_report_entries[0].get(
+                        "scope_library_json"
+                    ),
+                    graph_library_json=model_report_entries[0].get(
+                        "graph_library_json"
+                    ),
                     dfx_library_json=model_report_entries[0].get("dfx_library_json"),
                 )
             )
 
     render_parallel_workers = (
-        _resolve_parallel_workers(len(model_report_entries), args.jobs) if model_report_entries and use_parallel else 1
+        _resolve_parallel_workers(len(model_report_entries), args.jobs)
+        if model_report_entries and use_parallel
+        else 1
     )
     event_file_paths_by_process: dict[str, list[str]] = {}
     event_stats_provider = EventStatsProvider(run_dir, profile)
-    performance_enabled = "performance_report" in expected_reports and "performance_report" not in blocked_reports
+    performance_enabled = (
+        "performance_report" in expected_reports
+        and "performance_report" not in blocked_reports
+    )
     with profile.section(
         "register_event_stats_provider",
         model_entry_count=len(model_report_entries),
@@ -6526,19 +7458,29 @@ def main() -> None:
             for process_label, raw_paths in process_event_files.items():
                 process_event_dir = reports_dir / process_label / "data"
                 event_file_paths_by_process[process_label] = list(raw_paths)
-                event_stats_provider.register_process(process_label, raw_paths, process_event_dir)
+                event_stats_provider.register_process(
+                    process_label, raw_paths, process_event_dir
+                )
         elif model_report_entries:
             views_dir.mkdir(parents=True, exist_ok=True)
             data_dir.mkdir(parents=True, exist_ok=True)
             for entry in model_report_entries:
                 process_label = str(entry["process_label"])
-                event_file_paths_by_process[process_label] = list(asset_inventory.get("event_files", []))
-                event_stats_provider.register_process(process_label, asset_inventory.get("event_files", []), data_dir)
-            event_stats_provider.register_fallback(asset_inventory.get("event_files", []), data_dir)
+                event_file_paths_by_process[process_label] = list(
+                    asset_inventory.get("event_files", [])
+                )
+                event_stats_provider.register_process(
+                    process_label, asset_inventory.get("event_files", []), data_dir
+                )
+            event_stats_provider.register_fallback(
+                asset_inventory.get("event_files", []), data_dir
+            )
 
     event_stats_by_process: dict[str, dict[str, Any]] = {}
     if performance_expected and model_report_entries:
-        event_process_labels = sorted(set(str(entry["process_label"]) for entry in model_report_entries))
+        event_process_labels = sorted(
+            set(str(entry["process_label"]) for entry in model_report_entries)
+        )
         pending_event_process_labels = (
             event_stats_provider.pending_process_labels(event_process_labels)
             if performance_enabled
@@ -6547,7 +7489,9 @@ def main() -> None:
         with ProgressTracker(
             stage_index=2,
             total_stages=total_runtime_stages,
-            label="解析 event/prof 数据" if performance_enabled else "检查 event/prof 数据",
+            label="解析 event/prof 数据"
+            if performance_enabled
+            else "检查 event/prof 数据",
             total_items=len(pending_event_process_labels) or 1,
             worker_count=render_parallel_workers if performance_enabled else None,
         ) as event_stage:
@@ -6563,7 +7507,9 @@ def main() -> None:
                 event_stage.step(len(event_process_labels))
         copied_event_files = event_stats_provider.copied_paths()
         if copied_event_files and not bundle_mode:
-            report_links["event_data_files"] = [os.path.relpath(path, run_dir) for path in copied_event_files]
+            report_links["event_data_files"] = [
+                os.path.relpath(path, run_dir) for path in copied_event_files
+            ]
 
     if model_report_entries:
         with profile.section(
@@ -6606,7 +7552,9 @@ def main() -> None:
         ):
             relative = model_report_entries[0].get("report_paths", {}).get(key)
             if relative:
-                report_links[key] = _run_relative_path_from_reports(relative, reports_dir, run_dir)
+                report_links[key] = _run_relative_path_from_reports(
+                    relative, reports_dir, run_dir
+                )
 
     node_trace_summary = _collect_node_trace_summary(run_dir, report_links, tool_runs)
     if node_trace_summary.get("meta_file"):
@@ -6625,10 +7573,14 @@ def main() -> None:
             if performance_enabled
             else _empty_event_stats()
         )
-    with profile.section("summarize_run_dfx_performance", model_entry_count=len(model_report_entries)):
+    with profile.section(
+        "summarize_run_dfx_performance", model_entry_count=len(model_report_entries)
+    ):
         phase_assertions = _build_dfx_phase_assertions(update_report)
         hang_crash_summary = _build_dfx_hang_summary(update_report)
-        phase_correlated_signals = hang_crash_summary.get("phase_correlated_signals", [])
+        phase_correlated_signals = hang_crash_summary.get(
+            "phase_correlated_signals", []
+        )
         performance_correlations = _correlate_performance(update_report, event_stats)
         actionable_signals = hang_crash_summary.get("top_actionable_signals", [])
         recommended_triage_entry = "hang-crash-report.html"
@@ -6636,23 +7588,38 @@ def main() -> None:
             first_signal = actionable_signals[0]
             if first_signal.get("priority") == "high":
                 recommended_triage_entry = "hang-crash-report.html"
-            elif first_signal.get("phase_key") and first_signal.get("phase_key") != "external_log":
+            elif (
+                first_signal.get("phase_key")
+                and first_signal.get("phase_key") != "external_log"
+            ):
                 recommended_triage_entry = "hang-crash-report.html"
         hang_crash_summary["top_actionable_signals"] = actionable_signals
         hang_crash_summary["recommended_triage_entry"] = recommended_triage_entry
-        performance_summary = _summarize_performance_diagnosis(update_report, event_stats, performance_correlations)
-        hang_presentation_state = _hang_presentation_state(hang_crash_summary, phase_correlated_signals)
-        performance_presentation_state = _performance_presentation_state(performance_correlations)
+        performance_summary = _summarize_performance_diagnosis(
+            update_report, event_stats, performance_correlations
+        )
+        hang_presentation_state = _hang_presentation_state(
+            hang_crash_summary, phase_correlated_signals
+        )
+        performance_presentation_state = _performance_presentation_state(
+            performance_correlations
+        )
         analysis_view_state, analysis_resource_state = _build_analysis_view_state(
             asset_inventory,
             event_stats,
             node_trace_summary,
         )
     if model_report_entries and not bundle_mode:
-        model_report_entries[0]["dfx_status"] = str(hang_crash_summary.get("analysis_status") or "clean")
-        model_report_entries[0]["dfx_conclusion"] = str(hang_crash_summary.get("conclusion") or "")
+        model_report_entries[0]["dfx_status"] = str(
+            hang_crash_summary.get("analysis_status") or "clean"
+        )
+        model_report_entries[0]["dfx_conclusion"] = str(
+            hang_crash_summary.get("conclusion") or ""
+        )
 
-    validation = _build_validation(expected_reports, report_links, tool_runs, blocked_reports)
+    validation = _build_validation(
+        expected_reports, report_links, tool_runs, blocked_reports
+    )
     asset_advice = _build_asset_advice(asset_inventory)
 
     ai = {
@@ -6680,7 +7647,9 @@ def main() -> None:
         "model_dir_count": len(model_dirs),
         "model_instance_count": total_model_instances,
         "log_dir": str(context["log_dir"]),
-        "model_asset_root": str(context["model_asset_root"]) if context["model_asset_root"] else None,
+        "model_asset_root": str(context["model_asset_root"])
+        if context["model_asset_root"]
+        else None,
         "sk_meta_dir": str(context["sk_meta_dir"]) if context["sk_meta_dir"] else None,
         "kernel_meta_dir": str(context["kernel_meta_dir"]),
     }
@@ -6691,7 +7660,9 @@ def main() -> None:
         "performance_report": performance_presentation_state,
     }
 
-    with profile.section("build_report_artifacts", model_entry_count=len(model_report_entries)):
+    with profile.section(
+        "build_report_artifacts", model_entry_count=len(model_report_entries)
+    ):
         next_information_needed = _build_next_information_needed(
             missing_assets,
             update_report,
@@ -6712,7 +7683,9 @@ def main() -> None:
                 presentation_states,
             )
         )
-        overall_diagnostic_completeness = _overall_diagnostic_completeness(report_artifacts)
+        overall_diagnostic_completeness = _overall_diagnostic_completeness(
+            report_artifacts
+        )
         current_capabilities, still_missing_capabilities = _build_capability_summary(
             report_artifacts,
             asset_inventory,
@@ -6737,9 +7710,17 @@ def main() -> None:
                     artifact.get("linked_objects", {}),
                 )
 
-    with profile.section("build_portal_artifacts", model_entry_count=len(model_report_entries)):
-        capability_mode = "graph-capable" if "graph_capable_mode" in current_capabilities else "summary-only"
-        portal_presentation_state = _portal_presentation_state(capability_mode, missing_assets, report_artifacts)
+    with profile.section(
+        "build_portal_artifacts", model_entry_count=len(model_report_entries)
+    ):
+        capability_mode = (
+            "graph-capable"
+            if "graph_capable_mode" in current_capabilities
+            else "summary-only"
+        )
+        portal_presentation_state = _portal_presentation_state(
+            capability_mode, missing_assets, report_artifacts
+        )
         presentation_states["run_portal"] = portal_presentation_state
         report_artifacts = _build_report_artifacts(
             ReportArtifactsInput(
@@ -6755,7 +7736,9 @@ def main() -> None:
                 presentation_states,
             )
         )
-        overall_diagnostic_completeness = _overall_diagnostic_completeness(report_artifacts)
+        overall_diagnostic_completeness = _overall_diagnostic_completeness(
+            report_artifacts
+        )
         current_capabilities, still_missing_capabilities = _build_capability_summary(
             report_artifacts,
             asset_inventory,
@@ -6764,7 +7747,9 @@ def main() -> None:
             performance_summary,
         )
 
-    with profile.section("build_run_summary_payload", model_entry_count=len(model_report_entries)):
+    with profile.section(
+        "build_run_summary_payload", model_entry_count=len(model_report_entries)
+    ):
         run_summary = {
             "run_id": run_dir.name,
             "entry_name": _infer_entry_name(run_dir),
@@ -6811,7 +7796,9 @@ def main() -> None:
             "node_ids": _update_node_ids(update_report),
             "stream_ids": _update_stream_ids(update_report),
             "task_indices": _update_task_indices(update_report),
-            "phase_keys": _update_phase_summary_data(update_report).get("phase_keys", []),
+            "phase_keys": _update_phase_summary_data(update_report).get(
+                "phase_keys", []
+            ),
             "phase_assertions": phase_assertions,
             "event_stats": event_stats,
             "dfx_library": _update_dfx_library(update_report),
@@ -6838,8 +7825,12 @@ def main() -> None:
         total_items=1,
     )
     stage3.start()
-    with profile.section("render_run_portal", model_entry_count=len(model_report_entries)):
-        _write_text(portal_path, _render_run_portal(run_summary, validation, report_links))
+    with profile.section(
+        "render_run_portal", model_entry_count=len(model_report_entries)
+    ):
+        _write_text(
+            portal_path, _render_run_portal(run_summary, validation, report_links)
+        )
     stage3.step()
 
     profile.write(

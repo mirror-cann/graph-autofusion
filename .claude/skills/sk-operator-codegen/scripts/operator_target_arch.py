@@ -48,7 +48,9 @@ SUPPORTED_CHIP_ARCH_RULES = (
 )
 
 ADD_CONFIG_RE = re.compile(r"\bAddConfig\s*\(\s*['\"]([^'\"]+)['\"]")
-REGISTER_OP_AICORE_CONFIG_RE = re.compile(r"\bREGISTER_OP_AICORE_CONFIG\s*\(\s*[A-Za-z_]\w*\s*,\s*([A-Za-z0-9_]+)\s*,")
+REGISTER_OP_AICORE_CONFIG_RE = re.compile(
+    r"\bREGISTER_OP_AICORE_CONFIG\s*\(\s*[A-Za-z_]\w*\s*,\s*([A-Za-z0-9_]+)\s*,"
+)
 ASCEND_COMPUTE_UNIT_RE = re.compile(r"\bASCEND_COMPUTE_UNIT\b")
 SOC_VALUE_RE = re.compile(
     r"\b(?:ascend|Ascend)"
@@ -104,7 +106,10 @@ def resolve_chip_to_arch(chip: object) -> dict[str, Any] | None:
     except (TypeError, ValueError):
         enum_value = None
     for rule in SUPPORTED_CHIP_ARCH_RULES:
-        if any(normalized.startswith(normalize_chip(prefix)) for prefix in rule["string_prefixes"]):
+        if any(
+            normalized.startswith(normalize_chip(prefix))
+            for prefix in rule["string_prefixes"]
+        ):
             return {
                 "chip": raw,
                 "canonical_chip": rule["canonical_chip"],
@@ -135,7 +140,9 @@ def resolve_target_chips(
                 {
                     "chip": chip,
                     "reason": "unsupported-chip-arch-mapping",
-                    "supported_chips": [rule["canonical_chip"] for rule in SUPPORTED_CHIP_ARCH_RULES],
+                    "supported_chips": [
+                        rule["canonical_chip"] for rule in SUPPORTED_CHIP_ARCH_RULES
+                    ],
                 }
             )
         else:
@@ -186,7 +193,9 @@ def extract_supported_soc_versions_from_cmake_presets(path: Path) -> list[str]:
     for item in _walk_json_values(payload):
         text = str(item or "")
         if not ASCEND_COMPUTE_UNIT_RE.search(
-            json.dumps(item, ensure_ascii=False) if isinstance(item, (dict, list)) else text
+            json.dumps(item, ensure_ascii=False)
+            if isinstance(item, (dict, list))
+            else text
         ):
             # Also accept direct values because cacheVariables nesting separates key and value.
             pass
@@ -249,7 +258,9 @@ def build_target_resolution(
         canonical_norm = normalize_chip(item["canonical_chip"])
         raw_norm = normalize_chip(item["chip"])
         arch_norm = normalize_arch(item["arch"])
-        unsupported_chip = canonical_norm not in supported_norm and raw_norm not in supported_norm
+        unsupported_chip = (
+            canonical_norm not in supported_norm and raw_norm not in supported_norm
+        )
         unsupported_arch = arch_norm not in supported_arch_norm
         if has_declared_support and unsupported_chip and unsupported_arch:
             skipped.append(

@@ -245,7 +245,9 @@ def _read_pybind_io_contract(path_text: str) -> dict[str, dict[str, Any]]:
     try:
         payload = json.loads(contract_path.read_text(encoding="utf-8"))
     except json.JSONDecodeError as exc:
-        raise CliUsageError(f"IO contract must be valid JSON: {contract_path}: {exc}") from exc
+        raise CliUsageError(
+            f"IO contract must be valid JSON: {contract_path}: {exc}"
+        ) from exc
     if not isinstance(payload, dict):
         raise CliUsageError("IO contract must be a JSON object")
     try:
@@ -262,34 +264,50 @@ def _read_pybind_io_contract(path_text: str) -> dict[str, dict[str, Any]]:
         if value in (None, ""):
             return []
         if not isinstance(value, list):
-            raise CliUsageError(f"IO contract entry {entry_name!r} field {field_name!r} must be a list")
+            raise CliUsageError(
+                f"IO contract entry {entry_name!r} field {field_name!r} must be a list"
+            )
         names = [str(item).strip() for item in value]
         if any(not item for item in names):
-            raise CliUsageError(f"IO contract entry {entry_name!r} field {field_name!r} contains an empty name")
+            raise CliUsageError(
+                f"IO contract entry {entry_name!r} field {field_name!r} contains an empty name"
+            )
         return names
 
     def _bool_value(value: object, field_name: str, entry_name: str) -> bool:
         if isinstance(value, bool):
             return value
-        raise CliUsageError(f"IO contract entry {entry_name!r} field {field_name!r} must be a boolean")
+        raise CliUsageError(
+            f"IO contract entry {entry_name!r} field {field_name!r} must be a boolean"
+        )
 
     def _string_list(value: object, field_name: str, entry_name: str) -> list[str]:
         if value in (None, ""):
             return []
         if not isinstance(value, list):
-            raise CliUsageError(f"IO contract entry {entry_name!r} field {field_name!r} must be a list")
+            raise CliUsageError(
+                f"IO contract entry {entry_name!r} field {field_name!r} must be a list"
+            )
         rendered = [str(item).strip() for item in value]
         if any(not item for item in rendered):
-            raise CliUsageError(f"IO contract entry {entry_name!r} field {field_name!r} contains an empty string")
+            raise CliUsageError(
+                f"IO contract entry {entry_name!r} field {field_name!r} contains an empty string"
+            )
         if any("\x00" in item for item in rendered):
-            raise CliUsageError(f"IO contract entry {entry_name!r} field {field_name!r} contains a NUL byte")
+            raise CliUsageError(
+                f"IO contract entry {entry_name!r} field {field_name!r} contains a NUL byte"
+            )
         return rendered
 
-    def _param_map(value: object, field_name: str, entry_name: str) -> dict[str, dict[str, Any]]:
+    def _param_map(
+        value: object, field_name: str, entry_name: str
+    ) -> dict[str, dict[str, Any]]:
         if value in (None, ""):
             return {}
         if not isinstance(value, dict):
-            raise CliUsageError(f"IO contract entry {entry_name!r} field {field_name!r} must be an object")
+            raise CliUsageError(
+                f"IO contract entry {entry_name!r} field {field_name!r} must be an object"
+            )
         normalized: dict[str, dict[str, Any]] = {}
         for raw_name, raw_spec in value.items():
             param_name = str(raw_name).strip()
@@ -314,12 +332,16 @@ def _read_pybind_io_contract(path_text: str) -> dict[str, dict[str, Any]]:
                     f"IO contract entry {entry_name!r} field {field_name!r} parameter {param_name!r} "
                     f"has unsupported kind {kind!r}"
                 )
-            if raw_spec.get("nullable") is not None and not isinstance(raw_spec.get("nullable"), bool):
+            if raw_spec.get("nullable") is not None and not isinstance(
+                raw_spec.get("nullable"), bool
+            ):
                 raise CliUsageError(
                     f"IO contract entry {entry_name!r} field {field_name!r} parameter {param_name!r} "
                     "nullable must be a boolean"
                 )
-            normalized[param_name] = {key: value for key, value in raw_spec.items() if key != "kind"}
+            normalized[param_name] = {
+                key: value for key, value in raw_spec.items() if key != "kind"
+            }
             normalized[param_name]["kind"] = kind
         return normalized
 
@@ -327,7 +349,9 @@ def _read_pybind_io_contract(path_text: str) -> dict[str, dict[str, Any]]:
         if value in (None, ""):
             return {}
         if not isinstance(value, dict):
-            raise CliUsageError(f"IO contract entry {entry_name!r} field 'launch' must be an object")
+            raise CliUsageError(
+                f"IO contract entry {entry_name!r} field 'launch' must be an object"
+            )
         normalized: dict[str, Any] = {}
         if "block_dim" in value:
             try:
@@ -337,17 +361,27 @@ def _read_pybind_io_contract(path_text: str) -> dict[str, dict[str, Any]]:
                     f"IO contract entry {entry_name!r} launch.block_dim must be a positive integer"
                 ) from exc
             if block_dim <= 0:
-                raise CliUsageError(f"IO contract entry {entry_name!r} launch.block_dim must be a positive integer")
+                raise CliUsageError(
+                    f"IO contract entry {entry_name!r} launch.block_dim must be a positive integer"
+                )
             normalized["block_dim"] = block_dim
         return normalized
 
-    def _compile_contract(value: object, raw_spec: dict[str, Any], entry_name: str) -> dict[str, Any]:
+    def _compile_contract(
+        value: object, raw_spec: dict[str, Any], entry_name: str
+    ) -> dict[str, Any]:
         if value in (None, ""):
             value = {}
         if not isinstance(value, dict):
-            raise CliUsageError(f"IO contract entry {entry_name!r} field 'compile' must be an object")
-        raw_defines = value["defines"] if "defines" in value else raw_spec.get("compile_defines")
-        raw_options = value["options"] if "options" in value else raw_spec.get("compile_options")
+            raise CliUsageError(
+                f"IO contract entry {entry_name!r} field 'compile' must be an object"
+            )
+        raw_defines = (
+            value["defines"] if "defines" in value else raw_spec.get("compile_defines")
+        )
+        raw_options = (
+            value["options"] if "options" in value else raw_spec.get("compile_options")
+        )
         defines = []
         for define in _string_list(raw_defines, "compile.defines", entry_name):
             defines.append(define if define.startswith("-D") else f"-D{define}")
@@ -358,7 +392,9 @@ def _read_pybind_io_contract(path_text: str) -> dict[str, dict[str, Any]]:
         if value in (None, ""):
             return {}
         if not isinstance(value, dict):
-            raise CliUsageError(f"IO contract entry {entry_name!r} field 'migration' must be an object")
+            raise CliUsageError(
+                f"IO contract entry {entry_name!r} field 'migration' must be an object"
+            )
         normalized: dict[str, Any] = {}
         if "confirm_legacy_mix_semantics" in value:
             normalized["confirm_legacy_mix_semantics"] = _bool_value(
@@ -372,20 +408,28 @@ def _read_pybind_io_contract(path_text: str) -> dict[str, dict[str, Any]]:
         if value in (None, ""):
             return {}
         if not isinstance(value, dict):
-            raise CliUsageError(f"IO contract entry {entry_name!r} field 'runtime_wrapper' must be an object")
+            raise CliUsageError(
+                f"IO contract entry {entry_name!r} field 'runtime_wrapper' must be an object"
+            )
         source = str(value.get("source") or "").strip()
         wrapper_entry = str(value.get("entry") or "").strip()
         if not source:
-            raise CliUsageError(f"IO contract entry {entry_name!r} runtime_wrapper.source must be non-empty")
+            raise CliUsageError(
+                f"IO contract entry {entry_name!r} runtime_wrapper.source must be non-empty"
+            )
         if "\x00" in source:
-            raise CliUsageError(f"IO contract entry {entry_name!r} runtime_wrapper.source contains a NUL byte")
+            raise CliUsageError(
+                f"IO contract entry {entry_name!r} runtime_wrapper.source contains a NUL byte"
+            )
         source_path = Path(source)
         if source_path.is_absolute() or ".." in source_path.parts:
             raise CliUsageError(
                 f"IO contract entry {entry_name!r} runtime_wrapper.source must be a relative path inside the asset"
             )
         if not wrapper_entry or not _CPP_IDENTIFIER_RE.match(wrapper_entry):
-            raise CliUsageError(f"IO contract entry {entry_name!r} runtime_wrapper.entry must be a C++ identifier")
+            raise CliUsageError(
+                f"IO contract entry {entry_name!r} runtime_wrapper.entry must be a C++ identifier"
+            )
         normalized: dict[str, Any] = {
             "source": source_path.as_posix(),
             "entry": wrapper_entry,
@@ -433,26 +477,56 @@ def _read_pybind_io_contract(path_text: str) -> dict[str, dict[str, Any]]:
             input_tensors: list[str] = []
             output_tensors: list[str] = [return_tensor] if return_tensor else []
         elif isinstance(raw_spec, dict):
-            return_tensor = str(raw_spec.get("pybind_return_tensor") or raw_spec.get("return_tensor") or "").strip()
-            raw_inputs = raw_spec["inputs"] if "inputs" in raw_spec else raw_spec.get("input_tensors")
-            raw_outputs = raw_spec["outputs"] if "outputs" in raw_spec else raw_spec.get("output_tensors")
-            raw_workspaces = raw_spec["workspaces"] if "workspaces" in raw_spec else raw_spec.get("workspace_tensors")
+            return_tensor = str(
+                raw_spec.get("pybind_return_tensor")
+                or raw_spec.get("return_tensor")
+                or ""
+            ).strip()
+            raw_inputs = (
+                raw_spec["inputs"]
+                if "inputs" in raw_spec
+                else raw_spec.get("input_tensors")
+            )
+            raw_outputs = (
+                raw_spec["outputs"]
+                if "outputs" in raw_spec
+                else raw_spec.get("output_tensors")
+            )
+            raw_workspaces = (
+                raw_spec["workspaces"]
+                if "workspaces" in raw_spec
+                else raw_spec.get("workspace_tensors")
+            )
             input_tensors = _name_list(raw_inputs, "inputs", entry_name)
             output_tensors = _name_list(raw_outputs, "outputs", entry_name)
             workspace_tensors = _name_list(raw_workspaces, "workspaces", entry_name)
-            raw_params = raw_spec["parameters"] if "parameters" in raw_spec else raw_spec.get("params")
+            raw_params = (
+                raw_spec["parameters"]
+                if "parameters" in raw_spec
+                else raw_spec.get("params")
+            )
             parameters = _param_map(raw_params, "parameters", entry_name)
             launch = _launch_contract(raw_spec.get("launch"), entry_name)
-            compile_contract = _compile_contract(raw_spec.get("compile"), raw_spec, entry_name)
-            migration_contract = _migration_contract(raw_spec.get("migration"), entry_name)
-            runtime_wrapper_contract = _runtime_wrapper_contract(raw_spec.get("runtime_wrapper"), entry_name)
-            public_entry_name = str(raw_spec.get("public_entry_name") or raw_spec.get("entry_name") or "").strip()
+            compile_contract = _compile_contract(
+                raw_spec.get("compile"), raw_spec, entry_name
+            )
+            migration_contract = _migration_contract(
+                raw_spec.get("migration"), entry_name
+            )
+            runtime_wrapper_contract = _runtime_wrapper_contract(
+                raw_spec.get("runtime_wrapper"), entry_name
+            )
+            public_entry_name = str(
+                raw_spec.get("public_entry_name") or raw_spec.get("entry_name") or ""
+            ).strip()
             source_entry_name = str(raw_spec.get("source_entry_name") or "").strip()
             bind_target = str(raw_spec.get("bind_target") or "").strip()
             if not return_tensor and len(output_tensors) == 1:
                 return_tensor = output_tensors[0]
         else:
-            raise CliUsageError(f"IO contract entry {entry_name!r} must be a string or object")
+            raise CliUsageError(
+                f"IO contract entry {entry_name!r} must be a string or object"
+            )
         if not return_tensor:
             raise CliUsageError(
                 f"IO contract entry {entry_name!r} must declare pybind_return_tensor or exactly one output tensor"
@@ -465,14 +539,24 @@ def _read_pybind_io_contract(path_text: str) -> dict[str, dict[str, Any]]:
             "pybind_return_tensor": return_tensor,
             "input_tensors": input_tensors,
             "output_tensors": output_tensors or [return_tensor],
-            "workspace_tensors": workspace_tensors if isinstance(raw_spec, dict) else [],
+            "workspace_tensors": workspace_tensors
+            if isinstance(raw_spec, dict)
+            else [],
             "parameters": parameters if isinstance(raw_spec, dict) else {},
             "launch": launch if isinstance(raw_spec, dict) else {},
-            "compile": compile_contract if isinstance(raw_spec, dict) else {"defines": [], "options": []},
+            "compile": compile_contract
+            if isinstance(raw_spec, dict)
+            else {"defines": [], "options": []},
             "migration": migration_contract if isinstance(raw_spec, dict) else {},
-            "runtime_wrapper": runtime_wrapper_contract if isinstance(raw_spec, dict) else {},
-            "public_entry_name": public_entry_name if isinstance(raw_spec, dict) else "",
-            "source_entry_name": source_entry_name if isinstance(raw_spec, dict) else "",
+            "runtime_wrapper": runtime_wrapper_contract
+            if isinstance(raw_spec, dict)
+            else {},
+            "public_entry_name": public_entry_name
+            if isinstance(raw_spec, dict)
+            else "",
+            "source_entry_name": source_entry_name
+            if isinstance(raw_spec, dict)
+            else "",
             "bind_target": bind_target if isinstance(raw_spec, dict) else "",
             "contract_path": str(contract_path),
         }
@@ -493,7 +577,9 @@ def _is_scalar_c_type(c_type: str) -> bool:
         "bool",
         "size_t",
     )
-    return not _is_tensor_c_type(c_type) and any(marker in c_type for marker in scalar_markers)
+    return not _is_tensor_c_type(c_type) and any(
+        marker in c_type for marker in scalar_markers
+    )
 
 
 def _entry_param_kinds(entry: dict[str, Any]) -> dict[str, str]:
@@ -512,7 +598,9 @@ def _entry_param_kinds(entry: dict[str, Any]) -> dict[str, str]:
     return kinds
 
 
-def _is_declared_kind_compatible(detected_kind: str | None, declared_kind: str | None) -> bool:
+def _is_declared_kind_compatible(
+    detected_kind: str | None, declared_kind: str | None
+) -> bool:
     if detected_kind == declared_kind:
         return True
     if detected_kind == "tensor" and declared_kind in {"tensor", "tensor_list"}:
@@ -526,7 +614,11 @@ def _io_contract_runtime_tensor_param_names(entry: dict[str, Any]) -> list[str]:
     for name, kind in _entry_param_kinds(entry).items():
         if kind != "tensor":
             continue
-        declared_kind = declared.get(name, {}).get("kind") if isinstance(declared.get(name), dict) else ""
+        declared_kind = (
+            declared.get(name, {}).get("kind")
+            if isinstance(declared.get(name), dict)
+            else ""
+        )
         if declared_kind == "tensor_list":
             continue
         names.append(name)
@@ -534,11 +626,17 @@ def _io_contract_runtime_tensor_param_names(entry: dict[str, Any]) -> list[str]:
 
 
 def _io_contract_tensor_param_names(entry: dict[str, Any]) -> list[str]:
-    return [name for name, kind in _entry_param_kinds(entry).items() if kind == "tensor"]
+    return [
+        name for name, kind in _entry_param_kinds(entry).items() if kind == "tensor"
+    ]
 
 
 def _io_contract_host_struct_param_names(entry: dict[str, Any]) -> list[str]:
-    return [name for name, kind in _entry_param_kinds(entry).items() if kind == "host_struct"]
+    return [
+        name
+        for name, kind in _entry_param_kinds(entry).items()
+        if kind == "host_struct"
+    ]
 
 
 def _entry_contract_bind_target(entry: dict[str, Any]) -> str:
@@ -645,26 +743,40 @@ def _collect_kernel_entries(files: list[Path], base_dir: Path) -> list[dict[str,
 
 
 def _collect_sk_markers(files: list[Path]) -> dict[str, bool]:
-    joined = "\n".join(_source_text(path) for path in files if path.suffix in SOURCE_SUFFIXES)
+    joined = "\n".join(
+        _source_text(path) for path in files if path.suffix in SOURCE_SUFFIXES
+    )
     return {
         "__sk__": "__sk__" in joined,
         "__spk__": "__spk__" in joined,
         "SK_BIND": "SK_BIND" in joined,
-        "sk_param_struct": "CommArgs" in joined or "SkSystemArgs" in joined or "__gm__ uint64_t *param" in joined,
+        "sk_param_struct": "CommArgs" in joined
+        or "SkSystemArgs" in joined
+        or "__gm__ uint64_t *param" in joined,
         "ascend_meta_section": ".ascend.meta" in joined,
     }
 
 
 def _file_evidence(paths: list[Path], base_dir: Path) -> list[dict[str, str]]:
-    return [{"kind": "file", "path": _relative(path, base_dir), "value": path.name} for path in paths]
+    return [
+        {"kind": "file", "path": _relative(path, base_dir), "value": path.name}
+        for path in paths
+    ]
 
 
 def _symbol_evidence(items: list[dict[str, str]]) -> list[dict[str, str]]:
-    return [{"kind": "symbol", "path": item["file"], "value": item["name"]} for item in items]
+    return [
+        {"kind": "symbol", "path": item["file"], "value": item["name"]}
+        for item in items
+    ]
 
 
 def _marker_evidence(sk_markers: dict[str, bool]) -> list[dict[str, str]]:
-    return [{"kind": "marker", "path": "", "value": name} for name, found in sk_markers.items() if found]
+    return [
+        {"kind": "marker", "path": "", "value": name}
+        for name, found in sk_markers.items()
+        if found
+    ]
 
 
 def _capability(status: str, evidence: list[dict[str, str]]) -> dict[str, Any]:
@@ -689,9 +801,13 @@ def _collect_capabilities(
     hard_blockers: list[str],
     base_dir: Path,
 ) -> dict[str, dict[str, Any]]:
-    source_status = "blocked" if hard_blockers else ("present" if source_files else "missing")
+    source_status = (
+        "blocked" if hard_blockers else ("present" if source_files else "missing")
+    )
     entry_status = (
-        "blocked" if hard_blockers else ("present" if kernel_entries or any(sk_markers.values()) else "missing")
+        "blocked"
+        if hard_blockers
+        else ("present" if kernel_entries or any(sk_markers.values()) else "missing")
     )
     return {
         "source": _capability(source_status, _file_evidence(source_files, base_dir)),
@@ -703,12 +819,16 @@ def _collect_capabilities(
             "present" if build_files else "missing",
             _file_evidence(build_files, base_dir),
         ),
-        "test": _capability("present" if test_files else "missing", _file_evidence(test_files, base_dir)),
+        "test": _capability(
+            "present" if test_files else "missing", _file_evidence(test_files, base_dir)
+        ),
         "package": _capability(
             "present" if package_files else "missing",
             _file_evidence(package_files, base_dir),
         ),
-        "delivery_docs": _capability("present" if doc_files else "missing", _file_evidence(doc_files, base_dir)),
+        "delivery_docs": _capability(
+            "present" if doc_files else "missing", _file_evidence(doc_files, base_dir)
+        ),
     }
 
 
@@ -716,12 +836,16 @@ def _all_text(files: list[Path], *, source_comments_stripped: bool = False) -> s
     chunks: list[str] = []
     for path in files:
         chunks.append(
-            _source_text(path) if source_comments_stripped and path.suffix in SOURCE_SUFFIXES else _read_text(path)
+            _source_text(path)
+            if source_comments_stripped and path.suffix in SOURCE_SUFFIXES
+            else _read_text(path)
         )
     return "\n".join(chunks)
 
 
-def _archetype_result(name: str, confidence: str, evidence: list[dict[str, str]]) -> dict[str, Any]:
+def _archetype_result(
+    name: str, confidence: str, evidence: list[dict[str, str]]
+) -> dict[str, Any]:
     return {"name": name, "confidence": confidence, "evidence": evidence}
 
 
@@ -745,15 +869,25 @@ def _detect_archetype(
 
     ge_evidence: list[dict[str, str]] = []
     if "register_fx_node_ge_converter" in raw_text:
-        ge_evidence.append({"kind": "symbol", "path": "", "value": "register_fx_node_ge_converter"})
-    if "OpDef" in raw_text or any(part in path for path in relative_paths for part in ("op_host/", "op_kernel/")):
-        ge_evidence.append({"kind": "directory", "path": "", "value": "op_host/op_kernel"})
+        ge_evidence.append(
+            {"kind": "symbol", "path": "", "value": "register_fx_node_ge_converter"}
+        )
+    if "OpDef" in raw_text or any(
+        part in path for path in relative_paths for part in ("op_host/", "op_kernel/")
+    ):
+        ge_evidence.append(
+            {"kind": "directory", "path": "", "value": "op_host/op_kernel"}
+        )
     if ge_evidence:
-        return _archetype_result("ge-opp-python-converter", "high", ge_evidence + source_evidence)
+        return _archetype_result(
+            "ge-opp-python-converter", "high", ge_evidence + source_evidence
+        )
 
     pybind_evidence: list[dict[str, str]] = []
     if "PYBIND11_MODULE" in source_text or "pybind11" in raw_text:
-        pybind_evidence.append({"kind": "symbol", "path": "", "value": "PYBIND11_MODULE/pybind11"})
+        pybind_evidence.append(
+            {"kind": "symbol", "path": "", "value": "PYBIND11_MODULE/pybind11"}
+        )
     if pybind_evidence:
         return _archetype_result(
             "aclgraph-pybind-torch-library",
@@ -762,8 +896,14 @@ def _detect_archetype(
         )
 
     torch_evidence: list[dict[str, str]] = []
-    if "TORCH_LIBRARY" in source_text or "torch.ops" in raw_text or "torch/extension.h" in source_text:
-        torch_evidence.append({"kind": "symbol", "path": "", "value": "torch extension/operator"})
+    if (
+        "TORCH_LIBRARY" in source_text
+        or "torch.ops" in raw_text
+        or "torch/extension.h" in source_text
+    ):
+        torch_evidence.append(
+            {"kind": "symbol", "path": "", "value": "torch extension/operator"}
+        )
     if "bisheng" in raw_text and source_files and torch_evidence:
         return _archetype_result(
             "torch-bisheng-extension",
@@ -772,7 +912,9 @@ def _detect_archetype(
         )
 
     if build_files and source_files:
-        return _archetype_result("cann-static-asc-op", "medium", build_evidence + source_evidence)
+        return _archetype_result(
+            "cann-static-asc-op", "medium", build_evidence + source_evidence
+        )
 
     if source_files:
         return _archetype_result("source-only-ascendc", "medium", source_evidence)
@@ -780,7 +922,9 @@ def _detect_archetype(
     return _archetype_result("unknown", "low", [])
 
 
-def _test_quality_result(level: str, confidence: str, evidence: list[dict[str, str]]) -> dict[str, Any]:
+def _test_quality_result(
+    level: str, confidence: str, evidence: list[dict[str, str]]
+) -> dict[str, Any]:
     return {"level": level, "confidence": confidence, "evidence": evidence}
 
 
@@ -828,17 +972,25 @@ def _collect_test_quality(test_files: list[Path], base_dir: Path) -> dict[str, A
 
         correctness_value = _find_quality_pattern(text, CORRECTNESS_TEST_PATTERNS)
         if correctness_value:
-            correctness_evidence.append(_quality_evidence(path, base_dir, correctness_value))
+            correctness_evidence.append(
+                _quality_evidence(path, base_dir, correctness_value)
+            )
         elif _has_meaningful_assert(text):
             correctness_evidence.append(_quality_evidence(path, base_dir, "assert"))
 
     if correctness_evidence:
-        return _test_quality_result("correctness-assertion", "high", correctness_evidence)
+        return _test_quality_result(
+            "correctness-assertion", "high", correctness_evidence
+        )
 
-    return _test_quality_result("smoke-launch", "medium", _file_evidence(test_files, base_dir))
+    return _test_quality_result(
+        "smoke-launch", "medium", _file_evidence(test_files, base_dir)
+    )
 
 
-def _build_quality_result(level: str, confidence: str, evidence: list[dict[str, str]]) -> dict[str, Any]:
+def _build_quality_result(
+    level: str, confidence: str, evidence: list[dict[str, str]]
+) -> dict[str, Any]:
     return {"level": level, "confidence": confidence, "evidence": evidence}
 
 
@@ -870,15 +1022,21 @@ def _collect_build_quality(build_files: list[Path], base_dir: Path) -> dict[str,
     if not build_files:
         return _build_quality_result("none", "low", [])
 
-    toolchain_evidence = _collect_build_pattern_evidence(build_files, base_dir, TOOLCHAIN_BUILD_PATTERNS)
+    toolchain_evidence = _collect_build_pattern_evidence(
+        build_files, base_dir, TOOLCHAIN_BUILD_PATTERNS
+    )
     if toolchain_evidence:
         return _build_quality_result("toolchain-contract", "high", toolchain_evidence)
 
-    command_evidence = _collect_build_pattern_evidence(build_files, base_dir, COMMAND_BUILD_PATTERNS)
+    command_evidence = _collect_build_pattern_evidence(
+        build_files, base_dir, COMMAND_BUILD_PATTERNS
+    )
     if command_evidence:
         return _build_quality_result("command-contract", "high", command_evidence)
 
-    return _build_quality_result("build-entry", "medium", _file_evidence(build_files, base_dir))
+    return _build_quality_result(
+        "build-entry", "medium", _file_evidence(build_files, base_dir)
+    )
 
 
 def _classify_asset(
@@ -890,7 +1048,9 @@ def _classify_asset(
 ) -> str:
     if not source_files:
         return "unsupported-asset"
-    has_complete_delivery = bool(build_files and test_files and package_files and doc_files)
+    has_complete_delivery = bool(
+        build_files and test_files and package_files and doc_files
+    )
     if has_complete_delivery:
         return "deliverable-op"
     if test_files:
@@ -930,7 +1090,9 @@ def _missing_contracts(
 
 
 def _next_actions(missing_contracts: list[str], asset_level: str) -> list[str]:
-    actions: list[str] = [f"confirm asset level `{asset_level}` with the operator owner"]
+    actions: list[str] = [
+        f"confirm asset level `{asset_level}` with the operator owner"
+    ]
     mapping = {
         "operator_entry_contract": "identify the public kernel entry and expected launch signature",
         "build_contract": "generate or request a minimal CMake/setup build contract",
@@ -947,7 +1109,9 @@ def _next_actions(missing_contracts: list[str], asset_level: str) -> list[str]:
     return actions
 
 
-def _delivery_action(kind: str, target: str, priority: str, reason: str, next_action: str) -> dict[str, str]:
+def _delivery_action(
+    kind: str, target: str, priority: str, reason: str, next_action: str
+) -> dict[str, str]:
     return {
         "kind": kind,
         "target": target,
@@ -999,7 +1163,9 @@ def _missing_contract_action(contract: str) -> dict[str, str] | None:
     if not item:
         return None
     target, priority, next_action = item
-    return _delivery_action("contract", target, priority, f"missing_{contract}", next_action)
+    return _delivery_action(
+        "contract", target, priority, f"missing_{contract}", next_action
+    )
 
 
 def _missing_contract_actions(missing_contracts: list[str]) -> list[dict[str, str]]:
@@ -1011,7 +1177,9 @@ def _missing_contract_actions(missing_contracts: list[str]) -> list[dict[str, st
     return actions
 
 
-def _delivery_plan_result(phase: str, confidence: str, actions: list[dict[str, str]]) -> dict[str, Any]:
+def _delivery_plan_result(
+    phase: str, confidence: str, actions: list[dict[str, str]]
+) -> dict[str, Any]:
     return {"phase": phase, "confidence": confidence, "actions": actions}
 
 
@@ -1088,7 +1256,9 @@ def _collect_delivery_plan(
     )
 
 
-def _scaffold_plan_result(status: str, confidence: str, items: list[dict[str, str]]) -> dict[str, Any]:
+def _scaffold_plan_result(
+    status: str, confidence: str, items: list[dict[str, str]]
+) -> dict[str, Any]:
     return {"status": status, "confidence": confidence, "items": items}
 
 
@@ -1096,7 +1266,9 @@ def _scaffold_item(spec_key: str) -> dict[str, str]:
     return dict(SCAFFOLD_SPECS[spec_key])
 
 
-def _append_scaffold_item(items: list[dict[str, str]], seen_reasons: set[str], spec_key: str) -> None:
+def _append_scaffold_item(
+    items: list[dict[str, str]], seen_reasons: set[str], spec_key: str
+) -> None:
     item = _scaffold_item(spec_key)
     if item["reason"] in seen_reasons:
         return
@@ -1123,12 +1295,18 @@ def _collect_scaffold_plan(
             _append_scaffold_item(items, seen_reasons, contract)
 
     if build_quality["level"] == "build-entry":
-        _append_scaffold_item(items, seen_reasons, "build_entry_without_command_contract")
+        _append_scaffold_item(
+            items, seen_reasons, "build_entry_without_command_contract"
+        )
     if test_quality["level"] == "smoke-launch":
-        _append_scaffold_item(items, seen_reasons, "smoke_test_without_correctness_or_graph_sk")
+        _append_scaffold_item(
+            items, seen_reasons, "smoke_test_without_correctness_or_graph_sk"
+        )
 
     if not items:
-        confidence = "high" if delivery_plan["phase"] == "handoff-planning" else "medium"
+        confidence = (
+            "high" if delivery_plan["phase"] == "handoff-planning" else "medium"
+        )
         return _scaffold_plan_result("not-needed", confidence, [])
 
     reasons = {item["reason"] for item in items}
@@ -1153,11 +1331,21 @@ def _build_manifest(asset_path: Path) -> dict[str, Any]:
     include_files = [path for path in source_files if path.suffix in INCLUDE_SUFFIXES]
     build_files = [path for path in files if path.name in BUILD_FILENAMES]
     test_files = [path for path in files if _is_test_path(path, base_dir)]
-    package_files = [path for path in files if path.name in PACKAGE_FILENAMES or _is_package_init(path, base_dir)]
-    doc_files = [path for path in files if path.name in DOC_FILENAMES or path.suffix.lower() == ".md"]
+    package_files = [
+        path
+        for path in files
+        if path.name in PACKAGE_FILENAMES or _is_package_init(path, base_dir)
+    ]
+    doc_files = [
+        path
+        for path in files
+        if path.name in DOC_FILENAMES or path.suffix.lower() == ".md"
+    ]
     kernel_entries = _collect_kernel_entries(source_files, base_dir)
     sk_markers = _collect_sk_markers(source_files)
-    asset_level = _classify_asset(source_files, build_files, test_files, package_files, doc_files)
+    asset_level = _classify_asset(
+        source_files, build_files, test_files, package_files, doc_files
+    )
     missing = _missing_contracts(
         build_files=build_files,
         test_files=test_files,
@@ -1354,7 +1542,9 @@ def _render_execution_plan(summary: dict[str, Any]) -> str:
                 f"- [{action['priority']}] {action['kind']}/{action['target']} ({action['reason']}): {action['next']}"
             )
     else:
-        lines.append("- no immediate action generated; confirm target-environment validation requirements")
+        lines.append(
+            "- no immediate action generated; confirm target-environment validation requirements"
+        )
     lines.extend(
         [
             "",
@@ -1378,7 +1568,10 @@ def _render_checklist(summary: dict[str, Any]) -> str:
     checks = [
         (
             "kernel entry contract",
-            not any(item == "operator_entry_contract" for item in manifest["missing_contracts"]),
+            not any(
+                item == "operator_entry_contract"
+                for item in manifest["missing_contracts"]
+            ),
         ),
         ("build contract", bool(manifest["build_system"])),
         ("test contract", bool(manifest["test_system"])),
@@ -1386,7 +1579,9 @@ def _render_checklist(summary: dict[str, Any]) -> str:
         ("delivery docs contract", bool(manifest["doc_files"])),
         (
             "SK binding contract",
-            not any(item == "sk_binding_contract" for item in manifest["missing_contracts"]),
+            not any(
+                item == "sk_binding_contract" for item in manifest["missing_contracts"]
+            ),
         ),
     ]
     for label, ok in checks:
@@ -1454,18 +1649,27 @@ def _write_delivery_artifacts(output_dir: Path, summary: dict[str, Any]) -> None
         output_dir / "operator-delivery-execution-plan.md",
         _render_execution_plan(summary),
     )
-    _write_text(output_dir / "operator-delivery-checklist.md", _render_checklist(summary))
+    _write_text(
+        output_dir / "operator-delivery-checklist.md", _render_checklist(summary)
+    )
     if summary["execution"]["ai_requested"]:
-        _write_text(output_dir / "operator-delivery-ai-hints.md", _render_ai_hints(summary))
+        _write_text(
+            output_dir / "operator-delivery-ai-hints.md", _render_ai_hints(summary)
+        )
 
 
 def _sk_file_evidence(paths: list[str]) -> list[dict[str, str]]:
     return [{"kind": "file", "path": path, "value": Path(path).name} for path in paths]
 
 
-def _sk_source_file_fingerprints(base_dir: str, source_files: list[str]) -> list[dict[str, str]]:
+def _sk_source_file_fingerprints(
+    base_dir: str, source_files: list[str]
+) -> list[dict[str, str]]:
     root = Path(base_dir)
-    return [{"path": rel_path, "sha256": _hash_file(root / rel_path)} for rel_path in source_files]
+    return [
+        {"path": rel_path, "sha256": _hash_file(root / rel_path)}
+        for rel_path in source_files
+    ]
 
 
 def _support_dir_name(name: str) -> str:
@@ -1488,13 +1692,19 @@ def _parse_support_dir_arg(raw: str) -> tuple[str | None, Path]:
 
 def _support_source_files(root: Path) -> list[str]:
     files = sorted(
-        (path for path in root.rglob("*") if path.is_file() and _is_supported_source_file(path, root)),
+        (
+            path
+            for path in root.rglob("*")
+            if path.is_file() and _is_supported_source_file(path, root)
+        ),
         key=lambda path: _relative(path, root),
     )
     return [_relative(path, root) for path in files]
 
 
-def _normalize_support_directories(raw_specs: list[str] | None, asset_base: Path) -> list[dict[str, Any]]:
+def _normalize_support_directories(
+    raw_specs: list[str] | None, asset_base: Path
+) -> list[dict[str, Any]]:
     specs: list[dict[str, Any]] = []
     seen_names: set[str] = set()
     asset_root = asset_base.resolve()
@@ -1505,21 +1715,29 @@ def _normalize_support_directories(raw_specs: list[str] | None, asset_base: Path
             raise CliUsageError(f"support directory not found: {raw_path}")
         if not path.is_dir():
             raise CliUsageError(f"support path is not a directory: {raw_path}")
-        if _is_same_or_child_path(path, asset_root) or _is_same_or_child_path(asset_root, path):
-            raise CliUsageError("support directory must be a sibling/shared directory outside the asset root")
+        if _is_same_or_child_path(path, asset_root) or _is_same_or_child_path(
+            asset_root, path
+        ):
+            raise CliUsageError(
+                "support directory must be a sibling/shared directory outside the asset root"
+            )
         name = explicit_name or _support_dir_name(path.name)
         if name in seen_names:
             raise CliUsageError(f"duplicate support directory name: {name}")
         files = _support_source_files(path)
         if not files:
-            raise CliUsageError(f"support directory has no supported source files: {path}")
+            raise CliUsageError(
+                f"support directory has no supported source files: {path}"
+            )
         seen_names.add(name)
         specs.append(
             {
                 "source_name": name,
                 "source_path": str(path),
                 "source_files": files,
-                "source_file_fingerprints": _sk_source_file_fingerprints(str(path), files),
+                "source_file_fingerprints": _sk_source_file_fingerprints(
+                    str(path), files
+                ),
             }
         )
     return specs
@@ -1590,9 +1808,13 @@ def _normalize_ascend_compile_contract(
     if not has_compile_contract:
         return None
     if not cann_path:
-        raise CliUsageError("ascend CANN path is required when ascend compile contract is enabled")
+        raise CliUsageError(
+            "ascend CANN path is required when ascend compile contract is enabled"
+        )
     if not arch:
-        raise CliUsageError("ascend arch is required when ascend compile contract is enabled")
+        raise CliUsageError(
+            "ascend arch is required when ascend compile contract is enabled"
+        )
     if not ASCEND_ARCH_RE.fullmatch(arch):
         raise CliUsageError(f"invalid ascend arch: {arch}")
 
@@ -1602,9 +1824,13 @@ def _normalize_ascend_compile_contract(
     if not normalized_cann_path.is_dir():
         raise CliUsageError(f"ascend CANN path is not a directory: {cann_path}")
 
-    bisheng_path = normalized_cann_path / "tools" / "bisheng_compiler" / "bin" / "bisheng"
+    bisheng_path = (
+        normalized_cann_path / "tools" / "bisheng_compiler" / "bin" / "bisheng"
+    )
     if not bisheng_path.exists():
-        raise CliUsageError(f"bisheng compiler not found under ascend CANN path: {bisheng_path}")
+        raise CliUsageError(
+            f"bisheng compiler not found under ascend CANN path: {bisheng_path}"
+        )
     if not bisheng_path.is_file():
         raise CliUsageError(f"bisheng compiler is not a file: {bisheng_path}")
 
@@ -1680,7 +1906,9 @@ def _sk_source_copy_entries(analysis: dict[str, Any]) -> list[dict[str, Any]]:
         if previous is not None:
             if _hash_file(previous["source_path"]) == _hash_file(entry["source_path"]):
                 continue
-            raise CliUsageError(f"conflicting sk source scaffold destination: {scaffold_path}")
+            raise CliUsageError(
+                f"conflicting sk source scaffold destination: {scaffold_path}"
+            )
         seen[scaffold_path] = entry
         entries.append(entry)
     return entries
@@ -1691,22 +1919,33 @@ def _validate_sk_source_destination_collisions(analysis: dict[str, Any]) -> None
 
 
 def _sk_symbol_evidence(entries: list[dict[str, str]]) -> list[dict[str, str]]:
-    return [{"kind": "symbol", "path": entry["file"], "value": entry["name"]} for entry in entries]
+    return [
+        {"kind": "symbol", "path": entry["file"], "value": entry["name"]}
+        for entry in entries
+    ]
 
 
 def _sk_marker_evidence(sk_markers: dict[str, bool]) -> list[dict[str, str]]:
-    return [{"kind": "marker", "path": "", "value": name} for name, found in sk_markers.items() if found]
+    return [
+        {"kind": "marker", "path": "", "value": name}
+        for name, found in sk_markers.items()
+        if found
+    ]
 
 
 def _has_sk_binding_marker(sk_markers: dict[str, bool]) -> bool:
     return bool(sk_markers["SK_BIND"] or sk_markers["__sk__"] or sk_markers["__spk__"])
 
 
-def _sk_conversion_input(name: str, status: str, reason: str, evidence: list[dict[str, str]]) -> dict[str, Any]:
+def _sk_conversion_input(
+    name: str, status: str, reason: str, evidence: list[dict[str, str]]
+) -> dict[str, Any]:
     return {"name": name, "status": status, "reason": reason, "evidence": evidence}
 
 
-def _sk_generation_step(action: str, status: str, reason: str, evidence: list[dict[str, str]]) -> dict[str, Any]:
+def _sk_generation_step(
+    action: str, status: str, reason: str, evidence: list[dict[str, str]]
+) -> dict[str, Any]:
     return {"action": action, "status": status, "reason": reason, "evidence": evidence}
 
 
@@ -1748,23 +1987,55 @@ def _sk_conversion_inputs(manifest: dict[str, Any]) -> list[dict[str, Any]]:
     inputs: list[dict[str, Any]] = []
 
     if has_source:
-        inputs.append(_sk_conversion_input("source", "present", "source_files_detected", source_evidence))
+        inputs.append(
+            _sk_conversion_input(
+                "source", "present", "source_files_detected", source_evidence
+            )
+        )
     else:
-        inputs.append(_sk_conversion_input("source", "blocked", "no_supported_operator_source_files", []))
+        inputs.append(
+            _sk_conversion_input(
+                "source", "blocked", "no_supported_operator_source_files", []
+            )
+        )
 
     if manifest["kernel_entries"]:
-        inputs.append(_sk_conversion_input("entry_signature", "present", "kernel_entries_detected", entry_evidence))
+        inputs.append(
+            _sk_conversion_input(
+                "entry_signature", "present", "kernel_entries_detected", entry_evidence
+            )
+        )
     elif has_source:
-        inputs.append(_sk_conversion_input("entry_signature", "blocked", "kernel_entries_missing", source_evidence))
+        inputs.append(
+            _sk_conversion_input(
+                "entry_signature", "blocked", "kernel_entries_missing", source_evidence
+            )
+        )
     else:
-        inputs.append(_sk_conversion_input("entry_signature", "blocked", "no_supported_operator_source_files", []))
+        inputs.append(
+            _sk_conversion_input(
+                "entry_signature", "blocked", "no_supported_operator_source_files", []
+            )
+        )
 
     if not has_source:
-        inputs.append(_sk_conversion_input("sk_binding", "blocked", "no_supported_operator_source_files", []))
+        inputs.append(
+            _sk_conversion_input(
+                "sk_binding", "blocked", "no_supported_operator_source_files", []
+            )
+        )
     elif _has_sk_binding_marker(manifest["sk_markers"]):
-        inputs.append(_sk_conversion_input("sk_binding", "present", "sk_binding_marker_detected", marker_evidence))
+        inputs.append(
+            _sk_conversion_input(
+                "sk_binding", "present", "sk_binding_marker_detected", marker_evidence
+            )
+        )
     else:
-        inputs.append(_sk_conversion_input("sk_binding", "missing", "sk_binding_contract_missing", []))
+        inputs.append(
+            _sk_conversion_input(
+                "sk_binding", "missing", "sk_binding_contract_missing", []
+            )
+        )
 
     for name, manifest_key, present_reason, missing_reason in (
         (
@@ -1794,9 +2065,15 @@ def _sk_conversion_inputs(manifest: dict[str, Any]) -> list[dict[str, Any]]:
     ):
         evidence = _sk_file_evidence(manifest[manifest_key])
         if not has_source:
-            inputs.append(_sk_conversion_input(name, "blocked", "no_supported_operator_source_files", []))
+            inputs.append(
+                _sk_conversion_input(
+                    name, "blocked", "no_supported_operator_source_files", []
+                )
+            )
         elif evidence:
-            inputs.append(_sk_conversion_input(name, "present", present_reason, evidence))
+            inputs.append(
+                _sk_conversion_input(name, "present", present_reason, evidence)
+            )
         else:
             inputs.append(_sk_conversion_input(name, "missing", missing_reason, []))
 
@@ -1818,7 +2095,11 @@ def _sk_conversion_inputs(manifest: dict[str, Any]) -> list[dict[str, Any]]:
             )
         )
     else:
-        inputs.append(_sk_conversion_input("runtime_inputs", "blocked", "no_supported_operator_source_files", []))
+        inputs.append(
+            _sk_conversion_input(
+                "runtime_inputs", "blocked", "no_supported_operator_source_files", []
+            )
+        )
         inputs.append(
             _sk_conversion_input(
                 "correctness_oracle",
@@ -1873,7 +2154,11 @@ def _sk_conversion_plan(
         )
 
     if not has_source:
-        plan.append(_sk_generation_step("adapt_sk_binding", "blocked", "no_supported_operator_source_files", []))
+        plan.append(
+            _sk_generation_step(
+                "adapt_sk_binding", "blocked", "no_supported_operator_source_files", []
+            )
+        )
     elif _has_sk_binding_marker(manifest["sk_markers"]):
         plan.append(
             _sk_generation_step(
@@ -1884,7 +2169,11 @@ def _sk_conversion_plan(
             )
         )
     else:
-        plan.append(_sk_generation_step("adapt_sk_binding", "needed", "sk_binding_contract_missing", []))
+        plan.append(
+            _sk_generation_step(
+                "adapt_sk_binding", "needed", "sk_binding_contract_missing", []
+            )
+        )
 
     for action, manifest_key, present_reason, missing_reason in (
         (
@@ -1908,7 +2197,11 @@ def _sk_conversion_plan(
     ):
         evidence = _sk_file_evidence(manifest[manifest_key])
         if not has_source:
-            plan.append(_sk_generation_step(action, "blocked", "no_supported_operator_source_files", []))
+            plan.append(
+                _sk_generation_step(
+                    action, "blocked", "no_supported_operator_source_files", []
+                )
+            )
         elif evidence:
             plan.append(_sk_generation_step(action, "ready", present_reason, evidence))
         else:
@@ -1975,7 +2268,9 @@ def _sk_conversion_plan(
             "build_contract",
             "test_contract",
         ):
-            ready_evidence.extend(next(item["evidence"] for item in inputs if item["name"] == input_name))
+            ready_evidence.extend(
+                next(item["evidence"] for item in inputs if item["name"] == input_name)
+            )
         for input_name in ("package_contract", "delivery_docs"):
             item = next(item for item in inputs if item["name"] == input_name)
             if item["status"] == "present":
@@ -1988,7 +2283,11 @@ def _sk_conversion_plan(
                 ready_evidence,
             )
         )
-        plan.append(_sk_generation_step("run_sk_build_validation", "deferred", "sk_source_not_generated", []))
+        plan.append(
+            _sk_generation_step(
+                "run_sk_build_validation", "deferred", "sk_source_not_generated", []
+            )
+        )
     elif status == "needs-contracts":
         plan.append(
             _sk_generation_step(
@@ -1998,17 +2297,29 @@ def _sk_conversion_plan(
                 [],
             )
         )
-        plan.append(_sk_generation_step("run_sk_build_validation", "deferred", "sk_source_not_generated", []))
+        plan.append(
+            _sk_generation_step(
+                "run_sk_build_validation", "deferred", "sk_source_not_generated", []
+            )
+        )
     else:
         reason = blocked_reasons[0]
         evidence = source_evidence if reason == "kernel_entries_missing" else []
-        plan.append(_sk_generation_step("generate_sk_source_scaffold", "blocked", reason, evidence))
-        plan.append(_sk_generation_step("run_sk_build_validation", "blocked", reason, evidence))
+        plan.append(
+            _sk_generation_step(
+                "generate_sk_source_scaffold", "blocked", reason, evidence
+            )
+        )
+        plan.append(
+            _sk_generation_step("run_sk_build_validation", "blocked", reason, evidence)
+        )
 
     return plan
 
 
-def _sk_conversion_next_actions(status: str, blocked_reasons: list[str], plan: list[dict[str, Any]]) -> list[str]:
+def _sk_conversion_next_actions(
+    status: str, blocked_reasons: list[str], plan: list[dict[str, Any]]
+) -> list[str]:
     if status == "ready-for-sk-generation":
         return ["generate_sk_source_scaffold"]
     if blocked_reasons == ["no_supported_operator_source_files"]:
@@ -2030,7 +2341,9 @@ class SkConversionAnalysisInput(NamedTuple):
 
 def _build_sk_conversion_analysis(request: SkConversionAnalysisInput) -> dict[str, Any]:
     manifest = _build_manifest(request.asset_path)
-    support_directories = _normalize_support_directories(request.support_dir_specs, Path(manifest["base_dir"]))
+    support_directories = _normalize_support_directories(
+        request.support_dir_specs, Path(manifest["base_dir"])
+    )
     include_directories = _normalize_include_directories(request.include_dir_specs)
     ascend_compile_contract = _normalize_ascend_compile_contract(
         cann_path=request.ascend_cann_path,
@@ -2049,7 +2362,9 @@ def _build_sk_conversion_analysis(request: SkConversionAnalysisInput) -> dict[st
         "archetype": manifest["archetype"],
         "supported_minimal_unit": _sk_conversion_minimal_unit(manifest, status),
         "source_files": manifest["source_files"],
-        "source_file_fingerprints": _sk_source_file_fingerprints(manifest["base_dir"], manifest["source_files"]),
+        "source_file_fingerprints": _sk_source_file_fingerprints(
+            manifest["base_dir"], manifest["source_files"]
+        ),
         "include_files": manifest["include_files"],
         "support_directories": support_directories,
         "include_directories": include_directories,
@@ -2064,7 +2379,9 @@ def _build_sk_conversion_analysis(request: SkConversionAnalysisInput) -> dict[st
         "generation_plan": plan,
         "blocked_reasons": blocked_reasons,
         "execution_boundary": SK_CONVERSION_BOUNDARY,
-        "supported_next_actions": _sk_conversion_next_actions(status, blocked_reasons, plan),
+        "supported_next_actions": _sk_conversion_next_actions(
+            status, blocked_reasons, plan
+        ),
     }
     _validate_sk_source_destination_collisions(analysis)
     return analysis
@@ -2088,7 +2405,9 @@ def _render_sk_conversion_analysis_markdown(analysis: dict[str, Any]) -> str:
     if analysis["support_directories"]:
         lines.append("Support directories copied into the SK source version:")
         for item in analysis["support_directories"]:
-            lines.append(f"- `{item['source_name']}`: `{item['source_path']}` ({len(item['source_files'])} files)")
+            lines.append(
+                f"- `{item['source_name']}`: `{item['source_path']}` ({len(item['source_files'])} files)"
+            )
     else:
         lines.append("- support directories: none")
     if analysis["include_directories"]:
@@ -2176,9 +2495,13 @@ def _load_current_sk_conversion_analysis(output_dir: Path) -> dict[str, Any]:
         },
         "sk conversion analysis",
     )
-    asset_path = Path(_require_string(analysis["asset_path"], "sk conversion analysis asset_path")).resolve()
+    asset_path = Path(
+        _require_string(analysis["asset_path"], "sk conversion analysis asset_path")
+    ).resolve()
     support_directories: list[dict[str, Any]] = []
-    for support_dir in _require_list(analysis["support_directories"], "sk conversion analysis support_directories"):
+    for support_dir in _require_list(
+        analysis["support_directories"], "sk conversion analysis support_directories"
+    ):
         item = _require_exact_keys(
             support_dir,
             {"source_name", "source_path", "source_files", "source_file_fingerprints"},
@@ -2257,10 +2580,18 @@ def _load_current_sk_conversion_analysis(output_dir: Path) -> dict[str, Any]:
         )
         ascend_compile_contract = {
             "cann_path": str(
-                Path(_require_string(contract["cann_path"], "ascend compile contract cann_path")).resolve()
+                Path(
+                    _require_string(
+                        contract["cann_path"], "ascend compile contract cann_path"
+                    )
+                ).resolve()
             ),
             "bisheng_path": str(
-                Path(_require_string(contract["bisheng_path"], "ascend compile contract bisheng_path")).resolve()
+                Path(
+                    _require_string(
+                        contract["bisheng_path"], "ascend compile contract bisheng_path"
+                    )
+                ).resolve()
             ),
             "arch": _require_string(contract["arch"], "ascend compile contract arch"),
             "compile_options": _require_string_list(
@@ -2283,12 +2614,19 @@ def _load_current_sk_conversion_analysis(output_dir: Path) -> dict[str, Any]:
     expected = _build_sk_conversion_analysis(
         SkConversionAnalysisInput(
             asset_path,
-            [f"{item['source_name']}={item['source_path']}" for item in support_directories],
+            [
+                f"{item['source_name']}={item['source_path']}"
+                for item in support_directories
+            ],
             analysis["include_directories"],
             ascend_compile_contract["cann_path"] if ascend_compile_contract else None,
             ascend_compile_contract["arch"] if ascend_compile_contract else None,
-            ascend_compile_contract["compile_options"] if ascend_compile_contract else None,
-            ascend_compile_contract["force_includes"] if ascend_compile_contract else None,
+            ascend_compile_contract["compile_options"]
+            if ascend_compile_contract
+            else None,
+            ascend_compile_contract["force_includes"]
+            if ascend_compile_contract
+            else None,
         )
     )
     if analysis != expected:
@@ -2338,7 +2676,9 @@ def _sk_binding_remaining_next_actions(analysis: dict[str, Any]) -> list[str]:
 
 def _raise_if_existing_non_generated_scaffold(output_dir: Path) -> None:
     if (output_dir / SK_BINDING_SCAFFOLD_DIR).exists():
-        raise CliUsageError("sk binding scaffold directory exists for non-generated result")
+        raise CliUsageError(
+            "sk binding scaffold directory exists for non-generated result"
+        )
 
 
 def _write_sk_binding_artifacts(output_dir: Path, manifest: dict[str, Any]) -> None:
@@ -2362,7 +2702,9 @@ def _render_sk_binding_scaffold_markdown(manifest: dict[str, Any]) -> str:
     ]
     if manifest["adapted_entries"]:
         for entry in manifest["adapted_entries"]:
-            lines.append(f"- `{entry['entry_name']}` -> `{entry['generated_path']}` ({entry['reason']})")
+            lines.append(
+                f"- `{entry['entry_name']}` -> `{entry['generated_path']}` ({entry['reason']})"
+            )
     else:
         lines.append("- none")
     lines.extend(["", "## Copied Sources", ""])
@@ -2430,8 +2772,14 @@ def _parse_sk_scaffold_params(param_text: str) -> list[dict[str, str]] | None:
             type_part = f"{type_part} {pointer_prefix}"
         if not re.fullmatch(r"[A-Za-z_]\w*", name_part):
             return None
-        base_type = type_part.replace("const", "").replace("*", "").replace("&", "").strip()
-        alignment = "alignas(4)" if base_type in {"int8_t", "uint8_t", "int16_t", "uint16_t"} else ""
+        base_type = (
+            type_part.replace("const", "").replace("*", "").replace("&", "").strip()
+        )
+        alignment = (
+            "alignas(4)"
+            if base_type in {"int8_t", "uint8_t", "int16_t", "uint16_t"}
+            else ""
+        )
         params.append(
             {
                 "type": type_part,
@@ -2496,7 +2844,9 @@ def _find_matching_brace(text: str, open_brace_index: int) -> int | None:
     return None
 
 
-def _find_kernel_signature_for_entry(asset_base_dir: Path, entry: dict[str, str]) -> dict[str, Any] | None:
+def _find_kernel_signature_for_entry(
+    asset_base_dir: Path, entry: dict[str, str]
+) -> dict[str, Any] | None:
     source_path = asset_base_dir / entry["file"]
     if not source_path.exists() or not source_path.is_file():
         return None
@@ -2519,7 +2869,9 @@ def _find_kernel_signature_for_entry(asset_base_dir: Path, entry: dict[str, str]
         body = text[body_start:close_brace]
         return {
             "signature": signature,
-            "qualifiers": match.group("qualifiers").replace("__global__", "__sk__", 1).strip(),
+            "qualifiers": match.group("qualifiers")
+            .replace("__global__", "__sk__", 1)
+            .strip(),
             "params": match.group("params"),
             "body": body,
         }
@@ -2529,7 +2881,9 @@ def _find_kernel_signature_for_entry(asset_base_dir: Path, entry: dict[str, str]
 def _replace_param_tokens(body: str, params: list[dict[str, str]]) -> str:
     result = body
     for param in params:
-        result = re.sub(rf"\b{re.escape(param['name'])}\b", f"args->{param['field']}", result)
+        result = re.sub(
+            rf"\b{re.escape(param['name'])}\b", f"args->{param['field']}", result
+        )
     return result.strip("\n")
 
 
@@ -2585,7 +2939,9 @@ def _render_sk_binding_source(
     return "\n".join(lines), adapted_entry
 
 
-def _copy_sk_binding_sources(output_dir: Path, analysis: dict[str, Any]) -> list[dict[str, str]]:
+def _copy_sk_binding_sources(
+    output_dir: Path, analysis: dict[str, Any]
+) -> list[dict[str, str]]:
     copied: list[dict[str, str]] = []
     base_dir = Path(analysis["base_dir"])
     for rel_path in analysis["source_files"]:
@@ -2598,7 +2954,9 @@ def _copy_sk_binding_sources(output_dir: Path, analysis: dict[str, Any]) -> list
     return copied
 
 
-def _write_sk_binding_scaffold_readme(output_dir: Path, manifest: dict[str, Any]) -> None:
+def _write_sk_binding_scaffold_readme(
+    output_dir: Path, manifest: dict[str, Any]
+) -> None:
     lines = [
         "# Operator SK Binding Scaffold",
         "",
@@ -2613,10 +2971,14 @@ def _write_sk_binding_scaffold_readme(output_dir: Path, manifest: dict[str, Any]
     lines.extend(["", "## Execution Boundary", ""])
     for item in manifest["execution_boundary"]:
         lines.append(f"- {item}")
-    _write_text(output_dir / SK_BINDING_SCAFFOLD_DIR / "README.md", "\n".join(lines) + "\n")
+    _write_text(
+        output_dir / SK_BINDING_SCAFFOLD_DIR / "README.md", "\n".join(lines) + "\n"
+    )
 
 
-def _generate_sk_binding_scaffold(output_dir: Path, analysis: dict[str, Any]) -> tuple[dict[str, Any], int]:
+def _generate_sk_binding_scaffold(
+    output_dir: Path, analysis: dict[str, Any]
+) -> tuple[dict[str, Any], int]:
     scaffold_dir = output_dir / SK_BINDING_SCAFFOLD_DIR
     if scaffold_dir.exists():
         raise CliUsageError("sk binding scaffold output already exists")
@@ -2650,7 +3012,9 @@ def _generate_sk_binding_scaffold(output_dir: Path, analysis: dict[str, Any]) ->
         generated_sources.append((adapted_entry["generated_path"], content))
 
     copied_sources = _copy_sk_binding_sources(output_dir, analysis)
-    generated_files = [f"{SK_BINDING_SCAFFOLD_DIR}/README.md"] + [path for path, _ in generated_sources]
+    generated_files = [f"{SK_BINDING_SCAFFOLD_DIR}/README.md"] + [
+        path for path, _ in generated_sources
+    ]
     manifest = {
         "status": "generated",
         "analysis_output_dir": str(output_dir.resolve()),
@@ -2699,12 +3063,18 @@ def _sk_source_empty_manifest(
 
 
 def _sk_source_needed_next_actions(analysis: dict[str, Any]) -> list[str]:
-    return [item["action"] for item in analysis["generation_plan"] if item["status"] == "needed"][:3]
+    return [
+        item["action"]
+        for item in analysis["generation_plan"]
+        if item["status"] == "needed"
+    ][:3]
 
 
 def _raise_if_existing_non_generated_sk_source_scaffold(output_dir: Path) -> None:
     if (output_dir / SK_SOURCE_SCAFFOLD_DIR).exists():
-        raise CliUsageError("sk source scaffold directory exists for non-generated result")
+        raise CliUsageError(
+            "sk source scaffold directory exists for non-generated result"
+        )
 
 
 def _write_sk_source_artifacts(output_dir: Path, manifest: dict[str, Any]) -> None:
@@ -2776,7 +3146,9 @@ def _sk_source_copy_source_path(analysis: dict[str, Any], rel_path: str) -> Path
     return Path(analysis["base_dir"]) / rel_path
 
 
-def _copy_sk_source_scaffold_files(output_dir: Path, analysis: dict[str, Any]) -> list[dict[str, str]]:
+def _copy_sk_source_scaffold_files(
+    output_dir: Path, analysis: dict[str, Any]
+) -> list[dict[str, str]]:
     copied: list[dict[str, str]] = []
     for entry in _sk_source_copy_entries(analysis):
         source_path = Path(entry["source_path"])
@@ -2809,7 +3181,9 @@ def _render_sk_source_cmake(manifest: dict[str, Any]) -> str:
     return _render_scaffold_cmake(manifest, copied_source_files)
 
 
-def _write_sk_source_scaffold_readme(output_dir: Path, manifest: dict[str, Any]) -> None:
+def _write_sk_source_scaffold_readme(
+    output_dir: Path, manifest: dict[str, Any]
+) -> None:
     lines = [
         "# Operator SK Source Scaffold",
         "",
@@ -2824,10 +3198,14 @@ def _write_sk_source_scaffold_readme(output_dir: Path, manifest: dict[str, Any])
     lines.extend(["", "## Execution Boundary", ""])
     for item in manifest["execution_boundary"]:
         lines.append(f"- {item}")
-    _write_text(output_dir / SK_SOURCE_SCAFFOLD_DIR / "README.md", "\n".join(lines) + "\n")
+    _write_text(
+        output_dir / SK_SOURCE_SCAFFOLD_DIR / "README.md", "\n".join(lines) + "\n"
+    )
 
 
-def _generate_sk_source_scaffold(output_dir: Path, analysis: dict[str, Any]) -> dict[str, Any]:
+def _generate_sk_source_scaffold(
+    output_dir: Path, analysis: dict[str, Any]
+) -> dict[str, Any]:
     scaffold_dir = output_dir / SK_SOURCE_SCAFFOLD_DIR
     if scaffold_dir.exists():
         raise CliUsageError("sk source scaffold output already exists")
@@ -2876,18 +3254,26 @@ def _cmake_quoted(value: str) -> str:
 
 
 def _safe_object_name(scaffold_path: str) -> str:
-    safe = re.sub(r"[^A-Za-z0-9_.-]+", "_", scaffold_path).strip("_") or "operator_source"
+    safe = (
+        re.sub(r"[^A-Za-z0-9_.-]+", "_", scaffold_path).strip("_") or "operator_source"
+    )
     return f"{safe}.o"
 
 
-def _render_ascend_scaffold_cmake(manifest: dict[str, Any], copied_source_files: list[dict[str, str]]) -> str:
+def _render_ascend_scaffold_cmake(
+    manifest: dict[str, Any], copied_source_files: list[dict[str, str]]
+) -> str:
     contract = manifest["ascend_compile_contract"]
     ascend_sources = [
         item["scaffold_path"]
         for item in copied_source_files
         if Path(item["source"]).suffix in ASCEND_COMPILABLE_SOURCE_SUFFIXES
     ]
-    headers = [item["scaffold_path"] for item in copied_source_files if Path(item["source"]).suffix in INCLUDE_SUFFIXES]
+    headers = [
+        item["scaffold_path"]
+        for item in copied_source_files
+        if Path(item["source"]).suffix in INCLUDE_SUFFIXES
+    ]
     target_name = _safe_target_name(manifest)
     include_dirs = []
     for include_dir in [
@@ -2920,7 +3306,9 @@ def _render_ascend_scaffold_cmake(manifest: dict[str, Any], copied_source_files:
     if ascend_sources:
         outputs: list[str] = []
         for source in ascend_sources:
-            output = f"${{CMAKE_CURRENT_BINARY_DIR}}/objects/{_safe_object_name(source)}"
+            output = (
+                f"${{CMAKE_CURRENT_BINARY_DIR}}/objects/{_safe_object_name(source)}"
+            )
             outputs.append(output)
             lines.extend(
                 [
@@ -2934,7 +3322,10 @@ def _render_ascend_scaffold_cmake(manifest: dict[str, Any], copied_source_files:
             for force_include in contract["force_includes"]:
                 lines.append("    -include")
                 lines.append(f"    {_cmake_quoted(force_include)}")
-            lines.extend(f"    {_cmake_quoted('-I' + include_dir)}" for include_dir in include_dirs)
+            lines.extend(
+                f"    {_cmake_quoted('-I' + include_dir)}"
+                for include_dir in include_dirs
+            )
             lines.extend(
                 [
                     "    -c",
@@ -2968,7 +3359,9 @@ def _render_ascend_scaffold_cmake(manifest: dict[str, Any], copied_source_files:
     return "\n".join(lines) + "\n"
 
 
-def _render_scaffold_cmake(manifest: dict[str, Any], copied_source_files: list[dict[str, str]]) -> str:
+def _render_scaffold_cmake(
+    manifest: dict[str, Any], copied_source_files: list[dict[str, str]]
+) -> str:
     if manifest.get("ascend_compile_contract"):
         return _render_ascend_scaffold_cmake(manifest, copied_source_files)
 
@@ -2977,7 +3370,11 @@ def _render_scaffold_cmake(manifest: dict[str, Any], copied_source_files: list[d
         for item in copied_source_files
         if Path(item["source"]).suffix in COMPILABLE_SOURCE_SUFFIXES
     ]
-    headers = [item["scaffold_path"] for item in copied_source_files if Path(item["source"]).suffix in INCLUDE_SUFFIXES]
+    headers = [
+        item["scaffold_path"]
+        for item in copied_source_files
+        if Path(item["source"]).suffix in INCLUDE_SUFFIXES
+    ]
     lines = [
         "cmake_minimum_required(VERSION 3.16)",
         f"project({_safe_target_name(manifest)}_scaffold LANGUAGES CXX)",
@@ -3007,15 +3404,21 @@ def _render_scaffold_cmake(manifest: dict[str, Any], copied_source_files: list[d
             ]
         )
         if manifest.get("include_directories"):
-            lines.append(f"target_include_directories({_safe_target_name(manifest)}_objects PRIVATE")
+            lines.append(
+                f"target_include_directories({_safe_target_name(manifest)}_objects PRIVATE"
+            )
             lines.extend(f'  "{path}"' for path in manifest["include_directories"])
             lines.append(")")
     else:
-        lines.append("# No compilable source file was detected; add an operator build entry before compiling.")
+        lines.append(
+            "# No compilable source file was detected; add an operator build entry before compiling."
+        )
     return "\n".join(lines) + "\n"
 
 
-def _require_exact_keys(payload: Any, expected_keys: set[str], label: str) -> dict[str, Any]:
+def _require_exact_keys(
+    payload: Any, expected_keys: set[str], label: str
+) -> dict[str, Any]:
     if not isinstance(payload, dict):
         raise CliUsageError(f"{label} must be an object")
     keys = set(payload)
@@ -3033,7 +3436,9 @@ def _require_string(value: Any, label: str, *, allow_empty: bool = False) -> str
         raise CliUsageError(f"{label} must be a string")
     if not allow_empty and not value:
         raise CliUsageError(
-            "empty scaffold path is not allowed" if label.endswith("path") else f"{label} must be non-empty"
+            "empty scaffold path is not allowed"
+            if label.endswith("path")
+            else f"{label} must be non-empty"
         )
     return value
 
@@ -3076,7 +3481,9 @@ def _load_json_artifact(path: Path, artifact_name: str) -> Any:
         raise CliUsageError(f"{artifact_name} is not valid JSON") from exc
 
 
-def _validate_manifest_path(value: Any, label: str, *, allow_empty: bool = False) -> str:
+def _validate_manifest_path(
+    value: Any, label: str, *, allow_empty: bool = False
+) -> str:
     path = _require_string(value, label, allow_empty=allow_empty)
     if allow_empty and path == "":
         return path
@@ -3086,14 +3493,18 @@ def _validate_manifest_path(value: Any, label: str, *, allow_empty: bool = False
         raise CliUsageError(str(exc)) from exc
 
 
-def _validate_manifest_path_list(value: Any, list_label: str, item_label: str) -> list[str]:
+def _validate_manifest_path_list(
+    value: Any, list_label: str, item_label: str
+) -> list[str]:
     paths = []
     for item in _require_list(value, list_label):
         paths.append(_validate_manifest_path(item, item_label))
     return paths
 
 
-def _resolve_string_path_list(value: Any, list_label: str, item_label: str) -> list[str]:
+def _resolve_string_path_list(
+    value: Any, list_label: str, item_label: str
+) -> list[str]:
     paths = []
     for item in _require_list(value, list_label):
         paths.append(str(Path(_require_string(item, item_label)).resolve()))
@@ -3174,7 +3585,8 @@ def cmd_adapt_sk_binding_scaffold(args: argparse.Namespace) -> int:
             output_dir=output_dir,
             analysis=analysis,
             blocked_reasons=["sk_binding_already_present"],
-            supported_next_actions=analysis["supported_next_actions"] or ["generate_sk_source_scaffold"],
+            supported_next_actions=analysis["supported_next_actions"]
+            or ["generate_sk_source_scaffold"],
         )
         _write_sk_binding_artifacts(output_dir, manifest)
         return 0
@@ -3217,7 +3629,9 @@ def cmd_generate_sk_source_scaffold(args: argparse.Namespace) -> int:
 
 
 _SK_ADAPT_SUFFIXES = {".asc", ".cpp"}
-_SK_FORM_SIGNAL_RE = re.compile(r"__global__\b|__spk__\b|__sk__\b|\bSK_BIND\s*\(|\.ascend\.meta")
+_SK_FORM_SIGNAL_RE = re.compile(
+    r"__global__\b|__spk__\b|__sk__\b|\bSK_BIND\s*\(|\.ascend\.meta"
+)
 _SK_NON_GLOBAL_FORM_SIGNAL_RE = re.compile(
     r"__spk__\b|__sk__\b|\bSK_BIND\s*\(|\.ascend\.meta|FunLevel(?:MixCoreType|KType)"
 )
@@ -3240,7 +3654,11 @@ def _collect_sk_form_sources(
 ) -> tuple[list[tuple[Path, Path]], list[dict[str, str]]]:
     if asset_path.is_file():
         return [(asset_path, Path(asset_path.name))], []
-    files = sorted(path for path in asset_path.rglob("*") if path.is_file() and path.suffix in _SK_ADAPT_SUFFIXES)
+    files = sorted(
+        path
+        for path in asset_path.rglob("*")
+        if path.is_file() and path.suffix in _SK_ADAPT_SUFFIXES
+    )
     candidates: list[tuple[Path, Path]] = []
     ignored: list[dict[str, str]] = []
     for path in files:
@@ -3252,7 +3670,9 @@ def _collect_sk_form_sources(
         if not _SK_FORM_SIGNAL_RE.search(text):
             ignored.append({"file": str(rel), "reason": "no_kernel_signal"})
             continue
-        if not _has_global_kernel_definition(text) and not _SK_NON_GLOBAL_FORM_SIGNAL_RE.search(text):
+        if not _has_global_kernel_definition(
+            text
+        ) and not _SK_NON_GLOBAL_FORM_SIGNAL_RE.search(text):
             ignored.append({"file": str(rel), "reason": "no_kernel_definition"})
             continue
         candidates.append((path, rel))
@@ -3280,7 +3700,9 @@ def _resolve_quoted_include(
         source_name = support_dir["source_name"]
         if include_rel.parts[0] != source_name:
             continue
-        support_rel = Path(*include_rel.parts[1:]) if len(include_rel.parts) > 1 else Path()
+        support_rel = (
+            Path(*include_rel.parts[1:]) if len(include_rel.parts) > 1 else Path()
+        )
         candidate = (Path(support_dir["source_path"]) / support_rel).resolve()
         if candidate.is_file():
             return candidate
@@ -3290,7 +3712,9 @@ def _resolve_quoted_include(
     return None
 
 
-def _include_destination(include_path: str, including_dest: Path, adapted_dir: Path) -> Path | None:
+def _include_destination(
+    include_path: str, including_dest: Path, adapted_dir: Path
+) -> Path | None:
     include_rel = Path(include_path)
     if include_rel.is_absolute() or not include_rel.parts:
         return None
@@ -3311,11 +3735,16 @@ def _copy_aclgraph_quoted_include_dependencies(
     support_directories: list[dict[str, Any]],
 ) -> list[str]:
     copied: list[str] = []
-    queue = [(include, source_path, csrc_path) for include in _QUOTED_INCLUDE_RE.findall(source_text)]
+    queue = [
+        (include, source_path, csrc_path)
+        for include in _QUOTED_INCLUDE_RE.findall(source_text)
+    ]
     seen_destinations: set[Path] = set()
     while queue:
         include_path, including_source, including_dest = queue.pop(0)
-        dependency = _resolve_quoted_include(include_path, including_source, asset_path, support_directories)
+        dependency = _resolve_quoted_include(
+            include_path, including_source, asset_path, support_directories
+        )
         destination = _include_destination(include_path, including_dest, adapted_dir)
         if dependency is None or destination is None:
             continue
@@ -3325,13 +3754,18 @@ def _copy_aclgraph_quoted_include_dependencies(
         destination.parent.mkdir(parents=True, exist_ok=True)
         if destination.exists():
             if destination.read_bytes() != dependency.read_bytes():
-                raise CliUsageError(f"conflicting generated include dependency: {destination}")
+                raise CliUsageError(
+                    f"conflicting generated include dependency: {destination}"
+                )
             continue
         shutil.copy2(dependency, destination)
-        copied.append(f"operator-sk-adapted/{destination.relative_to(adapted_dir).as_posix()}")
+        copied.append(
+            f"operator-sk-adapted/{destination.relative_to(adapted_dir).as_posix()}"
+        )
         dependency_text = dependency.read_text(encoding="utf-8", errors="replace")
         queue.extend(
-            (nested_include, dependency, destination) for nested_include in _QUOTED_INCLUDE_RE.findall(dependency_text)
+            (nested_include, dependency, destination)
+            for nested_include in _QUOTED_INCLUDE_RE.findall(dependency_text)
         )
     return copied
 
@@ -3393,7 +3827,9 @@ def _copy_runtime_wrapper_source(
     return written
 
 
-def _codegen_human_finding(finding_id: str, message: str, evidence: list[str] | None = None) -> dict[str, Any]:
+def _codegen_human_finding(
+    finding_id: str, message: str, evidence: list[str] | None = None
+) -> dict[str, Any]:
     return {
         "finding_id": finding_id,
         "rule_id": finding_id,
@@ -3436,7 +3872,9 @@ def cmd_detect_sk_form(args: argparse.Namespace) -> int:
             }
         )
     if not per_file:
-        raise CliUsageError(f"no kernel .asc or .cpp source files found under {asset_path}")
+        raise CliUsageError(
+            f"no kernel .asc or .cpp source files found under {asset_path}"
+        )
     forms = {entry["form"] for entry in per_file}
     if forms == {"none"}:
         overall = "none"
@@ -3510,12 +3948,15 @@ def cmd_analyze_operator_asset(args: argparse.Namespace) -> int:
     if getattr(args, "target_chip", ""):
         updated_units = []
         for unit in manifest.operator_units:
-            target_resolution = build_target_resolution(unit.supported_soc_versions, args.target_chip)
+            target_resolution = build_target_resolution(
+                unit.supported_soc_versions, args.target_chip
+            )
             updated_units.append(
                 unit.__class__(
                     **{
                         **unit.__dict__,
-                        "supported_arches": target_resolution.get("arches") or unit.supported_arches,
+                        "supported_arches": target_resolution.get("arches")
+                        or unit.supported_arches,
                         "target_resolution": target_resolution,
                     }
                 )
@@ -3553,12 +3994,15 @@ def cmd_normalize_operator_asset(args: argparse.Namespace) -> int:
     if getattr(args, "target_chip", ""):
         updated_units = []
         for unit in manifest.operator_units:
-            target_resolution = build_target_resolution(unit.supported_soc_versions, args.target_chip)
+            target_resolution = build_target_resolution(
+                unit.supported_soc_versions, args.target_chip
+            )
             updated_units.append(
                 unit.__class__(
                     **{
                         **unit.__dict__,
-                        "supported_arches": target_resolution.get("arches") or unit.supported_arches,
+                        "supported_arches": target_resolution.get("arches")
+                        or unit.supported_arches,
                         "target_resolution": target_resolution,
                     }
                 )
@@ -3600,7 +4044,9 @@ def cmd_adapt_sk_from_global(args: argparse.Namespace) -> int:
     package_name = getattr(args, "package_name", "op_extension") or "op_extension"
     package_version = getattr(args, "package_version", "0.1.0") or "0.1.0"
     package_dir_name = _safe_identifier(package_name, "op_extension")
-    source_asset_override = Path(args.source_asset).resolve() if getattr(args, "source_asset", "") else None
+    source_asset_override = (
+        Path(args.source_asset).resolve() if getattr(args, "source_asset", "") else None
+    )
     name_resolution_index: dict[tuple[str, str], dict[str, Any]] = {}
     name_resolution_payload: dict[str, Any] | None = None
     name_resolution_path = getattr(args, "name_resolution", "") or ""
@@ -3611,18 +4057,28 @@ def cmd_adapt_sk_from_global(args: argparse.Namespace) -> int:
             resolution_by_asset_and_entry,
         )
 
-        name_resolution_payload = read_name_resolution(Path(name_resolution_path).resolve())
+        name_resolution_payload = read_name_resolution(
+            Path(name_resolution_path).resolve()
+        )
         name_resolution_index = resolution_by_asset_and_entry(name_resolution_payload)
     public_name_resolution = (
-        public_name_resolution_payload(name_resolution_payload) if name_resolution_payload is not None else None
+        public_name_resolution_payload(name_resolution_payload)
+        if name_resolution_payload is not None
+        else None
     )
 
-    io_contract_by_entry = _read_pybind_io_contract(getattr(args, "io_contract", "") or "")
+    io_contract_by_entry = _read_pybind_io_contract(
+        getattr(args, "io_contract", "") or ""
+    )
     used_io_contract_entries: set[str] = set()
 
-    def apply_name_resolution(entry: dict[str, Any], source_asset: object | None) -> None:
+    def apply_name_resolution(
+        entry: dict[str, Any], source_asset: object | None
+    ) -> None:
         source_entry_name = str(entry.get("entry_name", ""))
-        source_asset_path = str(Path(str(source_asset_override or source_asset or asset_path)).resolve())
+        source_asset_path = str(
+            Path(str(source_asset_override or source_asset or asset_path)).resolve()
+        )
         resolution = name_resolution_index.get((source_asset_path, source_entry_name))
         entry["source_entry_name"] = source_entry_name
         if resolution:
@@ -3638,7 +4094,9 @@ def cmd_adapt_sk_from_global(args: argparse.Namespace) -> int:
             }
         else:
             entry.setdefault("public_entry_name", source_entry_name)
-            entry.setdefault("internal_symbol_name", _safe_identifier(source_entry_name, "op"))
+            entry.setdefault(
+                "internal_symbol_name", _safe_identifier(source_entry_name, "op")
+            )
             entry.setdefault("bind_target", source_entry_name)
             entry.setdefault(
                 "name_resolution",
@@ -3650,12 +4108,17 @@ def cmd_adapt_sk_from_global(args: argparse.Namespace) -> int:
                 },
             )
 
-    def find_io_contract(entry_name: str, public_entry_name: str = "") -> tuple[str, dict[str, Any] | None]:
+    def find_io_contract(
+        entry_name: str, public_entry_name: str = ""
+    ) -> tuple[str, dict[str, Any] | None]:
         for key in (public_entry_name, entry_name):
             if key and key in io_contract_by_entry:
                 return key, io_contract_by_entry[key]
         for key, value in io_contract_by_entry.items():
-            if value.get("source_entry_name") == entry_name or value.get("public_entry_name") == public_entry_name:
+            if (
+                value.get("source_entry_name") == entry_name
+                or value.get("public_entry_name") == public_entry_name
+            ):
                 return key, value
         return "", None
 
@@ -3681,9 +4144,13 @@ def cmd_adapt_sk_from_global(args: argparse.Namespace) -> int:
         return selected
 
     def apply_io_contract(entry: dict[str, Any]) -> dict[str, Any] | None:
-        source_entry_name = str(entry.get("source_entry_name") or entry.get("entry_name") or "")
+        source_entry_name = str(
+            entry.get("source_entry_name") or entry.get("entry_name") or ""
+        )
         public_entry_name = str(entry.get("entry_name") or "")
-        io_contract_key, io_contract = find_io_contract(source_entry_name, public_entry_name)
+        io_contract_key, io_contract = find_io_contract(
+            source_entry_name, public_entry_name
+        )
         param_kinds = _entry_param_kinds(entry)
         tensor_names = _io_contract_tensor_param_names(entry)
         host_struct_names = _io_contract_host_struct_param_names(entry)
@@ -3737,7 +4204,11 @@ def cmd_adapt_sk_from_global(args: argparse.Namespace) -> int:
         declared_params = io_contract.get("parameters", {})
         contract_bind_target = str(io_contract.get("bind_target") or "").strip()
         entry_bind_target = str(entry.get("bind_target") or "").strip()
-        if contract_bind_target and entry_bind_target and contract_bind_target != entry_bind_target:
+        if (
+            contract_bind_target
+            and entry_bind_target
+            and contract_bind_target != entry_bind_target
+        ):
             return _codegen_human_finding(
                 "codegen.io-contract-bind-target-mismatch",
                 (
@@ -3783,7 +4254,9 @@ def cmd_adapt_sk_from_global(args: argparse.Namespace) -> int:
                 ],
             )
         tensor_list_params_in_order = [
-            name for name, spec in declared_params.items() if spec.get("kind") == "tensor_list"
+            name
+            for name, spec in declared_params.items()
+            if spec.get("kind") == "tensor_list"
         ]
         tensor_list_params = sorted(tensor_list_params_in_order)
         runtime_wrapper = dict(io_contract.get("runtime_wrapper", {}) or {})
@@ -3810,14 +4283,19 @@ def cmd_adapt_sk_from_global(args: argparse.Namespace) -> int:
             extra_wrapper_roots = []
             if source_asset_override is not None:
                 source_asset_root = (
-                    source_asset_override if source_asset_override.is_dir() else source_asset_override.parent
+                    source_asset_override
+                    if source_asset_override.is_dir()
+                    else source_asset_override.parent
                 )
                 extra_wrapper_roots.append(source_asset_root)
                 extra_wrapper_roots.append(source_asset_root.parent)
             wrapper_source, wrapper_root = _resolve_runtime_wrapper_source(
                 asset_path, runtime_wrapper, extra_wrapper_roots
             )
-            if not _is_same_or_child_path(wrapper_source, wrapper_root) or not wrapper_source.is_file():
+            if (
+                not _is_same_or_child_path(wrapper_source, wrapper_root)
+                or not wrapper_source.is_file()
+            ):
                 return _codegen_human_finding(
                     "codegen.runtime-wrapper-source-missing",
                     (
@@ -3848,7 +4326,9 @@ def cmd_adapt_sk_from_global(args: argparse.Namespace) -> int:
                 )
             runtime_wrapper["source_path"] = str(wrapper_source)
             if tensor_list_params:
-                strategy = str(runtime_wrapper.get("tensor_list_descriptor_strategy") or "").strip()
+                strategy = str(
+                    runtime_wrapper.get("tensor_list_descriptor_strategy") or ""
+                ).strip()
                 if strategy != "prepared_workspace_tail":
                     return _codegen_human_finding(
                         "codegen.tensor-list-prepared-runtime-state-required",
@@ -3870,9 +4350,17 @@ def cmd_adapt_sk_from_global(args: argparse.Namespace) -> int:
                         ],
                     )
                 descriptor_order = list(runtime_wrapper.get("descriptor_order") or [])
-                missing_descriptors = sorted(set(tensor_list_params_in_order) - set(descriptor_order))
-                extra_descriptors = sorted(set(descriptor_order) - set(tensor_list_params_in_order))
-                if missing_descriptors or extra_descriptors or descriptor_order != tensor_list_params_in_order:
+                missing_descriptors = sorted(
+                    set(tensor_list_params_in_order) - set(descriptor_order)
+                )
+                extra_descriptors = sorted(
+                    set(descriptor_order) - set(tensor_list_params_in_order)
+                )
+                if (
+                    missing_descriptors
+                    or extra_descriptors
+                    or descriptor_order != tensor_list_params_in_order
+                ):
                     return _codegen_human_finding(
                         "codegen.tensor-list-descriptor-order-mismatch",
                         (
@@ -3973,7 +4461,9 @@ def cmd_adapt_sk_from_global(args: argparse.Namespace) -> int:
 
     sources, ignored = _collect_sk_form_sources(asset_path)
     if not sources:
-        raise CliUsageError(f"no kernel .asc or .cpp source files found under {asset_path}")
+        raise CliUsageError(
+            f"no kernel .asc or .cpp source files found under {asset_path}"
+        )
     support_directories = _normalize_support_directories(
         getattr(args, "support_dir", None),
         asset_path if asset_path.is_dir() else asset_path.parent,
@@ -3986,10 +4476,13 @@ def cmd_adapt_sk_from_global(args: argparse.Namespace) -> int:
 
         understanding = read_understanding(Path(understanding_path).resolve())
         for unit in understanding.operator_units:
-            target_resolution = build_target_resolution(unit.supported_soc_versions, target_chips)
+            target_resolution = build_target_resolution(
+                unit.supported_soc_versions, target_chips
+            )
             unit_metadata_by_entry[unit.entry_name] = {
                 "supported_soc_versions": unit.supported_soc_versions,
-                "supported_arches": target_resolution.get("arches") or unit.supported_arches,
+                "supported_arches": target_resolution.get("arches")
+                or unit.supported_arches,
                 "target_resolution": target_resolution,
                 "support_source": unit.support_source,
                 "source_asset": unit.source_asset,
@@ -4010,7 +4503,9 @@ def cmd_adapt_sk_from_global(args: argparse.Namespace) -> int:
         target_path = adapted_dir / rel
         target_path.parent.mkdir(parents=True, exist_ok=True)
         if form.form == "none":
-            cleaned_text, inline_remediations, escalations = _run_spec_clean_loop_inline(text, rel_path=str(rel))
+            cleaned_text, inline_remediations, escalations = (
+                _run_spec_clean_loop_inline(text, rel_path=str(rel))
+            )
             if escalations:
                 all_escalations.extend(escalations)
                 per_file_results.append(
@@ -4070,12 +4565,16 @@ def cmd_adapt_sk_from_global(args: argparse.Namespace) -> int:
             )
         elif form.form == "legacy-spk":
             migration_contract: dict[str, Any] = {}
-            possible_contract_names = [match.group(1) for match in KERNEL_ENTRY_RE.finditer(text)]
+            possible_contract_names = [
+                match.group(1) for match in KERNEL_ENTRY_RE.finditer(text)
+            ]
             for possible_name in possible_contract_names:
                 _, matched_contract = find_io_contract(possible_name)
                 if matched_contract and matched_contract.get("migration"):
                     migration_contract.update(matched_contract.get("migration", {}))
-            bind_targets_by_stem = contract_bind_targets_for_global_entry(possible_contract_names)
+            bind_targets_by_stem = contract_bind_targets_for_global_entry(
+                possible_contract_names
+            )
             new_text, migration_meta = migrate_legacy_spk_to_sk_bind(
                 text,
                 mask=int(args.mask),
@@ -4192,11 +4691,17 @@ def cmd_adapt_sk_from_global(args: argparse.Namespace) -> int:
         if export_name:
             entries_by_export_name.setdefault(export_name, []).append(entry)
     for export_name, entries in sorted(entries_by_export_name.items()):
-        bind_targets = sorted({str(entry.get("bind_target") or "") for entry in entries})
+        bind_targets = sorted(
+            {str(entry.get("bind_target") or "") for entry in entries}
+        )
         if len(entries) <= 1 or len(bind_targets) <= 1:
             continue
         selected_targets = sorted(
-            {_entry_contract_bind_target(entry) for entry in entries if _entry_contract_bind_target(entry)}
+            {
+                _entry_contract_bind_target(entry)
+                for entry in entries
+                if _entry_contract_bind_target(entry)
+            }
         )
         if len(selected_targets) == 1 and selected_targets[0] in bind_targets:
             continue
@@ -4219,7 +4724,9 @@ def cmd_adapt_sk_from_global(args: argparse.Namespace) -> int:
         source_entry_names: set[str] = set()
         unique_sources: list[tuple[str, str, list[dict[str, Any]], Path]] = []
         for csrc_name, source_text, entries, source_path in canonical_sources:
-            source_entry_name = entries[0]["entry_name"] if entries else Path(csrc_name).stem
+            source_entry_name = (
+                entries[0]["entry_name"] if entries else Path(csrc_name).stem
+            )
             if source_entry_name in source_entry_names:
                 continue
             source_entry_names.add(source_entry_name)
@@ -4229,7 +4736,9 @@ def cmd_adapt_sk_from_global(args: argparse.Namespace) -> int:
             pybind_entries_by_name.setdefault(entry["entry_name"], entry)
         pybind_entries = list(pybind_entries_by_name.values())
 
-        safe_operator_id = re.sub(r"[^A-Za-z0-9_]", "_", pybind_entries[0]["entry_name"])
+        safe_operator_id = re.sub(
+            r"[^A-Za-z0-9_]", "_", pybind_entries[0]["entry_name"]
+        )
         module_name = f"{safe_operator_id}_sk_pkg_lib"
         csrc_dir = adapted_dir / "csrc"
         csrc_dir.mkdir(parents=True, exist_ok=True)
@@ -4241,7 +4750,9 @@ def cmd_adapt_sk_from_global(args: argparse.Namespace) -> int:
                 final_name = f"{Path(csrc_name).stem}_{suffix}.asc"
             used_csrc_names.add(final_name)
             csrc_path = csrc_dir / final_name
-            csrc_path.write_text(render_aclgraph_kernel_source(source_text, entries), encoding="utf-8")
+            csrc_path.write_text(
+                render_aclgraph_kernel_source(source_text, entries), encoding="utf-8"
+            )
             for entry in entries:
                 entry["csrc_file"] = final_name
             canonical_written.append(f"operator-sk-adapted/csrc/{final_name}")
@@ -4266,11 +4777,15 @@ def cmd_adapt_sk_from_global(args: argparse.Namespace) -> int:
                         used_csrc_names=used_csrc_names,
                     )
                 )
-        (csrc_dir / "pybind11.asc").write_text(render_pybind11_asc(module_name, pybind_entries), encoding="utf-8")
+        (csrc_dir / "pybind11.asc").write_text(
+            render_pybind11_asc(module_name, pybind_entries), encoding="utf-8"
+        )
         canonical_written.append("operator-sk-adapted/csrc/pybind11.asc")
         for entry in pybind_entries:
             pybind_name = _aclgraph_entry_pybind_name(entry)
-            (csrc_dir / pybind_name).write_text(render_pybind11_entry_asc(entry), encoding="utf-8")
+            (csrc_dir / pybind_name).write_text(
+                render_pybind11_entry_asc(entry), encoding="utf-8"
+            )
             canonical_written.append(f"operator-sk-adapted/csrc/{pybind_name}")
         op_extension = adapted_dir / package_dir_name
         op_extension.mkdir(parents=True, exist_ok=True)
@@ -4313,7 +4828,9 @@ def cmd_adapt_sk_from_global(args: argparse.Namespace) -> int:
         "status": "needs-human" if all_escalations else "completed",
         "asset_path": str(asset_path),
         "adapted_dir": str(adapted_dir),
-        "pybind_layout": "aclgraph-canonical" if canonical_entries and not all_escalations else None,
+        "pybind_layout": "aclgraph-canonical"
+        if canonical_entries and not all_escalations
+        else None,
         "pybind_module": module_name,
         "package_name": package_name,
         "package_version": package_version,
@@ -4336,19 +4853,24 @@ def cmd_adapt_sk_from_global(args: argparse.Namespace) -> int:
             if entry.get("legacy_helper_evidence")
         ],
         "template_specializations": [
-            entry["template_specialization"] for entry in canonical_entries if entry.get("template_specialization")
+            entry["template_specialization"]
+            for entry in canonical_entries
+            if entry.get("template_specialization")
         ],
         "mask": int(args.mask),
         "num_splits": int(args.num_splits),
         "with_sys_args": args.with_sys_args,
         "target_chips": target_chips,
-        "name_resolution": public_name_resolution or {"policy": "none", "renamed_entry_count": 0, "resolutions": []},
+        "name_resolution": public_name_resolution
+        or {"policy": "none", "renamed_entry_count": 0, "resolutions": []},
         "per_file": per_file_results,
         "support_directories": support_directories,
         "ignored_support_files": ignored,
         "escalations": all_escalations,
     }
-    (output_dir / "operator-sk-adapted.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+    (output_dir / "operator-sk-adapted.json").write_text(
+        json.dumps(manifest, indent=2), encoding="utf-8"
+    )
     return 0
 
 
@@ -4374,7 +4896,9 @@ def cmd_aggregate_sk_adapted(args: argparse.Namespace) -> int:
                 "status": manifest["status"],
                 "package_name": manifest["package_name"],
                 "package_version": manifest["package_version"],
-                "entries": sum(len(item.get("entries", [])) for item in manifest["per_file"]),
+                "entries": sum(
+                    len(item.get("entries", [])) for item in manifest["per_file"]
+                ),
             }
         )
     )
@@ -4386,11 +4910,17 @@ def cmd_generate_standalone_compare(args: argparse.Namespace) -> int:
 
     aggregate_output_dir = Path(args.aggregate_output_dir).resolve()
     if not aggregate_output_dir.exists() or not aggregate_output_dir.is_dir():
-        raise CliUsageError(f"aggregate output directory not found: {aggregate_output_dir}")
+        raise CliUsageError(
+            f"aggregate output directory not found: {aggregate_output_dir}"
+        )
     output_dir = Path(args.output_dir).resolve()
     if output_dir.exists() and any(output_dir.iterdir()):
-        raise CliUsageError(f"standalone compare output directory not empty: {output_dir}")
-    fixture_dir = Path(args.runtime_fixture_dir).resolve() if args.runtime_fixture_dir else None
+        raise CliUsageError(
+            f"standalone compare output directory not empty: {output_dir}"
+        )
+    fixture_dir = (
+        Path(args.runtime_fixture_dir).resolve() if args.runtime_fixture_dir else None
+    )
     manifest = generate_standalone_compare_artifacts(
         aggregate_output_dir,
         output_dir,
@@ -4398,7 +4928,9 @@ def cmd_generate_standalone_compare(args: argparse.Namespace) -> int:
         target_chip=args.target_chip or "",
         npu_arch=args.npu_arch or "",
     )
-    _emit(json.dumps({"status": manifest["status"], "entries": len(manifest["entries"])}))
+    _emit(
+        json.dumps({"status": manifest["status"], "entries": len(manifest["entries"])})
+    )
     return 0
 
 
@@ -4415,14 +4947,20 @@ def cmd_apply_remediation(args: argparse.Namespace) -> int:
     envelope = json.loads(findings_path.read_text(encoding="utf-8"))
     findings = envelope.get("findings") if isinstance(envelope, dict) else None
     if not isinstance(findings, list):
-        raise CliUsageError("findings file must contain a 'findings' list at the top level")
+        raise CliUsageError(
+            "findings file must contain a 'findings' list at the top level"
+        )
 
     results = apply_remediation(asset_dir, findings)
     applied = sum(1 for r in results if r["status"] == "applied")
     escalated = sum(1 for r in results if r["status"] == "escalated")
     failed = sum(1 for r in results if r["status"] == "failed")
     skipped = sum(1 for r in results if r["status"] == "skipped")
-    output_dir = Path(args.output_dir).resolve() if getattr(args, "output_dir", None) else asset_dir
+    output_dir = (
+        Path(args.output_dir).resolve()
+        if getattr(args, "output_dir", None)
+        else asset_dir
+    )
     output_dir.mkdir(parents=True, exist_ok=True)
     manifest = {
         "status": "completed",
@@ -4436,7 +4974,9 @@ def cmd_apply_remediation(args: argparse.Namespace) -> int:
         },
         "results": results,
     }
-    (output_dir / "operator-sk-remediation.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+    (output_dir / "operator-sk-remediation.json").write_text(
+        json.dumps(manifest, indent=2), encoding="utf-8"
+    )
     return 0 if failed == 0 else 1
 
 
@@ -4451,7 +4991,11 @@ def cmd_generate_from_template(args: argparse.Namespace) -> int:
     template_id = args.template_id
     templates_dir = Path(__file__).resolve().parent.parent / "templates"
     found = next(
-        (item for item in list_templates(templates_dir) if item.get("id") == template_id and "error" not in item),
+        (
+            item
+            for item in list_templates(templates_dir)
+            if item.get("id") == template_id and "error" not in item
+        ),
         None,
     )
     if found is None:
@@ -4481,7 +5025,9 @@ def cmd_generate_from_template(args: argparse.Namespace) -> int:
         try:
             target.relative_to(output_dir.resolve())
         except ValueError as exc:
-            raise CliUsageError(f"template attempted to write outside output dir: {rel}") from exc
+            raise CliUsageError(
+                f"template attempted to write outside output dir: {rel}"
+            ) from exc
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(body, encoding="utf-8")
         written.append(rel)
@@ -4492,7 +5038,9 @@ def cmd_generate_from_template(args: argparse.Namespace) -> int:
         "output_dir": str(output_dir),
         "written_files": written,
     }
-    (output_dir / "operator-sk-template-manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+    (output_dir / "operator-sk-template-manifest.json").write_text(
+        json.dumps(manifest, indent=2), encoding="utf-8"
+    )
     return 0
 
 
@@ -4514,19 +5062,33 @@ def build_parser() -> argparse.ArgumentParser:
     if str(script_dir) not in _sys.path:
         _sys.path.insert(0, str(script_dir))
 
-    parser = argparse.ArgumentParser(description="Top-level CLI for sk-operator-codegen")
+    parser = argparse.ArgumentParser(
+        description="Top-level CLI for sk-operator-codegen"
+    )
     subparsers = parser.add_subparsers(dest="subcommand", required=True)
 
-    intake = subparsers.add_parser("intake", help="Scan one operator asset and generate base delivery artifacts")
+    intake = subparsers.add_parser(
+        "intake", help="Scan one operator asset and generate base delivery artifacts"
+    )
     intake.add_argument("asset", help="Operator asset directory or file")
-    intake.add_argument("--output-dir", default="operator-delivery-output", help="Output directory")
-    intake.add_argument("--with-ai", action="store_true", help="Request optional AI-layer hints")
+    intake.add_argument(
+        "--output-dir", default="operator-delivery-output", help="Output directory"
+    )
+    intake.add_argument(
+        "--with-ai", action="store_true", help="Request optional AI-layer hints"
+    )
     intake.set_defaults(func=cmd_intake)
 
-    plan = subparsers.add_parser("plan", help="Generate the same base artifacts as an execution plan")
+    plan = subparsers.add_parser(
+        "plan", help="Generate the same base artifacts as an execution plan"
+    )
     plan.add_argument("asset", help="Operator asset directory or file")
-    plan.add_argument("--output-dir", default="operator-delivery-output", help="Output directory")
-    plan.add_argument("--with-ai", action="store_true", help="Request optional AI-layer hints")
+    plan.add_argument(
+        "--output-dir", default="operator-delivery-output", help="Output directory"
+    )
+    plan.add_argument(
+        "--with-ai", action="store_true", help="Request optional AI-layer hints"
+    )
     plan.set_defaults(func=cmd_plan)
 
     sk_conversion = subparsers.add_parser(
@@ -4534,7 +5096,9 @@ def build_parser() -> argparse.ArgumentParser:
         help="Analyze source-to-SK conversion readiness without generating source, building, or validating",
     )
     sk_conversion.add_argument("asset", help="Operator asset directory or file")
-    sk_conversion.add_argument("--output-dir", default="operator-delivery-output", help="Output directory")
+    sk_conversion.add_argument(
+        "--output-dir", default="operator-delivery-output", help="Output directory"
+    )
     sk_conversion.add_argument(
         "--support-dir",
         action="append",
@@ -4573,14 +5137,18 @@ def build_parser() -> argparse.ArgumentParser:
         "adapt-sk-binding-scaffold",
         help="Generate a reviewable SK binding source scaffold from an exact-current conversion analysis",
     )
-    sk_binding.add_argument("analysis_output_dir", help="Output directory produced by analyze-sk-conversion")
+    sk_binding.add_argument(
+        "analysis_output_dir", help="Output directory produced by analyze-sk-conversion"
+    )
     sk_binding.set_defaults(func=cmd_adapt_sk_binding_scaffold)
 
     sk_source = subparsers.add_parser(
         "generate-sk-source-scaffold",
         help="Generate a reviewable SK source scaffold from an exact-current ready conversion analysis",
     )
-    sk_source.add_argument("analysis_output_dir", help="Output directory produced by analyze-sk-conversion")
+    sk_source.add_argument(
+        "analysis_output_dir", help="Output directory produced by analyze-sk-conversion"
+    )
     sk_source.set_defaults(func=cmd_generate_sk_source_scaffold)
 
     detect_form = subparsers.add_parser(
@@ -4588,7 +5156,9 @@ def build_parser() -> argparse.ArgumentParser:
         help="Classify each source file as none / legacy-spk / current-sk-bind / partial / unknown",
     )
     detect_form.add_argument("asset", help="Operator asset directory or .asc/.cpp file")
-    detect_form.add_argument("--output-dir", default="operator-delivery-output", help="Output directory")
+    detect_form.add_argument(
+        "--output-dir", default="operator-delivery-output", help="Output directory"
+    )
     detect_form.set_defaults(func=cmd_detect_sk_form)
 
     scan_assets = subparsers.add_parser(
@@ -4605,7 +5175,9 @@ def build_parser() -> argparse.ArgumentParser:
     )
     analyze_asset.add_argument("asset", help="Operator asset directory or source file")
     analyze_asset.add_argument("--output-dir", required=True, help="Output directory")
-    analyze_asset.add_argument("--asset-layout", help="Explicit operator-asset-layout.json to drive analysis")
+    analyze_asset.add_argument(
+        "--asset-layout", help="Explicit operator-asset-layout.json to drive analysis"
+    )
     analyze_asset.add_argument(
         "--target-chip",
         default="",
@@ -4617,8 +5189,12 @@ def build_parser() -> argparse.ArgumentParser:
         "normalize-operator-asset",
         help="Normalize an analyzed operator asset into per-operator unit directories",
     )
-    normalize_asset.add_argument("asset", help="Operator asset directory or source file")
-    normalize_asset.add_argument("--understanding", help="Existing operator-asset-understanding.json")
+    normalize_asset.add_argument(
+        "asset", help="Operator asset directory or source file"
+    )
+    normalize_asset.add_argument(
+        "--understanding", help="Existing operator-asset-understanding.json"
+    )
     normalize_asset.add_argument(
         "--asset-layout",
         help="Explicit operator-asset-layout.json to drive normalization",
@@ -4655,7 +5231,9 @@ def build_parser() -> argparse.ArgumentParser:
         default="op_extension",
         help="Distribution/Python package name for generated pybind project",
     )
-    adapt_sk.add_argument("--package-version", default="0.1.0", help="Distribution package version")
+    adapt_sk.add_argument(
+        "--package-version", default="0.1.0", help="Distribution package version"
+    )
     adapt_sk.add_argument(
         "--name-resolution",
         help="name-resolution-report.json used to namespace duplicate public entry names",
@@ -4677,7 +5255,9 @@ def build_parser() -> argparse.ArgumentParser:
         default="4",
         help="SK_BIND mask: 4=DCCI default; accepts bit combinations 0..7",
     )
-    adapt_sk.add_argument("--num-splits", default="4", help="Number of SK split symbols (1..4)")
+    adapt_sk.add_argument(
+        "--num-splits", default="4", help="Number of SK split symbols (1..4)"
+    )
     adapt_sk.add_argument(
         "--support-dir",
         action="append",
@@ -4732,7 +5312,9 @@ def build_parser() -> argparse.ArgumentParser:
         required=True,
         help="Fresh directory for operator-sk-standalone-verify output",
     )
-    standalone_compare.add_argument("--runtime-fixture-dir", help="Directory containing per-op runtime fixtures")
+    standalone_compare.add_argument(
+        "--runtime-fixture-dir", help="Directory containing per-op runtime fixtures"
+    )
     standalone_compare.add_argument(
         "--target-chip",
         default="",
@@ -4768,13 +5350,17 @@ def build_parser() -> argparse.ArgumentParser:
         "generate-from-template",
         help="Render a templates/<id>.yaml into a fresh source tree (for kicking off the closed-loop pipeline)",
     )
-    gen_tmpl.add_argument("template_id", help="Template id (matches templates/<id>.yaml)")
+    gen_tmpl.add_argument(
+        "template_id", help="Template id (matches templates/<id>.yaml)"
+    )
     gen_tmpl.add_argument(
         "--param",
         action="append",
         help="Template parameter override: key=value (repeatable)",
     )
-    gen_tmpl.add_argument("--output-dir", required=True, help="Output directory (must be empty or absent)")
+    gen_tmpl.add_argument(
+        "--output-dir", required=True, help="Output directory (must be empty or absent)"
+    )
     gen_tmpl.set_defaults(func=cmd_generate_from_template)
 
     list_tmpl = subparsers.add_parser(

@@ -33,7 +33,11 @@ def _short_hash(*parts: object) -> str:
 
 def _asset_namespace(root: Path | None, asset_path: Path) -> str:
     try:
-        raw = "__".join(asset_path.resolve().relative_to(root.resolve()).parts) if root is not None else asset_path.name
+        raw = (
+            "__".join(asset_path.resolve().relative_to(root.resolve()).parts)
+            if root is not None
+            else asset_path.name
+        )
     except ValueError:
         raw = asset_path.name
     if asset_path.is_file():
@@ -43,7 +47,11 @@ def _asset_namespace(root: Path | None, asset_path: Path) -> str:
 
 def _asset_key(root: Path | None, asset_path: Path) -> str:
     try:
-        return asset_path.resolve().relative_to(root.resolve()).as_posix() if root is not None else asset_path.name
+        return (
+            asset_path.resolve().relative_to(root.resolve()).as_posix()
+            if root is not None
+            else asset_path.name
+        )
     except ValueError:
         return asset_path.name
 
@@ -59,7 +67,9 @@ def build_name_resolution(
     entries: list[dict[str, Any]] = []
     for asset in assets:
         asset_path = Path(asset["path"]).resolve()
-        namespace = safe_public_name(asset.get("namespace") or _asset_namespace(root, asset_path), "asset")
+        namespace = safe_public_name(
+            asset.get("namespace") or _asset_namespace(root, asset_path), "asset"
+        )
         for entry in asset.get("entries", []):
             source_entry = str(entry)
             entries.append(
@@ -73,21 +83,26 @@ def build_name_resolution(
     by_entry: dict[str, list[dict[str, Any]]] = {}
     for item in entries:
         by_entry.setdefault(item["source_entry_name"], []).append(item)
-    duplicate_groups = {entry: items for entry, items in by_entry.items() if len(items) > 1}
+    duplicate_groups = {
+        entry: items for entry, items in by_entry.items() if len(items) > 1
+    }
     used_public_names: dict[str, dict[str, Any]] = {}
     resolutions: list[dict[str, Any]] = []
     for item in entries:
         source_entry = item["source_entry_name"]
         duplicate = source_entry in duplicate_groups
         if duplicate and policy == "namespace":
-            base_name = safe_public_name(f"{item['asset_namespace']}__{source_entry}", "op")
+            base_name = safe_public_name(
+                f"{item['asset_namespace']}__{source_entry}", "op"
+            )
         else:
             base_name = source_entry
         public_name = base_name
         previous = used_public_names.get(public_name)
         public_name_collision = False
         previous_is_different_asset = previous is not None and (
-            previous["asset_path"] != item["asset_path"] or previous["source_entry_name"] != source_entry
+            previous["asset_path"] != item["asset_path"]
+            or previous["source_entry_name"] != source_entry
         )
         if policy == "namespace" and previous_is_different_asset:
             public_name_collision = True
@@ -159,5 +174,7 @@ def resolution_by_asset_and_entry(
 ) -> dict[tuple[str, str], dict[str, Any]]:
     index: dict[tuple[str, str], dict[str, Any]] = {}
     for item in payload.get("resolutions", []):
-        index[(str(Path(item["asset_path"]).resolve()), str(item["source_entry_name"]))] = dict(item)
+        index[
+            (str(Path(item["asset_path"]).resolve()), str(item["source_entry_name"]))
+        ] = dict(item)
     return index

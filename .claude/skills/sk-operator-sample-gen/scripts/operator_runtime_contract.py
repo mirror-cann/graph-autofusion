@@ -52,7 +52,9 @@ def _parameters_from_entry(entry: dict[str, Any]) -> list[dict[str, Any]]:
     return parameters
 
 
-def _parameters_from_fixture(entry: dict[str, Any], fixture: dict[str, Any]) -> list[dict[str, Any]]:
+def _parameters_from_fixture(
+    entry: dict[str, Any], fixture: dict[str, Any]
+) -> list[dict[str, Any]]:
     by_name = {
         str(item.get("name")): item
         for item in fixture.get("parameters", [])
@@ -80,7 +82,11 @@ def build_runtime_contract(
 ) -> dict[str, Any]:
     output_dir.mkdir(parents=True, exist_ok=True)
     fixture = _fixture_payload(fixture_status)
-    parameters = _parameters_from_fixture(entry, fixture) if fixture else _parameters_from_entry(entry)
+    parameters = (
+        _parameters_from_fixture(entry, fixture)
+        if fixture
+        else _parameters_from_entry(entry)
+    )
     compare_outputs = [param["name"] for param in parameters if param.get("compare")]
     if fixture_status.get("device_runnable") is True and compare_outputs:
         status = "available"
@@ -110,5 +116,7 @@ def build_runtime_contract(
             "device_runnable": fixture_status.get("device_runnable"),
         },
     }
-    (output_dir / "operator-runtime-contract.json").write_text(json.dumps(contract, indent=2), encoding="utf-8")
+    (output_dir / "operator-runtime-contract.json").write_text(
+        json.dumps(contract, indent=2), encoding="utf-8"
+    )
     return contract

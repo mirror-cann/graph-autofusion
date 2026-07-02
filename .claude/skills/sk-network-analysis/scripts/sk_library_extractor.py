@@ -41,7 +41,9 @@ RE_SCOPE_STREAM = re.compile(
     r"Scope (\d+) StreamInfo\[(\d+)\]: streamIdx=(\d+), headNode=(\d+), tailNode=(\d+), nodeSize=(\d+)"
 )
 RE_SCOPE_BATCH_HEADER = re.compile(r"Printing scope split results, total scopes: (\d+)")
-RE_SCOPE_BATCH_BEGIN = re.compile(r"Scope split results begin: pass=([^,]+), totalScopes=(\d+)")
+RE_SCOPE_BATCH_BEGIN = re.compile(
+    r"Scope split results begin: pass=([^,]+), totalScopes=(\d+)"
+)
 RE_FUSED_HEADER = re.compile(r"SK Function:\s*(.+), scope id: (\d+), Node Count: (\d+)")
 RE_TASK_SECTION = re.compile(r"(AIC|AIV) TaskQue: cap=(\d+), tasks=(\d+)")
 RE_TASK_ENTRY_HEAD = re.compile(r"\[(\d+)\]\s*type=([A-Z_]+),\s*(.*)")
@@ -56,7 +58,9 @@ RE_DFX_INFO = re.compile(
 )
 RE_DFXINFO_HEADER = re.compile(r"=== SkDfxInfo \(offset=(\d+), nodeCnt=(\d+)\) ===")
 RE_COUNTERINFO_HEADER = re.compile(r"=== SkCounterInfo \(offset=(\d+)\) ===")
-RE_COUNTERINFO_CORE = re.compile(r"\[core (\d+)\] index=(\d+), launch=(\d+), exit=(\d+)")
+RE_COUNTERINFO_CORE = re.compile(
+    r"\[core (\d+)\] index=(\d+), launch=(\d+), exit=(\d+)"
+)
 RE_DFXINFO_NODE = re.compile(
     r"\[node (\d+)\] binHdl=0x([0-9a-zA-Zx]+), funcHdlOri=0x([0-9a-zA-Zx]+), "
     r"aicSize=0x([0-9a-zA-Zx]+), aivSize=0x([0-9a-zA-Zx]+)"
@@ -67,15 +71,25 @@ RE_DFXINFO_ENTRY_AIV = re.compile(r"entryAiv\[(\d+)\]=0x([0-9a-zA-Zx]+)")
 RE_EXCEPTION_FROM_SUPERKERNEL = re.compile(
     r"Exception is from superkernel function ['\"]([^'\"]+)['\"],\s*op_trace=([a-zA-Z]+)"
 )
-RE_EXCEPTION_CORE_MATCH = re.compile(r"\[Core (\d+)\] Found in node\[(\d+)\], entry\[(\d+)\]")
+RE_EXCEPTION_CORE_MATCH = re.compile(
+    r"\[Core (\d+)\] Found in node\[(\d+)\], entry\[(\d+)\]"
+)
 RE_EXCEPTION_CORE_FUNC = re.compile(r"\[Core (\d+)\] Function name:\s*(.+)")
 RE_CORETYPE = re.compile(r"\[Core (\d+)\] CoreType:\s*([A-Z]+)")
-RE_EXCEPTION_START_PC = re.compile(r"\[Core (\d+)\]\s*start\s*pc:\s*(0x[0-9a-fA-F]+)", re.IGNORECASE)
-RE_CURRENT_PC = re.compile(r"\[Core (\d+)\]\s*current\s*pc:\s*(0x[0-9a-fA-F]+)", re.IGNORECASE)
+RE_EXCEPTION_START_PC = re.compile(
+    r"\[Core (\d+)\]\s*start\s*pc:\s*(0x[0-9a-fA-F]+)", re.IGNORECASE
+)
+RE_CURRENT_PC = re.compile(
+    r"\[Core (\d+)\]\s*current\s*pc:\s*(0x[0-9a-fA-F]+)", re.IGNORECASE
+)
 RE_ENTRY_ADDRESS = re.compile(r"\[Core (\d+)\] Entry address:\s*(0x[0-9a-fA-F]+)")
 RE_END_ADDRESS = re.compile(r"\[Core (\d+)\] End address:\s*(0x[0-9a-fA-F]+)")
-RE_FUNCTION_SIZE = re.compile(r"\[Core (\d+)\] Function size:\s*(0x[0-9a-fA-F]+)\s+\((\d+)\s+bytes\)")
-RE_NO_SUB_KERNEL_MATCHED = re.compile(r"\[Core (\d+)\] No sub kernel matched, aicore error occurred in sk entry\.")
+RE_FUNCTION_SIZE = re.compile(
+    r"\[Core (\d+)\] Function size:\s*(0x[0-9a-fA-F]+)\s+\((\d+)\s+bytes\)"
+)
+RE_NO_SUB_KERNEL_MATCHED = re.compile(
+    r"\[Core (\d+)\] No sub kernel matched, aicore error occurred in sk entry\."
+)
 RE_MODEL_RI = re.compile(r"model_(\d+)")
 RE_SCOPE_NAME = re.compile(r"scopeName:\s*(.*?)__skId:\s*(\d+)")
 RE_FUNCTION_CONTEXT = re.compile(
@@ -83,15 +97,21 @@ RE_FUNCTION_CONTEXT = re.compile(
 )
 RE_FUNC_NAME = re.compile(r"funcName:([^,}]+)")
 RE_KERNEL_TYPE = re.compile(r"kernelType:([^,}]+)")
-RE_SCOPE_UPDATE_BEGIN = re.compile(r"scope update begin:\s*(?:scopeName=([^,]+),\s*)?streamCount=(\d+)")
+RE_SCOPE_UPDATE_BEGIN = re.compile(
+    r"scope update begin:\s*(?:scopeName=([^,]+),\s*)?streamCount=(\d+)"
+)
 RE_UPDATE_STREAM_BEGIN = re.compile(
     r"update stream begin:\s*(?:scopeName=([^,]+),\s*)?"
     r"streamId=(\d+), headNodeId=(\d+), tailNodeId=(\d+), "
     r"nodeSize=(\d+), customParamSize=(\d+)"
 )
 RE_UPDATING_NODE_TASK = re.compile(r"Updating node for task\s*:\s*(\d+)")
-RE_UPDATED_KERNEL_NODE = re.compile(r"Updated kernel node for task (\d+) with argsHandle")
-RE_UPDATE_STREAM_END = re.compile(r"update stream end:\s*(?:scopeName=([^,]+),\s*)?streamId=(\d+), visitedNodes=(\d+)")
+RE_UPDATED_KERNEL_NODE = re.compile(
+    r"Updated kernel node for task (\d+) with argsHandle"
+)
+RE_UPDATE_STREAM_END = re.compile(
+    r"update stream end:\s*(?:scopeName=([^,]+),\s*)?streamId=(\d+), visitedNodes=(\d+)"
+)
 RE_SCOPE_UPDATE_FINISHED = re.compile(
     r"scope update finished:\s*(?:scopeName=([^,]+),\s*)?(?:updateTotalNodes|update total nodes)=(\d+)"
 )
@@ -100,13 +120,19 @@ RE_UPDATE_GRAPH_END = re.compile(r"End update graph")
 RE_NODE_UPDATE_RESULT = re.compile(
     r"node update result:\s*nodeId=(\d+),\s*(?:updateTargetType|type)=([A-Z_]+)(?:,\s*(.*))?$"
 )
-RE_EVENT_NODE_ADDR = re.compile(r"Updated (notify|wait|reset) node addrValue:\s*nodeId=(\d+),\s*addr=([^,\s]+)")
-RE_EVENT_MEMORY_RESOURCE = re.compile(r"event memory allocated end:\s*eventId=(0x[0-9a-fA-F]+),\s*addr=([^,\s]+)")
+RE_EVENT_NODE_ADDR = re.compile(
+    r"Updated (notify|wait|reset) node addrValue:\s*nodeId=(\d+),\s*addr=([^,\s]+)"
+)
+RE_EVENT_MEMORY_RESOURCE = re.compile(
+    r"event memory allocated end:\s*eventId=(0x[0-9a-fA-F]+),\s*addr=([^,\s]+)"
+)
 RE_NODEID = re.compile(r"nodeId:(\d+)")
 RE_STREAMID = re.compile(r"streamId:(-?\d+)")
 RE_STREAM_IDX = re.compile(r"streamIdxInGraph:(\d+)")
 RE_NODE_IDX = re.compile(r"nodeIdxInStream:(\d+)")
-RE_EVENT_BLOCK = re.compile(r"(EventNotify|EventWait|EventReset|MemoryWrite|MemoryWait)\(([^)]*)\)")
+RE_EVENT_BLOCK = re.compile(
+    r"(EventNotify|EventWait|EventReset|MemoryWrite|MemoryWait)\(([^)]*)\)"
+)
 RE_EVENT_ID = re.compile(r"eventId:(0x[0-9a-fA-F]+)")
 RE_EVENT_FLAG = re.compile(r"eventFlag:(0x[0-9a-fA-F]+)")
 RE_DEV_ARGS = re.compile(r"devArgs:(0x[0-9a-zA-Z]+)")
@@ -202,7 +228,9 @@ class ParseContext:
         return self.line_cache[key]
 
 
-_CURRENT_PARSE_CONTEXT: ContextVar[ParseContext | None] = ContextVar("sk_parse_context", default=None)
+_CURRENT_PARSE_CONTEXT: ContextVar[ParseContext | None] = ContextVar(
+    "sk_parse_context", default=None
+)
 
 
 @contextmanager
@@ -284,7 +312,11 @@ def _fallback_model_dir_candidates(path: Path) -> list[Path]:
     ignored_names = {"reports", ".cache", "__pycache__"}
     candidates: list[Path] = []
     for root, dir_names, _file_names in os.walk(path):
-        dir_names[:] = [name for name in dir_names if name not in ignored_names and not name.startswith(".")]
+        dir_names[:] = [
+            name
+            for name in dir_names
+            if name not in ignored_names and not name.startswith(".")
+        ]
         root_path = Path(root)
         for name in dir_names:
             if name.startswith("model_"):
@@ -315,7 +347,9 @@ def infer_model_asset_root(
     model_dirs: list[Path] | None = None,
 ) -> Path | None:
     input_dir = _resolve_input_dir(input_path)
-    resolved_model_dirs = [item.resolve() for item in (model_dirs or find_model_dirs(input_dir))]
+    resolved_model_dirs = [
+        item.resolve() for item in (model_dirs or find_model_dirs(input_dir))
+    ]
     if not resolved_model_dirs:
         return None
 
@@ -340,7 +374,9 @@ def infer_result_root(
         return input_dir
     if model_asset_root is not None and model_asset_root.parent != model_asset_root:
         return model_asset_root.parent
-    resolved_model_dirs = [item.resolve() for item in (model_dirs or find_model_dirs(input_dir))]
+    resolved_model_dirs = [
+        item.resolve() for item in (model_dirs or find_model_dirs(input_dir))
+    ]
     if resolved_model_dirs:
         first_model_dir = resolved_model_dirs[0]
         parent = first_model_dir.parent.parent
@@ -373,7 +409,9 @@ def _partition_consecutive(items: list[T], count: int) -> list[list[T]]:
     return groups
 
 
-def _read_indexed_lines(path: Path, line_range: tuple[int, int] | None = None) -> list[tuple[int, str]]:
+def _read_indexed_lines(
+    path: Path, line_range: tuple[int, int] | None = None
+) -> list[tuple[int, str]]:
     context = _CURRENT_PARSE_CONTEXT.get()
     if line_range and context is None:
         begin_line, end_line = line_range
@@ -415,7 +453,9 @@ def _is_terminal_final_pass(batch: dict[str, Any]) -> bool:
     return "final" in pass_name or "final" in detail
 
 
-def _fallback_node_key(node_id: int, stream_idx_in_graph: int, node_idx_in_stream: int) -> tuple[Any, ...]:
+def _fallback_node_key(
+    node_id: int, stream_idx_in_graph: int, node_idx_in_stream: int
+) -> tuple[Any, ...]:
     return ("fallback", node_id, stream_idx_in_graph, node_idx_in_stream)
 
 
@@ -482,13 +522,17 @@ def _node_key_sample(nodes: list[dict[str, Any]], limit: int = 10) -> list[str]:
     return sample
 
 
-def _signature_sample(keys: list[tuple[Any, ...]] | frozenset[tuple[Any, ...]], limit: int = 10) -> list[str]:
+def _signature_sample(
+    keys: list[tuple[Any, ...]] | frozenset[tuple[Any, ...]], limit: int = 10
+) -> list[str]:
     ordered = list(keys)
     ordered.sort(key=str)
     return [str(item) for item in ordered[:limit]]
 
 
-def _timestamp_outside_range(timestamp: str | None, start: str | None, end: str | None) -> bool:
+def _timestamp_outside_range(
+    timestamp: str | None, start: str | None, end: str | None
+) -> bool:
     if not timestamp or not start or not end:
         return False
     return timestamp < start or timestamp > end
@@ -509,7 +553,9 @@ def _normalize_model_instance_id(value: Any, *, default: str = "mi01") -> str:
 def _model_instance_id(payload: dict[str, Any] | None, *, default: str = "mi01") -> str:
     if not isinstance(payload, dict):
         return default
-    return _normalize_model_instance_id(payload.get("model_instance_id"), default=default)
+    return _normalize_model_instance_id(
+        payload.get("model_instance_id"), default=default
+    )
 
 
 def _model_instance_index(payload: dict[str, Any] | None, *, default: int = 1) -> int:
@@ -538,13 +584,19 @@ def _normalize_model_instance_partition_mode(value: Any) -> str:
     return text
 
 
-def _model_instance_partition_mode(stats: dict[str, Any] | None, *, default: str = "unknown") -> str:
+def _model_instance_partition_mode(
+    stats: dict[str, Any] | None, *, default: str = "unknown"
+) -> str:
     if not isinstance(stats, dict):
         return default
-    return _normalize_model_instance_partition_mode(stats.get("model_instance_partition_mode") or default)
+    return _normalize_model_instance_partition_mode(
+        stats.get("model_instance_partition_mode") or default
+    )
 
 
-def _model_instance_partition_verified(stats: dict[str, Any] | None, *, default: bool = False) -> bool:
+def _model_instance_partition_verified(
+    stats: dict[str, Any] | None, *, default: bool = False
+) -> bool:
     if not isinstance(stats, dict):
         return default
     return bool(stats.get("model_instance_partition_verified", default))
@@ -572,7 +624,10 @@ def _parser_log(
         _emit(
             "  details="
             + json.dumps(
-                {key: str(value) if isinstance(value, Path) else value for key, value in details.items()},
+                {
+                    key: str(value) if isinstance(value, Path) else value
+                    for key, value in details.items()
+                },
                 ensure_ascii=False,
                 sort_keys=True,
             ),
@@ -580,18 +635,28 @@ def _parser_log(
         )
 
 
-def _scope_graph_alignment_diagnostics(scope_library: dict[str, Any], graph_library: dict[str, Any]) -> dict[str, Any]:
+def _scope_graph_alignment_diagnostics(
+    scope_library: dict[str, Any], graph_library: dict[str, Any]
+) -> dict[str, Any]:
     scopes = scope_library.get("scopes", []) if isinstance(scope_library, dict) else []
-    node_library = graph_library.get("node_library", {}) if isinstance(graph_library, dict) else {}
+    node_library = (
+        graph_library.get("node_library", {}) if isinstance(graph_library, dict) else {}
+    )
     node_rows = node_library.get("nodes", []) if isinstance(node_library, dict) else []
-    node_ids_in_library = {node.get("node_id") for node in node_rows if isinstance(node.get("node_id"), int)}
+    node_ids_in_library = {
+        node.get("node_id")
+        for node in node_rows
+        if isinstance(node.get("node_id"), int)
+    }
     scope_node_ids: set[int] = set()
     empty_scope_ids: list[int] = []
     partial_scope_ids: list[int] = []
     per_scope: list[dict[str, Any]] = []
     for scope in scopes:
         scope_id = scope.get("scope_id")
-        node_ids = [node_id for node_id in scope.get("node_ids", []) if isinstance(node_id, int)]
+        node_ids = [
+            node_id for node_id in scope.get("node_ids", []) if isinstance(node_id, int)
+        ]
         scope_node_ids.update(node_ids)
         matched_count = sum(1 for node_id in node_ids if node_id in node_ids_in_library)
         missing_count = len(node_ids) - matched_count
@@ -609,20 +674,30 @@ def _scope_graph_alignment_diagnostics(scope_library: dict[str, Any], graph_libr
         )
     missing_node_ids = sorted(scope_node_ids - node_ids_in_library)
     node_update_rows = (
-        graph_library.get("node_update_registry", {}).get("rows", []) if isinstance(graph_library, dict) else []
+        graph_library.get("node_update_registry", {}).get("rows", [])
+        if isinstance(graph_library, dict)
+        else []
     )
-    node_library_stats = node_library.get("stats", {}) if isinstance(node_library, dict) else {}
+    node_library_stats = (
+        node_library.get("stats", {}) if isinstance(node_library, dict) else {}
+    )
     return {
         "scope_count": len(scopes),
         "scope_node_count": len(scope_node_ids),
         "node_library_count": len(node_ids_in_library),
-        "node_update_row_count": len(node_update_rows) if isinstance(node_update_rows, list) else 0,
+        "node_update_row_count": len(node_update_rows)
+        if isinstance(node_update_rows, list)
+        else 0,
         "missing_node_id_count": len(missing_node_ids),
         "missing_node_ids_sample": missing_node_ids[:20],
         "empty_scope_ids": empty_scope_ids,
         "partial_scope_ids": partial_scope_ids,
-        "model_instance_partition_mode": _model_instance_partition_mode(node_library_stats),
-        "model_instance_partition_verified": _model_instance_partition_verified(node_library_stats),
+        "model_instance_partition_mode": _model_instance_partition_mode(
+            node_library_stats
+        ),
+        "model_instance_partition_verified": _model_instance_partition_verified(
+            node_library_stats
+        ),
         "per_scope": per_scope,
         "node_library_stats": node_library_stats,
     }
@@ -633,8 +708,16 @@ def _validate_model_instance_report(
     report: dict[str, Any],
 ) -> dict[str, Any]:
     model_instance_id = _model_instance_id(report)
-    scope_library = report.get("scope_library", {}) if isinstance(report.get("scope_library"), dict) else {}
-    graph_library = report.get("graph_library", {}) if isinstance(report.get("graph_library"), dict) else {}
+    scope_library = (
+        report.get("scope_library", {})
+        if isinstance(report.get("scope_library"), dict)
+        else {}
+    )
+    graph_library = (
+        report.get("graph_library", {})
+        if isinstance(report.get("graph_library"), dict)
+        else {}
+    )
     diagnostics = _scope_graph_alignment_diagnostics(scope_library, graph_library)
     graph_library["parser_diagnostics"] = diagnostics
 
@@ -668,7 +751,9 @@ def _validate_model_instance_report(
         }
         or not partition_verified
     ):
-        raise ValueError("node_library is not safely model-instance partitioned under multi-model-instance parsing")
+        raise ValueError(
+            "node_library is not safely model-instance partitioned under multi-model-instance parsing"
+        )
 
     if diagnostics["scope_node_count"] > 0 and diagnostics["node_library_count"] == 0:
         _parser_log(
@@ -689,7 +774,9 @@ def _validate_model_instance_report(
     if diagnostics["empty_scope_ids"] and diagnostics["node_library_count"] > 0:
         raise ValueError(
             "some scopes contain node ids but none of them can be matched in graph node library: "
-            + ",".join(str(scope_id) for scope_id in diagnostics["empty_scope_ids"][:10])
+            + ",".join(
+                str(scope_id) for scope_id in diagnostics["empty_scope_ids"][:10]
+            )
         )
 
     if diagnostics["missing_node_id_count"] > 0:
@@ -706,7 +793,10 @@ def _validate_model_instance_report(
             },
         )
 
-    if diagnostics["scope_node_count"] > 0 and diagnostics["node_update_row_count"] == 0:
+    if (
+        diagnostics["scope_node_count"] > 0
+        and diagnostics["node_update_row_count"] == 0
+    ):
         _parser_log(
             "WARN",
             "node_update_registry_empty",
@@ -795,7 +885,9 @@ def detect_model_instances(model_dir: Path) -> list[dict[str, Any]]:
 def find_model_dir(input_path: str | os.PathLike[str]) -> Path:
     model_dirs = find_model_dirs(input_path)
     if not model_dirs:
-        raise FileNotFoundError(f"Unable to find model directory under: {Path(input_path).resolve()}")
+        raise FileNotFoundError(
+            f"Unable to find model directory under: {Path(input_path).resolve()}"
+        )
     return model_dirs[0]
 
 
@@ -821,9 +913,15 @@ def write_update_libraries(
     if isinstance(report.get("dfx_library"), dict):
         report["dfx_library"]["path"] = str(dfx_library_output)
 
-    scope_library_payload = _annotate_scope_library_for_output(report.get("scope_library", {}))
-    graph_library_payload = _annotate_graph_library_for_output(report.get("graph_library", {}))
-    dfx_library_payload = _annotate_dfx_library_for_output(report.get("dfx_library", {}))
+    scope_library_payload = _annotate_scope_library_for_output(
+        report.get("scope_library", {})
+    )
+    graph_library_payload = _annotate_graph_library_for_output(
+        report.get("graph_library", {})
+    )
+    dfx_library_payload = _annotate_dfx_library_for_output(
+        report.get("dfx_library", {})
+    )
 
     scope_library_output.write_text(
         json.dumps(scope_library_payload, indent=2, ensure_ascii=False),
@@ -1090,7 +1188,9 @@ def _parse_loose_kv_fields(text: str | None) -> dict[str, str]:
     return result
 
 
-def _parse_device_task_entry_line(line: str, active_queue: str) -> dict[str, Any] | None:
+def _parse_device_task_entry_line(
+    line: str, active_queue: str
+) -> dict[str, Any] | None:
     match = RE_TASK_ENTRY_HEAD.search(line)
     if not match:
         return None
@@ -1098,7 +1198,9 @@ def _parse_device_task_entry_line(line: str, active_queue: str) -> dict[str, Any
     task_index = _safe_parse_int(fields.get("idx"))
     block_count = _safe_parse_int(fields.get("blk"))
     entry_count = _safe_parse_int(fields.get("entries"))
-    missing_required_fields = task_index is None or block_count is None or entry_count is None
+    missing_required_fields = (
+        task_index is None or block_count is None or entry_count is None
+    )
     if missing_required_fields or "args" not in fields:
         return None
 
@@ -1138,7 +1240,9 @@ def _safe_parse_int(value: Any) -> int | None:
         return None
 
 
-def _append_limited_sample(samples: list[dict[str, Any]], item: dict[str, Any], *, limit: int = 10) -> None:
+def _append_limited_sample(
+    samples: list[dict[str, Any]], item: dict[str, Any], *, limit: int = 10
+) -> None:
     if len(samples) < limit:
         samples.append(item)
 
@@ -1179,7 +1283,9 @@ def _normalize_compare_entries(values: Any) -> list[str]:
 
 def _task_queue_json_by_scope_id(
     model_dir: Path,
-) -> tuple[str | None, dict[int, dict[str, Any]], list[dict[str, Any]], dict[str, Any] | None]:
+) -> tuple[
+    str | None, dict[int, dict[str, Any]], list[dict[str, Any]], dict[str, Any] | None
+]:
     path = model_dir / "sk_task_queue.json"
     payload = _read_json_payload(path)
     if payload is None:
@@ -1201,7 +1307,9 @@ def _task_queue_json_by_scope_id(
             scopes_by_id[scope_id] = payload
         else:
             unscoped_payloads.append(payload)
-    for scope in payload.get("scopes", []) if isinstance(payload.get("scopes"), list) else []:
+    for scope in (
+        payload.get("scopes", []) if isinstance(payload.get("scopes"), list) else []
+    ):
         if not isinstance(scope, dict):
             continue
         scope_id = _safe_parse_int(scope.get("scopeId"))
@@ -1211,7 +1319,9 @@ def _task_queue_json_by_scope_id(
     return str(path), scopes_by_id, unscoped_payloads, None
 
 
-def _json_queue_tasks(scope_payload: dict[str, Any], queue_name: str) -> list[dict[str, Any]]:
+def _json_queue_tasks(
+    scope_payload: dict[str, Any], queue_name: str
+) -> list[dict[str, Any]]:
     queues = scope_payload.get("taskQueues", {})
     if not isinstance(queues, dict):
         return []
@@ -1222,7 +1332,11 @@ def _json_queue_tasks(scope_payload: dict[str, Any], queue_name: str) -> list[di
     if not isinstance(task_que, dict):
         return []
     task_infos = task_que.get("taskInfos", [])
-    return [item for item in task_infos if isinstance(item, dict)] if isinstance(task_infos, list) else []
+    return (
+        [item for item in task_infos if isinstance(item, dict)]
+        if isinstance(task_infos, list)
+        else []
+    )
 
 
 def _compare_task_queue_json(
@@ -1233,7 +1347,9 @@ def _compare_task_queue_json(
 ) -> int:
     mismatch_count = 0
 
-    def _record(queue: str, task_index: int | None, field: str, log_value: Any, json_value: Any) -> None:
+    def _record(
+        queue: str, task_index: int | None, field: str, log_value: Any, json_value: Any
+    ) -> None:
         nonlocal mismatch_count
         mismatch_count += 1
         _append_limited_sample(
@@ -1254,7 +1370,9 @@ def _compare_task_queue_json(
         json_tasks = _json_queue_tasks(json_scope, queue_name)
         if len(log_tasks) != len(json_tasks):
             _record(queue_name, None, "task_count", len(log_tasks), len(json_tasks))
-        for task_ordinal, (log_task, json_task) in enumerate(zip(log_tasks, json_tasks)):
+        for task_ordinal, (log_task, json_task) in enumerate(
+            zip(log_tasks, json_tasks)
+        ):
             scalar_pairs = [
                 (
                     "block_count",
@@ -1272,9 +1390,13 @@ def _compare_task_queue_json(
                     )
                 )
             for field, log_value, json_value in scalar_pairs:
-                if _normalize_compare_scalar(log_value) != _normalize_compare_scalar(json_value):
+                if _normalize_compare_scalar(log_value) != _normalize_compare_scalar(
+                    json_value
+                ):
                     _record(queue_name, task_ordinal, field, log_value, json_value)
-            if _normalize_compare_enum(log_task.get("task_type")) != _normalize_compare_enum(json_task.get("type")):
+            if _normalize_compare_enum(
+                log_task.get("task_type")
+            ) != _normalize_compare_enum(json_task.get("type")):
                 _record(
                     queue_name,
                     task_ordinal,
@@ -1282,7 +1404,9 @@ def _compare_task_queue_json(
                     log_task.get("task_type"),
                     json_task.get("type"),
                 )
-            if _normalize_compare_hex(log_task.get("args")) != _normalize_compare_hex(json_task.get("args")):
+            if _normalize_compare_hex(log_task.get("args")) != _normalize_compare_hex(
+                json_task.get("args")
+            ):
                 _record(
                     queue_name,
                     task_ordinal,
@@ -1291,9 +1415,9 @@ def _compare_task_queue_json(
                     json_task.get("args"),
                 )
             if "debug_options" in log_task:
-                if _normalize_compare_hex(log_task.get("debug_options")) != _normalize_compare_hex(
-                    json_task.get("debugOptions")
-                ):
+                if _normalize_compare_hex(
+                    log_task.get("debug_options")
+                ) != _normalize_compare_hex(json_task.get("debugOptions")):
                     _record(
                         queue_name,
                         task_ordinal,
@@ -1317,17 +1441,24 @@ def _compare_task_queue_json(
 def _queue_task_counts(section: dict[str, Any]) -> dict[str, int]:
     queues = section.get("queues", {}) if isinstance(section, dict) else {}
     return {
-        queue_name: len(queues.get(queue_name, []) or []) if isinstance(queues, dict) else 0
+        queue_name: len(queues.get(queue_name, []) or [])
+        if isinstance(queues, dict)
+        else 0
         for queue_name in ("AIC", "AIV")
     }
 
 
 def _json_queue_task_counts(json_scope: dict[str, Any]) -> dict[str, int]:
-    return {queue_name: len(_json_queue_tasks(json_scope, queue_name)) for queue_name in ("AIC", "AIV")}
+    return {
+        queue_name: len(_json_queue_tasks(json_scope, queue_name))
+        for queue_name in ("AIC", "AIV")
+    }
 
 
 def _task_json_node_index_comparable(log_task: dict[str, Any]) -> bool:
-    return str(log_task.get("task_type") or "").strip().upper() in GRAPH_BOUND_TASK_TYPES
+    return (
+        str(log_task.get("task_type") or "").strip().upper() in GRAPH_BOUND_TASK_TYPES
+    )
 
 
 def _match_unscoped_task_queue_json(
@@ -1346,12 +1477,18 @@ def _match_unscoped_task_queue_json(
     if len(candidates) != 1:
         return None, None
     section_index, section = candidates[0]
-    mismatch_count = _compare_task_queue_json(section, unscoped_payload, section_index, samples)
+    mismatch_count = _compare_task_queue_json(
+        section, unscoped_payload, section_index, samples
+    )
     return section_index, mismatch_count
 
 
-def _validate_device_task_library_with_json(model_dir: Path, sections: list[dict[str, Any]]) -> dict[str, Any]:
-    json_path, scopes_by_id, unscoped_payloads, invalid = _task_queue_json_by_scope_id(model_dir)
+def _validate_device_task_library_with_json(
+    model_dir: Path, sections: list[dict[str, Any]]
+) -> dict[str, Any]:
+    json_path, scopes_by_id, unscoped_payloads, invalid = _task_queue_json_by_scope_id(
+        model_dir
+    )
     if json_path is None:
         return {
             "status": "missing",
@@ -1389,7 +1526,9 @@ def _validate_device_task_library_with_json(model_dir: Path, sections: list[dict
     for scope_id in matched_scope_ids:
         section_index, section = sections_by_scope_id[scope_id]
         matched_section_indexes.add(section_index)
-        mismatch_count += _compare_task_queue_json(section, scopes_by_id[scope_id], section_index, samples)
+        mismatch_count += _compare_task_queue_json(
+            section, scopes_by_id[scope_id], section_index, samples
+        )
 
     matched_unscoped_count = 0
     ambiguous_unscoped_count = 0
@@ -1407,7 +1546,9 @@ def _validate_device_task_library_with_json(model_dir: Path, sections: list[dict
         matched_section_indexes.add(section_index)
         mismatch_count += unscoped_mismatch_count
 
-    missing_in_log = sorted(scope_id for scope_id in scopes_by_id if scope_id not in sections_by_scope_id)
+    missing_in_log = sorted(
+        scope_id for scope_id in scopes_by_id if scope_id not in sections_by_scope_id
+    )
     missing_scope_ids = set()
     for section_index, section in enumerate(sections):
         scope_id = _safe_parse_int(section.get("sk_id"))
@@ -1538,7 +1679,11 @@ def _resolve_task_graph_identity(
     raw_node_id = _safe_parse_int(task.get("node_id"))
 
     def _valid_node_id(candidate: int | None) -> bool:
-        return candidate is not None and candidate in scope_node_ids and candidate in node_ids_in_library
+        return (
+            candidate is not None
+            and candidate in scope_node_ids
+            and candidate in node_ids_in_library
+        )
 
     if task_type in GRAPH_BOUND_TASK_TYPES and _valid_node_id(raw_node_id):
         return {
@@ -1547,7 +1692,9 @@ def _resolve_task_graph_identity(
             "raw_task_index": raw_task_index,
             "raw_node_id": raw_node_id,
             "resolved_graph_node_id": raw_node_id,
-            "graph_node_key": _graph_node_identity_payload(node_identity_by_id.get(raw_node_id), raw_node_id),
+            "graph_node_key": _graph_node_identity_payload(
+                node_identity_by_id.get(raw_node_id), raw_node_id
+            ),
             "graph_identity_valid": True,
             "graph_identity_source": "explicit_node_id",
             "graph_identity_reason": "matched_explicit_node_id",
@@ -1559,7 +1706,9 @@ def _resolve_task_graph_identity(
     if task_type in EVENT_TASK_TYPES and _valid_node_id(raw_node_id):
         node_identity = node_identity_by_id.get(raw_node_id)
         task_event_type = _event_node_type(task_type)
-        graph_event_type = _event_node_type(node_identity.get("node_type") if isinstance(node_identity, dict) else "")
+        graph_event_type = _event_node_type(
+            node_identity.get("node_type") if isinstance(node_identity, dict) else ""
+        )
         if task_event_type and graph_event_type == task_event_type:
             return {
                 "identity_kind": "graph_node",
@@ -1567,7 +1716,9 @@ def _resolve_task_graph_identity(
                 "raw_task_index": raw_task_index,
                 "raw_node_id": raw_node_id,
                 "resolved_graph_node_id": raw_node_id,
-                "graph_node_key": _graph_node_identity_payload(node_identity_by_id.get(raw_node_id), raw_node_id),
+                "graph_node_key": _graph_node_identity_payload(
+                    node_identity_by_id.get(raw_node_id), raw_node_id
+                ),
                 "graph_identity_valid": True,
                 "graph_identity_source": "event_explicit_node_id",
                 "graph_identity_reason": "matched_event_explicit_node_id",
@@ -1602,7 +1753,9 @@ def _resolve_task_graph_identity(
             node_identity = node_identity_by_id.get(ordinal_node_id)
             task_event_type = _event_node_type(task_type)
             graph_event_type = _event_node_type(
-                node_identity.get("node_type") if isinstance(node_identity, dict) else ""
+                node_identity.get("node_type")
+                if isinstance(node_identity, dict)
+                else ""
             )
             if task_event_type and graph_event_type == task_event_type:
                 return {
@@ -1611,7 +1764,9 @@ def _resolve_task_graph_identity(
                     "raw_task_index": raw_task_index,
                     "raw_node_id": raw_node_id,
                     "resolved_graph_node_id": ordinal_node_id,
-                    "graph_node_key": _graph_node_identity_payload(node_identity, ordinal_node_id),
+                    "graph_node_key": _graph_node_identity_payload(
+                        node_identity, ordinal_node_id
+                    ),
                     "graph_identity_valid": True,
                     "graph_identity_source": "event_fused_ordinal",
                     "graph_identity_reason": "matched_event_fused_ordinal",
@@ -1635,8 +1790,12 @@ def _resolve_task_graph_identity(
     else:
         reason = "task_not_graph_bound"
 
-    identity_kind = "synthesized_custom" if task_type in EVENT_TASK_TYPES else "unresolved"
-    identity_status = "resolved" if identity_kind == "synthesized_custom" else "unresolved"
+    identity_kind = (
+        "synthesized_custom" if task_type in EVENT_TASK_TYPES else "unresolved"
+    )
+    identity_status = (
+        "resolved" if identity_kind == "synthesized_custom" else "unresolved"
+    )
     return {
         "identity_kind": identity_kind,
         "identity_status": identity_status,
@@ -1659,7 +1818,9 @@ def annotate_device_task_graph_identity(
     node_library: dict[str, Any],
 ) -> dict[str, Any]:
     annotated_sections: list[dict[str, Any]] = []
-    fused_functions = fused_library.get("functions", []) if isinstance(fused_library, dict) else []
+    fused_functions = (
+        fused_library.get("functions", []) if isinstance(fused_library, dict) else []
+    )
     node_ids_in_library = set()
     node_identity_by_id = {}
     for node in node_library.get("nodes", []):
@@ -1681,7 +1842,9 @@ def annotate_device_task_graph_identity(
     custom_invalid_count = 0
 
     for section_index, section in enumerate(device_task_library.get("sections", [])):
-        fused = _match_device_section_to_fused_function(section, fused_functions, section_index)
+        fused = _match_device_section_to_fused_function(
+            section, fused_functions, section_index
+        )
         fused_nodes = (fused or {}).get("node_details") or []
         scope_node_ids = set()
         ordinal_node_map = {}
@@ -1725,8 +1888,12 @@ def annotate_device_task_graph_identity(
                 if identity_kind not in identity_kind_counts:
                     identity_kind = "unresolved"
                     annotated_task["identity_kind"] = identity_kind
-                identity_kind_counts[identity_kind] = identity_kind_counts.get(identity_kind, 0) + 1
-                section_identity_kind_counts[identity_kind] = section_identity_kind_counts.get(identity_kind, 0) + 1
+                identity_kind_counts[identity_kind] = (
+                    identity_kind_counts.get(identity_kind, 0) + 1
+                )
+                section_identity_kind_counts[identity_kind] = (
+                    section_identity_kind_counts.get(identity_kind, 0) + 1
+                )
 
                 if identity_kind == "synthesized_custom":
                     queue_key = str(queue_name).upper()
@@ -1757,10 +1924,14 @@ def annotate_device_task_graph_identity(
                     section_valid_count += 1
                     source = str(resolved["graph_identity_source"])
                     valid_source_counts[source] = valid_source_counts.get(source, 0) + 1
-                    section_valid_source_counts[source] = section_valid_source_counts.get(source, 0) + 1
+                    section_valid_source_counts[source] = (
+                        section_valid_source_counts.get(source, 0) + 1
+                    )
                     resolved_node_id = int(resolved["resolved_graph_node_id"])
                     task_type = str(task.get("task_type") or "").upper()
-                    identity_key = f"{str(queue_name).upper()}:{task_type}:{resolved_node_id}"
+                    identity_key = (
+                        f"{str(queue_name).upper()}:{task_type}:{resolved_node_id}"
+                    )
                     sample = _task_identity_sample(
                         section=section,
                         queue_name=str(queue_name),
@@ -1770,13 +1941,19 @@ def annotate_device_task_graph_identity(
                         identity_kind=identity_kind,
                     )
                     sample["identity_key"] = identity_key
-                    duplicate_samples_by_identity_key.setdefault(identity_key, []).append(sample)
+                    duplicate_samples_by_identity_key.setdefault(
+                        identity_key, []
+                    ).append(sample)
                 else:
                     excluded_task_count += 1
                     section_excluded_count += 1
                     reason = str(resolved["graph_identity_reason"])
-                    excluded_reason_counts[reason] = excluded_reason_counts.get(reason, 0) + 1
-                    section_excluded_reason_counts[reason] = section_excluded_reason_counts.get(reason, 0) + 1
+                    excluded_reason_counts[reason] = (
+                        excluded_reason_counts.get(reason, 0) + 1
+                    )
+                    section_excluded_reason_counts[reason] = (
+                        section_excluded_reason_counts.get(reason, 0) + 1
+                    )
                     sample = _task_identity_sample(
                         section=section,
                         queue_name=str(queue_name),
@@ -1795,7 +1972,9 @@ def annotate_device_task_graph_identity(
         annotated_section = dict(section)
         annotated_section["queues"] = section_queues
         bound_scope_id = (fused or {}).get("scope_id")
-        bound_scope_binding_source = "matched_fused_scope_id" if bound_scope_id is not None else "none"
+        bound_scope_binding_source = (
+            "matched_fused_scope_id" if bound_scope_id is not None else "none"
+        )
         annotated_section["bound_scope_id"] = bound_scope_id
         annotated_section["bound_scope_binding_source"] = bound_scope_binding_source
         annotated_section["task_identity_diagnostics"] = {
@@ -1815,7 +1994,9 @@ def annotate_device_task_graph_identity(
         annotated_sections.append(annotated_section)
 
     duplicate_identity_keys = sorted(
-        identity_key for identity_key, samples in duplicate_samples_by_identity_key.items() if len(samples) > 1
+        identity_key
+        for identity_key, samples in duplicate_samples_by_identity_key.items()
+        if len(samples) > 1
     )
     duplicate_details = {
         identity_key: duplicate_samples_by_identity_key[identity_key][:4]
@@ -1833,19 +2014,25 @@ def annotate_device_task_graph_identity(
         "duplicate_graph_identity_count": len(duplicate_identity_keys),
         "duplicate_graph_identity_keys_sample": duplicate_identity_keys[:20],
         "duplicate_graph_identity_samples": duplicate_details,
-        "graph_identity_validation_status": "duplicate" if duplicate_identity_keys else "passed",
+        "graph_identity_validation_status": "duplicate"
+        if duplicate_identity_keys
+        else "passed",
     }
 
     return {
         "path": device_task_library.get("path"),
         "source_kind": device_task_library.get("source_kind"),
         "sections": annotated_sections,
-        "task_queue_json_validation": device_task_library.get("task_queue_json_validation", {}),
+        "task_queue_json_validation": device_task_library.get(
+            "task_queue_json_validation", {}
+        ),
         "task_identity_diagnostics": diagnostics,
     }
 
 
-def _parse_super_kernel_line_items(line_items: list[tuple[int, str]], log_path: Path) -> dict[str, Any]:
+def _parse_super_kernel_line_items(
+    line_items: list[tuple[int, str]], log_path: Path
+) -> dict[str, Any]:
     phases: list[dict[str, Any]] = []
     matched_keys: set[str] = set()
     exception_events: list[dict[str, Any]] = []
@@ -2038,11 +2225,19 @@ def _parse_super_kernel_line_items(line_items: list[tuple[int, str]], log_path: 
             current_dfx_node["entry_aiv"][int(match.group(1))] = f"0x{match.group(2)}"
             continue
 
-    dfx_info["entries"] = sorted(dfx_info["entries"], key=lambda item: item["node_index"])
+    dfx_info["entries"] = sorted(
+        dfx_info["entries"], key=lambda item: item["node_index"]
+    )
     for item in current_pc_localizations.values():
-        if "current_pc" in item or "exception_start_pc" in item or "entry_start_pc" in item:
+        if (
+            "current_pc" in item
+            or "exception_start_pc" in item
+            or "entry_start_pc" in item
+        ):
             pc_localization_events.append(item)
-    pc_localization_events.sort(key=lambda item: (item.get("line", 0), item.get("core_id", -1)))
+    pc_localization_events.sort(
+        key=lambda item: (item.get("line", 0), item.get("core_id", -1))
+    )
     return {
         "path": str(log_path),
         "phases": phases,
@@ -2055,9 +2250,13 @@ def _parse_super_kernel_line_items(line_items: list[tuple[int, str]], log_path: 
     }
 
 
-def parse_super_kernel_log(model_dir: Path, line_range: tuple[int, int] | None = None) -> dict[str, Any]:
+def parse_super_kernel_log(
+    model_dir: Path, line_range: tuple[int, int] | None = None
+) -> dict[str, Any]:
     log_path = model_dir / "super_kernel.log"
-    return _parse_super_kernel_line_items(_read_indexed_lines(log_path, line_range), log_path)
+    return _parse_super_kernel_line_items(
+        _read_indexed_lines(log_path, line_range), log_path
+    )
 
 
 def _strip_op_trace_suffix(name: str | None) -> str:
@@ -2085,7 +2284,9 @@ def _index_fused_functions(
         function_text = function.get("function_text", "")
         if function_text:
             function_index.setdefault(function_text, []).append(function)
-            function_index.setdefault(_strip_op_trace_suffix(function_text), []).append(function)
+            function_index.setdefault(_strip_op_trace_suffix(function_text), []).append(
+                function
+            )
     return function_index
 
 
@@ -2127,7 +2328,11 @@ def _find_runtime_payload_section(
 
     node_cnt = dfx_dump.get("node_cnt") if isinstance(dfx_dump, dict) else None
     if isinstance(node_cnt, int):
-        count_matches = [section for section in function_sections if _section_node_count(section) == node_cnt]
+        count_matches = [
+            section
+            for section in function_sections
+            if _section_node_count(section) == node_cnt
+        ]
         if len(count_matches) == 1:
             return count_matches[0], count_matches
         if count_matches:
@@ -2144,7 +2349,9 @@ def _build_dfx_payload(
     dfx_dump = dfx_dump if isinstance(dfx_dump, dict) else {}
     runtime_entries = dfx_dump.get("entries", [])
     runtime_entries = runtime_entries if isinstance(runtime_entries, list) else []
-    has_runtime_header = isinstance(dfx_dump.get("offset"), int) and isinstance(dfx_dump.get("node_cnt"), int)
+    has_runtime_header = isinstance(dfx_dump.get("offset"), int) and isinstance(
+        dfx_dump.get("node_cnt"), int
+    )
 
     summary = {
         "device_args_section_count": len(function_sections),
@@ -2162,7 +2369,9 @@ def _build_dfx_payload(
         summary["runtime_status"] = "missing_exception_handler_rows"
         return [], summary
 
-    matched_section, candidates = _find_runtime_payload_section(function_sections, dfx_dump, exception_events)
+    matched_section, candidates = _find_runtime_payload_section(
+        function_sections, dfx_dump, exception_events
+    )
     summary["function_count"] = 1
     if matched_section is not None:
         summary["matched_function_count"] = 1
@@ -2174,7 +2383,11 @@ def _build_dfx_payload(
 
     device_rows_by_index: dict[int, dict[str, Any]] = {}
     if matched_section is not None:
-        for row in matched_section.get("dfx", []) if isinstance(matched_section.get("dfx"), list) else []:
+        for row in (
+            matched_section.get("dfx", [])
+            if isinstance(matched_section.get("dfx"), list)
+            else []
+        ):
             node_index = row.get("node_index")
             if isinstance(node_index, int):
                 device_rows_by_index[node_index] = row
@@ -2196,7 +2409,11 @@ def _build_dfx_payload(
                 "detail": entry.get("text", ""),
             },
         }
-        device_row = device_rows_by_index.get(node_index) if isinstance(node_index, int) else None
+        device_row = (
+            device_rows_by_index.get(node_index)
+            if isinstance(node_index, int)
+            else None
+        )
         if device_row:
             mapped_row["device_args_compare"] = {
                 "bin_handle": device_row.get("bin_handle"),
@@ -2219,7 +2436,8 @@ def _build_dfx_payload(
         "dfx_entry_count": len(runtime_entries),
         "dfx_count_status": (
             "ok"
-            if matched_section is not None and _section_node_count(matched_section) == len(runtime_entries)
+            if matched_section is not None
+            and _section_node_count(matched_section) == len(runtime_entries)
             else "unverified"
         ),
         "rows": mapped_rows,
@@ -2262,7 +2480,9 @@ def _build_counter_registry(
     runtime_entries = dfx_dump.get("entries", [])
     runtime_entries = runtime_entries if isinstance(runtime_entries, list) else []
     runtime_by_index = {
-        item.get("node_index"): item for item in runtime_entries if isinstance(item.get("node_index"), int)
+        item.get("node_index"): item
+        for item in runtime_entries
+        if isinstance(item.get("node_index"), int)
     }
     matched_payload = payload_rows[0] if payload_rows else {}
     matched_context = (
@@ -2281,11 +2501,19 @@ def _build_counter_registry(
     finished_cores: list[dict[str, Any]] = []
     unused_cores: list[dict[str, Any]] = []
     has_exception_events = any(
-        isinstance(item, dict) for item in exception_events if isinstance(exception_events, list)
+        isinstance(item, dict)
+        for item in exception_events
+        if isinstance(exception_events, list)
     )
-    op_trace_enabled = any(bool(item.get("op_trace")) for item in exception_events if isinstance(item, dict))
+    op_trace_enabled = any(
+        bool(item.get("op_trace"))
+        for item in exception_events
+        if isinstance(item, dict)
+    )
     needs_op_trace_hint = has_exception_events and any(
-        not bool(item.get("op_trace")) for item in exception_events if isinstance(item, dict)
+        not bool(item.get("op_trace"))
+        for item in exception_events
+        if isinstance(item, dict)
     )
     running_op_counts: dict[int, list[int]] = {}
 
@@ -2295,9 +2523,13 @@ def _build_counter_registry(
             return "AIV"
         return "AIC"
 
-    def _select_entry_pc(entry: dict[str, Any], core_id: Any, core_type: str) -> tuple[int | None, str | None, int]:
+    def _select_entry_pc(
+        entry: dict[str, Any], core_id: Any, core_type: str
+    ) -> tuple[int | None, str | None, int]:
         entry_key = "entry_aiv" if core_type == "AIV" else "entry_aic"
-        entry_map = entry.get(entry_key, {}) if isinstance(entry.get(entry_key), dict) else {}
+        entry_map = (
+            entry.get(entry_key, {}) if isinstance(entry.get(entry_key), dict) else {}
+        )
         normalized_map = {
             _safe_parse_int(slot): str(value)
             for slot, value in entry_map.items()
@@ -2308,7 +2540,9 @@ def _build_counter_registry(
             return None, None, 0
         entry_cnt = len(valid_slots)
         parsed_core_id = _safe_parse_int(core_id)
-        modulo_slot = (parsed_core_id % entry_cnt) if isinstance(parsed_core_id, int) else 0
+        modulo_slot = (
+            (parsed_core_id % entry_cnt) if isinstance(parsed_core_id, int) else 0
+        )
         if modulo_slot in normalized_map:
             return modulo_slot, normalized_map[modulo_slot], entry_cnt
         fallback_slot = valid_slots[modulo_slot % entry_cnt]
@@ -2347,7 +2581,13 @@ def _build_counter_registry(
             if entry_count > 0:
                 resolved["entry_slot_rule"] = f"core_id % {entry_count}"
         if matched_context.get("function_text"):
-            resolved.update({key: value for key, value in matched_context.items() if value is not None})
+            resolved.update(
+                {
+                    key: value
+                    for key, value in matched_context.items()
+                    if value is not None
+                }
+            )
 
         is_unused_core = launch == 0 and index == 0
         resolved["is_unused_core"] = is_unused_core
@@ -2375,12 +2615,25 @@ def _build_counter_registry(
             running_op_counts.items(),
             key=lambda item: (len(item[1]), -item[0]),
         )
-    dominant_entry = runtime_by_index.get(dominant_active_op_id) if isinstance(dominant_active_op_id, int) else None
-    dominant_function_name = dominant_entry.get("function_name") if isinstance(dominant_entry, dict) else None
+    dominant_entry = (
+        runtime_by_index.get(dominant_active_op_id)
+        if isinstance(dominant_active_op_id, int)
+        else None
+    )
+    dominant_function_name = (
+        dominant_entry.get("function_name")
+        if isinstance(dominant_entry, dict)
+        else None
+    )
     has_running_subkernel = bool(active_cores)
-    all_used_cores_finished = bool(used_cores) and len(finished_cores) == len(used_cores) and not has_running_subkernel
+    all_used_cores_finished = (
+        bool(used_cores)
+        and len(finished_cores) == len(used_cores)
+        and not has_running_subkernel
+    )
     counter_contract_violation = (not op_trace_enabled) and any(
-        (_safe_parse_int(core.get("launch")) not in (None, 0)) or (_safe_parse_int(core.get("index")) not in (None, 0))
+        (_safe_parse_int(core.get("launch")) not in (None, 0))
+        or (_safe_parse_int(core.get("index")) not in (None, 0))
         for core in cores
     )
     if has_exception_events and not op_trace_enabled:
@@ -2433,30 +2686,43 @@ def _build_diagnostic_pc_registry(
     counter_registry: dict[str, Any],
     pc_localization_registry: dict[str, Any],
 ) -> dict[str, Any]:
-    counter_summary = counter_registry.get("summary", {}) if isinstance(counter_registry, dict) else {}
+    counter_summary = (
+        counter_registry.get("summary", {})
+        if isinstance(counter_registry, dict)
+        else {}
+    )
     counter_kind = counter_summary.get("counter_problem_kind")
     pc_events = (
-        pc_localization_registry.get("events", []) if isinstance(pc_localization_registry.get("events"), list) else []
+        pc_localization_registry.get("events", [])
+        if isinstance(pc_localization_registry.get("events"), list)
+        else []
     )
     pc_by_core = {
-        item.get("core_id"): item for item in pc_events if isinstance(item, dict) and item.get("core_id") is not None
+        item.get("core_id"): item
+        for item in pc_events
+        if isinstance(item, dict) and item.get("core_id") is not None
     }
     events: list[dict[str, Any]] = []
 
     if counter_kind == "subkernel_running_issue":
         for core in (
-            counter_registry.get("active_cores", []) if isinstance(counter_registry.get("active_cores"), list) else []
+            counter_registry.get("active_cores", [])
+            if isinstance(counter_registry.get("active_cores"), list)
+            else []
         ):
             core_id = core.get("core_id")
             pc_item = pc_by_core.get(core_id, {})
-            entry_start_pc = pc_item.get("entry_start_pc") or core.get("derived_entry_start_pc")
+            entry_start_pc = pc_item.get("entry_start_pc") or core.get(
+                "derived_entry_start_pc"
+            )
             events.append(
                 {
                     "issue_kind": "subkernel",
                     "core_id": core_id,
                     "core_type": core.get("core_type"),
                     "op_id": core.get("index"),
-                    "function_name": pc_item.get("function_name") or core.get("function_name"),
+                    "function_name": pc_item.get("function_name")
+                    or core.get("function_name"),
                     "reported_start_pc": entry_start_pc,
                     "reported_current_pc": pc_item.get("current_pc"),
                     "reported_pc_basis": (
@@ -2505,18 +2771,30 @@ def _build_diagnostic_pc_registry(
         "summary": {
             "issue_kind": counter_kind,
             "target_count": len(events),
-            "has_reported_start_pc": any(item.get("reported_start_pc") for item in events),
-            "has_reported_current_pc": any(item.get("reported_current_pc") for item in events),
+            "has_reported_start_pc": any(
+                item.get("reported_start_pc") for item in events
+            ),
+            "has_reported_current_pc": any(
+                item.get("reported_current_pc") for item in events
+            ),
         },
         "events": events,
     }
 
 
 def _build_pc_localization_registry(super_kernel: dict[str, Any]) -> dict[str, Any]:
-    items = super_kernel.get("pc_localization_events", []) if isinstance(super_kernel, dict) else []
+    items = (
+        super_kernel.get("pc_localization_events", [])
+        if isinstance(super_kernel, dict)
+        else []
+    )
     items = items if isinstance(items, list) else []
-    matched_count = sum(1 for item in items if item.get("pc_match_status") == "matched_sub_kernel")
-    unresolved_count = sum(1 for item in items if item.get("pc_match_status") == "no_sub_kernel_matched")
+    matched_count = sum(
+        1 for item in items if item.get("pc_match_status") == "matched_sub_kernel"
+    )
+    unresolved_count = sum(
+        1 for item in items if item.get("pc_match_status") == "no_sub_kernel_matched"
+    )
     return {
         "summary": {
             "event_count": len(items),
@@ -2529,7 +2807,9 @@ def _build_pc_localization_registry(super_kernel: dict[str, Any]) -> dict[str, A
 
 def _build_phase_registry(super_kernel: dict[str, Any]) -> dict[str, Any]:
     phases = super_kernel.get("phases", []) if isinstance(super_kernel, dict) else []
-    phase_keys = super_kernel.get("phase_keys", []) if isinstance(super_kernel, dict) else []
+    phase_keys = (
+        super_kernel.get("phase_keys", []) if isinstance(super_kernel, dict) else []
+    )
     stats_by_key: dict[str, dict[str, Any]] = {}
     markers: list[dict[str, Any]] = []
 
@@ -2567,10 +2847,18 @@ def _build_phase_registry(super_kernel: dict[str, Any]) -> dict[str, Any]:
 
 def _compact_dfx_evidence(dfx_evidence: dict[str, Any]) -> dict[str, Any]:
     payload = dfx_evidence.get("payload", {}) if isinstance(dfx_evidence, dict) else {}
-    exception = dfx_evidence.get("exception", {}) if isinstance(dfx_evidence, dict) else {}
+    exception = (
+        dfx_evidence.get("exception", {}) if isinstance(dfx_evidence, dict) else {}
+    )
     counter = dfx_evidence.get("counter", {}) if isinstance(dfx_evidence, dict) else {}
-    pc_localization = dfx_evidence.get("pc_localization", {}) if isinstance(dfx_evidence, dict) else {}
-    diagnostic_pc = dfx_evidence.get("diagnostic_pc", {}) if isinstance(dfx_evidence, dict) else {}
+    pc_localization = (
+        dfx_evidence.get("pc_localization", {})
+        if isinstance(dfx_evidence, dict)
+        else {}
+    )
+    diagnostic_pc = (
+        dfx_evidence.get("diagnostic_pc", {}) if isinstance(dfx_evidence, dict) else {}
+    )
     update = dfx_evidence.get("update", {}) if isinstance(dfx_evidence, dict) else {}
 
     return {
@@ -2580,8 +2868,12 @@ def _compact_dfx_evidence(dfx_evidence: dict[str, Any]) -> dict[str, Any]:
             "summary": payload.get("summary", {}),
         },
         "exception": {
-            "has_superkernel_exception": exception.get("has_superkernel_exception", False),
-            "event_count": len(exception.get("events", [])) if isinstance(exception.get("events"), list) else 0,
+            "has_superkernel_exception": exception.get(
+                "has_superkernel_exception", False
+            ),
+            "event_count": len(exception.get("events", []))
+            if isinstance(exception.get("events"), list)
+            else 0,
             "core_symbol_event_count": len(exception.get("core_symbol_events", []))
             if isinstance(exception.get("core_symbol_events"), list)
             else 0,
@@ -2620,10 +2912,24 @@ def build_dfx_evidence(
     fused_library: dict[str, Any],
     super_kernel: dict[str, Any],
 ) -> dict[str, Any]:
-    function_sections = device_task_library.get("sections", []) if isinstance(device_task_library, dict) else []
-    dfx_dump = super_kernel.get("sk_dfx_dump", {}) if isinstance(super_kernel, dict) else {}
-    counter_info = super_kernel.get("sk_counter_info", {}) if isinstance(super_kernel, dict) else {}
-    exception_events = super_kernel.get("exception_events", []) if isinstance(super_kernel, dict) else []
+    function_sections = (
+        device_task_library.get("sections", [])
+        if isinstance(device_task_library, dict)
+        else []
+    )
+    dfx_dump = (
+        super_kernel.get("sk_dfx_dump", {}) if isinstance(super_kernel, dict) else {}
+    )
+    counter_info = (
+        super_kernel.get("sk_counter_info", {})
+        if isinstance(super_kernel, dict)
+        else {}
+    )
+    exception_events = (
+        super_kernel.get("exception_events", [])
+        if isinstance(super_kernel, dict)
+        else []
+    )
     payload_rows, payload_summary = _build_dfx_payload(
         function_sections,
         dfx_dump if isinstance(dfx_dump, dict) else {},
@@ -2634,7 +2940,11 @@ def build_dfx_evidence(
         fused_library.get("functions", []) if isinstance(fused_library, dict) else []
     )
     mapped_exception_events = []
-    for event in super_kernel.get("exception_events", []) if isinstance(super_kernel, dict) else []:
+    for event in (
+        super_kernel.get("exception_events", [])
+        if isinstance(super_kernel, dict)
+        else []
+    ):
         function = event.get("function", "")
         candidates = []
         for key in (function, _strip_op_trace_suffix(function)):
@@ -2672,34 +2982,60 @@ def build_dfx_evidence(
                     bool(event.get("op_trace")) and bool(event.get("line")),
                 ),
                 "evidence_reasons": [
-                    "candidate_functions_found" if unique_candidates else "unresolved_function_mapping",
-                    "exception_from_superkernel_function" if event.get("function") else "missing_exception_function",
+                    "candidate_functions_found"
+                    if unique_candidates
+                    else "unresolved_function_mapping",
+                    "exception_from_superkernel_function"
+                    if event.get("function")
+                    else "missing_exception_function",
                 ],
             }
         )
 
     exception_level = _to_evidence_level(
-        any(item.get("evidence_level") == "explicit" for item in mapped_exception_events),
-        any(item.get("evidence_level") == "inferred" for item in mapped_exception_events),
+        any(
+            item.get("evidence_level") == "explicit" for item in mapped_exception_events
+        ),
+        any(
+            item.get("evidence_level") == "inferred" for item in mapped_exception_events
+        ),
     )
-    core_symbol_level = _to_evidence_level(bool(super_kernel.get("exception_symbol_events")))
+    core_symbol_level = _to_evidence_level(
+        bool(super_kernel.get("exception_symbol_events"))
+    )
     counter_registry = _build_counter_registry(
         counter_info if isinstance(counter_info, dict) else {},
         dfx_dump if isinstance(dfx_dump, dict) else {},
         payload_rows,
         exception_events if isinstance(exception_events, list) else [],
     )
-    counter_summary = counter_registry.get("summary", {}) if isinstance(counter_registry, dict) else {}
-    pc_localization_registry = _build_pc_localization_registry(super_kernel if isinstance(super_kernel, dict) else {})
-    pc_localization_summary = (
-        pc_localization_registry.get("summary", {}) if isinstance(pc_localization_registry, dict) else {}
+    counter_summary = (
+        counter_registry.get("summary", {})
+        if isinstance(counter_registry, dict)
+        else {}
     )
-    diagnostic_pc_registry = _build_diagnostic_pc_registry(counter_registry, pc_localization_registry)
+    pc_localization_registry = _build_pc_localization_registry(
+        super_kernel if isinstance(super_kernel, dict) else {}
+    )
+    pc_localization_summary = (
+        pc_localization_registry.get("summary", {})
+        if isinstance(pc_localization_registry, dict)
+        else {}
+    )
+    diagnostic_pc_registry = _build_diagnostic_pc_registry(
+        counter_registry, pc_localization_registry
+    )
     diagnostic_pc_summary = (
-        diagnostic_pc_registry.get("summary", {}) if isinstance(diagnostic_pc_registry, dict) else {}
+        diagnostic_pc_registry.get("summary", {})
+        if isinstance(diagnostic_pc_registry, dict)
+        else {}
     )
 
-    node_update_results = update_execution.get("node_update_results", []) if isinstance(update_execution, dict) else []
+    node_update_results = (
+        update_execution.get("node_update_results", [])
+        if isinstance(update_execution, dict)
+        else []
+    )
     value_update_types = {
         "VALUE_WRITE": 0,
         "VALUE_WAIT": 0,
@@ -2720,12 +3056,20 @@ def build_dfx_evidence(
             value_update_types.setdefault(update_type, 0)
             value_update_types[update_type] = value_update_types.get(update_type, 0) + 1
 
-    value_update_total = value_update_types["VALUE_WRITE"] + value_update_types["VALUE_WAIT"]
+    value_update_total = (
+        value_update_types["VALUE_WRITE"] + value_update_types["VALUE_WAIT"]
+    )
     return {
         "source": {
-            "super_kernel_log": super_kernel.get("path") if isinstance(super_kernel, dict) else None,
-            "sk_device_args": device_task_library.get("path") if isinstance(device_task_library, dict) else None,
-            "sk_fused_nodes": fused_library.get("path") if isinstance(fused_library, dict) else None,
+            "super_kernel_log": super_kernel.get("path")
+            if isinstance(super_kernel, dict)
+            else None,
+            "sk_device_args": device_task_library.get("path")
+            if isinstance(device_task_library, dict)
+            else None,
+            "sk_fused_nodes": fused_library.get("path")
+            if isinstance(fused_library, dict)
+            else None,
         },
         "payload": {
             "functions": payload_rows,
@@ -2737,7 +3081,9 @@ def build_dfx_evidence(
             "evidence_reasons": [
                 "has_exception_handler_dump"
                 if payload_summary.get("has_runtime_dump")
-                else payload_summary.get("runtime_status", "missing_exception_handler_dump"),
+                else payload_summary.get(
+                    "runtime_status", "missing_exception_handler_dump"
+                ),
                 "has_device_args_sections"
                 if payload_summary.get("device_args_section_count", 0) > 0
                 else "no_device_args_sections",
@@ -2752,32 +3098,52 @@ def build_dfx_evidence(
             "evidence_level": exception_level,
             "core_symbol_evidence_level": core_symbol_level,
             "evidence_reasons": [
-                "superkernel_exception_event" if mapped_exception_events else "no_exception_event",
-                "core_symbol_events" if super_kernel.get("exception_symbol_events") else "no_core_symbol_events",
+                "superkernel_exception_event"
+                if mapped_exception_events
+                else "no_exception_event",
+                "core_symbol_events"
+                if super_kernel.get("exception_symbol_events")
+                else "no_core_symbol_events",
             ],
         },
         "counter": {
             "summary": counter_summary,
-            "cores": counter_registry.get("cores", []) if isinstance(counter_registry, dict) else [],
-            "active_cores": counter_registry.get("active_cores", []) if isinstance(counter_registry, dict) else [],
-            "used_cores": counter_registry.get("used_cores", []) if isinstance(counter_registry, dict) else [],
-            "unused_cores": counter_registry.get("unused_cores", []) if isinstance(counter_registry, dict) else [],
-            "finished_cores": counter_registry.get("finished_cores", []) if isinstance(counter_registry, dict) else [],
+            "cores": counter_registry.get("cores", [])
+            if isinstance(counter_registry, dict)
+            else [],
+            "active_cores": counter_registry.get("active_cores", [])
+            if isinstance(counter_registry, dict)
+            else [],
+            "used_cores": counter_registry.get("used_cores", [])
+            if isinstance(counter_registry, dict)
+            else [],
+            "unused_cores": counter_registry.get("unused_cores", [])
+            if isinstance(counter_registry, dict)
+            else [],
+            "finished_cores": counter_registry.get("finished_cores", [])
+            if isinstance(counter_registry, dict)
+            else [],
             "evidence_level": _to_evidence_level(
                 bool(counter_summary.get("dominant_active_function_name")),
                 bool(counter_summary.get("active_core_count")),
             ),
             "evidence_reasons": [
-                "has_counter_cores" if counter_summary.get("core_count", 0) > 0 else "no_counter_cores",
+                "has_counter_cores"
+                if counter_summary.get("core_count", 0) > 0
+                else "no_counter_cores",
                 "has_running_op_localization"
                 if counter_summary.get("dominant_active_function_name")
                 else "no_running_op_localization",
-                "op_trace_disabled" if counter_summary.get("needs_op_trace_hint") else "op_trace_enabled_or_unknown",
+                "op_trace_disabled"
+                if counter_summary.get("needs_op_trace_hint")
+                else "op_trace_enabled_or_unknown",
             ],
         },
         "pc_localization": {
             "summary": pc_localization_summary,
-            "events": pc_localization_registry.get("events", []) if isinstance(pc_localization_registry, dict) else [],
+            "events": pc_localization_registry.get("events", [])
+            if isinstance(pc_localization_registry, dict)
+            else [],
             "evidence_level": _to_evidence_level(
                 pc_localization_summary.get("matched_count", 0) > 0,
                 pc_localization_summary.get("event_count", 0) > 0,
@@ -2793,7 +3159,9 @@ def build_dfx_evidence(
         },
         "diagnostic_pc": {
             "summary": diagnostic_pc_summary,
-            "events": diagnostic_pc_registry.get("events", []) if isinstance(diagnostic_pc_registry, dict) else [],
+            "events": diagnostic_pc_registry.get("events", [])
+            if isinstance(diagnostic_pc_registry, dict)
+            else [],
             "evidence_level": _to_evidence_level(
                 diagnostic_pc_summary.get("target_count", 0) > 0
                 and diagnostic_pc_summary.get("has_reported_start_pc", False),
@@ -2818,7 +3186,9 @@ def build_dfx_evidence(
                 bool(value_update_total),
             ),
             "evidence_reasons": [
-                "has_node_update_results" if node_update_results else "no_node_update_results",
+                "has_node_update_results"
+                if node_update_results
+                else "no_node_update_results",
                 "has_value_write_wait" if value_update_total else "no_value_write_wait",
             ],
         },
@@ -2833,55 +3203,101 @@ def build_dfx_library(
     dfx_evidence: dict[str, Any],
 ) -> dict[str, Any]:
     payload = dfx_evidence.get("payload", {}) if isinstance(dfx_evidence, dict) else {}
-    exception = dfx_evidence.get("exception", {}) if isinstance(dfx_evidence, dict) else {}
+    exception = (
+        dfx_evidence.get("exception", {}) if isinstance(dfx_evidence, dict) else {}
+    )
     counter = dfx_evidence.get("counter", {}) if isinstance(dfx_evidence, dict) else {}
-    pc_localization = dfx_evidence.get("pc_localization", {}) if isinstance(dfx_evidence, dict) else {}
-    diagnostic_pc = dfx_evidence.get("diagnostic_pc", {}) if isinstance(dfx_evidence, dict) else {}
-    phase_registry = _build_phase_registry(super_kernel if isinstance(super_kernel, dict) else {})
-    payload_summary = dict(payload.get("summary", {}) if isinstance(payload, dict) else {})
+    pc_localization = (
+        dfx_evidence.get("pc_localization", {})
+        if isinstance(dfx_evidence, dict)
+        else {}
+    )
+    diagnostic_pc = (
+        dfx_evidence.get("diagnostic_pc", {}) if isinstance(dfx_evidence, dict) else {}
+    )
+    phase_registry = _build_phase_registry(
+        super_kernel if isinstance(super_kernel, dict) else {}
+    )
+    payload_summary = dict(
+        payload.get("summary", {}) if isinstance(payload, dict) else {}
+    )
 
     return {
         "path": str(model_dir / "dfx-library.json"),
         "source_kind": "sk_meta",
         "model_ri": _extract_model_ri(model_dir),
         "source": {
-            "super_kernel_log": super_kernel.get("path") if isinstance(super_kernel, dict) else None,
-            "sk_device_args": device_task_library.get("path") if isinstance(device_task_library, dict) else None,
-            "sk_fused_nodes": fused_library.get("path") if isinstance(fused_library, dict) else None,
+            "super_kernel_log": super_kernel.get("path")
+            if isinstance(super_kernel, dict)
+            else None,
+            "sk_device_args": device_task_library.get("path")
+            if isinstance(device_task_library, dict)
+            else None,
+            "sk_fused_nodes": fused_library.get("path")
+            if isinstance(fused_library, dict)
+            else None,
         },
         "phase_registry": phase_registry,
         "payload_registry": {
-            "functions": payload.get("functions", []) if isinstance(payload, dict) else [],
+            "functions": payload.get("functions", [])
+            if isinstance(payload, dict)
+            else [],
             "summary": payload_summary,
         },
         "exception_registry": {
-            "events": exception.get("events", []) if isinstance(exception, dict) else [],
-            "core_symbol_events": exception.get("core_symbol_events", []) if isinstance(exception, dict) else [],
-            "has_superkernel_exception": exception.get("has_superkernel_exception", False)
+            "events": exception.get("events", [])
+            if isinstance(exception, dict)
+            else [],
+            "core_symbol_events": exception.get("core_symbol_events", [])
+            if isinstance(exception, dict)
+            else [],
+            "has_superkernel_exception": exception.get(
+                "has_superkernel_exception", False
+            )
             if isinstance(exception, dict)
             else False,
         },
         "counter_registry": {
             "summary": counter.get("summary", {}) if isinstance(counter, dict) else {},
             "cores": counter.get("cores", []) if isinstance(counter, dict) else [],
-            "used_cores": counter.get("used_cores", []) if isinstance(counter, dict) else [],
-            "unused_cores": counter.get("unused_cores", []) if isinstance(counter, dict) else [],
-            "finished_cores": counter.get("finished_cores", []) if isinstance(counter, dict) else [],
-            "active_cores": counter.get("active_cores", []) if isinstance(counter, dict) else [],
+            "used_cores": counter.get("used_cores", [])
+            if isinstance(counter, dict)
+            else [],
+            "unused_cores": counter.get("unused_cores", [])
+            if isinstance(counter, dict)
+            else [],
+            "finished_cores": counter.get("finished_cores", [])
+            if isinstance(counter, dict)
+            else [],
+            "active_cores": counter.get("active_cores", [])
+            if isinstance(counter, dict)
+            else [],
         },
         "pc_localization_registry": {
-            "summary": pc_localization.get("summary", {}) if isinstance(pc_localization, dict) else {},
-            "events": pc_localization.get("events", []) if isinstance(pc_localization, dict) else [],
+            "summary": pc_localization.get("summary", {})
+            if isinstance(pc_localization, dict)
+            else {},
+            "events": pc_localization.get("events", [])
+            if isinstance(pc_localization, dict)
+            else [],
         },
         "diagnostic_pc_registry": {
-            "summary": diagnostic_pc.get("summary", {}) if isinstance(diagnostic_pc, dict) else {},
-            "events": diagnostic_pc.get("events", []) if isinstance(diagnostic_pc, dict) else [],
+            "summary": diagnostic_pc.get("summary", {})
+            if isinstance(diagnostic_pc, dict)
+            else {},
+            "events": diagnostic_pc.get("events", [])
+            if isinstance(diagnostic_pc, dict)
+            else [],
         },
-        "evidence": _compact_dfx_evidence(dfx_evidence if isinstance(dfx_evidence, dict) else {}),
+        "evidence": _compact_dfx_evidence(
+            dfx_evidence if isinstance(dfx_evidence, dict) else {}
+        ),
     }
 
 
-def _parse_update_execution_line_items(line_items: list[tuple[int, str]], path: Path) -> dict[str, Any]:
+def _parse_update_execution_line_items(
+    line_items: list[tuple[int, str]], path: Path
+) -> dict[str, Any]:
     scope_updates: list[dict[str, Any]] = []
     node_update_results: list[dict[str, Any]] = []
     event_addr_updates: list[dict[str, Any]] = []
@@ -2891,9 +3307,13 @@ def _parse_update_execution_line_items(line_items: list[tuple[int, str]], path: 
     current_stream: dict[str, Any] | None = None
 
     for line_no, line in line_items:
-        if graph_update["graph_update_begin_line"] is None and RE_UPDATE_GRAPH_START.search(line):
+        if graph_update[
+            "graph_update_begin_line"
+        ] is None and RE_UPDATE_GRAPH_START.search(line):
             graph_update["graph_update_begin_line"] = line_no
-        if graph_update["graph_update_end_line"] is None and RE_UPDATE_GRAPH_END.search(line):
+        if graph_update["graph_update_end_line"] is None and RE_UPDATE_GRAPH_END.search(
+            line
+        ):
             graph_update["graph_update_end_line"] = line_no
 
         match = RE_SCOPE_UPDATE_BEGIN.search(line)
@@ -2916,7 +3336,9 @@ def _parse_update_execution_line_items(line_items: list[tuple[int, str]], path: 
         match = RE_UPDATE_STREAM_BEGIN.search(line)
         if match and current_scope is not None:
             current_stream = {
-                "scope_name": _normalize_scope_name(match.group(1) or current_scope.get("scope_name")),
+                "scope_name": _normalize_scope_name(
+                    match.group(1) or current_scope.get("scope_name")
+                ),
                 "stream_id": int(match.group(2)),
                 "stream_idx_in_graph": int(match.group(2)),
                 "head_node_id": int(match.group(3)),
@@ -3045,7 +3467,8 @@ def _parse_update_execution_line_items(line_items: list[tuple[int, str]], path: 
         "graph_update": {
             **graph_update,
             "graph_update_seen": bool(
-                graph_update["graph_update_begin_line"] and graph_update["graph_update_end_line"]
+                graph_update["graph_update_begin_line"]
+                and graph_update["graph_update_end_line"]
             ),
         },
         "scope_updates": scope_updates,
@@ -3056,9 +3479,13 @@ def _parse_update_execution_line_items(line_items: list[tuple[int, str]], path: 
     }
 
 
-def parse_update_execution(model_dir: Path, line_range: tuple[int, int] | None = None) -> dict[str, Any]:
+def parse_update_execution(
+    model_dir: Path, line_range: tuple[int, int] | None = None
+) -> dict[str, Any]:
     path = model_dir / "super_kernel.log"
-    return _parse_update_execution_line_items(_read_indexed_lines(path, line_range), path)
+    return _parse_update_execution_line_items(
+        _read_indexed_lines(path, line_range), path
+    )
 
 
 def _finalize_scope_batch(scopes: dict[int, dict[str, Any]]) -> list[dict[str, Any]]:
@@ -3082,7 +3509,9 @@ def _finalize_scope_batch(scopes: dict[int, dict[str, Any]]) -> list[dict[str, A
         latest_stream_by_idx: dict[int, dict[str, Any]] = {}
         for stream in scope["streams"]:
             latest_stream_by_idx[stream["stream_idx"]] = stream
-        dedup_streams = [latest_stream_by_idx[idx] for idx in sorted(latest_stream_by_idx)]
+        dedup_streams = [
+            latest_stream_by_idx[idx] for idx in sorted(latest_stream_by_idx)
+        ]
         expected_stream_count = scope.get("stream_count", 0)
         if isinstance(expected_stream_count, int) and expected_stream_count > 0:
             dedup_streams = dedup_streams[:expected_stream_count]
@@ -3154,7 +3583,9 @@ def _parse_scope_split_file(path: Path) -> dict[str, Any]:
 
         if current_batch_begin_line is not None:
             current_batch_end_line = line_no
-            current_batch_end_timestamp = _extract_line_timestamp(line) or current_batch_end_timestamp
+            current_batch_end_timestamp = (
+                _extract_line_timestamp(line) or current_batch_end_timestamp
+            )
 
         match = RE_SCOPE_SUMMARY.search(line)
         if match:
@@ -3179,7 +3610,9 @@ def _parse_scope_split_file(path: Path) -> dict[str, Any]:
         match = RE_SCOPE_NODE_HEADER.search(line)
         if match:
             display_scope_id = int(match.group(1))
-            current_scope_id = scope_display_to_id.get(display_scope_id, display_scope_id)
+            current_scope_id = scope_display_to_id.get(
+                display_scope_id, display_scope_id
+            )
             continue
 
         match = RE_SCOPE_NODE.search(line)
@@ -3248,7 +3681,11 @@ def _parse_scope_split_file(path: Path) -> dict[str, Any]:
                 continue
             entry = {
                 "detail": detail,
-                "node_ids": [node.get("node_id") for node in scope.get("nodes", []) if node.get("node_id") is not None],
+                "node_ids": [
+                    node.get("node_id")
+                    for node in scope.get("nodes", [])
+                    if node.get("node_id") is not None
+                ],
             }
             if pass_name:
                 entry["pass"] = pass_name
@@ -3296,7 +3733,11 @@ def _build_scope_library_from_batches(
                 continue
             entry = {
                 "detail": detail,
-                "node_ids": [node.get("node_id") for node in scope.get("nodes", []) if node.get("node_id") is not None],
+                "node_ids": [
+                    node.get("node_id")
+                    for node in scope.get("nodes", [])
+                    if node.get("node_id") is not None
+                ],
             }
             if pass_name:
                 entry["pass"] = pass_name
@@ -3330,7 +3771,9 @@ def _group_scope_batches_by_terminal_final(
     if not batches:
         return [[] for _ in range(model_instance_count)]
 
-    final_indices = [index for index, batch in enumerate(batches) if _is_terminal_final_pass(batch)]
+    final_indices = [
+        index for index, batch in enumerate(batches) if _is_terminal_final_pass(batch)
+    ]
     if len(final_indices) != model_instance_count:
         reason = (
             "scope_library cannot be safely model-instance isolated: "
@@ -3345,7 +3788,10 @@ def _group_scope_batches_by_terminal_final(
                 "source_kind": source_kind,
                 "model_instance_count": model_instance_count,
                 "terminal_final_batch_count": len(final_indices),
-                "terminal_final_passes": [str(batches[index].get("pass") or "") for index in final_indices[:20]],
+                "terminal_final_passes": [
+                    str(batches[index].get("pass") or "")
+                    for index in final_indices[:20]
+                ],
             },
         )
         raise ValueError(reason)
@@ -3369,14 +3815,18 @@ def _group_scope_batches_by_terminal_final(
             details={
                 "source_kind": source_kind,
                 "ignored_batch_count": len(batches) - start,
-                "ignored_passes": [str(batch.get("pass") or "") for batch in batches[start:ignored_end]],
+                "ignored_passes": [
+                    str(batch.get("pass") or "") for batch in batches[start:ignored_end]
+                ],
             },
         )
 
     return groups
 
 
-def parse_scope_library_model_instances(model_dir: Path, model_instances: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def parse_scope_library_model_instances(
+    model_dir: Path, model_instances: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
     base = parse_scope_library(model_dir)
     model_instance_count = len(model_instances)
     if model_instance_count <= 1:
@@ -3432,7 +3882,9 @@ def parse_scope_library_model_instances(model_dir: Path, model_instances: list[d
                 batch_group=batch_group,
             )
             if batch_group
-            else _build_empty_scope_library(str(base.get("path") or ""), str(base.get("source_kind") or ""))
+            else _build_empty_scope_library(
+                str(base.get("path") or ""), str(base.get("source_kind") or "")
+            )
         )
         for batch_group in batch_groups
     ]
@@ -3465,13 +3917,19 @@ def _infer_node_type(line: str) -> str:
     return "UNKNOWN"
 
 
-def _extract_node_entry_from_line(line: str, *, line_no: int | None = None) -> dict[str, Any] | None:
+def _extract_node_entry_from_line(
+    line: str, *, line_no: int | None = None
+) -> dict[str, Any] | None:
     node_id_match = RE_NODEID.search(line)
     stream_idx_match = RE_STREAM_IDX.search(line)
     node_idx_match = RE_NODE_IDX.search(line)
     if not node_id_match or not stream_idx_match or not node_idx_match:
         return None
-    if "Processed node" not in line and "PrintScopeNodes" not in line and "PrintSKNodesDetail" not in line:
+    if (
+        "Processed node" not in line
+        and "PrintScopeNodes" not in line
+        and "PrintSKNodesDetail" not in line
+    ):
         return None
 
     stream_id_match = RE_STREAMID.search(line)
@@ -3513,7 +3971,9 @@ def _extract_node_entry_from_line(line: str, *, line_no: int | None = None) -> d
     }
 
 
-def _merge_node_entry(base: dict[str, Any] | None, overlay: dict[str, Any]) -> dict[str, Any]:
+def _merge_node_entry(
+    base: dict[str, Any] | None, overlay: dict[str, Any]
+) -> dict[str, Any]:
     if base is None:
         return dict(overlay)
     merged = dict(base)
@@ -3523,7 +3983,9 @@ def _merge_node_entry(base: dict[str, Any] | None, overlay: dict[str, Any]) -> d
     return merged
 
 
-def _collect_node_library_entries(path: Path, line_range: tuple[int, int] | None = None) -> list[dict[str, Any]]:
+def _collect_node_library_entries(
+    path: Path, line_range: tuple[int, int] | None = None
+) -> list[dict[str, Any]]:
     entries: list[dict[str, Any]] = []
     for line_no, line in _read_indexed_lines(path, line_range):
         entry = _extract_node_entry_from_line(line, line_no=line_no)
@@ -3566,19 +4028,27 @@ def _node_scope_coverage_stats(
     if not expected_nodes:
         expected_nodes = _expected_model_instance_nodes(raw_scope_library)
 
-    entry_primary_keys, entry_fallback_keys, unique_entries = _entry_membership_key_sets(entries)
+    entry_primary_keys, entry_fallback_keys, unique_entries = (
+        _entry_membership_key_sets(entries)
+    )
     missing_nodes: list[dict[str, Any]] = []
     for node in expected_nodes:
         primary_key, fallback_key = _expected_node_keys(node)
-        if (primary_key is not None and primary_key in entry_primary_keys) or fallback_key in entry_fallback_keys:
+        if (
+            primary_key is not None and primary_key in entry_primary_keys
+        ) or fallback_key in entry_fallback_keys:
             continue
         missing_nodes.append(node)
 
-    expected_primary_keys, expected_fallback_keys = _node_membership_key_sets(expected_nodes)
+    expected_primary_keys, expected_fallback_keys = _node_membership_key_sets(
+        expected_nodes
+    )
     extra_entries: list[dict[str, Any]] = []
     for entry in unique_entries:
         primary_key, fallback_key = _entry_node_keys(entry)
-        if (primary_key is not None and primary_key in expected_primary_keys) or fallback_key in expected_fallback_keys:
+        if (
+            primary_key is not None and primary_key in expected_primary_keys
+        ) or fallback_key in expected_fallback_keys:
             continue
         extra_entries.append(entry)
 
@@ -3589,7 +4059,8 @@ def _node_scope_coverage_stats(
         "scope_node_missing_sample": _node_key_sample(missing_nodes),
         "processed_node_extra_count": len(extra_entries),
         "processed_node_extra_sample": [
-            str(_entry_node_keys(entry)[0] or _entry_node_keys(entry)[1]) for entry in extra_entries[:10]
+            str(_entry_node_keys(entry)[0] or _entry_node_keys(entry)[1])
+            for entry in extra_entries[:10]
         ],
     }
 
@@ -3610,7 +4081,9 @@ def _build_node_library_from_entries(
     for entry in entries:
         if entry["node_id"] in node_by_id:
             duplicate_node_ids.append(entry["node_id"])
-        node_by_id[entry["node_id"]] = _merge_node_entry(node_by_id.get(entry["node_id"]), entry)
+        node_by_id[entry["node_id"]] = _merge_node_entry(
+            node_by_id.get(entry["node_id"]), entry
+        )
     stats = {
         "total_entries": len(entries),
         "unique_node_count": len(node_by_id),
@@ -3644,7 +4117,9 @@ def _build_node_library_from_entries(
     return {
         "path": str(path),
         "source_kind": source_kind,
-        "nodes": [_sanitize_node_entry(node_by_id[node_id]) for node_id in sorted(node_by_id)],
+        "nodes": [
+            _sanitize_node_entry(node_by_id[node_id]) for node_id in sorted(node_by_id)
+        ],
         "stats": stats,
     }
 
@@ -3653,8 +4128,12 @@ def _expected_model_instance_nodes(
     scope_library: dict[str, Any],
 ) -> list[dict[str, Any]]:
     sequence: list[dict[str, Any]] = []
-    for scope in scope_library.get("scopes", []) if isinstance(scope_library, dict) else []:
-        for node in scope.get("nodes", []) if isinstance(scope.get("nodes"), list) else []:
+    for scope in (
+        scope_library.get("scopes", []) if isinstance(scope_library, dict) else []
+    ):
+        for node in (
+            scope.get("nodes", []) if isinstance(scope.get("nodes"), list) else []
+        ):
             node_id = node.get("node_id")
             stream_idx_in_graph = node.get("stream_idx_in_graph")
             node_idx_in_stream = node.get("node_idx_in_stream")
@@ -3672,9 +4151,15 @@ def _expected_model_instance_universe_nodes(
 ) -> list[dict[str, Any]]:
     universe: list[dict[str, Any]] = []
     seen: set[tuple[Any, ...]] = set()
-    for batch in scope_library.get("batches", []) if isinstance(scope_library, dict) else []:
-        for scope in batch.get("scopes", []) if isinstance(batch.get("scopes"), list) else []:
-            for node in scope.get("nodes", []) if isinstance(scope.get("nodes"), list) else []:
+    for batch in (
+        scope_library.get("batches", []) if isinstance(scope_library, dict) else []
+    ):
+        for scope in (
+            batch.get("scopes", []) if isinstance(batch.get("scopes"), list) else []
+        ):
+            for node in (
+                scope.get("nodes", []) if isinstance(scope.get("nodes"), list) else []
+            ):
                 node_id = node.get("node_id")
                 stream_idx_in_graph = node.get("stream_idx_in_graph")
                 node_idx_in_stream = node.get("node_idx_in_stream")
@@ -3695,8 +4180,12 @@ def _expected_model_instance_universe_nodes(
 
 def parse_node_library(model_dir: Path) -> dict[str, Any]:
     model_instances = detect_model_instances(model_dir)
-    raw_scope_model_instances = parse_scope_library_model_instances(model_dir, model_instances)
-    libraries = parse_node_library_model_instances(model_dir, model_instances, raw_scope_model_instances)
+    raw_scope_model_instances = parse_scope_library_model_instances(
+        model_dir, model_instances
+    )
+    libraries = parse_node_library_model_instances(
+        model_dir, model_instances, raw_scope_model_instances
+    )
     if libraries:
         return libraries[0]
     path, source_kind = _resolve_node_library_source(model_dir)
@@ -3722,7 +4211,9 @@ def _build_model_instance_node_library(
     model_instance_id: str | None = None,
     stats_overrides: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    stats = _node_scope_coverage_stats(entries=entries, raw_scope_library=raw_scope_library)
+    stats = _node_scope_coverage_stats(
+        entries=entries, raw_scope_library=raw_scope_library
+    )
     if stats_overrides:
         stats.update(stats_overrides)
     return _build_node_library_from_entries(
@@ -3773,7 +4264,8 @@ def _can_timestamp_partition_entries(
     if not any(entry.get("_timestamp") for entry in entries):
         return False
     return all(
-        isinstance(model_instance.get("begin_timestamp"), str) and model_instance.get("begin_timestamp")
+        isinstance(model_instance.get("begin_timestamp"), str)
+        and model_instance.get("begin_timestamp")
         for model_instance in model_instances
     )
 
@@ -3787,9 +4279,17 @@ def _entry_matches_model_instance_timestamp(
         return False
     begin_timestamp = model_instance.get("begin_timestamp")
     end_timestamp = model_instance.get("end_timestamp")
-    if isinstance(begin_timestamp, str) and begin_timestamp and entry_timestamp < begin_timestamp:
+    if (
+        isinstance(begin_timestamp, str)
+        and begin_timestamp
+        and entry_timestamp < begin_timestamp
+    ):
         return False
-    if isinstance(end_timestamp, str) and end_timestamp and entry_timestamp > end_timestamp:
+    if (
+        isinstance(end_timestamp, str)
+        and end_timestamp
+        and entry_timestamp > end_timestamp
+    ):
         return False
     return True
 
@@ -3841,7 +4341,8 @@ def _partition_entries_by_model_instance_timestamps(
                 "source_kind": source_kind,
                 "ambiguous_entry_count": len(ambiguous_entries),
                 "ambiguous_key_sample": [
-                    str(_entry_node_keys(entry)[0] or _entry_node_keys(entry)[1]) for entry in ambiguous_entries[:10]
+                    str(_entry_node_keys(entry)[0] or _entry_node_keys(entry)[1])
+                    for entry in ambiguous_entries[:10]
                 ],
             },
         )
@@ -3859,7 +4360,8 @@ def _partition_entries_by_model_instance_timestamps(
                 "source_kind": source_kind,
                 "unassigned_entry_count": len(unassigned_entries),
                 "unassigned_key_sample": [
-                    str(_entry_node_keys(entry)[0] or _entry_node_keys(entry)[1]) for entry in unassigned_entries[:10]
+                    str(_entry_node_keys(entry)[0] or _entry_node_keys(entry)[1])
+                    for entry in unassigned_entries[:10]
                 ],
             },
         )
@@ -3967,14 +4469,16 @@ def _warn_model_instance_timestamp_drift(
 ) -> None:
     begin_timestamp = model_instance.get("begin_timestamp")
     end_timestamp = model_instance.get("end_timestamp")
-    assigned_timestamps = [entry.get("_timestamp") for entry in assigned_entries if entry.get("_timestamp")]
+    assigned_timestamps = [
+        entry.get("_timestamp") for entry in assigned_entries if entry.get("_timestamp")
+    ]
     if not assigned_timestamps:
         return
     min_timestamp = min(assigned_timestamps)
     max_timestamp = max(assigned_timestamps)
-    if _timestamp_outside_range(min_timestamp, begin_timestamp, end_timestamp) or _timestamp_outside_range(
-        max_timestamp, begin_timestamp, end_timestamp
-    ):
+    if _timestamp_outside_range(
+        min_timestamp, begin_timestamp, end_timestamp
+    ) or _timestamp_outside_range(max_timestamp, begin_timestamp, end_timestamp):
         _parser_log(
             "WARN",
             "node_library_timestamp_drift",
@@ -4011,12 +4515,16 @@ def parse_node_library_model_instances(
 ) -> list[dict[str, Any]]:
     if not model_instances:
         model_instances = detect_model_instances(model_dir)
-        raw_scope_model_instances = parse_scope_library_model_instances(model_dir, model_instances)
+        raw_scope_model_instances = parse_scope_library_model_instances(
+            model_dir, model_instances
+        )
 
     path, source_kind = _resolve_node_library_source(model_dir)
     model_instance_count = len(model_instances)
     membership_path = model_dir / "super_kernel.log"
-    detail_entries = _collect_node_library_entries(path) if source_kind != "super_kernel.log" else []
+    detail_entries = (
+        _collect_node_library_entries(path) if source_kind != "super_kernel.log" else []
+    )
     model_instance_libraries: list[dict[str, Any]] = []
 
     if source_kind != "super_kernel.log" and model_instance_count <= 1:
@@ -4026,7 +4534,9 @@ def parse_node_library_model_instances(
                 path=path,
                 source_kind=source_kind,
                 entries=detail_entries,
-                raw_scope_library=raw_scope_model_instances[0] if raw_scope_model_instances else {},
+                raw_scope_library=raw_scope_model_instances[0]
+                if raw_scope_model_instances
+                else {},
                 model_instance_partition_mode="single",
                 model_instance_partition_verified=True,
                 model_instance_id=_model_instance_id(model_instances[0]),
@@ -4084,7 +4594,9 @@ def parse_node_library_model_instances(
                 )
             )
 
-        leftover_detail_entries = ambiguous_entries + unassigned_entries + untimestamped_entries
+        leftover_detail_entries = (
+            ambiguous_entries + unassigned_entries + untimestamped_entries
+        )
         if leftover_detail_entries:
             _parser_log(
                 "WARN",
@@ -4093,7 +4605,9 @@ def parse_node_library_model_instances(
                 message="unassigned node detail entries remain after model-instance timestamp partitioning",
                 details={
                     "detail_source_kind": source_kind,
-                    "assigned_detail_entry_count": sum(len(item) for item in assigned_entries),
+                    "assigned_detail_entry_count": sum(
+                        len(item) for item in assigned_entries
+                    ),
                     "total_detail_entry_count": len(detail_entries),
                     "leftover_detail_entry_count": len(leftover_detail_entries),
                     "leftover_detail_key_sample": [
@@ -4104,13 +4618,17 @@ def parse_node_library_model_instances(
             )
         return model_instance_libraries
 
-    detail_primary_index, detail_fallback_index = _build_entry_indexes(detail_entries) if detail_entries else ({}, {})
+    detail_primary_index, detail_fallback_index = (
+        _build_entry_indexes(detail_entries) if detail_entries else ({}, {})
+    )
     used_detail_entry_ids: set[int] = set()
 
     for index, model_instance in enumerate(model_instances):
         line_range = (model_instance["begin_line"], model_instance["end_line"])
         membership_entries = (
-            _collect_node_library_entries(membership_path, line_range=line_range) if membership_path.exists() else []
+            _collect_node_library_entries(membership_path, line_range=line_range)
+            if membership_path.exists()
+            else []
         )
         raw_scope_library = (
             raw_scope_model_instances[index]
@@ -4140,13 +4658,17 @@ def parse_node_library_model_instances(
 
         entries = membership_entries
         stats_overrides: dict[str, Any] = {
-            "membership_source_kind": "super_kernel.log" if membership_entries else "none",
+            "membership_source_kind": "super_kernel.log"
+            if membership_entries
+            else "none",
             "membership_partition_basis": "line_range",
             "membership_path": str(membership_path),
         }
         library_path = path
         library_source_kind = source_kind
-        partition_mode = "single" if model_instance_count <= 1 else "model_instance_line_range"
+        partition_mode = (
+            "single" if model_instance_count <= 1 else "model_instance_line_range"
+        )
 
         if membership_entries and source_kind != "super_kernel.log":
             entries, overlay_stats = _overlay_membership_entries_with_detail_entries(
@@ -4196,7 +4718,9 @@ def parse_node_library_model_instances(
 
     if detail_entries:
         leftover_detail_entries = [
-            entry for entry_id, entry in enumerate(detail_entries) if entry_id not in used_detail_entry_ids
+            entry
+            for entry_id, entry in enumerate(detail_entries)
+            if entry_id not in used_detail_entry_ids
         ]
         if leftover_detail_entries:
             _parser_log(
@@ -4280,7 +4804,9 @@ def parse_device_task_library(model_dir: Path) -> dict[str, Any]:
 
     for line_no, line in _read_indexed_lines(path):
         if "Dumping device args for function:" in line:
-            function_text = line.split("Dumping device args for function:", 1)[1].strip()
+            function_text = line.split("Dumping device args for function:", 1)[
+                1
+            ].strip()
             context = _extract_function_context(function_text)
             current = {
                 "function_text": context["function_text"],
@@ -4313,7 +4839,9 @@ def parse_device_task_library(model_dir: Path) -> dict[str, Any]:
                 "aic_offset": int(match.group(1)),
                 "aiv_offset": int(match.group(2)),
                 "counter_offset": int(match.group(3)),
-                "ws_offset": int(match.group(4)) if match.group(4) is not None else None,
+                "ws_offset": int(match.group(4))
+                if match.group(4) is not None
+                else None,
                 "dfx_offset": int(match.group(5)),
                 "event_config_offset": int(match.group(6)),
                 "node_count": int(match.group(7)),
@@ -4367,9 +4895,13 @@ def parse_device_task_library(model_dir: Path) -> dict[str, Any]:
 
         if last_dfx is not None:
             for entry_match in RE_DFXINFO_ENTRY_AIC.finditer(line):
-                last_dfx["entry_aic"][int(entry_match.group(1))] = f"0x{entry_match.group(2)}"
+                last_dfx["entry_aic"][int(entry_match.group(1))] = (
+                    f"0x{entry_match.group(2)}"
+                )
             for entry_match in RE_DFXINFO_ENTRY_AIV.finditer(line):
-                last_dfx["entry_aiv"][int(entry_match.group(1))] = f"0x{entry_match.group(2)}"
+                last_dfx["entry_aiv"][int(entry_match.group(1))] = (
+                    f"0x{entry_match.group(2)}"
+                )
 
     json_validation = _validate_device_task_library_with_json(model_dir, sections)
     return {
@@ -4380,7 +4912,9 @@ def parse_device_task_library(model_dir: Path) -> dict[str, Any]:
     }
 
 
-def _build_fused_library_subset(fused_library: dict[str, Any], functions: list[dict[str, Any]]) -> dict[str, Any]:
+def _build_fused_library_subset(
+    fused_library: dict[str, Any], functions: list[dict[str, Any]]
+) -> dict[str, Any]:
     return {
         "path": fused_library.get("path"),
         "source_kind": fused_library.get("source_kind"),
@@ -4409,7 +4943,9 @@ def _build_device_task_library_subset(
         "path": device_task_library.get("path"),
         "source_kind": device_task_library.get("source_kind"),
         "sections": sections,
-        "task_queue_json_validation": _build_device_task_library_subset_json_validation(device_task_library),
+        "task_queue_json_validation": _build_device_task_library_subset_json_validation(
+            device_task_library
+        ),
     }
 
 
@@ -4426,28 +4962,43 @@ def _empty_device_model_instance_libraries(
     model_instance_count: int,
 ) -> list[dict[str, Any]]:
     base = parse_device_task_library(model_dir)
-    return [_build_device_task_library_subset(base, []) for _ in range(model_instance_count)]
+    return [
+        _build_device_task_library_subset(base, []) for _ in range(model_instance_count)
+    ]
 
 
 def _scope_signatures(
     scope_library: dict[str, Any],
 ) -> list[frozenset[tuple[Any, ...]]]:
     signatures: list[frozenset[tuple[Any, ...]]] = []
-    for scope in scope_library.get("scopes", []) if isinstance(scope_library, dict) else []:
-        keys = [_group_signature_key(node) for node in scope.get("nodes", []) if isinstance(node, dict)]
+    for scope in (
+        scope_library.get("scopes", []) if isinstance(scope_library, dict) else []
+    ):
+        keys = [
+            _group_signature_key(node)
+            for node in scope.get("nodes", [])
+            if isinstance(node, dict)
+        ]
         signatures.append(frozenset(keys))
     return signatures
 
 
 def _fused_function_signature(function: dict[str, Any]) -> frozenset[tuple[Any, ...]]:
-    keys = [_group_signature_key(node) for node in function.get("node_details", []) if isinstance(node, dict)]
+    keys = [
+        _group_signature_key(node)
+        for node in function.get("node_details", [])
+        if isinstance(node, dict)
+    ]
     return frozenset(keys)
 
 
 def _scope_universe_signature(
     scope_library: dict[str, Any],
 ) -> frozenset[tuple[Any, ...]]:
-    return frozenset(_group_signature_key(node) for node in _expected_model_instance_universe_nodes(scope_library))
+    return frozenset(
+        _group_signature_key(node)
+        for node in _expected_model_instance_universe_nodes(scope_library)
+    )
 
 
 def _node_type_signature_map(
@@ -4469,12 +5020,18 @@ def _scope_signature_entries(
     node_type_map: dict[tuple[Any, ...], str],
 ) -> list[dict[str, Any]]:
     entries: list[dict[str, Any]] = []
-    for scope in scope_library.get("scopes", []) if isinstance(scope_library, dict) else []:
+    for scope in (
+        scope_library.get("scopes", []) if isinstance(scope_library, dict) else []
+    ):
         scope_signature = frozenset(
-            _group_signature_key(node) for node in scope.get("nodes", []) if isinstance(node, dict)
+            _group_signature_key(node)
+            for node in scope.get("nodes", [])
+            if isinstance(node, dict)
         )
         scope_nodes = []
-        for node in scope.get("nodes", []) if isinstance(scope.get("nodes"), list) else []:
+        for node in (
+            scope.get("nodes", []) if isinstance(scope.get("nodes"), list) else []
+        ):
             if not isinstance(node, dict):
                 continue
             key = _group_signature_key(node)
@@ -4561,7 +5118,9 @@ def parse_fused_library_model_instances(
         return [base]
     functions = list(base.get("functions", []))
     if not functions:
-        return [_build_fused_library_subset(base, []) for _ in range(model_instance_count)]
+        return [
+            _build_fused_library_subset(base, []) for _ in range(model_instance_count)
+        ]
 
     expected_signatures = []
     universe_signatures = []
@@ -4571,9 +5130,13 @@ def parse_fused_library_model_instances(
             if index < len(raw_scope_model_instances)
             else raw_scope_model_instances[-1]
         )
-        node_library = node_libraries[index] if index < len(node_libraries) else node_libraries[-1]
+        node_library = (
+            node_libraries[index] if index < len(node_libraries) else node_libraries[-1]
+        )
         node_type_map = _node_type_signature_map(node_library)
-        expected_signatures.append(_scope_signature_entries(scope_library, node_type_map))
+        expected_signatures.append(
+            _scope_signature_entries(scope_library, node_type_map)
+        )
         universe_signatures.append(_scope_universe_signature(scope_library))
 
     groups: list[list[dict[str, Any]]] = [[] for _ in range(model_instance_count)]
@@ -4583,7 +5146,8 @@ def parse_fused_library_model_instances(
         for scope_entry in expected_signatures[index]:
             scope_signature = scope_entry["scope_signature"]
             if scope_signature and all(
-                node.get("node_type") in NON_FUSED_NODE_TYPES for node in scope_entry.get("scope_nodes", [])
+                node.get("node_type") in NON_FUSED_NODE_TYPES
+                for node in scope_entry.get("scope_nodes", [])
             ):
                 _parser_log(
                     "WARN",
@@ -4598,20 +5162,26 @@ def parse_fused_library_model_instances(
                     },
                 )
                 continue
-            matched_candidates: list[tuple[int, frozenset[tuple[Any, ...]], list[dict[str, Any]]]] = []
+            matched_candidates: list[
+                tuple[int, frozenset[tuple[Any, ...]], list[dict[str, Any]]]
+            ] = []
             for function_index, function in enumerate(functions):
                 if function_index in used_indices:
                     continue
                 function_signature = _fused_function_signature(function)
                 if not function_signature.issubset(scope_signature):
                     continue
-                filtered_signature, filtered_nodes, blocking_nodes = _filtered_scope_signature_for_fused_function(
-                    scope_entry,
-                    function_signature,
+                filtered_signature, filtered_nodes, blocking_nodes = (
+                    _filtered_scope_signature_for_fused_function(
+                        scope_entry,
+                        function_signature,
+                    )
                 )
                 if blocking_nodes:
                     continue
-                matched_candidates.append((function_index, filtered_signature, filtered_nodes))
+                matched_candidates.append(
+                    (function_index, filtered_signature, filtered_nodes)
+                )
             if not matched_candidates:
                 reason = (
                     "fused_library cannot be safely model-instance partitioned "
@@ -4625,18 +5195,25 @@ def parse_fused_library_model_instances(
                     model_instance_id=_model_instance_id(model_instance),
                     message=reason,
                     details={
-                        "expected_scope_signature_sample": _signature_sample(scope_signature),
+                        "expected_scope_signature_sample": _signature_sample(
+                            scope_signature
+                        ),
                         "expected_scope_count": len(expected_signatures[index]),
                         "scope_id": scope_entry.get("scope_id"),
                     },
                 )
                 raise ModelInstancePartitionError(
                     reason,
-                    partial_result=[_build_fused_library_subset(base, group) for group in groups],
+                    partial_result=[
+                        _build_fused_library_subset(base, group) for group in groups
+                    ],
                     failed_model_instance_ids=[_model_instance_id(model_instance)],
                 )
             if len(matched_candidates) > 1:
-                candidate_signatures = {candidate_signature for _, candidate_signature, _ in matched_candidates}
+                candidate_signatures = {
+                    candidate_signature
+                    for _, candidate_signature, _ in matched_candidates
+                }
                 if len(candidate_signatures) == 1:
                     _parser_log(
                         "WARN",
@@ -4651,7 +5228,10 @@ def parse_fused_library_model_instances(
                             "scope_id": scope_entry.get("scope_id"),
                             "candidate_function_count": len(matched_candidates),
                             "candidate_function_sample": [
-                                str(functions[candidate_index].get("function_text") or "")
+                                str(
+                                    functions[candidate_index].get("function_text")
+                                    or ""
+                                )
                                 for candidate_index, _, _ in matched_candidates[:10]
                             ],
                         },
@@ -4672,14 +5252,19 @@ def parse_fused_library_model_instances(
                             "scope_id": scope_entry.get("scope_id"),
                             "candidate_function_count": len(matched_candidates),
                             "candidate_function_sample": [
-                                str(functions[candidate_index].get("function_text") or "")
+                                str(
+                                    functions[candidate_index].get("function_text")
+                                    or ""
+                                )
                                 for candidate_index, _, _ in matched_candidates[:10]
                             ],
                         },
                     )
                     raise ModelInstancePartitionError(
                         reason,
-                        partial_result=[_build_fused_library_subset(base, group) for group in groups],
+                        partial_result=[
+                            _build_fused_library_subset(base, group) for group in groups
+                        ],
                         failed_model_instance_ids=[_model_instance_id(model_instance)],
                     )
             matched_index, filtered_signature, filtered_nodes = matched_candidates[0]
@@ -4703,7 +5288,9 @@ def parse_fused_library_model_instances(
             used_indices.add(matched_index)
             groups[index].append(functions[matched_index])
 
-    leftover_function_indices = [index for index in range(len(functions)) if index not in used_indices]
+    leftover_function_indices = [
+        index for index in range(len(functions)) if index not in used_indices
+    ]
     ambiguous_functions: list[dict[str, Any]] = []
     unmatched_functions: list[dict[str, Any]] = []
     for function_index in leftover_function_indices:
@@ -4747,13 +5334,16 @@ def parse_fused_library_model_instances(
             details={
                 "ambiguous_function_count": len(ambiguous_functions),
                 "ambiguous_function_sample": [
-                    str(function.get("function_text") or "") for function in ambiguous_functions[:10]
+                    str(function.get("function_text") or "")
+                    for function in ambiguous_functions[:10]
                 ],
             },
         )
         raise ModelInstancePartitionError(
             reason,
-            partial_result=[_build_fused_library_subset(base, group) for group in groups],
+            partial_result=[
+                _build_fused_library_subset(base, group) for group in groups
+            ],
         )
 
     if unmatched_functions:
@@ -4769,13 +5359,16 @@ def parse_fused_library_model_instances(
             details={
                 "unmatched_function_count": len(unmatched_functions),
                 "unmatched_function_sample": [
-                    str(function.get("function_text") or "") for function in unmatched_functions[:10]
+                    str(function.get("function_text") or "")
+                    for function in unmatched_functions[:10]
                 ],
             },
         )
         raise ModelInstancePartitionError(
             reason,
-            partial_result=[_build_fused_library_subset(base, group) for group in groups],
+            partial_result=[
+                _build_fused_library_subset(base, group) for group in groups
+            ],
         )
 
     return [_build_fused_library_subset(base, group) for group in groups]
@@ -4793,7 +5386,10 @@ def parse_device_task_library_model_instances(
         return [base]
     sections = list(base.get("sections", []))
     if not sections:
-        return [_build_device_task_library_subset(base, []) for _ in range(model_instance_count)]
+        return [
+            _build_device_task_library_subset(base, [])
+            for _ in range(model_instance_count)
+        ]
 
     instance_universe_node_ids = []
     for index in range(model_instance_count):
@@ -4810,7 +5406,10 @@ def parse_device_task_library_model_instances(
         instance_universe_node_ids.append(node_ids)
 
     remaining_expected: list[list[dict[str, Any]]] = [
-        [_build_fused_function_descriptor(function) for function in item.get("functions", [])]
+        [
+            _build_fused_function_descriptor(function)
+            for function in item.get("functions", [])
+        ]
         for item in fused_model_instances
     ]
     groups: list[list[dict[str, Any]]] = [[] for _ in range(model_instance_count)]
@@ -4824,7 +5423,10 @@ def parse_device_task_library_model_instances(
 
         for index in range(model_instance_count):
             for expected_index, expected in enumerate(remaining_expected[index]):
-                if descriptor["function_text"] and descriptor["function_text"] == expected["function_text"]:
+                if (
+                    descriptor["function_text"]
+                    and descriptor["function_text"] == expected["function_text"]
+                ):
                     matched_instance = index
                     matched_index = expected_index
                     matched_reason = "function_text"
@@ -4836,8 +5438,13 @@ def parse_device_task_library_model_instances(
             tuple_matches = []
             for index in range(model_instance_count):
                 for expected_index, expected in enumerate(remaining_expected[index]):
-                    has_start_end = bool(descriptor["start_node_name"] and descriptor["end_node_name"])
-                    sk_id_matches = descriptor["sk_id"] is not None and descriptor["sk_id"] == expected["sk_id"]
+                    has_start_end = bool(
+                        descriptor["start_node_name"] and descriptor["end_node_name"]
+                    )
+                    sk_id_matches = (
+                        descriptor["sk_id"] is not None
+                        and descriptor["sk_id"] == expected["sk_id"]
+                    )
                     start_end_matches = (
                         descriptor["start_node_name"] == expected["start_node_name"]
                         and descriptor["end_node_name"] == expected["end_node_name"]
@@ -4852,7 +5459,10 @@ def parse_device_task_library_model_instances(
             sk_id_matches = []
             for index in range(model_instance_count):
                 for expected_index, expected in enumerate(remaining_expected[index]):
-                    if descriptor["sk_id"] is not None and descriptor["sk_id"] == expected["sk_id"]:
+                    if (
+                        descriptor["sk_id"] is not None
+                        and descriptor["sk_id"] == expected["sk_id"]
+                    ):
                         sk_id_matches.append((index, expected_index))
             if len(sk_id_matches) == 1:
                 matched_instance, matched_index = sk_id_matches[0]
@@ -4896,7 +5506,11 @@ def parse_device_task_library_model_instances(
                 },
             )
 
-    missing_expectations = [index for index, expected_items in enumerate(remaining_expected) if expected_items]
+    missing_expectations = [
+        index
+        for index, expected_items in enumerate(remaining_expected)
+        if expected_items
+    ]
     if missing_expectations:
         reason = (
             "device_task_library cannot be safely model-instance partitioned: "
@@ -4909,7 +5523,8 @@ def parse_device_task_library_model_instances(
             message=reason,
             details={
                 "missing_model_instances": [
-                    _model_instance_id(model_instances[index]) for index in missing_expectations
+                    _model_instance_id(model_instances[index])
+                    for index in missing_expectations
                 ],
                 "missing_function_text_sample": [
                     str(item.get("function_text") or "")
@@ -4920,8 +5535,13 @@ def parse_device_task_library_model_instances(
         )
         raise ModelInstancePartitionError(
             reason,
-            partial_result=[_build_device_task_library_subset(base, group) for group in groups],
-            failed_model_instance_ids=[_model_instance_id(model_instances[index]) for index in missing_expectations],
+            partial_result=[
+                _build_device_task_library_subset(base, group) for group in groups
+            ],
+            failed_model_instance_ids=[
+                _model_instance_id(model_instances[index])
+                for index in missing_expectations
+            ],
         )
 
     if leftover_sections:
@@ -4937,19 +5557,24 @@ def parse_device_task_library_model_instances(
             details={
                 "leftover_section_count": len(leftover_sections),
                 "leftover_function_text_sample": [
-                    str(section.get("function_text") or "") for section in leftover_sections[:10]
+                    str(section.get("function_text") or "")
+                    for section in leftover_sections[:10]
                 ],
             },
         )
         raise ModelInstancePartitionError(
             reason,
-            partial_result=[_build_device_task_library_subset(base, group) for group in groups],
+            partial_result=[
+                _build_device_task_library_subset(base, group) for group in groups
+            ],
         )
 
     return [_build_device_task_library_subset(base, group) for group in groups]
 
 
-def _match_scope_update(scope: dict[str, Any], scope_updates: list[dict[str, Any]]) -> dict[str, Any] | None:
+def _match_scope_update(
+    scope: dict[str, Any], scope_updates: list[dict[str, Any]]
+) -> dict[str, Any] | None:
     scope_streams = scope.get("streams", [])
     best_match: tuple[int, dict[str, Any]] | None = None
     for scope_update in scope_updates:
@@ -4958,9 +5583,13 @@ def _match_scope_update(scope: dict[str, Any], scope_updates: list[dict[str, Any
             for scope_stream in scope_streams:
                 if (
                     scope_stream.get("stream_idx")
-                    == update_stream.get("stream_idx_in_graph", update_stream.get("stream_id"))
-                    and scope_stream.get("head_node") == update_stream.get("head_node_id")
-                    and scope_stream.get("tail_node") == update_stream.get("tail_node_id")
+                    == update_stream.get(
+                        "stream_idx_in_graph", update_stream.get("stream_id")
+                    )
+                    and scope_stream.get("head_node")
+                    == update_stream.get("head_node_id")
+                    and scope_stream.get("tail_node")
+                    == update_stream.get("tail_node_id")
                 ):
                     matched += 1
                     break
@@ -4974,7 +5603,11 @@ def _scope_graph_backed_updates(
     node_update_rows: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
     scope_nodes = [node for node in scope.get("nodes", []) if isinstance(node, dict)]
-    scope_nodes_by_id = {int(node.get("node_id")): node for node in scope_nodes if isinstance(node.get("node_id"), int)}
+    scope_nodes_by_id = {
+        int(node.get("node_id")): node
+        for node in scope_nodes
+        if isinstance(node.get("node_id"), int)
+    }
     graph_backed_updates: list[dict[str, Any]] = []
     for row in node_update_rows:
         node_id = row.get("node_id")
@@ -5008,7 +5641,9 @@ def _scope_graph_backed_updates(
     return graph_backed_updates
 
 
-def _match_scope_device_sections(scope: dict[str, Any], device_sections: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def _match_scope_device_sections(
+    scope: dict[str, Any], device_sections: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
     scope_name_set = {
         _normalize_scope_name(name)
         for name in (scope.get("scope_names") or [])
@@ -5025,13 +5660,19 @@ def _match_scope_device_sections(scope: dict[str, Any], device_sections: list[di
         function_text = section.get("function_text")
         if isinstance(function_text, str) and function_text.strip():
             context = _extract_function_context(function_text)
-            section_name_candidates.add(_normalize_scope_name(context.get("scope_name")))
-            section_name_candidates.add(_normalize_scope_name(context.get("raw_scope_name")))
+            section_name_candidates.add(
+                _normalize_scope_name(context.get("scope_name"))
+            )
+            section_name_candidates.add(
+                _normalize_scope_name(context.get("raw_scope_name"))
+            )
         section_blob = " ".join(
-            str(section.get(key) or "") for key in ("function_text", "detail", "scope_name", "raw_scope_name")
+            str(section.get(key) or "")
+            for key in ("function_text", "detail", "scope_name", "raw_scope_name")
         )
         if scope_name_set & section_name_candidates or any(
-            f"scopeName: {scope_name}" in section_blob or f"{scope_name}__skId:" in section_blob
+            f"scopeName: {scope_name}" in section_blob
+            or f"{scope_name}__skId:" in section_blob
             for scope_name in scope_name_set
         ):
             matches.append(section)
@@ -5044,7 +5685,9 @@ def _bind_scope_device_sections(
 ) -> tuple[dict[Any, list[dict[str, Any]]], dict[str, Any]]:
     scopes = scope_library.get("scopes", []) if isinstance(scope_library, dict) else []
     scope_ids = {
-        scope.get("scope_id") for scope in scopes if isinstance(scope, dict) and scope.get("scope_id") is not None
+        scope.get("scope_id")
+        for scope in scopes
+        if isinstance(scope, dict) and scope.get("scope_id") is not None
     }
     sections_by_scope_id: dict[Any, list[dict[str, Any]]] = {}
     direct_bound_count = 0
@@ -5059,16 +5702,22 @@ def _bind_scope_device_sections(
             section_with_binding["_scope_binding_reason"] = str(
                 section.get("bound_scope_binding_source") or "bound_scope_id"
             )
-            sections_by_scope_id.setdefault(bound_scope_id, []).append(section_with_binding)
+            sections_by_scope_id.setdefault(bound_scope_id, []).append(
+                section_with_binding
+            )
             continue
 
-        fallback_matches = [scope for scope in scopes if _match_scope_device_sections(scope, [section])]
+        fallback_matches = [
+            scope for scope in scopes if _match_scope_device_sections(scope, [section])
+        ]
         if len(fallback_matches) == 1:
             fallback_bound_count += 1
             fallback_scope_id = fallback_matches[0].get("scope_id")
             section_with_binding = dict(section)
             section_with_binding["_scope_binding_reason"] = "fallback_scope_name"
-            sections_by_scope_id.setdefault(fallback_scope_id, []).append(section_with_binding)
+            sections_by_scope_id.setdefault(fallback_scope_id, []).append(
+                section_with_binding
+            )
             continue
 
         _append_limited_sample(
@@ -5082,7 +5731,9 @@ def _bind_scope_device_sections(
                 "function_text": section.get("function_text"),
                 "match_state": "ambiguous" if fallback_matches else "no_match",
                 "fallback_match_scope_ids": [
-                    scope.get("scope_id") for scope in fallback_matches if isinstance(scope, dict)
+                    scope.get("scope_id")
+                    for scope in fallback_matches
+                    if isinstance(scope, dict)
                 ],
             },
         )
@@ -5109,7 +5760,9 @@ def _scope_synthesized_custom_nodes(
                     continue
                 base_key = str(task.get("custom_instance_key") or "").strip()
                 custom_descriptor = (
-                    task.get("custom_descriptor", {}) if isinstance(task.get("custom_descriptor"), dict) else {}
+                    task.get("custom_descriptor", {})
+                    if isinstance(task.get("custom_descriptor"), dict)
+                    else {}
                 )
                 synthesized_nodes.append(
                     {
@@ -5135,8 +5788,12 @@ def _scope_synthesized_custom_nodes(
                         "args": task.get("args"),
                         "entries": list(task.get("entries", [])),
                         "section_ordinal": custom_descriptor.get("section_ordinal"),
-                        "queue_custom_ordinal": custom_descriptor.get("queue_custom_ordinal"),
-                        "binding_reason": str(section.get("_scope_binding_reason") or "bound_scope_id"),
+                        "queue_custom_ordinal": custom_descriptor.get(
+                            "queue_custom_ordinal"
+                        ),
+                        "binding_reason": str(
+                            section.get("_scope_binding_reason") or "bound_scope_id"
+                        ),
                         "detail": task.get("detail"),
                     }
                 )
@@ -5150,15 +5807,31 @@ def build_scope_library_export(
 ) -> dict[str, Any]:
     exported_scopes: list[dict[str, Any]] = []
     node_update_rows = update_execution.get("node_update_results", [])
-    device_sections = device_task_library.get("sections", []) if isinstance(device_task_library, dict) else []
-    sections_by_scope_id, synthesized_custom_binding_diagnostics = _bind_scope_device_sections(
-        scope_library,
-        device_sections,
+    device_sections = (
+        device_task_library.get("sections", [])
+        if isinstance(device_task_library, dict)
+        else []
+    )
+    sections_by_scope_id, synthesized_custom_binding_diagnostics = (
+        _bind_scope_device_sections(
+            scope_library,
+            device_sections,
+        )
     )
     for scope_export_ordinal, scope in enumerate(scope_library.get("scopes", [])):
-        node_ids = [node.get("node_id") for node in scope.get("nodes", []) if node.get("node_id") is not None]
-        details = [node.get("detail", "") for node in scope.get("nodes", []) if node.get("detail", "")]
-        scope_update = _match_scope_update(scope, update_execution.get("scope_updates", []))
+        node_ids = [
+            node.get("node_id")
+            for node in scope.get("nodes", [])
+            if node.get("node_id") is not None
+        ]
+        details = [
+            node.get("detail", "")
+            for node in scope.get("nodes", [])
+            if node.get("detail", "")
+        ]
+        scope_update = _match_scope_update(
+            scope, update_execution.get("scope_updates", [])
+        )
         scope_node_id_set = set(node_ids)
         scope_node_details = [
             row.get("detail", "")
@@ -5166,24 +5839,33 @@ def build_scope_library_export(
             if row.get("node_id") in scope_node_id_set and row.get("detail")
         ]
         graph_backed_updates = _scope_graph_backed_updates(scope, node_update_rows)
-        matched_device_sections = list(sections_by_scope_id.get(scope.get("scope_id"), []))
+        matched_device_sections = list(
+            sections_by_scope_id.get(scope.get("scope_id"), [])
+        )
         synthesized_custom_nodes = _scope_synthesized_custom_nodes(
             scope,
             scope_export_ordinal=scope_export_ordinal,
             device_sections=matched_device_sections,
         )
         has_any_update_payload = bool(
-            scope_update is not None or scope_node_details or graph_backed_updates or synthesized_custom_nodes
+            scope_update is not None
+            or scope_node_details
+            or graph_backed_updates
+            or synthesized_custom_nodes
         )
         update_payload = None
         if has_any_update_payload:
             update_streams = []
-            update_stream_items = scope_update.get("streams", []) if scope_update else []
+            update_stream_items = (
+                scope_update.get("streams", []) if scope_update else []
+            )
             for item in update_stream_items:
                 update_streams.append(
                     {
                         "stream_id": item.get("stream_id"),
-                        "stream_idx_in_graph": item.get("stream_idx_in_graph", item.get("stream_id")),
+                        "stream_idx_in_graph": item.get(
+                            "stream_idx_in_graph", item.get("stream_id")
+                        ),
                         "head_node_id": item.get("head_node_id"),
                         "tail_node_id": item.get("tail_node_id"),
                         "node_size": item.get("node_size"),
@@ -5195,13 +5877,22 @@ def build_scope_library_export(
                 )
             fallback_bound_section_count = 0
             for section in matched_device_sections:
-                if str(section.get("_scope_binding_reason") or "") == "fallback_scope_name":
+                if (
+                    str(section.get("_scope_binding_reason") or "")
+                    == "fallback_scope_name"
+                ):
                     fallback_bound_section_count += 1
             update_payload = {
-                "begin_detail": scope_update.get("begin_detail", "") if scope_update else "",
-                "finish_detail": scope_update.get("finish_detail", "") if scope_update else "",
+                "begin_detail": scope_update.get("begin_detail", "")
+                if scope_update
+                else "",
+                "finish_detail": scope_update.get("finish_detail", "")
+                if scope_update
+                else "",
                 "stream_count": scope_update.get("stream_count") if scope_update else 0,
-                "update_total_nodes": scope_update.get("update_total_nodes") if scope_update else None,
+                "update_total_nodes": scope_update.get("update_total_nodes")
+                if scope_update
+                else None,
                 "node_details": scope_node_details,
                 "graph_backed_updates": graph_backed_updates,
                 "synthesized_custom_nodes": synthesized_custom_nodes,
@@ -5245,7 +5936,9 @@ def build_scope_library_export(
 
 def _export_fused_library(fused_library: dict[str, Any]) -> dict[str, Any]:
     exported_functions: list[dict[str, Any]] = []
-    for function in fused_library.get("functions", []) if isinstance(fused_library, dict) else []:
+    for function in (
+        fused_library.get("functions", []) if isinstance(fused_library, dict) else []
+    ):
         exported_functions.append(
             {
                 "detail": function.get("detail"),
@@ -5261,21 +5954,31 @@ def _export_fused_library(fused_library: dict[str, Any]) -> dict[str, Any]:
         )
     return {
         "path": fused_library.get("path") if isinstance(fused_library, dict) else None,
-        "source_kind": fused_library.get("source_kind") if isinstance(fused_library, dict) else None,
+        "source_kind": fused_library.get("source_kind")
+        if isinstance(fused_library, dict)
+        else None,
         "functions": exported_functions,
     }
 
 
 def _export_device_task_library(device_task_library: dict[str, Any]) -> dict[str, Any]:
     exported_sections: list[dict[str, Any]] = []
-    for section in device_task_library.get("sections", []) if isinstance(device_task_library, dict) else []:
+    for section in (
+        device_task_library.get("sections", [])
+        if isinstance(device_task_library, dict)
+        else []
+    ):
         exported_queues: dict[str, list[dict[str, Any]]] = {}
         for queue_name, tasks in (section.get("queues", {}) or {}).items():
             exported_queues[str(queue_name)] = []
             for task in tasks or []:
                 exported_task = dict(task)
-                if "custom_descriptor" in exported_task and isinstance(exported_task["custom_descriptor"], dict):
-                    exported_task["custom_descriptor"] = dict(exported_task["custom_descriptor"])
+                if "custom_descriptor" in exported_task and isinstance(
+                    exported_task["custom_descriptor"], dict
+                ):
+                    exported_task["custom_descriptor"] = dict(
+                        exported_task["custom_descriptor"]
+                    )
                 exported_queues[str(queue_name)].append(exported_task)
         exported_sections.append(
             {
@@ -5289,19 +5992,30 @@ def _export_device_task_library(device_task_library: dict[str, Any]) -> dict[str
                 "header_info": section.get("header_info", {}),
                 "header_info_detail": section.get("header_info_detail", ""),
                 "queue_details": section.get("queue_details", {}),
-                "queues": exported_queues or section.get("queues", {"AIC": [], "AIV": []}),
+                "queues": exported_queues
+                or section.get("queues", {"AIC": [], "AIV": []}),
                 "dfx": section.get("dfx", []),
-                "task_identity_diagnostics": section.get("task_identity_diagnostics", {}),
+                "task_identity_diagnostics": section.get(
+                    "task_identity_diagnostics", {}
+                ),
             }
         )
     return {
-        "path": device_task_library.get("path") if isinstance(device_task_library, dict) else None,
-        "source_kind": device_task_library.get("source_kind") if isinstance(device_task_library, dict) else None,
+        "path": device_task_library.get("path")
+        if isinstance(device_task_library, dict)
+        else None,
+        "source_kind": device_task_library.get("source_kind")
+        if isinstance(device_task_library, dict)
+        else None,
         "sections": exported_sections,
-        "task_queue_json_validation": device_task_library.get("task_queue_json_validation", {})
+        "task_queue_json_validation": device_task_library.get(
+            "task_queue_json_validation", {}
+        )
         if isinstance(device_task_library, dict)
         else {},
-        "task_identity_diagnostics": device_task_library.get("task_identity_diagnostics", {})
+        "task_identity_diagnostics": device_task_library.get(
+            "task_identity_diagnostics", {}
+        )
         if isinstance(device_task_library, dict)
         else {},
     }
@@ -5336,19 +6050,29 @@ def _build_model_instance_report_from_parts(
         fused_library,
         node_library,
     )
-    line_range = (model_instance["begin_line"], model_instance["end_line"]) if model_instance_count > 1 else None
+    line_range = (
+        (model_instance["begin_line"], model_instance["end_line"])
+        if model_instance_count > 1
+        else None
+    )
     log_path = model_path / "super_kernel.log"
     if super_kernel_line_items is None:
         update_execution = parse_update_execution(model_path, line_range=line_range)
         super_kernel = parse_super_kernel_log(model_path, line_range=line_range)
     else:
-        update_execution = _parse_update_execution_line_items(super_kernel_line_items, log_path)
+        update_execution = _parse_update_execution_line_items(
+            super_kernel_line_items, log_path
+        )
         super_kernel = _parse_super_kernel_line_items(super_kernel_line_items, log_path)
-    scope_library = build_scope_library_export(raw_scope_library, update_execution, device_task_library)
+    scope_library = build_scope_library_export(
+        raw_scope_library, update_execution, device_task_library
+    )
     exported_fused_library = _export_fused_library(fused_library)
     exported_device_task_library = _export_device_task_library(device_task_library)
     node_update_registry = build_node_update_registry(update_execution)
-    dfx_evidence = build_dfx_evidence(update_execution, device_task_library, fused_library, super_kernel)
+    dfx_evidence = build_dfx_evidence(
+        update_execution, device_task_library, fused_library, super_kernel
+    )
     dfx_library = build_dfx_library(
         model_path,
         device_task_library,
@@ -5433,8 +6157,12 @@ def collect_update_model_instance_reports(
             )
         ]
 
-    raw_scope_model_instances = parse_scope_library_model_instances(model_path, model_instances)
-    node_libraries = parse_node_library_model_instances(model_path, model_instances, raw_scope_model_instances)
+    raw_scope_model_instances = parse_scope_library_model_instances(
+        model_path, model_instances
+    )
+    node_libraries = parse_node_library_model_instances(
+        model_path, model_instances, raw_scope_model_instances
+    )
     collection_errors: dict[str, list[str]] = {
         _model_instance_id(model_instance): [] for model_instance in model_instances
     }
@@ -5446,12 +6174,16 @@ def collect_update_model_instance_reports(
     except ModelInstancePartitionError as exc:
         fused_model_instances = list(exc.partial_result) if exc.partial_result else []
         while len(fused_model_instances) < model_instance_count:
-            fused_model_instances.append(_build_fused_library_subset(parse_fused_library(model_path), []))
+            fused_model_instances.append(
+                _build_fused_library_subset(parse_fused_library(model_path), [])
+            )
         failed_ids = exc.failed_model_instance_ids or list(collection_errors.keys())
         for model_instance_id in failed_ids:
             collection_errors.setdefault(model_instance_id, []).append(str(exc))
         fused_model_instances = fused_model_instances[:model_instance_count]
-        device_model_instances = _empty_device_model_instance_libraries(model_path, model_instance_count)
+        device_model_instances = _empty_device_model_instance_libraries(
+            model_path, model_instance_count
+        )
     else:
         try:
             device_model_instances = parse_device_task_library_model_instances(
@@ -5461,10 +6193,14 @@ def collect_update_model_instance_reports(
                 raw_scope_model_instances,
             )
         except ModelInstancePartitionError as exc:
-            device_model_instances = list(exc.partial_result) if exc.partial_result else []
+            device_model_instances = (
+                list(exc.partial_result) if exc.partial_result else []
+            )
             while len(device_model_instances) < model_instance_count:
                 device_model_instances.append(
-                    _build_device_task_library_subset(parse_device_task_library(model_path), [])
+                    _build_device_task_library_subset(
+                        parse_device_task_library(model_path), []
+                    )
                 )
             failed_ids = exc.failed_model_instance_ids or list(collection_errors.keys())
             for model_instance_id in failed_ids:
@@ -5482,27 +6218,40 @@ def collect_update_model_instance_reports(
                 "raw_scope_library": raw_scope_model_instances[index]
                 if index < len(raw_scope_model_instances)
                 else raw_scope_model_instances[-1],
-                "node_library": node_libraries[index] if index < len(node_libraries) else node_libraries[-1],
+                "node_library": node_libraries[index]
+                if index < len(node_libraries)
+                else node_libraries[-1],
                 "fused_library": fused_model_instances[index]
                 if index < len(fused_model_instances)
                 else fused_model_instances[-1],
                 "device_task_library": device_model_instances[index]
                 if index < len(device_model_instances)
                 else device_model_instances[-1],
-                "collection_error": "; ".join(collection_errors.get(_model_instance_id(model_instance), [])),
-                "super_kernel_line_items": _read_indexed_lines(model_path / "super_kernel.log", line_range),
+                "collection_error": "; ".join(
+                    collection_errors.get(_model_instance_id(model_instance), [])
+                ),
+                "super_kernel_line_items": _read_indexed_lines(
+                    model_path / "super_kernel.log", line_range
+                ),
             }
         )
     if instance_workers > 1 and len(payloads) > 1:
         reports: list[dict[str, Any]] = []
-        with ProcessPoolExecutor(max_workers=min(instance_workers, len(payloads))) as executor:
-            futures = [executor.submit(_build_model_instance_report_worker, payload) for payload in payloads]
+        with ProcessPoolExecutor(
+            max_workers=min(instance_workers, len(payloads))
+        ) as executor:
+            futures = [
+                executor.submit(_build_model_instance_report_worker, payload)
+                for payload in payloads
+            ]
             for future in as_completed(futures):
                 reports.append(future.result())
         reports.sort(key=lambda item: int(item.get("model_instance_index") or 0))
         return reports
 
-    reports = [_build_model_instance_report_from_parts(**payload) for payload in payloads]
+    reports = [
+        _build_model_instance_report_from_parts(**payload) for payload in payloads
+    ]
     reports.sort(key=lambda item: int(item.get("model_instance_index") or 0))
     return reports
 
@@ -5512,7 +6261,9 @@ def collect_update_report(model_dir: str | os.PathLike[str]) -> dict[str, Any]:
     return reports[0] if reports else {}
 
 
-def _normalize_output_dir(input_path: str | os.PathLike[str], output_dir: str | None) -> Path:
+def _normalize_output_dir(
+    input_path: str | os.PathLike[str], output_dir: str | None
+) -> Path:
     base_dir = Path(output_dir).resolve() if output_dir else None
     if base_dir is not None:
         return base_dir
@@ -5521,7 +6272,9 @@ def _normalize_output_dir(input_path: str | os.PathLike[str], output_dir: str | 
         model_dirs = find_model_dirs(input_path_obj)
     except FileNotFoundError:
         model_dirs = []
-    model_asset_root = infer_model_asset_root(input_path_obj, model_dirs) if model_dirs else None
+    model_asset_root = (
+        infer_model_asset_root(input_path_obj, model_dirs) if model_dirs else None
+    )
     result_root = infer_result_root(input_path_obj, model_asset_root, model_dirs)
     return result_root / "reports" / "data"
 
@@ -5531,7 +6284,9 @@ def _build_parser() -> argparse.ArgumentParser:
         description="Extract scope-library.json 和 graph-library.json from SK model artifacts",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    parser.add_argument("input", help="model 目录、模型资产目录、结果目录或包含 model_* 的目录")
+    parser.add_argument(
+        "input", help="model 目录、模型资产目录、结果目录或包含 model_* 的目录"
+    )
     parser.add_argument(
         "-o",
         "--output-dir",

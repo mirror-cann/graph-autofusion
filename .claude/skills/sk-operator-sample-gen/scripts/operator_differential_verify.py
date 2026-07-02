@@ -33,14 +33,18 @@ def build_differential_verdict(
         baseline_correctness = str(baseline_payload.get("correctness", "not-available"))
     sk_status = str((sk_verdict or {}).get("status", "unavailable"))
     wheel_status = (
-        str((wheel_verdict or {}).get("status", "unavailable")) if wheel_verdict is not None else "not-requested"
+        str((wheel_verdict or {}).get("status", "unavailable"))
+        if wheel_verdict is not None
+        else "not-requested"
     )
     statuses = {baseline_status, sk_status}
     if wheel_verdict is not None:
         statuses.add(wheel_status)
     if "failed" in statuses:
         status = "failed"
-    elif baseline_status == "structural-passed" or baseline_correctness == "not-executed":
+    elif (
+        baseline_status == "structural-passed" or baseline_correctness == "not-executed"
+    ):
         status = "skipped-structural-baseline"
     elif baseline_status in {"unavailable", "skipped-real-backend-not-enabled"}:
         status = "skipped-baseline-unavailable"
@@ -60,7 +64,9 @@ def build_differential_verdict(
         "entry_name": entry_name,
         "runtime_contract": runtime_contract or "",
         "baseline": {
-            "build_manifest": str(baseline_manifest) if baseline_manifest is not None else "",
+            "build_manifest": str(baseline_manifest)
+            if baseline_manifest is not None
+            else "",
             "build_status": baseline_status,
             "correctness": baseline_correctness,
         },
@@ -68,5 +74,7 @@ def build_differential_verdict(
         "wheel": wheel_verdict or {"status": "not-requested"},
         "comparisons": [],
     }
-    (output_dir / "operator-differential-verdict.json").write_text(json.dumps(verdict, indent=2), encoding="utf-8")
+    (output_dir / "operator-differential-verdict.json").write_text(
+        json.dumps(verdict, indent=2), encoding="utf-8"
+    )
     return verdict

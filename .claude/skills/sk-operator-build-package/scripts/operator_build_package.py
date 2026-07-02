@@ -495,26 +495,40 @@ def _collect_kernel_entries(files: list[Path], base_dir: Path) -> list[dict[str,
 
 
 def _collect_sk_markers(files: list[Path]) -> dict[str, bool]:
-    joined = "\n".join(_source_text(path) for path in files if path.suffix in SOURCE_SUFFIXES)
+    joined = "\n".join(
+        _source_text(path) for path in files if path.suffix in SOURCE_SUFFIXES
+    )
     return {
         "__sk__": "__sk__" in joined,
         "__spk__": "__spk__" in joined,
         "SK_BIND": "SK_BIND" in joined,
-        "sk_param_struct": "CommArgs" in joined or "SkSystemArgs" in joined or "__gm__ uint64_t *param" in joined,
+        "sk_param_struct": "CommArgs" in joined
+        or "SkSystemArgs" in joined
+        or "__gm__ uint64_t *param" in joined,
         "ascend_meta_section": ".ascend.meta" in joined,
     }
 
 
 def _file_evidence(paths: list[Path], base_dir: Path) -> list[dict[str, str]]:
-    return [{"kind": "file", "path": _relative(path, base_dir), "value": path.name} for path in paths]
+    return [
+        {"kind": "file", "path": _relative(path, base_dir), "value": path.name}
+        for path in paths
+    ]
 
 
 def _symbol_evidence(items: list[dict[str, str]]) -> list[dict[str, str]]:
-    return [{"kind": "symbol", "path": item["file"], "value": item["name"]} for item in items]
+    return [
+        {"kind": "symbol", "path": item["file"], "value": item["name"]}
+        for item in items
+    ]
 
 
 def _marker_evidence(sk_markers: dict[str, bool]) -> list[dict[str, str]]:
-    return [{"kind": "marker", "path": "", "value": name} for name, found in sk_markers.items() if found]
+    return [
+        {"kind": "marker", "path": "", "value": name}
+        for name, found in sk_markers.items()
+        if found
+    ]
 
 
 def _capability(status: str, evidence: list[dict[str, str]]) -> dict[str, Any]:
@@ -539,9 +553,13 @@ def _collect_capabilities(
     hard_blockers: list[str],
     base_dir: Path,
 ) -> dict[str, dict[str, Any]]:
-    source_status = "blocked" if hard_blockers else ("present" if source_files else "missing")
+    source_status = (
+        "blocked" if hard_blockers else ("present" if source_files else "missing")
+    )
     entry_status = (
-        "blocked" if hard_blockers else ("present" if kernel_entries or any(sk_markers.values()) else "missing")
+        "blocked"
+        if hard_blockers
+        else ("present" if kernel_entries or any(sk_markers.values()) else "missing")
     )
     return {
         "source": _capability(source_status, _file_evidence(source_files, base_dir)),
@@ -553,12 +571,16 @@ def _collect_capabilities(
             "present" if build_files else "missing",
             _file_evidence(build_files, base_dir),
         ),
-        "test": _capability("present" if test_files else "missing", _file_evidence(test_files, base_dir)),
+        "test": _capability(
+            "present" if test_files else "missing", _file_evidence(test_files, base_dir)
+        ),
         "package": _capability(
             "present" if package_files else "missing",
             _file_evidence(package_files, base_dir),
         ),
-        "delivery_docs": _capability("present" if doc_files else "missing", _file_evidence(doc_files, base_dir)),
+        "delivery_docs": _capability(
+            "present" if doc_files else "missing", _file_evidence(doc_files, base_dir)
+        ),
     }
 
 
@@ -566,12 +588,16 @@ def _all_text(files: list[Path], *, source_comments_stripped: bool = False) -> s
     chunks: list[str] = []
     for path in files:
         chunks.append(
-            _source_text(path) if source_comments_stripped and path.suffix in SOURCE_SUFFIXES else _read_text(path)
+            _source_text(path)
+            if source_comments_stripped and path.suffix in SOURCE_SUFFIXES
+            else _read_text(path)
         )
     return "\n".join(chunks)
 
 
-def _archetype_result(name: str, confidence: str, evidence: list[dict[str, str]]) -> dict[str, Any]:
+def _archetype_result(
+    name: str, confidence: str, evidence: list[dict[str, str]]
+) -> dict[str, Any]:
     return {"name": name, "confidence": confidence, "evidence": evidence}
 
 
@@ -595,15 +621,25 @@ def _detect_archetype(
 
     ge_evidence: list[dict[str, str]] = []
     if "register_fx_node_ge_converter" in raw_text:
-        ge_evidence.append({"kind": "symbol", "path": "", "value": "register_fx_node_ge_converter"})
-    if "OpDef" in raw_text or any(part in path for path in relative_paths for part in ("op_host/", "op_kernel/")):
-        ge_evidence.append({"kind": "directory", "path": "", "value": "op_host/op_kernel"})
+        ge_evidence.append(
+            {"kind": "symbol", "path": "", "value": "register_fx_node_ge_converter"}
+        )
+    if "OpDef" in raw_text or any(
+        part in path for path in relative_paths for part in ("op_host/", "op_kernel/")
+    ):
+        ge_evidence.append(
+            {"kind": "directory", "path": "", "value": "op_host/op_kernel"}
+        )
     if ge_evidence:
-        return _archetype_result("ge-opp-python-converter", "high", ge_evidence + source_evidence)
+        return _archetype_result(
+            "ge-opp-python-converter", "high", ge_evidence + source_evidence
+        )
 
     pybind_evidence: list[dict[str, str]] = []
     if "PYBIND11_MODULE" in source_text or "pybind11" in raw_text:
-        pybind_evidence.append({"kind": "symbol", "path": "", "value": "PYBIND11_MODULE/pybind11"})
+        pybind_evidence.append(
+            {"kind": "symbol", "path": "", "value": "PYBIND11_MODULE/pybind11"}
+        )
     if pybind_evidence:
         return _archetype_result(
             "aclgraph-pybind-torch-library",
@@ -612,8 +648,14 @@ def _detect_archetype(
         )
 
     torch_evidence: list[dict[str, str]] = []
-    if "TORCH_LIBRARY" in source_text or "torch.ops" in raw_text or "torch/extension.h" in source_text:
-        torch_evidence.append({"kind": "symbol", "path": "", "value": "torch extension/operator"})
+    if (
+        "TORCH_LIBRARY" in source_text
+        or "torch.ops" in raw_text
+        or "torch/extension.h" in source_text
+    ):
+        torch_evidence.append(
+            {"kind": "symbol", "path": "", "value": "torch extension/operator"}
+        )
     if "bisheng" in raw_text and source_files and torch_evidence:
         return _archetype_result(
             "torch-bisheng-extension",
@@ -622,7 +664,9 @@ def _detect_archetype(
         )
 
     if build_files and source_files:
-        return _archetype_result("cann-static-asc-op", "medium", build_evidence + source_evidence)
+        return _archetype_result(
+            "cann-static-asc-op", "medium", build_evidence + source_evidence
+        )
 
     if source_files:
         return _archetype_result("source-only-ascendc", "medium", source_evidence)
@@ -630,7 +674,9 @@ def _detect_archetype(
     return _archetype_result("unknown", "low", [])
 
 
-def _test_quality_result(level: str, confidence: str, evidence: list[dict[str, str]]) -> dict[str, Any]:
+def _test_quality_result(
+    level: str, confidence: str, evidence: list[dict[str, str]]
+) -> dict[str, Any]:
     return {"level": level, "confidence": confidence, "evidence": evidence}
 
 
@@ -678,17 +724,25 @@ def _collect_test_quality(test_files: list[Path], base_dir: Path) -> dict[str, A
 
         correctness_value = _find_quality_pattern(text, CORRECTNESS_TEST_PATTERNS)
         if correctness_value:
-            correctness_evidence.append(_quality_evidence(path, base_dir, correctness_value))
+            correctness_evidence.append(
+                _quality_evidence(path, base_dir, correctness_value)
+            )
         elif _has_meaningful_assert(text):
             correctness_evidence.append(_quality_evidence(path, base_dir, "assert"))
 
     if correctness_evidence:
-        return _test_quality_result("correctness-assertion", "high", correctness_evidence)
+        return _test_quality_result(
+            "correctness-assertion", "high", correctness_evidence
+        )
 
-    return _test_quality_result("smoke-launch", "medium", _file_evidence(test_files, base_dir))
+    return _test_quality_result(
+        "smoke-launch", "medium", _file_evidence(test_files, base_dir)
+    )
 
 
-def _build_quality_result(level: str, confidence: str, evidence: list[dict[str, str]]) -> dict[str, Any]:
+def _build_quality_result(
+    level: str, confidence: str, evidence: list[dict[str, str]]
+) -> dict[str, Any]:
     return {"level": level, "confidence": confidence, "evidence": evidence}
 
 
@@ -720,15 +774,21 @@ def _collect_build_quality(build_files: list[Path], base_dir: Path) -> dict[str,
     if not build_files:
         return _build_quality_result("none", "low", [])
 
-    toolchain_evidence = _collect_build_pattern_evidence(build_files, base_dir, TOOLCHAIN_BUILD_PATTERNS)
+    toolchain_evidence = _collect_build_pattern_evidence(
+        build_files, base_dir, TOOLCHAIN_BUILD_PATTERNS
+    )
     if toolchain_evidence:
         return _build_quality_result("toolchain-contract", "high", toolchain_evidence)
 
-    command_evidence = _collect_build_pattern_evidence(build_files, base_dir, COMMAND_BUILD_PATTERNS)
+    command_evidence = _collect_build_pattern_evidence(
+        build_files, base_dir, COMMAND_BUILD_PATTERNS
+    )
     if command_evidence:
         return _build_quality_result("command-contract", "high", command_evidence)
 
-    return _build_quality_result("build-entry", "medium", _file_evidence(build_files, base_dir))
+    return _build_quality_result(
+        "build-entry", "medium", _file_evidence(build_files, base_dir)
+    )
 
 
 def _classify_asset(
@@ -740,7 +800,9 @@ def _classify_asset(
 ) -> str:
     if not source_files:
         return "unsupported-asset"
-    has_complete_delivery = bool(build_files and test_files and package_files and doc_files)
+    has_complete_delivery = bool(
+        build_files and test_files and package_files and doc_files
+    )
     if has_complete_delivery:
         return "deliverable-op"
     if test_files:
@@ -780,7 +842,9 @@ def _missing_contracts(
 
 
 def _next_actions(missing_contracts: list[str], asset_level: str) -> list[str]:
-    actions: list[str] = [f"confirm asset level `{asset_level}` with the operator owner"]
+    actions: list[str] = [
+        f"confirm asset level `{asset_level}` with the operator owner"
+    ]
     mapping = {
         "operator_entry_contract": "identify the public kernel entry and expected launch signature",
         "build_contract": "generate or request a minimal CMake/setup build contract",
@@ -797,7 +861,9 @@ def _next_actions(missing_contracts: list[str], asset_level: str) -> list[str]:
     return actions
 
 
-def _delivery_action(kind: str, target: str, priority: str, reason: str, next_action: str) -> dict[str, str]:
+def _delivery_action(
+    kind: str, target: str, priority: str, reason: str, next_action: str
+) -> dict[str, str]:
     return {
         "kind": kind,
         "target": target,
@@ -849,7 +915,9 @@ def _missing_contract_action(contract: str) -> dict[str, str] | None:
     if not item:
         return None
     target, priority, next_action = item
-    return _delivery_action("contract", target, priority, f"missing_{contract}", next_action)
+    return _delivery_action(
+        "contract", target, priority, f"missing_{contract}", next_action
+    )
 
 
 def _missing_contract_actions(missing_contracts: list[str]) -> list[dict[str, str]]:
@@ -861,7 +929,9 @@ def _missing_contract_actions(missing_contracts: list[str]) -> list[dict[str, st
     return actions
 
 
-def _delivery_plan_result(phase: str, confidence: str, actions: list[dict[str, str]]) -> dict[str, Any]:
+def _delivery_plan_result(
+    phase: str, confidence: str, actions: list[dict[str, str]]
+) -> dict[str, Any]:
     return {"phase": phase, "confidence": confidence, "actions": actions}
 
 
@@ -938,7 +1008,9 @@ def _collect_delivery_plan(
     )
 
 
-def _scaffold_plan_result(status: str, confidence: str, items: list[dict[str, str]]) -> dict[str, Any]:
+def _scaffold_plan_result(
+    status: str, confidence: str, items: list[dict[str, str]]
+) -> dict[str, Any]:
     return {"status": status, "confidence": confidence, "items": items}
 
 
@@ -946,7 +1018,9 @@ def _scaffold_item(spec_key: str) -> dict[str, str]:
     return dict(SCAFFOLD_SPECS[spec_key])
 
 
-def _append_scaffold_item(items: list[dict[str, str]], seen_reasons: set[str], spec_key: str) -> None:
+def _append_scaffold_item(
+    items: list[dict[str, str]], seen_reasons: set[str], spec_key: str
+) -> None:
     item = _scaffold_item(spec_key)
     if item["reason"] in seen_reasons:
         return
@@ -973,12 +1047,18 @@ def _collect_scaffold_plan(
             _append_scaffold_item(items, seen_reasons, contract)
 
     if build_quality["level"] == "build-entry":
-        _append_scaffold_item(items, seen_reasons, "build_entry_without_command_contract")
+        _append_scaffold_item(
+            items, seen_reasons, "build_entry_without_command_contract"
+        )
     if test_quality["level"] == "smoke-launch":
-        _append_scaffold_item(items, seen_reasons, "smoke_test_without_correctness_or_graph_sk")
+        _append_scaffold_item(
+            items, seen_reasons, "smoke_test_without_correctness_or_graph_sk"
+        )
 
     if not items:
-        confidence = "high" if delivery_plan["phase"] == "handoff-planning" else "medium"
+        confidence = (
+            "high" if delivery_plan["phase"] == "handoff-planning" else "medium"
+        )
         return _scaffold_plan_result("not-needed", confidence, [])
 
     reasons = {item["reason"] for item in items}
@@ -1003,11 +1083,21 @@ def _build_manifest(asset_path: Path) -> dict[str, Any]:
     include_files = [path for path in source_files if path.suffix in INCLUDE_SUFFIXES]
     build_files = [path for path in files if path.name in BUILD_FILENAMES]
     test_files = [path for path in files if _is_test_path(path, base_dir)]
-    package_files = [path for path in files if path.name in PACKAGE_FILENAMES or _is_package_init(path, base_dir)]
-    doc_files = [path for path in files if path.name in DOC_FILENAMES or path.suffix.lower() == ".md"]
+    package_files = [
+        path
+        for path in files
+        if path.name in PACKAGE_FILENAMES or _is_package_init(path, base_dir)
+    ]
+    doc_files = [
+        path
+        for path in files
+        if path.name in DOC_FILENAMES or path.suffix.lower() == ".md"
+    ]
     kernel_entries = _collect_kernel_entries(source_files, base_dir)
     sk_markers = _collect_sk_markers(source_files)
-    asset_level = _classify_asset(source_files, build_files, test_files, package_files, doc_files)
+    asset_level = _classify_asset(
+        source_files, build_files, test_files, package_files, doc_files
+    )
     missing = _missing_contracts(
         build_files=build_files,
         test_files=test_files,
@@ -1093,9 +1183,14 @@ def _sk_file_evidence(paths: list[str]) -> list[dict[str, str]]:
     return [{"kind": "file", "path": path, "value": Path(path).name} for path in paths]
 
 
-def _sk_source_file_fingerprints(base_dir: str, source_files: list[str]) -> list[dict[str, str]]:
+def _sk_source_file_fingerprints(
+    base_dir: str, source_files: list[str]
+) -> list[dict[str, str]]:
     root = Path(base_dir)
-    return [{"path": rel_path, "sha256": _hash_file(root / rel_path)} for rel_path in source_files]
+    return [
+        {"path": rel_path, "sha256": _hash_file(root / rel_path)}
+        for rel_path in source_files
+    ]
 
 
 def _support_dir_name(name: str) -> str:
@@ -1118,13 +1213,19 @@ def _parse_support_dir_arg(raw: str) -> tuple[str | None, Path]:
 
 def _support_source_files(root: Path) -> list[str]:
     files = sorted(
-        (path for path in root.rglob("*") if path.is_file() and _is_supported_source_file(path, root)),
+        (
+            path
+            for path in root.rglob("*")
+            if path.is_file() and _is_supported_source_file(path, root)
+        ),
         key=lambda path: _relative(path, root),
     )
     return [_relative(path, root) for path in files]
 
 
-def _normalize_support_directories(raw_specs: list[str] | None, asset_base: Path) -> list[dict[str, Any]]:
+def _normalize_support_directories(
+    raw_specs: list[str] | None, asset_base: Path
+) -> list[dict[str, Any]]:
     specs: list[dict[str, Any]] = []
     seen_names: set[str] = set()
     asset_root = asset_base.resolve()
@@ -1135,21 +1236,29 @@ def _normalize_support_directories(raw_specs: list[str] | None, asset_base: Path
             raise CliUsageError(f"support directory not found: {raw_path}")
         if not path.is_dir():
             raise CliUsageError(f"support path is not a directory: {raw_path}")
-        if _is_same_or_child_path(path, asset_root) or _is_same_or_child_path(asset_root, path):
-            raise CliUsageError("support directory must be a sibling/shared directory outside the asset root")
+        if _is_same_or_child_path(path, asset_root) or _is_same_or_child_path(
+            asset_root, path
+        ):
+            raise CliUsageError(
+                "support directory must be a sibling/shared directory outside the asset root"
+            )
         name = explicit_name or _support_dir_name(path.name)
         if name in seen_names:
             raise CliUsageError(f"duplicate support directory name: {name}")
         files = _support_source_files(path)
         if not files:
-            raise CliUsageError(f"support directory has no supported source files: {path}")
+            raise CliUsageError(
+                f"support directory has no supported source files: {path}"
+            )
         seen_names.add(name)
         specs.append(
             {
                 "source_name": name,
                 "source_path": str(path),
                 "source_files": files,
-                "source_file_fingerprints": _sk_source_file_fingerprints(str(path), files),
+                "source_file_fingerprints": _sk_source_file_fingerprints(
+                    str(path), files
+                ),
             }
         )
     return specs
@@ -1220,9 +1329,13 @@ def _normalize_ascend_compile_contract(
     if not has_compile_contract:
         return None
     if not cann_path:
-        raise CliUsageError("ascend CANN path is required when ascend compile contract is enabled")
+        raise CliUsageError(
+            "ascend CANN path is required when ascend compile contract is enabled"
+        )
     if not arch:
-        raise CliUsageError("ascend arch is required when ascend compile contract is enabled")
+        raise CliUsageError(
+            "ascend arch is required when ascend compile contract is enabled"
+        )
     if not ASCEND_ARCH_RE.fullmatch(arch):
         raise CliUsageError(f"invalid ascend arch: {arch}")
 
@@ -1232,9 +1345,13 @@ def _normalize_ascend_compile_contract(
     if not normalized_cann_path.is_dir():
         raise CliUsageError(f"ascend CANN path is not a directory: {cann_path}")
 
-    bisheng_path = normalized_cann_path / "tools" / "bisheng_compiler" / "bin" / "bisheng"
+    bisheng_path = (
+        normalized_cann_path / "tools" / "bisheng_compiler" / "bin" / "bisheng"
+    )
     if not bisheng_path.exists():
-        raise CliUsageError(f"bisheng compiler not found under ascend CANN path: {bisheng_path}")
+        raise CliUsageError(
+            f"bisheng compiler not found under ascend CANN path: {bisheng_path}"
+        )
     if not bisheng_path.is_file():
         raise CliUsageError(f"bisheng compiler is not a file: {bisheng_path}")
 
@@ -1310,7 +1427,9 @@ def _sk_source_copy_entries(analysis: dict[str, Any]) -> list[dict[str, Any]]:
         if previous is not None:
             if _hash_file(previous["source_path"]) == _hash_file(entry["source_path"]):
                 continue
-            raise CliUsageError(f"conflicting sk source scaffold destination: {scaffold_path}")
+            raise CliUsageError(
+                f"conflicting sk source scaffold destination: {scaffold_path}"
+            )
         seen[scaffold_path] = entry
         entries.append(entry)
     return entries
@@ -1321,22 +1440,33 @@ def _validate_sk_source_destination_collisions(analysis: dict[str, Any]) -> None
 
 
 def _sk_symbol_evidence(entries: list[dict[str, str]]) -> list[dict[str, str]]:
-    return [{"kind": "symbol", "path": entry["file"], "value": entry["name"]} for entry in entries]
+    return [
+        {"kind": "symbol", "path": entry["file"], "value": entry["name"]}
+        for entry in entries
+    ]
 
 
 def _sk_marker_evidence(sk_markers: dict[str, bool]) -> list[dict[str, str]]:
-    return [{"kind": "marker", "path": "", "value": name} for name, found in sk_markers.items() if found]
+    return [
+        {"kind": "marker", "path": "", "value": name}
+        for name, found in sk_markers.items()
+        if found
+    ]
 
 
 def _has_sk_binding_marker(sk_markers: dict[str, bool]) -> bool:
     return bool(sk_markers["SK_BIND"] or sk_markers["__sk__"] or sk_markers["__spk__"])
 
 
-def _sk_conversion_input(name: str, status: str, reason: str, evidence: list[dict[str, str]]) -> dict[str, Any]:
+def _sk_conversion_input(
+    name: str, status: str, reason: str, evidence: list[dict[str, str]]
+) -> dict[str, Any]:
     return {"name": name, "status": status, "reason": reason, "evidence": evidence}
 
 
-def _sk_generation_step(action: str, status: str, reason: str, evidence: list[dict[str, str]]) -> dict[str, Any]:
+def _sk_generation_step(
+    action: str, status: str, reason: str, evidence: list[dict[str, str]]
+) -> dict[str, Any]:
     return {"action": action, "status": status, "reason": reason, "evidence": evidence}
 
 
@@ -1378,23 +1508,55 @@ def _sk_conversion_inputs(manifest: dict[str, Any]) -> list[dict[str, Any]]:
     inputs: list[dict[str, Any]] = []
 
     if has_source:
-        inputs.append(_sk_conversion_input("source", "present", "source_files_detected", source_evidence))
+        inputs.append(
+            _sk_conversion_input(
+                "source", "present", "source_files_detected", source_evidence
+            )
+        )
     else:
-        inputs.append(_sk_conversion_input("source", "blocked", "no_supported_operator_source_files", []))
+        inputs.append(
+            _sk_conversion_input(
+                "source", "blocked", "no_supported_operator_source_files", []
+            )
+        )
 
     if manifest["kernel_entries"]:
-        inputs.append(_sk_conversion_input("entry_signature", "present", "kernel_entries_detected", entry_evidence))
+        inputs.append(
+            _sk_conversion_input(
+                "entry_signature", "present", "kernel_entries_detected", entry_evidence
+            )
+        )
     elif has_source:
-        inputs.append(_sk_conversion_input("entry_signature", "blocked", "kernel_entries_missing", source_evidence))
+        inputs.append(
+            _sk_conversion_input(
+                "entry_signature", "blocked", "kernel_entries_missing", source_evidence
+            )
+        )
     else:
-        inputs.append(_sk_conversion_input("entry_signature", "blocked", "no_supported_operator_source_files", []))
+        inputs.append(
+            _sk_conversion_input(
+                "entry_signature", "blocked", "no_supported_operator_source_files", []
+            )
+        )
 
     if not has_source:
-        inputs.append(_sk_conversion_input("sk_binding", "blocked", "no_supported_operator_source_files", []))
+        inputs.append(
+            _sk_conversion_input(
+                "sk_binding", "blocked", "no_supported_operator_source_files", []
+            )
+        )
     elif _has_sk_binding_marker(manifest["sk_markers"]):
-        inputs.append(_sk_conversion_input("sk_binding", "present", "sk_binding_marker_detected", marker_evidence))
+        inputs.append(
+            _sk_conversion_input(
+                "sk_binding", "present", "sk_binding_marker_detected", marker_evidence
+            )
+        )
     else:
-        inputs.append(_sk_conversion_input("sk_binding", "missing", "sk_binding_contract_missing", []))
+        inputs.append(
+            _sk_conversion_input(
+                "sk_binding", "missing", "sk_binding_contract_missing", []
+            )
+        )
 
     for name, manifest_key, present_reason, missing_reason in (
         (
@@ -1424,9 +1586,15 @@ def _sk_conversion_inputs(manifest: dict[str, Any]) -> list[dict[str, Any]]:
     ):
         evidence = _sk_file_evidence(manifest[manifest_key])
         if not has_source:
-            inputs.append(_sk_conversion_input(name, "blocked", "no_supported_operator_source_files", []))
+            inputs.append(
+                _sk_conversion_input(
+                    name, "blocked", "no_supported_operator_source_files", []
+                )
+            )
         elif evidence:
-            inputs.append(_sk_conversion_input(name, "present", present_reason, evidence))
+            inputs.append(
+                _sk_conversion_input(name, "present", present_reason, evidence)
+            )
         else:
             inputs.append(_sk_conversion_input(name, "missing", missing_reason, []))
 
@@ -1448,7 +1616,11 @@ def _sk_conversion_inputs(manifest: dict[str, Any]) -> list[dict[str, Any]]:
             )
         )
     else:
-        inputs.append(_sk_conversion_input("runtime_inputs", "blocked", "no_supported_operator_source_files", []))
+        inputs.append(
+            _sk_conversion_input(
+                "runtime_inputs", "blocked", "no_supported_operator_source_files", []
+            )
+        )
         inputs.append(
             _sk_conversion_input(
                 "correctness_oracle",
@@ -1503,7 +1675,11 @@ def _sk_conversion_plan(
         )
 
     if not has_source:
-        plan.append(_sk_generation_step("adapt_sk_binding", "blocked", "no_supported_operator_source_files", []))
+        plan.append(
+            _sk_generation_step(
+                "adapt_sk_binding", "blocked", "no_supported_operator_source_files", []
+            )
+        )
     elif _has_sk_binding_marker(manifest["sk_markers"]):
         plan.append(
             _sk_generation_step(
@@ -1514,7 +1690,11 @@ def _sk_conversion_plan(
             )
         )
     else:
-        plan.append(_sk_generation_step("adapt_sk_binding", "needed", "sk_binding_contract_missing", []))
+        plan.append(
+            _sk_generation_step(
+                "adapt_sk_binding", "needed", "sk_binding_contract_missing", []
+            )
+        )
 
     for action, manifest_key, present_reason, missing_reason in (
         (
@@ -1538,7 +1718,11 @@ def _sk_conversion_plan(
     ):
         evidence = _sk_file_evidence(manifest[manifest_key])
         if not has_source:
-            plan.append(_sk_generation_step(action, "blocked", "no_supported_operator_source_files", []))
+            plan.append(
+                _sk_generation_step(
+                    action, "blocked", "no_supported_operator_source_files", []
+                )
+            )
         elif evidence:
             plan.append(_sk_generation_step(action, "ready", present_reason, evidence))
         else:
@@ -1605,7 +1789,9 @@ def _sk_conversion_plan(
             "build_contract",
             "test_contract",
         ):
-            ready_evidence.extend(next(item["evidence"] for item in inputs if item["name"] == input_name))
+            ready_evidence.extend(
+                next(item["evidence"] for item in inputs if item["name"] == input_name)
+            )
         for input_name in ("package_contract", "delivery_docs"):
             item = next(item for item in inputs if item["name"] == input_name)
             if item["status"] == "present":
@@ -1618,7 +1804,11 @@ def _sk_conversion_plan(
                 ready_evidence,
             )
         )
-        plan.append(_sk_generation_step("run_sk_build_validation", "deferred", "sk_source_not_generated", []))
+        plan.append(
+            _sk_generation_step(
+                "run_sk_build_validation", "deferred", "sk_source_not_generated", []
+            )
+        )
     elif status == "needs-contracts":
         plan.append(
             _sk_generation_step(
@@ -1628,17 +1818,29 @@ def _sk_conversion_plan(
                 [],
             )
         )
-        plan.append(_sk_generation_step("run_sk_build_validation", "deferred", "sk_source_not_generated", []))
+        plan.append(
+            _sk_generation_step(
+                "run_sk_build_validation", "deferred", "sk_source_not_generated", []
+            )
+        )
     else:
         reason = blocked_reasons[0]
         evidence = source_evidence if reason == "kernel_entries_missing" else []
-        plan.append(_sk_generation_step("generate_sk_source_scaffold", "blocked", reason, evidence))
-        plan.append(_sk_generation_step("run_sk_build_validation", "blocked", reason, evidence))
+        plan.append(
+            _sk_generation_step(
+                "generate_sk_source_scaffold", "blocked", reason, evidence
+            )
+        )
+        plan.append(
+            _sk_generation_step("run_sk_build_validation", "blocked", reason, evidence)
+        )
 
     return plan
 
 
-def _sk_conversion_next_actions(status: str, blocked_reasons: list[str], plan: list[dict[str, Any]]) -> list[str]:
+def _sk_conversion_next_actions(
+    status: str, blocked_reasons: list[str], plan: list[dict[str, Any]]
+) -> list[str]:
     if status == "ready-for-sk-generation":
         return ["generate_sk_source_scaffold"]
     if blocked_reasons == ["no_supported_operator_source_files"]:
@@ -1660,7 +1862,9 @@ class SkConversionAnalysisInput(NamedTuple):
 
 def _build_sk_conversion_analysis(request: SkConversionAnalysisInput) -> dict[str, Any]:
     manifest = _build_manifest(request.asset_path)
-    support_directories = _normalize_support_directories(request.support_dir_specs, Path(manifest["base_dir"]))
+    support_directories = _normalize_support_directories(
+        request.support_dir_specs, Path(manifest["base_dir"])
+    )
     include_directories = _normalize_include_directories(request.include_dir_specs)
     ascend_compile_contract = _normalize_ascend_compile_contract(
         cann_path=request.ascend_cann_path,
@@ -1679,7 +1883,9 @@ def _build_sk_conversion_analysis(request: SkConversionAnalysisInput) -> dict[st
         "archetype": manifest["archetype"],
         "supported_minimal_unit": _sk_conversion_minimal_unit(manifest, status),
         "source_files": manifest["source_files"],
-        "source_file_fingerprints": _sk_source_file_fingerprints(manifest["base_dir"], manifest["source_files"]),
+        "source_file_fingerprints": _sk_source_file_fingerprints(
+            manifest["base_dir"], manifest["source_files"]
+        ),
         "include_files": manifest["include_files"],
         "support_directories": support_directories,
         "include_directories": include_directories,
@@ -1694,7 +1900,9 @@ def _build_sk_conversion_analysis(request: SkConversionAnalysisInput) -> dict[st
         "generation_plan": plan,
         "blocked_reasons": blocked_reasons,
         "execution_boundary": SK_CONVERSION_BOUNDARY,
-        "supported_next_actions": _sk_conversion_next_actions(status, blocked_reasons, plan),
+        "supported_next_actions": _sk_conversion_next_actions(
+            status, blocked_reasons, plan
+        ),
     }
     _validate_sk_source_destination_collisions(analysis)
     return analysis
@@ -1718,7 +1926,9 @@ def _render_sk_conversion_analysis_markdown(analysis: dict[str, Any]) -> str:
     if analysis["support_directories"]:
         lines.append("Support directories copied into the SK source version:")
         for item in analysis["support_directories"]:
-            lines.append(f"- `{item['source_name']}`: `{item['source_path']}` ({len(item['source_files'])} files)")
+            lines.append(
+                f"- `{item['source_name']}`: `{item['source_path']}` ({len(item['source_files'])} files)"
+            )
     else:
         lines.append("- support directories: none")
     if analysis["include_directories"]:
@@ -1801,9 +2011,13 @@ def _load_current_sk_conversion_analysis(output_dir: Path) -> dict[str, Any]:
         },
         "sk conversion analysis",
     )
-    asset_path = Path(_require_string(analysis["asset_path"], "sk conversion analysis asset_path")).resolve()
+    asset_path = Path(
+        _require_string(analysis["asset_path"], "sk conversion analysis asset_path")
+    ).resolve()
     support_directories: list[dict[str, Any]] = []
-    for support_dir in _require_list(analysis["support_directories"], "sk conversion analysis support_directories"):
+    for support_dir in _require_list(
+        analysis["support_directories"], "sk conversion analysis support_directories"
+    ):
         item = _require_exact_keys(
             support_dir,
             {"source_name", "source_path", "source_files", "source_file_fingerprints"},
@@ -1882,10 +2096,18 @@ def _load_current_sk_conversion_analysis(output_dir: Path) -> dict[str, Any]:
         )
         ascend_compile_contract = {
             "cann_path": str(
-                Path(_require_string(contract["cann_path"], "ascend compile contract cann_path")).resolve()
+                Path(
+                    _require_string(
+                        contract["cann_path"], "ascend compile contract cann_path"
+                    )
+                ).resolve()
             ),
             "bisheng_path": str(
-                Path(_require_string(contract["bisheng_path"], "ascend compile contract bisheng_path")).resolve()
+                Path(
+                    _require_string(
+                        contract["bisheng_path"], "ascend compile contract bisheng_path"
+                    )
+                ).resolve()
             ),
             "arch": _require_string(contract["arch"], "ascend compile contract arch"),
             "compile_options": _require_string_list(
@@ -1908,12 +2130,19 @@ def _load_current_sk_conversion_analysis(output_dir: Path) -> dict[str, Any]:
     expected = _build_sk_conversion_analysis(
         SkConversionAnalysisInput(
             asset_path,
-            [f"{item['source_name']}={item['source_path']}" for item in support_directories],
+            [
+                f"{item['source_name']}={item['source_path']}"
+                for item in support_directories
+            ],
             analysis["include_directories"],
             ascend_compile_contract["cann_path"] if ascend_compile_contract else None,
             ascend_compile_contract["arch"] if ascend_compile_contract else None,
-            ascend_compile_contract["compile_options"] if ascend_compile_contract else None,
-            ascend_compile_contract["force_includes"] if ascend_compile_contract else None,
+            ascend_compile_contract["compile_options"]
+            if ascend_compile_contract
+            else None,
+            ascend_compile_contract["force_includes"]
+            if ascend_compile_contract
+            else None,
         )
     )
     if analysis != expected:
@@ -1949,12 +2178,18 @@ def _sk_source_empty_manifest(
 
 
 def _sk_source_needed_next_actions(analysis: dict[str, Any]) -> list[str]:
-    return [item["action"] for item in analysis["generation_plan"] if item["status"] == "needed"][:3]
+    return [
+        item["action"]
+        for item in analysis["generation_plan"]
+        if item["status"] == "needed"
+    ][:3]
 
 
 def _raise_if_existing_non_generated_sk_source_scaffold(output_dir: Path) -> None:
     if (output_dir / SK_SOURCE_SCAFFOLD_DIR).exists():
-        raise CliUsageError("sk source scaffold directory exists for non-generated result")
+        raise CliUsageError(
+            "sk source scaffold directory exists for non-generated result"
+        )
 
 
 def _write_sk_source_artifacts(output_dir: Path, manifest: dict[str, Any]) -> None:
@@ -2026,7 +2261,9 @@ def _sk_source_copy_source_path(analysis: dict[str, Any], rel_path: str) -> Path
     return Path(analysis["base_dir"]) / rel_path
 
 
-def _copy_sk_source_scaffold_files(output_dir: Path, analysis: dict[str, Any]) -> list[dict[str, str]]:
+def _copy_sk_source_scaffold_files(
+    output_dir: Path, analysis: dict[str, Any]
+) -> list[dict[str, str]]:
     copied: list[dict[str, str]] = []
     for entry in _sk_source_copy_entries(analysis):
         source_path = Path(entry["source_path"])
@@ -2069,7 +2306,9 @@ def _render_sk_source_cmake(manifest: dict[str, Any]) -> str:
     return _render_scaffold_cmake(manifest, copied_source_files)
 
 
-def _write_sk_source_scaffold_readme(output_dir: Path, manifest: dict[str, Any]) -> None:
+def _write_sk_source_scaffold_readme(
+    output_dir: Path, manifest: dict[str, Any]
+) -> None:
     lines = [
         "# Operator SK Source Scaffold",
         "",
@@ -2084,10 +2323,14 @@ def _write_sk_source_scaffold_readme(output_dir: Path, manifest: dict[str, Any])
     lines.extend(["", "## Execution Boundary", ""])
     for item in manifest["execution_boundary"]:
         lines.append(f"- {item}")
-    _write_text(output_dir / SK_SOURCE_SCAFFOLD_DIR / "README.md", "\n".join(lines) + "\n")
+    _write_text(
+        output_dir / SK_SOURCE_SCAFFOLD_DIR / "README.md", "\n".join(lines) + "\n"
+    )
 
 
-def _generate_sk_source_scaffold(output_dir: Path, analysis: dict[str, Any]) -> dict[str, Any]:
+def _generate_sk_source_scaffold(
+    output_dir: Path, analysis: dict[str, Any]
+) -> dict[str, Any]:
     scaffold_dir = output_dir / SK_SOURCE_SCAFFOLD_DIR
     if scaffold_dir.exists():
         raise CliUsageError("sk source scaffold output already exists")
@@ -2136,18 +2379,26 @@ def _cmake_quoted(value: str) -> str:
 
 
 def _safe_object_name(scaffold_path: str) -> str:
-    safe = re.sub(r"[^A-Za-z0-9_.-]+", "_", scaffold_path).strip("_") or "operator_source"
+    safe = (
+        re.sub(r"[^A-Za-z0-9_.-]+", "_", scaffold_path).strip("_") or "operator_source"
+    )
     return f"{safe}.o"
 
 
-def _render_ascend_scaffold_cmake(manifest: dict[str, Any], copied_source_files: list[dict[str, str]]) -> str:
+def _render_ascend_scaffold_cmake(
+    manifest: dict[str, Any], copied_source_files: list[dict[str, str]]
+) -> str:
     contract = manifest["ascend_compile_contract"]
     ascend_sources = [
         item["scaffold_path"]
         for item in copied_source_files
         if Path(item["source"]).suffix in ASCEND_COMPILABLE_SOURCE_SUFFIXES
     ]
-    headers = [item["scaffold_path"] for item in copied_source_files if Path(item["source"]).suffix in INCLUDE_SUFFIXES]
+    headers = [
+        item["scaffold_path"]
+        for item in copied_source_files
+        if Path(item["source"]).suffix in INCLUDE_SUFFIXES
+    ]
     target_name = _safe_target_name(manifest)
     include_dirs = []
     for include_dir in [
@@ -2180,7 +2431,9 @@ def _render_ascend_scaffold_cmake(manifest: dict[str, Any], copied_source_files:
     if ascend_sources:
         outputs: list[str] = []
         for source in ascend_sources:
-            output = f"${{CMAKE_CURRENT_BINARY_DIR}}/objects/{_safe_object_name(source)}"
+            output = (
+                f"${{CMAKE_CURRENT_BINARY_DIR}}/objects/{_safe_object_name(source)}"
+            )
             outputs.append(output)
             lines.extend(
                 [
@@ -2194,7 +2447,10 @@ def _render_ascend_scaffold_cmake(manifest: dict[str, Any], copied_source_files:
             for force_include in contract["force_includes"]:
                 lines.append("    -include")
                 lines.append(f"    {_cmake_quoted(force_include)}")
-            lines.extend(f"    {_cmake_quoted('-I' + include_dir)}" for include_dir in include_dirs)
+            lines.extend(
+                f"    {_cmake_quoted('-I' + include_dir)}"
+                for include_dir in include_dirs
+            )
             lines.extend(
                 [
                     "    -c",
@@ -2228,7 +2484,9 @@ def _render_ascend_scaffold_cmake(manifest: dict[str, Any], copied_source_files:
     return "\n".join(lines) + "\n"
 
 
-def _render_scaffold_cmake(manifest: dict[str, Any], copied_source_files: list[dict[str, str]]) -> str:
+def _render_scaffold_cmake(
+    manifest: dict[str, Any], copied_source_files: list[dict[str, str]]
+) -> str:
     if manifest.get("ascend_compile_contract"):
         return _render_ascend_scaffold_cmake(manifest, copied_source_files)
 
@@ -2237,7 +2495,11 @@ def _render_scaffold_cmake(manifest: dict[str, Any], copied_source_files: list[d
         for item in copied_source_files
         if Path(item["source"]).suffix in COMPILABLE_SOURCE_SUFFIXES
     ]
-    headers = [item["scaffold_path"] for item in copied_source_files if Path(item["source"]).suffix in INCLUDE_SUFFIXES]
+    headers = [
+        item["scaffold_path"]
+        for item in copied_source_files
+        if Path(item["source"]).suffix in INCLUDE_SUFFIXES
+    ]
     lines = [
         "cmake_minimum_required(VERSION 3.16)",
         f"project({_safe_target_name(manifest)}_scaffold LANGUAGES CXX)",
@@ -2267,15 +2529,21 @@ def _render_scaffold_cmake(manifest: dict[str, Any], copied_source_files: list[d
             ]
         )
         if manifest.get("include_directories"):
-            lines.append(f"target_include_directories({_safe_target_name(manifest)}_objects PRIVATE")
+            lines.append(
+                f"target_include_directories({_safe_target_name(manifest)}_objects PRIVATE"
+            )
             lines.extend(f'  "{path}"' for path in manifest["include_directories"])
             lines.append(")")
     else:
-        lines.append("# No compilable source file was detected; add an operator build entry before compiling.")
+        lines.append(
+            "# No compilable source file was detected; add an operator build entry before compiling."
+        )
     return "\n".join(lines) + "\n"
 
 
-def _require_exact_keys(payload: Any, expected_keys: set[str], label: str) -> dict[str, Any]:
+def _require_exact_keys(
+    payload: Any, expected_keys: set[str], label: str
+) -> dict[str, Any]:
     if not isinstance(payload, dict):
         raise CliUsageError(f"{label} must be an object")
     keys = set(payload)
@@ -2293,7 +2561,9 @@ def _require_string(value: Any, label: str, *, allow_empty: bool = False) -> str
         raise CliUsageError(f"{label} must be a string")
     if not allow_empty and not value:
         raise CliUsageError(
-            "empty scaffold path is not allowed" if label.endswith("path") else f"{label} must be non-empty"
+            "empty scaffold path is not allowed"
+            if label.endswith("path")
+            else f"{label} must be non-empty"
         )
     return value
 
@@ -2336,7 +2606,9 @@ def _load_json_artifact(path: Path, artifact_name: str) -> Any:
         raise CliUsageError(f"{artifact_name} is not valid JSON") from exc
 
 
-def _validate_manifest_path(value: Any, label: str, *, allow_empty: bool = False) -> str:
+def _validate_manifest_path(
+    value: Any, label: str, *, allow_empty: bool = False
+) -> str:
     path = _require_string(value, label, allow_empty=allow_empty)
     if allow_empty and path == "":
         return path
@@ -2346,14 +2618,18 @@ def _validate_manifest_path(value: Any, label: str, *, allow_empty: bool = False
         raise CliUsageError(str(exc)) from exc
 
 
-def _validate_manifest_path_list(value: Any, list_label: str, item_label: str) -> list[str]:
+def _validate_manifest_path_list(
+    value: Any, list_label: str, item_label: str
+) -> list[str]:
     paths = []
     for item in _require_list(value, list_label):
         paths.append(_validate_manifest_path(item, item_label))
     return paths
 
 
-def _resolve_string_path_list(value: Any, list_label: str, item_label: str) -> list[str]:
+def _resolve_string_path_list(
+    value: Any, list_label: str, item_label: str
+) -> list[str]:
     paths = []
     for item in _require_list(value, list_label):
         paths.append(str(Path(_require_string(item, item_label)).resolve()))
@@ -2361,13 +2637,17 @@ def _resolve_string_path_list(value: Any, list_label: str, item_label: str) -> l
 
 
 def _bounded_pytest_evidence(output: str) -> list[str]:
-    lines = [line[:300] for line in (item.strip() for item in output.splitlines()) if line]
+    lines = [
+        line[:300] for line in (item.strip() for item in output.splitlines()) if line
+    ]
     if len(lines) <= 20:
         return lines
     return lines[:10] + ["... truncated ..."] + lines[-10:]
 
 
-def _scaffold_build_check(name: str, status: str, reason: str, evidence: list[str] | None = None) -> dict[str, Any]:
+def _scaffold_build_check(
+    name: str, status: str, reason: str, evidence: list[str] | None = None
+) -> dict[str, Any]:
     return {
         "name": name,
         "status": status,
@@ -2376,11 +2656,15 @@ def _scaffold_build_check(name: str, status: str, reason: str, evidence: list[st
     }
 
 
-def _blocked_scaffold_build_check(name: str, reason: str, evidence: list[str] | None = None) -> dict[str, Any]:
+def _blocked_scaffold_build_check(
+    name: str, reason: str, evidence: list[str] | None = None
+) -> dict[str, Any]:
     return _scaffold_build_check(name, "blocked", reason, evidence)
 
 
-def _build_dir_available_check(build_dir: Path, scaffold_output_dir: Path) -> dict[str, Any]:
+def _build_dir_available_check(
+    build_dir: Path, scaffold_output_dir: Path
+) -> dict[str, Any]:
     if build_dir.exists():
         return _blocked_scaffold_build_check(
             "build_dir_available",
@@ -2399,7 +2683,9 @@ def _bounded_command_evidence(output: str) -> list[str]:
     return _bounded_pytest_evidence(output)
 
 
-def _run_cmake_command(command: list[str], env: dict[str, str]) -> tuple[int | None, list[str], bool]:
+def _run_cmake_command(
+    command: list[str], env: dict[str, str]
+) -> tuple[int | None, list[str], bool]:
     try:
         completed = subprocess.run(
             command,
@@ -2416,7 +2702,9 @@ def _run_cmake_command(command: list[str], env: dict[str, str]) -> tuple[int | N
     return completed.returncode, _bounded_command_evidence(completed.stdout), False
 
 
-def _expected_sk_source_manifest(output_dir: Path, analysis: dict[str, Any]) -> dict[str, Any]:
+def _expected_sk_source_manifest(
+    output_dir: Path, analysis: dict[str, Any]
+) -> dict[str, Any]:
     if analysis["status"] == "ready-for-sk-generation":
         return {
             "status": "generated",
@@ -2453,7 +2741,9 @@ def _expected_sk_source_manifest(output_dir: Path, analysis: dict[str, Any]) -> 
     )
 
 
-def _normalize_sk_source_scaffold_manifest(payload: Any, output_dir: Path) -> dict[str, Any]:
+def _normalize_sk_source_scaffold_manifest(
+    payload: Any, output_dir: Path
+) -> dict[str, Any]:
     manifest = _require_exact_keys(
         payload,
         {
@@ -2478,9 +2768,9 @@ def _normalize_sk_source_scaffold_manifest(payload: Any, output_dir: Path) -> di
     status = _require_string(manifest["status"], "sk source scaffold status")
     if status not in {"generated", "blocked"}:
         raise CliUsageError(f"invalid sk source scaffold status: {status}")
-    if _require_string(manifest["analysis_output_dir"], "sk source scaffold analysis_output_dir") != str(
-        output_dir.resolve()
-    ):
+    if _require_string(
+        manifest["analysis_output_dir"], "sk source scaffold analysis_output_dir"
+    ) != str(output_dir.resolve()):
         raise CliUsageError("sk source scaffold mismatch")
     if (
         _require_string(manifest["analysis_path"], "sk source scaffold analysis_path")
@@ -2498,16 +2788,24 @@ def _normalize_sk_source_scaffold_manifest(payload: Any, output_dir: Path) -> di
         manifest["source_file_fingerprints"],
         "sk source scaffold source_file_fingerprints",
     ):
-        item = _require_exact_keys(fingerprint, {"path", "sha256"}, "sk source scaffold source fingerprint")
+        item = _require_exact_keys(
+            fingerprint, {"path", "sha256"}, "sk source scaffold source fingerprint"
+        )
         fingerprints.append(
             {
-                "path": _validate_manifest_path(item["path"], "sk source scaffold fingerprint path"),
-                "sha256": _require_string(item["sha256"], "sk source scaffold fingerprint sha256"),
+                "path": _validate_manifest_path(
+                    item["path"], "sk source scaffold fingerprint path"
+                ),
+                "sha256": _require_string(
+                    item["sha256"], "sk source scaffold fingerprint sha256"
+                ),
             }
         )
     manifest["source_file_fingerprints"] = fingerprints
     support_directories: list[dict[str, Any]] = []
-    for support_dir in _require_list(manifest["support_directories"], "sk source scaffold support_directories"):
+    for support_dir in _require_list(
+        manifest["support_directories"], "sk source scaffold support_directories"
+    ):
         item = _require_exact_keys(
             support_dir,
             {"source_name", "source_path", "source_files", "source_file_fingerprints"},
@@ -2538,7 +2836,9 @@ def _normalize_sk_source_scaffold_manifest(payload: Any, output_dir: Path) -> di
         support_directories.append(
             {
                 "source_name": _support_dir_name(
-                    _require_string(item["source_name"], "sk source scaffold support source_name")
+                    _require_string(
+                        item["source_name"], "sk source scaffold support source_name"
+                    )
                 ),
                 "source_path": str(
                     Path(
@@ -2580,7 +2880,11 @@ def _normalize_sk_source_scaffold_manifest(payload: Any, output_dir: Path) -> di
         )
         manifest["ascend_compile_contract"] = {
             "cann_path": str(
-                Path(_require_string(contract["cann_path"], "sk source scaffold ascend cann_path")).resolve()
+                Path(
+                    _require_string(
+                        contract["cann_path"], "sk source scaffold ascend cann_path"
+                    )
+                ).resolve()
             ),
             "bisheng_path": str(
                 Path(
@@ -2608,21 +2912,35 @@ def _normalize_sk_source_scaffold_manifest(payload: Any, output_dir: Path) -> di
             ),
         }
     entries: list[dict[str, str]] = []
-    for entry in _require_list(manifest["kernel_entries"], "sk source scaffold kernel_entries"):
-        item = _require_exact_keys(entry, {"name", "file"}, "sk source scaffold kernel entry")
+    for entry in _require_list(
+        manifest["kernel_entries"], "sk source scaffold kernel_entries"
+    ):
+        item = _require_exact_keys(
+            entry, {"name", "file"}, "sk source scaffold kernel entry"
+        )
         entries.append(
             {
-                "name": _require_string(item["name"], "sk source scaffold kernel entry name"),
-                "file": _validate_manifest_path(item["file"], "sk source scaffold kernel entry file"),
+                "name": _require_string(
+                    item["name"], "sk source scaffold kernel entry name"
+                ),
+                "file": _validate_manifest_path(
+                    item["file"], "sk source scaffold kernel entry file"
+                ),
             }
         )
     manifest["kernel_entries"] = entries
     copied: list[dict[str, str]] = []
-    for copied_file in _require_list(manifest["copied_source_files"], "sk source scaffold copied_source_files"):
-        item = _require_exact_keys(copied_file, {"source", "scaffold_path"}, "sk source scaffold copied source")
+    for copied_file in _require_list(
+        manifest["copied_source_files"], "sk source scaffold copied_source_files"
+    ):
+        item = _require_exact_keys(
+            copied_file, {"source", "scaffold_path"}, "sk source scaffold copied source"
+        )
         copied.append(
             {
-                "source": _validate_manifest_path(item["source"], "sk source scaffold copied source"),
+                "source": _validate_manifest_path(
+                    item["source"], "sk source scaffold copied source"
+                ),
                 "scaffold_path": _validate_manifest_path(
                     item["scaffold_path"], "sk source scaffold copied scaffold path"
                 ),
@@ -2652,7 +2970,9 @@ def _normalize_sk_source_scaffold_manifest(payload: Any, output_dir: Path) -> di
     return manifest
 
 
-def _require_sk_source_scaffold_file(output_dir: Path, relative_path: str, reason: str) -> Path:
+def _require_sk_source_scaffold_file(
+    output_dir: Path, relative_path: str, reason: str
+) -> Path:
     path = output_dir / relative_path
     scaffold_dir = (output_dir / SK_SOURCE_SCAFFOLD_DIR).resolve()
     try:
@@ -2668,7 +2988,9 @@ def _require_sk_source_scaffold_file(output_dir: Path, relative_path: str, reaso
     return path
 
 
-def _load_current_sk_source_scaffold(output_dir: Path, analysis: dict[str, Any]) -> dict[str, Any]:
+def _load_current_sk_source_scaffold(
+    output_dir: Path, analysis: dict[str, Any]
+) -> dict[str, Any]:
     payload = _load_json_artifact(
         output_dir / "operator-sk-source-scaffold.json",
         "operator-sk-source-scaffold.json",
@@ -2678,11 +3000,15 @@ def _load_current_sk_source_scaffold(output_dir: Path, analysis: dict[str, Any])
     if manifest != expected:
         raise CliUsageError("sk source scaffold mismatch")
     try:
-        markdown = (output_dir / "operator-sk-source-scaffold.md").read_text(encoding="utf-8")
+        markdown = (output_dir / "operator-sk-source-scaffold.md").read_text(
+            encoding="utf-8"
+        )
     except FileNotFoundError as exc:
         raise CliUsageError("sk source scaffold mismatch") from exc
     except UnicodeDecodeError as exc:
-        raise CliUsageError("operator-sk-source-scaffold.md is not valid UTF-8") from exc
+        raise CliUsageError(
+            "operator-sk-source-scaffold.md is not valid UTF-8"
+        ) from exc
     except OSError as exc:
         raise CliUsageError("sk source scaffold mismatch") from exc
     if markdown != _render_sk_source_scaffold_markdown(expected):
@@ -2692,16 +3018,22 @@ def _load_current_sk_source_scaffold(output_dir: Path, analysis: dict[str, Any])
             raise CliUsageError("sk source scaffold mismatch")
         return manifest
     for item in manifest["copied_source_files"]:
-        copied_path = _require_sk_source_scaffold_file(output_dir, item["scaffold_path"], "copied source missing")
+        copied_path = _require_sk_source_scaffold_file(
+            output_dir, item["scaffold_path"], "copied source missing"
+        )
         try:
-            original_bytes = _sk_source_copy_source_path(analysis, item["source"]).read_bytes()
+            original_bytes = _sk_source_copy_source_path(
+                analysis, item["source"]
+            ).read_bytes()
             copied_bytes = copied_path.read_bytes()
         except OSError as exc:
             raise CliUsageError("copied source drift") from exc
         if copied_bytes != original_bytes:
             raise CliUsageError("copied source drift")
     for relative_path in manifest["generated_files"]:
-        generated_path = _require_sk_source_scaffold_file(output_dir, relative_path, "sk source scaffold mismatch")
+        generated_path = _require_sk_source_scaffold_file(
+            output_dir, relative_path, "sk source scaffold mismatch"
+        )
         if relative_path == f"{SK_SOURCE_SCAFFOLD_DIR}/CMakeLists.txt":
             try:
                 content = generated_path.read_text(encoding="utf-8")
@@ -2741,7 +3073,9 @@ def _cmake_missing_include_failure_reason(evidence: list[str], asset_path: Path)
     include_path = _cmake_missing_include_from_evidence(evidence)
     if not include_path:
         return "cmake_build_failed"
-    if include_path in TOOLCHAIN_INCLUDE_NAMES or include_path.startswith(TOOLCHAIN_INCLUDE_PREFIXES):
+    if include_path in TOOLCHAIN_INCLUDE_NAMES or include_path.startswith(
+        TOOLCHAIN_INCLUDE_PREFIXES
+    ):
         return "cmake_build_missing_toolchain_include"
     asset_root = asset_path.resolve()
     candidate = (asset_root / include_path).resolve(strict=False)
@@ -2750,7 +3084,9 @@ def _cmake_missing_include_failure_reason(evidence: list[str], asset_path: Path)
     return "cmake_build_missing_external_include"
 
 
-def _blocked_sk_build_validation_check(name: str, reason: str, evidence: list[str] | None = None) -> dict[str, Any]:
+def _blocked_sk_build_validation_check(
+    name: str, reason: str, evidence: list[str] | None = None
+) -> dict[str, Any]:
     return _sk_build_validation_check(name, "blocked", reason, evidence)
 
 
@@ -2781,7 +3117,9 @@ def _sk_build_validation_manifest(
         "build_validation_path": "operator-sk-build-validation.json",
         "build_dir": request.build_dir,
         "commands": request.commands,
-        "checks": [request.check_results[name] for name in SK_BUILD_VALIDATION_CHECK_NAMES],
+        "checks": [
+            request.check_results[name] for name in SK_BUILD_VALIDATION_CHECK_NAMES
+        ],
         "supported_next_actions": request.supported_next_actions,
         "execution_boundary": SK_BUILD_VALIDATION_BOUNDARY,
     }
@@ -2802,8 +3140,12 @@ def _normalize_sk_build_validation_checks(
     if len(checks) != len(SK_BUILD_VALIDATION_CHECK_NAMES):
         raise CliUsageError("sk build validation checks mismatch")
     normalized: dict[str, dict[str, Any]] = {}
-    for expected_name, check in zip(SK_BUILD_VALIDATION_CHECK_NAMES, checks, strict=True):
-        item = _require_exact_keys(check, {"name", "status", "reason", "evidence"}, "sk build validation check")
+    for expected_name, check in zip(
+        SK_BUILD_VALIDATION_CHECK_NAMES, checks, strict=True
+    ):
+        item = _require_exact_keys(
+            check, {"name", "status", "reason", "evidence"}, "sk build validation check"
+        )
         name = _require_string(item["name"], "sk build validation check name")
         if name != expected_name:
             raise CliUsageError("sk build validation checks mismatch")
@@ -2818,7 +3160,9 @@ def _normalize_sk_build_validation_checks(
         normalized[name] = {
             "name": name,
             "status": status,
-            "reason": _require_string(item["reason"], "sk build validation check reason"),
+            "reason": _require_string(
+                item["reason"], "sk build validation check reason"
+            ),
             "evidence": evidence,
         }
     return normalized
@@ -2860,7 +3204,9 @@ def _validate_sk_build_validation_passed_prefix(
     source_scaffold: dict[str, Any],
     names: list[str],
 ) -> None:
-    copied_evidence = [item["scaffold_path"] for item in source_scaffold["copied_source_files"]]
+    copied_evidence = [
+        item["scaffold_path"] for item in source_scaffold["copied_source_files"]
+    ]
     validators = {
         "sk_source_scaffold_generated": lambda: _require_sk_build_validation_check(
             checks,
@@ -2903,7 +3249,11 @@ def _validate_sk_build_validation_passed_prefix(
             raise CliUsageError("sk build validation checks semantics mismatch")
         validator()
         check = checks.get(name)
-        if name == "cmake_command_available" and check is not None and not check.get("evidence"):
+        if (
+            name == "cmake_command_available"
+            and check is not None
+            and not check.get("evidence")
+        ):
             raise CliUsageError("sk build validation checks semantics mismatch")
 
 
@@ -2915,8 +3265,12 @@ def _validate_sk_build_validation_semantics(
 ) -> None:
     if status == "passed":
         _validate_sk_build_validation_passed_checks(checks, source_scaffold)
-        _require_sk_build_validation_check(checks, "cmake_configure", "passed", "cmake_configure_passed")
-        _require_sk_build_validation_check(checks, "cmake_build", "passed", "cmake_build_passed")
+        _require_sk_build_validation_check(
+            checks, "cmake_configure", "passed", "cmake_configure_passed"
+        )
+        _require_sk_build_validation_check(
+            checks, "cmake_build", "passed", "cmake_build_passed"
+        )
         if supported_next_actions != ["collect_runtime_input_spec"]:
             raise CliUsageError("sk build validation supported_next_actions mismatch")
         return
@@ -2931,10 +3285,16 @@ def _validate_sk_build_validation_semantics(
                 "cmake_configure_timeout",
             }:
                 raise CliUsageError("sk build validation checks semantics mismatch")
-            if build["status"] != "blocked" or build["reason"] != "configure_not_passed":
+            if (
+                build["status"] != "blocked"
+                or build["reason"] != "configure_not_passed"
+            ):
                 raise CliUsageError("sk build validation checks semantics mismatch")
         elif build["status"] == "failed":
-            if configure["status"] != "passed" or configure["reason"] != "cmake_configure_passed":
+            if (
+                configure["status"] != "passed"
+                or configure["reason"] != "cmake_configure_passed"
+            ):
                 raise CliUsageError("sk build validation checks semantics mismatch")
             if build["reason"] not in {
                 "cmake_build_failed",
@@ -2956,7 +3316,9 @@ def _validate_sk_build_validation_semantics(
     if failed_checks:
         raise CliUsageError("sk build validation checks semantics mismatch")
     blocked_indexes = [
-        index for index, name in enumerate(SK_BUILD_VALIDATION_CHECK_NAMES) if checks[name]["status"] == "blocked"
+        index
+        for index, name in enumerate(SK_BUILD_VALIDATION_CHECK_NAMES)
+        if checks[name]["status"] == "blocked"
     ]
     if not blocked_indexes:
         raise CliUsageError("sk build validation checks semantics mismatch")
@@ -2970,9 +3332,15 @@ def _validate_sk_build_validation_semantics(
     }
     if allowed_first_reasons.get(first_blocked_name) != blocked_reason:
         raise CliUsageError("sk build validation checks semantics mismatch")
-    if source_scaffold["status"] == "generated" and first_blocked_name == "sk_source_scaffold_generated":
+    if (
+        source_scaffold["status"] == "generated"
+        and first_blocked_name == "sk_source_scaffold_generated"
+    ):
         raise CliUsageError("sk build validation checks semantics mismatch")
-    if source_scaffold["status"] != "generated" and first_blocked_name != "sk_source_scaffold_generated":
+    if (
+        source_scaffold["status"] != "generated"
+        and first_blocked_name != "sk_source_scaffold_generated"
+    ):
         raise CliUsageError("sk build validation checks semantics mismatch")
     _validate_sk_build_validation_passed_prefix(
         checks,
@@ -2982,7 +3350,10 @@ def _validate_sk_build_validation_semantics(
     remaining_check_start = first_blocked_index + 1
     remaining_check_names = SK_BUILD_VALIDATION_CHECK_NAMES[remaining_check_start:]
     for name in remaining_check_names:
-        if checks[name]["status"] != "blocked" or checks[name]["reason"] != blocked_reason:
+        if (
+            checks[name]["status"] != "blocked"
+            or checks[name]["reason"] != blocked_reason
+        ):
             raise CliUsageError("sk build validation checks semantics mismatch")
     expected_next = (
         source_scaffold["supported_next_actions"]
@@ -3067,9 +3438,9 @@ def _load_current_sk_build_validation(
     status = _require_string(manifest["status"], "sk build validation status")
     if status not in {"passed", "failed", "blocked"}:
         raise CliUsageError(f"invalid sk build validation status: {status}")
-    if _require_string(manifest["analysis_output_dir"], "sk build validation analysis_output_dir") != str(
-        output_dir.resolve()
-    ):
+    if _require_string(
+        manifest["analysis_output_dir"], "sk build validation analysis_output_dir"
+    ) != str(output_dir.resolve()):
         raise CliUsageError("sk build validation analysis_output_dir mismatch")
     if (
         _require_string(
@@ -3078,7 +3449,9 @@ def _load_current_sk_build_validation(
         )
         != "operator-sk-source-scaffold.json"
     ):
-        raise CliUsageError("sk build validation source_scaffold_manifest_path mismatch")
+        raise CliUsageError(
+            "sk build validation source_scaffold_manifest_path mismatch"
+        )
     if (
         _require_string(
             manifest["source_scaffold_markdown_path"],
@@ -3086,7 +3459,9 @@ def _load_current_sk_build_validation(
         )
         != "operator-sk-source-scaffold.md"
     ):
-        raise CliUsageError("sk build validation source_scaffold_markdown_path mismatch")
+        raise CliUsageError(
+            "sk build validation source_scaffold_markdown_path mismatch"
+        )
     if (
         _require_string(
             manifest["build_validation_path"],
@@ -3095,9 +3470,13 @@ def _load_current_sk_build_validation(
         != "operator-sk-build-validation.json"
     ):
         raise CliUsageError("sk build validation build_validation_path mismatch")
-    build_dir = _require_string(manifest["build_dir"], "sk build validation build_dir", allow_empty=True)
+    build_dir = _require_string(
+        manifest["build_dir"], "sk build validation build_dir", allow_empty=True
+    )
     blocked_with_build_dir = status == "blocked" and build_dir
-    unblocked_without_expected_build_dir = status != "blocked" and build_dir != "operator-sk-build-validation-build"
+    unblocked_without_expected_build_dir = (
+        status != "blocked" and build_dir != "operator-sk-build-validation-build"
+    )
     if blocked_with_build_dir or unblocked_without_expected_build_dir:
         raise CliUsageError("sk build validation build_dir mismatch")
     boundary = _require_string_list(
@@ -3107,13 +3486,17 @@ def _load_current_sk_build_validation(
     )
     if boundary != SK_BUILD_VALIDATION_BOUNDARY:
         raise CliUsageError("sk build validation execution_boundary mismatch")
-    checks = _normalize_sk_build_validation_checks(_require_list(manifest["checks"], "sk build validation checks"))
+    checks = _normalize_sk_build_validation_checks(
+        _require_list(manifest["checks"], "sk build validation checks")
+    )
     supported_next_actions = _require_string_list(
         manifest["supported_next_actions"],
         "sk build validation supported_next_actions",
         "sk build validation supported next action",
     )
-    _validate_sk_build_validation_semantics(status, checks, source_scaffold, supported_next_actions)
+    _validate_sk_build_validation_semantics(
+        status, checks, source_scaffold, supported_next_actions
+    )
     commands = _validate_sk_build_validation_commands(
         status,
         _require_list(manifest["commands"], "sk build validation commands"),
@@ -3208,10 +3591,12 @@ def cmd_run_sk_build_validation(args: argparse.Namespace) -> int:
     check_results: dict[str, dict[str, Any]] = {}
 
     if source_scaffold["status"] != "generated":
-        check_results["sk_source_scaffold_generated"] = _blocked_sk_build_validation_check(
-            "sk_source_scaffold_generated",
-            "sk_source_scaffold_not_generated",
-            ["operator-sk-source-scaffold.json"],
+        check_results["sk_source_scaffold_generated"] = (
+            _blocked_sk_build_validation_check(
+                "sk_source_scaffold_generated",
+                "sk_source_scaffold_not_generated",
+                ["operator-sk-source-scaffold.json"],
+            )
         )
         _fill_blocked_sk_build_validation_checks(
             check_results, "copied_sources_current", "sk_source_scaffold_not_generated"
@@ -3248,7 +3633,9 @@ def cmd_run_sk_build_validation(args: argparse.Namespace) -> int:
             "cmake_command_available",
             "cmake_command_not_found",
         )
-        _fill_blocked_sk_build_validation_checks(check_results, "cmake_contract_current", "cmake_command_not_found")
+        _fill_blocked_sk_build_validation_checks(
+            check_results, "cmake_contract_current", "cmake_command_not_found"
+        )
         result = _sk_build_validation_manifest(
             SkBuildValidationManifestInput(
                 output_dir,
@@ -3283,7 +3670,9 @@ def cmd_run_sk_build_validation(args: argparse.Namespace) -> int:
         build_dir_check["evidence"],
     )
     if build_dir_check["status"] == "blocked":
-        _fill_blocked_sk_build_validation_checks(check_results, "cmake_configure", build_dir_check["reason"])
+        _fill_blocked_sk_build_validation_checks(
+            check_results, "cmake_configure", build_dir_check["reason"]
+        )
         result = _sk_build_validation_manifest(
             SkBuildValidationManifestInput(
                 output_dir,
@@ -3303,7 +3692,9 @@ def cmd_run_sk_build_validation(args: argparse.Namespace) -> int:
     cmake_env = os.environ.copy()
     cmake_env["CMAKE_BUILD_PARALLEL_LEVEL"] = "1"
 
-    configure_code, configure_evidence, configure_timed_out = _run_cmake_command(configure_command, cmake_env)
+    configure_code, configure_evidence, configure_timed_out = _run_cmake_command(
+        configure_command, cmake_env
+    )
     commands = [configure_command]
     if configure_timed_out:
         check_results["cmake_configure"] = _sk_build_validation_check(
@@ -3312,7 +3703,9 @@ def cmd_run_sk_build_validation(args: argparse.Namespace) -> int:
             "cmake_configure_timeout",
             configure_evidence,
         )
-        check_results["cmake_build"] = _blocked_sk_build_validation_check("cmake_build", "configure_not_passed")
+        check_results["cmake_build"] = _blocked_sk_build_validation_check(
+            "cmake_build", "configure_not_passed"
+        )
         result = _sk_build_validation_manifest(
             SkBuildValidationManifestInput(
                 output_dir,
@@ -3332,7 +3725,9 @@ def cmd_run_sk_build_validation(args: argparse.Namespace) -> int:
             "cmake_configure_failed",
             configure_evidence,
         )
-        check_results["cmake_build"] = _blocked_sk_build_validation_check("cmake_build", "configure_not_passed")
+        check_results["cmake_build"] = _blocked_sk_build_validation_check(
+            "cmake_build", "configure_not_passed"
+        )
         result = _sk_build_validation_manifest(
             SkBuildValidationManifestInput(
                 output_dir,
@@ -3352,7 +3747,9 @@ def cmd_run_sk_build_validation(args: argparse.Namespace) -> int:
         "cmake_configure_passed",
         configure_evidence,
     )
-    build_code, build_evidence, build_timed_out = _run_cmake_command(build_command, cmake_env)
+    build_code, build_evidence, build_timed_out = _run_cmake_command(
+        build_command, cmake_env
+    )
     commands.append(build_command)
     if build_timed_out:
         check_results["cmake_build"] = _sk_build_validation_check(
@@ -3377,7 +3774,9 @@ def cmd_run_sk_build_validation(args: argparse.Namespace) -> int:
         check_results["cmake_build"] = _sk_build_validation_check(
             "cmake_build",
             "failed",
-            _cmake_missing_include_failure_reason(build_evidence, Path(source_scaffold["asset_path"])),
+            _cmake_missing_include_failure_reason(
+                build_evidence, Path(source_scaffold["asset_path"])
+            ),
             build_evidence,
         )
         result = _sk_build_validation_manifest(
@@ -3509,7 +3908,9 @@ def _sk_source_version_manifest(
 
 def _render_sk_source_version_markdown(manifest: dict[str, Any]) -> str:
     title = (
-        "Build-validated SK source version" if manifest["status"] == "generated" else "SK source version not prepared"
+        "Build-validated SK source version"
+        if manifest["status"] == "generated"
+        else "SK source version not prepared"
     )
     lines = [
         "# Operator SK Source Version",
@@ -3529,7 +3930,9 @@ def _render_sk_source_version_markdown(manifest: dict[str, Any]) -> str:
     ]
     if manifest["copied_source_files"]:
         for item in manifest["copied_source_files"]:
-            lines.append(f"- `{item['source']}`: `{item['scaffold_path']}` -> `{item['source_version_path']}`")
+            lines.append(
+                f"- `{item['source']}`: `{item['scaffold_path']}` -> `{item['source_version_path']}`"
+            )
     else:
         lines.append("- none")
     lines.extend(["", "## Generated Files", ""])
@@ -3632,7 +4035,9 @@ def cmd_prepare_sk_source_version(args: argparse.Namespace) -> int:
     _raise_if_sk_source_version_outputs_exist(output_dir)
 
     if build_validation["status"] != "passed":
-        manifest = _sk_source_version_manifest(output_dir, source_scaffold, build_validation, status="blocked")
+        manifest = _sk_source_version_manifest(
+            output_dir, source_scaffold, build_validation, status="blocked"
+        )
         _write_json(output_dir / "operator-sk-source-version.json", manifest)
         _write_text(
             output_dir / "operator-sk-source-version.md",
@@ -3640,7 +4045,9 @@ def cmd_prepare_sk_source_version(args: argparse.Namespace) -> int:
         )
         return 1
 
-    manifest = _sk_source_version_manifest(output_dir, source_scaffold, build_validation, status="generated")
+    manifest = _sk_source_version_manifest(
+        output_dir, source_scaffold, build_validation, status="generated"
+    )
     _copy_sk_source_version_tree(output_dir, manifest)
     _write_json(output_dir / "operator-sk-source-version.json", manifest)
     _write_text(
@@ -3686,7 +4093,9 @@ def _validate_current_sk_source_version_tree(
     except FileNotFoundError as exc:
         raise CliUsageError("sk source version mismatch") from exc
     except UnicodeDecodeError as exc:
-        raise CliUsageError("operator-sk-source-version/README.md is not valid UTF-8") from exc
+        raise CliUsageError(
+            "operator-sk-source-version/README.md is not valid UTF-8"
+        ) from exc
     except OSError as exc:
         raise CliUsageError("sk source version mismatch") from exc
     if readme != _render_sk_source_version_readme(source_version):
@@ -3727,11 +4136,15 @@ def _load_current_sk_source_version(
         },
         "sk source version",
     )
-    expected = _sk_source_version_manifest(output_dir, source_scaffold, build_validation, status="generated")
+    expected = _sk_source_version_manifest(
+        output_dir, source_scaffold, build_validation, status="generated"
+    )
     if source_version != expected:
         raise CliUsageError("sk source version mismatch")
     try:
-        markdown = (output_dir / "operator-sk-source-version.md").read_text(encoding="utf-8")
+        markdown = (output_dir / "operator-sk-source-version.md").read_text(
+            encoding="utf-8"
+        )
     except FileNotFoundError as exc:
         raise CliUsageError("operator-sk-source-version.md not found") from exc
     except UnicodeDecodeError as exc:
@@ -3801,7 +4214,9 @@ def _sk_source_version_validation_manifest(
         "source_version_validation_path": SK_SOURCE_VERSION_VALIDATION_PATH,
         "build_dir": SK_SOURCE_VERSION_BUILD_DIR,
         "commands": commands,
-        "checks": [check_results[name] for name in SK_SOURCE_VERSION_VALIDATION_CHECK_NAMES],
+        "checks": [
+            check_results[name] for name in SK_SOURCE_VERSION_VALIDATION_CHECK_NAMES
+        ],
         "supported_next_actions": supported_next_actions,
         "execution_boundary": execution_boundary,
     }
@@ -3822,7 +4237,9 @@ def cmd_validate_sk_source_version(args: argparse.Namespace) -> int:
     analysis = _load_current_sk_conversion_analysis(output_dir)
     source_scaffold = _load_current_sk_source_scaffold(output_dir, analysis)
     build_validation = _load_current_sk_build_validation(output_dir, source_scaffold)
-    source_version = _load_current_sk_source_version(output_dir, source_scaffold, build_validation)
+    source_version = _load_current_sk_source_version(
+        output_dir, source_scaffold, build_validation
+    )
     _ = source_version
     _raise_if_sk_source_version_validation_exists(output_dir)
 
@@ -3841,9 +4258,11 @@ def cmd_validate_sk_source_version(args: argparse.Namespace) -> int:
 
     cmake_path = shutil.which("cmake")
     if not cmake_path:
-        check_results["cmake_command_available"] = _blocked_sk_source_version_validation_check(
-            "cmake_command_available",
-            "cmake_command_not_found",
+        check_results["cmake_command_available"] = (
+            _blocked_sk_source_version_validation_check(
+                "cmake_command_available",
+                "cmake_command_not_found",
+            )
         )
         _fill_blocked_sk_source_version_validation_checks(
             check_results, "build_dir_available", "cmake_command_not_found"
@@ -3869,7 +4288,9 @@ def cmd_validate_sk_source_version(args: argparse.Namespace) -> int:
         build_dir_check["evidence"],
     )
     if build_dir_check["status"] == "blocked":
-        _fill_blocked_sk_source_version_validation_checks(check_results, "cmake_configure", build_dir_check["reason"])
+        _fill_blocked_sk_source_version_validation_checks(
+            check_results, "cmake_configure", build_dir_check["reason"]
+        )
         result = _sk_source_version_validation_manifest(
             output_dir, "blocked", [], check_results, ["validate_sk_source_version"]
         )
@@ -3882,7 +4303,9 @@ def cmd_validate_sk_source_version(args: argparse.Namespace) -> int:
     cmake_env = os.environ.copy()
     cmake_env["CMAKE_BUILD_PARALLEL_LEVEL"] = "1"
 
-    configure_code, configure_evidence, configure_timed_out = _run_cmake_command(configure_command, cmake_env)
+    configure_code, configure_evidence, configure_timed_out = _run_cmake_command(
+        configure_command, cmake_env
+    )
     commands = [configure_command]
     if configure_timed_out:
         check_results["cmake_configure"] = _sk_source_version_validation_check(
@@ -3929,7 +4352,9 @@ def cmd_validate_sk_source_version(args: argparse.Namespace) -> int:
         "cmake_configure_passed",
         configure_evidence,
     )
-    build_code, build_evidence, build_timed_out = _run_cmake_command(build_command, cmake_env)
+    build_code, build_evidence, build_timed_out = _run_cmake_command(
+        build_command, cmake_env
+    )
     commands.append(build_command)
     if build_timed_out:
         check_results["cmake_build"] = _sk_source_version_validation_check(
@@ -3951,7 +4376,9 @@ def cmd_validate_sk_source_version(args: argparse.Namespace) -> int:
         check_results["cmake_build"] = _sk_source_version_validation_check(
             "cmake_build",
             "failed",
-            _cmake_missing_include_failure_reason(build_evidence, Path(source_version["asset_path"])),
+            _cmake_missing_include_failure_reason(
+                build_evidence, Path(source_version["asset_path"])
+            ),
             build_evidence,
         )
         result = _sk_source_version_validation_manifest(
@@ -3995,11 +4422,17 @@ def cmd_validate_sk_source_version(args: argparse.Namespace) -> int:
 
 def _assert_fresh_sk_source_version_pipeline_output(output_dir: Path) -> None:
     if output_dir.exists() and not output_dir.is_dir():
-        raise CliUsageError(f"source version pipeline output path is not a directory: {output_dir}")
+        raise CliUsageError(
+            f"source version pipeline output path is not a directory: {output_dir}"
+        )
     if output_dir.exists() and output_dir.is_symlink():
-        raise CliUsageError(f"source version pipeline output path is not a normal directory: {output_dir}")
+        raise CliUsageError(
+            f"source version pipeline output path is not a normal directory: {output_dir}"
+        )
     if output_dir.exists() and any(output_dir.iterdir()):
-        raise CliUsageError("source version pipeline output directory must be absent or empty")
+        raise CliUsageError(
+            "source version pipeline output directory must be absent or empty"
+        )
 
 
 def _pipeline_stage_status_from_artifact(artifact: dict[str, Any]) -> str:
@@ -4012,7 +4445,9 @@ def _pipeline_stage_supported_next_actions(artifact: dict[str, Any]) -> list[str
         artifact.get("supported_next_actions", []),
         "source version pipeline stage supported_next_actions",
     ):
-        actions.append(_require_string(item, "source version pipeline stage supported next action"))
+        actions.append(
+            _require_string(item, "source version pipeline stage supported next action")
+        )
     return actions
 
 
@@ -4067,7 +4502,9 @@ def _source_version_pipeline_manifest(
     if status == "passed":
         supported_next_actions = ["collect_runtime_input_spec"]
     else:
-        supported_next_actions = list(last_stage["supported_next_actions"]) or ["prepare_validated_sk_source_version"]
+        supported_next_actions = list(last_stage["supported_next_actions"]) or [
+            "prepare_validated_sk_source_version"
+        ]
     return {
         "status": status,
         "asset_path": str(asset_path.resolve()),
@@ -4087,7 +4524,9 @@ def cmd_prepare_validated_sk_source_version(args: argparse.Namespace) -> int:
         raise CliUsageError(f"asset path not found: {asset_path}")
     raw_output_dir = Path(args.output_dir)
     if raw_output_dir.is_symlink():
-        raise CliUsageError(f"source version pipeline output path is not a normal directory: {raw_output_dir}")
+        raise CliUsageError(
+            f"source version pipeline output path is not a normal directory: {raw_output_dir}"
+        )
     output_dir = raw_output_dir.resolve()
     _assert_fresh_sk_source_version_pipeline_output(output_dir)
 
@@ -4141,7 +4580,9 @@ def cmd_prepare_validated_sk_source_version(args: argparse.Namespace) -> int:
     )
 
     source_command = ["generate-sk-source-scaffold", str(output_dir)]
-    source_return = cmd_generate_sk_source_scaffold(argparse.Namespace(analysis_output_dir=str(output_dir)))
+    source_return = cmd_generate_sk_source_scaffold(
+        argparse.Namespace(analysis_output_dir=str(output_dir))
+    )
     source_scaffold = _load_json_artifact(
         output_dir / "operator-sk-source-scaffold.json",
         "operator-sk-source-scaffold.json",
@@ -4173,7 +4614,9 @@ def cmd_prepare_validated_sk_source_version(args: argparse.Namespace) -> int:
         return 1
 
     build_command = ["run-sk-build-validation", str(output_dir)]
-    build_return = cmd_run_sk_build_validation(argparse.Namespace(analysis_output_dir=str(output_dir)))
+    build_return = cmd_run_sk_build_validation(
+        argparse.Namespace(analysis_output_dir=str(output_dir))
+    )
     build_validation = _load_json_artifact(
         output_dir / "operator-sk-build-validation.json",
         "operator-sk-build-validation.json",
@@ -4182,7 +4625,9 @@ def cmd_prepare_validated_sk_source_version(args: argparse.Namespace) -> int:
         build_next = "prepare_sk_source_version"
     else:
         build_actions = _pipeline_stage_supported_next_actions(build_validation)
-        build_next = build_actions[0] if build_actions else "prepare_validated_sk_source_version"
+        build_next = (
+            build_actions[0] if build_actions else "prepare_validated_sk_source_version"
+        )
     stages.append(
         _source_version_pipeline_stage(
             SourceVersionPipelineStageInput(
@@ -4201,7 +4646,9 @@ def cmd_prepare_validated_sk_source_version(args: argparse.Namespace) -> int:
         return 1
 
     version_command = ["prepare-sk-source-version", str(output_dir)]
-    version_return = cmd_prepare_sk_source_version(argparse.Namespace(analysis_output_dir=str(output_dir)))
+    version_return = cmd_prepare_sk_source_version(
+        argparse.Namespace(analysis_output_dir=str(output_dir))
+    )
     source_version = _load_json_artifact(
         output_dir / "operator-sk-source-version.json",
         "operator-sk-source-version.json",
@@ -4210,7 +4657,11 @@ def cmd_prepare_validated_sk_source_version(args: argparse.Namespace) -> int:
         version_next = "validate_sk_source_version"
     else:
         version_actions = _pipeline_stage_supported_next_actions(source_version)
-        version_next = version_actions[0] if version_actions else "prepare_validated_sk_source_version"
+        version_next = (
+            version_actions[0]
+            if version_actions
+            else "prepare_validated_sk_source_version"
+        )
     stages.append(
         _source_version_pipeline_stage(
             SourceVersionPipelineStageInput(
@@ -4229,7 +4680,9 @@ def cmd_prepare_validated_sk_source_version(args: argparse.Namespace) -> int:
         return 1
 
     validation_command = ["validate-sk-source-version", str(output_dir)]
-    validation_return = cmd_validate_sk_source_version(argparse.Namespace(analysis_output_dir=str(output_dir)))
+    validation_return = cmd_validate_sk_source_version(
+        argparse.Namespace(analysis_output_dir=str(output_dir))
+    )
     source_version_validation = _load_json_artifact(
         output_dir / SK_SOURCE_VERSION_VALIDATION_PATH,
         SK_SOURCE_VERSION_VALIDATION_PATH,
@@ -4237,8 +4690,14 @@ def cmd_prepare_validated_sk_source_version(args: argparse.Namespace) -> int:
     if validation_return == 0:
         validation_next = "collect_runtime_input_spec"
     else:
-        validation_actions = _pipeline_stage_supported_next_actions(source_version_validation)
-        validation_next = validation_actions[0] if validation_actions else "prepare_validated_sk_source_version"
+        validation_actions = _pipeline_stage_supported_next_actions(
+            source_version_validation
+        )
+        validation_next = (
+            validation_actions[0]
+            if validation_actions
+            else "prepare_validated_sk_source_version"
+        )
     stages.append(
         _source_version_pipeline_stage(
             SourceVersionPipelineStageInput(
@@ -4284,7 +4743,9 @@ __version__ = "0.0.0"
 '''
 
 
-def _require_dict_keys(payload: Any, expected_keys: set[str], label: str) -> dict[str, Any]:
+def _require_dict_keys(
+    payload: Any, expected_keys: set[str], label: str
+) -> dict[str, Any]:
     if not isinstance(payload, dict):
         raise CliUsageError(f"{label} must be an object")
     keys = set(payload)
@@ -4294,7 +4755,9 @@ def _require_dict_keys(payload: Any, expected_keys: set[str], label: str) -> dic
     unexpected = keys - expected_keys
     if unexpected:
         if label == "scaffold manifest":
-            raise CliUsageError(f"unexpected scaffold manifest field: {sorted(unexpected)[0]}")
+            raise CliUsageError(
+                f"unexpected scaffold manifest field: {sorted(unexpected)[0]}"
+            )
         raise CliUsageError(f"unexpected {label} field: {sorted(unexpected)[0]}")
     return payload
 
@@ -4314,7 +4777,9 @@ def _load_scaffold_manifest_for_validation(scaffold_output_dir: Path) -> dict[st
     _require_string(manifest["asset_level"], "asset_level", allow_empty=False)
 
     source_files = _require_list(manifest["source_files"], "source_files")
-    manifest["source_files"] = [_validate_manifest_path(item, "source_files path") for item in source_files]
+    manifest["source_files"] = [
+        _validate_manifest_path(item, "source_files path") for item in source_files
+    ]
 
     kernel_entries = _require_list(manifest["kernel_entries"], "kernel_entries")
     normalized_entries: list[dict[str, str]] = []
@@ -4328,25 +4793,33 @@ def _load_scaffold_manifest_for_validation(scaffold_output_dir: Path) -> dict[st
         )
     manifest["kernel_entries"] = normalized_entries
 
-    copied_source_files = _require_list(manifest["copied_source_files"], "copied_source_files")
+    copied_source_files = _require_list(
+        manifest["copied_source_files"], "copied_source_files"
+    )
     normalized_copied: list[dict[str, str]] = []
     for copied in copied_source_files:
         item = _require_dict_keys(copied, {"source", "scaffold_path"}, "copied source")
         normalized_copied.append(
             {
                 "source": _validate_manifest_path(item["source"], "copied source path"),
-                "scaffold_path": _validate_manifest_path(item["scaffold_path"], "copied scaffold path"),
+                "scaffold_path": _validate_manifest_path(
+                    item["scaffold_path"], "copied scaffold path"
+                ),
             }
         )
     manifest["copied_source_files"] = normalized_copied
 
     generated_files = _require_list(manifest["generated_files"], "generated_files")
-    manifest["generated_files"] = [_validate_manifest_path(item, "generated file path") for item in generated_files]
+    manifest["generated_files"] = [
+        _validate_manifest_path(item, "generated file path") for item in generated_files
+    ]
 
     skipped_items = _require_list(manifest["skipped_items"], "skipped_items")
     normalized_skipped: list[dict[str, str]] = []
     for skipped in skipped_items:
-        item = _require_dict_keys(skipped, {"reason", "suggested_path", "cause"}, "skipped item")
+        item = _require_dict_keys(
+            skipped, {"reason", "suggested_path", "cause"}, "skipped item"
+        )
         normalized_skipped.append(
             {
                 "reason": _require_string(item["reason"], "skipped reason"),
@@ -4361,17 +4834,27 @@ def _load_scaffold_manifest_for_validation(scaffold_output_dir: Path) -> dict[st
     manifest["skipped_items"] = normalized_skipped
 
     blocked_reasons = _require_list(manifest["blocked_reasons"], "blocked_reasons")
-    manifest["blocked_reasons"] = [_require_string(item, "blocked reason") for item in blocked_reasons]
+    manifest["blocked_reasons"] = [
+        _require_string(item, "blocked reason") for item in blocked_reasons
+    ]
     boundary = _require_list(manifest["execution_boundary"], "execution_boundary")
-    manifest["execution_boundary"] = [_require_string(item, "execution boundary") for item in boundary]
+    manifest["execution_boundary"] = [
+        _require_string(item, "execution boundary") for item in boundary
+    ]
 
     if status == "generated" and manifest["blocked_reasons"]:
-        raise CliUsageError("generated scaffold manifest must not include blocked_reasons")
+        raise CliUsageError(
+            "generated scaffold manifest must not include blocked_reasons"
+        )
     if status == "blocked":
         if not manifest["blocked_reasons"]:
-            raise CliUsageError("blocked scaffold manifest must include blocked_reasons")
+            raise CliUsageError(
+                "blocked scaffold manifest must include blocked_reasons"
+            )
         if manifest["generated_files"] or manifest["copied_source_files"]:
-            raise CliUsageError("blocked scaffold manifest must not include generated files")
+            raise CliUsageError(
+                "blocked scaffold manifest must not include generated files"
+            )
     return manifest
 
 
@@ -4398,21 +4881,34 @@ def _load_validation_manifest_for_preflight(
         raise CliUsageError(f"invalid validation manifest status: {status}")
 
     expected_output_dir = str(scaffold_output_dir.resolve())
-    if _require_string(manifest["scaffold_output_dir"], "validation scaffold_output_dir") != expected_output_dir:
+    if (
+        _require_string(
+            manifest["scaffold_output_dir"], "validation scaffold_output_dir"
+        )
+        != expected_output_dir
+    ):
         raise CliUsageError("validation scaffold_output_dir mismatch")
     if (
-        _require_string(manifest["scaffold_manifest_path"], "validation scaffold_manifest_path")
+        _require_string(
+            manifest["scaffold_manifest_path"], "validation scaffold_manifest_path"
+        )
         != "operator-scaffold-manifest.json"
     ):
         raise CliUsageError("validation scaffold_manifest_path mismatch")
-    boundary = _require_list(manifest["execution_boundary"], "validation execution_boundary")
-    if [_require_string(item, "validation execution boundary") for item in boundary] != VALIDATION_BOUNDARY:
+    boundary = _require_list(
+        manifest["execution_boundary"], "validation execution_boundary"
+    )
+    if [
+        _require_string(item, "validation execution boundary") for item in boundary
+    ] != VALIDATION_BOUNDARY:
         raise CliUsageError("validation execution_boundary mismatch")
 
     checks = _require_list(manifest["checks"], "validation checks")
     normalized_checks: dict[str, dict[str, Any]] = {}
     for check in checks:
-        item = _require_exact_keys(check, {"name", "status", "reason", "evidence"}, "validation check")
+        item = _require_exact_keys(
+            check, {"name", "status", "reason", "evidence"}, "validation check"
+        )
         name = _require_string(item["name"], "validation check name")
         if name in normalized_checks:
             raise CliUsageError("duplicate validation check")
@@ -4424,7 +4920,10 @@ def _load_validation_manifest_for_preflight(
             "name": name,
             "status": check_status,
             "reason": _require_string(item["reason"], "validation check reason"),
-            "evidence": [_require_string(value, "validation check evidence item") for value in evidence],
+            "evidence": [
+                _require_string(value, "validation check evidence item")
+                for value in evidence
+            ],
         }
     if set(normalized_checks) != set(VALIDATION_CHECK_NAMES):
         raise CliUsageError("validation checks mismatch")
@@ -4442,13 +4941,20 @@ def _load_validation_manifest_for_preflight(
             raise CliUsageError("local-ok validation must not contain blocked checks")
     elif status == "local-failed":
         if "blocked" in check_statuses:
-            raise CliUsageError("local-failed validation must not contain blocked checks")
+            raise CliUsageError(
+                "local-failed validation must not contain blocked checks"
+            )
         if "failed" not in check_statuses:
             raise CliUsageError("local-failed validation must contain failed checks")
     else:
         scaffold_project = normalized_checks["scaffold_project_present"]
-        if scaffold_project["status"] != "blocked" or scaffold_project["reason"] != "scaffold_generation_blocked":
-            raise CliUsageError("blocked validation missing scaffold_generation_blocked check")
+        if (
+            scaffold_project["status"] != "blocked"
+            or scaffold_project["reason"] != "scaffold_generation_blocked"
+        ):
+            raise CliUsageError(
+                "blocked validation missing scaffold_generation_blocked check"
+            )
         if "failed" in check_statuses:
             raise CliUsageError("blocked validation must not contain failed checks")
 
@@ -4464,7 +4970,9 @@ def _load_validation_manifest_for_preflight(
     }
 
 
-def _validate_validation_check_semantics(status: str, checks: dict[str, dict[str, Any]]) -> None:
+def _validate_validation_check_semantics(
+    status: str, checks: dict[str, dict[str, Any]]
+) -> None:
     allowed_by_status = {
         "local-ok": {
             "scaffold_manifest_present": {("passed", "scaffold_manifest_loaded")},
@@ -4544,7 +5052,9 @@ def _normalize_preflight_manifest_checks(
 ) -> dict[str, dict[str, Any]]:
     normalized_checks: dict[str, dict[str, Any]] = {}
     for check in checks:
-        item = _require_exact_keys(check, {"name", "status", "reason", "evidence"}, "preflight check")
+        item = _require_exact_keys(
+            check, {"name", "status", "reason", "evidence"}, "preflight check"
+        )
         name = _require_string(item["name"], "preflight check name")
         if name in normalized_checks:
             raise CliUsageError("duplicate preflight check")
@@ -4556,14 +5066,19 @@ def _normalize_preflight_manifest_checks(
             "name": name,
             "status": check_status,
             "reason": _require_string(item["reason"], "preflight check reason"),
-            "evidence": [_require_string(value, "preflight check evidence item") for value in evidence],
+            "evidence": [
+                _require_string(value, "preflight check evidence item")
+                for value in evidence
+            ],
         }
     if set(normalized_checks) != set(PREFLIGHT_CHECK_NAMES):
         raise CliUsageError("preflight checks mismatch")
     return normalized_checks
 
 
-def _validate_preflight_check_semantics(status: str, checks: dict[str, dict[str, Any]]) -> None:
+def _validate_preflight_check_semantics(
+    status: str, checks: dict[str, dict[str, Any]]
+) -> None:
     allowed = {
         "validation_manifest_accepted": {
             ("passed", "validation_manifest_local_ok"),
@@ -4646,17 +5161,29 @@ def _validate_preflight_check_semantics(status: str, checks: dict[str, dict[str,
 
     if status == "environment-missing":
         if "blocked" in check_statuses:
-            raise CliUsageError("environment-missing preflight must not contain blocked checks")
+            raise CliUsageError(
+                "environment-missing preflight must not contain blocked checks"
+            )
         if "failed" not in check_statuses:
-            raise CliUsageError("environment-missing preflight must contain failed checks")
+            raise CliUsageError(
+                "environment-missing preflight must contain failed checks"
+            )
         if checks["validation_manifest_accepted"]["status"] != "passed":
-            raise CliUsageError("environment-missing preflight requires accepted validation manifest")
+            raise CliUsageError(
+                "environment-missing preflight requires accepted validation manifest"
+            )
         return
 
     validation_check = checks["validation_manifest_accepted"]
-    if validation_check["status"] == "blocked" and validation_check["reason"] == "scaffold_generation_blocked":
+    if (
+        validation_check["status"] == "blocked"
+        and validation_check["reason"] == "scaffold_generation_blocked"
+    ):
         upstream_reason = "scaffold_generation_blocked"
-    elif validation_check["status"] == "failed" and validation_check["reason"] == "validation_manifest_local_failed":
+    elif (
+        validation_check["status"] == "failed"
+        and validation_check["reason"] == "validation_manifest_local_failed"
+    ):
         upstream_reason = "validation_manifest_local_failed"
     else:
         raise CliUsageError("blocked preflight semantics mismatch")
@@ -4687,23 +5214,38 @@ def _load_preflight_manifest_for_test_run(scaffold_output_dir: Path) -> dict[str
     if status not in {"ready", "blocked", "environment-missing"}:
         raise CliUsageError(f"invalid preflight manifest status: {status}")
     expected_output_dir = str(scaffold_output_dir.resolve())
-    if _require_string(manifest["scaffold_output_dir"], "preflight scaffold_output_dir") != expected_output_dir:
+    if (
+        _require_string(
+            manifest["scaffold_output_dir"], "preflight scaffold_output_dir"
+        )
+        != expected_output_dir
+    ):
         raise CliUsageError("preflight scaffold_output_dir mismatch")
     if (
-        _require_string(manifest["scaffold_manifest_path"], "preflight scaffold_manifest_path")
+        _require_string(
+            manifest["scaffold_manifest_path"], "preflight scaffold_manifest_path"
+        )
         != "operator-scaffold-manifest.json"
     ):
         raise CliUsageError("preflight scaffold_manifest_path mismatch")
     if (
-        _require_string(manifest["validation_manifest_path"], "preflight validation_manifest_path")
+        _require_string(
+            manifest["validation_manifest_path"], "preflight validation_manifest_path"
+        )
         != "operator-validation-manifest.json"
     ):
         raise CliUsageError("preflight validation_manifest_path mismatch")
-    boundary = _require_list(manifest["execution_boundary"], "preflight execution_boundary")
-    if [_require_string(item, "preflight execution boundary") for item in boundary] != PREFLIGHT_BOUNDARY:
+    boundary = _require_list(
+        manifest["execution_boundary"], "preflight execution_boundary"
+    )
+    if [
+        _require_string(item, "preflight execution boundary") for item in boundary
+    ] != PREFLIGHT_BOUNDARY:
         raise CliUsageError("preflight execution_boundary mismatch")
 
-    checks = _normalize_preflight_manifest_checks(_require_list(manifest["checks"], "preflight checks"))
+    checks = _normalize_preflight_manifest_checks(
+        _require_list(manifest["checks"], "preflight checks")
+    )
     _validate_preflight_check_semantics(status, checks)
     return {
         "status": status,
@@ -4729,22 +5271,35 @@ def _normalize_scaffold_test_result_checks(
         name = _require_string(item["name"], "scaffold test result check name")
         if name in normalized_checks:
             raise CliUsageError("duplicate scaffold test result check")
-        check_status = _require_string(item["status"], "scaffold test result check status")
+        check_status = _require_string(
+            item["status"], "scaffold test result check status"
+        )
         if check_status not in {"passed", "failed", "blocked"}:
-            raise CliUsageError(f"invalid scaffold test result check status: {check_status}")
-        evidence = _require_list(item["evidence"], "scaffold test result check evidence")
+            raise CliUsageError(
+                f"invalid scaffold test result check status: {check_status}"
+            )
+        evidence = _require_list(
+            item["evidence"], "scaffold test result check evidence"
+        )
         normalized_checks[name] = {
             "name": name,
             "status": check_status,
-            "reason": _require_string(item["reason"], "scaffold test result check reason"),
-            "evidence": [_require_string(value, "scaffold test result check evidence item") for value in evidence],
+            "reason": _require_string(
+                item["reason"], "scaffold test result check reason"
+            ),
+            "evidence": [
+                _require_string(value, "scaffold test result check evidence item")
+                for value in evidence
+            ],
         }
     if set(normalized_checks) != set(SCAFFOLD_TEST_CHECK_NAMES):
         raise CliUsageError("scaffold test result checks mismatch")
     return normalized_checks
 
 
-def _validate_scaffold_test_result_semantics(status: str, checks: dict[str, dict[str, Any]]) -> None:
+def _validate_scaffold_test_result_semantics(
+    status: str, checks: dict[str, dict[str, Any]]
+) -> None:
     allowed = {
         "preflight_ready": {
             ("passed", "preflight_ready"),
@@ -4785,28 +5340,44 @@ def _validate_scaffold_test_result_semantics(status: str, checks: dict[str, dict
     for name, check in checks.items():
         allowed_for_name = allowed.get(name)
         if allowed_for_name is None:
-            raise CliUsageError(f"invalid scaffold test result check semantics for {name}")
+            raise CliUsageError(
+                f"invalid scaffold test result check semantics for {name}"
+            )
         check_status = check.get("status")
         check_reason = check.get("reason")
         if (check_status, check_reason) not in allowed_for_name:
-            raise CliUsageError(f"invalid scaffold test result check semantics for {name}")
+            raise CliUsageError(
+                f"invalid scaffold test result check semantics for {name}"
+            )
 
     statuses = [check["status"] for check in checks.values()]
     if status == "passed":
         if any(item != "passed" for item in statuses):
-            raise CliUsageError("passed scaffold test result must contain only passed checks")
+            raise CliUsageError(
+                "passed scaffold test result must contain only passed checks"
+            )
         if checks["pytest_contract_execution"]["reason"] != "pytest_contract_passed":
-            raise CliUsageError("passed scaffold test result missing pytest_contract_passed")
+            raise CliUsageError(
+                "passed scaffold test result missing pytest_contract_passed"
+            )
     elif status == "failed":
         if "blocked" in statuses:
-            raise CliUsageError("failed scaffold test result must not contain blocked checks")
+            raise CliUsageError(
+                "failed scaffold test result must not contain blocked checks"
+            )
         if checks["pytest_contract_execution"]["status"] != "failed":
-            raise CliUsageError("failed scaffold test result requires failed pytest execution")
+            raise CliUsageError(
+                "failed scaffold test result requires failed pytest execution"
+            )
     else:
         if "failed" in statuses:
-            raise CliUsageError("blocked scaffold test result must not contain failed checks")
+            raise CliUsageError(
+                "blocked scaffold test result must not contain failed checks"
+            )
         if "blocked" not in statuses:
-            raise CliUsageError("blocked scaffold test result must contain blocked checks")
+            raise CliUsageError(
+                "blocked scaffold test result must contain blocked checks"
+            )
 
 
 def _expected_scaffold_test_command(scaffold_manifest: dict[str, Any]) -> list[str]:
@@ -4855,7 +5426,9 @@ def _load_scaffold_test_result_for_build(
         raise CliUsageError(f"invalid scaffold test result status: {status}")
     expected_output_dir = str(scaffold_output_dir.resolve())
     if (
-        _require_string(manifest["scaffold_output_dir"], "scaffold test result scaffold_output_dir")
+        _require_string(
+            manifest["scaffold_output_dir"], "scaffold test result scaffold_output_dir"
+        )
         != expected_output_dir
     ):
         raise CliUsageError("scaffold test result scaffold_output_dir mismatch")
@@ -4867,14 +5440,19 @@ def _load_scaffold_test_result_for_build(
         != "operator-execution-preflight.json"
     ):
         raise CliUsageError("scaffold test result preflight_manifest_path mismatch")
-    boundary = _require_list(manifest["execution_boundary"], "scaffold test result execution_boundary")
+    boundary = _require_list(
+        manifest["execution_boundary"], "scaffold test result execution_boundary"
+    )
     if [
-        _require_string(item, "scaffold test result execution boundary") for item in boundary
+        _require_string(item, "scaffold test result execution boundary")
+        for item in boundary
     ] != SCAFFOLD_TEST_BOUNDARY:
         raise CliUsageError("scaffold test result execution_boundary mismatch")
 
     command = _require_list(manifest["command"], "scaffold test result command")
-    normalized_command = [_require_string(item, "scaffold test result command item") for item in command]
+    normalized_command = [
+        _require_string(item, "scaffold test result command item") for item in command
+    ]
     expected_command = _expected_scaffold_test_command(scaffold_manifest)
     if status == "blocked":
         if normalized_command:
@@ -4882,7 +5460,9 @@ def _load_scaffold_test_result_for_build(
     elif normalized_command != expected_command:
         raise CliUsageError("scaffold test result command mismatch")
 
-    checks = _normalize_scaffold_test_result_checks(_require_list(manifest["checks"], "scaffold test result checks"))
+    checks = _normalize_scaffold_test_result_checks(
+        _require_list(manifest["checks"], "scaffold test result checks")
+    )
     _validate_scaffold_test_result_semantics(status, checks)
     return {
         "status": status,
@@ -4908,22 +5488,35 @@ def _normalize_scaffold_build_result_checks(
         name = _require_string(item["name"], "scaffold build result check name")
         if name in normalized_checks:
             raise CliUsageError("duplicate scaffold build result check")
-        check_status = _require_string(item["status"], "scaffold build result check status")
+        check_status = _require_string(
+            item["status"], "scaffold build result check status"
+        )
         if check_status not in {"passed", "failed", "blocked"}:
-            raise CliUsageError(f"invalid scaffold build result check status: {check_status}")
-        evidence = _require_list(item["evidence"], "scaffold build result check evidence")
+            raise CliUsageError(
+                f"invalid scaffold build result check status: {check_status}"
+            )
+        evidence = _require_list(
+            item["evidence"], "scaffold build result check evidence"
+        )
         normalized_checks[name] = {
             "name": name,
             "status": check_status,
-            "reason": _require_string(item["reason"], "scaffold build result check reason"),
-            "evidence": [_require_string(value, "scaffold build result check evidence item") for value in evidence],
+            "reason": _require_string(
+                item["reason"], "scaffold build result check reason"
+            ),
+            "evidence": [
+                _require_string(value, "scaffold build result check evidence item")
+                for value in evidence
+            ],
         }
     if set(normalized_checks) != set(SCAFFOLD_BUILD_CHECK_NAMES):
         raise CliUsageError("scaffold build result checks mismatch")
     return normalized_checks
 
 
-def _validate_scaffold_build_result_semantics(status: str, checks: dict[str, dict[str, Any]]) -> None:
+def _validate_scaffold_build_result_semantics(
+    status: str, checks: dict[str, dict[str, Any]]
+) -> None:
     allowed = {
         "preflight_ready": {
             ("passed", "preflight_ready"),
@@ -5010,11 +5603,15 @@ def _validate_scaffold_build_result_semantics(status: str, checks: dict[str, dic
     for name, check in checks.items():
         allowed_for_name = allowed.get(name)
         if allowed_for_name is None:
-            raise CliUsageError(f"invalid scaffold build result check semantics for {name}")
+            raise CliUsageError(
+                f"invalid scaffold build result check semantics for {name}"
+            )
         check_status = check.get("status")
         check_reason = check.get("reason")
         if (check_status, check_reason) not in allowed_for_name:
-            raise CliUsageError(f"invalid scaffold build result check semantics for {name}")
+            raise CliUsageError(
+                f"invalid scaffold build result check semantics for {name}"
+            )
 
     passed_reasons = {
         "preflight_ready": "preflight_ready",
@@ -5044,39 +5641,63 @@ def _validate_scaffold_build_result_semantics(status: str, checks: dict[str, dic
 
     def _is_passed_shape(name: str) -> bool:
         check = checks.get(name, {})
-        return check.get("status") == "passed" and check.get("reason") == passed_reasons.get(name)
+        return check.get("status") == "passed" and check.get(
+            "reason"
+        ) == passed_reasons.get(name)
 
     statuses = [check["status"] for check in checks.values()]
     if status == "passed":
         if any(item != "passed" for item in statuses):
-            raise CliUsageError("passed scaffold build result must contain only passed checks")
+            raise CliUsageError(
+                "passed scaffold build result must contain only passed checks"
+            )
         if checks["cmake_build"]["reason"] != "cmake_build_passed":
-            raise CliUsageError("passed scaffold build result missing cmake_build_passed")
+            raise CliUsageError(
+                "passed scaffold build result missing cmake_build_passed"
+            )
     elif status == "failed":
         if "failed" not in statuses:
-            raise CliUsageError("failed scaffold build result must contain failed checks")
+            raise CliUsageError(
+                "failed scaffold build result must contain failed checks"
+            )
         for name in SCAFFOLD_BUILD_CHECK_NAMES[:6]:
             if not _is_passed_shape(name):
                 raise CliUsageError("failed scaffold build result semantics mismatch")
         configure_check = checks["cmake_configure"]
         build_check = checks["cmake_build"]
         if configure_check["status"] == "failed":
-            if build_check["status"] != "blocked" or build_check["reason"] != "configure_not_passed":
+            if (
+                build_check["status"] != "blocked"
+                or build_check["reason"] != "configure_not_passed"
+            ):
                 raise CliUsageError("failed scaffold build result semantics mismatch")
         elif build_check["status"] == "failed":
-            if configure_check["status"] != "passed" or configure_check["reason"] != "cmake_configure_passed":
+            if (
+                configure_check["status"] != "passed"
+                or configure_check["reason"] != "cmake_configure_passed"
+            ):
                 raise CliUsageError("failed scaffold build result semantics mismatch")
         else:
-            raise CliUsageError("failed scaffold build result requires configure or build failure")
+            raise CliUsageError(
+                "failed scaffold build result requires configure or build failure"
+            )
     else:
         if "failed" in statuses:
-            raise CliUsageError("blocked scaffold build result must not contain failed checks")
+            raise CliUsageError(
+                "blocked scaffold build result must not contain failed checks"
+            )
         if "blocked" not in statuses:
-            raise CliUsageError("blocked scaffold build result must contain blocked checks")
+            raise CliUsageError(
+                "blocked scaffold build result must contain blocked checks"
+            )
         first_blocked_index = next(
-            index for index, name in enumerate(SCAFFOLD_BUILD_CHECK_NAMES) if checks[name]["status"] == "blocked"
+            index
+            for index, name in enumerate(SCAFFOLD_BUILD_CHECK_NAMES)
+            if checks[name]["status"] == "blocked"
         )
-        if SCAFFOLD_BUILD_CHECK_NAMES[first_blocked_index] not in set(SCAFFOLD_BUILD_CHECK_NAMES[:6]):
+        if SCAFFOLD_BUILD_CHECK_NAMES[first_blocked_index] not in set(
+            SCAFFOLD_BUILD_CHECK_NAMES[:6]
+        ):
             raise CliUsageError("blocked scaffold build result semantics mismatch")
         first_blocked_name = SCAFFOLD_BUILD_CHECK_NAMES[first_blocked_index]
         blocked_reason = checks[first_blocked_name]["reason"]
@@ -5103,7 +5724,10 @@ def _validate_scaffold_build_commands(
     for command in commands:
         command_items = _require_list(command, "scaffold build result command")
         normalized_commands.append(
-            [_require_string(item, "scaffold build result command item") for item in command_items]
+            [
+                _require_string(item, "scaffold build result command item")
+                for item in command_items
+            ]
         )
 
     scaffold_dir = str(scaffold_output_dir / "operator-scaffold")
@@ -5162,7 +5786,9 @@ def _load_scaffold_build_result_for_readiness(
         raise CliUsageError(f"invalid scaffold build result status: {status}")
     expected_output_dir = str(scaffold_output_dir.resolve())
     if (
-        _require_string(manifest["scaffold_output_dir"], "scaffold build result scaffold_output_dir")
+        _require_string(
+            manifest["scaffold_output_dir"], "scaffold build result scaffold_output_dir"
+        )
         != expected_output_dir
     ):
         raise CliUsageError("scaffold build result scaffold_output_dir mismatch")
@@ -5182,18 +5808,27 @@ def _load_scaffold_build_result_for_readiness(
         != "operator-scaffold-test-result.json"
     ):
         raise CliUsageError("scaffold build result test_result_manifest_path mismatch")
-    build_dir = _require_string(manifest["build_dir"], "scaffold build result build_dir", allow_empty=True)
+    build_dir = _require_string(
+        manifest["build_dir"], "scaffold build result build_dir", allow_empty=True
+    )
     blocked_with_build_dir = status == "blocked" and build_dir
-    unblocked_without_expected_build_dir = status != "blocked" and build_dir != "operator-scaffold-build"
+    unblocked_without_expected_build_dir = (
+        status != "blocked" and build_dir != "operator-scaffold-build"
+    )
     if blocked_with_build_dir or unblocked_without_expected_build_dir:
         raise CliUsageError("scaffold build result build_dir mismatch")
-    boundary = _require_list(manifest["execution_boundary"], "scaffold build result execution_boundary")
+    boundary = _require_list(
+        manifest["execution_boundary"], "scaffold build result execution_boundary"
+    )
     if [
-        _require_string(item, "scaffold build result execution boundary") for item in boundary
+        _require_string(item, "scaffold build result execution boundary")
+        for item in boundary
     ] != SCAFFOLD_BUILD_BOUNDARY:
         raise CliUsageError("scaffold build result execution_boundary mismatch")
 
-    checks = _normalize_scaffold_build_result_checks(_require_list(manifest["checks"], "scaffold build result checks"))
+    checks = _normalize_scaffold_build_result_checks(
+        _require_list(manifest["checks"], "scaffold build result checks")
+    )
     _validate_scaffold_build_result_semantics(status, checks)
     commands = _validate_scaffold_build_commands(
         status,
@@ -5214,7 +5849,9 @@ def _load_scaffold_build_result_for_readiness(
     }
 
 
-def _readiness_check(name: str, status: str, reason: str, evidence: list[str] | None = None) -> dict[str, Any]:
+def _readiness_check(
+    name: str, status: str, reason: str, evidence: list[str] | None = None
+) -> dict[str, Any]:
     return {
         "name": name,
         "status": status,
@@ -5240,7 +5877,9 @@ def _readiness_manifest(
         "scaffold_output_dir": str(request.scaffold_output_dir.resolve()),
         "artifact_paths": request.artifact_paths,
         "artifact_statuses": request.artifact_statuses,
-        "readiness_checks": [request.checks[name] for name in SCAFFOLD_READINESS_CHECK_NAMES],
+        "readiness_checks": [
+            request.checks[name] for name in SCAFFOLD_READINESS_CHECK_NAMES
+        ],
         "supported_next_actions": request.supported_next_actions,
         "execution_boundary": SCAFFOLD_READINESS_BOUNDARY,
     }
@@ -5248,34 +5887,52 @@ def _readiness_manifest(
 
 def _readiness_boundary_checks() -> dict[str, dict[str, Any]]:
     return {
-        "package_boundary_open": _readiness_check("package_boundary_open", "open", "package_not_produced"),
-        "runtime_boundary_open": _readiness_check("runtime_boundary_open", "open", "runtime_not_executed"),
-        "correctness_boundary_open": _readiness_check("correctness_boundary_open", "open", "correctness_not_validated"),
-        "handoff_boundary_open": _readiness_check("handoff_boundary_open", "open", "handoff_not_completed"),
+        "package_boundary_open": _readiness_check(
+            "package_boundary_open", "open", "package_not_produced"
+        ),
+        "runtime_boundary_open": _readiness_check(
+            "runtime_boundary_open", "open", "runtime_not_executed"
+        ),
+        "correctness_boundary_open": _readiness_check(
+            "correctness_boundary_open", "open", "correctness_not_validated"
+        ),
+        "handoff_boundary_open": _readiness_check(
+            "handoff_boundary_open", "open", "handoff_not_completed"
+        ),
     }
 
 
-def _summarize_scaffold_readiness(scaffold_output_dir: Path, scaffold_manifest: dict[str, Any]) -> dict[str, Any]:
+def _summarize_scaffold_readiness(
+    scaffold_output_dir: Path, scaffold_manifest: dict[str, Any]
+) -> dict[str, Any]:
     artifact_paths = {
         "scaffold_manifest": "operator-scaffold-manifest.json",
         "validation_manifest": (
             "operator-validation-manifest.json"
-            if _artifact_path_exists(scaffold_output_dir / "operator-validation-manifest.json")
+            if _artifact_path_exists(
+                scaffold_output_dir / "operator-validation-manifest.json"
+            )
             else ""
         ),
         "preflight_manifest": (
             "operator-execution-preflight.json"
-            if _artifact_path_exists(scaffold_output_dir / "operator-execution-preflight.json")
+            if _artifact_path_exists(
+                scaffold_output_dir / "operator-execution-preflight.json"
+            )
             else ""
         ),
         "test_result_manifest": (
             "operator-scaffold-test-result.json"
-            if _artifact_path_exists(scaffold_output_dir / "operator-scaffold-test-result.json")
+            if _artifact_path_exists(
+                scaffold_output_dir / "operator-scaffold-test-result.json"
+            )
             else ""
         ),
         "build_result_manifest": (
             "operator-scaffold-build-result.json"
-            if _artifact_path_exists(scaffold_output_dir / "operator-scaffold-build-result.json")
+            if _artifact_path_exists(
+                scaffold_output_dir / "operator-scaffold-build-result.json"
+            )
             else ""
         ),
     }
@@ -5290,28 +5947,44 @@ def _summarize_scaffold_readiness(scaffold_output_dir: Path, scaffold_manifest: 
         "scaffold_manifest_accepted": _readiness_check(
             "scaffold_manifest_accepted",
             "passed" if scaffold_manifest["status"] == "generated" else "blocked",
-            "scaffold_manifest_loaded" if scaffold_manifest["status"] == "generated" else "scaffold_generation_blocked",
+            "scaffold_manifest_loaded"
+            if scaffold_manifest["status"] == "generated"
+            else "scaffold_generation_blocked",
             ["operator-scaffold-manifest.json"],
         ),
         **_readiness_boundary_checks(),
     }
     loaded_artifacts: dict[str, dict[str, Any]] = {}
     if artifact_paths["validation_manifest"]:
-        loaded_artifacts["validation_manifest"] = _load_validation_manifest_for_preflight(
-            scaffold_output_dir, scaffold_manifest
+        loaded_artifacts["validation_manifest"] = (
+            _load_validation_manifest_for_preflight(
+                scaffold_output_dir, scaffold_manifest
+            )
         )
-        artifact_statuses["validation_manifest"] = loaded_artifacts["validation_manifest"]["status"]
+        artifact_statuses["validation_manifest"] = loaded_artifacts[
+            "validation_manifest"
+        ]["status"]
     if artifact_paths["preflight_manifest"]:
-        loaded_artifacts["preflight_manifest"] = _load_preflight_manifest_for_test_run(scaffold_output_dir)
-        artifact_statuses["preflight_manifest"] = loaded_artifacts["preflight_manifest"]["status"]
+        loaded_artifacts["preflight_manifest"] = _load_preflight_manifest_for_test_run(
+            scaffold_output_dir
+        )
+        artifact_statuses["preflight_manifest"] = loaded_artifacts[
+            "preflight_manifest"
+        ]["status"]
     if artifact_paths["test_result_manifest"]:
         loaded_artifacts["test_result_manifest"] = _load_scaffold_test_result_for_build(
             scaffold_output_dir, scaffold_manifest
         )
-        artifact_statuses["test_result_manifest"] = loaded_artifacts["test_result_manifest"]["status"]
+        artifact_statuses["test_result_manifest"] = loaded_artifacts[
+            "test_result_manifest"
+        ]["status"]
     if artifact_paths["build_result_manifest"]:
-        loaded_artifacts["build_result_manifest"] = _load_scaffold_build_result_for_readiness(scaffold_output_dir)
-        artifact_statuses["build_result_manifest"] = loaded_artifacts["build_result_manifest"]["status"]
+        loaded_artifacts["build_result_manifest"] = (
+            _load_scaffold_build_result_for_readiness(scaffold_output_dir)
+        )
+        artifact_statuses["build_result_manifest"] = loaded_artifacts[
+            "build_result_manifest"
+        ]["status"]
 
     if scaffold_manifest["status"] == "blocked":
         for name, reason in (
@@ -5378,7 +6051,11 @@ def _summarize_scaffold_readiness(scaffold_output_dir: Path, scaffold_manifest: 
         checks["cmake_build_result_accepted"] = _readiness_check(
             "cmake_build_result_accepted", "missing", "cmake_build_result_missing"
         )
-        top_status = "blocked" if validation_manifest["status"] == "blocked" else "local-build-blocked"
+        top_status = (
+            "blocked"
+            if validation_manifest["status"] == "blocked"
+            else "local-build-blocked"
+        )
         return _readiness_manifest(
             ReadinessManifestInput(
                 scaffold_output_dir,
@@ -5579,11 +6256,15 @@ def _load_readiness_manifest_for_package_contract(
     manifest = _load_json_artifact(manifest_path, "operator-scaffold-readiness.json")
     expected = _summarize_scaffold_readiness(scaffold_output_dir, scaffold_manifest)
     if manifest != expected:
-        raise CliUsageError("operator-scaffold-readiness.json does not match current scaffold artifacts")
+        raise CliUsageError(
+            "operator-scaffold-readiness.json does not match current scaffold artifacts"
+        )
     return expected
 
 
-def _package_contract_check(name: str, status: str, reason: str, evidence: list[str] | None = None) -> dict[str, Any]:
+def _package_contract_check(
+    name: str, status: str, reason: str, evidence: list[str] | None = None
+) -> dict[str, Any]:
     return {
         "name": name,
         "status": status,
@@ -5640,7 +6321,9 @@ def _summarize_package_contract(
             "readiness_not_local_build_passed",
             ["operator-scaffold-readiness.json"],
         )
-        _fill_blocked_package_checks(check_results, "package_files_declared", "readiness_not_local_build_passed")
+        _fill_blocked_package_checks(
+            check_results, "package_files_declared", "readiness_not_local_build_passed"
+        )
         return _package_contract_manifest(
             scaffold_output_dir,
             "blocked",
@@ -5686,7 +6369,9 @@ def _summarize_package_contract(
     )
     check_results["pyproject_contract_current"] = pyproject_check
     if pyproject_check["status"] == "blocked":
-        _fill_blocked_package_checks(check_results, "package_marker_current", pyproject_check["reason"])
+        _fill_blocked_package_checks(
+            check_results, "package_marker_current", pyproject_check["reason"]
+        )
         return _package_contract_manifest(
             scaffold_output_dir,
             "blocked",
@@ -5734,45 +6419,75 @@ def _package_file_current_check(
 ) -> dict[str, Any]:
     evidence = [f"operator-scaffold/{relative_path}"]
     if scaffold_dir.is_symlink():
-        return _package_contract_check(check_name, "blocked", f"{reason_prefix}_path_escape", evidence)
+        return _package_contract_check(
+            check_name, "blocked", f"{reason_prefix}_path_escape", evidence
+        )
     if not scaffold_dir.exists():
-        return _package_contract_check(check_name, "blocked", f"{reason_prefix}_missing", evidence)
+        return _package_contract_check(
+            check_name, "blocked", f"{reason_prefix}_missing", evidence
+        )
     if not scaffold_dir.is_dir():
-        return _package_contract_check(check_name, "blocked", f"{reason_prefix}_not_file", evidence)
+        return _package_contract_check(
+            check_name, "blocked", f"{reason_prefix}_not_file", evidence
+        )
 
     current_parent = scaffold_dir
     for part in Path(relative_path).parent.parts:
         current_parent = current_parent / part
         if current_parent.is_symlink():
-            return _package_contract_check(check_name, "blocked", f"{reason_prefix}_path_escape", evidence)
+            return _package_contract_check(
+                check_name, "blocked", f"{reason_prefix}_path_escape", evidence
+            )
         if not current_parent.exists():
-            return _package_contract_check(check_name, "blocked", f"{reason_prefix}_missing", evidence)
+            return _package_contract_check(
+                check_name, "blocked", f"{reason_prefix}_missing", evidence
+            )
         if not current_parent.is_dir():
-            return _package_contract_check(check_name, "blocked", f"{reason_prefix}_not_file", evidence)
+            return _package_contract_check(
+                check_name, "blocked", f"{reason_prefix}_not_file", evidence
+            )
 
     path = scaffold_dir / relative_path
     if path.is_symlink():
-        return _package_contract_check(check_name, "blocked", f"{reason_prefix}_not_regular_file", evidence)
+        return _package_contract_check(
+            check_name, "blocked", f"{reason_prefix}_not_regular_file", evidence
+        )
     if not path.exists():
-        return _package_contract_check(check_name, "blocked", f"{reason_prefix}_missing", evidence)
+        return _package_contract_check(
+            check_name, "blocked", f"{reason_prefix}_missing", evidence
+        )
     if not path.is_file():
-        return _package_contract_check(check_name, "blocked", f"{reason_prefix}_not_file", evidence)
+        return _package_contract_check(
+            check_name, "blocked", f"{reason_prefix}_not_file", evidence
+        )
     try:
         path.resolve().relative_to(scaffold_dir.resolve())
     except ValueError:
-        return _package_contract_check(check_name, "blocked", f"{reason_prefix}_path_escape", evidence)
+        return _package_contract_check(
+            check_name, "blocked", f"{reason_prefix}_path_escape", evidence
+        )
     try:
         content = path.read_text(encoding="utf-8")
     except UnicodeDecodeError:
-        return _package_contract_check(check_name, "blocked", f"{reason_prefix}_not_utf8", evidence)
+        return _package_contract_check(
+            check_name, "blocked", f"{reason_prefix}_not_utf8", evidence
+        )
     except OSError:
-        return _package_contract_check(check_name, "blocked", f"{reason_prefix}_unreadable", evidence)
+        return _package_contract_check(
+            check_name, "blocked", f"{reason_prefix}_unreadable", evidence
+        )
     if content != expected_content:
-        return _package_contract_check(check_name, "blocked", f"{reason_prefix}_drift", evidence)
-    return _package_contract_check(check_name, "passed", f"{reason_prefix}_current", evidence)
+        return _package_contract_check(
+            check_name, "blocked", f"{reason_prefix}_drift", evidence
+        )
+    return _package_contract_check(
+        check_name, "passed", f"{reason_prefix}_current", evidence
+    )
 
 
-def _package_build_check(name: str, status: str, reason: str, evidence: list[str] | None = None) -> dict[str, Any]:
+def _package_build_check(
+    name: str, status: str, reason: str, evidence: list[str] | None = None
+) -> dict[str, Any]:
     return {
         "name": name,
         "status": status,
@@ -5811,7 +6526,9 @@ def _write_package_build_result(
 ) -> None:
     _write_json(
         scaffold_output_dir / "operator-package-build-result.json",
-        _package_build_result_manifest(scaffold_output_dir, status, check_results, commands, artifacts),
+        _package_build_result_manifest(
+            scaffold_output_dir, status, check_results, commands, artifacts
+        ),
     )
 
 
@@ -5831,13 +6548,21 @@ def _fill_blocked_package_build_checks(
             )
 
 
-def _load_package_contract_for_build(scaffold_output_dir: Path, scaffold_manifest: dict[str, Any]) -> dict[str, Any]:
+def _load_package_contract_for_build(
+    scaffold_output_dir: Path, scaffold_manifest: dict[str, Any]
+) -> dict[str, Any]:
     manifest_path = scaffold_output_dir / "operator-package-contract.json"
     manifest = _load_json_artifact(manifest_path, "operator-package-contract.json")
-    readiness_manifest = _load_readiness_manifest_for_package_contract(scaffold_output_dir, scaffold_manifest)
-    expected = _summarize_package_contract(scaffold_output_dir, scaffold_manifest, readiness_manifest)
+    readiness_manifest = _load_readiness_manifest_for_package_contract(
+        scaffold_output_dir, scaffold_manifest
+    )
+    expected = _summarize_package_contract(
+        scaffold_output_dir, scaffold_manifest, readiness_manifest
+    )
     if manifest != expected:
-        raise CliUsageError("operator-package-contract.json does not match current scaffold artifacts")
+        raise CliUsageError(
+            "operator-package-contract.json does not match current scaffold artifacts"
+        )
     return expected
 
 
@@ -5861,7 +6586,9 @@ def _snapshot_tree(root: Path) -> list[str]:
 def _staging_relative_path(contract_path: str) -> Path:
     prefix = "operator-scaffold/"
     if not contract_path.startswith(prefix):
-        raise CliUsageError("operator-package-contract.json package file path is outside operator-scaffold")
+        raise CliUsageError(
+            "operator-package-contract.json package file path is outside operator-scaffold"
+        )
     prefix_len = len(prefix)
     relative = contract_path[prefix_len:]
     if not relative:
@@ -5875,14 +6602,20 @@ def _copy_package_staging_source(
     source_dir: Path,
 ) -> dict[str, Any]:
     scaffold_dir = scaffold_output_dir / "operator-scaffold"
-    expected_files = [_staging_relative_path(path) for path in package_contract["package_files"]]
+    expected_files = [
+        _staging_relative_path(path) for path in package_contract["package_files"]
+    ]
     for relative in expected_files:
         source_path = scaffold_dir / relative
         target_path = source_dir / relative
         target_path.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(source_path, target_path)
 
-    actual_files = sorted(str(path.relative_to(source_dir)) for path in source_dir.rglob("*") if path.is_file())
+    actual_files = sorted(
+        str(path.relative_to(source_dir))
+        for path in source_dir.rglob("*")
+        if path.is_file()
+    )
     expected_relative = sorted(str(path) for path in expected_files)
     if actual_files != expected_relative:
         return _package_build_check(
@@ -6006,9 +6739,15 @@ def _run_package_wheel_command(
             "stderr_tail": _tail_text(completed.stderr),
             "env": env_summary,
         }
-        artifacts = sorted(_relative(path, build_dir) for path in wheel_dir.glob("*.whl") if path.is_file())
+        artifacts = sorted(
+            _relative(path, build_dir)
+            for path in wheel_dir.glob("*.whl")
+            if path.is_file()
+        )
         if completed.returncode == 0 and artifacts:
-            check = _package_build_check("package_wheel_build", "passed", "wheel_build_passed", artifacts)
+            check = _package_build_check(
+                "package_wheel_build", "passed", "wheel_build_passed", artifacts
+            )
         elif completed.returncode == 0:
             check = _package_build_check(
                 "package_wheel_build",
@@ -6048,26 +6787,42 @@ def _run_package_wheel_command(
 def cmd_define_package_contract(args: argparse.Namespace) -> int:
     scaffold_output_dir = Path(args.scaffold_output_dir).resolve()
     if not scaffold_output_dir.exists():
-        raise CliUsageError(f"scaffold output directory not found: {scaffold_output_dir}")
+        raise CliUsageError(
+            f"scaffold output directory not found: {scaffold_output_dir}"
+        )
     if not scaffold_output_dir.is_dir():
-        raise CliUsageError(f"scaffold output path is not a directory: {scaffold_output_dir}")
+        raise CliUsageError(
+            f"scaffold output path is not a directory: {scaffold_output_dir}"
+        )
 
     scaffold_manifest = _load_scaffold_manifest_for_validation(scaffold_output_dir)
-    readiness_manifest = _load_readiness_manifest_for_package_contract(scaffold_output_dir, scaffold_manifest)
-    package_contract = _summarize_package_contract(scaffold_output_dir, scaffold_manifest, readiness_manifest)
-    _write_json(scaffold_output_dir / "operator-package-contract.json", package_contract)
+    readiness_manifest = _load_readiness_manifest_for_package_contract(
+        scaffold_output_dir, scaffold_manifest
+    )
+    package_contract = _summarize_package_contract(
+        scaffold_output_dir, scaffold_manifest, readiness_manifest
+    )
+    _write_json(
+        scaffold_output_dir / "operator-package-contract.json", package_contract
+    )
     return 0 if package_contract["status"] == "defined" else 1
 
 
 def cmd_run_package_build(args: argparse.Namespace) -> int:
     scaffold_output_dir = Path(args.scaffold_output_dir).resolve()
     if not scaffold_output_dir.exists():
-        raise CliUsageError(f"scaffold output directory not found: {scaffold_output_dir}")
+        raise CliUsageError(
+            f"scaffold output directory not found: {scaffold_output_dir}"
+        )
     if not scaffold_output_dir.is_dir():
-        raise CliUsageError(f"scaffold output path is not a directory: {scaffold_output_dir}")
+        raise CliUsageError(
+            f"scaffold output path is not a directory: {scaffold_output_dir}"
+        )
 
     scaffold_manifest = _load_scaffold_manifest_for_validation(scaffold_output_dir)
-    package_contract = _load_package_contract_for_build(scaffold_output_dir, scaffold_manifest)
+    package_contract = _load_package_contract_for_build(
+        scaffold_output_dir, scaffold_manifest
+    )
     check_results: dict[str, dict[str, Any]] = {
         "package_contract_current": _package_build_check(
             "package_contract_current",
@@ -6126,7 +6881,9 @@ def cmd_run_package_build(args: argparse.Namespace) -> int:
             "package_build_dir_exists",
             ["operator-package-build"],
         )
-        _fill_blocked_package_build_checks(check_results, "package_staging_context_closed", "package_build_dir_exists")
+        _fill_blocked_package_build_checks(
+            check_results, "package_staging_context_closed", "package_build_dir_exists"
+        )
         _write_package_build_result(scaffold_output_dir, "blocked", check_results)
         return 1
     check_results["package_build_dir_available"] = _package_build_check(
@@ -6142,7 +6899,9 @@ def cmd_run_package_build(args: argparse.Namespace) -> int:
     try:
         source_dir.mkdir(parents=True)
         wheel_dir.mkdir(parents=True)
-        staging_check = _copy_package_staging_source(scaffold_output_dir, package_contract, source_dir)
+        staging_check = _copy_package_staging_source(
+            scaffold_output_dir, package_contract, source_dir
+        )
     except OSError as exc:
         staging_check = _package_build_check(
             "package_staging_context_closed",
@@ -6165,7 +6924,9 @@ def cmd_run_package_build(args: argparse.Namespace) -> int:
         _write_package_build_result(scaffold_output_dir, "blocked", check_results)
         return 1
 
-    command_result, artifacts, wheel_check = _run_package_wheel_command(build_dir, source_dir, wheel_dir)
+    command_result, artifacts, wheel_check = _run_package_wheel_command(
+        build_dir, source_dir, wheel_dir
+    )
     check_results["package_wheel_build"] = wheel_check
     scaffold_snapshot_after = _snapshot_tree(scaffold_output_dir / "operator-scaffold")
     if scaffold_snapshot_after == scaffold_snapshot_before:
@@ -6182,9 +6943,14 @@ def cmd_run_package_build(args: argparse.Namespace) -> int:
         )
 
     status = "passed"
-    if wheel_check["status"] != "passed" or check_results["original_scaffold_unchanged"]["status"] != "passed":
+    if (
+        wheel_check["status"] != "passed"
+        or check_results["original_scaffold_unchanged"]["status"] != "passed"
+    ):
         status = "failed"
-    _write_package_build_result(scaffold_output_dir, status, check_results, [command_result], artifacts)
+    _write_package_build_result(
+        scaffold_output_dir, status, check_results, [command_result], artifacts
+    )
     return 0 if status == "passed" else 1
 
 
@@ -6216,9 +6982,15 @@ def cmd_generate_pybind_binding(args: argparse.Namespace) -> int:
 
     binding_manifest_path = adapted_root / "operator-sk-pybind-binding.json"
     if binding_manifest_path.exists():
-        raise CliUsageError(f"pybind binding manifest already exists: {binding_manifest_path}")
-    binding_manifest = lib.generate_pybind_artifacts(adapted_dir, adapted_manifest, adapted_root)
-    binding_manifest_path.write_text(json.dumps(binding_manifest, indent=2), encoding="utf-8")
+        raise CliUsageError(
+            f"pybind binding manifest already exists: {binding_manifest_path}"
+        )
+    binding_manifest = lib.generate_pybind_artifacts(
+        adapted_dir, adapted_manifest, adapted_root
+    )
+    binding_manifest_path.write_text(
+        json.dumps(binding_manifest, indent=2), encoding="utf-8"
+    )
     _emit(
         json.dumps(
             {
@@ -6252,7 +7024,9 @@ def _target_chips_to_arches(raw_chips: str | None) -> list[str]:
         return []
 
 
-def _count_expected_extensions(binding_manifest: dict[str, Any], env: dict[str, str]) -> int:
+def _count_expected_extensions(
+    binding_manifest: dict[str, Any], env: dict[str, str]
+) -> int:
     entries = binding_manifest.get("kernel_entries", [])
     if env.get("SK_TARGET_CHIPS"):
         requested_arches = _target_chips_to_arches(env.get("SK_TARGET_CHIPS"))
@@ -6264,7 +7038,9 @@ def _count_expected_extensions(binding_manifest: dict[str, Any], env: dict[str, 
         return 0
     expected = 0
     for entry in entries:
-        declared = _split_arches_for_manifest(",".join(entry.get("supported_arches", [])))
+        declared = _split_arches_for_manifest(
+            ",".join(entry.get("supported_arches", []))
+        )
         if requested_arches and declared:
             expected += len([arch for arch in requested_arches if arch in declared])
         elif requested_arches:
@@ -6272,13 +7048,19 @@ def _count_expected_extensions(binding_manifest: dict[str, Any], env: dict[str, 
     return expected
 
 
-def _count_wheel_extensions(wheel_dir: Path, wheels: list[str], python_package: str = "op_extension") -> int | None:
+def _count_wheel_extensions(
+    wheel_dir: Path, wheels: list[str], python_package: str = "op_extension"
+) -> int | None:
     if not wheels:
         return None
     prefix = f"{python_package}/"
     try:
         with zipfile.ZipFile(wheel_dir / wheels[0]) as zf:
-            return sum(1 for name in zf.namelist() if name.startswith(prefix) and name.endswith((".so", ".pyd")))
+            return sum(
+                1
+                for name in zf.namelist()
+                if name.startswith(prefix) and name.endswith((".so", ".pyd"))
+            )
     except (OSError, zipfile.BadZipFile):
         return None
 
@@ -6287,7 +7069,9 @@ def cmd_build_native_wheel(args: argparse.Namespace) -> int:
     adapted_root = Path(args.adapted_output_dir).resolve()
     binding_path = adapted_root / "operator-sk-pybind-binding.json"
     if not binding_path.exists():
-        raise CliUsageError(f"pybind binding manifest not found: {binding_path}; run generate-pybind-binding first")
+        raise CliUsageError(
+            f"pybind binding manifest not found: {binding_path}; run generate-pybind-binding first"
+        )
     binding_manifest = json.loads(binding_path.read_text(encoding="utf-8"))
     pybind_root = Path(binding_manifest["package_root"])
     if not pybind_root.exists():
@@ -6345,9 +7129,11 @@ def cmd_build_native_wheel(args: argparse.Namespace) -> int:
     actual_extension_count = _count_wheel_extensions(
         wheel_dir,
         wheels,
-        str(binding_manifest.get("python_package") or binding_manifest.get("package_name") or "op_extension").replace(
-            "-", "_"
-        ),
+        str(
+            binding_manifest.get("python_package")
+            or binding_manifest.get("package_name")
+            or "op_extension"
+        ).replace("-", "_"),
     )
     result_manifest = {
         "status": status,
@@ -6361,7 +7147,9 @@ def cmd_build_native_wheel(args: argparse.Namespace) -> int:
         "target_chips": env.get("SK_TARGET_CHIPS", ""),
         "torch_device_backend_autoload": env.get("TORCH_DEVICE_BACKEND_AUTOLOAD", ""),
         "structural": structural_toolchain,
-        "extension_module_pattern": binding_manifest.get("extension_module_pattern", ""),
+        "extension_module_pattern": binding_manifest.get(
+            "extension_module_pattern", ""
+        ),
         "extension_count": (
             actual_extension_count
             if actual_extension_count is not None
@@ -6371,7 +7159,9 @@ def cmd_build_native_wheel(args: argparse.Namespace) -> int:
         "wheels": wheels,
         "log_path": str(log_path),
     }
-    (adapted_root / "operator-sk-native-wheel.json").write_text(json.dumps(result_manifest, indent=2), encoding="utf-8")
+    (adapted_root / "operator-sk-native-wheel.json").write_text(
+        json.dumps(result_manifest, indent=2), encoding="utf-8"
+    )
     _emit(json.dumps({"status": status, "wheels": wheels}))
     return 0 if status == "passed" else 1
 
@@ -6391,7 +7181,9 @@ def cmd_build_baseline(args: argparse.Namespace) -> int:
         entry_name=args.entry_name,
         structural=args.structural,
     )
-    _emit(json.dumps({"status": manifest["status"], "entry_name": manifest["entry_name"]}))
+    _emit(
+        json.dumps({"status": manifest["status"], "entry_name": manifest["entry_name"]})
+    )
     return 0 if manifest.get("status") == "passed" else 1
 
 
@@ -6409,11 +7201,14 @@ def cmd_build_standalone_executable(args: argparse.Namespace) -> int:
     runtime_sources_manifest = verify_manifest.get("runtime_sources")
     if isinstance(runtime_sources_manifest, dict) and runtime_sources_manifest:
         runtime_sources = {
-            str(target): output_root / str(source) for target, source in runtime_sources_manifest.items()
+            str(target): output_root / str(source)
+            for target, source in runtime_sources_manifest.items()
         }
     else:
         runtime_sources = {"runtime_compare": source_root / "runtime_compare.asc"}
-    if not cmake_path.is_file() or any(not source.is_file() for source in runtime_sources.values()):
+    if not cmake_path.is_file() or any(
+        not source.is_file() for source in runtime_sources.values()
+    ):
         raise CliUsageError(f"standalone CMake project missing under {source_root}")
 
     build_dir = source_root / "build"
@@ -6442,7 +7237,9 @@ def cmd_build_standalone_executable(args: argparse.Namespace) -> int:
             timeout=600,
         )
     else:
-        build = subprocess.CompletedProcess(build_cmd, returncode=configure.returncode, stdout="")
+        build = subprocess.CompletedProcess(
+            build_cmd, returncode=configure.returncode, stdout=""
+        )
     log_chunks.append("$ " + " ".join(build_cmd))
     log_chunks.append(build.stdout or "")
     log_path = output_root / "build-log.txt"
@@ -6450,14 +7247,20 @@ def cmd_build_standalone_executable(args: argparse.Namespace) -> int:
 
     executable_targets = {target: build_dir / target for target in runtime_sources}
     structural_toolchain = os.environ.get("SK_OPERATOR_STRUCTURAL_TOOLCHAIN") == "1"
-    status = "passed" if configure.returncode == 0 and build.returncode == 0 else "failed"
+    status = (
+        "passed" if configure.returncode == 0 and build.returncode == 0 else "failed"
+    )
     if status == "passed" and structural_toolchain:
         status = "structural-passed"
     entry_targets = (
-        verify_manifest.get("entry_targets") if isinstance(verify_manifest.get("entry_targets"), dict) else {}
+        verify_manifest.get("entry_targets")
+        if isinstance(verify_manifest.get("entry_targets"), dict)
+        else {}
     )
     entries = verify_manifest.get("entries", [])
-    allow_mock_executable = os.environ.get("SK_OPERATOR_ALLOW_STANDALONE_MOCK_EXECUTABLE") == "1"
+    allow_mock_executable = (
+        os.environ.get("SK_OPERATOR_ALLOW_STANDALONE_MOCK_EXECUTABLE") == "1"
+    )
     missing_executables: list[str] = []
     if status in {"passed", "structural-passed"}:
         for target, executable in executable_targets.items():
@@ -6469,13 +7272,18 @@ def cmd_build_standalone_executable(args: argparse.Namespace) -> int:
             target_entries = []
             default_target = next(iter(executable_targets))
             for entry in entries:
-                entry_target = entry_targets.get(entry.get("entry_name"), default_target)
+                entry_target = entry_targets.get(
+                    entry.get("entry_name"), default_target
+                )
                 if entry_target == target:
                     target_entries.append(entry)
             stdout_payload = {
                 "backend": "standalone",
                 "status": "structural-passed" if structural_toolchain else "passed",
-                "outputs": {entry["entry_name"]: {"baseline": [0], "sk": [0]} for entry in target_entries},
+                "outputs": {
+                    entry["entry_name"]: {"baseline": [0], "sk": [0]}
+                    for entry in target_entries
+                },
                 "calls": {
                     entry["entry_name"]: [
                         f"launch_{entry['entry_name']}_baseline",
@@ -6485,7 +7293,9 @@ def cmd_build_standalone_executable(args: argparse.Namespace) -> int:
                 },
                 "statuses": {
                     entry["entry_name"]: {
-                        "status": "structural-passed" if structural_toolchain else "passed",
+                        "status": "structural-passed"
+                        if structural_toolchain
+                        else "passed",
                         "reason": "standalone_mock_bind_target_route_matched",
                     }
                     for entry in target_entries
@@ -6493,7 +7303,9 @@ def cmd_build_standalone_executable(args: argparse.Namespace) -> int:
             }
             executable.parent.mkdir(parents=True, exist_ok=True)
             executable.write_text(
-                "#!/bin/sh\nprintf '%s\\n' " + repr(json.dumps(stdout_payload, separators=(",", ":"))) + "\n",
+                "#!/bin/sh\nprintf '%s\\n' "
+                + repr(json.dumps(stdout_payload, separators=(",", ":")))
+                + "\n",
                 encoding="utf-8",
             )
             executable.chmod(0o755)
@@ -6502,11 +7314,15 @@ def cmd_build_standalone_executable(args: argparse.Namespace) -> int:
     executable = next(iter(executable_targets.values()))
     entry_executables = {
         entry["entry_name"]: str(
-            executable_targets[entry_targets.get(entry["entry_name"], next(iter(executable_targets)))]
+            executable_targets[
+                entry_targets.get(entry["entry_name"], next(iter(executable_targets)))
+            ]
         )
         for entry in entries
     }
-    (output_root / "executable-path.txt").write_text(str(executable) + "\n", encoding="utf-8")
+    (output_root / "executable-path.txt").write_text(
+        str(executable) + "\n", encoding="utf-8"
+    )
     result_manifest = {
         "status": status,
         "standalone_verify_dir": verify_manifest["standalone_verify_dir"],
@@ -6518,7 +7334,9 @@ def cmd_build_standalone_executable(args: argparse.Namespace) -> int:
         "configure_return_code": configure.returncode,
         "build_return_code": build.returncode,
         "executable": str(executable),
-        "executable_targets": {target: str(path) for target, path in executable_targets.items()},
+        "executable_targets": {
+            target: str(path) for target, path in executable_targets.items()
+        },
         "executables": entry_executables,
         "missing_executables": missing_executables,
         "mock_executable_allowed": allow_mock_executable,
@@ -6533,7 +7351,9 @@ def cmd_build_standalone_executable(args: argparse.Namespace) -> int:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Top-level CLI for sk-operator-build-package")
+    parser = argparse.ArgumentParser(
+        description="Top-level CLI for sk-operator-build-package"
+    )
     subparsers = parser.add_subparsers(dest="subcommand", required=True)
 
     sk_source_pipeline = subparsers.add_parser(
@@ -6644,14 +7464,18 @@ def build_parser() -> argparse.ArgumentParser:
         "build-baseline",
         help="Build or record the non-SK baseline artifact for one normalized operator unit",
     )
-    baseline.add_argument("asset", help="Normalized operator unit asset directory or source file")
+    baseline.add_argument(
+        "asset", help="Normalized operator unit asset directory or source file"
+    )
     baseline.add_argument(
         "--output-dir",
         required=True,
         help="Output directory for operator-baseline-build.json",
     )
     baseline.add_argument("--entry-name", required=True, help="Kernel entry name")
-    baseline.add_argument("--backend", default="baseline_direct_asc", help="Baseline backend id")
+    baseline.add_argument(
+        "--backend", default="baseline_direct_asc", help="Baseline backend id"
+    )
     baseline.add_argument(
         "--structural",
         action="store_true",
@@ -6667,7 +7491,9 @@ def build_parser() -> argparse.ArgumentParser:
         "standalone_output_dir",
         help="Output directory containing operator-sk-standalone-verify.json",
     )
-    standalone_build.add_argument("--target-chip", default="", help="Target chip recorded in the build manifest")
+    standalone_build.add_argument(
+        "--target-chip", default="", help="Target chip recorded in the build manifest"
+    )
     standalone_build.add_argument("--target-cann", default="", help=argparse.SUPPRESS)
     standalone_build.set_defaults(func=cmd_build_standalone_executable)
 

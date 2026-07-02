@@ -138,7 +138,9 @@ def _find_repo_root(raw: str | os.PathLike[str] | None = None) -> Path:
 
 
 def _default_build_cache_dir(repo_root: Path) -> Path:
-    raw = os.environ.get("SK_OPERATOR_BUILD_CACHE_DIR") or os.environ.get("SK_TOOLS_BUILD_CACHE_DIR")
+    raw = os.environ.get("SK_OPERATOR_BUILD_CACHE_DIR") or os.environ.get(
+        "SK_TOOLS_BUILD_CACHE_DIR"
+    )
     if raw:
         return Path(raw).expanduser().resolve()
     return (repo_root / DEFAULT_BUILD_CACHE_REL).resolve()
@@ -169,7 +171,9 @@ def _discover_operator_assets(root: Path, *, skills_root: Path) -> list[Path]:
     ]
 
 
-def _discover_operator_asset_records(root: Path, *, skills_root: Path) -> list[dict[str, Any]]:
+def _discover_operator_asset_records(
+    root: Path, *, skills_root: Path
+) -> list[dict[str, Any]]:
     _ensure_script_import(skills_root, "sk-operator-codegen")
     from operator_asset_layout import build_inventory, build_layout_from_inventory
 
@@ -271,12 +275,16 @@ def _manifest_include_paths(root: Path, manifest: dict[str, Any]) -> list[Path]:
     paths: list[Path] = []
     for item in raw:
         if not isinstance(item, str) or not item.strip():
-            raise CliUsageError("asset-root manifest include paths must be non-empty strings")
+            raise CliUsageError(
+                "asset-root manifest include paths must be non-empty strings"
+            )
         path = (root / item).resolve()
         try:
             path.relative_to(resolved_root)
         except ValueError as exc:
-            raise CliUsageError(f"asset-root manifest include path escapes root: {item}") from exc
+            raise CliUsageError(
+                f"asset-root manifest include path escapes root: {item}"
+            ) from exc
         if not path.exists():
             raise CliUsageError(f"asset-root manifest include path not found: {item}")
         paths.append(path)
@@ -298,14 +306,18 @@ def _manifest_excluded_paths(root: Path, manifest: dict[str, Any]) -> dict[Path,
             rel_path = str(item.get("path") or "")
             reason = str(item.get("reason") or "excluded-by-asset-root-manifest")
         else:
-            raise CliUsageError("asset-root manifest excluded entries must be strings or objects")
+            raise CliUsageError(
+                "asset-root manifest excluded entries must be strings or objects"
+            )
         if not rel_path.strip():
             raise CliUsageError("asset-root manifest excluded path must be non-empty")
         path = (root / rel_path).resolve()
         try:
             path.relative_to(root.resolve())
         except ValueError as exc:
-            raise CliUsageError(f"asset-root manifest excluded path escapes root: {rel_path}") from exc
+            raise CliUsageError(
+                f"asset-root manifest excluded path escapes root: {rel_path}"
+            ) from exc
         excluded[path] = reason
     return excluded
 
@@ -335,7 +347,9 @@ def _asset_run_name(root: Path | None, asset: Path, used: set[str]) -> str:
     return final_name
 
 
-def _entry_records_for_assets(asset_paths: list[Path], *, skills_root: Path) -> list[dict[str, Any]]:
+def _entry_records_for_assets(
+    asset_paths: list[Path], *, skills_root: Path
+) -> list[dict[str, Any]]:
     _ensure_script_import(skills_root, "sk-operator-codegen")
     from operator_asset_analyzer import analyze_asset
 
@@ -453,7 +467,11 @@ def _write_asset_root_aggregate_coverage(
         entries = [str(entry) for entry in preflight.get("entries", [])]
         status = "selected"
         if entries and aggregate_entries:
-            status = "aggregated" if any(entry in aggregate_entries for entry in entries) else "skipped"
+            status = (
+                "aggregated"
+                if any(entry in aggregate_entries for entry in entries)
+                else "skipped"
+            )
         records.append(
             {
                 "path": str(asset),
@@ -474,7 +492,11 @@ def _write_asset_root_aggregate_coverage(
                 "human_questions": record.get("human_questions", []),
             }
         )
-    failed_count = 0 if state.get("status") in _ASSET_ROOT_NON_BLOCKING_STATUSES else len(selected_assets)
+    failed_count = (
+        0
+        if state.get("status") in _ASSET_ROOT_NON_BLOCKING_STATUSES
+        else len(selected_assets)
+    )
     payload = {
         "schema_version": 1,
         "mode": "asset-root-mode-aggregate",
@@ -551,8 +573,14 @@ def _run_asset_root_separately(
                 build_cache_dir=build_cache_dir,
                 jobs=args.jobs,
                 run_slug=run_name,
-                io_contract=(Path(args.io_contract).resolve() if getattr(args, "io_contract", None) else None),
-                allow_structural_toolchain=bool(getattr(args, "allow_structural_toolchain", False)),
+                io_contract=(
+                    Path(args.io_contract).resolve()
+                    if getattr(args, "io_contract", None)
+                    else None
+                ),
+                allow_structural_toolchain=bool(
+                    getattr(args, "allow_structural_toolchain", False)
+                ),
                 allow_mock_npu=bool(getattr(args, "allow_mock_npu", False)),
             )
             status = state["status"]
@@ -600,14 +628,18 @@ def _run_asset_root_separately(
         status == "completed"
         and not skipped_records
         and bool(selected_statuses)
-        and all(item in _PIPELINE_TERMINAL_SUCCESS_STATUSES for item in selected_statuses)
+        and all(
+            item in _PIPELINE_TERMINAL_SUCCESS_STATUSES for item in selected_statuses
+        )
     )
     payload = {
         "schema_version": 1,
         "mode": "separate",
         "status": status,
         "release_success": release_success,
-        "reason": ("duplicate-entry-names" if duplicate_entries else "asset-root-mode-separate"),
+        "reason": (
+            "duplicate-entry-names" if duplicate_entries else "asset-root-mode-separate"
+        ),
         "duplicate_entries": duplicate_entries,
         "duplicate_asset_slugs": duplicate_asset_slugs,
         "roots": [str(root) for root in roots],
@@ -644,12 +676,20 @@ def _run_asset_root_separately(
 
 
 def _index_section(directory: Path, *, label: str | None = None) -> dict[str, Any]:
-    files = sorted(path for path in directory.rglob("*") if path.is_file()) if directory.exists() else []
+    files = (
+        sorted(path for path in directory.rglob("*") if path.is_file())
+        if directory.exists()
+        else []
+    )
     return {
         "root": label or str(directory),
         "file_count": len(files),
         "sample_files": [
-            (str(path.relative_to(directory)) if directory in path.parents or path.parent == directory else str(path))
+            (
+                str(path.relative_to(directory))
+                if directory in path.parents or path.parent == directory
+                else str(path)
+            )
             for path in files[:20]
         ],
     }
@@ -722,7 +762,9 @@ def _render_ai_hints(payload: dict[str, Any]) -> str:
 def cmd_index(args: argparse.Namespace) -> int:
     skills_root = _resolve_skills_root(args.skills_root)
     output_dir = _resolve_output_dir(args.output_dir)
-    index_roots = [Path(item).expanduser().resolve() for item in (args.index_root or [])]
+    index_roots = [
+        Path(item).expanduser().resolve() for item in (args.index_root or [])
+    ]
     if not index_roots:
         index_roots = [skills_root]
     payload = {
@@ -737,7 +779,9 @@ def cmd_index(args: argparse.Namespace) -> int:
         "sections": [_index_section(root, label=str(root)) for root in index_roots],
     }
     _write_json(output_dir / "operator-pipeline-index.json", payload)
-    _write_text(output_dir / "operator-pipeline-index-report.md", _render_index_report(payload))
+    _write_text(
+        output_dir / "operator-pipeline-index-report.md", _render_index_report(payload)
+    )
     if args.with_ai:
         _write_text(
             output_dir / "operator-pipeline-index-ai-hints.md",
@@ -761,7 +805,9 @@ def cmd_route(args: argparse.Namespace) -> int:
         )
 
     entry = {
-        "sk-network-analysis": entry("sk-network-analysis", "network_analysis.py", "diagnose", "<run_dir>"),
+        "sk-network-analysis": entry(
+            "sk-network-analysis", "network_analysis.py", "diagnose", "<run_dir>"
+        ),
         "sk-operator-asset-adapter": entry(
             "sk-operator-asset-adapter",
             "operator_asset_adapter.py",
@@ -770,7 +816,9 @@ def cmd_route(args: argparse.Namespace) -> int:
             "--output-dir",
             "<dir>",
         ),
-        "sk-operator-codegen": entry("sk-operator-codegen", "operator_codegen.py", "intake", "<asset>"),
+        "sk-operator-codegen": entry(
+            "sk-operator-codegen", "operator_codegen.py", "intake", "<asset>"
+        ),
         "sk-operator-validate": entry(
             "sk-operator-validate",
             "operator_validate.py",
@@ -792,7 +840,9 @@ def cmd_route(args: argparse.Namespace) -> int:
             "run-sk-build-validation",
             "<output_dir>",
         ),
-        "sk-operator-pipeline": entry("sk-operator-pipeline", "operator_pipeline.py", "index"),
+        "sk-operator-pipeline": entry(
+            "sk-operator-pipeline", "operator_pipeline.py", "index"
+        ),
     }[target]
     payload = {
         "skill": "sk-operator-pipeline",
@@ -811,7 +861,9 @@ def cmd_route(args: argparse.Namespace) -> int:
         },
     }
     _write_json(output_dir / "operator-pipeline-route.json", payload)
-    _write_text(output_dir / "operator-pipeline-route-report.md", _render_route_report(payload))
+    _write_text(
+        output_dir / "operator-pipeline-route-report.md", _render_route_report(payload)
+    )
     if args.with_ai:
         _write_text(
             output_dir / "operator-pipeline-route-ai-hints.md",
@@ -846,8 +898,12 @@ def cmd_run_sk_pipeline(args: argparse.Namespace) -> int:
             raise CliUsageError(f"asset root not found: {root}")
         root_paths.append(root)
         root_records = _discover_operator_asset_records(root, skills_root=skills_root)
-        asset_paths.extend(Path(item["path"]) for item in root_records if item["status"] == "selected")
-        root_skipped_records.extend(item for item in root_records if item["status"] == "skipped")
+        asset_paths.extend(
+            Path(item["path"]) for item in root_records if item["status"] == "selected"
+        )
+        root_skipped_records.extend(
+            item for item in root_records if item["status"] == "skipped"
+        )
     output_dir = _resolve_output_dir(args.output_dir)
     if not asset_paths:
         if root_skipped_records:
@@ -877,8 +933,12 @@ def cmd_run_sk_pipeline(args: argparse.Namespace) -> int:
             }
             output_dir.mkdir(parents=True, exist_ok=True)
             _write_asset_root_coverage(output_dir, payload)
-            raise CliUsageError(f"asset layout required; inspect {output_dir / 'asset-root-coverage.json'}")
-        raise CliUsageError("--asset or --asset-root must provide at least one operator asset")
+            raise CliUsageError(
+                f"asset layout required; inspect {output_dir / 'asset-root-coverage.json'}"
+            )
+        raise CliUsageError(
+            "--asset or --asset-root must provide at least one operator asset"
+        )
     for asset in asset_paths:
         if not asset.exists():
             raise CliUsageError(f"asset path not found: {asset}")
@@ -891,8 +951,12 @@ def cmd_run_sk_pipeline(args: argparse.Namespace) -> int:
     except ValueError as exc:
         raise CliUsageError(str(exc)) from exc
 
-    orchestrator = PipelineOrchestrator(skills_root, _sys.executable, repo_root=repo_root)
-    wheel_mode = "never" if args.no_package and args.wheel_mode is None else args.wheel_mode
+    orchestrator = PipelineOrchestrator(
+        skills_root, _sys.executable, repo_root=repo_root
+    )
+    wheel_mode = (
+        "never" if args.no_package and args.wheel_mode is None else args.wheel_mode
+    )
     only_asset_roots = bool(root_paths) and not (args.assets or [])
     asset_names: dict[str, str] | None = None
     if only_asset_roots:
@@ -900,16 +964,22 @@ def cmd_run_sk_pipeline(args: argparse.Namespace) -> int:
         duplicates = _duplicate_entries(entry_records)
         used_asset_names: set[str] = set()
         asset_names = {
-            str(asset.resolve()): _asset_run_name(_root_for_asset(asset, root_paths), asset, used_asset_names)
+            str(asset.resolve()): _asset_run_name(
+                _root_for_asset(asset, root_paths), asset, used_asset_names
+            )
             for asset in asset_paths
         }
         slugs: dict[str, list[str]] = {}
         for asset in asset_paths:
             slugs.setdefault(_safe_slug(asset.name), []).append(str(asset))
-        duplicate_slugs = {slug: paths for slug, paths in slugs.items() if len(paths) > 1}
+        duplicate_slugs = {
+            slug: paths for slug, paths in slugs.items() if len(paths) > 1
+        }
         namespace_duplicates = args.duplicate_entry_policy == "namespace"
         separate_mode = args.asset_root_mode == "separate" or (
-            args.asset_root_mode == "auto" and (bool(duplicates) or bool(duplicate_slugs)) and not namespace_duplicates
+            args.asset_root_mode == "auto"
+            and (bool(duplicates) or bool(duplicate_slugs))
+            and not namespace_duplicates
         )
         if separate_mode:
             rc, payload = _run_asset_root_separately(
@@ -940,7 +1010,9 @@ def cmd_run_sk_pipeline(args: argparse.Namespace) -> int:
             return rc
         aggregate_has_duplicates = bool(duplicates or duplicate_slugs)
         should_explain_namespace_fix = (
-            args.asset_root_mode == "aggregate" and aggregate_has_duplicates and not namespace_duplicates
+            args.asset_root_mode == "aggregate"
+            and aggregate_has_duplicates
+            and not namespace_duplicates
         )
         if should_explain_namespace_fix:
             details = {
@@ -965,12 +1037,18 @@ def cmd_run_sk_pipeline(args: argparse.Namespace) -> int:
                 policy="namespace",
                 skills_root=skills_root,
             )
-            layout.write_name_resolution_reports(public_name_resolution_payload(name_resolution_payload))
-            internal_name_resolution = output_dir / "work" / "name-resolution-internal.json"
+            layout.write_name_resolution_reports(
+                public_name_resolution_payload(name_resolution_payload)
+            )
+            internal_name_resolution = (
+                output_dir / "work" / "name-resolution-internal.json"
+            )
             layout.write_json(internal_name_resolution, name_resolution_payload)
             args.name_resolution = str(internal_name_resolution)
     try:
-        run_slug = "aggregate" if len(asset_paths) > 1 else _safe_slug(asset_paths[0].name)
+        run_slug = (
+            "aggregate" if len(asset_paths) > 1 else _safe_slug(asset_paths[0].name)
+        )
         state = orchestrator.run(
             asset_paths,
             output_dir,
@@ -989,10 +1067,20 @@ def cmd_run_sk_pipeline(args: argparse.Namespace) -> int:
             build_cache_dir=build_cache_dir,
             jobs=args.jobs,
             run_slug=run_slug,
-            name_resolution=(Path(args.name_resolution).resolve() if getattr(args, "name_resolution", None) else None),
+            name_resolution=(
+                Path(args.name_resolution).resolve()
+                if getattr(args, "name_resolution", None)
+                else None
+            ),
             asset_names=asset_names,
-            io_contract=(Path(args.io_contract).resolve() if getattr(args, "io_contract", None) else None),
-            allow_structural_toolchain=bool(getattr(args, "allow_structural_toolchain", False)),
+            io_contract=(
+                Path(args.io_contract).resolve()
+                if getattr(args, "io_contract", None)
+                else None
+            ),
+            allow_structural_toolchain=bool(
+                getattr(args, "allow_structural_toolchain", False)
+            ),
             allow_mock_npu=bool(getattr(args, "allow_mock_npu", False)),
         )
     except OrchestratorError as exc:
@@ -1014,11 +1102,17 @@ def cmd_run_sk_pipeline(args: argparse.Namespace) -> int:
     name_resolution_report = output_dir / "name-resolution-report.json"
     if name_resolution_report.exists():
         try:
-            name_resolution_payload = json.loads(name_resolution_report.read_text(encoding="utf-8"))
+            name_resolution_payload = json.loads(
+                name_resolution_report.read_text(encoding="utf-8")
+            )
             summary.update(
                 {
-                    "renamed_entry_count": name_resolution_payload.get("renamed_entry_count", 0),
-                    "duplicate_entry_group_count": len(name_resolution_payload.get("duplicate_entry_groups", {})),
+                    "renamed_entry_count": name_resolution_payload.get(
+                        "renamed_entry_count", 0
+                    ),
+                    "duplicate_entry_group_count": len(
+                        name_resolution_payload.get("duplicate_entry_groups", {})
+                    ),
                     "name_resolution_report": "name-resolution-report.json",
                 }
             )
@@ -1030,7 +1124,9 @@ def cmd_run_sk_pipeline(args: argparse.Namespace) -> int:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Top-level CLI for sk-operator-pipeline")
+    parser = argparse.ArgumentParser(
+        description="Top-level CLI for sk-operator-pipeline"
+    )
     subparsers = parser.add_subparsers(dest="subcommand", required=True)
 
     pipeline = subparsers.add_parser(
@@ -1088,7 +1184,9 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Remove an existing output directory before running",
     )
-    pipeline.add_argument("--resume-from", help="Resume using an artifact-map.json inside --output-dir")
+    pipeline.add_argument(
+        "--resume-from", help="Resume using an artifact-map.json inside --output-dir"
+    )
     pipeline.add_argument(
         "--target-chip",
         default="",
@@ -1180,18 +1278,28 @@ def build_parser() -> argparse.ArgumentParser:
         default=[],
         help="Directory to index; repeatable. Defaults to --skills-root only",
     )
-    index.add_argument("--output-dir", default="operator-pipeline-output", help="Output directory")
-    index.add_argument("--with-ai", action="store_true", help="Request optional AI-layer hints")
+    index.add_argument(
+        "--output-dir", default="operator-pipeline-output", help="Output directory"
+    )
+    index.add_argument(
+        "--with-ai", action="store_true", help="Request optional AI-layer hints"
+    )
     index.set_defaults(func=cmd_index)
 
-    route = subparsers.add_parser("route", help="Route one question to a built-in skill")
+    route = subparsers.add_parser(
+        "route", help="Route one question to a built-in skill"
+    )
     route.add_argument("query", help="Question or task description")
     route.add_argument(
         "--skills-root",
         help="Root directory containing SK skill directories; defaults to this skill's parent directory",
     )
-    route.add_argument("--output-dir", default="operator-pipeline-output", help="Output directory")
-    route.add_argument("--with-ai", action="store_true", help="Request optional AI-layer hints")
+    route.add_argument(
+        "--output-dir", default="operator-pipeline-output", help="Output directory"
+    )
+    route.add_argument(
+        "--with-ai", action="store_true", help="Request optional AI-layer hints"
+    )
     route.set_defaults(func=cmd_route)
 
     return parser

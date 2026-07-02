@@ -419,26 +419,40 @@ def _collect_kernel_entries(files: list[Path], base_dir: Path) -> list[dict[str,
 
 
 def _collect_sk_markers(files: list[Path]) -> dict[str, bool]:
-    joined = "\n".join(_source_text(path) for path in files if path.suffix in SOURCE_SUFFIXES)
+    joined = "\n".join(
+        _source_text(path) for path in files if path.suffix in SOURCE_SUFFIXES
+    )
     return {
         "__sk__": "__sk__" in joined,
         "__spk__": "__spk__" in joined,
         "SK_BIND": "SK_BIND" in joined,
-        "sk_param_struct": "CommArgs" in joined or "SkSystemArgs" in joined or "__gm__ uint64_t *param" in joined,
+        "sk_param_struct": "CommArgs" in joined
+        or "SkSystemArgs" in joined
+        or "__gm__ uint64_t *param" in joined,
         "ascend_meta_section": ".ascend.meta" in joined,
     }
 
 
 def _file_evidence(paths: list[Path], base_dir: Path) -> list[dict[str, str]]:
-    return [{"kind": "file", "path": _relative(path, base_dir), "value": path.name} for path in paths]
+    return [
+        {"kind": "file", "path": _relative(path, base_dir), "value": path.name}
+        for path in paths
+    ]
 
 
 def _symbol_evidence(items: list[dict[str, str]]) -> list[dict[str, str]]:
-    return [{"kind": "symbol", "path": item["file"], "value": item["name"]} for item in items]
+    return [
+        {"kind": "symbol", "path": item["file"], "value": item["name"]}
+        for item in items
+    ]
 
 
 def _marker_evidence(sk_markers: dict[str, bool]) -> list[dict[str, str]]:
-    return [{"kind": "marker", "path": "", "value": name} for name, found in sk_markers.items() if found]
+    return [
+        {"kind": "marker", "path": "", "value": name}
+        for name, found in sk_markers.items()
+        if found
+    ]
 
 
 def _capability(status: str, evidence: list[dict[str, str]]) -> dict[str, Any]:
@@ -463,9 +477,13 @@ def _collect_capabilities(
     hard_blockers: list[str],
     base_dir: Path,
 ) -> dict[str, dict[str, Any]]:
-    source_status = "blocked" if hard_blockers else ("present" if source_files else "missing")
+    source_status = (
+        "blocked" if hard_blockers else ("present" if source_files else "missing")
+    )
     entry_status = (
-        "blocked" if hard_blockers else ("present" if kernel_entries or any(sk_markers.values()) else "missing")
+        "blocked"
+        if hard_blockers
+        else ("present" if kernel_entries or any(sk_markers.values()) else "missing")
     )
     return {
         "source": _capability(source_status, _file_evidence(source_files, base_dir)),
@@ -477,12 +495,16 @@ def _collect_capabilities(
             "present" if build_files else "missing",
             _file_evidence(build_files, base_dir),
         ),
-        "test": _capability("present" if test_files else "missing", _file_evidence(test_files, base_dir)),
+        "test": _capability(
+            "present" if test_files else "missing", _file_evidence(test_files, base_dir)
+        ),
         "package": _capability(
             "present" if package_files else "missing",
             _file_evidence(package_files, base_dir),
         ),
-        "delivery_docs": _capability("present" if doc_files else "missing", _file_evidence(doc_files, base_dir)),
+        "delivery_docs": _capability(
+            "present" if doc_files else "missing", _file_evidence(doc_files, base_dir)
+        ),
     }
 
 
@@ -490,12 +512,16 @@ def _all_text(files: list[Path], *, source_comments_stripped: bool = False) -> s
     chunks: list[str] = []
     for path in files:
         chunks.append(
-            _source_text(path) if source_comments_stripped and path.suffix in SOURCE_SUFFIXES else _read_text(path)
+            _source_text(path)
+            if source_comments_stripped and path.suffix in SOURCE_SUFFIXES
+            else _read_text(path)
         )
     return "\n".join(chunks)
 
 
-def _archetype_result(name: str, confidence: str, evidence: list[dict[str, str]]) -> dict[str, Any]:
+def _archetype_result(
+    name: str, confidence: str, evidence: list[dict[str, str]]
+) -> dict[str, Any]:
     return {"name": name, "confidence": confidence, "evidence": evidence}
 
 
@@ -519,15 +545,25 @@ def _detect_archetype(
 
     ge_evidence: list[dict[str, str]] = []
     if "register_fx_node_ge_converter" in raw_text:
-        ge_evidence.append({"kind": "symbol", "path": "", "value": "register_fx_node_ge_converter"})
-    if "OpDef" in raw_text or any(part in path for path in relative_paths for part in ("op_host/", "op_kernel/")):
-        ge_evidence.append({"kind": "directory", "path": "", "value": "op_host/op_kernel"})
+        ge_evidence.append(
+            {"kind": "symbol", "path": "", "value": "register_fx_node_ge_converter"}
+        )
+    if "OpDef" in raw_text or any(
+        part in path for path in relative_paths for part in ("op_host/", "op_kernel/")
+    ):
+        ge_evidence.append(
+            {"kind": "directory", "path": "", "value": "op_host/op_kernel"}
+        )
     if ge_evidence:
-        return _archetype_result("ge-opp-python-converter", "high", ge_evidence + source_evidence)
+        return _archetype_result(
+            "ge-opp-python-converter", "high", ge_evidence + source_evidence
+        )
 
     pybind_evidence: list[dict[str, str]] = []
     if "PYBIND11_MODULE" in source_text or "pybind11" in raw_text:
-        pybind_evidence.append({"kind": "symbol", "path": "", "value": "PYBIND11_MODULE/pybind11"})
+        pybind_evidence.append(
+            {"kind": "symbol", "path": "", "value": "PYBIND11_MODULE/pybind11"}
+        )
     if pybind_evidence:
         return _archetype_result(
             "aclgraph-pybind-torch-library",
@@ -536,8 +572,14 @@ def _detect_archetype(
         )
 
     torch_evidence: list[dict[str, str]] = []
-    if "TORCH_LIBRARY" in source_text or "torch.ops" in raw_text or "torch/extension.h" in source_text:
-        torch_evidence.append({"kind": "symbol", "path": "", "value": "torch extension/operator"})
+    if (
+        "TORCH_LIBRARY" in source_text
+        or "torch.ops" in raw_text
+        or "torch/extension.h" in source_text
+    ):
+        torch_evidence.append(
+            {"kind": "symbol", "path": "", "value": "torch extension/operator"}
+        )
     if "bisheng" in raw_text and source_files and torch_evidence:
         return _archetype_result(
             "torch-bisheng-extension",
@@ -546,7 +588,9 @@ def _detect_archetype(
         )
 
     if build_files and source_files:
-        return _archetype_result("cann-static-asc-op", "medium", build_evidence + source_evidence)
+        return _archetype_result(
+            "cann-static-asc-op", "medium", build_evidence + source_evidence
+        )
 
     if source_files:
         return _archetype_result("source-only-ascendc", "medium", source_evidence)
@@ -554,7 +598,9 @@ def _detect_archetype(
     return _archetype_result("unknown", "low", [])
 
 
-def _test_quality_result(level: str, confidence: str, evidence: list[dict[str, str]]) -> dict[str, Any]:
+def _test_quality_result(
+    level: str, confidence: str, evidence: list[dict[str, str]]
+) -> dict[str, Any]:
     return {"level": level, "confidence": confidence, "evidence": evidence}
 
 
@@ -602,17 +648,25 @@ def _collect_test_quality(test_files: list[Path], base_dir: Path) -> dict[str, A
 
         correctness_value = _find_quality_pattern(text, CORRECTNESS_TEST_PATTERNS)
         if correctness_value:
-            correctness_evidence.append(_quality_evidence(path, base_dir, correctness_value))
+            correctness_evidence.append(
+                _quality_evidence(path, base_dir, correctness_value)
+            )
         elif _has_meaningful_assert(text):
             correctness_evidence.append(_quality_evidence(path, base_dir, "assert"))
 
     if correctness_evidence:
-        return _test_quality_result("correctness-assertion", "high", correctness_evidence)
+        return _test_quality_result(
+            "correctness-assertion", "high", correctness_evidence
+        )
 
-    return _test_quality_result("smoke-launch", "medium", _file_evidence(test_files, base_dir))
+    return _test_quality_result(
+        "smoke-launch", "medium", _file_evidence(test_files, base_dir)
+    )
 
 
-def _build_quality_result(level: str, confidence: str, evidence: list[dict[str, str]]) -> dict[str, Any]:
+def _build_quality_result(
+    level: str, confidence: str, evidence: list[dict[str, str]]
+) -> dict[str, Any]:
     return {"level": level, "confidence": confidence, "evidence": evidence}
 
 
@@ -644,15 +698,21 @@ def _collect_build_quality(build_files: list[Path], base_dir: Path) -> dict[str,
     if not build_files:
         return _build_quality_result("none", "low", [])
 
-    toolchain_evidence = _collect_build_pattern_evidence(build_files, base_dir, TOOLCHAIN_BUILD_PATTERNS)
+    toolchain_evidence = _collect_build_pattern_evidence(
+        build_files, base_dir, TOOLCHAIN_BUILD_PATTERNS
+    )
     if toolchain_evidence:
         return _build_quality_result("toolchain-contract", "high", toolchain_evidence)
 
-    command_evidence = _collect_build_pattern_evidence(build_files, base_dir, COMMAND_BUILD_PATTERNS)
+    command_evidence = _collect_build_pattern_evidence(
+        build_files, base_dir, COMMAND_BUILD_PATTERNS
+    )
     if command_evidence:
         return _build_quality_result("command-contract", "high", command_evidence)
 
-    return _build_quality_result("build-entry", "medium", _file_evidence(build_files, base_dir))
+    return _build_quality_result(
+        "build-entry", "medium", _file_evidence(build_files, base_dir)
+    )
 
 
 def _classify_asset(
@@ -664,7 +724,9 @@ def _classify_asset(
 ) -> str:
     if not source_files:
         return "unsupported-asset"
-    has_complete_delivery = bool(build_files and test_files and package_files and doc_files)
+    has_complete_delivery = bool(
+        build_files and test_files and package_files and doc_files
+    )
     if has_complete_delivery:
         return "deliverable-op"
     if test_files:
@@ -704,7 +766,9 @@ def _missing_contracts(
 
 
 def _next_actions(missing_contracts: list[str], asset_level: str) -> list[str]:
-    actions: list[str] = [f"confirm asset level `{asset_level}` with the operator owner"]
+    actions: list[str] = [
+        f"confirm asset level `{asset_level}` with the operator owner"
+    ]
     mapping = {
         "operator_entry_contract": "identify the public kernel entry and expected launch signature",
         "build_contract": "generate or request a minimal CMake/setup build contract",
@@ -721,7 +785,9 @@ def _next_actions(missing_contracts: list[str], asset_level: str) -> list[str]:
     return actions
 
 
-def _delivery_action(kind: str, target: str, priority: str, reason: str, next_action: str) -> dict[str, str]:
+def _delivery_action(
+    kind: str, target: str, priority: str, reason: str, next_action: str
+) -> dict[str, str]:
     return {
         "kind": kind,
         "target": target,
@@ -773,7 +839,9 @@ def _missing_contract_action(contract: str) -> dict[str, str] | None:
     if not item:
         return None
     target, priority, next_action = item
-    return _delivery_action("contract", target, priority, f"missing_{contract}", next_action)
+    return _delivery_action(
+        "contract", target, priority, f"missing_{contract}", next_action
+    )
 
 
 def _missing_contract_actions(missing_contracts: list[str]) -> list[dict[str, str]]:
@@ -785,7 +853,9 @@ def _missing_contract_actions(missing_contracts: list[str]) -> list[dict[str, st
     return actions
 
 
-def _delivery_plan_result(phase: str, confidence: str, actions: list[dict[str, str]]) -> dict[str, Any]:
+def _delivery_plan_result(
+    phase: str, confidence: str, actions: list[dict[str, str]]
+) -> dict[str, Any]:
     return {"phase": phase, "confidence": confidence, "actions": actions}
 
 
@@ -862,7 +932,9 @@ def _collect_delivery_plan(
     )
 
 
-def _scaffold_plan_result(status: str, confidence: str, items: list[dict[str, str]]) -> dict[str, Any]:
+def _scaffold_plan_result(
+    status: str, confidence: str, items: list[dict[str, str]]
+) -> dict[str, Any]:
     return {"status": status, "confidence": confidence, "items": items}
 
 
@@ -870,7 +942,9 @@ def _scaffold_item(spec_key: str) -> dict[str, str]:
     return dict(SCAFFOLD_SPECS[spec_key])
 
 
-def _append_scaffold_item(items: list[dict[str, str]], seen_reasons: set[str], spec_key: str) -> None:
+def _append_scaffold_item(
+    items: list[dict[str, str]], seen_reasons: set[str], spec_key: str
+) -> None:
     item = _scaffold_item(spec_key)
     if item["reason"] in seen_reasons:
         return
@@ -897,12 +971,18 @@ def _collect_scaffold_plan(
             _append_scaffold_item(items, seen_reasons, contract)
 
     if build_quality["level"] == "build-entry":
-        _append_scaffold_item(items, seen_reasons, "build_entry_without_command_contract")
+        _append_scaffold_item(
+            items, seen_reasons, "build_entry_without_command_contract"
+        )
     if test_quality["level"] == "smoke-launch":
-        _append_scaffold_item(items, seen_reasons, "smoke_test_without_correctness_or_graph_sk")
+        _append_scaffold_item(
+            items, seen_reasons, "smoke_test_without_correctness_or_graph_sk"
+        )
 
     if not items:
-        confidence = "high" if delivery_plan["phase"] == "handoff-planning" else "medium"
+        confidence = (
+            "high" if delivery_plan["phase"] == "handoff-planning" else "medium"
+        )
         return _scaffold_plan_result("not-needed", confidence, [])
 
     reasons = {item["reason"] for item in items}
@@ -927,11 +1007,21 @@ def _build_manifest(asset_path: Path) -> dict[str, Any]:
     include_files = [path for path in source_files if path.suffix in INCLUDE_SUFFIXES]
     build_files = [path for path in files if path.name in BUILD_FILENAMES]
     test_files = [path for path in files if _is_test_path(path, base_dir)]
-    package_files = [path for path in files if path.name in PACKAGE_FILENAMES or _is_package_init(path, base_dir)]
-    doc_files = [path for path in files if path.name in DOC_FILENAMES or path.suffix.lower() == ".md"]
+    package_files = [
+        path
+        for path in files
+        if path.name in PACKAGE_FILENAMES or _is_package_init(path, base_dir)
+    ]
+    doc_files = [
+        path
+        for path in files
+        if path.name in DOC_FILENAMES or path.suffix.lower() == ".md"
+    ]
     kernel_entries = _collect_kernel_entries(source_files, base_dir)
     sk_markers = _collect_sk_markers(source_files)
-    asset_level = _classify_asset(source_files, build_files, test_files, package_files, doc_files)
+    asset_level = _classify_asset(
+        source_files, build_files, test_files, package_files, doc_files
+    )
     missing = _missing_contracts(
         build_files=build_files,
         test_files=test_files,
@@ -1012,9 +1102,14 @@ def _sk_file_evidence(paths: list[str]) -> list[dict[str, str]]:
     return [{"kind": "file", "path": path, "value": Path(path).name} for path in paths]
 
 
-def _sk_source_file_fingerprints(base_dir: str, source_files: list[str]) -> list[dict[str, str]]:
+def _sk_source_file_fingerprints(
+    base_dir: str, source_files: list[str]
+) -> list[dict[str, str]]:
     root = Path(base_dir)
-    return [{"path": rel_path, "sha256": _hash_file(root / rel_path)} for rel_path in source_files]
+    return [
+        {"path": rel_path, "sha256": _hash_file(root / rel_path)}
+        for rel_path in source_files
+    ]
 
 
 def _support_dir_name(name: str) -> str:
@@ -1037,13 +1132,19 @@ def _parse_support_dir_arg(raw: str) -> tuple[str | None, Path]:
 
 def _support_source_files(root: Path) -> list[str]:
     files = sorted(
-        (path for path in root.rglob("*") if path.is_file() and _is_supported_source_file(path, root)),
+        (
+            path
+            for path in root.rglob("*")
+            if path.is_file() and _is_supported_source_file(path, root)
+        ),
         key=lambda path: _relative(path, root),
     )
     return [_relative(path, root) for path in files]
 
 
-def _normalize_support_directories(raw_specs: list[str] | None, asset_base: Path) -> list[dict[str, Any]]:
+def _normalize_support_directories(
+    raw_specs: list[str] | None, asset_base: Path
+) -> list[dict[str, Any]]:
     specs: list[dict[str, Any]] = []
     seen_names: set[str] = set()
     asset_root = asset_base.resolve()
@@ -1054,21 +1155,29 @@ def _normalize_support_directories(raw_specs: list[str] | None, asset_base: Path
             raise CliUsageError(f"support directory not found: {raw_path}")
         if not path.is_dir():
             raise CliUsageError(f"support path is not a directory: {raw_path}")
-        if _is_same_or_child_path(path, asset_root) or _is_same_or_child_path(asset_root, path):
-            raise CliUsageError("support directory must be a sibling/shared directory outside the asset root")
+        if _is_same_or_child_path(path, asset_root) or _is_same_or_child_path(
+            asset_root, path
+        ):
+            raise CliUsageError(
+                "support directory must be a sibling/shared directory outside the asset root"
+            )
         name = explicit_name or _support_dir_name(path.name)
         if name in seen_names:
             raise CliUsageError(f"duplicate support directory name: {name}")
         files = _support_source_files(path)
         if not files:
-            raise CliUsageError(f"support directory has no supported source files: {path}")
+            raise CliUsageError(
+                f"support directory has no supported source files: {path}"
+            )
         seen_names.add(name)
         specs.append(
             {
                 "source_name": name,
                 "source_path": str(path),
                 "source_files": files,
-                "source_file_fingerprints": _sk_source_file_fingerprints(str(path), files),
+                "source_file_fingerprints": _sk_source_file_fingerprints(
+                    str(path), files
+                ),
             }
         )
     return specs
@@ -1139,9 +1248,13 @@ def _normalize_ascend_compile_contract(
     if not has_compile_contract:
         return None
     if not cann_path:
-        raise CliUsageError("ascend CANN path is required when ascend compile contract is enabled")
+        raise CliUsageError(
+            "ascend CANN path is required when ascend compile contract is enabled"
+        )
     if not arch:
-        raise CliUsageError("ascend arch is required when ascend compile contract is enabled")
+        raise CliUsageError(
+            "ascend arch is required when ascend compile contract is enabled"
+        )
     if not ASCEND_ARCH_RE.fullmatch(arch):
         raise CliUsageError(f"invalid ascend arch: {arch}")
 
@@ -1151,9 +1264,13 @@ def _normalize_ascend_compile_contract(
     if not normalized_cann_path.is_dir():
         raise CliUsageError(f"ascend CANN path is not a directory: {cann_path}")
 
-    bisheng_path = normalized_cann_path / "tools" / "bisheng_compiler" / "bin" / "bisheng"
+    bisheng_path = (
+        normalized_cann_path / "tools" / "bisheng_compiler" / "bin" / "bisheng"
+    )
     if not bisheng_path.exists():
-        raise CliUsageError(f"bisheng compiler not found under ascend CANN path: {bisheng_path}")
+        raise CliUsageError(
+            f"bisheng compiler not found under ascend CANN path: {bisheng_path}"
+        )
     if not bisheng_path.is_file():
         raise CliUsageError(f"bisheng compiler is not a file: {bisheng_path}")
 
@@ -1229,7 +1346,9 @@ def _sk_source_copy_entries(analysis: dict[str, Any]) -> list[dict[str, Any]]:
         if previous is not None:
             if _hash_file(previous["source_path"]) == _hash_file(entry["source_path"]):
                 continue
-            raise CliUsageError(f"conflicting sk source scaffold destination: {scaffold_path}")
+            raise CliUsageError(
+                f"conflicting sk source scaffold destination: {scaffold_path}"
+            )
         seen[scaffold_path] = entry
         entries.append(entry)
     return entries
@@ -1240,22 +1359,33 @@ def _validate_sk_source_destination_collisions(analysis: dict[str, Any]) -> None
 
 
 def _sk_symbol_evidence(entries: list[dict[str, str]]) -> list[dict[str, str]]:
-    return [{"kind": "symbol", "path": entry["file"], "value": entry["name"]} for entry in entries]
+    return [
+        {"kind": "symbol", "path": entry["file"], "value": entry["name"]}
+        for entry in entries
+    ]
 
 
 def _sk_marker_evidence(sk_markers: dict[str, bool]) -> list[dict[str, str]]:
-    return [{"kind": "marker", "path": "", "value": name} for name, found in sk_markers.items() if found]
+    return [
+        {"kind": "marker", "path": "", "value": name}
+        for name, found in sk_markers.items()
+        if found
+    ]
 
 
 def _has_sk_binding_marker(sk_markers: dict[str, bool]) -> bool:
     return bool(sk_markers["SK_BIND"] or sk_markers["__sk__"] or sk_markers["__spk__"])
 
 
-def _sk_conversion_input(name: str, status: str, reason: str, evidence: list[dict[str, str]]) -> dict[str, Any]:
+def _sk_conversion_input(
+    name: str, status: str, reason: str, evidence: list[dict[str, str]]
+) -> dict[str, Any]:
     return {"name": name, "status": status, "reason": reason, "evidence": evidence}
 
 
-def _sk_generation_step(action: str, status: str, reason: str, evidence: list[dict[str, str]]) -> dict[str, Any]:
+def _sk_generation_step(
+    action: str, status: str, reason: str, evidence: list[dict[str, str]]
+) -> dict[str, Any]:
     return {"action": action, "status": status, "reason": reason, "evidence": evidence}
 
 
@@ -1297,23 +1427,55 @@ def _sk_conversion_inputs(manifest: dict[str, Any]) -> list[dict[str, Any]]:
     inputs: list[dict[str, Any]] = []
 
     if has_source:
-        inputs.append(_sk_conversion_input("source", "present", "source_files_detected", source_evidence))
+        inputs.append(
+            _sk_conversion_input(
+                "source", "present", "source_files_detected", source_evidence
+            )
+        )
     else:
-        inputs.append(_sk_conversion_input("source", "blocked", "no_supported_operator_source_files", []))
+        inputs.append(
+            _sk_conversion_input(
+                "source", "blocked", "no_supported_operator_source_files", []
+            )
+        )
 
     if manifest["kernel_entries"]:
-        inputs.append(_sk_conversion_input("entry_signature", "present", "kernel_entries_detected", entry_evidence))
+        inputs.append(
+            _sk_conversion_input(
+                "entry_signature", "present", "kernel_entries_detected", entry_evidence
+            )
+        )
     elif has_source:
-        inputs.append(_sk_conversion_input("entry_signature", "blocked", "kernel_entries_missing", source_evidence))
+        inputs.append(
+            _sk_conversion_input(
+                "entry_signature", "blocked", "kernel_entries_missing", source_evidence
+            )
+        )
     else:
-        inputs.append(_sk_conversion_input("entry_signature", "blocked", "no_supported_operator_source_files", []))
+        inputs.append(
+            _sk_conversion_input(
+                "entry_signature", "blocked", "no_supported_operator_source_files", []
+            )
+        )
 
     if not has_source:
-        inputs.append(_sk_conversion_input("sk_binding", "blocked", "no_supported_operator_source_files", []))
+        inputs.append(
+            _sk_conversion_input(
+                "sk_binding", "blocked", "no_supported_operator_source_files", []
+            )
+        )
     elif _has_sk_binding_marker(manifest["sk_markers"]):
-        inputs.append(_sk_conversion_input("sk_binding", "present", "sk_binding_marker_detected", marker_evidence))
+        inputs.append(
+            _sk_conversion_input(
+                "sk_binding", "present", "sk_binding_marker_detected", marker_evidence
+            )
+        )
     else:
-        inputs.append(_sk_conversion_input("sk_binding", "missing", "sk_binding_contract_missing", []))
+        inputs.append(
+            _sk_conversion_input(
+                "sk_binding", "missing", "sk_binding_contract_missing", []
+            )
+        )
 
     for name, manifest_key, present_reason, missing_reason in (
         (
@@ -1343,9 +1505,15 @@ def _sk_conversion_inputs(manifest: dict[str, Any]) -> list[dict[str, Any]]:
     ):
         evidence = _sk_file_evidence(manifest[manifest_key])
         if not has_source:
-            inputs.append(_sk_conversion_input(name, "blocked", "no_supported_operator_source_files", []))
+            inputs.append(
+                _sk_conversion_input(
+                    name, "blocked", "no_supported_operator_source_files", []
+                )
+            )
         elif evidence:
-            inputs.append(_sk_conversion_input(name, "present", present_reason, evidence))
+            inputs.append(
+                _sk_conversion_input(name, "present", present_reason, evidence)
+            )
         else:
             inputs.append(_sk_conversion_input(name, "missing", missing_reason, []))
 
@@ -1367,7 +1535,11 @@ def _sk_conversion_inputs(manifest: dict[str, Any]) -> list[dict[str, Any]]:
             )
         )
     else:
-        inputs.append(_sk_conversion_input("runtime_inputs", "blocked", "no_supported_operator_source_files", []))
+        inputs.append(
+            _sk_conversion_input(
+                "runtime_inputs", "blocked", "no_supported_operator_source_files", []
+            )
+        )
         inputs.append(
             _sk_conversion_input(
                 "correctness_oracle",
@@ -1422,7 +1594,11 @@ def _sk_conversion_plan(
         )
 
     if not has_source:
-        plan.append(_sk_generation_step("adapt_sk_binding", "blocked", "no_supported_operator_source_files", []))
+        plan.append(
+            _sk_generation_step(
+                "adapt_sk_binding", "blocked", "no_supported_operator_source_files", []
+            )
+        )
     elif _has_sk_binding_marker(manifest["sk_markers"]):
         plan.append(
             _sk_generation_step(
@@ -1433,7 +1609,11 @@ def _sk_conversion_plan(
             )
         )
     else:
-        plan.append(_sk_generation_step("adapt_sk_binding", "needed", "sk_binding_contract_missing", []))
+        plan.append(
+            _sk_generation_step(
+                "adapt_sk_binding", "needed", "sk_binding_contract_missing", []
+            )
+        )
 
     for action, manifest_key, present_reason, missing_reason in (
         (
@@ -1457,7 +1637,11 @@ def _sk_conversion_plan(
     ):
         evidence = _sk_file_evidence(manifest[manifest_key])
         if not has_source:
-            plan.append(_sk_generation_step(action, "blocked", "no_supported_operator_source_files", []))
+            plan.append(
+                _sk_generation_step(
+                    action, "blocked", "no_supported_operator_source_files", []
+                )
+            )
         elif evidence:
             plan.append(_sk_generation_step(action, "ready", present_reason, evidence))
         else:
@@ -1524,7 +1708,9 @@ def _sk_conversion_plan(
             "build_contract",
             "test_contract",
         ):
-            ready_evidence.extend(next(item["evidence"] for item in inputs if item["name"] == input_name))
+            ready_evidence.extend(
+                next(item["evidence"] for item in inputs if item["name"] == input_name)
+            )
         for input_name in ("package_contract", "delivery_docs"):
             item = next(item for item in inputs if item["name"] == input_name)
             if item["status"] == "present":
@@ -1537,7 +1723,11 @@ def _sk_conversion_plan(
                 ready_evidence,
             )
         )
-        plan.append(_sk_generation_step("run_sk_build_validation", "deferred", "sk_source_not_generated", []))
+        plan.append(
+            _sk_generation_step(
+                "run_sk_build_validation", "deferred", "sk_source_not_generated", []
+            )
+        )
     elif status == "needs-contracts":
         plan.append(
             _sk_generation_step(
@@ -1547,17 +1737,29 @@ def _sk_conversion_plan(
                 [],
             )
         )
-        plan.append(_sk_generation_step("run_sk_build_validation", "deferred", "sk_source_not_generated", []))
+        plan.append(
+            _sk_generation_step(
+                "run_sk_build_validation", "deferred", "sk_source_not_generated", []
+            )
+        )
     else:
         reason = blocked_reasons[0]
         evidence = source_evidence if reason == "kernel_entries_missing" else []
-        plan.append(_sk_generation_step("generate_sk_source_scaffold", "blocked", reason, evidence))
-        plan.append(_sk_generation_step("run_sk_build_validation", "blocked", reason, evidence))
+        plan.append(
+            _sk_generation_step(
+                "generate_sk_source_scaffold", "blocked", reason, evidence
+            )
+        )
+        plan.append(
+            _sk_generation_step("run_sk_build_validation", "blocked", reason, evidence)
+        )
 
     return plan
 
 
-def _sk_conversion_next_actions(status: str, blocked_reasons: list[str], plan: list[dict[str, Any]]) -> list[str]:
+def _sk_conversion_next_actions(
+    status: str, blocked_reasons: list[str], plan: list[dict[str, Any]]
+) -> list[str]:
     if status == "ready-for-sk-generation":
         return ["generate_sk_source_scaffold"]
     if blocked_reasons == ["no_supported_operator_source_files"]:
@@ -1579,7 +1781,9 @@ class SkConversionAnalysisInput(NamedTuple):
 
 def _build_sk_conversion_analysis(request: SkConversionAnalysisInput) -> dict[str, Any]:
     manifest = _build_manifest(request.asset_path)
-    support_directories = _normalize_support_directories(request.support_dir_specs, Path(manifest["base_dir"]))
+    support_directories = _normalize_support_directories(
+        request.support_dir_specs, Path(manifest["base_dir"])
+    )
     include_directories = _normalize_include_directories(request.include_dir_specs)
     ascend_compile_contract = _normalize_ascend_compile_contract(
         cann_path=request.ascend_cann_path,
@@ -1598,7 +1802,9 @@ def _build_sk_conversion_analysis(request: SkConversionAnalysisInput) -> dict[st
         "archetype": manifest["archetype"],
         "supported_minimal_unit": _sk_conversion_minimal_unit(manifest, status),
         "source_files": manifest["source_files"],
-        "source_file_fingerprints": _sk_source_file_fingerprints(manifest["base_dir"], manifest["source_files"]),
+        "source_file_fingerprints": _sk_source_file_fingerprints(
+            manifest["base_dir"], manifest["source_files"]
+        ),
         "include_files": manifest["include_files"],
         "support_directories": support_directories,
         "include_directories": include_directories,
@@ -1613,7 +1819,9 @@ def _build_sk_conversion_analysis(request: SkConversionAnalysisInput) -> dict[st
         "generation_plan": plan,
         "blocked_reasons": blocked_reasons,
         "execution_boundary": SK_CONVERSION_BOUNDARY,
-        "supported_next_actions": _sk_conversion_next_actions(status, blocked_reasons, plan),
+        "supported_next_actions": _sk_conversion_next_actions(
+            status, blocked_reasons, plan
+        ),
     }
     _validate_sk_source_destination_collisions(analysis)
     return analysis
@@ -1651,9 +1859,13 @@ def _load_current_sk_conversion_analysis(output_dir: Path) -> dict[str, Any]:
         },
         "sk conversion analysis",
     )
-    asset_path = Path(_require_string(analysis["asset_path"], "sk conversion analysis asset_path")).resolve()
+    asset_path = Path(
+        _require_string(analysis["asset_path"], "sk conversion analysis asset_path")
+    ).resolve()
     support_directories: list[dict[str, Any]] = []
-    for support_dir in _require_list(analysis["support_directories"], "sk conversion analysis support_directories"):
+    for support_dir in _require_list(
+        analysis["support_directories"], "sk conversion analysis support_directories"
+    ):
         item = _require_exact_keys(
             support_dir,
             {"source_name", "source_path", "source_files", "source_file_fingerprints"},
@@ -1732,10 +1944,18 @@ def _load_current_sk_conversion_analysis(output_dir: Path) -> dict[str, Any]:
         )
         ascend_compile_contract = {
             "cann_path": str(
-                Path(_require_string(contract["cann_path"], "ascend compile contract cann_path")).resolve()
+                Path(
+                    _require_string(
+                        contract["cann_path"], "ascend compile contract cann_path"
+                    )
+                ).resolve()
             ),
             "bisheng_path": str(
-                Path(_require_string(contract["bisheng_path"], "ascend compile contract bisheng_path")).resolve()
+                Path(
+                    _require_string(
+                        contract["bisheng_path"], "ascend compile contract bisheng_path"
+                    )
+                ).resolve()
             ),
             "arch": _require_string(contract["arch"], "ascend compile contract arch"),
             "compile_options": _require_string_list(
@@ -1758,12 +1978,19 @@ def _load_current_sk_conversion_analysis(output_dir: Path) -> dict[str, Any]:
     expected = _build_sk_conversion_analysis(
         SkConversionAnalysisInput(
             asset_path,
-            [f"{item['source_name']}={item['source_path']}" for item in support_directories],
+            [
+                f"{item['source_name']}={item['source_path']}"
+                for item in support_directories
+            ],
             analysis["include_directories"],
             ascend_compile_contract["cann_path"] if ascend_compile_contract else None,
             ascend_compile_contract["arch"] if ascend_compile_contract else None,
-            ascend_compile_contract["compile_options"] if ascend_compile_contract else None,
-            ascend_compile_contract["force_includes"] if ascend_compile_contract else None,
+            ascend_compile_contract["compile_options"]
+            if ascend_compile_contract
+            else None,
+            ascend_compile_contract["force_includes"]
+            if ascend_compile_contract
+            else None,
         )
     )
     if analysis != expected:
@@ -1800,8 +2027,14 @@ def _parse_sk_scaffold_params(param_text: str) -> list[dict[str, str]] | None:
             type_part = f"{type_part} {pointer_prefix}"
         if not re.fullmatch(r"[A-Za-z_]\w*", name_part):
             return None
-        base_type = type_part.replace("const", "").replace("*", "").replace("&", "").strip()
-        alignment = "alignas(4)" if base_type in {"int8_t", "uint8_t", "int16_t", "uint16_t"} else ""
+        base_type = (
+            type_part.replace("const", "").replace("*", "").replace("&", "").strip()
+        )
+        alignment = (
+            "alignas(4)"
+            if base_type in {"int8_t", "uint8_t", "int16_t", "uint16_t"}
+            else ""
+        )
         params.append(
             {
                 "type": type_part,
@@ -1827,7 +2060,9 @@ def _find_matching_brace(text: str, open_brace_index: int) -> int | None:
     return None
 
 
-def _find_kernel_signature_for_entry(asset_base_dir: Path, entry: dict[str, str]) -> dict[str, Any] | None:
+def _find_kernel_signature_for_entry(
+    asset_base_dir: Path, entry: dict[str, str]
+) -> dict[str, Any] | None:
     source_path = asset_base_dir / entry["file"]
     if not source_path.exists() or not source_path.is_file():
         return None
@@ -1850,7 +2085,9 @@ def _find_kernel_signature_for_entry(asset_base_dir: Path, entry: dict[str, str]
         body = text[body_start:close_brace]
         return {
             "signature": signature,
-            "qualifiers": match.group("qualifiers").replace("__global__", "__sk__", 1).strip(),
+            "qualifiers": match.group("qualifiers")
+            .replace("__global__", "__sk__", 1)
+            .strip(),
             "params": match.group("params"),
             "body": body,
         }
@@ -1885,7 +2122,11 @@ def _sk_source_empty_manifest(
 
 
 def _sk_source_needed_next_actions(analysis: dict[str, Any]) -> list[str]:
-    return [item["action"] for item in analysis["generation_plan"] if item["status"] == "needed"][:3]
+    return [
+        item["action"]
+        for item in analysis["generation_plan"]
+        if item["status"] == "needed"
+    ][:3]
 
 
 def _render_sk_source_scaffold_markdown(manifest: dict[str, Any]) -> str:
@@ -1995,18 +2236,26 @@ def _cmake_quoted(value: str) -> str:
 
 
 def _safe_object_name(scaffold_path: str) -> str:
-    safe = re.sub(r"[^A-Za-z0-9_.-]+", "_", scaffold_path).strip("_") or "operator_source"
+    safe = (
+        re.sub(r"[^A-Za-z0-9_.-]+", "_", scaffold_path).strip("_") or "operator_source"
+    )
     return f"{safe}.o"
 
 
-def _render_ascend_scaffold_cmake(manifest: dict[str, Any], copied_source_files: list[dict[str, str]]) -> str:
+def _render_ascend_scaffold_cmake(
+    manifest: dict[str, Any], copied_source_files: list[dict[str, str]]
+) -> str:
     contract = manifest["ascend_compile_contract"]
     ascend_sources = [
         item["scaffold_path"]
         for item in copied_source_files
         if Path(item["source"]).suffix in ASCEND_COMPILABLE_SOURCE_SUFFIXES
     ]
-    headers = [item["scaffold_path"] for item in copied_source_files if Path(item["source"]).suffix in INCLUDE_SUFFIXES]
+    headers = [
+        item["scaffold_path"]
+        for item in copied_source_files
+        if Path(item["source"]).suffix in INCLUDE_SUFFIXES
+    ]
     target_name = _safe_target_name(manifest)
     include_dirs = []
     for include_dir in [
@@ -2039,7 +2288,9 @@ def _render_ascend_scaffold_cmake(manifest: dict[str, Any], copied_source_files:
     if ascend_sources:
         outputs: list[str] = []
         for source in ascend_sources:
-            output = f"${{CMAKE_CURRENT_BINARY_DIR}}/objects/{_safe_object_name(source)}"
+            output = (
+                f"${{CMAKE_CURRENT_BINARY_DIR}}/objects/{_safe_object_name(source)}"
+            )
             outputs.append(output)
             lines.extend(
                 [
@@ -2053,7 +2304,10 @@ def _render_ascend_scaffold_cmake(manifest: dict[str, Any], copied_source_files:
             for force_include in contract["force_includes"]:
                 lines.append("    -include")
                 lines.append(f"    {_cmake_quoted(force_include)}")
-            lines.extend(f"    {_cmake_quoted('-I' + include_dir)}" for include_dir in include_dirs)
+            lines.extend(
+                f"    {_cmake_quoted('-I' + include_dir)}"
+                for include_dir in include_dirs
+            )
             lines.extend(
                 [
                     "    -c",
@@ -2087,7 +2341,9 @@ def _render_ascend_scaffold_cmake(manifest: dict[str, Any], copied_source_files:
     return "\n".join(lines) + "\n"
 
 
-def _render_scaffold_cmake(manifest: dict[str, Any], copied_source_files: list[dict[str, str]]) -> str:
+def _render_scaffold_cmake(
+    manifest: dict[str, Any], copied_source_files: list[dict[str, str]]
+) -> str:
     if manifest.get("ascend_compile_contract"):
         return _render_ascend_scaffold_cmake(manifest, copied_source_files)
 
@@ -2096,7 +2352,11 @@ def _render_scaffold_cmake(manifest: dict[str, Any], copied_source_files: list[d
         for item in copied_source_files
         if Path(item["source"]).suffix in COMPILABLE_SOURCE_SUFFIXES
     ]
-    headers = [item["scaffold_path"] for item in copied_source_files if Path(item["source"]).suffix in INCLUDE_SUFFIXES]
+    headers = [
+        item["scaffold_path"]
+        for item in copied_source_files
+        if Path(item["source"]).suffix in INCLUDE_SUFFIXES
+    ]
     lines = [
         "cmake_minimum_required(VERSION 3.16)",
         f"project({_safe_target_name(manifest)}_scaffold LANGUAGES CXX)",
@@ -2126,15 +2386,21 @@ def _render_scaffold_cmake(manifest: dict[str, Any], copied_source_files: list[d
             ]
         )
         if manifest.get("include_directories"):
-            lines.append(f"target_include_directories({_safe_target_name(manifest)}_objects PRIVATE")
+            lines.append(
+                f"target_include_directories({_safe_target_name(manifest)}_objects PRIVATE"
+            )
             lines.extend(f'  "{path}"' for path in manifest["include_directories"])
             lines.append(")")
     else:
-        lines.append("# No compilable source file was detected; add an operator build entry before compiling.")
+        lines.append(
+            "# No compilable source file was detected; add an operator build entry before compiling."
+        )
     return "\n".join(lines) + "\n"
 
 
-def _require_exact_keys(payload: Any, expected_keys: set[str], label: str) -> dict[str, Any]:
+def _require_exact_keys(
+    payload: Any, expected_keys: set[str], label: str
+) -> dict[str, Any]:
     if not isinstance(payload, dict):
         raise CliUsageError(f"{label} must be an object")
     keys = set(payload)
@@ -2152,7 +2418,9 @@ def _require_string(value: Any, label: str, *, allow_empty: bool = False) -> str
         raise CliUsageError(f"{label} must be a string")
     if not allow_empty and not value:
         raise CliUsageError(
-            "empty scaffold path is not allowed" if label.endswith("path") else f"{label} must be non-empty"
+            "empty scaffold path is not allowed"
+            if label.endswith("path")
+            else f"{label} must be non-empty"
         )
     return value
 
@@ -2201,7 +2469,9 @@ def _load_json_artifact(path: Path, artifact_name: str) -> Any:
         raise CliUsageError(f"{artifact_name} is not valid JSON") from exc
 
 
-def _validate_manifest_path(value: Any, label: str, *, allow_empty: bool = False) -> str:
+def _validate_manifest_path(
+    value: Any, label: str, *, allow_empty: bool = False
+) -> str:
     path = _require_string(value, label, allow_empty=allow_empty)
     if allow_empty and path == "":
         return path
@@ -2211,21 +2481,27 @@ def _validate_manifest_path(value: Any, label: str, *, allow_empty: bool = False
         raise CliUsageError(str(exc)) from exc
 
 
-def _validate_manifest_path_list(value: Any, list_label: str, item_label: str) -> list[str]:
+def _validate_manifest_path_list(
+    value: Any, list_label: str, item_label: str
+) -> list[str]:
     paths = []
     for item in _require_list(value, list_label):
         paths.append(_validate_manifest_path(item, item_label))
     return paths
 
 
-def _resolve_string_path_list(value: Any, list_label: str, item_label: str) -> list[str]:
+def _resolve_string_path_list(
+    value: Any, list_label: str, item_label: str
+) -> list[str]:
     paths = []
     for item in _require_list(value, list_label):
         paths.append(str(Path(_require_string(item, item_label)).resolve()))
     return paths
 
 
-def _expected_sk_source_manifest(output_dir: Path, analysis: dict[str, Any]) -> dict[str, Any]:
+def _expected_sk_source_manifest(
+    output_dir: Path, analysis: dict[str, Any]
+) -> dict[str, Any]:
     if analysis["status"] == "ready-for-sk-generation":
         return {
             "status": "generated",
@@ -2262,7 +2538,9 @@ def _expected_sk_source_manifest(output_dir: Path, analysis: dict[str, Any]) -> 
     )
 
 
-def _normalize_sk_source_scaffold_manifest(payload: Any, output_dir: Path) -> dict[str, Any]:
+def _normalize_sk_source_scaffold_manifest(
+    payload: Any, output_dir: Path
+) -> dict[str, Any]:
     manifest = _require_exact_keys(
         payload,
         {
@@ -2287,9 +2565,9 @@ def _normalize_sk_source_scaffold_manifest(payload: Any, output_dir: Path) -> di
     status = _require_string(manifest["status"], "sk source scaffold status")
     if status not in {"generated", "blocked"}:
         raise CliUsageError(f"invalid sk source scaffold status: {status}")
-    if _require_string(manifest["analysis_output_dir"], "sk source scaffold analysis_output_dir") != str(
-        output_dir.resolve()
-    ):
+    if _require_string(
+        manifest["analysis_output_dir"], "sk source scaffold analysis_output_dir"
+    ) != str(output_dir.resolve()):
         raise CliUsageError("sk source scaffold mismatch")
     if (
         _require_string(manifest["analysis_path"], "sk source scaffold analysis_path")
@@ -2307,16 +2585,24 @@ def _normalize_sk_source_scaffold_manifest(payload: Any, output_dir: Path) -> di
         manifest["source_file_fingerprints"],
         "sk source scaffold source_file_fingerprints",
     ):
-        item = _require_exact_keys(fingerprint, {"path", "sha256"}, "sk source scaffold source fingerprint")
+        item = _require_exact_keys(
+            fingerprint, {"path", "sha256"}, "sk source scaffold source fingerprint"
+        )
         fingerprints.append(
             {
-                "path": _validate_manifest_path(item["path"], "sk source scaffold fingerprint path"),
-                "sha256": _require_string(item["sha256"], "sk source scaffold fingerprint sha256"),
+                "path": _validate_manifest_path(
+                    item["path"], "sk source scaffold fingerprint path"
+                ),
+                "sha256": _require_string(
+                    item["sha256"], "sk source scaffold fingerprint sha256"
+                ),
             }
         )
     manifest["source_file_fingerprints"] = fingerprints
     support_directories: list[dict[str, Any]] = []
-    for support_dir in _require_list(manifest["support_directories"], "sk source scaffold support_directories"):
+    for support_dir in _require_list(
+        manifest["support_directories"], "sk source scaffold support_directories"
+    ):
         item = _require_exact_keys(
             support_dir,
             {"source_name", "source_path", "source_files", "source_file_fingerprints"},
@@ -2347,7 +2633,9 @@ def _normalize_sk_source_scaffold_manifest(payload: Any, output_dir: Path) -> di
         support_directories.append(
             {
                 "source_name": _support_dir_name(
-                    _require_string(item["source_name"], "sk source scaffold support source_name")
+                    _require_string(
+                        item["source_name"], "sk source scaffold support source_name"
+                    )
                 ),
                 "source_path": str(
                     Path(
@@ -2389,7 +2677,11 @@ def _normalize_sk_source_scaffold_manifest(payload: Any, output_dir: Path) -> di
         )
         manifest["ascend_compile_contract"] = {
             "cann_path": str(
-                Path(_require_string(contract["cann_path"], "sk source scaffold ascend cann_path")).resolve()
+                Path(
+                    _require_string(
+                        contract["cann_path"], "sk source scaffold ascend cann_path"
+                    )
+                ).resolve()
             ),
             "bisheng_path": str(
                 Path(
@@ -2417,21 +2709,35 @@ def _normalize_sk_source_scaffold_manifest(payload: Any, output_dir: Path) -> di
             ),
         }
     entries: list[dict[str, str]] = []
-    for entry in _require_list(manifest["kernel_entries"], "sk source scaffold kernel_entries"):
-        item = _require_exact_keys(entry, {"name", "file"}, "sk source scaffold kernel entry")
+    for entry in _require_list(
+        manifest["kernel_entries"], "sk source scaffold kernel_entries"
+    ):
+        item = _require_exact_keys(
+            entry, {"name", "file"}, "sk source scaffold kernel entry"
+        )
         entries.append(
             {
-                "name": _require_string(item["name"], "sk source scaffold kernel entry name"),
-                "file": _validate_manifest_path(item["file"], "sk source scaffold kernel entry file"),
+                "name": _require_string(
+                    item["name"], "sk source scaffold kernel entry name"
+                ),
+                "file": _validate_manifest_path(
+                    item["file"], "sk source scaffold kernel entry file"
+                ),
             }
         )
     manifest["kernel_entries"] = entries
     copied: list[dict[str, str]] = []
-    for copied_file in _require_list(manifest["copied_source_files"], "sk source scaffold copied_source_files"):
-        item = _require_exact_keys(copied_file, {"source", "scaffold_path"}, "sk source scaffold copied source")
+    for copied_file in _require_list(
+        manifest["copied_source_files"], "sk source scaffold copied_source_files"
+    ):
+        item = _require_exact_keys(
+            copied_file, {"source", "scaffold_path"}, "sk source scaffold copied source"
+        )
         copied.append(
             {
-                "source": _validate_manifest_path(item["source"], "sk source scaffold copied source"),
+                "source": _validate_manifest_path(
+                    item["source"], "sk source scaffold copied source"
+                ),
                 "scaffold_path": _validate_manifest_path(
                     item["scaffold_path"], "sk source scaffold copied scaffold path"
                 ),
@@ -2461,7 +2767,9 @@ def _normalize_sk_source_scaffold_manifest(payload: Any, output_dir: Path) -> di
     return manifest
 
 
-def _require_sk_source_scaffold_file(output_dir: Path, relative_path: str, reason: str) -> Path:
+def _require_sk_source_scaffold_file(
+    output_dir: Path, relative_path: str, reason: str
+) -> Path:
     path = output_dir / relative_path
     scaffold_dir = (output_dir / SK_SOURCE_SCAFFOLD_DIR).resolve()
     try:
@@ -2477,7 +2785,9 @@ def _require_sk_source_scaffold_file(output_dir: Path, relative_path: str, reaso
     return path
 
 
-def _load_current_sk_source_scaffold(output_dir: Path, analysis: dict[str, Any]) -> dict[str, Any]:
+def _load_current_sk_source_scaffold(
+    output_dir: Path, analysis: dict[str, Any]
+) -> dict[str, Any]:
     payload = _load_json_artifact(
         output_dir / "operator-sk-source-scaffold.json",
         "operator-sk-source-scaffold.json",
@@ -2487,11 +2797,15 @@ def _load_current_sk_source_scaffold(output_dir: Path, analysis: dict[str, Any])
     if manifest != expected:
         raise CliUsageError("sk source scaffold mismatch")
     try:
-        markdown = (output_dir / "operator-sk-source-scaffold.md").read_text(encoding="utf-8")
+        markdown = (output_dir / "operator-sk-source-scaffold.md").read_text(
+            encoding="utf-8"
+        )
     except FileNotFoundError as exc:
         raise CliUsageError("sk source scaffold mismatch") from exc
     except UnicodeDecodeError as exc:
-        raise CliUsageError("operator-sk-source-scaffold.md is not valid UTF-8") from exc
+        raise CliUsageError(
+            "operator-sk-source-scaffold.md is not valid UTF-8"
+        ) from exc
     except OSError as exc:
         raise CliUsageError("sk source scaffold mismatch") from exc
     if markdown != _render_sk_source_scaffold_markdown(expected):
@@ -2501,16 +2815,22 @@ def _load_current_sk_source_scaffold(output_dir: Path, analysis: dict[str, Any])
             raise CliUsageError("sk source scaffold mismatch")
         return manifest
     for item in manifest["copied_source_files"]:
-        copied_path = _require_sk_source_scaffold_file(output_dir, item["scaffold_path"], "copied source missing")
+        copied_path = _require_sk_source_scaffold_file(
+            output_dir, item["scaffold_path"], "copied source missing"
+        )
         try:
-            original_bytes = _sk_source_copy_source_path(analysis, item["source"]).read_bytes()
+            original_bytes = _sk_source_copy_source_path(
+                analysis, item["source"]
+            ).read_bytes()
             copied_bytes = copied_path.read_bytes()
         except OSError as exc:
             raise CliUsageError("copied source drift") from exc
         if copied_bytes != original_bytes:
             raise CliUsageError("copied source drift")
     for relative_path in manifest["generated_files"]:
-        generated_path = _require_sk_source_scaffold_file(output_dir, relative_path, "sk source scaffold mismatch")
+        generated_path = _require_sk_source_scaffold_file(
+            output_dir, relative_path, "sk source scaffold mismatch"
+        )
         if relative_path == f"{SK_SOURCE_SCAFFOLD_DIR}/CMakeLists.txt":
             try:
                 content = generated_path.read_text(encoding="utf-8")
@@ -2527,8 +2847,12 @@ def _normalize_sk_build_validation_checks(
     if len(checks) != len(SK_BUILD_VALIDATION_CHECK_NAMES):
         raise CliUsageError("sk build validation checks mismatch")
     normalized: dict[str, dict[str, Any]] = {}
-    for expected_name, check in zip(SK_BUILD_VALIDATION_CHECK_NAMES, checks, strict=True):
-        item = _require_exact_keys(check, {"name", "status", "reason", "evidence"}, "sk build validation check")
+    for expected_name, check in zip(
+        SK_BUILD_VALIDATION_CHECK_NAMES, checks, strict=True
+    ):
+        item = _require_exact_keys(
+            check, {"name", "status", "reason", "evidence"}, "sk build validation check"
+        )
         name = _require_string(item["name"], "sk build validation check name")
         if name != expected_name:
             raise CliUsageError("sk build validation checks mismatch")
@@ -2543,7 +2867,9 @@ def _normalize_sk_build_validation_checks(
         normalized[name] = {
             "name": name,
             "status": status,
-            "reason": _require_string(item["reason"], "sk build validation check reason"),
+            "reason": _require_string(
+                item["reason"], "sk build validation check reason"
+            ),
             "evidence": evidence,
         }
     return normalized
@@ -2585,7 +2911,9 @@ def _validate_sk_build_validation_passed_prefix(
     source_scaffold: dict[str, Any],
     names: list[str],
 ) -> None:
-    copied_evidence = [item["scaffold_path"] for item in source_scaffold["copied_source_files"]]
+    copied_evidence = [
+        item["scaffold_path"] for item in source_scaffold["copied_source_files"]
+    ]
     validators = {
         "sk_source_scaffold_generated": lambda: _require_sk_build_validation_check(
             checks,
@@ -2628,7 +2956,11 @@ def _validate_sk_build_validation_passed_prefix(
             raise CliUsageError("sk build validation checks semantics mismatch")
         validator()
         check = checks.get(name)
-        if name == "cmake_command_available" and check is not None and not check.get("evidence"):
+        if (
+            name == "cmake_command_available"
+            and check is not None
+            and not check.get("evidence")
+        ):
             raise CliUsageError("sk build validation checks semantics mismatch")
 
 
@@ -2640,8 +2972,12 @@ def _validate_sk_build_validation_semantics(
 ) -> None:
     if status == "passed":
         _validate_sk_build_validation_passed_checks(checks, source_scaffold)
-        _require_sk_build_validation_check(checks, "cmake_configure", "passed", "cmake_configure_passed")
-        _require_sk_build_validation_check(checks, "cmake_build", "passed", "cmake_build_passed")
+        _require_sk_build_validation_check(
+            checks, "cmake_configure", "passed", "cmake_configure_passed"
+        )
+        _require_sk_build_validation_check(
+            checks, "cmake_build", "passed", "cmake_build_passed"
+        )
         if supported_next_actions != ["collect_runtime_input_spec"]:
             raise CliUsageError("sk build validation supported_next_actions mismatch")
         return
@@ -2656,10 +2992,16 @@ def _validate_sk_build_validation_semantics(
                 "cmake_configure_timeout",
             }:
                 raise CliUsageError("sk build validation checks semantics mismatch")
-            if build["status"] != "blocked" or build["reason"] != "configure_not_passed":
+            if (
+                build["status"] != "blocked"
+                or build["reason"] != "configure_not_passed"
+            ):
                 raise CliUsageError("sk build validation checks semantics mismatch")
         elif build["status"] == "failed":
-            if configure["status"] != "passed" or configure["reason"] != "cmake_configure_passed":
+            if (
+                configure["status"] != "passed"
+                or configure["reason"] != "cmake_configure_passed"
+            ):
                 raise CliUsageError("sk build validation checks semantics mismatch")
             if build["reason"] not in {
                 "cmake_build_failed",
@@ -2681,7 +3023,9 @@ def _validate_sk_build_validation_semantics(
     if failed_checks:
         raise CliUsageError("sk build validation checks semantics mismatch")
     blocked_indexes = [
-        index for index, name in enumerate(SK_BUILD_VALIDATION_CHECK_NAMES) if checks[name]["status"] == "blocked"
+        index
+        for index, name in enumerate(SK_BUILD_VALIDATION_CHECK_NAMES)
+        if checks[name]["status"] == "blocked"
     ]
     if not blocked_indexes:
         raise CliUsageError("sk build validation checks semantics mismatch")
@@ -2695,9 +3039,15 @@ def _validate_sk_build_validation_semantics(
     }
     if allowed_first_reasons.get(first_blocked_name) != blocked_reason:
         raise CliUsageError("sk build validation checks semantics mismatch")
-    if source_scaffold["status"] == "generated" and first_blocked_name == "sk_source_scaffold_generated":
+    if (
+        source_scaffold["status"] == "generated"
+        and first_blocked_name == "sk_source_scaffold_generated"
+    ):
         raise CliUsageError("sk build validation checks semantics mismatch")
-    if source_scaffold["status"] != "generated" and first_blocked_name != "sk_source_scaffold_generated":
+    if (
+        source_scaffold["status"] != "generated"
+        and first_blocked_name != "sk_source_scaffold_generated"
+    ):
         raise CliUsageError("sk build validation checks semantics mismatch")
     _validate_sk_build_validation_passed_prefix(
         checks,
@@ -2707,7 +3057,10 @@ def _validate_sk_build_validation_semantics(
     remaining_check_start = first_blocked_index + 1
     remaining_check_names = SK_BUILD_VALIDATION_CHECK_NAMES[remaining_check_start:]
     for name in remaining_check_names:
-        if checks[name]["status"] != "blocked" or checks[name]["reason"] != blocked_reason:
+        if (
+            checks[name]["status"] != "blocked"
+            or checks[name]["reason"] != blocked_reason
+        ):
             raise CliUsageError("sk build validation checks semantics mismatch")
     expected_next = (
         source_scaffold["supported_next_actions"]
@@ -2792,9 +3145,9 @@ def _load_current_sk_build_validation(
     status = _require_string(manifest["status"], "sk build validation status")
     if status not in {"passed", "failed", "blocked"}:
         raise CliUsageError(f"invalid sk build validation status: {status}")
-    if _require_string(manifest["analysis_output_dir"], "sk build validation analysis_output_dir") != str(
-        output_dir.resolve()
-    ):
+    if _require_string(
+        manifest["analysis_output_dir"], "sk build validation analysis_output_dir"
+    ) != str(output_dir.resolve()):
         raise CliUsageError("sk build validation analysis_output_dir mismatch")
     if (
         _require_string(
@@ -2803,7 +3156,9 @@ def _load_current_sk_build_validation(
         )
         != "operator-sk-source-scaffold.json"
     ):
-        raise CliUsageError("sk build validation source_scaffold_manifest_path mismatch")
+        raise CliUsageError(
+            "sk build validation source_scaffold_manifest_path mismatch"
+        )
     if (
         _require_string(
             manifest["source_scaffold_markdown_path"],
@@ -2811,7 +3166,9 @@ def _load_current_sk_build_validation(
         )
         != "operator-sk-source-scaffold.md"
     ):
-        raise CliUsageError("sk build validation source_scaffold_markdown_path mismatch")
+        raise CliUsageError(
+            "sk build validation source_scaffold_markdown_path mismatch"
+        )
     if (
         _require_string(
             manifest["build_validation_path"],
@@ -2820,9 +3177,13 @@ def _load_current_sk_build_validation(
         != "operator-sk-build-validation.json"
     ):
         raise CliUsageError("sk build validation build_validation_path mismatch")
-    build_dir = _require_string(manifest["build_dir"], "sk build validation build_dir", allow_empty=True)
+    build_dir = _require_string(
+        manifest["build_dir"], "sk build validation build_dir", allow_empty=True
+    )
     blocked_with_build_dir = status == "blocked" and build_dir
-    unblocked_without_expected_build_dir = status != "blocked" and build_dir != "operator-sk-build-validation-build"
+    unblocked_without_expected_build_dir = (
+        status != "blocked" and build_dir != "operator-sk-build-validation-build"
+    )
     if blocked_with_build_dir or unblocked_without_expected_build_dir:
         raise CliUsageError("sk build validation build_dir mismatch")
     boundary = _require_string_list(
@@ -2832,13 +3193,17 @@ def _load_current_sk_build_validation(
     )
     if boundary != SK_BUILD_VALIDATION_BOUNDARY:
         raise CliUsageError("sk build validation execution_boundary mismatch")
-    checks = _normalize_sk_build_validation_checks(_require_list(manifest["checks"], "sk build validation checks"))
+    checks = _normalize_sk_build_validation_checks(
+        _require_list(manifest["checks"], "sk build validation checks")
+    )
     supported_next_actions = _require_string_list(
         manifest["supported_next_actions"],
         "sk build validation supported_next_actions",
         "sk build validation supported next action",
     )
-    _validate_sk_build_validation_semantics(status, checks, source_scaffold, supported_next_actions)
+    _validate_sk_build_validation_semantics(
+        status, checks, source_scaffold, supported_next_actions
+    )
     commands = _validate_sk_build_validation_commands(
         status,
         _require_list(manifest["commands"], "sk build validation commands"),
@@ -2871,7 +3236,9 @@ def _sk_runtime_input_spec_check(
     }
 
 
-def _sk_entry_runtime_parameters(base_dir: Path, entry: dict[str, str]) -> list[dict[str, Any]] | None:
+def _sk_entry_runtime_parameters(
+    base_dir: Path, entry: dict[str, str]
+) -> list[dict[str, Any]] | None:
     parsed = _find_kernel_signature_for_entry(base_dir, entry)
     if parsed is None:
         return None
@@ -2994,8 +3361,13 @@ def _summarize_sk_runtime_input_spec(
     source_scaffold = request.source_scaffold
     build_validation = request.build_validation
     _ = request.source_version, request.source_version_validation
-    base_dir = Path(_require_string(analysis["base_dir"], "sk conversion analysis base_dir"))
-    kernel_entries = [{"name": entry["name"], "file": entry["file"]} for entry in source_scaffold["kernel_entries"]]
+    base_dir = Path(
+        _require_string(analysis["base_dir"], "sk conversion analysis base_dir")
+    )
+    kernel_entries = [
+        {"name": entry["name"], "file": entry["file"]}
+        for entry in source_scaffold["kernel_entries"]
+    ]
     checks: dict[str, dict[str, Any]] = {
         "sk_build_validation_current": _sk_runtime_input_spec_check(
             "sk_build_validation_current",
@@ -3017,7 +3389,9 @@ def _summarize_sk_runtime_input_spec(
             "copied_sources_current",
             "runtime_input_specs_defined",
         ):
-            checks[name] = _sk_runtime_input_spec_check(name, "blocked", "sk_build_validation_not_passed")
+            checks[name] = _sk_runtime_input_spec_check(
+                name, "blocked", "sk_build_validation_not_passed"
+            )
         _sk_runtime_boundary_checks(checks)
         return _sk_runtime_input_spec_manifest(
             RuntimeInputSpecManifestInput(
@@ -3043,13 +3417,19 @@ def _summarize_sk_runtime_input_spec(
             "copied_sources_current",
             "runtime_input_specs_defined",
         ):
-            checks[name] = _sk_runtime_input_spec_check(name, "blocked", "kernel_entries_missing")
+            checks[name] = _sk_runtime_input_spec_check(
+                name, "blocked", "kernel_entries_missing"
+            )
         _sk_runtime_boundary_checks(checks)
         return _sk_runtime_input_spec_manifest(
-            RuntimeInputSpecManifestInput(output_dir, "blocked", [], [], [], checks, ["analyze_sk_conversion"])
+            RuntimeInputSpecManifestInput(
+                output_dir, "blocked", [], [], [], checks, ["analyze_sk_conversion"]
+            )
         )
 
-    input_specs, unresolved_inputs, parameters_ready = _sk_runtime_input_specs(base_dir, kernel_entries)
+    input_specs, unresolved_inputs, parameters_ready = _sk_runtime_input_specs(
+        base_dir, kernel_entries
+    )
     checks["kernel_entries_declared"] = _sk_runtime_input_spec_check(
         "kernel_entries_declared",
         "passed",
@@ -3067,7 +3447,11 @@ def _summarize_sk_runtime_input_spec(
             "runtime_input_specs_defined",
             "blocked",
             "runtime_parameters_not_inferred",
-            [item["id"] for item in unresolved_inputs if "runtime_parameters_not_inferred" in item["reasons"]],
+            [
+                item["id"]
+                for item in unresolved_inputs
+                if "runtime_parameters_not_inferred" in item["reasons"]
+            ],
         )
         _sk_runtime_boundary_checks(checks)
         return _sk_runtime_input_spec_manifest(
@@ -3105,8 +3489,12 @@ def _load_current_sk_runtime_input_spec(output_dir: Path) -> dict[str, Any]:
     analysis = _load_current_sk_conversion_analysis(output_dir)
     source_scaffold = _load_current_sk_source_scaffold(output_dir, analysis)
     build_validation = _load_current_sk_build_validation(output_dir, source_scaffold)
-    source_version = _load_current_sk_source_version(output_dir, source_scaffold, build_validation)
-    source_version_validation = _load_current_sk_source_version_validation(output_dir, source_version)
+    source_version = _load_current_sk_source_version(
+        output_dir, source_scaffold, build_validation
+    )
+    source_version_validation = _load_current_sk_source_version_validation(
+        output_dir, source_version
+    )
     runtime_spec = _load_json_artifact(
         output_dir / "operator-sk-runtime-input-spec.json",
         "operator-sk-runtime-input-spec.json",
@@ -3165,16 +3553,24 @@ def _sk_runtime_input_values_check(
 
 def _normalize_sk_input_value_spec(spec: Any) -> list[dict[str, Any]]:
     payload = _require_exact_keys(spec, {"input_values"}, "sk input value spec")
-    raw_values = _require_list(payload["input_values"], "sk input value spec input_values")
+    raw_values = _require_list(
+        payload["input_values"], "sk input value spec input_values"
+    )
     normalized: list[dict[str, Any]] = []
     seen_input_ids: set[str] = set()
     for raw_item in raw_values:
-        item = _require_exact_keys(raw_item, {"input_set_id", "parameter_values"}, "sk input value")
-        input_set_id = _require_string(item["input_set_id"], "sk input value input_set_id")
+        item = _require_exact_keys(
+            raw_item, {"input_set_id", "parameter_values"}, "sk input value"
+        )
+        input_set_id = _require_string(
+            item["input_set_id"], "sk input value input_set_id"
+        )
         if input_set_id in seen_input_ids:
             raise CliUsageError("duplicate sk input value spec input_set_id")
         seen_input_ids.add(input_set_id)
-        raw_parameter_values = _require_list(item["parameter_values"], "sk input value parameter_values")
+        raw_parameter_values = _require_list(
+            item["parameter_values"], "sk input value parameter_values"
+        )
         parameter_values: list[dict[str, Any]] = []
         seen_names: set[str] = set()
         for raw_parameter in raw_parameter_values:
@@ -3192,7 +3588,9 @@ def _normalize_sk_input_value_spec(spec: Any) -> list[dict[str, Any]]:
             shape = _require_list(parameter["shape"], "sk parameter value shape")
             for dim in shape:
                 if not isinstance(dim, int) or isinstance(dim, bool) or dim < 0:
-                    raise CliUsageError("sk parameter value shape dimension must be a non-negative integer")
+                    raise CliUsageError(
+                        "sk parameter value shape dimension must be a non-negative integer"
+                    )
             dtype = _require_string(parameter["dtype"], "sk parameter value dtype")
             if not dtype:
                 raise CliUsageError("sk parameter value dtype must be non-empty")
@@ -3204,12 +3602,16 @@ def _normalize_sk_input_value_spec(spec: Any) -> list[dict[str, Any]]:
                 {"kind", "value"},
                 "sk parameter value source",
             )
-            kind = _require_string(value_source["kind"], "sk parameter value source kind")
+            kind = _require_string(
+                value_source["kind"], "sk parameter value source kind"
+            )
             if kind != "inline_json":
                 raise CliUsageError("unsupported sk parameter value source kind")
             if value_source["value"] is None:
                 raise CliUsageError("sk parameter value source value must not be null")
-            _require_json_finite(value_source["value"], "sk parameter value source value")
+            _require_json_finite(
+                value_source["value"], "sk parameter value source value"
+            )
             parameter_values.append(
                 {
                     "name": name,
@@ -3219,7 +3621,9 @@ def _normalize_sk_input_value_spec(spec: Any) -> list[dict[str, Any]]:
                     "value_source": {"kind": kind, "value": value_source["value"]},
                 }
             )
-        normalized.append({"input_set_id": input_set_id, "parameter_values": parameter_values})
+        normalized.append(
+            {"input_set_id": input_set_id, "parameter_values": parameter_values}
+        )
     return normalized
 
 
@@ -3249,7 +3653,9 @@ def _sk_runtime_input_values_manifest(
         "input_value_spec_sha256": hashlib.sha256(request.spec_bytes).hexdigest(),
         "input_values": request.input_values,
         "unresolved_inputs": [],
-        "checks": [request.check_results[name] for name in SK_RUNTIME_INPUT_VALUES_CHECK_NAMES],
+        "checks": [
+            request.check_results[name] for name in SK_RUNTIME_INPUT_VALUES_CHECK_NAMES
+        ],
         "supported_next_actions": ["collect_correctness_oracle_spec"],
         "execution_boundary": SK_RUNTIME_INPUT_VALUES_BOUNDARY,
     }
@@ -3270,7 +3676,9 @@ def _summarize_sk_runtime_input_values(
     input_values: list[dict[str, Any]] = []
     for input_spec in runtime_spec["input_specs"]:
         spec_item = by_input_set_id[input_spec["id"]]
-        by_parameter_name = {item["name"]: item for item in spec_item["parameter_values"]}
+        by_parameter_name = {
+            item["name"]: item for item in spec_item["parameter_values"]
+        }
         expected_names = [item["name"] for item in input_spec["parameters"]]
         if set(by_parameter_name) != set(expected_names):
             raise CliUsageError("sk parameter value set mismatch")
@@ -3298,7 +3706,9 @@ def _summarize_sk_runtime_input_values(
                 "requires_user_input": False,
             }
         )
-    runtime_spec_sha256 = _sk_artifact_sha256(output_dir / "operator-sk-runtime-input-spec.json")
+    runtime_spec_sha256 = _sk_artifact_sha256(
+        output_dir / "operator-sk-runtime-input-spec.json"
+    )
     check_results: dict[str, dict[str, Any]] = {
         "sk_runtime_input_spec_current": _sk_runtime_input_values_check(
             "sk_runtime_input_spec_current",
@@ -3347,7 +3757,9 @@ def _summarize_sk_runtime_input_values(
     )
 
 
-def _load_current_sk_runtime_input_values(output_dir: Path, runtime_spec: dict[str, Any]) -> dict[str, Any]:
+def _load_current_sk_runtime_input_values(
+    output_dir: Path, runtime_spec: dict[str, Any]
+) -> dict[str, Any]:
     values = _load_json_artifact(
         output_dir / "operator-sk-runtime-input-values.json",
         "operator-sk-runtime-input-values.json",
@@ -3372,9 +3784,9 @@ def _load_current_sk_runtime_input_values(output_dir: Path, runtime_spec: dict[s
     )
     if _require_string(values["status"], "sk runtime input values status") != "defined":
         raise CliUsageError("sk runtime input values not defined")
-    if _require_string(values["analysis_output_dir"], "sk runtime input values analysis_output_dir") != str(
-        output_dir.resolve()
-    ):
+    if _require_string(
+        values["analysis_output_dir"], "sk runtime input values analysis_output_dir"
+    ) != str(output_dir.resolve()):
         raise CliUsageError("sk runtime input values mismatch")
     if (
         _require_string(
@@ -3397,7 +3809,9 @@ def _load_current_sk_runtime_input_values(output_dir: Path, runtime_spec: dict[s
         "sk runtime input values runtime_input_spec_sha256",
     ) != _sk_artifact_sha256(output_dir / "operator-sk-runtime-input-spec.json"):
         raise CliUsageError("sk runtime input values mismatch")
-    spec_path_text = _require_string(values["input_value_spec_path"], "sk runtime input values input_value_spec_path")
+    spec_path_text = _require_string(
+        values["input_value_spec_path"], "sk runtime input values input_value_spec_path"
+    )
     spec_path = Path(spec_path_text)
     if not spec_path.is_absolute():
         raise CliUsageError("sk runtime input values mismatch")
@@ -3411,7 +3825,9 @@ def _load_current_sk_runtime_input_values(output_dir: Path, runtime_spec: dict[s
     ):
         raise CliUsageError("sk runtime input values mismatch")
     try:
-        expected = _summarize_sk_runtime_input_values(output_dir, runtime_spec, spec_path, spec_bytes, spec)
+        expected = _summarize_sk_runtime_input_values(
+            output_dir, runtime_spec, spec_path, spec_bytes, spec
+        )
     except CliUsageError as exc:
         raise CliUsageError("sk runtime input values mismatch") from exc
     if values != expected:
@@ -3449,9 +3865,14 @@ def _sk_correctness_oracle_spec_manifest(
         "runtime_input_values_path": "operator-sk-runtime-input-values.json",
         "runtime_input_values_sha256": request.runtime_values_sha256,
         "correctness_oracle_spec_path": str(request.spec_path.resolve()),
-        "correctness_oracle_spec_sha256": hashlib.sha256(request.spec_bytes).hexdigest(),
+        "correctness_oracle_spec_sha256": hashlib.sha256(
+            request.spec_bytes
+        ).hexdigest(),
         "oracle_specs": request.oracle_specs,
-        "checks": [request.check_results[name] for name in SK_CORRECTNESS_ORACLE_SPEC_CHECK_NAMES],
+        "checks": [
+            request.check_results[name]
+            for name in SK_CORRECTNESS_ORACLE_SPEC_CHECK_NAMES
+        ],
         "supported_next_actions": ["run_sk_target_runtime_validation"],
         "execution_boundary": SK_CORRECTNESS_ORACLE_SPEC_BOUNDARY,
     }
@@ -3498,7 +3919,9 @@ def _summarize_sk_correctness_oracle_spec(
                 "requires_user_input": False,
             }
         )
-    runtime_values_sha256 = _sk_artifact_sha256(output_dir / "operator-sk-runtime-input-values.json")
+    runtime_values_sha256 = _sk_artifact_sha256(
+        output_dir / "operator-sk-runtime-input-values.json"
+    )
     check_results: dict[str, dict[str, Any]] = {
         "sk_runtime_input_spec_current": _sk_correctness_oracle_spec_check(
             "sk_runtime_input_spec_current",
@@ -3585,7 +4008,10 @@ def _load_current_sk_correctness_oracle_spec(
         },
         "sk correctness oracle spec",
     )
-    if _require_string(oracle_spec["status"], "sk correctness oracle spec status") != "defined":
+    if (
+        _require_string(oracle_spec["status"], "sk correctness oracle spec status")
+        != "defined"
+    ):
         raise CliUsageError("sk correctness oracle spec not defined")
     if (
         _require_string(
@@ -3610,7 +4036,9 @@ def _load_current_sk_correctness_oracle_spec(
     spec_path, spec_bytes, spec = _read_correctness_oracle_spec(spec_path)
     try:
         expected = _summarize_sk_correctness_oracle_spec(
-            CorrectnessOracleSpecSummaryInput(output_dir, runtime_spec, runtime_values, spec_path, spec_bytes, spec)
+            CorrectnessOracleSpecSummaryInput(
+                output_dir, runtime_spec, runtime_values, spec_path, spec_bytes, spec
+            )
         )
     except CliUsageError as exc:
         raise CliUsageError("sk correctness oracle spec mismatch") from exc
@@ -3645,7 +4073,10 @@ def _sk_target_runtime_result_manifest(
         "runtime_command_spec_sha256": hashlib.sha256(request.spec_bytes).hexdigest(),
         "input_binding": request.input_binding,
         "commands": request.commands,
-        "checks": [request.check_results[name] for name in SK_TARGET_RUNTIME_VALIDATION_CHECK_NAMES],
+        "checks": [
+            request.check_results[name]
+            for name in SK_TARGET_RUNTIME_VALIDATION_CHECK_NAMES
+        ],
         "supported_next_actions": request.supported_next_actions,
         "execution_boundary": SK_TARGET_RUNTIME_VALIDATION_BOUNDARY,
     }
@@ -3671,7 +4102,9 @@ def _sk_target_runtime_boundary_checks(
     )
 
 
-def _load_current_sk_target_runtime_validation(output_dir: Path, oracle_spec: dict[str, Any]) -> dict[str, Any]:
+def _load_current_sk_target_runtime_validation(
+    output_dir: Path, oracle_spec: dict[str, Any]
+) -> dict[str, Any]:
     try:
         target = _load_json_artifact(
             output_dir / "operator-sk-target-runtime-validation.json",
@@ -3696,14 +4129,18 @@ def _load_current_sk_target_runtime_validation(output_dir: Path, oracle_spec: di
             },
             "sk target runtime validation",
         )
-        status = _require_string(target["status"], "sk target runtime validation status")
+        status = _require_string(
+            target["status"], "sk target runtime validation status"
+        )
         if status not in {"passed", "failed"}:
             raise CliUsageError("sk target runtime validation status is invalid")
         if _require_string(
             target["analysis_output_dir"],
             "sk target runtime validation analysis_output_dir",
         ) != str(output_dir.resolve()):
-            raise CliUsageError("sk target runtime validation analysis_output_dir mismatch")
+            raise CliUsageError(
+                "sk target runtime validation analysis_output_dir mismatch"
+            )
         if (
             _require_string(
                 target["correctness_oracle_spec_path"],
@@ -3711,7 +4148,9 @@ def _load_current_sk_target_runtime_validation(output_dir: Path, oracle_spec: di
             )
             != "operator-sk-correctness-oracle-spec.json"
         ):
-            raise CliUsageError("sk target runtime validation correctness_oracle_spec_path mismatch")
+            raise CliUsageError(
+                "sk target runtime validation correctness_oracle_spec_path mismatch"
+            )
         if (
             _require_string(
                 target["runtime_input_values_path"],
@@ -3719,8 +4158,12 @@ def _load_current_sk_target_runtime_validation(output_dir: Path, oracle_spec: di
             )
             != "operator-sk-runtime-input-values.json"
         ):
-            raise CliUsageError("sk target runtime validation runtime_input_values_path mismatch")
-        runtime_values_sha256 = _sk_artifact_sha256(output_dir / "operator-sk-runtime-input-values.json")
+            raise CliUsageError(
+                "sk target runtime validation runtime_input_values_path mismatch"
+            )
+        runtime_values_sha256 = _sk_artifact_sha256(
+            output_dir / "operator-sk-runtime-input-values.json"
+        )
         if (
             _require_string(
                 target["runtime_input_values_sha256"],
@@ -3728,7 +4171,9 @@ def _load_current_sk_target_runtime_validation(output_dir: Path, oracle_spec: di
             )
             != runtime_values_sha256
         ):
-            raise CliUsageError("sk target runtime validation runtime_input_values_sha256 mismatch")
+            raise CliUsageError(
+                "sk target runtime validation runtime_input_values_sha256 mismatch"
+            )
         if (
             _require_string(
                 target["target_runtime_validation_path"],
@@ -3736,8 +4181,13 @@ def _load_current_sk_target_runtime_validation(output_dir: Path, oracle_spec: di
             )
             != "operator-sk-target-runtime-validation.json"
         ):
-            raise CliUsageError("sk target runtime validation target_runtime_validation_path mismatch")
-        if _require_string(oracle_spec["status"], "sk correctness oracle spec status") != "defined":
+            raise CliUsageError(
+                "sk target runtime validation target_runtime_validation_path mismatch"
+            )
+        if (
+            _require_string(oracle_spec["status"], "sk correctness oracle spec status")
+            != "defined"
+        ):
             raise CliUsageError("sk target runtime validation mismatch")
         spec_path_text = _require_string(
             target["runtime_command_spec_path"],
@@ -3745,7 +4195,9 @@ def _load_current_sk_target_runtime_validation(output_dir: Path, oracle_spec: di
         )
         spec_path = Path(spec_path_text)
         if not spec_path.is_absolute():
-            raise CliUsageError("sk target runtime validation runtime_command_spec_path must be absolute")
+            raise CliUsageError(
+                "sk target runtime validation runtime_command_spec_path must be absolute"
+            )
         spec_path, spec_bytes, spec = _read_runtime_command_spec(spec_path)
         if (
             _require_string(
@@ -3754,15 +4206,21 @@ def _load_current_sk_target_runtime_validation(output_dir: Path, oracle_spec: di
             )
             != hashlib.sha256(spec_bytes).hexdigest()
         ):
-            raise CliUsageError("sk target runtime validation runtime_command_spec_sha256 mismatch")
+            raise CliUsageError(
+                "sk target runtime validation runtime_command_spec_sha256 mismatch"
+            )
         command = _normalize_sk_runtime_command_spec(spec)
         cwd = _safe_target_runtime_cwd(output_dir, command["cwd"])
         input_binding = _sk_runtime_values_manifest_binding(output_dir, cwd, command)
         if target["input_binding"] != input_binding:
             raise CliUsageError("sk target runtime validation input_binding mismatch")
         effective_env, env_summary = _target_runtime_effective_env(command["env"])
-        executable = _resolve_target_runtime_executable(output_dir, command["argv"][0], effective_env)
-        commands = _require_list(target["commands"], "sk target runtime validation commands")
+        executable = _resolve_target_runtime_executable(
+            output_dir, command["argv"][0], effective_env
+        )
+        commands = _require_list(
+            target["commands"], "sk target runtime validation commands"
+        )
         if len(commands) != 1:
             raise CliUsageError("sk target runtime validation commands mismatch")
         command_result = _require_exact_keys(
@@ -3783,14 +4241,18 @@ def _load_current_sk_target_runtime_validation(output_dir: Path, oracle_spec: di
             "sk target runtime validation command",
         )
         if (
-            _require_string(command_result["name"], "sk target runtime validation command name")
+            _require_string(
+                command_result["name"], "sk target runtime validation command name"
+            )
             != "target_runtime_validation"
         ):
             raise CliUsageError("sk target runtime validation command name mismatch")
         expected_argv = [executable, *command["argv"][1:]]
         if command_result["argv"] != expected_argv:
             raise CliUsageError("sk target runtime validation argv mismatch")
-        if _require_string(command_result["cwd"], "sk target runtime validation command cwd") != str(cwd):
+        if _require_string(
+            command_result["cwd"], "sk target runtime validation command cwd"
+        ) != str(cwd):
             raise CliUsageError("sk target runtime validation cwd mismatch")
         command_timeout = command_result["timeout_seconds"]
         if (
@@ -3812,11 +4274,20 @@ def _load_current_sk_target_runtime_validation(output_dir: Path, oracle_spec: di
             allow_empty=True,
         )
         if not isinstance(command_result["stdout_tail_truncated"], bool):
-            raise CliUsageError("sk target runtime validation stdout_tail_truncated mismatch")
+            raise CliUsageError(
+                "sk target runtime validation stdout_tail_truncated mismatch"
+            )
         if not isinstance(command_result["stderr_tail_truncated"], bool):
-            raise CliUsageError("sk target runtime validation stderr_tail_truncated mismatch")
-        if len(stdout_tail) > TARGET_RUNTIME_OUTPUT_TAIL_CHARS or len(stderr_tail) > TARGET_RUNTIME_OUTPUT_TAIL_CHARS:
-            raise CliUsageError("sk target runtime validation output tail exceeds bound")
+            raise CliUsageError(
+                "sk target runtime validation stderr_tail_truncated mismatch"
+            )
+        if (
+            len(stdout_tail) > TARGET_RUNTIME_OUTPUT_TAIL_CHARS
+            or len(stderr_tail) > TARGET_RUNTIME_OUTPUT_TAIL_CHARS
+        ):
+            raise CliUsageError(
+                "sk target runtime validation output tail exceeds bound"
+            )
         check_results: dict[str, dict[str, Any]] = {
             "sk_correctness_oracle_spec_current": _target_runtime_check(
                 "sk_correctness_oracle_spec_current",
@@ -3872,17 +4343,35 @@ def _load_current_sk_target_runtime_validation(output_dir: Path, oracle_spec: di
         if not isinstance(timed_out, bool):
             raise CliUsageError("sk target runtime validation timed_out mismatch")
         if status == "passed":
-            invalid_returncode = not isinstance(returncode, int) or isinstance(returncode, bool) or returncode != 0
+            invalid_returncode = (
+                not isinstance(returncode, int)
+                or isinstance(returncode, bool)
+                or returncode != 0
+            )
             if invalid_returncode or timed_out is not False:
-                raise CliUsageError("sk target runtime validation passed command mismatch")
-            execution_check = _target_runtime_check("runtime_command_execution", "passed", "target_runtime_passed")
+                raise CliUsageError(
+                    "sk target runtime validation passed command mismatch"
+                )
+            execution_check = _target_runtime_check(
+                "runtime_command_execution", "passed", "target_runtime_passed"
+            )
         elif timed_out is True:
             if returncode is not None:
-                raise CliUsageError("sk target runtime validation timeout command mismatch")
-            execution_check = _target_runtime_check("runtime_command_execution", "failed", "target_runtime_timeout")
+                raise CliUsageError(
+                    "sk target runtime validation timeout command mismatch"
+                )
+            execution_check = _target_runtime_check(
+                "runtime_command_execution", "failed", "target_runtime_timeout"
+            )
         else:
-            if not isinstance(returncode, int) or isinstance(returncode, bool) or returncode == 0:
-                raise CliUsageError("sk target runtime validation failed command mismatch")
+            if (
+                not isinstance(returncode, int)
+                or isinstance(returncode, bool)
+                or returncode == 0
+            ):
+                raise CliUsageError(
+                    "sk target runtime validation failed command mismatch"
+                )
             execution_check = _target_runtime_check(
                 "runtime_command_execution",
                 "failed",
@@ -4000,15 +4489,23 @@ def _read_correctness_oracle_spec(path: Path) -> tuple[Path, bytes, Any]:
     return spec_path, spec_bytes, spec
 
 
-def _normalize_correctness_tolerance(value: Any, comparator: str) -> dict[str, int | float]:
+def _normalize_correctness_tolerance(
+    value: Any, comparator: str
+) -> dict[str, int | float]:
     tolerance = _require_exact_keys(value, {"rtol", "atol"}, "correctness tolerance")
     normalized: dict[str, int | float] = {}
     for name in ("rtol", "atol"):
         raw_value = tolerance[name]
-        invalid_number = not isinstance(raw_value, (int, float)) or isinstance(raw_value, bool)
-        invalid_range = not invalid_number and (not math.isfinite(raw_value) or raw_value < 0)
+        invalid_number = not isinstance(raw_value, (int, float)) or isinstance(
+            raw_value, bool
+        )
+        invalid_range = not invalid_number and (
+            not math.isfinite(raw_value) or raw_value < 0
+        )
         if invalid_number or invalid_range:
-            raise CliUsageError("correctness tolerance must be a non-negative finite number")
+            raise CliUsageError(
+                "correctness tolerance must be a non-negative finite number"
+            )
         normalized[name] = raw_value
     if comparator == "exact" and (normalized["rtol"] != 0 or normalized["atol"] != 0):
         raise CliUsageError("exact comparator requires zero tolerance")
@@ -4017,7 +4514,9 @@ def _normalize_correctness_tolerance(value: Any, comparator: str) -> dict[str, i
 
 def _normalize_correctness_oracle_spec(spec: Any) -> list[dict[str, Any]]:
     payload = _require_exact_keys(spec, {"oracle_specs"}, "correctness oracle spec")
-    raw_specs = _require_list(payload["oracle_specs"], "correctness oracle spec oracle_specs")
+    raw_specs = _require_list(
+        payload["oracle_specs"], "correctness oracle spec oracle_specs"
+    )
     normalized: list[dict[str, Any]] = []
     seen_ids: set[str] = set()
     for raw_item in raw_specs:
@@ -4026,12 +4525,18 @@ def _normalize_correctness_oracle_spec(spec: Any) -> list[dict[str, Any]]:
             {"input_set_id", "expected_output", "comparator", "tolerance"},
             "correctness oracle spec item",
         )
-        input_set_id = _require_string(item["input_set_id"], "correctness oracle spec input_set_id")
+        input_set_id = _require_string(
+            item["input_set_id"], "correctness oracle spec input_set_id"
+        )
         if input_set_id in seen_ids:
             raise CliUsageError("duplicate correctness oracle spec input_set_id")
         seen_ids.add(input_set_id)
-        expected_output = _require_exact_keys(item["expected_output"], {"kind", "value"}, "expected output")
-        expected_output_kind = _require_string(expected_output["kind"], "expected output kind")
+        expected_output = _require_exact_keys(
+            item["expected_output"], {"kind", "value"}, "expected output"
+        )
+        expected_output_kind = _require_string(
+            expected_output["kind"], "expected output kind"
+        )
         if expected_output_kind != "inline_json":
             raise CliUsageError("unsupported expected output kind")
         if expected_output["value"] is None:
@@ -4132,7 +4637,9 @@ def _sk_source_version_manifest(
 
 def _render_sk_source_version_markdown(manifest: dict[str, Any]) -> str:
     title = (
-        "Build-validated SK source version" if manifest["status"] == "generated" else "SK source version not prepared"
+        "Build-validated SK source version"
+        if manifest["status"] == "generated"
+        else "SK source version not prepared"
     )
     lines = [
         "# Operator SK Source Version",
@@ -4152,7 +4659,9 @@ def _render_sk_source_version_markdown(manifest: dict[str, Any]) -> str:
     ]
     if manifest["copied_source_files"]:
         for item in manifest["copied_source_files"]:
-            lines.append(f"- `{item['source']}`: `{item['scaffold_path']}` -> `{item['source_version_path']}`")
+            lines.append(
+                f"- `{item['source']}`: `{item['scaffold_path']}` -> `{item['source_version_path']}`"
+            )
     else:
         lines.append("- none")
     lines.extend(["", "## Generated Files", ""])
@@ -4249,7 +4758,9 @@ def _validate_current_sk_source_version_tree(
     except FileNotFoundError as exc:
         raise CliUsageError("sk source version mismatch") from exc
     except UnicodeDecodeError as exc:
-        raise CliUsageError("operator-sk-source-version/README.md is not valid UTF-8") from exc
+        raise CliUsageError(
+            "operator-sk-source-version/README.md is not valid UTF-8"
+        ) from exc
     except OSError as exc:
         raise CliUsageError("sk source version mismatch") from exc
     if readme != _render_sk_source_version_readme(source_version):
@@ -4290,11 +4801,15 @@ def _load_current_sk_source_version(
         },
         "sk source version",
     )
-    expected = _sk_source_version_manifest(output_dir, source_scaffold, build_validation, status="generated")
+    expected = _sk_source_version_manifest(
+        output_dir, source_scaffold, build_validation, status="generated"
+    )
     if source_version != expected:
         raise CliUsageError("sk source version mismatch")
     try:
-        markdown = (output_dir / "operator-sk-source-version.md").read_text(encoding="utf-8")
+        markdown = (output_dir / "operator-sk-source-version.md").read_text(
+            encoding="utf-8"
+        )
     except FileNotFoundError as exc:
         raise CliUsageError("operator-sk-source-version.md not found") from exc
     except UnicodeDecodeError as exc:
@@ -4313,7 +4828,9 @@ def _normalize_sk_source_version_validation_checks(
     if len(checks) != len(SK_SOURCE_VERSION_VALIDATION_CHECK_NAMES):
         raise CliUsageError("sk source version validation checks mismatch")
     normalized: dict[str, dict[str, Any]] = {}
-    for expected_name, check in zip(SK_SOURCE_VERSION_VALIDATION_CHECK_NAMES, checks, strict=True):
+    for expected_name, check in zip(
+        SK_SOURCE_VERSION_VALIDATION_CHECK_NAMES, checks, strict=True
+    ):
         item = _require_exact_keys(
             check,
             {"name", "status", "reason", "evidence"},
@@ -4322,13 +4839,19 @@ def _normalize_sk_source_version_validation_checks(
         name = _require_string(item["name"], "sk source version validation check name")
         if name != expected_name:
             raise CliUsageError("sk source version validation checks mismatch")
-        status = _require_string(item["status"], f"sk source version validation check {name} status")
+        status = _require_string(
+            item["status"], f"sk source version validation check {name} status"
+        )
         if status not in {"passed", "failed", "blocked"}:
-            raise CliUsageError(f"invalid sk source version validation check status: {status}")
+            raise CliUsageError(
+                f"invalid sk source version validation check status: {status}"
+            )
         normalized[name] = {
             "name": name,
             "status": status,
-            "reason": _require_string(item["reason"], f"sk source version validation check {name} reason"),
+            "reason": _require_string(
+                item["reason"], f"sk source version validation check {name} reason"
+            ),
             "evidence": _require_string_list(
                 item["evidence"],
                 f"sk source version validation check {name} evidence",
@@ -4366,7 +4889,9 @@ def _validate_passed_sk_source_version_validation(
     if checks["build_dir_available"]["evidence"] != [SK_SOURCE_VERSION_BUILD_DIR]:
         raise CliUsageError("sk source version validation mismatch")
 
-    commands = _require_list(validation["commands"], "sk source version validation commands")
+    commands = _require_list(
+        validation["commands"], "sk source version validation commands"
+    )
     if len(commands) != 2:
         raise CliUsageError("sk source version validation mismatch")
     normalized_commands: list[list[str]] = []
@@ -4392,12 +4917,17 @@ def _validate_passed_sk_source_version_validation(
     if Path(normalized_commands[0][0]).name != "cmake":
         raise CliUsageError("sk source version validation mismatch")
     try:
-        resolved_build_dir = (output_dir / SK_SOURCE_VERSION_BUILD_DIR).resolve(strict=True)
+        resolved_build_dir = (output_dir / SK_SOURCE_VERSION_BUILD_DIR).resolve(
+            strict=True
+        )
     except FileNotFoundError as exc:
         raise CliUsageError("sk source version validation mismatch") from exc
     except OSError as exc:
         raise CliUsageError("sk source version validation mismatch") from exc
-    if not resolved_build_dir.is_dir() or resolved_build_dir.name != SK_SOURCE_VERSION_BUILD_DIR:
+    if (
+        not resolved_build_dir.is_dir()
+        or resolved_build_dir.name != SK_SOURCE_VERSION_BUILD_DIR
+    ):
         raise CliUsageError("sk source version validation mismatch")
     if output_dir.resolve() not in resolved_build_dir.parents:
         raise CliUsageError("sk source version validation mismatch")
@@ -4429,7 +4959,10 @@ def _load_current_sk_source_version_validation(
         },
         "sk source version validation",
     )
-    if _require_string(validation["status"], "sk source version validation status") != "passed":
+    if (
+        _require_string(validation["status"], "sk source version validation status")
+        != "passed"
+    ):
         raise CliUsageError("sk source version validation not passed")
     if _require_string(
         validation["analysis_output_dir"],
@@ -4444,7 +4977,10 @@ def _load_current_sk_source_version_validation(
         "build_dir": SK_SOURCE_VERSION_BUILD_DIR,
     }
     for field, expected in fixed_fields.items():
-        if _require_string(validation[field], f"sk source version validation {field}") != expected:
+        if (
+            _require_string(validation[field], f"sk source version validation {field}")
+            != expected
+        ):
             raise CliUsageError("sk source version validation mismatch")
     supported_next_actions = _require_string_list(
         validation["supported_next_actions"],
@@ -4474,8 +5010,12 @@ def cmd_collect_runtime_input_spec(args: argparse.Namespace) -> int:
     analysis = _load_current_sk_conversion_analysis(output_dir)
     source_scaffold = _load_current_sk_source_scaffold(output_dir, analysis)
     build_validation = _load_current_sk_build_validation(output_dir, source_scaffold)
-    source_version = _load_current_sk_source_version(output_dir, source_scaffold, build_validation)
-    source_version_validation = _load_current_sk_source_version_validation(output_dir, source_version)
+    source_version = _load_current_sk_source_version(
+        output_dir, source_scaffold, build_validation
+    )
+    source_version_validation = _load_current_sk_source_version_validation(
+        output_dir, source_version
+    )
     result = _summarize_sk_runtime_input_spec(
         RuntimeInputSpecSummaryInput(
             output_dir,
@@ -4497,10 +5037,14 @@ def cmd_provide_sk_runtime_input_values(args: argparse.Namespace) -> int:
     if not output_dir.is_dir():
         raise CliUsageError(f"analysis output path is not a directory: {output_dir}")
 
-    spec_path, spec_bytes, spec = _read_input_value_spec(Path(args.input_value_spec_json))
+    spec_path, spec_bytes, spec = _read_input_value_spec(
+        Path(args.input_value_spec_json)
+    )
     _normalize_sk_input_value_spec(spec)
     runtime_spec = _load_current_sk_runtime_input_spec(output_dir)
-    values = _summarize_sk_runtime_input_values(output_dir, runtime_spec, spec_path, spec_bytes, spec)
+    values = _summarize_sk_runtime_input_values(
+        output_dir, runtime_spec, spec_path, spec_bytes, spec
+    )
     _write_json(output_dir / "operator-sk-runtime-input-values.json", values)
     return 0
 
@@ -4512,12 +5056,16 @@ def cmd_collect_correctness_oracle_spec(args: argparse.Namespace) -> int:
     if not output_dir.is_dir():
         raise CliUsageError(f"analysis output path is not a directory: {output_dir}")
 
-    spec_path, spec_bytes, spec = _read_correctness_oracle_spec(Path(args.oracle_spec_json))
+    spec_path, spec_bytes, spec = _read_correctness_oracle_spec(
+        Path(args.oracle_spec_json)
+    )
     _normalize_correctness_oracle_spec(spec)
     runtime_spec = _load_current_sk_runtime_input_spec(output_dir)
     runtime_values = _load_current_sk_runtime_input_values(output_dir, runtime_spec)
     oracle_spec = _summarize_sk_correctness_oracle_spec(
-        CorrectnessOracleSpecSummaryInput(output_dir, runtime_spec, runtime_values, spec_path, spec_bytes, spec)
+        CorrectnessOracleSpecSummaryInput(
+            output_dir, runtime_spec, runtime_values, spec_path, spec_bytes, spec
+        )
     )
     _write_json(output_dir / "operator-sk-correctness-oracle-spec.json", oracle_spec)
     return 0
@@ -4530,14 +5078,20 @@ def cmd_run_sk_target_runtime_validation(args: argparse.Namespace) -> int:
     if not output_dir.is_dir():
         raise CliUsageError(f"analysis output path is not a directory: {output_dir}")
 
-    spec_path, spec_bytes, spec = _read_runtime_command_spec(Path(args.runtime_command_spec_json))
+    spec_path, spec_bytes, spec = _read_runtime_command_spec(
+        Path(args.runtime_command_spec_json)
+    )
     command = _normalize_sk_runtime_command_spec(spec)
     cwd = _safe_target_runtime_cwd(output_dir, command["cwd"])
     _load_current_sk_correctness_oracle_spec(output_dir)
     input_binding = _sk_runtime_values_manifest_binding(output_dir, cwd, command)
-    runtime_values_sha256 = _sk_artifact_sha256(output_dir / "operator-sk-runtime-input-values.json")
+    runtime_values_sha256 = _sk_artifact_sha256(
+        output_dir / "operator-sk-runtime-input-values.json"
+    )
     effective_env, env_summary = _target_runtime_effective_env(command["env"])
-    executable = _resolve_target_runtime_executable(output_dir, command["argv"][0], effective_env)
+    executable = _resolve_target_runtime_executable(
+        output_dir, command["argv"][0], effective_env
+    )
 
     check_results: dict[str, dict[str, Any]] = {
         "sk_correctness_oracle_spec_current": _target_runtime_check(
@@ -4589,7 +5143,9 @@ def cmd_run_sk_target_runtime_validation(args: argparse.Namespace) -> int:
             [input_binding["path"]],
         ),
     }
-    command_result, execution_check = _run_target_runtime_command(command, executable, cwd, effective_env, env_summary)
+    command_result, execution_check = _run_target_runtime_command(
+        command, executable, cwd, effective_env, env_summary
+    )
     check_results["runtime_command_execution"] = execution_check
     _sk_target_runtime_boundary_checks(check_results)
     status = "passed" if execution_check["status"] == "passed" else "failed"
@@ -4615,7 +5171,9 @@ def cmd_run_sk_target_runtime_validation(args: argparse.Namespace) -> int:
     return 0 if status == "passed" else 1
 
 
-def _target_runtime_check(name: str, status: str, reason: str, evidence: list[str] | None = None) -> dict[str, Any]:
+def _target_runtime_check(
+    name: str, status: str, reason: str, evidence: list[str] | None = None
+) -> dict[str, Any]:
     return {
         "name": name,
         "status": status,
@@ -4680,10 +5238,16 @@ def _normalize_runtime_command_spec(spec: Any) -> dict[str, Any]:
     if Path(cwd).is_absolute():
         raise CliUsageError("runtime command cwd must be relative")
     timeout_seconds = command["timeout_seconds"]
-    invalid_timeout_type = not isinstance(timeout_seconds, int) or isinstance(timeout_seconds, bool)
-    invalid_timeout_range = not invalid_timeout_type and (timeout_seconds < 1 or timeout_seconds > 600)
+    invalid_timeout_type = not isinstance(timeout_seconds, int) or isinstance(
+        timeout_seconds, bool
+    )
+    invalid_timeout_range = not invalid_timeout_type and (
+        timeout_seconds < 1 or timeout_seconds > 600
+    )
     if invalid_timeout_type or invalid_timeout_range:
-        raise CliUsageError("runtime command timeout_seconds must be an integer between 1 and 600")
+        raise CliUsageError(
+            "runtime command timeout_seconds must be an integer between 1 and 600"
+        )
     raw_env = command["env"]
     if not isinstance(raw_env, dict):
         raise CliUsageError("runtime command env must be an object")
@@ -4695,7 +5259,9 @@ def _normalize_runtime_command_spec(spec: Any) -> dict[str, Any]:
             raise CliUsageError("runtime command env key must be non-empty")
         if "=" in key:
             raise CliUsageError("runtime command env key must not contain '='")
-        value = _require_string(raw_value, "runtime command env value", allow_empty=True)
+        value = _require_string(
+            raw_value, "runtime command env value", allow_empty=True
+        )
         _reject_nul(value)
         env[key] = value
     return {"argv": argv, "cwd": cwd, "timeout_seconds": timeout_seconds, "env": env}
@@ -4727,12 +5293,16 @@ def _normalize_sk_runtime_command_spec(spec: Any) -> dict[str, Any]:
     if kind != "values_manifest_argv":
         raise CliUsageError("unsupported sk runtime command input binding kind")
     argv_index = binding["argv_index"]
-    invalid_argv_index_type = not isinstance(argv_index, int) or isinstance(argv_index, bool)
+    invalid_argv_index_type = not isinstance(argv_index, int) or isinstance(
+        argv_index, bool
+    )
     invalid_argv_index_range = not invalid_argv_index_type and (
         argv_index < 1 or argv_index >= len(base_command["argv"])
     )
     if invalid_argv_index_type or invalid_argv_index_range:
-        raise CliUsageError("sk runtime command input binding argv_index is out of range")
+        raise CliUsageError(
+            "sk runtime command input binding argv_index is out of range"
+        )
     return {**base_command, "input_binding": {"kind": kind, "argv_index": argv_index}}
 
 
@@ -4751,17 +5321,25 @@ def _sk_runtime_values_manifest_binding(
         raise CliUsageError("sk runtime command input binding path must be relative")
     candidate = cwd / value
     if candidate.is_symlink():
-        raise CliUsageError("sk runtime command input binding path is not a regular file")
+        raise CliUsageError(
+            "sk runtime command input binding path is not a regular file"
+        )
     expected = (output_dir / "operator-sk-runtime-input-values.json").resolve()
     try:
         resolved = candidate.resolve(strict=False)
         resolved.relative_to(output_dir.resolve())
     except ValueError as exc:
-        raise CliUsageError("sk runtime command input binding path escapes analysis output") from exc
+        raise CliUsageError(
+            "sk runtime command input binding path escapes analysis output"
+        ) from exc
     if resolved != expected:
-        raise CliUsageError("sk runtime command input binding must reference operator-sk-runtime-input-values.json")
+        raise CliUsageError(
+            "sk runtime command input binding must reference operator-sk-runtime-input-values.json"
+        )
     if not expected.exists() or not expected.is_file():
-        raise CliUsageError("sk runtime command input binding values manifest not found")
+        raise CliUsageError(
+            "sk runtime command input binding values manifest not found"
+        )
     return {"kind": binding["kind"], "argv_index": argv_index, "path": str(expected)}
 
 
@@ -4784,7 +5362,11 @@ def _safe_target_runtime_cwd(scaffold_output_dir: Path, cwd: str) -> Path:
 def _target_runtime_effective_env(
     spec_env: dict[str, str],
 ) -> tuple[dict[str, str], dict[str, list[str]]]:
-    inherited = {key: os.environ[key] for key in TARGET_RUNTIME_ENV_ALLOWLIST if key in os.environ}
+    inherited = {
+        key: os.environ[key]
+        for key in TARGET_RUNTIME_ENV_ALLOWLIST
+        if key in os.environ
+    }
     effective = {**inherited, **spec_env}
     summary = {
         "inherited_env_keys": sorted(inherited),
@@ -4797,7 +5379,9 @@ def _has_path_separator(value: str) -> bool:
     return "/" in value or "\\" in value
 
 
-def _resolve_target_runtime_executable(scaffold_output_dir: Path, argv0: str, effective_env: dict[str, str]) -> str:
+def _resolve_target_runtime_executable(
+    scaffold_output_dir: Path, argv0: str, effective_env: dict[str, str]
+) -> str:
     if _has_path_separator(argv0) or Path(argv0).is_absolute():
         candidate = Path(argv0)
         if not candidate.is_absolute():
@@ -4806,7 +5390,9 @@ def _resolve_target_runtime_executable(scaffold_output_dir: Path, argv0: str, ef
             resolved = candidate.resolve(strict=False)
             resolved.relative_to(scaffold_output_dir.resolve())
         except ValueError as exc:
-            raise CliUsageError("runtime command executable escapes scaffold output") from exc
+            raise CliUsageError(
+                "runtime command executable escapes scaffold output"
+            ) from exc
         if candidate.is_symlink():
             raise CliUsageError("runtime command executable is not a regular file")
         if not candidate.exists():
@@ -4835,7 +5421,10 @@ def _bounded_target_runtime_output(output: str | None) -> tuple[str, bool]:
     if not output:
         return "", False
     lines = output.splitlines()
-    truncated = len(lines) > TARGET_RUNTIME_OUTPUT_TAIL_LINES or len(output) > TARGET_RUNTIME_OUTPUT_TAIL_CHARS
+    truncated = (
+        len(lines) > TARGET_RUNTIME_OUTPUT_TAIL_LINES
+        or len(output) > TARGET_RUNTIME_OUTPUT_TAIL_CHARS
+    )
     if not truncated:
         return output, False
     tail_lines = lines[-TARGET_RUNTIME_OUTPUT_TAIL_LINES:]
@@ -4889,7 +5478,9 @@ def _run_target_runtime_command(
             "stderr_tail_truncated": stderr_truncated,
             "env": env_summary,
         }
-        return command_result, _target_runtime_check("runtime_command_execution", "failed", "target_runtime_timeout")
+        return command_result, _target_runtime_check(
+            "runtime_command_execution", "failed", "target_runtime_timeout"
+        )
     except OSError as exc:
         stderr_tail, stderr_truncated = _bounded_target_runtime_output(str(exc))
         command_result = {
@@ -4924,7 +5515,9 @@ def _run_target_runtime_command(
         "env": env_summary,
     }
     if completed.returncode == 0:
-        return command_result, _target_runtime_check("runtime_command_execution", "passed", "target_runtime_passed")
+        return command_result, _target_runtime_check(
+            "runtime_command_execution", "passed", "target_runtime_passed"
+        )
     return command_result, _target_runtime_check(
         "runtime_command_execution",
         "failed",
@@ -4933,7 +5526,9 @@ def _run_target_runtime_command(
     )
 
 
-def _runtime_output_check(name: str, status: str, reason: str, evidence: list[str] | None = None) -> dict[str, Any]:
+def _runtime_output_check(
+    name: str, status: str, reason: str, evidence: list[str] | None = None
+) -> dict[str, Any]:
     return {
         "name": name,
         "status": status,
@@ -4974,19 +5569,27 @@ def _reject_runtime_output_nul(value: str) -> None:
 
 def _normalize_runtime_output_spec(spec: Any) -> list[dict[str, Any]]:
     payload = _require_exact_keys(spec, {"actual_outputs"}, "runtime output spec")
-    raw_outputs = _require_list(payload["actual_outputs"], "runtime output actual_outputs")
+    raw_outputs = _require_list(
+        payload["actual_outputs"], "runtime output actual_outputs"
+    )
     seen: set[str] = set()
     outputs: list[dict[str, Any]] = []
     for raw_output in raw_outputs:
-        item = _require_exact_keys(raw_output, {"oracle_set_id", "actual_output"}, "runtime output item")
-        oracle_set_id = _require_string(item["oracle_set_id"], "runtime output oracle_set_id")
+        item = _require_exact_keys(
+            raw_output, {"oracle_set_id", "actual_output"}, "runtime output item"
+        )
+        oracle_set_id = _require_string(
+            item["oracle_set_id"], "runtime output oracle_set_id"
+        )
         _reject_runtime_output_nul(oracle_set_id)
         if not oracle_set_id:
             raise CliUsageError("runtime output oracle_set_id must be non-empty")
         if oracle_set_id in seen:
             raise CliUsageError("duplicate runtime output oracle_set_id")
         seen.add(oracle_set_id)
-        actual_output = _require_exact_keys(item["actual_output"], {"kind", "value"}, "runtime output actual_output")
+        actual_output = _require_exact_keys(
+            item["actual_output"], {"kind", "value"}, "runtime output actual_output"
+        )
         kind = _require_string(actual_output["kind"], "runtime output kind")
         if kind != "inline_json":
             raise CliUsageError("unsupported runtime output kind")
@@ -5002,7 +5605,9 @@ def _normalize_runtime_output_spec(spec: Any) -> list[dict[str, Any]]:
     return outputs
 
 
-def _normalize_runtime_output_payload(spec: Any, oracle_spec: dict[str, Any]) -> list[dict[str, Any]]:
+def _normalize_runtime_output_payload(
+    spec: Any, oracle_spec: dict[str, Any]
+) -> list[dict[str, Any]]:
     _reject_nonpassed_runtime_statuses(spec)
     if isinstance(spec, dict) and "actual_outputs" in spec:
         return _normalize_runtime_output_spec(spec)
@@ -5012,15 +5617,22 @@ def _normalize_runtime_output_payload(spec: Any, oracle_spec: dict[str, Any]) ->
         raw_outputs = _require_dict(spec, "runtime output outputs")
     else:
         raise CliUsageError("runtime output spec must be an object")
-    entry_to_oracle = {item["entry_name"]: item["oracle_set_id"] for item in oracle_spec.get("oracle_specs", [])}
+    entry_to_oracle = {
+        item["entry_name"]: item["oracle_set_id"]
+        for item in oracle_spec.get("oracle_specs", [])
+    }
     actual_outputs: list[dict[str, Any]] = []
     for entry_name, value in raw_outputs.items():
         if not isinstance(entry_name, str) or not entry_name:
             raise CliUsageError("runtime output entry name must be non-empty")
         if not isinstance(value, dict):
-            raise CliUsageError("runtime output nested item must contain baseline and sk")
+            raise CliUsageError(
+                "runtime output nested item must contain baseline and sk"
+            )
         if set(value) != {"baseline", "sk"}:
-            raise CliUsageError("runtime output nested item must contain baseline and sk")
+            raise CliUsageError(
+                "runtime output nested item must contain baseline and sk"
+            )
         baseline_value = value["baseline"]
         oracle_set_id = entry_to_oracle.get(entry_name)
         if oracle_set_id is None:
@@ -5053,7 +5665,9 @@ def _reject_nonpassed_runtime_statuses(spec: Any) -> None:
             reason = item.get("reason", status)
             bad.append(f"{entry_name}:{status}:{reason}")
     if bad:
-        raise CliUsageError("runtime output status not passed: " + "; ".join(str(item) for item in bad))
+        raise CliUsageError(
+            "runtime output status not passed: " + "; ".join(str(item) for item in bad)
+        )
 
 
 def _json_pointer(path: list[str]) -> str:
@@ -5063,7 +5677,9 @@ def _json_pointer(path: list[str]) -> str:
 
 
 def _json_number(value: Any) -> bool:
-    return (isinstance(value, int) or isinstance(value, float)) and not isinstance(value, bool)
+    return (isinstance(value, int) or isinstance(value, float)) and not isinstance(
+        value, bool
+    )
 
 
 def _compare_declared_json(
@@ -5118,7 +5734,9 @@ def _compare_declared_json(
         if comparator == "allclose":
             rtol = float(tolerance["rtol"])
             atol = float(tolerance["atol"])
-            if abs(float(actual) - float(expected)) <= atol + rtol * abs(float(expected)):
+            if abs(float(actual) - float(expected)) <= atol + rtol * abs(
+                float(expected)
+            ):
                 return True, "declared_output_matched", None
             return False, "declared_output_value_mismatch", _json_pointer(path)
         return (
@@ -5156,9 +5774,12 @@ def _compare_runtime_outputs(
         expected_output = oracle_set["expected_output"]
         actual_value = actual_output["value"]
         expected_value = expected_output["value"]
-        actual_is_bind_target_pair = isinstance(actual_value, dict) and set(actual_value) == {"baseline", "sk"}
+        actual_is_bind_target_pair = isinstance(actual_value, dict) and set(
+            actual_value
+        ) == {"baseline", "sk"}
         expected_is_bind_target = (
-            isinstance(expected_value, dict) and expected_value.get("source") == "bind-target-on-wheel"
+            isinstance(expected_value, dict)
+            and expected_value.get("source") == "bind-target-on-wheel"
         )
         if actual_is_bind_target_pair and expected_is_bind_target:
             compare_actual = actual_value["sk"]
@@ -5211,7 +5832,10 @@ def _sk_runtime_output_result_manifest(
         "runtime_output_spec_path": str(request.spec_path.resolve()),
         "runtime_output_spec_sha256": hashlib.sha256(request.spec_bytes).hexdigest(),
         "comparisons": request.comparisons or [],
-        "checks": [request.check_results[name] for name in SK_RUNTIME_OUTPUT_COMPARISON_CHECK_NAMES],
+        "checks": [
+            request.check_results[name]
+            for name in SK_RUNTIME_OUTPUT_COMPARISON_CHECK_NAMES
+        ],
         "supported_next_actions": request.supported_next_actions or [],
         "execution_boundary": SK_RUNTIME_OUTPUT_COMPARISON_BOUNDARY,
     }
@@ -5263,7 +5887,9 @@ def _summarize_sk_runtime_output_comparison(
     actual_outputs: list[dict[str, Any]],
 ) -> dict[str, Any]:
     runtime_oracle = _sk_oracle_spec_as_runtime_oracle(oracle_spec)
-    actual_outputs_by_id = _validate_runtime_output_binding(runtime_oracle, actual_outputs)
+    actual_outputs_by_id = _validate_runtime_output_binding(
+        runtime_oracle, actual_outputs
+    )
     target_runtime = _load_current_sk_target_runtime_validation(output_dir, oracle_spec)
     check_results: dict[str, dict[str, Any]] = {
         "sk_correctness_oracle_spec_current": _runtime_output_check(
@@ -5328,11 +5954,17 @@ def _summarize_sk_runtime_output_comparison(
         ["operator-sk-target-runtime-validation.json"],
     )
     comparisons = _compare_runtime_outputs(runtime_oracle, actual_outputs_by_id)
-    status = "matched" if all(item["status"] == "matched" for item in comparisons) else "mismatched"
+    status = (
+        "matched"
+        if all(item["status"] == "matched" for item in comparisons)
+        else "mismatched"
+    )
     check_results["declared_runtime_outputs_compared"] = _runtime_output_check(
         "declared_runtime_outputs_compared",
         "passed" if status == "matched" else "failed",
-        "declared_runtime_outputs_matched" if status == "matched" else "declared_runtime_outputs_mismatched",
+        "declared_runtime_outputs_matched"
+        if status == "matched"
+        else "declared_runtime_outputs_mismatched",
     )
     _sk_runtime_output_boundary_checks(check_results)
     return _sk_runtime_output_result_manifest(
@@ -5366,11 +5998,17 @@ def _summarize_standalone_bind_target_comparison(
         bad_statuses = []
         for entry_name, item in sorted(statuses.items()):
             if not isinstance(item, dict) or item.get("status") != "passed":
-                reason = item.get("reason", item.get("status")) if isinstance(item, dict) else "invalid-status"
+                reason = (
+                    item.get("reason", item.get("status"))
+                    if isinstance(item, dict)
+                    else "invalid-status"
+                )
                 bad_statuses.append(
                     (
                         entry_name,
-                        item.get("status", "invalid-status") if isinstance(item, dict) else "invalid-status",
+                        item.get("status", "invalid-status")
+                        if isinstance(item, dict)
+                        else "invalid-status",
                         reason,
                     )
                 )
@@ -5422,9 +6060,13 @@ def _summarize_standalone_bind_target_comparison(
         if not isinstance(entry_name, str) or not entry_name:
             raise CliUsageError("runtime output entry name must be non-empty")
         if not isinstance(value, dict):
-            raise CliUsageError("runtime output nested item must contain baseline and sk")
+            raise CliUsageError(
+                "runtime output nested item must contain baseline and sk"
+            )
         if set(value) != {"baseline", "sk"}:
-            raise CliUsageError("runtime output nested item must contain baseline and sk")
+            raise CliUsageError(
+                "runtime output nested item must contain baseline and sk"
+            )
         baseline_value = value["baseline"]
         matched, reason, mismatch_path = _compare_declared_json(
             value["sk"],
@@ -5467,7 +6109,9 @@ def _summarize_standalone_bind_target_comparison(
             _runtime_output_check(
                 "declared_runtime_outputs_compared",
                 "passed" if status == "matched" else "failed",
-                "declared_runtime_outputs_matched" if status == "matched" else "declared_runtime_outputs_mismatched",
+                "declared_runtime_outputs_matched"
+                if status == "matched"
+                else "declared_runtime_outputs_mismatched",
             ),
         ],
         "supported_next_actions": ["review_sk_runtime_output_comparison"]
@@ -5477,7 +6121,9 @@ def _summarize_standalone_bind_target_comparison(
     }
 
 
-def _load_current_sk_runtime_output_comparison(output_dir: Path, oracle_spec: dict[str, Any]) -> dict[str, Any]:
+def _load_current_sk_runtime_output_comparison(
+    output_dir: Path, oracle_spec: dict[str, Any]
+) -> dict[str, Any]:
     comparison = _load_json_artifact(
         output_dir / "operator-sk-runtime-output-comparison.json",
         "operator-sk-runtime-output-comparison.json",
@@ -5504,7 +6150,9 @@ def _load_current_sk_runtime_output_comparison(output_dir: Path, oracle_spec: di
             comparison["analysis_output_dir"],
             "sk runtime output comparison analysis_output_dir",
         ) != str(output_dir.resolve()):
-            raise CliUsageError("sk runtime output comparison analysis_output_dir mismatch")
+            raise CliUsageError(
+                "sk runtime output comparison analysis_output_dir mismatch"
+            )
         if (
             _require_string(
                 comparison["correctness_oracle_spec_path"],
@@ -5512,7 +6160,9 @@ def _load_current_sk_runtime_output_comparison(output_dir: Path, oracle_spec: di
             )
             != "operator-sk-correctness-oracle-spec.json"
         ):
-            raise CliUsageError("sk runtime output comparison correctness_oracle_spec_path mismatch")
+            raise CliUsageError(
+                "sk runtime output comparison correctness_oracle_spec_path mismatch"
+            )
         if (
             _require_string(
                 comparison["target_runtime_validation_path"],
@@ -5520,7 +6170,9 @@ def _load_current_sk_runtime_output_comparison(output_dir: Path, oracle_spec: di
             )
             != "operator-sk-target-runtime-validation.json"
         ):
-            raise CliUsageError("sk runtime output comparison target_runtime_validation_path mismatch")
+            raise CliUsageError(
+                "sk runtime output comparison target_runtime_validation_path mismatch"
+            )
         if (
             _require_string(
                 comparison["runtime_output_comparison_path"],
@@ -5528,14 +6180,18 @@ def _load_current_sk_runtime_output_comparison(output_dir: Path, oracle_spec: di
             )
             != "operator-sk-runtime-output-comparison.json"
         ):
-            raise CliUsageError("sk runtime output comparison runtime_output_comparison_path mismatch")
+            raise CliUsageError(
+                "sk runtime output comparison runtime_output_comparison_path mismatch"
+            )
         spec_path_text = _require_string(
             comparison["runtime_output_spec_path"],
             "sk runtime output comparison runtime_output_spec_path",
         )
         spec_path = Path(spec_path_text)
         if not spec_path.is_absolute():
-            raise CliUsageError("sk runtime output comparison runtime_output_spec_path must be absolute")
+            raise CliUsageError(
+                "sk runtime output comparison runtime_output_spec_path must be absolute"
+            )
         spec_path, spec_bytes, spec = _read_runtime_output_spec(spec_path)
         if (
             _require_string(
@@ -5544,7 +6200,9 @@ def _load_current_sk_runtime_output_comparison(output_dir: Path, oracle_spec: di
             )
             != hashlib.sha256(spec_bytes).hexdigest()
         ):
-            raise CliUsageError("sk runtime output comparison runtime_output_spec_sha256 mismatch")
+            raise CliUsageError(
+                "sk runtime output comparison runtime_output_spec_sha256 mismatch"
+            )
         actual_outputs = _normalize_runtime_output_spec(spec)
         expected = _summarize_sk_runtime_output_comparison(
             output_dir, oracle_spec, spec_path, spec_bytes, actual_outputs
@@ -5582,7 +6240,9 @@ def _read_sk_runtime_output_extraction_spec(path: Path) -> tuple[Path, bytes, An
     spec_path = path.resolve()
     if not path.exists():
         if path.is_symlink():
-            raise CliUsageError("sk runtime output extraction spec is not a regular file")
+            raise CliUsageError(
+                "sk runtime output extraction spec is not a regular file"
+            )
         raise CliUsageError("sk runtime output extraction spec not found")
     if path.is_symlink():
         raise CliUsageError("sk runtime output extraction spec is not a regular file")
@@ -5595,11 +6255,15 @@ def _read_sk_runtime_output_extraction_spec(path: Path) -> tuple[Path, bytes, An
     try:
         spec_text = spec_bytes.decode("utf-8")
     except UnicodeDecodeError as exc:
-        raise CliUsageError("sk runtime output extraction spec is not valid UTF-8") from exc
+        raise CliUsageError(
+            "sk runtime output extraction spec is not valid UTF-8"
+        ) from exc
     try:
         spec = json.loads(spec_text, parse_constant=_reject_json_constant)
     except ValueError as exc:
-        raise CliUsageError("sk runtime output extraction spec is not valid JSON") from exc
+        raise CliUsageError(
+            "sk runtime output extraction spec is not valid JSON"
+        ) from exc
     return spec_path, spec_bytes, spec
 
 
@@ -5609,26 +6273,42 @@ def _reject_sk_runtime_output_extraction_nul(value: str) -> None:
 
 
 def _normalize_sk_runtime_output_extraction_spec(spec: Any) -> list[dict[str, Any]]:
-    payload = _require_exact_keys(spec, {"output_extractions"}, "sk runtime output extraction spec")
-    raw_items = _require_list(payload["output_extractions"], "sk runtime output extraction output_extractions")
+    payload = _require_exact_keys(
+        spec, {"output_extractions"}, "sk runtime output extraction spec"
+    )
+    raw_items = _require_list(
+        payload["output_extractions"], "sk runtime output extraction output_extractions"
+    )
     if not raw_items:
-        raise CliUsageError("sk runtime output extraction output_extractions must not be empty")
+        raise CliUsageError(
+            "sk runtime output extraction output_extractions must not be empty"
+        )
     seen: set[str] = set()
     items: list[dict[str, Any]] = []
     for raw_item in raw_items:
-        item = _require_exact_keys(raw_item, {"oracle_set_id", "source"}, "sk runtime output extraction item")
-        oracle_set_id = _require_string(item["oracle_set_id"], "sk runtime output extraction oracle_set_id")
+        item = _require_exact_keys(
+            raw_item, {"oracle_set_id", "source"}, "sk runtime output extraction item"
+        )
+        oracle_set_id = _require_string(
+            item["oracle_set_id"], "sk runtime output extraction oracle_set_id"
+        )
         _reject_sk_runtime_output_extraction_nul(oracle_set_id)
         if not oracle_set_id:
-            raise CliUsageError("sk runtime output extraction oracle_set_id must be non-empty")
+            raise CliUsageError(
+                "sk runtime output extraction oracle_set_id must be non-empty"
+            )
         if oracle_set_id in seen:
             raise CliUsageError("duplicate sk runtime output extraction oracle_set_id")
         seen.add(oracle_set_id)
         source_raw = item["source"]
         if not isinstance(source_raw, dict):
             raise CliUsageError("sk runtime output extraction source must be an object")
-        source = _require_exact_keys(source_raw, {"kind", "json_pointer"}, "sk runtime output extraction source")
-        kind = _require_string(source["kind"], "sk runtime output extraction source kind")
+        source = _require_exact_keys(
+            source_raw, {"kind", "json_pointer"}, "sk runtime output extraction source"
+        )
+        kind = _require_string(
+            source["kind"], "sk runtime output extraction source kind"
+        )
         if kind not in {"stdout_json_pointer", "stderr_json_pointer"}:
             raise CliUsageError("unsupported sk runtime output extraction source kind")
         pointer = _require_string(
@@ -5658,7 +6338,9 @@ def _validate_sk_runtime_output_extraction_binding(
     return {item["oracle_set_id"]: item for item in items}
 
 
-def _extract_sk_runtime_output_value(target_runtime: dict[str, Any], source: dict[str, Any]) -> Any:
+def _extract_sk_runtime_output_value(
+    target_runtime: dict[str, Any], source: dict[str, Any]
+) -> Any:
     command = target_runtime["commands"][0]
     channel = "stdout" if source["kind"] == "stdout_json_pointer" else "stderr"
     if command[f"{channel}_tail_truncated"] is True:
@@ -5666,7 +6348,9 @@ def _extract_sk_runtime_output_value(target_runtime: dict[str, Any], source: dic
     try:
         payload = _parse_source_stream_json(command[f"{channel}_tail"])
     except CliUsageError as exc:
-        raise CliUsageError("sk runtime output extraction source stream is not valid JSON") from exc
+        raise CliUsageError(
+            "sk runtime output extraction source stream is not valid JSON"
+        ) from exc
     try:
         value = _resolve_json_pointer(payload, source["json_pointer"])
     except KeyError as exc:
@@ -5685,7 +6369,9 @@ def _sk_runtime_output_spec_from_captured(
     target_runtime = _load_current_sk_target_runtime_validation(output_dir, oracle_spec)
     if target_runtime["status"] != "passed":
         raise CliUsageError("sk target runtime validation not passed")
-    items_by_id = _validate_sk_runtime_output_extraction_binding(oracle_spec, extraction_items)
+    items_by_id = _validate_sk_runtime_output_extraction_binding(
+        oracle_spec, extraction_items
+    )
     actual_outputs: list[dict[str, Any]] = []
     for oracle_item in oracle_spec["oracle_specs"]:
         extraction = items_by_id[oracle_item["oracle_set_id"]]
@@ -5711,8 +6397,12 @@ def cmd_extract_sk_runtime_outputs(args: argparse.Namespace) -> int:
     )
     extraction_items = _normalize_sk_runtime_output_extraction_spec(spec)
     oracle_spec, _runtime_spec = _load_current_sk_correctness_oracle_spec(output_dir)
-    runtime_output_spec = _sk_runtime_output_spec_from_captured(output_dir, oracle_spec, extraction_items)
-    _write_json(output_dir / "operator-sk-runtime-output-spec.json", runtime_output_spec)
+    runtime_output_spec = _sk_runtime_output_spec_from_captured(
+        output_dir, oracle_spec, extraction_items
+    )
+    _write_json(
+        output_dir / "operator-sk-runtime-output-spec.json", runtime_output_spec
+    )
     return 0
 
 
@@ -5741,7 +6431,9 @@ def _sk_operator_correctness_verdict_result_manifest(
         "correctness_verdict_path": "operator-sk-correctness-verdict.json",
         "verdict_scope": "declared_oracle_and_captured_runtime_evidence",
         "verdict_items": verdict_items,
-        "checks": [check_results[name] for name in SK_OPERATOR_CORRECTNESS_VERDICT_CHECK_NAMES],
+        "checks": [
+            check_results[name] for name in SK_OPERATOR_CORRECTNESS_VERDICT_CHECK_NAMES
+        ],
         "supported_next_actions": supported_next_actions,
         "execution_boundary": SK_OPERATOR_CORRECTNESS_VERDICT_BOUNDARY,
     }
@@ -5752,7 +6444,9 @@ def _sk_operator_correctness_verdict_items(
     comparison: dict[str, Any],
     actual_outputs_by_id: dict[str, dict[str, Any]],
 ) -> list[dict[str, Any]]:
-    comparison_by_id = {item["oracle_set_id"]: item for item in comparison["comparisons"]}
+    comparison_by_id = {
+        item["oracle_set_id"]: item for item in comparison["comparisons"]
+    }
     items: list[dict[str, Any]] = []
     for oracle_item in oracle_spec["oracle_specs"]:
         oracle_set_id = oracle_item["oracle_set_id"]
@@ -5766,7 +6460,9 @@ def _sk_operator_correctness_verdict_items(
             item_status, item_reason = "failed", "operator_output_mismatch"
         else:
             item_status = "blocked"
-            item_reason = comparison_item.get("reason") or "runtime_output_comparison_blocked"
+            item_reason = (
+                comparison_item.get("reason") or "runtime_output_comparison_blocked"
+            )
         items.append(
             {
                 "oracle_set_id": oracle_set_id,
@@ -5786,9 +6482,11 @@ def _sk_operator_correctness_verdict_items(
     return items
 
 
-def _current_sk_operator_correctness_verdict_manifest(output_dir: Path, oracle_spec: dict[str, Any]) -> dict[str, Any]:
-    comparison, actual_outputs_by_id, _target_runtime = _load_current_sk_runtime_output_comparison_context(
-        output_dir, oracle_spec
+def _current_sk_operator_correctness_verdict_manifest(
+    output_dir: Path, oracle_spec: dict[str, Any]
+) -> dict[str, Any]:
+    comparison, actual_outputs_by_id, _target_runtime = (
+        _load_current_sk_runtime_output_comparison_context(output_dir, oracle_spec)
     )
     check_results: dict[str, dict[str, Any]] = {
         "sk_runtime_output_comparison_current": _sk_operator_correctness_verdict_check(
@@ -5800,17 +6498,21 @@ def _current_sk_operator_correctness_verdict_manifest(output_dir: Path, oracle_s
     }
     if comparison["status"] != "matched":
         block_reason = "sk_runtime_output_comparison_" + comparison["status"]
-        check_results["sk_runtime_output_comparison_matched"] = _sk_operator_correctness_verdict_check(
-            "sk_runtime_output_comparison_matched",
-            "blocked",
-            block_reason,
-            ["operator-sk-runtime-output-comparison.json"],
+        check_results["sk_runtime_output_comparison_matched"] = (
+            _sk_operator_correctness_verdict_check(
+                "sk_runtime_output_comparison_matched",
+                "blocked",
+                block_reason,
+                ["operator-sk-runtime-output-comparison.json"],
+            )
         )
-        check_results["operator_correctness_validated"] = _sk_operator_correctness_verdict_check(
-            "operator_correctness_validated",
-            "blocked",
-            block_reason,
-            ["operator-sk-runtime-output-comparison.json"],
+        check_results["operator_correctness_validated"] = (
+            _sk_operator_correctness_verdict_check(
+                "operator_correctness_validated",
+                "blocked",
+                block_reason,
+                ["operator-sk-runtime-output-comparison.json"],
+            )
         )
         check_results["handoff_boundary_open"] = _sk_operator_correctness_verdict_check(
             "handoff_boundary_open", "open", "handoff_not_completed"
@@ -5823,17 +6525,21 @@ def _current_sk_operator_correctness_verdict_manifest(output_dir: Path, oracle_s
             list(comparison["supported_next_actions"]),
         )
 
-    check_results["sk_runtime_output_comparison_matched"] = _sk_operator_correctness_verdict_check(
-        "sk_runtime_output_comparison_matched",
-        "passed",
-        "sk_runtime_output_comparison_matched",
-        ["operator-sk-runtime-output-comparison.json"],
+    check_results["sk_runtime_output_comparison_matched"] = (
+        _sk_operator_correctness_verdict_check(
+            "sk_runtime_output_comparison_matched",
+            "passed",
+            "sk_runtime_output_comparison_matched",
+            ["operator-sk-runtime-output-comparison.json"],
+        )
     )
-    check_results["operator_correctness_validated"] = _sk_operator_correctness_verdict_check(
-        "operator_correctness_validated",
-        "passed",
-        "operator_correctness_validated",
-        ["operator-sk-runtime-output-comparison.json"],
+    check_results["operator_correctness_validated"] = (
+        _sk_operator_correctness_verdict_check(
+            "operator_correctness_validated",
+            "passed",
+            "operator_correctness_validated",
+            ["operator-sk-runtime-output-comparison.json"],
+        )
     )
     check_results["handoff_boundary_open"] = _sk_operator_correctness_verdict_check(
         "handoff_boundary_open", "open", "handoff_not_completed"
@@ -5841,7 +6547,9 @@ def _current_sk_operator_correctness_verdict_manifest(output_dir: Path, oracle_s
     return _sk_operator_correctness_verdict_result_manifest(
         output_dir,
         "passed",
-        _sk_operator_correctness_verdict_items(oracle_spec, comparison, actual_outputs_by_id),
+        _sk_operator_correctness_verdict_items(
+            oracle_spec, comparison, actual_outputs_by_id
+        ),
         check_results,
         [],
     )
@@ -5867,14 +6575,22 @@ def cmd_compare_sk_runtime_outputs(args: argparse.Namespace) -> int:
     if not output_dir.is_dir():
         raise CliUsageError(f"analysis output path is not a directory: {output_dir}")
 
-    spec_path, spec_bytes, spec = _read_runtime_output_spec(Path(args.runtime_output_spec_json))
+    spec_path, spec_bytes, spec = _read_runtime_output_spec(
+        Path(args.runtime_output_spec_json)
+    )
     try:
-        oracle_spec, _runtime_spec = _load_current_sk_correctness_oracle_spec(output_dir)
+        oracle_spec, _runtime_spec = _load_current_sk_correctness_oracle_spec(
+            output_dir
+        )
         actual_outputs = _normalize_runtime_output_payload(spec, oracle_spec)
-        result = _summarize_sk_runtime_output_comparison(output_dir, oracle_spec, spec_path, spec_bytes, actual_outputs)
+        result = _summarize_sk_runtime_output_comparison(
+            output_dir, oracle_spec, spec_path, spec_bytes, actual_outputs
+        )
     except CliUsageError as exc:
         try:
-            result = _summarize_standalone_bind_target_comparison(output_dir, spec_path, spec_bytes, spec)
+            result = _summarize_standalone_bind_target_comparison(
+                output_dir, spec_path, spec_bytes, spec
+            )
         except CliUsageError as fallback_exc:
             raise exc from fallback_exc
     _write_json(output_dir / "operator-sk-runtime-output-comparison.json", result)
@@ -5891,7 +6607,9 @@ def _validate_json_pointer(pointer: str) -> None:
         while index < len(segment):
             if segment[index] == "~":
                 if index + 1 >= len(segment) or segment[index + 1] not in {"0", "1"}:
-                    raise CliUsageError("runtime output provenance json_pointer is invalid")
+                    raise CliUsageError(
+                        "runtime output provenance json_pointer is invalid"
+                    )
                 index += 2
             else:
                 index += 1
@@ -5952,7 +6670,9 @@ def _parse_shape(text: str) -> list[int]:
         if not token:
             continue
         if not token.isdigit():
-            raise CliUsageError(f"shape dimension must be a non-negative integer, got {token!r}")
+            raise CliUsageError(
+                f"shape dimension must be a non-negative integer, got {token!r}"
+            )
         dims.append(int(token))
     return dims
 
@@ -5965,10 +6685,16 @@ def cmd_auto_construct_runtime_input_values(args: argparse.Namespace) -> int:
         raise CliUsageError(f"runtime input spec not found: {spec_path}")
     runtime_input_spec = json.loads(spec_path.read_text(encoding="utf-8"))
     shape = _parse_shape(args.shape)
-    closed_spec = lib.build_input_values_spec(runtime_input_spec, shape=shape, dtype=args.dtype, fill=args.fill)
+    closed_spec = lib.build_input_values_spec(
+        runtime_input_spec, shape=shape, dtype=args.dtype, fill=args.fill
+    )
     out_path = output_dir / "operator-sk-auto-input-values-spec.json"
     out_path.write_text(json.dumps(closed_spec, indent=2), encoding="utf-8")
-    _emit(json.dumps({"written": out_path.name, "input_sets": len(closed_spec["input_values"])}))
+    _emit(
+        json.dumps(
+            {"written": out_path.name, "input_sets": len(closed_spec["input_values"])}
+        )
+    )
     return 0
 
 
@@ -5984,11 +6710,15 @@ def cmd_auto_build_correctness_oracle(args: argparse.Namespace) -> int:
     input_values_artifact = json.loads(values_path.read_text(encoding="utf-8"))
     runtime_input_spec = json.loads(spec_path.read_text(encoding="utf-8"))
     if args.oracle_source == "bind-target-on-wheel":
-        oracle_spec = lib.build_bind_target_oracle_spec(input_values_artifact, runtime_input_spec)
+        oracle_spec = lib.build_bind_target_oracle_spec(
+            input_values_artifact, runtime_input_spec
+        )
     else:
         reference_dir = Path(__file__).resolve().parent.parent / "reference_impls"
         registry = lib.ReferenceImplRegistry.load(reference_dir)
-        oracle_spec, missing = lib.build_oracle_spec(input_values_artifact, runtime_input_spec, registry)
+        oracle_spec, missing = lib.build_oracle_spec(
+            input_values_artifact, runtime_input_spec, registry
+        )
         if missing:
             raise CliUsageError(
                 "no reference implementation for kernel entries behind input sets: "
@@ -6015,7 +6745,9 @@ def cmd_generate_runner_script(args: argparse.Namespace) -> int:
     output_dir.mkdir(parents=True, exist_ok=True)
     runner_rel = "operator-sample-runner.py"
     values_rel = "operator-sk-runtime-input-values.json"
-    (output_dir / runner_rel).write_text(lib.render_runner_script(args.oracle_source), encoding="utf-8")
+    (output_dir / runner_rel).write_text(
+        lib.render_runner_script(args.oracle_source), encoding="utf-8"
+    )
     command_spec = lib.build_target_runtime_command_spec(runner_rel, values_rel)
     (output_dir / "operator-sk-target-runtime-command-spec.json").write_text(
         json.dumps(command_spec, indent=2), encoding="utf-8"
@@ -6035,13 +6767,17 @@ def cmd_build_single_op_verification_contract(args: argparse.Namespace) -> int:
     lib = _sample_lib()
     output_dir = Path(args.output_dir).resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
-    runtime_contract = _load_json_artifact(Path(args.runtime_contract_json), "operator-runtime-contract.json")
+    runtime_contract = _load_json_artifact(
+        Path(args.runtime_contract_json), "operator-runtime-contract.json"
+    )
     try:
         contract = lib.build_single_op_verification_contract(runtime_contract)
     except ValueError as exc:
         raise CliUsageError(str(exc)) from exc
     out_path = output_dir / "operator-single-op-verification-contract.json"
-    out_path.write_text(json.dumps(contract, indent=2, ensure_ascii=False), encoding="utf-8")
+    out_path.write_text(
+        json.dumps(contract, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
     _emit(
         json.dumps(
             {
@@ -6058,19 +6794,25 @@ def cmd_collect_network_sample_contract(args: argparse.Namespace) -> int:
     lib = _sample_lib()
     output_dir = Path(args.output_dir).resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
-    raw_contract = _load_json_artifact(Path(args.network_contract_json), "operator network sample contract")
+    raw_contract = _load_json_artifact(
+        Path(args.network_contract_json), "operator network sample contract"
+    )
     try:
         contract = lib.normalize_network_sample_contract(raw_contract)
     except ValueError as exc:
         raise CliUsageError(str(exc)) from exc
     contract_path = output_dir / "operator-network-sample-contract.json"
-    contract_path.write_text(json.dumps(contract, indent=2, ensure_ascii=False), encoding="utf-8")
+    contract_path.write_text(
+        json.dumps(contract, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
     try:
         fusion_expectation = lib.build_network_fusion_expectation(contract)
     except ValueError as exc:
         raise CliUsageError(str(exc)) from exc
     fusion_path = output_dir / "operator-network-fusion-expectation.json"
-    fusion_path.write_text(json.dumps(fusion_expectation, indent=2, ensure_ascii=False), encoding="utf-8")
+    fusion_path.write_text(
+        json.dumps(fusion_expectation, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
     _emit(
         json.dumps(
             {
@@ -6100,8 +6842,12 @@ def cmd_generate_network_runner_script(args: argparse.Namespace) -> int:
         raise CliUsageError("network sample contract is not available")
     runner_rel = "operator-network-sample-runner.py"
     contract_rel = "operator-network-sample-contract.json"
-    (output_dir / runner_rel).write_text(lib.render_network_runner_script(), encoding="utf-8")
-    command_spec = lib.build_network_target_runtime_command_spec(runner_rel, contract_rel)
+    (output_dir / runner_rel).write_text(
+        lib.render_network_runner_script(), encoding="utf-8"
+    )
+    command_spec = lib.build_network_target_runtime_command_spec(
+        runner_rel, contract_rel
+    )
     (output_dir / "operator-network-target-runtime-command-spec.json").write_text(
         json.dumps(command_spec, indent=2, ensure_ascii=False),
         encoding="utf-8",
@@ -6118,7 +6864,9 @@ def cmd_generate_network_runner_script(args: argparse.Namespace) -> int:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Top-level CLI for sk-operator-sample-gen")
+    parser = argparse.ArgumentParser(
+        description="Top-level CLI for sk-operator-sample-gen"
+    )
     subparsers = parser.add_subparsers(dest="subcommand", required=True)
 
     sk_runtime_inputs = subparsers.add_parser(
@@ -6139,7 +6887,9 @@ def build_parser() -> argparse.ArgumentParser:
         "analysis_output_dir",
         help="Output directory produced by collect-runtime-input-spec",
     )
-    sk_runtime_input_values.add_argument("input_value_spec_json", help="JSON file declaring SK runtime input values")
+    sk_runtime_input_values.add_argument(
+        "input_value_spec_json", help="JSON file declaring SK runtime input values"
+    )
     sk_runtime_input_values.set_defaults(func=cmd_provide_sk_runtime_input_values)
 
     sk_oracle_spec = subparsers.add_parser(
@@ -6150,7 +6900,9 @@ def build_parser() -> argparse.ArgumentParser:
         "analysis_output_dir",
         help="Output directory produced by collect-runtime-input-spec",
     )
-    sk_oracle_spec.add_argument("oracle_spec_json", help="JSON file declaring SK correctness oracle specs")
+    sk_oracle_spec.add_argument(
+        "oracle_spec_json", help="JSON file declaring SK correctness oracle specs"
+    )
     sk_oracle_spec.set_defaults(func=cmd_collect_correctness_oracle_spec)
 
     sk_target_runtime = subparsers.add_parser(
@@ -6278,7 +7030,9 @@ def build_parser() -> argparse.ArgumentParser:
         "collect-network-sample-contract",
         help="Collect and canonicalise a network-level wheel verification contract",
     )
-    network_contract.add_argument("output_dir", help="Output directory for network sample artifacts")
+    network_contract.add_argument(
+        "output_dir", help="Output directory for network sample artifacts"
+    )
     network_contract.add_argument(
         "network_contract_json",
         help="JSON file declaring network topology, wheel package, outputs, and fusion expectation",

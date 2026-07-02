@@ -116,7 +116,9 @@ RE_STREAM_IDX = re.compile(r"streamIdxInGraph:(\d+)")
 RE_NODE_IDX = re.compile(r"nodeIdxInStream:(\d+)")
 
 # 事件/内存信息: EventNotify(...) / MemoryWrite(...) / MemoryWait(...)
-RE_EVENT = re.compile(r"(EventNotify|EventWait|EventReset|MemoryWrite|MemoryWait)\(([^)]*)\)")
+RE_EVENT = re.compile(
+    r"(EventNotify|EventWait|EventReset|MemoryWrite|MemoryWait)\(([^)]*)\)"
+)
 RE_EVENT_ID = re.compile(r"eventId:(0x[0-9a-fA-F]+)")
 RE_EVENT_FLAG = re.compile(r"eventFlag:(0x[0-9a-fA-F]+)")
 
@@ -148,8 +150,12 @@ OLD_TYPE_MAP = {
 }
 
 # 起止标记
-RE_START = re.compile(r"(?:\[SK\])?\[UpdateNodeScopeBitFlags\]\s+Starting UpdateNodeScopeBitFlags")
-RE_END = re.compile(r"(?:\[SK\])?\[UpdateNodeScopeBitFlags\]\s+UpdateNodeScopeBitFlags completed")
+RE_START = re.compile(
+    r"(?:\[SK\])?\[UpdateNodeScopeBitFlags\]\s+Starting UpdateNodeScopeBitFlags"
+)
+RE_END = re.compile(
+    r"(?:\[SK\])?\[UpdateNodeScopeBitFlags\]\s+UpdateNodeScopeBitFlags completed"
+)
 RE_PROCESSED = re.compile(r"(?:\[SK\])?\[UpdateNodeScopeBitFlags\]\s+Processed node")
 
 
@@ -336,7 +342,11 @@ def parse_log_file(filepath):
     except Exception as e:
         _emit(f"  [WARN] 读取文件出错: {e}", file=sys.stderr)
 
-    if not nodes and saw_processed and os.path.basename(filepath) == "sk_node_detail.log":
+    if (
+        not nodes
+        and saw_processed
+        and os.path.basename(filepath) == "sk_node_detail.log"
+    ):
         try:
             with open(filepath, "r", encoding="utf-8", errors="replace") as f:
                 for line in f:
@@ -361,7 +371,11 @@ def collect_log_files(input_path):
     if os.path.isdir(input_path):
         for root, _, names in os.walk(input_path):
             for fname in names:
-                if fname.endswith(".log") or fname.endswith(".txt") or fname.startswith("plog-"):
+                if (
+                    fname.endswith(".log")
+                    or fname.endswith(".txt")
+                    or fname.startswith("plog-")
+                ):
                     files.append(os.path.join(root, fname))
     files = sorted(set(files))
     return files
@@ -419,7 +433,9 @@ def _normalize_model_instance_id(value, default="mi01"):
 def _report_model_instance_id(report, default="mi01"):
     if not isinstance(report, dict):
         return default
-    return _normalize_model_instance_id(report.get("model_instance_id"), default=default)
+    return _normalize_model_instance_id(
+        report.get("model_instance_id"), default=default
+    )
 
 
 def _report_model_instance_index(report, default=1):
@@ -445,7 +461,8 @@ def _stats_model_instance_partition_mode(stats, *, count):
     if not isinstance(stats, dict):
         return "single" if count <= 1 else "unknown"
     return _normalize_partition_mode(
-        stats.get("model_instance_partition_mode") or ("single" if count <= 1 else "unknown")
+        stats.get("model_instance_partition_mode")
+        or ("single" if count <= 1 else "unknown")
     )
 
 
@@ -460,7 +477,9 @@ def _resolve_model_instance_trace_context(input_path, model_instance_id):
     reports = collect_update_model_instance_reports(model_dir)
     model_instance_count = len(reports)
     requested_model_instance_id = (
-        _normalize_model_instance_id(model_instance_id, default="") if model_instance_id else None
+        _normalize_model_instance_id(model_instance_id, default="")
+        if model_instance_id
+        else None
     )
     if model_instance_count > 1 and not requested_model_instance_id:
         raise ValueError(
@@ -470,8 +489,13 @@ def _resolve_model_instance_trace_context(input_path, model_instance_id):
     selected_report = None
     if model_instance_count <= 1:
         selected_report = reports[0] if reports else None
-        selected_model_instance_id = _report_model_instance_id(selected_report) if selected_report else "mi01"
-        if requested_model_instance_id and requested_model_instance_id != selected_model_instance_id:
+        selected_model_instance_id = (
+            _report_model_instance_id(selected_report) if selected_report else "mi01"
+        )
+        if (
+            requested_model_instance_id
+            and requested_model_instance_id != selected_model_instance_id
+        ):
             raise ValueError(
                 f"model-instance-id {requested_model_instance_id} does not exist for single-model-instance input"
             )
@@ -489,12 +513,24 @@ def _resolve_model_instance_trace_context(input_path, model_instance_id):
         raise ValueError("failed to resolve tracing inputs from model-instance reports")
 
     graph_library = selected_report.get("graph_library", {})
-    node_library = graph_library.get("node_library", {}) if isinstance(graph_library, dict) else {}
+    node_library = (
+        graph_library.get("node_library", {}) if isinstance(graph_library, dict) else {}
+    )
     scope_library = selected_report.get("scope_library", {})
-    fused_library = scope_library.get("fused_library", {}) if isinstance(scope_library, dict) else {}
-    device_task_library = scope_library.get("device_task_library", {}) if isinstance(scope_library, dict) else {}
+    fused_library = (
+        scope_library.get("fused_library", {})
+        if isinstance(scope_library, dict)
+        else {}
+    )
+    device_task_library = (
+        scope_library.get("device_task_library", {})
+        if isinstance(scope_library, dict)
+        else {}
+    )
     stats = node_library.get("stats", {}) if isinstance(node_library, dict) else {}
-    model_instance_partition_verified = _stats_model_instance_partition_verified(stats, count=model_instance_count)
+    model_instance_partition_verified = _stats_model_instance_partition_verified(
+        stats, count=model_instance_count
+    )
     if model_instance_count > 1 and not model_instance_partition_verified:
         raise ValueError(
             "model-instance-local tracing inputs for "
@@ -503,22 +539,36 @@ def _resolve_model_instance_trace_context(input_path, model_instance_id):
 
     node_rows = node_library.get("nodes", []) if isinstance(node_library, dict) else []
     nodes = [
-        _node_from_library_row(row) for row in node_rows if isinstance(row, dict) and row.get("node_id") is not None
+        _node_from_library_row(row)
+        for row in node_rows
+        if isinstance(row, dict) and row.get("node_id") is not None
     ]
     return {
         "model_dir": model_dir,
         "nodes": nodes,
         "source_file": os.path.basename(str(node_library.get("path") or "")),
-        "fused_functions": fused_library.get("functions", []) if isinstance(fused_library, dict) else [],
-        "device_sections": device_task_library.get("sections", []) if isinstance(device_task_library, dict) else [],
-        "task_identity_diagnostics": device_task_library.get("task_identity_diagnostics", {})
+        "fused_functions": fused_library.get("functions", [])
+        if isinstance(fused_library, dict)
+        else [],
+        "device_sections": device_task_library.get("sections", [])
+        if isinstance(device_task_library, dict)
+        else [],
+        "task_identity_diagnostics": device_task_library.get(
+            "task_identity_diagnostics", {}
+        )
         if isinstance(device_task_library, dict)
         else {},
-        "model_instance_scope_mode": "model_instance_id" if model_instance_count > 1 else "single",
+        "model_instance_scope_mode": "model_instance_id"
+        if model_instance_count > 1
+        else "single",
         "model_instance_id": _report_model_instance_id(selected_report),
         "model_instance_index": _report_model_instance_index(selected_report),
-        "model_instance_count": _report_model_instance_count(selected_report, default=model_instance_count or 1),
-        "model_instance_partition_mode": _stats_model_instance_partition_mode(stats, count=model_instance_count),
+        "model_instance_count": _report_model_instance_count(
+            selected_report, default=model_instance_count or 1
+        ),
+        "model_instance_partition_mode": _stats_model_instance_partition_mode(
+            stats, count=model_instance_count
+        ),
         "model_instance_partition_verified": model_instance_partition_verified,
         "cross_report_index_scope_verified": True,
         "model_instance_partition_source": "model_instance_report",
@@ -891,7 +941,8 @@ def generate_metadata(nodes, edges, layout):
         f"Total Nodes: {len(nodes)} | "
         f"Streams: {len(stream_ids)} ({','.join(str(s) for s in stream_ids)}) | "
         f"Event Edges: {event_edge_count} | "
-        f"Memory Edges: {memory_edge_count} | " + " | ".join(f"{t}: {c}" for t, c in sorted(type_counts.items()))
+        f"Memory Edges: {memory_edge_count} | "
+        + " | ".join(f"{t}: {c}" for t, c in sorted(type_counts.items()))
     )
     meta_events.append(
         {
@@ -931,9 +982,15 @@ def _task_resolved_graph_node_id(task, node_lookup_by_id, node_lookup_by_ordinal
     return int(resolved) if resolved is not None else None
 
 
-def build_cross_report_index(nodes, fused_functions, device_sections, task_identity_diagnostics=None):
+def build_cross_report_index(
+    nodes, fused_functions, device_sections, task_identity_diagnostics=None
+):
     """构建 nodeId -> scope/sk/task 的跨报告索引。"""
-    section_by_scope_name = {section["scope_name"]: section for section in device_sections if section.get("scope_name")}
+    section_by_scope_name = {
+        section["scope_name"]: section
+        for section in device_sections
+        if section.get("scope_name")
+    }
 
     node_index = {}
     task_index_to_node_ids = defaultdict(list)
@@ -959,12 +1016,18 @@ def build_cross_report_index(nodes, fused_functions, device_sections, task_ident
             }
         for queue_name in ("AIC", "AIV"):
             for task in section.get("queues", {}).get(queue_name, []):
-                mapped_node_id = _task_resolved_graph_node_id(task, node_lookup_by_id, node_lookup_by_ordinal)
+                mapped_node_id = _task_resolved_graph_node_id(
+                    task, node_lookup_by_id, node_lookup_by_ordinal
+                )
                 task_index = task.get("task_index")
                 if mapped_node_id is None or task_index is None:
                     continue
-                mapped = node_lookup_by_id.get(mapped_node_id) or node_lookup_by_ordinal.get(task_index)
-                mapped_stream_id = mapped.get("stream_id", mapped.get("streamId")) if mapped else None
+                mapped = node_lookup_by_id.get(
+                    mapped_node_id
+                ) or node_lookup_by_ordinal.get(task_index)
+                mapped_stream_id = (
+                    mapped.get("stream_id", mapped.get("streamId")) if mapped else None
+                )
                 if mapped_node_id is None:
                     continue
                 if mapped_node_id not in task_index_to_node_ids[task_index]:
@@ -994,7 +1057,9 @@ def build_cross_report_index(nodes, fused_functions, device_sections, task_ident
 
     return {
         "node_index": {str(key): value for key, value in sorted(node_index.items())},
-        "task_index_to_node_ids": {str(key): value for key, value in sorted(task_index_to_node_ids.items())},
+        "task_index_to_node_ids": {
+            str(key): value for key, value in sorted(task_index_to_node_ids.items())
+        },
         "task_identity_diagnostics": task_identity_diagnostics or {},
     }
 
@@ -1059,7 +1124,9 @@ def main():
     device_sections = []
     trace_context = None
     try:
-        trace_context = _resolve_model_instance_trace_context(input_path, args.model_instance_id)
+        trace_context = _resolve_model_instance_trace_context(
+            input_path, args.model_instance_id
+        )
     except FileNotFoundError:
         trace_context = None
     except ValueError as exc:
@@ -1125,7 +1192,9 @@ def main():
     edges = build_event_edges(all_nodes)
     event_edges = [e for e in edges if e["type"] == "event"]
     memory_edges = [e for e in edges if e["type"] == "memory"]
-    _emit(f"  跨流连边: 事件={len(event_edges)}, 内存={len(memory_edges)}, 共={len(edges)}")
+    _emit(
+        f"  跨流连边: 事件={len(event_edges)}, 内存={len(memory_edges)}, 共={len(edges)}"
+    )
 
     # 生成 Chrome/Edge Tracing JSON
     trace_layout = build_trace_layout(all_nodes)
@@ -1136,7 +1205,9 @@ def main():
         all_nodes,
         fused_functions,
         device_sections,
-        trace_context.get("task_identity_diagnostics", {}) if isinstance(trace_context, dict) else {},
+        trace_context.get("task_identity_diagnostics", {})
+        if isinstance(trace_context, dict)
+        else {},
     )
     model_instance_metadata = trace_context or {
         "model_instance_scope_mode": "single",
@@ -1180,14 +1251,28 @@ def main():
                     "memory_edges": len(memory_edges),
                     "type_counts": dict(type_counts),
                     "source": os.path.basename(source_file) if source_file else "",
-                    "model_instance_scope_mode": model_instance_metadata["model_instance_scope_mode"],
+                    "model_instance_scope_mode": model_instance_metadata[
+                        "model_instance_scope_mode"
+                    ],
                     "model_instance_id": model_instance_metadata["model_instance_id"],
-                    "model_instance_index": model_instance_metadata["model_instance_index"],
-                    "model_instance_count": model_instance_metadata["model_instance_count"],
-                    "model_instance_partition_mode": model_instance_metadata["model_instance_partition_mode"],
-                    "model_instance_partition_verified": model_instance_metadata["model_instance_partition_verified"],
-                    "model_instance_partition_source": model_instance_metadata["model_instance_partition_source"],
-                    "cross_report_index_scope_verified": model_instance_metadata["cross_report_index_scope_verified"],
+                    "model_instance_index": model_instance_metadata[
+                        "model_instance_index"
+                    ],
+                    "model_instance_count": model_instance_metadata[
+                        "model_instance_count"
+                    ],
+                    "model_instance_partition_mode": model_instance_metadata[
+                        "model_instance_partition_mode"
+                    ],
+                    "model_instance_partition_verified": model_instance_metadata[
+                        "model_instance_partition_verified"
+                    ],
+                    "model_instance_partition_source": model_instance_metadata[
+                        "model_instance_partition_source"
+                    ],
+                    "cross_report_index_scope_verified": model_instance_metadata[
+                        "cross_report_index_scope_verified"
+                    ],
                     "trace_compatibility": {
                         "viewer_targets": ["edge://tracing", "chrome://tracing"],
                         "pid_is_int": True,

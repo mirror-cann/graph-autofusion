@@ -27,7 +27,9 @@ _ACL_API_RE = re.compile(r"\bacl[A-Za-z][A-Za-z0-9]+\b")
 _MIX_RE = re.compile(r"__mix__\s*\(\s*(\d+)\s*,\s*(\d+)\s*\)")
 _ARCH_MARKER_RE = re.compile(r"//\s*sk-arch:\s*(?P<alias>[\w-]+)")
 _VERSION_NUMBER_RE = re.compile(r"\d+")
-_OFFICIAL_SOURCE_HOSTS = frozenset({"www.hiascend.com", "hiascend.com", "support.huawei.com"})
+_OFFICIAL_SOURCE_HOSTS = frozenset(
+    {"www.hiascend.com", "hiascend.com", "support.huawei.com"}
+)
 
 
 class CliUsageError(Exception):
@@ -154,9 +156,15 @@ def _version_in_range(version: str, scope: dict) -> bool:
         return False
     min_version = scope.get("min") or scope.get("from")
     max_version = scope.get("max") or scope.get("to")
-    if min_version and _compare_version_keys(version_key, _version_key(str(min_version))) < 0:
+    if (
+        min_version
+        and _compare_version_keys(version_key, _version_key(str(min_version))) < 0
+    ):
         return False
-    if max_version and _compare_version_keys(version_key, _version_key(str(max_version))) > 0:
+    if (
+        max_version
+        and _compare_version_keys(version_key, _version_key(str(max_version))) > 0
+    ):
         return False
     return bool(min_version or max_version)
 
@@ -190,7 +198,9 @@ def _field_cann_scope(chip: dict, field: str) -> Any:
 def _field_applies_to_target_cann(chip: dict, field: str, target_cann: str) -> bool:
     scope = _field_cann_scope(chip, field)
     if not target_cann:
-        return scope in ("all", "*") or (isinstance(scope, dict) and scope.get("all") is True)
+        return scope in ("all", "*") or (
+            isinstance(scope, dict) and scope.get("all") is True
+        )
     return _cann_scope_applies(scope, target_cann)
 
 
@@ -204,10 +214,14 @@ def _rule_id_for_field(field: str) -> str:
 
 def _collect_sources(asset_path: Path) -> list[tuple[str, str]]:
     if asset_path.is_file():
-        return [(asset_path.name, asset_path.read_text(encoding="utf-8", errors="replace"))]
+        return [
+            (asset_path.name, asset_path.read_text(encoding="utf-8", errors="replace"))
+        ]
     base = asset_path
     units = []
-    for path in sorted(p for p in asset_path.rglob("*") if p.is_file() and p.suffix in SOURCE_SUFFIXES):
+    for path in sorted(
+        p for p in asset_path.rglob("*") if p.is_file() and p.suffix in SOURCE_SUFFIXES
+    ):
         units.append(
             (
                 str(path.relative_to(base)),
@@ -239,12 +253,20 @@ def run_compat_rules(
     recorded_cann_versions = chip.get("cann_versions", [])
     target_chip_known = bool(target_chip and chip)
     source_backed_fields = {
-        field for field in ("arch_alias", "forbidden_apis", "supports_mix_aic_aiv") if _field_source(chip, field)
+        field
+        for field in ("arch_alias", "forbidden_apis", "supports_mix_aic_aiv")
+        if _field_source(chip, field)
     }
     applicable_source_backed_fields = {
-        field for field in source_backed_fields if _field_applies_to_target_cann(chip, field, target_cann)
+        field
+        for field in source_backed_fields
+        if _field_applies_to_target_cann(chip, field, target_cann)
     }
-    arch_alias = chip.get("arch_alias", "") if "arch_alias" in applicable_source_backed_fields else ""
+    arch_alias = (
+        chip.get("arch_alias", "")
+        if "arch_alias" in applicable_source_backed_fields
+        else ""
+    )
     has_applicable_source_backed_checks = bool(applicable_source_backed_fields)
 
     findings: list[dict] = []
@@ -270,7 +292,10 @@ def run_compat_rules(
                             ),
                         )
                     )
-        if "supports_mix_aic_aiv" in applicable_source_backed_fields and chip.get("supports_mix_aic_aiv") is False:
+        if (
+            "supports_mix_aic_aiv" in applicable_source_backed_fields
+            and chip.get("supports_mix_aic_aiv") is False
+        ):
             for m in _MIX_RE.finditer(text):
                 c, v = int(m.group(1)), int(m.group(2))
                 if c > 0 and v > 0:
@@ -330,9 +355,7 @@ def run_compat_rules(
     elif not source_backed_fields:
         verification_note = "target chip is recorded, but no official-source-backed capability checks were declared"
     elif not target_cann and not has_applicable_source_backed_checks:
-        verification_note = (
-            "target CANN was not provided, so CANN-scoped official-source-backed compatibility checks were not applied"
-        )
+        verification_note = "target CANN was not provided, so CANN-scoped official-source-backed compatibility checks were not applied"
     elif not has_applicable_source_backed_checks:
         verification_note = (
             f"no official-source-backed checks were applicable to target CANN {target_cann!r}; "
@@ -344,7 +367,9 @@ def run_compat_rules(
             "full compatibility is not asserted by this skill"
         )
     else:
-        verification_note = "official-source-backed checks produced findings for the target context"
+        verification_note = (
+            "official-source-backed checks produced findings for the target context"
+        )
     envelope["metadata"] = {
         "rule_pack": "compat",
         "overall_verdict": overall,
@@ -354,7 +379,9 @@ def run_compat_rules(
         "recorded_cann_versions": list(recorded_cann_versions),
         "source_backed_fields": sorted(source_backed_fields),
         "applicable_source_backed_fields": sorted(applicable_source_backed_fields),
-        "checked_rules": sorted(_rule_id_for_field(field) for field in applicable_source_backed_fields),
+        "checked_rules": sorted(
+            _rule_id_for_field(field) for field in applicable_source_backed_fields
+        ),
         "verification": verification_note,
     }
     return envelope
@@ -362,4 +389,9 @@ def run_compat_rules(
 
 def list_compat_targets() -> dict[str, Any]:
     chips = _load_matrix()
-    return {"chips": [{"id": cid, "cann_versions": c.get("cann_versions", [])} for cid, c in sorted(chips.items())]}
+    return {
+        "chips": [
+            {"id": cid, "cann_versions": c.get("cann_versions", [])}
+            for cid, c in sorted(chips.items())
+        ]
+    }

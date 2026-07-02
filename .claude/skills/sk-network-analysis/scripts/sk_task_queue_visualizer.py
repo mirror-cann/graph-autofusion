@@ -86,7 +86,9 @@ class TaskQueueModel:
             scope_library = json.load(handle)
         with open(source.graph_library_path, "r", encoding="utf-8") as handle:
             graph_library = json.load(handle)
-        result = build_task_queue_result_from_scope_library(scope_library, graph_library)
+        result = build_task_queue_result_from_scope_library(
+            scope_library, graph_library
+        )
         if not result.get("sections"):
             raise ValueError("No task queue sections were found in scope-library.")
         return cls(result)
@@ -106,11 +108,19 @@ class TaskQueueRenderer:
 
 
 def _scope_identity(section: dict, fused: Optional[dict], index: int) -> Dict[str, str]:
-    scope_name = str(section.get("scope_name") or (fused or {}).get("scope_name") or "").strip()
+    scope_name = str(
+        section.get("scope_name") or (fused or {}).get("scope_name") or ""
+    ).strip()
     sk_id = str(section.get("sk_id") or (fused or {}).get("sk_id") or "").strip()
-    start_node = str(section.get("start_node_name") or (fused or {}).get("start_node_name") or "").strip()
-    end_node = str(section.get("end_node_name") or (fused or {}).get("end_node_name") or "").strip()
-    normalized_scope = scope_name if scope_name and scope_name not in {"(none)", "none", "-"} else ""
+    start_node = str(
+        section.get("start_node_name") or (fused or {}).get("start_node_name") or ""
+    ).strip()
+    end_node = str(
+        section.get("end_node_name") or (fused or {}).get("end_node_name") or ""
+    ).strip()
+    normalized_scope = (
+        scope_name if scope_name and scope_name not in {"(none)", "none", "-"} else ""
+    )
     display_name = f"SK节点 #{index}"
 
     subtitle = f"SK {sk_id}" if sk_id else ""
@@ -136,7 +146,9 @@ def _scope_identity(section: dict, fused: Optional[dict], index: int) -> Dict[st
     }
 
 
-def _task_resolved_graph_node_id(task: dict, ordinal_node_map: Dict[int, int]) -> Optional[int]:
+def _task_resolved_graph_node_id(
+    task: dict, ordinal_node_map: Dict[int, int]
+) -> Optional[int]:
     if "graph_identity_valid" in task:
         if not task.get("graph_identity_valid"):
             return None
@@ -165,7 +177,11 @@ def _library_task_to_payload(payload_input: LibraryTaskPayloadInput) -> dict:
     scope_name = payload_input.section.get("scope_name", "")
     sync_type = str(task.get("sync_type", "") or "")
     node_id = _task_resolved_graph_node_id(task, payload_input.ordinal_node_map)
-    node_meta = payload_input.node_lookup.get(int(node_id), {}) if node_id not in (None, "") else {}
+    node_meta = (
+        payload_input.node_lookup.get(int(node_id), {})
+        if node_id not in (None, "")
+        else {}
+    )
     kernel_name = ""
     if dispatch_type in {"FUNC", "PRELOAD"}:
         kernel_name = str(node_meta.get("func_name") or scope_name or "")
@@ -247,14 +263,18 @@ def _find_library_pair(base_dir: str) -> tuple[str, str, str]:
             candidates.append(bundle)
 
     if not candidates:
-        raise FileNotFoundError(f"未在 {base_dir} 中找到 scope-library.json 与 graph-library.json")
+        raise FileNotFoundError(
+            f"未在 {base_dir} 中找到 scope-library.json 与 graph-library.json"
+        )
 
     candidates.sort(key=lambda item: (item[0], item[1]))
     _, _, bundle_root, scope_library, graph_library = candidates[0]
     return scope_library, graph_library, bundle_root
 
 
-def build_task_queue_result_from_scope_library(scope_library: dict, graph_library: Optional[dict] = None) -> dict:
+def build_task_queue_result_from_scope_library(
+    scope_library: dict, graph_library: Optional[dict] = None
+) -> dict:
     device_task_library = scope_library.get("device_task_library", {})
     fused_library = scope_library.get("fused_library", {})
     source_path = device_task_library.get("path", "")
@@ -265,7 +285,9 @@ def build_task_queue_result_from_scope_library(scope_library: dict, graph_librar
         if node.get("node_id") is not None
     }
     fused_by_sk = {
-        item.get("sk_id"): item for item in fused_library.get("functions", []) if item.get("sk_id") is not None
+        item.get("sk_id"): item
+        for item in fused_library.get("functions", [])
+        if item.get("sk_id") is not None
     }
     sections = []
     for index, section in enumerate(device_task_library.get("sections", []), start=1):
@@ -278,7 +300,9 @@ def build_task_queue_result_from_scope_library(scope_library: dict, graph_librar
         }
         aic_tasks = [
             _library_task_to_payload(
-                LibraryTaskPayloadInput(task, "AIC", log_seq, section, node_lookup, ordinal_node_map)
+                LibraryTaskPayloadInput(
+                    task, "AIC", log_seq, section, node_lookup, ordinal_node_map
+                )
             )
             for log_seq, task in enumerate(section.get("queues", {}).get("AIC", []))
         ]
@@ -376,7 +400,9 @@ def generate_html(result: dict, output_path: str):
                 "aic_count": sec.get("aic_count", 0),
                 "aiv_count": sec.get("aiv_count", 0),
                 "model_instances": model_instance_list,
-                "model_instance_count": sec.get("model_instance_count", len(model_instance_list)),
+                "model_instance_count": sec.get(
+                    "model_instance_count", len(model_instance_list)
+                ),
                 "aic_tasks": list(sec.get("aic_tasks", [])),
                 "aiv_tasks": list(sec.get("aiv_tasks", [])),
             }
@@ -457,7 +483,9 @@ def generate_html(result: dict, output_path: str):
                 "连边关系",
                 [
                     make_scope_explainer_line("队列内顺序边", color="#cbd5e1"),
-                    make_scope_explainer_line("同步匹配边（SET → WAIT）", color="#94a3b8", dash_style="dashed"),
+                    make_scope_explainer_line(
+                        "同步匹配边（SET → WAIT）", color="#94a3b8", dash_style="dashed"
+                    ),
                     make_scope_explainer_line("ALL-SYNC 边", color="#9bbdaa"),
                 ],
             ),
@@ -478,7 +506,9 @@ def generate_html(result: dict, output_path: str):
     )
     toolbar_html = render_graph_toolbar(
         label="SK节点切换",
-        nav_html=render_graph_nav("sectionPrevBtn", "sectionNextBtn", "上一个 SK节点", "下一个 SK节点"),
+        nav_html=render_graph_nav(
+            "sectionPrevBtn", "sectionNextBtn", "上一个 SK节点", "下一个 SK节点"
+        ),
         search_html=(
             '<input type="search" class="section-search toolbar-input" '
             'id="sectionSearchInput" placeholder="查找 SK节点名称、SK、起止节点名" />'
@@ -487,7 +517,9 @@ def generate_html(result: dict, output_path: str):
             '<select id="sectionSelect" class="toolbar-input graph-select" '
             'style="min-width: 360px; max-width: 580px;"></select>'
         ),
-        index_chip_html=render_graph_index_chip("sectionIndexChip", f"SK节点 1 / {section_count}"),
+        index_chip_html=render_graph_index_chip(
+            "sectionIndexChip", f"SK节点 1 / {section_count}"
+        ),
         trailing_html=f'<span class="graph-meta-note" id="sectionHint">[{section_count} 个 SK节点]</span>',
         controls_html="""
         <button class="ctrl-btn toolbar-btn" onclick="zoomIn()">&#x2795; 放大</button>
@@ -586,7 +618,11 @@ def generate_html(result: dict, output_path: str):
     detail_panel_html = render_detail_table_panel(
         title="任务详情",
         subtitle=(current_section.get("sk_name") or "当前 SK节点的任务参数和同步语义")
-        + (" · 当前 SK节点的任务参数和同步语义" if current_section.get("sk_name") else ""),
+        + (
+            " · 当前 SK节点的任务参数和同步语义"
+            if current_section.get("sk_name")
+            else ""
+        ),
         subtitle_id="detailSubtitle",
         toggle_id="detailToggleBtn",
         content_id="detailContent",
@@ -2229,7 +2265,9 @@ def main():
         default=None,
         help="输出 HTML 文件路径（默认 task-queue-graph.html）",
     )
-    parser.add_argument("output", nargs="?", default=None, help="兼容旧用法，推荐使用 --output")
+    parser.add_argument(
+        "output", nargs="?", default=None, help="兼容旧用法，推荐使用 --output"
+    )
     args = parser.parse_args()
 
     log_path = args.log_dir_or_file

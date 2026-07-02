@@ -88,7 +88,9 @@ def _rel_path(value: object, *, field: str) -> Path:
     return path
 
 
-def _check_existing_file(root: Path, value: object, *, field: str, required: bool = True) -> None:
+def _check_existing_file(
+    root: Path, value: object, *, field: str, required: bool = True
+) -> None:
     if not value:
         if required:
             raise ContractError(f"{field} is required")
@@ -111,10 +113,14 @@ def _global_entry_names(root: Path, value: object, *, field: str) -> list[str]:
 def _check_status(payload: dict[str, Any], *, contract_name: str) -> None:
     status = str(payload.get("status", ""))
     if status not in STATUS_VALUES:
-        raise ContractError(f"{contract_name} status must be one of {sorted(STATUS_VALUES)}")
+        raise ContractError(
+            f"{contract_name} status must be one of {sorted(STATUS_VALUES)}"
+        )
 
 
-def validate_asset_layout_contract(layout: dict[str, Any], base_dir: Path | None = None) -> None:
+def validate_asset_layout_contract(
+    layout: dict[str, Any], base_dir: Path | None = None
+) -> None:
     _require_schema(layout, "operator-asset-layout")
     _check_status(layout, contract_name="operator-asset-layout")
     root = _asset_root(layout, base_dir)
@@ -143,7 +149,9 @@ def validate_asset_layout_contract(layout: dict[str, Any], base_dir: Path | None
             field=f"operator unit {unit_id} kernel_source",
         )
         if entry_name not in entry_names:
-            raise ContractError(f"operator unit {unit_id} entry_name {entry_name} is not defined in kernel_source")
+            raise ContractError(
+                f"operator unit {unit_id} entry_name {entry_name} is not defined in kernel_source"
+            )
         _check_existing_file(
             root,
             unit.get("host_source"),
@@ -161,7 +169,9 @@ def validate_asset_layout_contract(layout: dict[str, Any], base_dir: Path | None
             if not isinstance(values, list):
                 raise ContractError(f"operator unit {unit_id} {key} must be a list")
             for value in values:
-                _check_existing_file(root, value, field=f"operator unit {unit_id} {key}")
+                _check_existing_file(
+                    root, value, field=f"operator unit {unit_id} {key}"
+                )
 
 
 def _list_target_values(raw: str | list[str] | tuple[str, ...] | None) -> list[str]:
@@ -184,12 +194,16 @@ def _inventory_unresolved_includes(
         return unresolved
     for item in inventory.get("files", []):
         for include in item.get("unresolved_includes", []) or []:
-            unresolved.append({"source": str(item.get("path", "")), "include": str(include)})
+            unresolved.append(
+                {"source": str(item.get("path", "")), "include": str(include)}
+            )
     return unresolved
 
 
 def _is_toolchain_include(include: str) -> bool:
-    return include in TOOLCHAIN_INCLUDE_NAMES or include.startswith(TOOLCHAIN_INCLUDE_PREFIXES)
+    return include in TOOLCHAIN_INCLUDE_NAMES or include.startswith(
+        TOOLCHAIN_INCLUDE_PREFIXES
+    )
 
 
 def build_default_build_context(
@@ -215,8 +229,16 @@ def build_default_build_context(
                 if parent != ".":
                     include_dirs.add(parent)
     all_unresolved_includes = _inventory_unresolved_includes(inventory)
-    unresolved_includes = [item for item in all_unresolved_includes if not _is_toolchain_include(item["include"])]
-    toolchain_includes = [item for item in all_unresolved_includes if _is_toolchain_include(item["include"])]
+    unresolved_includes = [
+        item
+        for item in all_unresolved_includes
+        if not _is_toolchain_include(item["include"])
+    ]
+    toolchain_includes = [
+        item
+        for item in all_unresolved_includes
+        if _is_toolchain_include(item["include"])
+    ]
     questions: list[dict[str, Any]] = []
     if layout.get("status") != "ready":
         questions.append(
@@ -232,7 +254,11 @@ def build_default_build_context(
                 "message": "some quoted includes could not be resolved inside the asset root",
             }
         )
-    status = "ready" if layout.get("status") == "ready" and not unresolved_includes and unit_ids else "needs-human"
+    status = (
+        "ready"
+        if layout.get("status") == "ready" and not unresolved_includes and unit_ids
+        else "needs-human"
+    )
     return {
         "schema_version": SCHEMA_VERSION,
         "status": status,
@@ -292,7 +318,9 @@ def build_default_verify_context(layout: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def validate_build_context_contract(build_context: dict[str, Any], base_dir: Path | None = None) -> None:
+def validate_build_context_contract(
+    build_context: dict[str, Any], base_dir: Path | None = None
+) -> None:
     _require_schema(build_context, "operator-build-context")
     _check_status(build_context, contract_name="operator-build-context")
     _asset_root(build_context, base_dir)
@@ -307,14 +335,20 @@ def validate_build_context_contract(build_context: dict[str, Any], base_dir: Pat
             raise ContractError(f"unsupported build flow kind: {kind}")
         expected_outputs = flow.get("expected_outputs", [])
         if not isinstance(expected_outputs, list) or not expected_outputs:
-            raise ContractError(f"build flow {name} expected_outputs must be a non-empty list")
+            raise ContractError(
+                f"build flow {name} expected_outputs must be a non-empty list"
+            )
         if kind == "external-command":
             command = flow.get("command", [])
             if not isinstance(command, list) or not command:
-                raise ContractError(f"external-command build flow {name} requires command list")
+                raise ContractError(
+                    f"external-command build flow {name} requires command list"
+                )
 
 
-def validate_verify_context_contract(verify_context: dict[str, Any], base_dir: Path | None = None) -> None:
+def validate_verify_context_contract(
+    verify_context: dict[str, Any], base_dir: Path | None = None
+) -> None:
     _require_schema(verify_context, "operator-verify-context")
     _check_status(verify_context, contract_name="operator-verify-context")
     _asset_root(verify_context, base_dir)
@@ -373,7 +407,9 @@ def build_adapter_report(
     }
 
 
-def validate_adapter_report_contract(report: dict[str, Any], base_dir: Path | None = None) -> None:
+def validate_adapter_report_contract(
+    report: dict[str, Any], base_dir: Path | None = None
+) -> None:
     _require_schema(report, "adapter-report")
     _check_status(report, contract_name="adapter-report")
     _asset_root(report, base_dir)
@@ -382,7 +418,9 @@ def validate_adapter_report_contract(report: dict[str, Any], base_dir: Path | No
         raise ContractError("adapter-report readiness must be an object")
 
 
-def contract_finding(rule_id: str, message: str, *, severity: str = "blocker") -> dict[str, Any]:
+def contract_finding(
+    rule_id: str, message: str, *, severity: str = "blocker"
+) -> dict[str, Any]:
     return {
         "finding_id": f"{rule_id}:{safe_slug(message)[:48]}",
         "rule_id": rule_id,
