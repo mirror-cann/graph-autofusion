@@ -21,7 +21,6 @@ import sys
 from pathlib import Path
 from typing import Any
 
-
 SCRIPT_DIR = Path(__file__).resolve().parent
 SKILL_DIR = SCRIPT_DIR.parent
 DEFAULT_SKILLS_ROOT = SKILL_DIR.parent
@@ -86,6 +85,10 @@ _ASSET_SKIP_DIRS = {
     "build_out",
     "kernel_template",
 }
+_ASSET_ROOT_MANIFEST_NAMES = (
+    "operator-assets.json",
+    "sk-operator-assets.json",
+)
 _ASSET_ROOT_NON_BLOCKING_STATUSES = (
     "packaged",
     "verified",
@@ -174,12 +177,25 @@ def _discover_operator_asset_records(
     _ensure_script_import(skills_root, "sk-operator-codegen")
     from operator_asset_layout import build_inventory, build_layout_from_inventory
 
+    manifest = _load_asset_root_manifest(root)
+    include_paths = _manifest_include_paths(root, manifest)
+    excluded = _manifest_excluded_paths(root, manifest)
     candidates: list[Path] = []
-    skipped: list[dict[str, Any]] = []
+    skipped: list[dict[str, Any]] = [
+        {
+            "path": str(path),
+            "status": "skipped",
+            "reason": reason,
+            "human_questions": [],
+        }
+        for path, reason in excluded.items()
+    ]
     seen: set[Path] = set()
 
     def add(path: Path) -> None:
         resolved = path.resolve()
+        if resolved in excluded:
+            return
         if resolved in seen:
             return
         for existing in seen:
@@ -207,16 +223,20 @@ def _discover_operator_asset_records(
                 }
             )
 
-    for path in sorted(root.rglob("*")):
-        if not path.is_dir():
-            continue
-        rel_parts = path.relative_to(root).parts
-        if any(part in _ASSET_SKIP_DIRS for part in rel_parts):
-            continue
-        if path.name in {"op_kernel", "op_host"}:
-            continue
-        if any(item.is_file() for item in path.iterdir()):
+    if include_paths:
+        for path in include_paths:
             add(path)
+    else:
+        for path in sorted(root.rglob("*")):
+            if not path.is_dir():
+                continue
+            rel_parts = path.relative_to(root).parts
+            if any(part in _ASSET_SKIP_DIRS for part in rel_parts):
+                continue
+            if path.name in {"op_kernel", "op_host"}:
+                continue
+            if any(item.is_file() for item in path.iterdir()):
+                add(path)
     if not candidates and not skipped:
         add(root)
     records = [
@@ -228,6 +248,78 @@ def _discover_operator_asset_records(
         for path in candidates
     ]
     return [*records, *skipped]
+
+
+def _load_asset_root_manifest(root: Path) -> dict[str, Any]:
+    for name in _ASSET_ROOT_MANIFEST_NAMES:
+        path = root / name
+        if not path.is_file():
+            continue
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            raise CliUsageError(f"invalid asset-root manifest {path}: {exc}") from exc
+        if not isinstance(payload, dict):
+            raise CliUsageError(f"asset-root manifest must be a JSON object: {path}")
+        return payload
+    return {}
+
+
+def _manifest_include_paths(root: Path, manifest: dict[str, Any]) -> list[Path]:
+    raw = manifest.get("default_include") or manifest.get("include") or []
+    if raw in (None, ""):
+        return []
+    if not isinstance(raw, list):
+        raise CliUsageError("asset-root manifest default_include must be a list")
+    resolved_root = root.resolve()
+    paths: list[Path] = []
+    for item in raw:
+        if not isinstance(item, str) or not item.strip():
+            raise CliUsageError(
+                "asset-root manifest include paths must be non-empty strings"
+            )
+        path = (root / item).resolve()
+        try:
+            path.relative_to(resolved_root)
+        except ValueError as exc:
+            raise CliUsageError(
+                f"asset-root manifest include path escapes root: {item}"
+            ) from exc
+        if not path.exists():
+            raise CliUsageError(f"asset-root manifest include path not found: {item}")
+        paths.append(path)
+    return paths
+
+
+def _manifest_excluded_paths(root: Path, manifest: dict[str, Any]) -> dict[Path, str]:
+    raw = manifest.get("excluded") or manifest.get("exclude") or []
+    if raw in (None, ""):
+        return {}
+    if not isinstance(raw, list):
+        raise CliUsageError("asset-root manifest excluded must be a list")
+    excluded: dict[Path, str] = {}
+    for item in raw:
+        if isinstance(item, str):
+            rel_path = item
+            reason = "excluded-by-asset-root-manifest"
+        elif isinstance(item, dict):
+            rel_path = str(item.get("path") or "")
+            reason = str(item.get("reason") or "excluded-by-asset-root-manifest")
+        else:
+            raise CliUsageError(
+                "asset-root manifest excluded entries must be strings or objects"
+            )
+        if not rel_path.strip():
+            raise CliUsageError("asset-root manifest excluded path must be non-empty")
+        path = (root / rel_path).resolve()
+        try:
+            path.relative_to(root.resolve())
+        except ValueError as exc:
+            raise CliUsageError(
+                f"asset-root manifest excluded path escapes root: {rel_path}"
+            ) from exc
+        excluded[path] = reason
+    return excluded
 
 
 def _safe_slug(value: object) -> str:
@@ -358,6 +450,70 @@ def _write_asset_root_coverage(output_dir: Path, payload: dict[str, Any]) -> Non
     _write_text(output_dir / "asset-root-coverage.md", "\n".join(rows) + "\n")
 
 
+def _write_asset_root_aggregate_coverage(
+    *,
+    output_dir: Path,
+    roots: list[Path],
+    selected_assets: list[Path],
+    skipped_records: list[dict[str, Any]],
+    entry_records: list[dict[str, Any]],
+    state: dict[str, Any],
+) -> dict[str, Any]:
+    entry_by_path = {record["path"]: record for record in entry_records}
+    aggregate_entries = set(state.get("aggregate", {}).get("entries", []))
+    records: list[dict[str, Any]] = []
+    for asset in selected_assets:
+        preflight = entry_by_path.get(str(asset), {})
+        entries = [str(entry) for entry in preflight.get("entries", [])]
+        status = "selected"
+        if entries and aggregate_entries:
+            status = (
+                "aggregated"
+                if any(entry in aggregate_entries for entry in entries)
+                else "skipped"
+            )
+        records.append(
+            {
+                "path": str(asset),
+                "status": status,
+                "entries": entries,
+                "output_dir": "work/stage-work/aggregate",
+                "reason": preflight.get("reason", ""),
+            }
+        )
+    for record in skipped_records:
+        records.append(
+            {
+                "path": record["path"],
+                "status": "skipped",
+                "entries": [],
+                "output_dir": "",
+                "reason": record.get("reason", ""),
+                "human_questions": record.get("human_questions", []),
+            }
+        )
+    failed_count = (
+        0
+        if state.get("status") in _ASSET_ROOT_NON_BLOCKING_STATUSES
+        else len(selected_assets)
+    )
+    payload = {
+        "schema_version": 1,
+        "mode": "asset-root-mode-aggregate",
+        "status": "completed" if failed_count == 0 else "failed",
+        "roots": [str(root) for root in roots],
+        "duplicate_entries": {},
+        "duplicate_asset_slugs": {},
+        "selected_asset_count": len(selected_assets),
+        "skipped_asset_count": len(skipped_records),
+        "passed_asset_count": len(selected_assets) if failed_count == 0 else 0,
+        "failed_asset_count": failed_count,
+        "assets": records,
+    }
+    _write_asset_root_coverage(output_dir, payload)
+    return payload
+
+
 def _run_asset_root_separately(
     *,
     args: argparse.Namespace,
@@ -417,9 +573,11 @@ def _run_asset_root_separately(
                 build_cache_dir=build_cache_dir,
                 jobs=args.jobs,
                 run_slug=run_name,
-                io_contract=Path(args.io_contract).resolve()
-                if getattr(args, "io_contract", None)
-                else None,
+                io_contract=(
+                    Path(args.io_contract).resolve()
+                    if getattr(args, "io_contract", None)
+                    else None
+                ),
                 allow_structural_toolchain=bool(
                     getattr(args, "allow_structural_toolchain", False)
                 ),
@@ -479,9 +637,9 @@ def _run_asset_root_separately(
         "mode": "separate",
         "status": status,
         "release_success": release_success,
-        "reason": "duplicate-entry-names"
-        if duplicate_entries
-        else "asset-root-mode-separate",
+        "reason": (
+            "duplicate-entry-names" if duplicate_entries else "asset-root-mode-separate"
+        ),
         "duplicate_entries": duplicate_entries,
         "duplicate_asset_slugs": duplicate_asset_slugs,
         "roots": [str(root) for root in roots],
@@ -527,9 +685,11 @@ def _index_section(directory: Path, *, label: str | None = None) -> dict[str, An
         "root": label or str(directory),
         "file_count": len(files),
         "sample_files": [
-            str(path.relative_to(directory))
-            if directory in path.parents or path.parent == directory
-            else str(path)
+            (
+                str(path.relative_to(directory))
+                if directory in path.parents or path.parent == directory
+                else str(path)
+            )
             for path in files[:20]
         ],
     }
@@ -907,13 +1067,17 @@ def cmd_run_sk_pipeline(args: argparse.Namespace) -> int:
             build_cache_dir=build_cache_dir,
             jobs=args.jobs,
             run_slug=run_slug,
-            name_resolution=Path(args.name_resolution).resolve()
-            if getattr(args, "name_resolution", None)
-            else None,
+            name_resolution=(
+                Path(args.name_resolution).resolve()
+                if getattr(args, "name_resolution", None)
+                else None
+            ),
             asset_names=asset_names,
-            io_contract=Path(args.io_contract).resolve()
-            if getattr(args, "io_contract", None)
-            else None,
+            io_contract=(
+                Path(args.io_contract).resolve()
+                if getattr(args, "io_contract", None)
+                else None
+            ),
             allow_structural_toolchain=bool(
                 getattr(args, "allow_structural_toolchain", False)
             ),
@@ -921,6 +1085,15 @@ def cmd_run_sk_pipeline(args: argparse.Namespace) -> int:
         )
     except OrchestratorError as exc:
         raise CliUsageError(str(exc)) from exc
+    if only_asset_roots:
+        _write_asset_root_aggregate_coverage(
+            output_dir=output_dir,
+            roots=root_paths,
+            selected_assets=asset_paths,
+            skipped_records=root_skipped_records,
+            entry_records=entry_records,
+            state=state,
+        )
     summary = {
         "status": state["status"],
         "stages": len(state["stages"]),

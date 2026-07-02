@@ -1,17 +1,16 @@
-# dependencies
+# 依赖边界
 
-## Portable Skill Inputs
+## 可迁移输入
 
-`sk-network-analysis` consumes user-provided SK result directories. It does not
-require the target workspace to carry any external source documents or samples.
+`sk-network-analysis` 消费用户提供的 SK 运行结果目录。目标环境不需要携带维护侧的设计文档、测试样例或规划材料。
 
-Preferred user-provided inputs:
+推荐用户输入：
 
-- result root containing `sk_meta/`, logs, `kernel_meta/`, and profiling/event outputs
-- model asset root such as `sk_meta/<pid>/`
-- single `model_*` directory
+- 包含 `sk_meta/`、日志、`kernel_meta/`、profiling/event 输出的结果根目录。
+- `sk_meta/<pid>/` 这类 model asset 根目录。
+- 单个 `model_*` 目录。
 
-Primary evidence files:
+主要证据文件：
 
 - `super_kernel.log`
 - `sk_scope_split.log`
@@ -21,19 +20,17 @@ Primary evidence files:
 - `sk_task_queue.json` as shadow validation during the compatibility period
 - `sk_event_dev_device_*.json` / `sk_prof_device_*.json`
 
-## Portable Knowledge Sources
+## 可迁移知识源
 
 - `references/workflow.md`
 - `references/artifact-contract.md`
 - `references/script-index.md`
 - `references/diagnosis-matrix.md`
 - `references/update-view-registry-guide.md`
-- `references/html-design-workflow.md`
 
-## Current Gaps
+## 已知限制
 
-- Profiling auto-root-cause attribution is still incomplete.
-- `performance-report.html` still needs deeper event-to-structure explanation.
-- Launch-info payload and full graph writeback details depend on upstream logs.
-- Missing `sk_meta` / event / profiling assets force summary-only or
-  insufficient diagnostics.
+- profiling 自动根因归因仍不完整。
+- `performance-report.html` 的 event 到结构解释仍需要继续增强。
+- launch-info payload 和完整 graph writeback 细节依赖上游日志是否保留。
+- 缺少 `sk_meta`、event 或 profiling 资产时，只能生成 summary-only 或 insufficient diagnostics。

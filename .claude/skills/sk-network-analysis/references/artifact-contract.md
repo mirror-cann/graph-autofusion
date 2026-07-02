@@ -1,4 +1,4 @@
-# artifact contract
+# 产物契约
 
 ## 输入合同
 
@@ -67,8 +67,7 @@ reports/
     └── performance-report.html
 ```
 
-Multi-model or multi-model-instance runs may create per-model report bundles
-under `reports/<ri>/<model-instance>/`.
+multi-model 或 multi-model-instance 运行可能在 `reports/<ri>/<model-instance>/` 下创建 per-model report bundle。
 
 ## 诊断完整度口径
 
@@ -105,7 +104,7 @@ python3 <skills_root>/sk-network-analysis/scripts/network_analysis.py trace-node
 
 ## 验证合同
 
-发布包本身不携带源仓测试目录。维护脚本或文档时，至少确认 CLI help 可用：
+发布包本身不携带维护侧测试目录。维护脚本或文档时，至少确认 CLI help 可用：
 
 ```bash
 python3 <skills_root>/sk-network-analysis/scripts/network_analysis.py --help

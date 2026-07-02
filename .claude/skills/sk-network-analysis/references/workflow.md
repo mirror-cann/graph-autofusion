@@ -1,4 +1,4 @@
-# workflow
+# 工作流
 
 ## 统一运行合同
 
@@ -71,23 +71,3 @@
   - scope / task 作为结构补充和深链层
 - 结构级分析细节增强
 - 真实 AI 增强分析
-
-## 可选外部 HTML 设计工作流
-
-- `sk-network-analysis` 继续负责：
-  - 诊断语义
-  - JSON 契约
-  - graph / structured / summary 三层产物定义
-- 外部设计评审只负责页面设计指导：
-  - 页面层级、阅读路径、入口分层、Top-N + fold + aggregate 规则
-  - HTML/CSS/JS 的视觉系统、组件样式、交互组织
-- 推荐顺序：
-  1. 先由 `sk-network-analysis` 明确页面目标和结构化字段来源
-  2. 再收口页面层级和导航
-  3. 再收口视觉和组件实现
-  4. 最后在本仓代码里落地
-- 第一阶段只对这些页面启用该工作流：
-  - `run-portal.html`
-  - `scope-graph.html`
-  - `task-queue-graph.html`
-- 当前不引入 wrapper skill；设计指导来自目标环境可选能力，实际实现仍在本 skill 完成

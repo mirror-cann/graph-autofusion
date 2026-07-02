@@ -1,4 +1,4 @@
-# sk-network-analysis
+# SK 网络分析
 
 `sk-network-analysis` 是面向 `SuperKernel` 结果目录的诊断与可视化工具集。
 
@@ -232,7 +232,7 @@ python <skills_root>/sk-network-analysis/scripts/sk_task_queue_visualizer.py \
   -o task-queue-graph.html
 ```
 
-## AI 说明
+## 可选 AI 说明
 
 统一入口保留了 `--with-ai` 参数：
 
@@ -371,7 +371,7 @@ python -m pip install -r requirements.txt
 
 ### 测试资产放在哪里
 
-发布包不携带源仓测试目录或固定样例。真实回归样例由源仓或目标仓自行提供；
+发布包不携带维护侧测试目录或固定样例。真实回归样例由维护流程或目标仓自行提供；
 如果需要回归某个结果目录，优先把样例复制到可写临时目录后运行。
 
 生成产物不进入发布包：
@@ -405,7 +405,7 @@ cp -a <sample_root>/. "$tmp_dir/"
 python <skills_root>/sk-network-analysis/scripts/network_analysis.py analyze --profile --no-cache "$tmp_dir"
 ```
 
-真实回归样例由源仓或目标仓自行提供，发布包不假设固定样例路径。
+真实回归样例由维护流程或目标仓自行提供，发布包不假设固定样例路径。
 
 预期结果：
 

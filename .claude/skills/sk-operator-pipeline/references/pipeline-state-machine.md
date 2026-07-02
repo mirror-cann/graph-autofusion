@@ -1,10 +1,8 @@
-# Closed-loop SK pipeline state machine
+# SK 闭环流水线状态机
 
-`run-sk-pipeline` writes a user-facing Artifact Layout v2 at `--output-dir`.
-Stage-first state is still recorded, but it lives in the internal debug
-workspace: `work/stage-work/<asset>/pipeline-state.json`.
+`run-sk-pipeline` 会在 `--output-dir` 写入面向用户的产物布局 v2（Artifact Layout v2）。阶段优先状态仍会记录，但位于内部调试工作区：`work/stage-work/<asset>/pipeline-state.json`。
 
-## Stage Graph
+## 阶段图
 
 ```
 assets
@@ -30,28 +28,25 @@ assets
       06-build-and-verify/wheel
 ```
 
-Stage dependencies are strict:
+阶段依赖是强约束：
 
-| Stage | Prerequisite |
+| 阶段 | 前置依赖 |
 |---|---|
-| `01` | input asset |
+| `01` | 输入 asset |
 | `02` | `01` |
 | `03` | `02` |
-| `04` | `02`; optional source-backed compat coverage metadata uses target context when present |
+| `04` | `02`；如果存在 target context，可生成 source-backed compat coverage metadata |
 | `05` | `02/_aggregate` |
 | `06` standalone | `02/_aggregate` |
-| `06` wheel | `05` unless `--reuse-wheel` supplies the delivery wheel |
+| `06` wheel | `05`，除非 `--reuse-wheel` 提供交付 wheel |
 
-If a selected stage misses a prerequisite, the orchestrator exits with a usage
-error such as `05 needs 02`.
+如果选择的阶段缺少前置依赖，orchestrator 会用 usage error 退出，例如 `05 needs 02`。
 
-`--profile fast --stages 01,02,06` is valid because standalone validation
-depends on the aggregate adapted tree, not on pybind generation. Release wheel
-builds still require stage 05.
+`--profile fast --stages 01,02,06` 是合法的，因为 standalone validation 依赖聚合 adapted tree，不依赖 pybind generation。release wheel build 仍然需要 stage 05。
 
-## Layout
+## 布局
 
-User-facing layout:
+面向用户的布局：
 
 ```text
 artifact-map.md
@@ -76,7 +71,7 @@ assets/<asset>/
 work/stage-work/<asset>/...
 ```
 
-Internal stage workspace:
+内部阶段工作区：
 
 ```
 00-pipeline-config.json
@@ -94,13 +89,9 @@ pipeline-state.json
   verify/<op>
 ```
 
-Inputs are self-contained. The orchestrator materializes upstream assets and
-stage outputs into each `inputs/` directory with shallow copies so a copied
-stage directory has no dependency on sibling stages. The public artifact map
-points to relative paths only; external source inputs are copied under
-`artifacts/sources/<asset>/`.
+`inputs/` 需要自包含。orchestrator 会把上游资产和阶段输出 materialize 到每个阶段的 `inputs/` 目录中，通常使用浅拷贝，让被复制出来的阶段目录不依赖 sibling stages。公开 artifact map 只指向相对路径；外部源码输入会复制到 `artifacts/sources/<asset>/`。
 
-## State Shape
+## 状态结构
 
 ```json
 {
@@ -138,7 +129,4 @@ points to relative paths only; external source inputs are copied under
 }
 ```
 
-`06-build-and-verify/standalone/outputs/` contains the standalone executable
-project and per-op verdicts. `06-build-and-verify/wheel/outputs/wheels/`
-contains the final delivery wheel when wheel mode is enabled. Multi-operator
-release runs still produce one wheel with one native extension module.
+`06-build-and-verify/standalone/outputs/` 包含 standalone executable project 和 per-op verdict。启用 wheel mode 时，`06-build-and-verify/wheel/outputs/wheels/` 包含最终交付 wheel。多算子 release 运行仍产出一个 wheel；native extension 按 entry/arch 拆分。

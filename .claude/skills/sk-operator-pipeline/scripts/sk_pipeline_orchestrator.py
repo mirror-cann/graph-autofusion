@@ -80,6 +80,9 @@ _VERIFY_BACKENDS = frozenset({"standalone", "wheel", "both", "none"})
 _WHEEL_MODES = frozenset({"never", "cache", "always"})
 DEFAULT_BUILD_CACHE_DIR = Path("build") / "sk-operator-build-cache"
 _SUPPORT_HEADER_SUFFIXES = frozenset({".h", ".hh", ".hpp", ".hxx", ".inc"})
+_LOCAL_INCLUDE_SOURCE_SUFFIXES = frozenset(
+    {".asc", ".c", ".cc", ".cpp", ".cxx", *_SUPPORT_HEADER_SUFFIXES}
+)
 _SUPPORT_SKIP_DIRS = frozenset(
     {".git", "__pycache__", "build", "cmake-build-debug", "out", "tests"}
 )
@@ -1093,14 +1096,16 @@ class PipelineOrchestrator:
                 )
                 return {
                     "op_name": entry_name,
-                    "status": "passed"
-                    if manifest.get("status")
-                    in {
-                        "passed",
-                        "structural-passed",
-                        "skipped-real-backend-not-enabled",
-                    }
-                    else "failed",
+                    "status": (
+                        "passed"
+                        if manifest.get("status")
+                        in {
+                            "passed",
+                            "structural-passed",
+                            "skipped-real-backend-not-enabled",
+                        }
+                        else "failed"
+                    ),
                     "manifest": manifest,
                     "manifest_path": str(
                         baseline_outputs / "operator-baseline-build.json"
@@ -1267,15 +1272,21 @@ class PipelineOrchestrator:
                 verify_enabled=do_verify
                 and self._verify_uses_standalone(resolved_verify_backend),
                 jobs=resolved_jobs,
-                executable_path=Path(standalone_build.get("executable", ""))
-                if standalone_build.get("executable")
-                else None,
-                executable_paths={
-                    entry: Path(path)
-                    for entry, path in standalone_build.get("executables", {}).items()
-                }
-                if isinstance(standalone_build.get("executables"), dict)
-                else None,
+                executable_path=(
+                    Path(standalone_build.get("executable", ""))
+                    if standalone_build.get("executable")
+                    else None
+                ),
+                executable_paths=(
+                    {
+                        entry: Path(path)
+                        for entry, path in standalone_build.get(
+                            "executables", {}
+                        ).items()
+                    }
+                    if isinstance(standalone_build.get("executables"), dict)
+                    else None
+                ),
                 precheck_status=standalone_precheck_status,
             )
 
@@ -1357,9 +1368,11 @@ class PipelineOrchestrator:
                         ]
                         wheel_summary.update(
                             {
-                                "status": "structural-reused"
-                                if cached_status == "structural-passed"
-                                else "reused",
+                                "status": (
+                                    "structural-reused"
+                                    if cached_status == "structural-passed"
+                                    else "reused"
+                                ),
                                 "cache_hit": True,
                                 "reused_from": cached_wheel,
                                 "wheel_paths": wheel_paths,
@@ -1394,9 +1407,7 @@ class PipelineOrchestrator:
                         wheel_status = (
                             "structural-built"
                             if build_status == "structural-passed"
-                            else "built"
-                            if build_status == "passed"
-                            else "failed"
+                            else "built" if build_status == "passed" else "failed"
                         )
                         wheel_summary.update(
                             {
@@ -1486,9 +1497,9 @@ class PipelineOrchestrator:
             state["differential"] = differential
             state["standalone"] = {
                 "status": standalone_verification["status"],
-                "build_status": "reused"
-                if standalone_cache_hit
-                else standalone_build_status,
+                "build_status": (
+                    "reused" if standalone_cache_hit else standalone_build_status
+                ),
                 "verify_status": standalone_verification["status"],
                 "cache_key": standalone_cache_key,
                 "cache_hit": standalone_cache_hit,
@@ -1505,9 +1516,11 @@ class PipelineOrchestrator:
                 "structural-passed"
                 if wheel_summary.get("status")
                 in {"structural-built", "structural-reused"}
-                else "passed"
-                if wheel_summary.get("status") in {"built", "reused"}
-                else wheel_summary.get("status", "skipped")
+                else (
+                    "passed"
+                    if wheel_summary.get("status") in {"built", "reused"}
+                    else wheel_summary.get("status", "skipped")
+                )
             )
             state["iterations"][0]["build"] = {
                 **wheel_summary,
@@ -1710,9 +1723,46 @@ class PipelineOrchestrator:
         dest.parent.mkdir(parents=True, exist_ok=True)
         if source.is_dir():
             shutil.copytree(source, dest, symlinks=True)
+        elif not dest.suffix:
+            dest.mkdir(parents=True, exist_ok=True)
+            self._copy_file_asset_with_local_includes(source, dest)
         else:
             shutil.copy2(source, dest)
         return "copy"
+
+    def _copy_file_asset_with_local_includes(
+        self, source: Path, dest_dir: Path
+    ) -> None:
+        root = source.parent.resolve()
+        queue = [source.resolve()]
+        copied: set[Path] = set()
+        while queue:
+            current = queue.pop(0)
+            try:
+                current.relative_to(root)
+            except ValueError:
+                continue
+            if current in copied or not current.is_file():
+                continue
+            copied.add(current)
+            rel = current.relative_to(root)
+            target = dest_dir / rel
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(current, target)
+            if current.suffix not in _LOCAL_INCLUDE_SOURCE_SUFFIXES:
+                continue
+            text = current.read_text(encoding="utf-8", errors="replace")
+            for include in _QUOTED_INCLUDE_RE.findall(text):
+                include_path = Path(include)
+                if include_path.is_absolute() or ".." in include_path.parts:
+                    continue
+                candidate = (current.parent / include_path).resolve()
+                try:
+                    candidate.relative_to(root)
+                except ValueError:
+                    continue
+                if candidate.is_file() and candidate not in copied:
+                    queue.append(candidate)
 
     def _copy_contents(self, source_dir: Path, dest_dir: Path) -> None:
         dest_dir.mkdir(parents=True, exist_ok=True)
@@ -2189,9 +2239,9 @@ class PipelineOrchestrator:
                 baseline_manifest=baseline_manifests.get(entry_name),
                 runtime_contract=runtime_contracts.get(entry_name, {}).get("path"),
                 sk_verdict=standalone_per_op.get(entry_name),
-                wheel_verdict=wheel_per_op.get(entry_name)
-                if wheel_verification
-                else None,
+                wheel_verdict=(
+                    wheel_per_op.get(entry_name) if wheel_verification else None
+                ),
             )
             per_op[entry_name] = verdict
             summary_rows.append(
@@ -2340,9 +2390,11 @@ class PipelineOrchestrator:
                 "toolchain_mode": self._toolchain_mode,
                 "target_chip": target_chip,
                 "target_cann": target_cann,
-                "ascend_home_path": str(Path(env.get("ASCEND_HOME_PATH", "")).resolve())
-                if env.get("ASCEND_HOME_PATH")
-                else "",
+                "ascend_home_path": (
+                    str(Path(env.get("ASCEND_HOME_PATH", "")).resolve())
+                    if env.get("ASCEND_HOME_PATH")
+                    else ""
+                ),
                 "cmake_version": lib.command_version("cmake", env=env),
                 "compiler_version": lib.command_version("bisheng", env=env),
                 "tool_files": lib.hash_paths(
@@ -2643,9 +2695,11 @@ class PipelineOrchestrator:
                 "status": status,
                 "path": str(op_fixture_dir),
                 "copied": copied,
-                "reason": "runtime fixture available"
-                if copied
-                else "runtime fixture not found",
+                "reason": (
+                    "runtime fixture available"
+                    if copied
+                    else "runtime fixture not found"
+                ),
             }
         return statuses
 
@@ -2777,9 +2831,9 @@ class PipelineOrchestrator:
                 runner_stdout = {
                     "backend": "standalone",
                     "status": entry_status_value,
-                    "outputs": {op_name: outputs[op_name]}
-                    if op_name in outputs
-                    else {},
+                    "outputs": (
+                        {op_name: outputs[op_name]} if op_name in outputs else {}
+                    ),
                     "calls": {op_name: calls.get(op_name, [])},
                 }
                 self._write_json(op_dir / "runner-stdout.json", runner_stdout)
@@ -2807,12 +2861,16 @@ class PipelineOrchestrator:
                         op_dir / "operator-sk-runtime-output-comparison.json"
                     )
                     verdict = {
-                        "status": "passed"
-                        if comparison.get("status") == "matched"
-                        else "failed",
-                        "reason": "differential_outputs_matched"
-                        if comparison.get("status") == "matched"
-                        else "differential_outputs_mismatched",
+                        "status": (
+                            "passed"
+                            if comparison.get("status") == "matched"
+                            else "failed"
+                        ),
+                        "reason": (
+                            "differential_outputs_matched"
+                            if comparison.get("status") == "matched"
+                            else "differential_outputs_mismatched"
+                        ),
                     }
             self._write_json(op_dir / "runner-stdout.json", runner_stdout)
             self._write_json(op_dir / "comparison.json", comparison)
@@ -2912,11 +2970,15 @@ class PipelineOrchestrator:
                     "baseline": f"run_{op_name}",
                     "sk": f"torch.ops.ascendc_ops.{op_name}",
                 },
-                "sample_gen_command_spec": self._read_json(
-                    op_dir / "operator-sk-target-runtime-command-spec.json"
-                )
-                if (op_dir / "operator-sk-target-runtime-command-spec.json").is_file()
-                else {},
+                "sample_gen_command_spec": (
+                    self._read_json(
+                        op_dir / "operator-sk-target-runtime-command-spec.json"
+                    )
+                    if (
+                        op_dir / "operator-sk-target-runtime-command-spec.json"
+                    ).is_file()
+                    else {}
+                ),
                 "wheels": wheel_paths,
             }
             self._write_json(op_dir / "runner-spec.json", runner_spec)
@@ -2994,12 +3056,16 @@ class PipelineOrchestrator:
                         op_dir / "operator-sk-runtime-output-comparison.json"
                     )
                     verdict = {
-                        "status": "passed"
-                        if comparison.get("status") == "matched"
-                        else "failed",
-                        "reason": "differential_outputs_matched"
-                        if comparison.get("status") == "matched"
-                        else "differential_outputs_mismatched",
+                        "status": (
+                            "passed"
+                            if comparison.get("status") == "matched"
+                            else "failed"
+                        ),
+                        "reason": (
+                            "differential_outputs_matched"
+                            if comparison.get("status") == "matched"
+                            else "differential_outputs_mismatched"
+                        ),
                     }
             self._write_json(op_dir / "runner-stdout.json", runner_stdout)
             self._write_json(op_dir / "comparison.json", comparison)

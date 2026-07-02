@@ -1,14 +1,28 @@
-# opencode Skills — ignore all by default, whitelist managed skills only
-# 新增本地 Skill 需在此添加白名单条目: !<skill-name>/ 和 !<skill-name>/*
+# opencode Skills - ignore all by default, whitelist managed skills only
+# 新增本地 Skill 需添加递归白名单: !<skill-name>/ 和 !<skill-name>/**
 *
 !cann-toolkit-installer/
-!cann-toolkit-installer/*
+!cann-toolkit-installer/**
 !default-skills/
-!default-skills/*
+!default-skills/**
 !af-build-runner/
-!af-build-runner/*
+!af-build-runner/**
 !af-test-developer/
-!af-test-developer/*
+!af-test-developer/**
 !af-code-reviewer/
-!af-code-reviewer/*
+!af-code-reviewer/**
+!sk-network-analysis/
+!sk-network-analysis/**
+!sk-operator-asset-adapter/
+!sk-operator-asset-adapter/**
+!sk-operator-build-package/
+!sk-operator-build-package/**
+!sk-operator-codegen/
+!sk-operator-codegen/**
+!sk-operator-pipeline/
+!sk-operator-pipeline/**
+!sk-operator-sample-gen/
+!sk-operator-sample-gen/**
+!sk-operator-validate/
+!sk-operator-validate/**
 !.gitignore

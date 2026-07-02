@@ -1,27 +1,23 @@
 ---
 name: sk-operator-pipeline
-description: Built-in SK operator delivery pipeline entrypoint -- runs the customizable asset adapter, validates stable contracts, orchestrates the core SK operator skills (codegen / validate / sample-gen / build-package), and exposes auxiliary routing/index commands.
+description: SK 算子交付流水线总入口，负责运行可定制资产适配器、校验稳定契约、调度核心 SK 算子 skill（codegen / validate / sample-gen / build-package），并提供路由和索引辅助命令。
 ---
 
-# SK Operator Pipeline
+# SK 算子流水线
 
-The front door for SK operator delivery work. Three responsibilities:
+这是 SK 算子交付工作的主入口，承担三类职责：
 
-1. **Closed-loop orchestration**: drive asset adapter plus the core SK operator skills as one
-   iterative pipeline that converges via auto-remediation or escalates to a
-   human.
-2. **Stage artifact governance**: write stable per-stage inputs, outputs,
-   deliverables, and artifact maps for inspection and handoff.
-3. **Auxiliary routing/indexing**: classify a free-form SK question and point
-   at the right capability skill when a user does not need the whole pipeline.
+1. 闭环编排：把资产适配器和核心 SK 算子 skill 组织成一个可迭代流水线，通过自动修复收敛，不能收敛时明确升级给人工。
+2. 阶段产物治理：为每个阶段落盘稳定的 inputs、outputs、deliverables 和 artifact map，方便检查和交付。
+3. 路由与索引：当用户不需要完整流水线时，把自由文本问题路由到合适的能力 skill。
 
-Top-level entry:
+入口：
 
 ```
 python3 <skills_root>/sk-operator-pipeline/scripts/operator_pipeline.py <subcommand> ...
 ```
 
-## Closed-loop pipeline (the main user-facing command)
+## 闭环流水线
 
 ```
 run-sk-pipeline [--asset OP ...] [--asset-root OPS_DIR]
@@ -38,17 +34,11 @@ run-sk-pipeline [--asset OP ...] [--asset-root OPS_DIR]
                 [--max-iterations 5] [--no-package] [--no-verify]
 ```
 
-`--asset` is repeatable and may be mixed with `--asset-root`; asset-root scans
-direct child directories only and filters to operator-like source assets.
-`--io-contract` declares tensor IO semantics (`inputs`, `outputs`,
-`workspaces`, and `pybind_return_tensor`) for codegen. The core scripts do not
-infer output buffers from parameter names; ambiguous or incompletely classified
-multi-tensor entries escalate to `needs-human` unless the user or asset adapter
-supplies the contract. In asset-root runs the contract may contain a superset of
-entries; each Stage 02 subtask consumes only the matching entry, preferring the
-public namespace name before falling back to the source entry name.
+`--asset` 可重复，并且可以和 `--asset-root` 混用。`asset-root` 只扫描直接子目录，并筛选像算子源码资产的目录。
 
-The output layout is stage-first:
+`--io-contract` 为 codegen 声明 tensor IO 语义，包括 `inputs`、`outputs`、`workspaces` 和 `pybind_return_tensor`。核心脚本不根据参数名推断输出 buffer；多 tensor 参数语义不明确或契约不完整时，进入 `needs-human`，除非用户或 asset adapter 提供明确契约。asset-root 场景下，契约可以包含所有 entry 的全集；每个 Stage 02 子任务只消费匹配自己的 entry，优先匹配公开 namespace 名，再回退到源码 entry 名。
+
+输出布局以阶段为主：
 
 ```
 artifact-map.md / artifact-map.json
@@ -67,68 +57,35 @@ work/stage-work/<asset>/
   06-build-and-verify/{inputs,standalone,wheel,verify}
 ```
 
-Start from `artifact-map.md` or `artifact-map.json`. `deliverables/` is the
-handoff surface; `work/` is the internal debug workspace.
+先看 `artifact-map.md` 或 `artifact-map.json`。`deliverables/` 是交付面，`work/` 是内部调试工作区。
 
-Stage selection is dependency-checked: for example `--stages 01,05` is rejected
-because 05 needs 02. Stage 02 keeps both per-op adapted trees and one aggregate
-aclgraph-canonical tree; stage 05/06 consume the aggregate tree to produce one
-wheel containing all operator entries. Stage 06 runs differential verification
-by default and records `skipped-no-npu` verdicts when NPU execution is not
-available; `--no-verify` skips only that differential step, not the wheel build.
+阶段选择会检查依赖，例如 `--stages 01,05` 会被拒绝，因为 05 依赖 02。Stage 02 同时保留 per-op adapted tree 和一个聚合 aclgraph-canonical tree；Stage 05/06 消费聚合 tree，生成包含所有算子 entry 的单个 wheel。Stage 06 默认做 differential verification；没有 NPU 时显式记录 `skipped-no-npu`。`--no-verify` 只跳过 differential step，不跳过 wheel build。
 
-Aggregate asset-root runs reject duplicate kernel entry names by default. When a
-single wheel is required, pass `--duplicate-entry-policy namespace`; only
-colliding public wrapper names are changed to
-`<asset_namespace>__<source_entry_name>`, while the generated SK launch still
-binds to the original source entry. Inspect `name-resolution-report.md/json` at
-the output root or `_name_resolution.json` inside the wheel package to audit the
-mapping.
+asset-root 聚合默认拒绝重复 kernel entry 名，避免生成无法区分的 Python wrapper。如果确认需要进入同一个 wheel，显式传 `--duplicate-entry-policy namespace`；只有冲突的公开 wrapper 名会改成 `<asset_namespace>__<source_entry_name>`，生成的 SK launch 仍绑定原始 source entry。根目录的 `name-resolution-report.md/json` 和 wheel 内的 `_name_resolution.json` 用于审计映射。
 
-`--profile fast` runs the development validation path: stages `01,02,03,06`
-by default, standalone differential verification under
-`work/stage-work/<asset>/06-build-and-verify/standalone/`, and no wheel build. `--profile release` is
-the delivery default: it keeps stage 05 and builds or reuses one aggregate
-wheel under `deliverables/wheels/<asset>/`.
+`--profile fast` 是开发验证路径，默认跑 `01,02,03,06`，使用 standalone differential verification，不构建 wheel。`--profile release` 是交付默认路径，会保留 Stage 05，并在 `deliverables/wheels/<asset>/` 构建或复用一个聚合 wheel。
 
-Stage 04 (`04-validate-compat`) is an explicit advanced stage, not part of the
-default fast or release path. It reports only compatibility facts backed by the
-bundled official-source declarations and writes coverage metadata; it is not a
-CANN version support whitelist.
+Stage 04 (`04-validate-compat`) 是显式高级阶段，不属于默认 fast/release。它只报告内置官方来源声明能支撑的兼容性事实和覆盖率元数据，不是 CANN 版本支持白名单。
 
-Stage 06 has separate validation and delivery artifacts. The standalone backend
-compares original global chevron output with the SK launch path and records
-`skipped-no-npu` or `skipped-insufficient-runtime-spec` explicitly when it
-cannot execute. The wheel backend remains optional delivery packaging:
-`--wheel-mode never|cache|always`, `--reuse-wheel`, and `--build-cache-dir`
-control build reuse. `--jobs` parallelizes per-op stages while keeping state
-ordered by operator name.
+Stage 06 会区分验证产物和交付产物。standalone 后端比较原始 global chevron 输出和 SK launch 路径；无法执行时记录 `skipped-no-npu` 或 `skipped-insufficient-runtime-spec`。wheel 后端是可选交付打包，受 `--wheel-mode never|cache|always`、`--reuse-wheel`、`--build-cache-dir` 控制。`--jobs` 并行 per-op 阶段，同时保持状态按算子名稳定排序。
 
-State is accumulated in `work/stage-work/<asset>/pipeline-state.json`, so a
-human can inspect per-stage status, per-op status, aggregate entries, cache
-keys, wheel paths, and verification verdicts.
+状态记录在 `work/stage-work/<asset>/pipeline-state.json`，用于检查每阶段状态、每 op 状态、聚合 entry、cache key、wheel 路径和验证结论。
 
-Status and CLI success policy:
+## 状态和返回码
 
-- `verified` -- build and correctness verification passed; `run-sk-pipeline` returns 0.
-- `packaged` -- wheel produced without a failing verification verdict; `run-sk-pipeline` returns 0.
-- `skipped-no-npu` / `skipped-insufficient-runtime-spec` / `skipped-by-user` /
-  `skipped-target-arch` -- the command completed but did not prove release
-  correctness; `run-sk-pipeline` returns 1.
-- `clean` / `adapted` / `pybind-generated` / `analyzed` -- selected partial
-  stages completed; `run-sk-pipeline` returns 1 so CI cannot confuse partial
-  progress with release validation.
-- `structural-only` / `mock-only` -- development-only structural or mock checks
-  completed; `run-sk-pipeline` returns 1.
-- `needs-human` -- a human-only blocker was found; `run-sk-pipeline` returns 1.
+- `verified`：构建和正确性验证通过，返回 0。
+- `packaged`：wheel 已产出且没有失败验证结论，返回 0。
+- `skipped-no-npu` / `skipped-insufficient-runtime-spec` / `skipped-by-user` / `skipped-target-arch`：命令完成，但未证明发布正确性，返回 1。
+- `clean` / `adapted` / `pybind-generated` / `analyzed`：只完成部分阶段，返回 1，避免 CI 把中间进展当成发布验证成功。
+- `structural-only` / `mock-only`：只完成开发用 structural/mock 检查，返回 1。
+- `needs-human`：存在人工处理 blocker，返回 1。
 
-## Auxiliary routing & index
+## 路由和索引
 
-- `route <query>` — heuristic routing to one of the SK skills based on
-  keywords (`codegen` / `spec` / `compat` / `runtime` / `pybind` / etc.).
-- `index` — build a local capability index; by default it scans `skills_root`, and `--index-root` opt-in scans user-selected workspace paths.
+- `route <query>`：根据关键词把问题路由到合适的 SK skill。
+- `index`：构建本地能力索引；默认只扫描 `skills_root`，只有显式 `--index-root` 才扫描用户工作区路径。
 
-Route table:
+路由表：
 
 | Topic | Skill |
 |---|---|
@@ -139,8 +96,8 @@ Route table:
 | 编译 / build / 打包 / wheel / pybind | `sk-operator-build-package` |
 | 融合分析 / 性能 | `sk-network-analysis` |
 
-## References
+## 参考
 
-- `references/routing.md` — full routing rules.
-- `references/dependencies.md` — inter-skill dependency map.
-- `references/workflow.md` — operator-pipeline workflow details.
+- `references/routing.md`：完整路由规则。
+- `references/dependencies.md`：skill 间依赖边界。
+- `references/workflow.md`：operator pipeline 工作流说明。

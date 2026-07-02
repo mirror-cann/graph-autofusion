@@ -1,22 +1,14 @@
-# SK adaptation cookbook
+# SK 适配规则手册
 
-Quick reference for the rules `adapt-sk-from-global` encodes. This document is
-the skill-local behavior contract for generated SK binding shape.
+这是 `adapt-sk-from-global` 编码规则的快速参考，也是本 skill 对生成 SK binding 形态的本地行为契约。
 
-## What gets generated
+## 生成内容
 
-For every supported source form the adapter either emits current SK binding or
-returns an explicit human escalation. For clean non-SK `__global__` kernels it
-emits, in order, after the original function:
+对每一种支持的源码形态，adapter 要么生成当前 SK binding，要么返回明确的人工处理项。对于干净的非 SK `__global__` kernel，会在原始函数之后按顺序生成：
 
-1. An **Args struct** named `<NameCamel>Args` with one field per kernel
-   parameter, preserving order. Fields whose C type is < 4 bytes
-   (`int8_t`/`uint8_t`/`int16_t`/`uint16_t`/`bool`) get `alignas(4)`.
-   If the original kernel is templated, the Args struct is templated only over
-   template parameters referenced by field types; body-only or kernel-type-only
-   template parameters stay on the SK function but do not affect the runtime
-   parameter package layout.
-2. A **templated `__sk__` function**:
+1. **Args struct**：命名为 `<NameCamel>Args`，每个 kernel 参数对应一个字段，保持原始顺序。C 类型小于 4 字节的字段，例如 `int8_t`、`uint8_t`、`int16_t`、`uint16_t`、`bool`，使用 `alignas(4)`。如果原始 kernel 是模板函数，只有字段类型依赖模板参数时 Args struct 才模板化；只影响 body 或 kernel type 的模板参数保留在 SK 函数上，但不改变 runtime 参数包布局。
+2. **模板化 `__sk__` 函数**：
+
    ```cpp
    template<uint32_t splitidx>
    __sk__ <kernel_type> void <name>_sk(const <NameCamel>Args *args
@@ -25,19 +17,21 @@ emits, in order, after the original function:
        // ... original body verbatim ...
    }
    ```
-   The original body is reused unchanged except that
-   `AscendC::GetBlockNum()` is rewritten to `sysArgs->skNumBlocks` (and the
-   `sysArgs` parameter is injected) when the original body references it.
-3. An **`SK_BIND(<orig>, <mask>, <name>_sk<0>, <name>_sk<1>, <name>_sk<2>, <name>_sk<3>)`**
-   line. `mask` defaults to 4 (DCCI); allowed values are 0..7, where 0 means
-   no capability bits and 1/2/4 are bit flags. `--num-splits` controls how many
-   `<name>_sk<N>` symbols are bound (1..4).
 
-The original `__global__` function is **preserved unchanged**.
+   原始 body 默认不改动。只有 body 引用了 `AscendC::GetBlockNum()` 时，才注入 `sysArgs` 参数，并把调用改写为 `sysArgs->skNumBlocks`。
+3. **`SK_BIND` 语句**：
 
-## Multi-operator aggregate rendering
+   ```cpp
+   SK_BIND(<orig>, <mask>, <name>_sk<0>, <name>_sk<1>, <name>_sk<2>, <name>_sk<3>)
+   ```
 
-Single-op adaptation still writes one aclgraph-canonical tree per asset:
+   `mask` 默认是 4（DCCI）。允许值是 0..7，其中 0 表示没有能力 bit，1/2/4 是 bit flag。`--num-splits` 控制绑定多少个 `<name>_sk<N>` 符号，范围 1..4。
+
+原始 `__global__` 函数必须保持不变。
+
+## 多算子聚合渲染
+
+单算子适配仍然为每个 asset 写一个 aclgraph-canonical tree：
 
 ```text
 operator-sk-adapted/
@@ -48,74 +42,48 @@ operator-sk-adapted/
   setup.py
 ```
 
-`aggregate-sk-adapted` consumes multiple such outputs and renders one aggregate
-tree with all `csrc/<op>.asc` files, one `pybind11.asc`, one
-`_torch_library.py`, and one `setup.py`. Entry names must be unique across the
-aggregate. The generated pybind layer exposes the customer-facing bind target
-entry per operator:
+`aggregate-sk-adapted` 消费多个这样的输出，并渲染一个聚合 tree，包含所有 `csrc/<op>.asc`、一个 `pybind11.asc`、一个 `_torch_library.py` 和一个 `setup.py`。聚合内 entry 名必须唯一。生成的 pybind 层为每个算子暴露面向用户的 bind target entry：
 
-| Function | Purpose |
+| 函数 | 作用 |
 |---|---|
-| `run_<op>` | SK-facing bind target registered through `torch.library`; differential validation reuses this same entry for baseline and SK contexts |
+| `run_<op>` | 通过 `torch.library` 注册的 SK-facing bind target；differential validation 在 baseline 和 SK context 下复用同一个入口 |
 
-The aggregate `setup.py` keeps the Python import package as `op_extension` while
-using the requested distribution name and version for wheel naming.
+聚合 `setup.py` 保持 Python import 包名为 `op_extension`，同时用用户指定的 distribution name 和 version 生成 wheel 文件名。
 
-## Five input forms
+## 五类输入形态
 
-| Input form | Adapter behavior |
+| 输入形态 | 适配行为 |
 |---|---|
-| `none` | Generate Args struct, templated `__sk__`, and `SK_BIND`. |
-| remediable `none` | Run codegen-owned pre-adapt auto-remediation on a temp copy, then generate current SK binding. |
-| `legacy-spk` | Remove legacy `__spk__` variants and `.ascend.meta` / `FunLevel*` metadata, then generate current SK binding from the common legacy body. |
-| `current-sk-bind` | Copy the source byte-for-byte and mark it `already_current`. |
-| `partial` / `unknown` | Do not guess; emit `codegen.unknown-sk-form` for human action. |
+| `none` | 生成 Args struct、模板化 `__sk__` 和 `SK_BIND`。 |
+| 可修复 `none` | 在临时副本上执行 codegen 拥有的预适配自动修复，再生成当前 SK binding。 |
+| `legacy-spk` | 移除历史 `__spk__` 变体和 `.ascend.meta` / `FunLevel*` 元数据，再从公共 legacy body 生成当前 SK binding。 |
+| `current-sk-bind` | 按字节复制源码，并标记为 `already_current`。 |
+| `partial` / `unknown` | 不猜测，输出 `codegen.unknown-sk-form` 等人工处理项。 |
 
-## Kernel-type mapping
+## Kernel 类型映射
 
-| Original qualifier | SK qualifier |
+| 原始 qualifier | SK qualifier |
 |---|---|
 | `__vector__` | `__vector__` |
 | `__cube__` | `__cube__` |
 | `__mix__(c, v)` general | `__mix__(c, v)` |
-| `__mix__(1, 0)` | `__cube__` (special case) |
-| `__mix__(0, 1)` | `__vector__` (special case) |
+| `__mix__(1, 0)` | `__cube__`（特殊情况） |
+| `__mix__(0, 1)` | `__vector__`（特殊情况） |
 | bare `__aicore__` | `__aicore__` |
 
-## When to inject `sysArgs`
+## 何时注入 `sysArgs`
 
-`--with-sys-args=auto` (default): inject iff the original body contains
-`AscendC::GetBlockNum()`. `--with-sys-args=always` / `=never` force the
-choice.
+`--with-sys-args=auto` 是默认值：只有原始 body 包含 `AscendC::GetBlockNum()` 时才注入。`--with-sys-args=always` / `=never` 可以强制选择。
 
-When injected, the API names are the **current** ones:
-`sysArgs->skNumBlocks` / `sysArgs->SkGetNumBlocks()`. Legacy
-`skBlockNum` / `SkGetBlockNum` fail to compile under current CANN headers --
-`sk-operator-validate --rule-pack spec` flags them as `sk.sys-args-api-current` (auto-
-remediable rename).
+注入后使用当前 API 名：`sysArgs->skNumBlocks` / `sysArgs->SkGetNumBlocks()`。历史 `skBlockNum` / `SkGetBlockNum` 在当前 CANN 头文件下会编译失败；`sk-operator-validate --rule-pack spec` 会将其标记为 `sk.sys-args-api-current`，并支持自动重命名修复。
 
-## Legacy migration boundaries
+## 历史迁移边界
 
-- `legacy-spk` migration requires 1..4 variants per legacy stem. The generated
-  SK body is derived from the matched `__global__` body, not from legacy
-  `__spk__` wrapper/helper bodies.
-- `FunLevelMixCoreType`, `FunLevelKType`, `.ascend.meta.*`, and legacy-only
-  `__DAV_CUBE__` / `__DAV_VEC__` shells are removed from migrated output.
-- Complex KernelLaunch wrappers are preserved as-is and recorded as warnings.
-- Helper-forward legacy bodies of the form `<helper>(param);` are not used as
-  implementation by default, because the adapter cannot prove that helper still
-  matches the customer-facing global entry. They may only be used as evidence
-  to select a concrete template specialization when multiple launch targets
-  exist. When such a legacy-only helper is identified, it is removed from the
-  generated output together with the legacy `__spk__` wrappers.
-- Templated `__global__` entries with multiple launch specializations are bound
-  per legacy stem. The migration deduces the concrete `SK_BIND(<op><T>, ...)`
-  target from launch sites and, when needed, tiling types found in helper bodies.
-  The generated SK function preserves the original global template parameters
-  and appends `uint32_t splitidx`; `SK_BIND` explicitly instantiates the full
-  template argument list for each split. The Args struct is templated only when
-  a kernel parameter type depends on those template parameters.
-- Zero variants, too many variants, or undeducible template specialization
-  produce human escalations instead of partial output.
+- `legacy-spk` 迁移要求每个 legacy stem 有 1..4 个变体。生成的 SK body 来自匹配到的 `__global__` body，不来自历史 `__spk__` wrapper/helper body。
+- `FunLevelMixCoreType`、`FunLevelKType`、`.ascend.meta.*` 以及仅 legacy 使用的 `__DAV_CUBE__` / `__DAV_VEC__` shell 会从迁移输出中移除。
+- 复杂 KernelLaunch wrapper 保持原样，并记录 warning。
+- `<helper>(param);` 形式的 helper-forward legacy body 默认不作为实现，因为 adapter 不能证明 helper 仍然匹配面向用户的 global entry。它们只能在存在多个 launch target 时作为选择具体模板特化的证据。识别出 legacy-only helper 后，它会和历史 `__spk__` wrapper 一起从生成输出中移除。
+- 带多个 launch specialization 的模板化 `__global__` entry 按 legacy stem 绑定。迁移逻辑会从 launch site，以及必要时 helper body 中的 tiling type，推导具体 `SK_BIND(<op><T>, ...)` target。生成的 SK 函数保留原始 global 模板参数，并追加 `uint32_t splitidx`；`SK_BIND` 对每个 split 显式实例化完整模板参数列表。Args struct 只有在 kernel 参数类型依赖这些模板参数时才模板化。
+- 没有变体、变体过多、或模板特化不可推导时，输出人工处理项，不生成部分结果。
 
-See the published guide for the full specification and corner cases.
+完整规格和边界情况以脚本实现、测试和本手册共同约束。

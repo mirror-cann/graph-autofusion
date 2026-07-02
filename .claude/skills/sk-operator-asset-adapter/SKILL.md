@@ -1,59 +1,48 @@
 ---
 name: sk-operator-asset-adapter
-description: Customizable SK operator asset intake skill that turns user-owned operator repositories or source trees into stable core contracts consumed by sk-operator-codegen, sk-operator-validate, sk-operator-build-package, and sk-operator-sample-gen.
+description: 将用户提供的算子仓、源码树或构建资产转换为 SK 核心流水线需要的稳定 JSON contract；适合处理用户侧目录结构、命名规则、构建命令和验证环境差异。
 ---
 
-# SK Operator Asset Adapter
+# SK 算子资产适配
 
-Use this skill when a user-provided operator asset must be translated into the
-stable contracts required by the SK core skills. This layer is intentionally
-customizable: users may copy or modify adapter recipes for their own repository
-layout, naming conventions, build commands, and verification setup.
+当用户提供的算子资产不能直接被 SK 核心能力消费时，使用这个 skill。它的定位是“可定制适配层”：用户可以复制或修改这里的适配范式，去匹配自己的仓库布局、命名约定、构建命令和验证方式。
 
-Top-level entry:
+入口：
 
-```
+```bash
 python3 <skills_root>/sk-operator-asset-adapter/scripts/operator_asset_adapter.py <subcommand> ...
 ```
 
-## Commands
+## 命令
 
 - `adapt-asset <asset> --output-dir DIR [--target-chip CHIP] [--target-arch ARCH]`
-  scans the asset, applies the default recipes, and writes:
+  扫描资产，应用默认适配规则，并输出：
   - `operator-asset-inventory.json`
   - `operator-asset-layout.json`
   - `operator-build-context.json`
   - `operator-verify-context.json`
   - `adapter-report.json`
 - `validate-contracts --layout LAYOUT --build-context BUILD --verify-context VERIFY`
-  validates the contracts without running the SK core pipeline.
+  只校验适配产物，不执行 SK 核心流水线。
 
-## Boundary
+## 边界
 
-This skill owns user-asset interpretation: directory traversal, host/kernel
-matching, default include discovery, and build/verify context scaffolding.
-It does not own SK_BIND generation, package build internals, or correctness
-verdict semantics.
+这个 skill 负责解释用户资产：目录遍历、host/kernel 匹配、默认 include 发现、构建/验证上下文整理。
 
-Core skills must consume the emitted contracts and fail closed when the adapter
-cannot produce enough information.
+它不负责：
 
-## Contract Extraction Rules
+- 生成 `SK_BIND`
+- 内部编译打包实现
+- 正确性验证 verdict 的最终语义
 
-The adapter may use repository conventions, user prompts, or project-specific
-recipes to produce contracts, but it must keep uncertainty visible:
+核心 skill 只消费这里输出的稳定 JSON contract。如果适配层无法产出足够信息，应显式失败或要求用户补充，而不是猜测。
 
-- Emit explicit parameter roles for runtime verification: `input`, `output`,
-  `workspace`, `tiling`, `scalar`, or `descriptor`.
-- Emit explicit comparable outputs and comparator policy. If the asset does not
-  declare them, mark the contract as requiring user confirmation instead of
-  guessing from names like `out`, `y`, or `workspace`.
-- Emit explicit prepare requirements for graph capture, such as descriptor
-  materialisation, persistent workspace state, or static cache initialisation.
-- For network-level verification, emit a network sample contract with package,
-  runner adapter, nodes, edges, inputs, outputs, prepare steps, and expected
-  fusion scope when these are known. If topology or output semantics are
-  unknown, stop at a partial contract and ask for user/adapter input.
-- Keep user-specific repository rules in this adapter layer. Core skills should
-  only consume stable JSON contracts and should not learn per-repository layout
-  or naming conventions.
+## 契约规则
+
+适配层可以使用仓库约定、用户输入或项目定制规则生成 contract，但必须把不确定性暴露出来：
+
+- 运行时参数角色必须显式声明为 `input`、`output`、`workspace`、`tiling`、`scalar` 或 `descriptor`。
+- 可比较输出和 comparator 策略必须显式声明。若资产没有声明，不要根据 `out`、`y`、`workspace` 这类名字猜测，应标记为需要用户确认。
+- graph capture 前需要准备的状态必须显式声明，例如 TensorList descriptor、持久 workspace 状态、静态 cache 初始化。
+- 整网验证 contract 需要包含 package、runner adapter、nodes、edges、inputs、outputs、prepare 步骤和期望融合 scope。拓扑或输出语义未知时，应输出 partial contract 并要求用户或 adapter 补充。
+- 用户仓特有规则只能留在 adapter 层。核心 skill 只依赖稳定 JSON contract，不学习某个仓的目录或命名习惯。

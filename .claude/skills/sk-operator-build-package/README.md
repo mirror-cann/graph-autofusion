@@ -1,4 +1,4 @@
-# sk-operator-build-package
+# SK 算子编译与打包
 
 `sk-operator-build-package` 负责把已适配或已聚合的 SK bind 产物继续转换为可构建、可发布、可验证的工程产物。端到端场景优先使用 `sk-operator-pipeline run-sk-pipeline`，本工具适合定位 pybind、wheel 或 standalone 构建问题。
 

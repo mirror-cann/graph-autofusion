@@ -1,4 +1,4 @@
-# diagnosis matrix
+# 诊断矩阵
 
 | 问题类型 | 先看哪些资产 | 入口脚本 | 当前能回答什么 | 当前缺口 |
 | --- | --- | --- | --- | --- |
@@ -9,16 +9,3 @@
 | task queue 异常 | `sk_device_args.log` | `sk_task_queue_visualizer.py` | AIC / AIV task 结构、task index、entry、args；优先通过 `task-queue-graph.html` 做直观定位 | 若缺失需保留 device args dump；没有它时只能先看 scope/fused 结构 |
 | 卡死 / coredump | `super_kernel.log`、`sk_device_args.log`、plog、device log | `diagnose_run.py` | phase、signal confidence、hard failure/runtime warning/noise 分类、runtime 辅助线索 | 如果当前信号不足，结果中会提示继续保留 runtime/device/exception 侧证据 |
 | 性能问题 | `sk_event_dev_device_*.json`、`sk_device_args.log`、`sk_fused_nodes.log` | `diagnose_run.py` / `sk_node_tracing.py` | 当前已接入 time event 资产，能做结构 + 队列 + 时间事件矩阵、诊断完整度，以及当前诊断焦点 | 当前主组织仍偏向 update/function；后续需改成“事件优先”，让 `sk_event_dev_device_*.json` 成为性能主资产，若时间覆盖不足则继续保留 event/profiling 相关资产 |
-
-## HTML 设计改造约束
-
-- 当任务是“优化页面层级、导航、风格、信息降噪”时：
-  - 可以使用目标环境提供的外部设计评审能力作为可选建议
-  - 先收口页面结构和阅读顺序，再收口视觉系统和组件组织
-- 当任务是“修诊断逻辑、修证据提取、修 JSON 契约”时：
-  - 不交给第三方设计 skill
-  - 继续直接在 `sk-network-analysis` 内实现
-- 当前允许第三方设计指导优先覆盖的页面：
-  - `run-portal.html`
-  - `scope-graph.html`
-  - `task-queue-graph.html`

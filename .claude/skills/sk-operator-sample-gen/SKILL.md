@@ -1,190 +1,91 @@
 ---
 name: sk-operator-sample-gen
-description: Built-in SK domain skill that auto-constructs input values, declares bind-target-on-wheel or reference-impl correctness oracles, and renders a dual-path sample runner -- producing the closed JSON spec files the existing runtime / oracle / verdict chain validates and consumes.
+description: SK 内置样例生成与验证 contract skill，用于构造运行输入、oracle、runner、单算子 differential contract 和整网 wheel 验证 contract。
 ---
 
-# SK Operator Sample Generation
+# SK 算子样例生成
 
-Turns built SK operators into runnable single-op and network-level samples with
-scoped correctness/fusion verdict inputs. The skill has three halves:
+这个 skill 把已构建的 SK 算子转换为可运行的单算子或整网验证样例，并产出正确性/融合验证所需的 JSON contract。
 
-1. **Auto-construction** (new): synthesise the closed JSON spec files (input
-   values, oracle, runner command) a user would otherwise hand-write.
-2. **Validation chain** (existing): the manual commands canonicalise the
-   closed specs, run the target runtime, extract outputs, compare against
-   expected, and emit a scoped correctness verdict.
-3. **Verification contracts**: records the boundary between single-op
-   standalone differential verification and network-level wheel verification.
+能力分三层：
 
-The orchestrator wires construction → validation; schemas stay
-guaranteed-consistent.
+1. 自动构造：生成 input values、oracle、runner command 等闭合 JSON spec。
+2. 验证链路：校验闭合 spec，运行目标 runtime，提取输出，对比 expected/actual，并输出 verdict。
+3. 验证 contract：记录单算子 standalone differential 验证与整网 wheel 验证的边界。
 
-## Verification Levels
+入口：
 
-Single-op verification does **not** use a wheel. It compares a non-SK standalone
-entry and an SK standalone entry under the same explicit runtime fixture. It
-requires declared parameter roles and comparable outputs. If comparable outputs
-are not declared, return `needs-user-confirmation`; do not infer outputs from
-names or order.
-
-Network-level verification **does** use the packaged wheel. It requires an
-explicit network sample contract: package name/wheel, runner adapter, nodes,
-edges, inputs, comparable outputs, prepare steps, and expected SK fusion ops.
-The generated network runner delegates real network construction to the declared
-adapter, so custom network semantics live in user/adapter code instead of this
-core skill.
-
-## Generalised Knowledge Rules
-
-Treat sample generation as a contract problem, not a pattern-matching problem.
-This skill may construct files only after the relevant semantics are explicit in
-the contract.
-
-- **Verification is layered**: single-op differential verification proves the
-  SK entry preserves one operator's semantics; network verification proves the
-  packaged wheel can participate in a user-level graph. Do not use one as a
-  substitute for the other.
-- **Roles are explicit**: parameters must be classified as `input`, `output`,
-  `workspace`, `tiling`, `scalar`, or `descriptor` by an upstream contract.
-  This skill must not infer roles from variable names, pointer order, shape, or
-  whether a value is later compared.
-- **Comparison targets are explicit**: outputs to compare and their comparator
-  (`exact`, `allclose`, or `bytewise`) must be declared. Missing comparable
-  outputs produce `needs-user-confirmation`.
-- **Prepare state is explicit**: any state that must exist before graph capture
-  must be declared in `prepare` or an equivalent runtime contract field. The
-  runner may call a declared prepare hook; it must not invent helper kernels or
-  hidden runtime work inside the captured graph.
-- **Network semantics belong to adapters**: core runner code loads the wheel,
-  calls the declared adapter, and validates structured results. Topology,
-  tensor construction, state preparation, and domain-specific assertions belong
-  to the user/adapter layer.
-
-Stage 06 can now feed this skill from two runtime backends. The wheel backend
-uses the generated Python runner and `bind-target-on-wheel` oracle. The
-standalone backend supplies runner stdout directly from the ASC executable
-schema:
-
-```json
-{"backend": "standalone", "outputs": {"op": {"baseline": [], "sk": []}}}
-```
-
-`compare-sk-runtime-outputs` treats standalone `baseline` as expected and `sk`
-as actual. If runtime fixtures are missing, callers record
-`skipped-insufficient-runtime-spec`; if NPU runtime is unavailable, callers
-record `skipped-no-npu`. Mock runs may validate routing only. Real device
-standalone runs are expected to provide baseline/SK hashes or captured outputs
-from an explicit runtime fixture plan before they can be reported as `passed`.
-Generated mock runners deliberately return non-zero even when their JSON status
-is `mock-passed`; direct callers must not treat mock execution as release
-correctness.
-
-Top-level entry:
-
-```
+```bash
 python3 <skills_root>/sk-operator-sample-gen/scripts/operator_sample_gen.py <subcommand> ...
 ```
 
-## Auto-construction commands (new)
+## 验证层级
+
+单算子验证不使用 wheel。它在同一个显式 runtime fixture 下比较非 SK standalone entry 和 SK standalone entry。必须有参数角色和可比较输出声明；缺少可比较输出时返回 `needs-user-confirmation`，不能根据名字或参数顺序猜测。
+
+整网验证使用已打包 wheel。它需要显式 network sample contract，包括 package/wheel、runner adapter、nodes、edges、inputs、comparable outputs、prepare steps 和 expected SK fusion ops。真实网络构造委托给 contract 中声明的 adapter；拓扑、tensor 构造、状态准备和领域断言属于用户/adapter 层，不属于核心 skill。
+
+## 通用规则
+
+- 验证是分层的：单算子 differential 验证证明某个 entry 的 SK 语义；整网验证证明 wheel 可以参与用户级 graph。两者不能互相替代。
+- 参数角色必须显式：`input`、`output`、`workspace`、`tiling`、`scalar` 或 `descriptor`。
+- 比较目标必须显式声明 comparator：`exact`、`allclose` 或 `bytewise`。
+- graph capture 前需要存在的状态必须在 `prepare` 或等价 runtime contract 字段中声明。
+- runner 不得在 captured graph 内发明 helper kernel 或隐式 runtime work。
+- 网络语义属于 adapter。核心 runner 只负责加载 wheel、调用 adapter、校验结构化结果。
+
+## 自动构造命令
 
 - `auto-construct-runtime-input-values <output_dir> [--shape SHAPE] [--dtype DTYPE] [--fill zero]`
-  — read `operator-sk-runtime-input-spec.json`, emit
-  `operator-sk-auto-input-values-spec.json` (zero-filled tensor for GM_ADDR
-  params; scalar params get the element count with a dtype derived from the
-  C type). Comma-separated `--shape` for multi-dim (e.g. `--shape 2,3`).
-- `auto-build-correctness-oracle <output_dir>
-  [--oracle-source bind-target-on-wheel|reference-impls-numpy]` — default
-  mode is `bind-target-on-wheel`, which declares that the runner's bind-target
-  baseline path supplies expected values. `reference-impls-numpy` is preserved as
-  a compatibility path and loads `reference_impls/<entry_name>.py`.
-- `generate-runner-script <output_dir>` — emit `operator-sample-runner.py`
-  (loads the values manifest passed via argv[2] and prints structured stdout
-  JSON keyed by operator name, with `baseline` and `sk` values) plus
-  `operator-sk-target-runtime-command-spec.json` (binds the values manifest as
-  `values_manifest_argv` argv_index=2).
+  读取 `operator-sk-runtime-input-spec.json`，输出 `operator-sk-auto-input-values-spec.json`。
+- `auto-build-correctness-oracle <output_dir> [--oracle-source bind-target-on-wheel|reference-impls-numpy]`
+  默认 `bind-target-on-wheel`；`reference-impls-numpy` 保留给简单数学算子的 numpy 参考实现。
+- `generate-runner-script <output_dir>`
+  输出 `operator-sample-runner.py` 和 `operator-sk-target-runtime-command-spec.json`。
 - `build-single-op-verification-contract <output_dir> <operator-runtime-contract.json>`
-  — emit `operator-single-op-verification-contract.json`. This is the canonical
-  single-op differential contract: `baseline=non_sk_entry`,
-  `actual=sk_entry`, `requires_wheel=false`.
-- `collect-network-sample-contract <output_dir> <network-contract.json>` —
-  canonicalise a user/adapter-provided network contract and emit
-  `operator-network-sample-contract.json` plus
-  `operator-network-fusion-expectation.json`.
-- `generate-network-runner-script <output_dir>` — emit
-  `operator-network-sample-runner.py` and
-  `operator-network-target-runtime-command-spec.json` from the canonical network
-  contract.
+  输出 `operator-single-op-verification-contract.json`。
+- `collect-network-sample-contract <output_dir> <network-contract.json>`
+  规范化用户/adapter 提供的整网 contract，输出 `operator-network-sample-contract.json` 和 `operator-network-fusion-expectation.json`。
+- `generate-network-runner-script <output_dir>`
+  根据 canonical network contract 输出 `operator-network-sample-runner.py` 和 `operator-network-target-runtime-command-spec.json`。
 
-Network runner adapters use this callable shape:
+network runner adapter 的推荐函数签名：
 
 ```python
 def run_network(contract: dict, context: dict) -> dict:
     ...
 ```
 
-`context` contains `contract_path`, `contract_dir`, and `cwd`. Older one-arg
-adapters are still accepted, but new adapters should use the two-arg shape so
-they can place outputs next to the canonical contract or a user-provided output
-root.
+`context` 包含 `contract_path`、`contract_dir` 和 `cwd`。旧的一参 adapter 仍可接受，但新 adapter 应使用两参形式。
 
-## Validation chain (existing)
+## 验证链
 
-- `collect-runtime-input-spec` -> `provide-sk-runtime-input-values` (validates
-  the auto-constructed closed spec) -> `collect-correctness-oracle-spec`
-  (validates the auto-built oracle spec) -> `run-sk-target-runtime-validation`
-  (runs the auto-generated runner with `shell=False`, controlled env,
-  bounded stdout tails) -> `extract-sk-runtime-outputs` ->
-  `compare-sk-runtime-outputs` -> `validate-sk-operator-correctness` (terminal
-  scoped verdict).
+典型链路：
 
-## Oracle Sources
-
-`bind-target-on-wheel` is the general path for generated SK deliveries: the
-runner calls the package's `run_<op>` bind target for the baseline and SK
-execution contexts and comparison treats `baseline` as expected and `sk` as actual. The
-`reference_impls/` registry remains useful for simple mathematical operators
-that are naturally expressible in numpy.
-
-## Contract Rules
-
-- Do not guess input/output roles. Use explicit `role` and `compare` fields.
-- Single-op verification must block if no comparable output is declared.
-- TensorList/descriptor preparation must be represented as explicit runtime or
-  network `prepare` information; do not insert graph-captured helper kernels in
-  the runner path.
-- Network verification must compare `aclgraph` and `aclgraph+sk` outputs and
-  carry an expected fusion contract that downstream SK analysis can validate.
-
-## Reference-impl registry
-
-Each `reference_impls/<entry_name>.py` exposes:
-
-```python
-REFERENCE_IMPL = {
-    "entry_name": "<kernel_entry>",   # used as the registry key
-    "description": "<short summary>",
-    "comparator": "exact" | "allclose",
-    "tolerance": {"rtol": <num>, "atol": <num>},
-}
-
-def compute(inputs: dict) -> object:
-    """inputs maps each kernel param name to {"shape", "dtype", "value"}.
-       Returns the expected primary output value (the JSON-list shape the
-       runner emits)."""
+```text
+collect-runtime-input-spec
+-> provide-sk-runtime-input-values
+-> collect-correctness-oracle-spec
+-> run-sk-target-runtime-validation
+-> extract-sk-runtime-outputs
+-> compare-sk-runtime-outputs
+-> validate-sk-operator-correctness
 ```
 
-Bundled: `reference_impls/add_custom.py` (numpy: z = x + y).
+## 预期结果来源
 
-## Extension points
+- `bind-target-on-wheel`：通用路径。runner 调用 package 的 `run_<op>` bind target，baseline 作为 expected，SK 路径作为 actual。
+- `reference_impls/`：适合简单数学算子。每个 `reference_impls/<entry_name>.py` 暴露 `REFERENCE_IMPL` 和 `compute(inputs)`。
 
-- New auto-input strategy (e.g. `--fill random`): extend
-  `build_input_values_spec` in `scripts/sk_sample_gen_lib.py`.
-- New operator reference: drop a `reference_impls/<entry>.py`; registry
-  auto-discovers.
-- Custom runner template: replace `_RUNNER_TEMPLATE` in `sk_sample_gen_lib.py`
-  (real-deployment shim that imports the pybind module instead of echoing the
-  first tensor parameter).
-- Standalone fixture metadata: use
-  `build_standalone_runtime_fixture_spec` and
-  `build_standalone_insufficient_fixture_verdict` in
-  `scripts/sk_sample_gen_lib.py`.
+## stage 06 状态语义
+
+- 缺少 runtime fixture：记录 `skipped-insufficient-runtime-spec`。
+- NPU runtime 不可用：记录 `skipped-no-npu`。
+- mock runner 只用于 routing/schema 检查。即使 JSON 状态是 `mock-passed`，进程也必须返回非 0，不能被当作发布正确性。
+
+## 扩展点
+
+- 新输入构造策略：扩展 `scripts/sk_sample_gen_lib.py` 中的 `build_input_values_spec`。
+- 新参考实现：新增 `reference_impls/<entry>.py`。
+- 自定义 runner 模板：替换 `sk_sample_gen_lib.py` 中的 runner template。
+- standalone fixture metadata：使用 `build_standalone_runtime_fixture_spec` 和 `build_standalone_insufficient_fixture_verdict`。

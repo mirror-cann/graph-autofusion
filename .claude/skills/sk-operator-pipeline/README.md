@@ -1,4 +1,4 @@
-# sk-operator-pipeline
+# SK 算子流水线
 
 `sk-operator-pipeline` 是算子生成链路的总入口。它负责发现算子输入、调度 `sk-operator-*`
 子能力、落盘每个阶段的输入输出，并生成清晰的交付物目录和资产地图。

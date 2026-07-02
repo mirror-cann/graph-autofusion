@@ -1,4 +1,4 @@
-# SK Operator Validate
+# SK 算子校验
 
 `sk-operator-validate` 是 SK 算子校验的唯一公开入口，负责 contract 和
 spec rule pack。compat rule pack 是可显式开启的高级静态风险检查，只报告已有

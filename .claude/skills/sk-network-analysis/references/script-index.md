@@ -1,4 +1,4 @@
-# script index
+# 脚本索引
 
 - `scripts/network_analysis.py`
   - 顶层 Python CLI
@@ -37,16 +37,3 @@
 - `scripts/regression_runner.py`
   - 在临时目录复制样例并运行当前 skill
   - 用于避免污染原始样例结果目录
-
-## 可选外部设计指导
-
-- 当前没有为第三方 HTML 设计指导再额外包一层 wrapper script
-- 目标环境如果提供外部设计评审能力，可以把它作为可选建议使用
-- 外部设计建议不直接生成诊断数据，只用于指导以下页面的层级和风格：
-  - `run-portal.html`
-  - `scope-graph.html`
-  - `task-queue-graph.html`
-- 页面最终实现仍由本仓脚本负责：
-  - `diagnose_run.py`
-  - `sk_scope_visualizer.py`
-  - `sk_task_queue_visualizer.py`

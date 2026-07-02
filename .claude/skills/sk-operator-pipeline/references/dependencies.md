@@ -1,14 +1,12 @@
-# dependencies
+# 依赖边界
 
-## Skill Package Boundary
+## Skill 包边界
 
-- `sk-operator-pipeline` locates sibling skills through `skills_root`.
-- User assets, outputs, and build cache are interpreted through explicit CLI
-  arguments plus `repo_root`.
-- `index` scans `skills_root` by default; user workspace indexing requires
-  explicit `--index-root`.
+- `sk-operator-pipeline` 通过 `skills_root` 定位 sibling skills。
+- 用户资产、输出目录和构建缓存通过显式 CLI 参数加 `repo_root` 解释。
+- `index` 默认只扫描 `skills_root`；如果要索引用户工作区，必须显式传 `--index-root`。
 
-## Skill Links
+## Skill 链接
 
 - `sk-operator-asset-adapter`
 - `sk-operator-codegen`

@@ -1,11 +1,8 @@
-# SK Operator Asset Adapter
+# SK 算子资产适配
 
-This skill is the customizable intake layer for SK operator assets. It converts
-user-owned source trees into stable contracts for the core SK skills.
+这个 skill 是 SK 算子资产的可定制接入层，负责把用户自己的源码树转换成核心 SK skills 可消费的稳定 contract。
 
-Users may customize recipes in this layer when their repository layout differs
-from the bundled defaults. Core skills should not be modified for repository
-layout differences.
+当用户仓库布局和内置默认规则不一致时，应优先定制这一层的 recipe。核心 skills 不应该因为某个仓库的目录差异而被修改。
 
 ## 需要沉淀的资产语义
 

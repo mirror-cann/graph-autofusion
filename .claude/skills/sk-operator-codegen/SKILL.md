@@ -1,139 +1,79 @@
 ---
 name: sk-operator-codegen
-description: Built-in SK domain skill that converts supported operator source forms to current SK binding (Args struct + __sk__ template + SK_BIND), identifies SK adaptation form (none / legacy-spk / current-sk-bind / partial / unknown), applies machine-remediable findings to source, and renders minimal non-SK operator templates.
+description: SK 内置代码生成 skill，负责识别算子源码形态，生成当前 SK binding（Args struct + __sk__ template + SK_BIND），迁移历史 __spk__，应用可机器修复项，并生成最小非 SK 算子模板。
 ---
 
-# SK Operator Codegen
+# SK 算子代码生成
 
-Use this skill to **derive a SuperKernel adaptation from an ordinary AscendC
-`__global__` kernel, migrate legacy `__spk__` assets to current `SK_BIND`,
-pass through already-current SK source byte-for-byte, or classify unsupported
-mixed forms for human escalation**. The auto-generation logic follows
-the stable contracts implemented in this skill's `scripts/`, `templates/`,
-and `references/`.
+这个 skill 用于把普通 AscendC `__global__` kernel 适配为 SuperKernel 入口，或者把历史
+`__spk__` 资产迁移到当前 `SK_BIND` 形态。已经是当前 SK bind 的源码会按字节复用；不支持或混合形态会输出明确的人工处理结论。
 
-Top-level entry:
+自动生成逻辑以本 skill 的 `scripts/`、`templates/` 和 `references/` 为稳定契约。
+
+入口：
 
 ```
 python3 <skills_root>/sk-operator-codegen/scripts/operator_codegen.py <subcommand> ...
 ```
 
-## Commands
+## 命令
 
-Auto-generation:
+### 自动生成
 
-- `adapt-sk-from-global <asset> --output-dir DIR` — handle all classified
-  input forms in one pass. Pure or remediable non-SK source is cleaned with
-  codegen-owned pre-adapt auto-remediation before adaptation; legacy `__spk__`
-  variants are migrated to current `__sk__` + `SK_BIND` by copying the matched
-  `__global__` body into the SK body. Legacy helper-forward `param` bodies are
-  not used as the generated SK implementation unless a future explicit user
-  override says so; helper bodies may only provide specialization evidence for
-  templated multi-specialization groups. Templated globals keep their template
-  parameters on the SK function, with `splitidx` appended and concrete
-  instantiations emitted in `SK_BIND`; the Args struct is templated only when
-  a field type depends on a template parameter.
-  generated package files follow the aclgraph-canonical layout
-  (`csrc/<op>.asc`, `csrc/pybind11.asc`, `op_extension/`, `setup.py`). The
-  generated ACLGraph wheel package supports multi-arch native extensions via
-  `SK_NPU_ARCHS`.
-  Native modules are split per `entry x arch` so multi-op and multi-arch wheel
-  builds can run bisheng in parallel through `SK_BISHENG_JOBS`.
-  If neither variable is set, build-time auto-detection only uses source-backed
-  SoC mappings and otherwise fails fast.
-  When an entry has multiple tensor-like parameters, pass
-  `--io-contract FILE` to declare `inputs`, `outputs`, `workspaces`, and
-  `pybind_return_tensor`; this skill must not infer output semantics from
-  parameter names. A matching IO contract must classify every tensor-like
-  parameter. Struct-valued runtime parameters require `parameters.<name>.kind =
-  "host_struct"`. Without a matching or complete IO contract, ambiguous
-  multi-tensor entries produce `needs-human` findings and require human or
-  adapter input.
-  Already-current SK source is copied byte-for-byte; `partial` / `unknown`
-  forms produce actionable human escalations. Writes `operator-sk-adapted/`
-	  + `operator-sk-adapted.json`.
-- `aggregate-sk-adapted --adapted-output-dir DIR ... --output-dir DIR
-  [--aggregate-wheel-name NAME] [--package-version VERSION]` — combine multiple
-  aclgraph-canonical adapted outputs into one aggregate package tree. The output
-  keeps the canonical layout (`operator-sk-adapted/csrc/*.asc`,
-  `csrc/pybind11.asc`, `op_extension/`, `setup.py`) but `pybind11.asc` and
-  `_torch_library.py` register every operator entry. Wheel native modules are
-  emitted per entry and per selected NPU arch.
-- `generate-standalone-compare <aggregate_output_dir> --output-dir DIR
-  [--runtime-fixture-dir DIR] [--target-chip CHIP] [--npu-arch ARCH]` — generate
-  `operator-sk-standalone-verify/` with `runtime_compare.asc`, `CMakeLists.txt`,
-  copied adapted csrc, and `operator-sk-standalone-verify.json`. The generated
-  source emits `launch_<op>_baseline` and `launch_<op>_sk` wrappers that both
-  call the same `bind_target`; the runtime context supplies the baseline vs SK
-  distinction. If `runtime-fixture-dir/<op>/operator-sk-runtime-fixture.json`
-  declares device buffers/scalars, the source allocates independent baseline/SK
-  buffers, copies compare buffers back to host, and reports byte/hash comparison
-  results. Without that explicit device plan, real-device runs report
-  `skipped-insufficient-runtime-spec` instead of a fake pass. This is the
-  standalone differential backend used by the fast pipeline. Standalone
-  `--npu-arch` is explicit; when omitted, `--target-chip` may be used only if it
-  resolves to exactly one source-backed arch. Otherwise generation reports
-  `needs-target-arch` and never silently emits a default arch.
-  ACLGraph wheel runtime selection uses `SK_ACLGRAPH_NPU_ARCH` first, then only
-  source-backed SoC mappings, and never silently picks the sole packaged `.so`.
-- `detect-sk-form <asset> --output-dir DIR` — classify each source file as
-  `none` / `legacy-spk` / `current-sk-bind` / `partial` / `unknown`. Writes
-  `operator-sk-form-analysis.json`.
-- `apply-remediation <asset_dir> <findings.json>` — apply auto-remediable
-  findings (kinds: `rename-symbol`, `remove-line-containing`, `add-include`,
-  `replace-pattern`) to source files. Non-auto-remediable findings are
-  reported as escalations. Writes `operator-sk-remediation.json`.
+- `adapt-sk-from-global <asset> --output-dir DIR`
+  统一处理已分类的输入形态。普通或可修复的非 SK 源码会先走 codegen 拥有的预适配自动修复，再生成当前 SK bind。历史 `__spk__` 通过匹配到的 `__global__` body 迁移到当前 `__sk__` + `SK_BIND`，不会把 legacy helper-forward body 当成最终实现，除非未来有显式用户覆盖。模板化 global 会保留模板参数，并追加 `splitidx`；只有字段类型依赖模板参数时，Args struct 才模板化。
 
-Template-driven generation (convenience):
+  生成包遵循 aclgraph-canonical 布局：`csrc/<op>.asc`、`csrc/pybind11.asc`、`op_extension/`、`setup.py`。ACLGraph wheel 通过 `SK_NPU_ARCHS` 支持多 arch native extension；native module 按 `entry x arch` 拆分，便于 `SK_BISHENG_JOBS` 并行编译。
 
-- `generate-from-template <id> --param k=v --output-dir DIR` — render a
-  `templates/<id>.yaml` into a fresh source tree (the "clean input" entry
-  point of the closed-loop pipeline).
-- `list-templates` — discover available templates.
+  多 tensor-like 参数必须通过 `--io-contract FILE` 声明 `inputs`、`outputs`、`workspaces` 和 `pybind_return_tensor`。脚本不得根据变量名或参数顺序推断输出语义。struct-valued runtime 参数需要声明 `parameters.<name>.kind = "host_struct"`。契约缺失或不完整时，输出 `needs-human`。
 
-Existing scaffold path (kept from the original):
+- `aggregate-sk-adapted --adapted-output-dir DIR ... --output-dir DIR [--aggregate-wheel-name NAME] [--package-version VERSION]`
+  把多个 aclgraph-canonical 适配输出合并成一个聚合包树。输出仍保持 `operator-sk-adapted/csrc/*.asc`、`csrc/pybind11.asc`、`op_extension/`、`setup.py` 布局，但 `pybind11.asc` 和 `_torch_library.py` 会注册所有算子 entry。wheel native module 仍按 entry 和 NPU arch 拆分。
 
-- `intake` / `plan` / `analyze-sk-conversion` / `adapt-sk-binding-scaffold` /
-  `generate-sk-source-scaffold` — see `references/workflow.md`.
+- `generate-standalone-compare <aggregate_output_dir> --output-dir DIR [--runtime-fixture-dir DIR] [--target-chip CHIP] [--npu-arch ARCH]`
+  生成 `operator-sk-standalone-verify/`，包含 `runtime_compare.asc`、`CMakeLists.txt`、复制后的 adapted csrc 和 `operator-sk-standalone-verify.json`。生成源码会输出 `launch_<op>_baseline` 和 `launch_<op>_sk` wrapper；两者调用同一个 `bind_target`，由 runtime context 区分 baseline 与 SK。
 
-## Extension points
+  如果 fixture 声明 device buffers/scalars，会分配独立 baseline/SK buffer、回拷可比输出，并输出 byte/hash 对比结果。没有显式 device plan 时，真实设备运行返回 `skipped-insufficient-runtime-spec`，不能伪造通过。standalone 的 `--npu-arch` 必须显式，或只能由 `--target-chip` 解析到唯一 source-backed arch；否则输出 `needs-target-arch`。
 
-- New base operator: drop `templates/<id>.yaml` (kernel-launch-adapt §4-style
-  body); loader auto-discovers.
-- New auto-remediation rule kind: extend `AUTO_REMEDIATION_KINDS` in
-  `scripts/sk_codegen_lib.py` and add the handler branch in `apply_remediation`.
+- `detect-sk-form <asset> --output-dir DIR`
+  将源码分类为 `none`、`legacy-spk`、`current-sk-bind`、`partial` 或 `unknown`，输出 `operator-sk-form-analysis.json`。
 
-## Hand-off boundary
+- `apply-remediation <asset_dir> <findings.json>`
+  应用自动可修复项，支持 `rename-symbol`、`remove-line-containing`、`add-include`、`replace-pattern`。不可自动修复项会作为人工处理项输出。
 
-Outputs of this skill feed:
+### 模板生成
 
-- `sk-operator-validate` (runs contract/spec/compat validation rule packs and
-  produces unified findings; legacy `spec-check` and `compat-check` remain
-  compatibility wrappers).
-- `sk-operator-build-package` (consumes `operator-sk-adapted.json` +
-  `operator-sk-adapted/` for pybind binding + wheel build; in multi-op runs it
-  consumes the aggregate tree; it also builds the standalone compare project
-  emitted by `generate-standalone-compare`).
-- `sk-operator-pipeline.run-sk-pipeline` orchestrates the whole loop.
+- `generate-from-template <id> --param k=v --output-dir DIR`
+  渲染 `templates/<id>.yaml`，用于闭环流水线的干净输入起点。
+- `list-templates`
+  列出可用模板。
 
-## Runtime State Rules
+### 历史 scaffold 入口
 
-Codegen must preserve graph-capture semantics:
+`intake`、`plan`、`analyze-sk-conversion`、`adapt-sk-binding-scaffold`、`generate-sk-source-scaffold` 仍保留，详见 `references/workflow.md`。
 
-- Tensor-like parameters with ambiguous role require an IO contract. Do not
-  infer inputs, outputs, workspaces, or return tensors from names or order.
-- Runtime state that must be prepared before capture, such as TensorList
-  descriptors or persistent workspace metadata, must be represented by an
-  explicit contract field and consumed by a runtime wrapper.
-- Generated wrappers must not launch hidden helper kernels in the captured
-  forward path to manufacture descriptor or prepare state. If preparation is
-  required, expose it as prepared runtime state for sample-gen or the user
-  adapter to initialise before capture.
-- Descriptor ordering must be contract-driven and validated against the declared
-  TensorList parameters. A mismatch is a generation error, not a best-effort
-  fallback.
+## 扩展点
 
-## References
+- 新基础算子模板：新增 `templates/<id>.yaml`。
+- 新自动修复规则：扩展 `scripts/sk_codegen_lib.py` 中的 `AUTO_REMEDIATION_KINDS`，并在 `apply_remediation` 中增加处理分支。
 
-- `references/sk-adaptation-cookbook.md` — source-backed adaptation notes and
-  code-generation patterns.
+## 交付边界
+
+本 skill 的输出交给：
+
+- `sk-operator-validate`：执行 contract/spec/compat 规则包并输出统一 findings。
+- `sk-operator-build-package`：消费 `operator-sk-adapted.json` 和 `operator-sk-adapted/`，生成 pybind binding、wheel，并构建 standalone compare 工程。
+- `sk-operator-pipeline run-sk-pipeline`：编排完整闭环。
+
+## 运行时状态规则
+
+codegen 必须保持 graph capture 语义：
+
+- tensor-like 参数角色不明确时，必须要求 IO contract。
+- capture 前必须准备的 runtime state，例如 TensorList descriptor 或持久 workspace 元数据，必须由显式契约表达，并由 runtime wrapper 消费。
+- 生成 wrapper 不得在 captured forward 路径里插入隐藏 helper kernel 来临时制造 descriptor 或状态。
+- descriptor 顺序必须由 contract 驱动，并和声明的 TensorList 参数校验一致；不一致时是生成错误，不做 best-effort fallback。
+
+## 参考
+
+- `references/sk-adaptation-cookbook.md`：SK 适配规则和代码生成形态说明。

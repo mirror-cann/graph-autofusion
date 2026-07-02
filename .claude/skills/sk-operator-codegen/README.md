@@ -1,4 +1,4 @@
-# sk-operator-codegen
+# SK 算子代码生成
 
 `sk-operator-codegen` 负责算子源码形态识别、SK bind 适配、聚合目录生成，以及 standalone
 compare 代码生成。端到端场景优先使用 `sk-operator-pipeline run-sk-pipeline`，本工具适合单独定位生成阶段问题。
@@ -55,7 +55,7 @@ tensor-like 参数时，必须由用户、adapter skill 或上游资产契约明
 `parameters` 中声明，例如 `"tiling": {"kind": "host_struct"}`；`GM_ADDR workspace` 或
 `GM_ADDR tiling` 这类地址参数仍应放入 `workspaces`，不要声明成 host struct。
 
-### capture 前准备状态
+### 图捕获前准备状态
 
 有些算子需要在图捕获前准备运行状态，例如 TensorList descriptor、workspace tail
 元数据或持久缓存。生成规则是：

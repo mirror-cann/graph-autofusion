@@ -1,46 +1,48 @@
 ---
 name: sk-network-analysis
-description: Built-in SK domain skill for SK network-level diagnostics, including result-path asset discovery, hang and coredump triage, performance diagnosis, scope/task graph visualization, and node tracing for SuperKernel scenarios.
+description: 面向 SuperKernel 场景的整网诊断 skill，覆盖结果目录资产发现、hang/coredump 定位、性能分析、scope/task 图可视化、节点追踪和 AOT task queue 兼容解析。
 ---
 
-# SK Network Analysis
+# SK 网络分析
 
-Use this skill when the task is about whole-network SK diagnostics, especially:
+当任务涉及整网级 SK 诊断时使用这个 skill，典型场景包括：
 
-- analysis of user-provided SK result directories
-- hang / coredump / exception localization
-- performance diagnosis
-- scope/task graph visualization
+- 分析用户提供的 SK 运行结果目录
+- 定位 hang、coredump、异常退出
+- 分析性能问题
+- 生成 scope/task 图和交互式 HTML 视图
+- 追踪 node、task、scope 之间的关系
 
-Top-level entry must use the Python CLI:
+入口：
 
-- `python3 <skills_root>/sk-network-analysis/scripts/network_analysis.py <subcommand> ...`
+```bash
+python3 <skills_root>/sk-network-analysis/scripts/network_analysis.py <subcommand> ...
+```
 
-Execution modes:
+## 模式
 
-- `base mode`
-  - default mode
-  - does not require network or a large model
-  - generates machine-consumable reports and indexes
-- `ai mode`
-  - optional, enabled by `--with-ai`
-  - must build on top of base-mode artifacts
-  - if AI is not configured, the base artifacts still remain valid and usable
+- base mode：默认模式，不依赖网络服务或大模型，生成机器可消费的 HTML / Markdown / JSON 报告。
+- ai mode：可选模式，通过 `--with-ai` 开启，只能基于 base mode 产物补充建议；即使 AI 不可用，base artifacts 仍然有效。
 
-Output contract:
+## 主要命令
 
-- base artifacts
-  - `run-portal.html`
-  - HTML / Markdown / JSON reports
-  - per-report generation status and diagnostic completeness
-  - asset guidance, collection hints, and next-information-needed guidance
-- AI artifacts
-  - optional hints or routing suggestions
-  - must not replace base artifacts
+- `analyze`：分析一个用户结果目录，识别资产、解释缺失证据影响，并给出下一步应收集的信息。
+- `diagnose-hang-crash`：关联 `sk_meta`、plog、device log，定位 hang/coredump/异常。
+- `diagnose-performance`：关联 `sk_event_dev_device_*.json`、`sk_prof_device_*.json`、task 结构、fused nodes 和时间事件。大 JSON 是性能分析的一等输入，支持懒加载、`ijson` 流式解析和多进程批处理。
+- `trace-nodes`：导出 `edge://tracing` / `chrome://tracing` 兼容的 node trace，并输出跨报告链接元数据。
 
-Current direct assets are under `scripts/`.
+## 输出契约
 
-Read these references first:
+base artifacts 包括：
+
+- `run-portal.html`
+- HTML / Markdown / JSON 报告
+- 每个报告的生成状态和诊断完整度
+- 资产 guidance、收集提示、下一步所需信息
+
+AI artifacts 只能作为可选建议，不能替代 base artifacts。
+
+## 推荐先读
 
 - `references/workflow.md`
 - `references/dependencies.md`
@@ -48,118 +50,42 @@ Read these references first:
 - `references/script-index.md`
 - `references/diagnosis-matrix.md`
 - `references/update-view-registry-guide.md`
-- `references/html-design-workflow.md`
 
-Primary workflows:
+## 诊断原则
 
-- `analyze`
-  - analyze one user-provided result path
-  - detect recognized assets, explain why missing evidence matters, and suggest what to collect next
-  - classify each report as generated vs diagnostically complete/limited/insufficient
-- `diagnose-hang-crash`
-  - correlate `sk_meta`, plog, and device logs for hang / coredump / exception triage
-- `diagnose-performance`
-  - correlate `sk_event_dev_device_*.json`、task structure、fused nodes and time events for performance diagnosis
-  - event/prof JSON stats are lazy-loaded, stream parsed with `ijson` when available, and batch-parallelized by process when possible
-  - large event/prof JSON files are first-class performance inputs; task / scope remain secondary drill-down context
-- `trace-nodes`
-  - export tracing-compatible node trace artifacts for `edge://tracing` and `chrome://tracing`
-  - emit cross-report node/task/scope linkage metadata
+- 资产存在时，说明它能提供什么诊断价值。
+- 资产缺失时，说明它会阻塞或降级哪些报告，以及下次应保留什么。
+- 证据不足时，明确列出下一步需要的信息，不只返回泛化失败。
+- `references/` 和生成的 JSON artifacts 是可迁移事实源；目标仓额外设计说明只能作为可选上下文。
 
-Current result guidance:
+## 视图要求
 
-- if an asset exists
-  - the skill should explain what diagnostic value it provides
-- if an asset is missing
-  - the skill should explain why it matters, what reports it blocks or downgrades, and what to preserve next time
-- if current evidence is still insufficient
-  - the skill should explicitly list the next information needed instead of only returning a generic failure
+- `run-portal.html` 是默认入口，应展示当前证据、诊断完整度、推荐下一步、报告入口和对象入口。
+- `scope-graph.html` 是一等交互图视图，必须保留图探索能力，支持 `scopeId` / `nodeId` 等对象上下文。
+- `task-queue-graph.html` 是一等 queue 视图，应支持 `taskIndex` / `nodeId` 上下文和稳定 task anchor。
+- `hang-crash-report.html` / `performance-report.html` 是 Markdown 摘要的浏览器友好版本，需提供稳定 section anchor。
+- performance 报告中，event/prof 数据优先；task/scope 是二级 drill-down。
+- 页面视觉和信息架构设计说明属于维护侧设计材料，不随 skill 发布包作为运行事实源。
 
-Current source-of-truth guidance:
+## AOT / task queue 兼容
 
-- use this skill's bundled `references/` and generated JSON artifacts as the portable source of truth
-- when a target workspace provides extra design notes, treat them as optional context rather than required inputs
-- keep `SKILL.md` as the concise routing/operation surface; put detailed contracts in `references/`
+- 过渡期内，log 解析仍是 canonical 兼容路径。
+- task queue JSON 用于可安全对齐时的 shadow validation。
+- 支持 `scopes[].taskQueues` 按 `scopeId` / `skId` 对齐。
+- root-level `taskQueues` 只在能唯一匹配 section 时参与校验。
+- JSON-only 字段若 log 侧没有可比值，不报告 mismatch。
+- sync/event/custom task 在 graph identity 无效时，不参与 graph-bound duplicate identity 检查。
 
-Current navigation expectations:
+## 性能和进度要求
 
-- `run-portal.html`
-  - is the default workspace entry
-  - should show current evidence, diagnostic completeness, recommended next step, and report/object entry points
-  - should include dedicated `Interactive Views`, `Structured Views`, and `Summary Views` sections
-  - should include a dedicated `What To Read Next` section with direct object-level links
-  - should expose `Current Capability` and `Still Missing` so users can see diagnostic ability, not just file presence
-  - should distinguish `graph-capable` runs from `summary-only` runs when interactive graph evidence is unavailable
-- `scope-graph.html`
-  - must remain a first-class interactive graph view
-  - should preserve the old high-quality graph exploration experience instead of being replaced by summary tables
-  - should accept lightweight object context such as `scopeId` / `nodeId` and surface that context in-page
-  - should support lightweight in-page object focus instead of only showing passive context text
-- `task-queue-graph.html`
-  - must remain a first-class interactive queue view
-  - should preserve the old high-quality queue exploration experience instead of being replaced by summary tables
-  - should accept lightweight object context such as `taskIndex` / `nodeId` and surface that context in-page
-  - should support lightweight in-page object focus instead of only showing passive context text
-- `scope-graph.html`
-  - should prefer a canonical graph-centric scope view and demote repeated rounds to reference-only context
-- `task-queue-graph.html`
-  - should expose canonical task anchors for cross-report linking
-- `hang-crash-report.html` / `performance-report.html`
-  - should exist as browser-friendly companions to the Markdown summaries
-  - should expose stable section anchors for portal deep links
-  - `performance-report.html` should keep event/prof data first:
-    - `sk_event_dev_device_*.json` / `sk_prof_device_*.json` are primary performance assets
-    - task / scope remain secondary drill-down links
+- 完整性能分析显示 `Stage 0/4` 到 `Stage 4/4`。
+- event/prof 解析是可见的 `Stage 2/4`。
+- TTY 使用 `tqdm`；非 TTY 使用紧凑 start/done 行。
+- 抑制 worker parser/render 噪声。
+- `--profile` 开启时写入 `reports/data/diagnose-profile.json`。
 
-Current AOT/task queue compatibility expectations:
+## 修改后的验证
 
-- log parsing remains the canonical compatibility path during the transition
-- task queue JSON is used as a shadow-validation source when it can be aligned safely
-- support `scopes[].taskQueues` aligned by `scopeId` / `skId`
-- support root-level `taskQueues` only when they can be matched to a unique candidate section
-- do not report mismatches for JSON-only fields when the log side has no comparable value
-- exclude sync/event/custom tasks from graph-bound duplicate identity checks when their graph identity is not valid
-
-Current performance / progress expectations:
-
-- expose `Stage 0/4` through `Stage 4/4` for full/performance analysis
-- make event/prof parsing visible as `Stage 2/4`
-- use `tqdm` progress bars on TTY and compact start/done lines in non-TTY logs
-- suppress noisy worker parser/render output in `network_analysis.py` runs
-- write timing details to `reports/data/diagnose-profile.json` when `--profile` is enabled
-
-Atomic implementation expectations:
-
-- high-quality graph scripts should be wrapped into stable source/model/renderer boundaries
-- graph views, structured data, and summary views are all required outputs
-- `diagnose_run.py` should orchestrate these atomic capabilities instead of inlining graph logic
-
-External HTML guidance expectations:
-
-- external design guidance is optional and advisory only
-- optional design review may reshape page hierarchy, reading order, interaction grouping, and visual style
-- optional design review must not redefine diagnostic semantics, evidence-tier logic, capability-mode logic, or JSON report contracts
-- first implement changes inside `sk-network-analysis`; then apply optional page-design review if available in the target environment
-- first-wave HTML redesign targets are:
-  - `run-portal.html`
-  - `scope-graph.html`
-  - `task-queue-graph.html`
-- `hang-crash-report.html` and `performance-report.html` should follow the same design system, but they are secondary to the first-wave pages
-
-Internal regression helper:
-
-- `python3 <skills_root>/sk-network-analysis/scripts/regression_runner.py <sample-root>`
-  - runs the current skill against an existing sample inside a temporary workspace
-  - auto-cleans generated files after each case
-
-Verification expectations when editing this skill:
-
-- for docs-only changes, at least validate command help and stale-reference search
-- for parser/report changes, run targeted `sk_network_analysis` unit tests
-Prefer the bundled analysis scripts when the task matches:
-
-- SK log extraction
-- scope split visualization
-- task queue visualization
-- node tracing
-- scope/task graph visualization
+- 仅文档修改：至少验证 help 和 stale-reference 搜索。
+- parser/report 修改：运行相关 `sk_network_analysis` 单元测试。
+- 改动真实样例路径时，优先使用 `regression_runner.py` 做临时工作区回归。

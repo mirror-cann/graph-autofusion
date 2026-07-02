@@ -1,4 +1,4 @@
-# sk-operator-sample-gen
+# SK 算子样例生成
 
 `sk-operator-sample-gen` 生成运行样例、正确性 oracle、runner 和验证 contract。
 它服务于 stage 06 的 standalone 或 wheel 正确性验证，也可以单独用于构造最小复现。
@@ -24,7 +24,7 @@ def run_network(contract: dict, context: dict) -> dict:
 
 `context` 包含 `contract_path`、`contract_dir` 和 `cwd`。adapter 应返回结构化
 JSON dict，至少包含 `status` 和两种运行模式的结果。发布包不绑定固定样例路径；
-如源仓提供参考网络 contract，可作为 adapter 写法参考。
+如维护侧提供参考网络 contract，可作为 adapter 写法参考。
 
 ## 泛化规则
 
@@ -123,7 +123,7 @@ python3 <skills_root>/sk-operator-sample-gen/scripts/operator_sample_gen.py gene
 python3 <skills_root>/sk-operator-sample-gen/scripts/operator_sample_gen.py --help
 ```
 
-## Oracle 来源
+## 预期结果来源
 
 常见来源：
 
@@ -161,4 +161,4 @@ python3 <skills_root>/sk-operator-sample-gen/scripts/operator_sample_gen.py --he
 python3 <skills_root>/sk-operator-sample-gen/scripts/operator_sample_gen.py --help
 ```
 
-源仓级 pytest 回归由发布准备流程维护，不作为发布包内命令。
+维护侧 pytest 回归由发布准备流程维护，不作为发布包内命令。
