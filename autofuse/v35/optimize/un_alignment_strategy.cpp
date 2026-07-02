@@ -429,7 +429,7 @@ Status UnAlignmentStrategy::UpdateOutputVectorizedStrides(const af::AscNodePtr &
     const auto &repeat = output_attr.repeats[axis_index];
     // 向量化轴的stride为0则不做处理，保留原stride
     if (af::SymbolicUtils::StaticCheckEq(output_attr.vectorized_strides[index], af::sym::kSymbolZero) !=
-                                         af::TriBool::kTrue) {
+        af::TriBool::kTrue) {
       output_attr.vectorized_strides[index] = size_product;
       size_product = size_product * repeat;
     }
@@ -467,7 +467,8 @@ Status UnAlignmentStrategy::ModifyTransposeFusionVectorizedStrides(af::AscGraph 
       // Transpose及后续节点或无Transpose：按 Store 轴判断
       GE_ASSERT_SUCCESS(GetNodeContinuousTailAxisNumByStore(node, continuous_tail_axis_num));
     }
-    if (continuous_tail_axis_num <= 1U || continuous_tail_axis_num == UINT32_MAX) {  // 小于一个连续轴，不需要调整strides
+    if (continuous_tail_axis_num <= 1U ||
+        continuous_tail_axis_num == UINT32_MAX) {  // 小于一个连续轴，不需要调整strides
       continue;
     }
     for (const auto &output : node->outputs()) {

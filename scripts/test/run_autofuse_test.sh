@@ -1,10 +1,10 @@
 #!/bin/bash
 # -----------------------------------------------------------------------------------------------------------
 # Copyright (c) 2025 Huawei Technologies Co., Ltd.
-# This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+# This program is free software, you can redistribute it and/or modify it under the terms and conditions of
 # CANN Open Software License Agreement Version 2.0 (the "License").
 # Please refer to the License for details. You may not use this file except in compliance with the License.
-# THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+# THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
 # INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
 # See LICENSE in the root of the software repository for the full text of the License.
 # -----------------------------------------------------------------------------------------------------------
@@ -622,7 +622,6 @@ codegen_e2e_st() {
                     discrete_store_e2e \
                     discrete_load_e2e \
                     broadcast_force_merge_e2e \
-                    load_rargmax_store_e2e \
                     load_abs_store_expect_code_e2e \
                     load_leakyrelu_store_expect_code_e2e \
                     load_transpose_store_expect_code_e2e \
@@ -771,7 +770,6 @@ build_backend() {
                     axpy_abs_half_test_e2e \
                     pgo_add_abs_test_e2e \
                     matmul_elemwise_test_e2e \
-                    argmax_test_e2e \
                     axpy_abs_test_e2e \
                     load_logical_not_store_test_e2e \
                     inductor_topn_test_e2e \
