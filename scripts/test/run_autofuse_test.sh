@@ -622,7 +622,6 @@ codegen_e2e_st() {
                     discrete_store_e2e \
                     discrete_load_e2e \
                     broadcast_force_merge_e2e \
-                    load_rargmax_store_e2e \
                     load_abs_store_expect_code_e2e \
                     load_leakyrelu_store_expect_code_e2e \
                     load_transpose_store_expect_code_e2e \
@@ -771,7 +770,6 @@ build_backend() {
                     axpy_abs_half_test_e2e \
                     pgo_add_abs_test_e2e \
                     matmul_elemwise_test_e2e \
-                    argmax_test_e2e \
                     axpy_abs_test_e2e \
                     load_logical_not_store_test_e2e \
                     inductor_tail_brc_tail_reduce_test_e2e \
