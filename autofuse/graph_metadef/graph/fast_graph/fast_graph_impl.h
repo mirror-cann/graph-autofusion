@@ -779,7 +779,7 @@ class FastGraphImpl {
   }
 
   /**
-   * the input paramter (node) can`t be empty.
+   * the input parameter (node) can`t be empty.
    * it need to check in upper-layer functions.
    */
   void PushBackToNodeList(ListElement<NodeT> *const node) {

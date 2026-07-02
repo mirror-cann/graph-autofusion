@@ -75,31 +75,31 @@ class GraphImpl {
     }
 
     // Construct special output node
-    std::vector<std::pair<Operator, std::vector<size_t>>> output_indexs;
+    std::vector<std::pair<Operator, std::vector<size_t>>> output_indexes;
     for (size_t i = 0U; i < outputs.size(); ++i) {
-      output_indexs.emplace_back(outputs[i], std::vector<size_t>{});
+      output_indexes.emplace_back(outputs[i], std::vector<size_t>{});
     }
 
-    const graphStatus ret = SetOutputs(output_indexs);
+    const graphStatus ret = SetOutputs(output_indexes);
     return ret;
   }
 
-  graphStatus SetOutputs(const std::vector<std::pair<Operator, std::vector<size_t>>> &output_indexs) {
+  graphStatus SetOutputs(const std::vector<std::pair<Operator, std::vector<size_t>>> &output_indexes) {
     if (compute_graph_ == nullptr) {
       REPORT_INNER_ERR_MSG("E18888", "compute graph is nullptr, check invalid.");
       GELOGE(GRAPH_FAILED, "[Check][Param] set ComputeGraph failed.");
       return GRAPH_FAILED;
     }
-    if (output_indexs.empty()) {
+    if (output_indexes.empty()) {
       GELOGW("[SetOutputs][CheckParam] Set outputs size is 0.");
       return GRAPH_SUCCESS;
     }
 
     // Construct special output node
     std::vector<std::pair<NodePtr, int32_t>> output_nodes;
-    for (const auto &item : output_indexs) {
+    for (const auto &item : output_indexes) {
       const Operator &output = item.first;
-      const std::vector<size_t> &indexs = item.second;
+      const std::vector<size_t> &indexes = item.second;
       AscendString out_name;
       (void)output.GetName(out_name);
       NodePtr node = compute_graph_->FindNode(out_name.GetString());
@@ -115,19 +115,19 @@ class GraphImpl {
         continue;
       }
       const size_t out_size = tmp_op_ptr->GetOutputsSize();
-      if (indexs.empty()) {
+      if (indexes.empty()) {
         for (size_t i = 0U; i < out_size; ++i) {
           output_name_ += std::string(out_name.GetString()) + ":" + std::to_string(i) + ";";
           output_nodes.emplace_back(node, i);
         }
       } else {
-        for (size_t i = 0U; i < indexs.size(); ++i) {
-          if (indexs[i] >= out_size) {
+        for (size_t i = 0U; i < indexes.size(); ++i) {
+          if (indexes[i] >= out_size) {
             GELOGW("[SetOutputs][Check] User designated out_node %s has no output %zu, output_size=%zu, skip it",
-                   out_name.GetString(), indexs[i], out_size);
+                   out_name.GetString(), indexes[i], out_size);
           } else {
             output_name_ += std::string(out_name.GetString()) + ":" + std::to_string(i) + ";";
-            output_nodes.emplace_back(node, indexs[i]);
+            output_nodes.emplace_back(node, indexes[i]);
           }
         }
       }
@@ -138,13 +138,13 @@ class GraphImpl {
       output_name_ = output_name_.substr(0U, output_name_.length() - 1U);
     }
     compute_graph_->SetUserDefOutput(output_name_);
-    compute_graph_->SetOutputSize(static_cast<uint32_t>(output_indexs.size()));
+    compute_graph_->SetOutputSize(static_cast<uint32_t>(output_indexes.size()));
     GE_ASSERT_SUCCESS(compute_graph_->SetGraphOutNodesInfo(output_nodes));
     return GRAPH_SUCCESS;
   }
 
   graphStatus SetOutputs(const std::vector<std::pair<Operator, std::string>> &outputs) {
-    GE_CHK_BOOL_RET_STATUS(compute_graph_ != nullptr, GRAPH_FAILED, "[Check][Param] set ComputeGraph faild.");
+    GE_CHK_BOOL_RET_STATUS(compute_graph_ != nullptr, GRAPH_FAILED, "[Check][Param] set ComputeGraph failed.");
     if (outputs.empty()) {
       GELOGI("set outputs size is 0.");
       return GRAPH_SUCCESS;
@@ -217,7 +217,7 @@ class GraphImpl {
   }
 
   graphStatus SetTargets(const std::vector<Operator> &targets) {
-    GE_CHK_BOOL_RET_STATUS(compute_graph_ != nullptr, GRAPH_FAILED, "[Check][Param] set ComputeGraph faild.");
+    GE_CHK_BOOL_RET_STATUS(compute_graph_ != nullptr, GRAPH_FAILED, "[Check][Param] set ComputeGraph failed.");
     if (targets.empty()) {
       GELOGI("set targets size is 0.");
       return GRAPH_SUCCESS;
@@ -481,13 +481,13 @@ graphStatus Graph::SetOutputs(const std::vector<std::pair<GNode, int32_t>> &outp
   return impl_->SetOutputs(outputs);
 }
 
-Graph &Graph::SetOutputs(const std::vector<std::pair<Operator, std::vector<size_t>>> &output_indexs) {
+Graph &Graph::SetOutputs(const std::vector<std::pair<Operator, std::vector<size_t>>> &output_indexes) {
   if (impl_ == nullptr) {
     REPORT_INNER_ERR_MSG("E18888", "graph can not be used, impl is nullptr.");
     GELOGE(GRAPH_FAILED, "[Check][Param] SetOutputs failed: graph can not be used, impl is nullptr.");
     return *this;
   }
-  (void)impl_->SetOutputs(output_indexs);
+  (void)impl_->SetOutputs(output_indexes);
   return *this;
 }
 

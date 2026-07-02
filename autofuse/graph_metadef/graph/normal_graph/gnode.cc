@@ -227,7 +227,7 @@ std::pair<GNodePtr, int32_t> GNode::GetInDataNodesAndPortIndexs(const int32_t in
   const NodePtr peer_node_ptr = out_anchor->GetOwnerNode();
   const GNodePtr gnode = NodeAdapter::Node2GNodePtr(peer_node_ptr);
   if (gnode == nullptr) {
-    GELOGE(GRAPH_FAILED, "[Get][GNode] Peer node of node[%s] to gnode faild.", node_ptr->GetName().c_str());
+    GELOGE(GRAPH_FAILED, "[Get][GNode] Peer node of node[%s] to gnode failed.", node_ptr->GetName().c_str());
     return gnode_idx;
   }
 
@@ -253,7 +253,7 @@ std::vector<GNodePtr> GNode::GetInControlNodes() const {
   for (auto &in_control_node : in_control_nodes) {
     GNodePtr gnode = NodeAdapter::Node2GNodePtr(in_control_node);
     if (gnode == nullptr) {
-      GELOGE(GRAPH_FAILED, "[Get][GNode] In control_node of node[%s] to gnode faild.", node_ptr->GetName().c_str());
+      GELOGE(GRAPH_FAILED, "[Get][GNode] In control_node of node[%s] to gnode failed.", node_ptr->GetName().c_str());
       return {};
     }
     gnodes.emplace_back(gnode);
@@ -300,7 +300,7 @@ std::vector<std::pair<GNodePtr, int32_t>> GNode::GetOutDataNodesAndPortIndexs(co
     const NodePtr peer_node_ptr = in_data_anchor->GetOwnerNode();
     const GNodePtr gnode = NodeAdapter::Node2GNodePtr(peer_node_ptr);
     if (gnode == nullptr) {
-      GELOGE(GRAPH_FAILED, "[Get][GNode] Peer node of node[%s] to gnode faild.", node_ptr->GetName().c_str());
+      GELOGE(GRAPH_FAILED, "[Get][GNode] Peer node of node[%s] to gnode failed.", node_ptr->GetName().c_str());
       return {};
     }
     gnode_index.emplace_back(std::pair<GNodePtr, int32_t>(gnode, in_data_anchor->GetIdx()));
@@ -328,7 +328,7 @@ std::vector<GNodePtr> GNode::GetOutControlNodes() const {
   for (auto &out_control_node : out_control_nodes) {
     GNodePtr gnode = NodeAdapter::Node2GNodePtr(out_control_node);
     if (gnode == nullptr) {
-      GELOGE(GRAPH_FAILED, "[Get][GNode] In control_node of node[%s] to gnode faild.", node_ptr->GetName().c_str());
+      GELOGE(GRAPH_FAILED, "[Get][GNode] In control_node of node[%s] to gnode failed.", node_ptr->GetName().c_str());
       return {};
     }
     gnodes.emplace_back(gnode);
