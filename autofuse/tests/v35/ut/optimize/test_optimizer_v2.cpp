@@ -2289,8 +2289,8 @@ TEST_F(TestOptimizerV2, NddmaCaseTranspose10OutputWithSingleRef) {
   std::vector<autoschedule::AutoScheduleOutput> impl_graphs;
   optimize::autoschedule::AutoSchedule autoschedule(graph, impl_graphs);
   autoschedule.DoAutoSchedule();
-  EXPECT_EQ(impl_graphs.size(), 1);
-  EXPECT_EQ(impl_graphs[0].scheduled_graph.GetName(), "gen_nddma_B0X1Y0_nddma");
+  EXPECT_EQ(impl_graphs.size(), 2);
+  EXPECT_EQ(impl_graphs[1].scheduled_graph.GetName(), "gen_nddma_B0X1Y0_nddma");
 }
 
 TEST_F(TestOptimizerV2, NddmaCaseTranspose021OutputWithSingleRef) {
@@ -2340,9 +2340,9 @@ TEST_F(TestOptimizerV2, NddmaCaseTranspose021OutputWithSingleRef) {
   std::vector<autoschedule::AutoScheduleOutput> impl_graphs;
   optimize::autoschedule::AutoSchedule autoschedule(graph, impl_graphs);
   autoschedule.DoAutoSchedule();
-  EXPECT_EQ(impl_graphs.size(), 2);
-  EXPECT_EQ(impl_graphs[0].scheduled_graph.GetName(), "gen_nddma_B0X2Y0_nddma");
-  EXPECT_EQ(impl_graphs[1].scheduled_graph.GetName(), "gen_nddma_B0X2Y1_nddma");
+  EXPECT_EQ(impl_graphs.size(), 4);
+  EXPECT_EQ(impl_graphs[2].scheduled_graph.GetName(), "gen_nddma_B0X2Y0_nddma");
+  EXPECT_EQ(impl_graphs[3].scheduled_graph.GetName(), "gen_nddma_B0X2Y1_nddma");
 }
 
 TEST_F(TestOptimizerV2, LoadBrcTransposeCase) {
@@ -2693,9 +2693,9 @@ TEST_F(TestOptimizerV2, LoadCastTransposeCase) {
   std::vector<autoschedule::AutoScheduleOutput> impl_graphs;
   optimize::autoschedule::AutoSchedule autoschedule(graph, impl_graphs);
   autoschedule.DoAutoSchedule();
-  EXPECT_EQ(impl_graphs.size(), 1);
-  EXPECT_EQ(impl_graphs[0].scheduled_graph.GetName(), "gen_nddma_B0X1Y0_nddma");
-  for (auto node : impl_graphs[0].scheduled_graph.GetAllNodes()) {
+  EXPECT_EQ(impl_graphs.size(), 2);
+  EXPECT_EQ(impl_graphs[1].scheduled_graph.GetName(), "gen_nddma_B0X1Y0_nddma");
+  for (auto node : impl_graphs[1].scheduled_graph.GetAllNodes()) {
     if (node->GetType() == "Nddma") {
       EXPECT_EQ(att::Str(node->outputs[0].attr.vectorized_strides[0]), "(16 * Ceiling((Rational(1 , 16) * z0t_size)))");
     }
@@ -2753,7 +2753,8 @@ TEST_F(TestOptimizerV2, LoadGEWhereTransposeCase) {
   Where where("where");
   where.attr.sched.axis = {z0.id, z1.id, z2.id, z3.id};
   where.x1 = ge.y;
-  where.x2 = load1.y;
+  where.x2 = load0.y;
+  where.x3 = load1.y;
   *where.y.axis = {z0.id, z1.id, z2.id, z3.id};
   where.y.dtype = af::DT_FLOAT;
   *where.y.repeats = {s0, s1, s2, s3};
@@ -2784,9 +2785,9 @@ TEST_F(TestOptimizerV2, LoadGEWhereTransposeCase) {
   std::vector<autoschedule::AutoScheduleOutput> impl_graphs;
   optimize::autoschedule::AutoSchedule autoschedule(graph, impl_graphs);
   autoschedule.DoAutoSchedule();
-  EXPECT_EQ(impl_graphs.size(), 3);
-  EXPECT_EQ(impl_graphs[0].scheduled_graph.GetName(), "gen_nddma_B0X3Y0_nddma");
-  for (auto node : impl_graphs[0].scheduled_graph.GetAllNodes()) {
+  EXPECT_EQ(impl_graphs.size(), 6);
+  EXPECT_EQ(impl_graphs[3].scheduled_graph.GetName(), "gen_nddma_B0X3Y0_nddma");
+  for (auto node : impl_graphs[3].scheduled_graph.GetAllNodes()) {
     if (node->GetType() == "Nddma") {
       EXPECT_EQ(att::Str(node->outputs[0].attr.vectorized_strides[0]), "(8 * Ceiling((Rational(513 , 2) * z3t_size)))");
     }

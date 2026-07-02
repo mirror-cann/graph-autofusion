@@ -1252,7 +1252,7 @@ TEST_F(OptimizerStV2, NddmaCaseTranspose021OutputWithSingleRef) {
   ::ascir::FusedScheduledResult fused_scheduled_result;
   EXPECT_EQ(optimizer.Optimize(graph, fused_scheduled_result), 0);
   for (const auto &node :
-       fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs[0].GetAllNodes()) {
+       fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs[2].GetAllNodes()) {
     if (node->GetOpDesc()->GetId() == 1) {
       EXPECT_EQ(node->GetOpDesc()->GetType(), "Nddma");
     }
@@ -1279,7 +1279,7 @@ TEST_F(OptimizerStV2, LoadCastTransposeCase) {
   ::ascir::FusedScheduledResult fused_scheduled_result;
   EXPECT_EQ(optimizer.Optimize(graph, fused_scheduled_result), 0);
   for (const auto &node :
-       fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs[0].GetAllNodes()) {
+       fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs[1].GetAllNodes()) {
     if (node->GetOpDesc()->GetId() == 1) {
       EXPECT_EQ(node->GetOpDesc()->GetType(), "Nddma");
     }
@@ -1299,7 +1299,7 @@ TEST_F(OptimizerStV2, LoadGEWhereTransposeCase) {
                    .Load("load1", "data1")
                    .template Op<af::ascir_op::Ge>("ge", {"load0", "load1"}, {s0, s1, s2, s3},
                                                   {s1 * s2 * s3, s2 * s3, s3, af::ops::One}, af::DT_UINT8)
-                   .template Op<af::ascir_op::Where>("where", {"ge", "load1"}, {s0, s1, s2, s3},
+                   .template Op<af::ascir_op::Where>("where", {"ge", "load0", "load1"}, {s0, s1, s2, s3},
                                                      {s1 * s2 * s3, s2 * s3, s3, af::ops::One}, af::DT_FLOAT)
                    .Transpose("transpose", "where", {0, 3, 1, 2})
                    .Store("store", "transpose")
@@ -1308,7 +1308,7 @@ TEST_F(OptimizerStV2, LoadGEWhereTransposeCase) {
   ::ascir::FusedScheduledResult fused_scheduled_result;
   EXPECT_EQ(optimizer.Optimize(graph, fused_scheduled_result), 0);
   for (const auto &node :
-       fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs[0].GetAllNodes()) {
+       fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs[2].GetAllNodes()) {
     if (node->GetOpDesc()->GetId() == 2) {
       EXPECT_EQ(node->GetOpDesc()->GetType(), "Nddma");
     }
