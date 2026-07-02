@@ -1265,6 +1265,12 @@ class PipelineOrchestrator:
                     if standalone_build_status == "skipped-target-arch"
                     else self._npu_verify_enabled(allow_mock_npu=allow_mock_npu)
                 )
+            standalone_executable_paths = None
+            executables = standalone_build.get("executables")
+            if isinstance(executables, dict):
+                standalone_executable_paths = {}
+                for entry, path in executables.items():
+                    standalone_executable_paths[entry] = Path(path)
             standalone_verification = self._run_standalone_verification(
                 standalone_outputs / "verify",
                 entries,
@@ -1277,16 +1283,7 @@ class PipelineOrchestrator:
                     if standalone_build.get("executable")
                     else None
                 ),
-                executable_paths=(
-                    {
-                        entry: Path(path)
-                        for entry, path in standalone_build.get(
-                            "executables", {}
-                        ).items()
-                    }
-                    if isinstance(standalone_build.get("executables"), dict)
-                    else None
-                ),
+                executable_paths=standalone_executable_paths,
                 precheck_status=standalone_precheck_status,
             )
 
@@ -1730,9 +1727,8 @@ class PipelineOrchestrator:
             shutil.copy2(source, dest)
         return "copy"
 
-    def _copy_file_asset_with_local_includes(
-        self, source: Path, dest_dir: Path
-    ) -> None:
+    @staticmethod
+    def _copy_file_asset_with_local_includes(source: Path, dest_dir: Path) -> None:
         root = source.parent.resolve()
         queue = [source.resolve()]
         copied: set[Path] = set()
