@@ -3696,15 +3696,15 @@ def _load_operator_build_config(config_path: Path | None) -> dict[str, Any]:
     return payload
 
 
-def _string_list_from_config(config: dict[str, Any], field: str) -> list[str]:
-    raw_value = config.get(field, [])
+def _string_list_from_config(config: dict[str, Any], config_key: str) -> list[str]:
+    raw_value = config.get(config_key, [])
     if not isinstance(raw_value, list):
         return []
     return [str(item) for item in raw_value if str(item)]
 
 
-def _env_from_config(config: dict[str, Any], field: str) -> dict[str, str]:
-    raw_value = config.get(field, {})
+def _env_from_config(config: dict[str, Any], config_key: str) -> dict[str, str]:
+    raw_value = config.get(config_key, {})
     if not isinstance(raw_value, dict):
         return {}
     return {str(key): str(value) for key, value in raw_value.items()}

@@ -606,12 +606,14 @@ class PipelineOrchestrator:
         resolved_build_config = build_config or {"status": "ready"}
         build_env = resolved_build_config.get("build_env")
         runtime_env = resolved_build_config.get("runtime_env")
+        runtime_env_keys: list[str] = []
         if isinstance(build_env, dict) or isinstance(runtime_env, dict):
             env = (self.env or os.environ).copy()
             if isinstance(build_env, dict):
                 env.update({str(key): str(value) for key, value in build_env.items()})
             if isinstance(runtime_env, dict):
                 env.update({str(key): str(value) for key, value in runtime_env.items()})
+                runtime_env_keys = sorted(str(key) for key in runtime_env)
             self.env = env
         if allow_mock_npu:
             if self.env is None:
@@ -707,16 +709,7 @@ class PipelineOrchestrator:
                 "support_dirs": resolved_build_config.get("support_dirs", []),
                 "link_dirs": resolved_build_config.get("link_dirs", []),
                 "link_libraries": resolved_build_config.get("link_libraries", []),
-                "runtime_env_keys": sorted(
-                    str(key)
-                    for key in (
-                        resolved_build_config.get("runtime_env", {})
-                        if isinstance(
-                            resolved_build_config.get("runtime_env", {}), dict
-                        )
-                        else {}
-                    )
-                ),
+                "runtime_env_keys": runtime_env_keys,
             },
             "allow_structural_toolchain": allow_structural_toolchain,
             "allow_mock_npu": allow_mock_npu,
