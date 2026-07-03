@@ -1236,13 +1236,18 @@ def _normalize_ascend_force_includes(raw_paths: list[str] | None) -> list[str]:
 
 def _ascend_derived_include_dirs(cann_path: Path) -> list[str]:
     asc_root = cann_path / "aarch64-linux" / "asc"
-    return [
-        str(asc_root / "include"),
-        str(asc_root / "include" / "basic_api"),
-        str(asc_root / "impl"),
-        str(asc_root / "impl" / "basic_api"),
-        str(asc_root),
+    ascendc_highlevel_root = (
+        cann_path / "aarch64-linux" / "ascendc" / "include" / "highlevel_api"
+    )
+    candidates = [
+        asc_root / "include",
+        asc_root / "include" / "basic_api",
+        ascendc_highlevel_root,
+        asc_root / "impl",
+        asc_root / "impl" / "basic_api",
+        asc_root,
     ]
+    return [str(path) for path in candidates if path.is_dir()]
 
 
 def _normalize_ascend_compile_contract(
@@ -3338,9 +3343,6 @@ class RuntimeInputSpecManifestInput(NamedTuple):
 def _sk_runtime_input_spec_manifest(
     request: RuntimeInputSpecManifestInput,
 ) -> dict[str, Any]:
-    runtime_input_value_checks = []
-    for name in SK_RUNTIME_INPUT_VALUES_CHECK_NAMES:
-        runtime_input_value_checks.append(request.check_results[name])
     return {
         "status": request.status,
         "analysis_output_dir": str(request.output_dir.resolve()),

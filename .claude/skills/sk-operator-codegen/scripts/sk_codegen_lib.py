@@ -2365,8 +2365,11 @@ def render_setup_py_aclgraph_style(
     *,
     package_name: str = "op_extension",
     package_version: str = "0.1.0",
+    operator_build_config: dict[str, Any] | None = None,
+    package_data: list[str] | None = None,
 ) -> str:
     entry_specs = _aclgraph_entry_specs(entries)
+    build_config = _setup_build_config(operator_build_config or {})
     template = """import glob
 import importlib.util
 import os
@@ -2382,6 +2385,8 @@ from setuptools.command.build_ext import build_ext
 BASE_DIR = os.path.dirname(os.path.realpath(__file__))
 MODULE_BASE = "__MODULE_NAME__"
 ENTRY_SPECS = __ENTRY_SPECS__
+OPERATOR_BUILD_CONFIG = __OPERATOR_BUILD_CONFIG__
+PACKAGE_DATA = __PACKAGE_DATA__
 
 # Source-backed automatic mappings only. The Ascend 950 rule is backed by:
 # - Ascend/pytorch torch_npu SoC enum/string handling for Ascend950.
@@ -2533,6 +2538,37 @@ def get_arch_compile_flags(npu_arch):
     return ["--npu-arch=%s" % npu_arch]
 
 
+def _config_list(name):
+    values = OPERATOR_BUILD_CONFIG.get(name, [])
+    if not isinstance(values, list):
+        return []
+    return [str(value) for value in values if str(value)]
+
+
+def _config_env(name):
+    values = OPERATOR_BUILD_CONFIG.get(name, {})
+    if not isinstance(values, dict):
+        return {}
+    return {str(key): str(value) for key, value in values.items()}
+
+
+def _compile_definition_flags():
+    flags = []
+    for value in _config_list("compile_definitions"):
+        flags.append(value if value.startswith("-D") else "-D%s" % value)
+    return flags
+
+
+def _link_library_flags():
+    flags = []
+    for value in _config_list("link_libraries"):
+        if value.startswith("-l") or value.startswith("-Wl,") or value.endswith((".so", ".a")):
+            flags.append(value)
+        else:
+            flags.append("-l%s" % value)
+    return flags
+
+
 def _safe_parse_jobs(value):
     if value is None or str(value).strip() == "":
         return None
@@ -2551,7 +2587,9 @@ def get_dependency_paths():
     torch_include_paths = cpp_extension.include_paths()
     torch_lib = os.path.join(os.path.dirname(torch.__file__), "lib")
     all_include_paths = [BASE_DIR, os.path.join(BASE_DIR, "csrc"), *torch_include_paths, python_include]
+    all_include_paths.extend(_config_list("include_dirs"))
     all_libs = [python_lib, torch_lib]
+    all_libs.extend(_config_list("link_dirs"))
     torch_npu_spec = importlib.util.find_spec("torch_npu")
     if torch_npu_spec is not None and torch_npu_spec.origin:
         torch_npu_path = os.path.dirname(os.path.realpath(torch_npu_spec.origin))
@@ -2573,6 +2611,8 @@ class AscendBuildExtension(build_ext):
 
     def build_extension(self, ext):
         self._check_bisheng_compiler()
+        for key, value in _config_env("build_env").items():
+            os.environ.setdefault(key, value)
         dep_paths = get_dependency_paths()
         ext_fullpath = self.get_ext_fullpath(ext.name)
         os.makedirs(os.path.dirname(ext_fullpath), exist_ok=True)
@@ -2592,10 +2632,16 @@ class AscendBuildExtension(build_ext):
             "-DTORCH_EXTENSION_NAME=%s" % extension_basename,
             "-ltorch_npu", "-ltorch", "-lc10",
         ]
+        for force_include in _config_list("force_includes"):
+            compile_cmd.extend(["-include", force_include])
         compile_cmd.extend(getattr(ext, "compile_defines", []))
+        compile_cmd.extend(_compile_definition_flags())
         compile_cmd.extend(getattr(ext, "compile_options", []))
+        compile_cmd.extend(_config_list("compile_options"))
         compile_cmd.extend("-I%s" % include_dir for include_dir in dep_paths["all_includes"] if include_dir)
         compile_cmd.extend("-L%s" % lib_dir for lib_dir in dep_paths["all_libs"] if lib_dir)
+        compile_cmd.extend(_link_library_flags())
+        compile_cmd.extend(_config_list("link_options"))
         compile_cmd.extend(ext.sources)
         compile_cmd.extend(["-o", ext_fullpath])
         try:
@@ -2636,13 +2682,15 @@ setup(
     version="__PACKAGE_VERSION__",
     ext_modules=extensions,
     packages=find_packages(),
-    package_data={"__PYTHON_PACKAGE__": ["_name_resolution.json"]},
+    package_data={"__PYTHON_PACKAGE__": PACKAGE_DATA},
     cmdclass={"build_ext": AscendBuildExtension},
 )
 """
     return (
         template.replace("__MODULE_NAME__", module_name)
         .replace("__ENTRY_SPECS__", repr(entry_specs))
+        .replace("__OPERATOR_BUILD_CONFIG__", repr(build_config))
+        .replace("__PACKAGE_DATA__", repr(package_data or ["_name_resolution.json"]))
         .replace("__PACKAGE_NAME__", package_name)
         .replace("__PYTHON_PACKAGE__", _safe_identifier(package_name, "op_extension"))
         .replace("__PACKAGE_VERSION__", package_version)
@@ -3266,7 +3314,10 @@ def render_standalone_compare_source(
 
 
 def render_standalone_cmake(
-    *, npu_arch: str, runtime_sources: dict[str, str] | None = None
+    *,
+    npu_arch: str,
+    runtime_sources: dict[str, str] | None = None,
+    operator_build_config: dict[str, Any] | None = None,
 ) -> str:
     resolved_npu_arch = str(npu_arch or "").strip()
     if not resolved_npu_arch:
@@ -3279,6 +3330,50 @@ def render_standalone_cmake(
         for target, source in targets.items()
     )
     target_items = " ".join(targets)
+    build_config = operator_build_config or {}
+    extra_include_dirs = _string_list_from_config(build_config, "include_dirs")
+    extra_link_dirs = _string_list_from_config(build_config, "link_dirs")
+    extra_link_libraries = _string_list_from_config(build_config, "link_libraries")
+    extra_link_options = _string_list_from_config(build_config, "link_options")
+    extra_compile_options = _string_list_from_config(build_config, "compile_options")
+    extra_force_includes = _string_list_from_config(build_config, "force_includes")
+    compile_definitions = _string_list_from_config(build_config, "compile_definitions")
+    include_dir_lines = "\n".join(
+        f"        {_cmake_quoted(path)}" for path in extra_include_dirs
+    )
+    link_dir_block = ""
+    if extra_link_dirs:
+        link_dir_lines = "\n".join(
+            f"        {_cmake_quoted(path)}" for path in extra_link_dirs
+        )
+        link_dir_block = f"""
+    target_link_directories(${{runtime_target}} PRIVATE
+{link_dir_lines}
+    )
+"""
+    link_library_lines = "\n".join(
+        f"        {_cmake_quoted(value)}" for value in extra_link_libraries
+    )
+    link_option_lines = "\n".join(
+        f"        {_cmake_quoted(value)}" for value in extra_link_options
+    )
+    compile_option_items = []
+    for value in compile_definitions:
+        compile_option_items.append(value if value.startswith("-D") else f"-D{value}")
+    compile_option_items.extend(extra_compile_options)
+    for force_include in extra_force_includes:
+        compile_option_items.extend(["-include", force_include])
+    compile_option_lines = "\n".join(
+        f"        {_cmake_quoted(value)}" for value in compile_option_items
+    )
+    if include_dir_lines:
+        include_dir_lines = "\n" + include_dir_lines
+    if link_library_lines:
+        link_library_lines = "\n" + link_library_lines
+    if link_option_lines:
+        link_option_lines = "\n" + link_option_lines
+    if compile_option_lines:
+        compile_option_lines = "\n" + compile_option_lines
     return f"""cmake_minimum_required(VERSION 3.16)
 
 find_package(ASC REQUIRED)
@@ -3300,18 +3395,25 @@ endforeach()
 foreach(runtime_target IN ITEMS {target_items})
     target_include_directories(${{runtime_target}} PRIVATE
         ${{STANDALONE_INCLUDE_DIRS}}
+{include_dir_lines}
     )
+{link_dir_block}
 
     target_link_libraries(${{runtime_target}} PRIVATE
         ascendsk acl_rt acl_rtc ascendcl ascend_dump runtime error_manager
         c_sec unified_dlog ascendc_runtime profapi profimpl msprofiler
         stdc++ pthread
+{link_library_lines}
     )
 
-    target_link_options(${{runtime_target}} PRIVATE -Wl,--allow-shlib-undefined)
+    target_link_options(${{runtime_target}} PRIVATE
+        -Wl,--allow-shlib-undefined
+{link_option_lines}
+    )
 
     target_compile_options(${{runtime_target}} PRIVATE
         $<$<COMPILE_LANGUAGE:ASC>:--npu-arch={resolved_npu_arch}>
+{compile_option_lines}
     )
 endforeach()
 """
@@ -3421,6 +3523,7 @@ def generate_standalone_compare_artifacts(
     runtime_fixture_dir: Path | None = None,
     target_chip: str = "",
     npu_arch: str = "",
+    operator_build_config: Path | None = None,
 ) -> dict[str, Any]:
     manifest_path = aggregate_output_dir / "operator-sk-adapted.json"
     source_dir = aggregate_output_dir / "operator-sk-adapted"
@@ -3437,6 +3540,7 @@ def generate_standalone_compare_artifacts(
         raise ValueError(
             "standalone compare requires aclgraph-canonical adapted output"
         )
+    build_config = _load_operator_build_config(operator_build_config)
     target_arch_resolution = _standalone_target_arch_resolution(
         target_chip=target_chip, npu_arch=npu_arch
     )
@@ -3526,6 +3630,7 @@ def generate_standalone_compare_artifacts(
             render_standalone_cmake(
                 npu_arch=resolved_npu_arch,
                 runtime_sources={k: Path(v).name for k, v in runtime_sources.items()},
+                operator_build_config=build_config,
             ),
             encoding="utf-8",
         )
@@ -3542,6 +3647,7 @@ def generate_standalone_compare_artifacts(
         "target_chip": target_chip,
         "npu_arch": resolved_npu_arch,
         "target_arch_resolution": target_arch_resolution,
+        "operator_build_config": build_config,
         "runtime_compare": primary_runtime,
         "runtime_sources": runtime_sources,
         "entry_targets": entry_targets,
@@ -3570,6 +3676,78 @@ def _safe_identifier(text: str, fallback: str) -> str:
     if safe[0].isdigit():
         safe = f"_{safe}"
     return safe
+
+
+def _cmake_quoted(value: str) -> str:
+    return '"' + str(value).replace("\\", "/").replace('"', '\\"') + '"'
+
+
+def _load_operator_build_config(config_path: Path | None) -> dict[str, Any]:
+    if config_path is None:
+        return {
+            "schema_version": "sk.operator.build_config.resolved.v1",
+            "status": "ready",
+        }
+    if not config_path.is_file():
+        raise ValueError(f"resolved operator build config not found: {config_path}")
+    payload = json.loads(config_path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise ValueError("resolved operator build config must be a JSON object")
+    return payload
+
+
+def _string_list_from_config(config: dict[str, Any], field: str) -> list[str]:
+    raw_value = config.get(field, [])
+    if not isinstance(raw_value, list):
+        return []
+    return [str(item) for item in raw_value if str(item)]
+
+
+def _env_from_config(config: dict[str, Any], field: str) -> dict[str, str]:
+    raw_value = config.get(field, {})
+    if not isinstance(raw_value, dict):
+        return {}
+    return {str(key): str(value) for key, value in raw_value.items()}
+
+
+def _setup_build_config(config: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "include_dirs": _string_list_from_config(config, "include_dirs"),
+        "force_includes": _string_list_from_config(config, "force_includes"),
+        "compile_options": _string_list_from_config(config, "compile_options"),
+        "compile_definitions": _string_list_from_config(config, "compile_definitions"),
+        "link_dirs": _string_list_from_config(config, "link_dirs"),
+        "link_libraries": _string_list_from_config(config, "link_libraries"),
+        "link_options": _string_list_from_config(config, "link_options"),
+        "build_env": _env_from_config(config, "build_env"),
+        "runtime_env": _env_from_config(config, "runtime_env"),
+    }
+
+
+def _copy_operator_package_files(
+    package_dir: Path, build_config: dict[str, Any]
+) -> list[str]:
+    copied: list[str] = []
+    resources_dir = package_dir / "_resources"
+    used_names: set[str] = set()
+    for raw_path in _string_list_from_config(build_config, "package_files"):
+        source = Path(raw_path)
+        if not source.exists():
+            raise ValueError(f"operator package file not found: {source}")
+        safe_name = re.sub(r"[^A-Za-z0-9_.-]+", "_", source.name).strip("._-")
+        safe_name = safe_name or "resource"
+        if safe_name in used_names:
+            raise ValueError(f"duplicate operator package resource name: {safe_name}")
+        used_names.add(safe_name)
+        dest = resources_dir / safe_name
+        if source.is_dir():
+            shutil.copytree(source, dest, symlinks=True)
+            copied.append(f"_resources/{safe_name}/")
+        else:
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(source, dest)
+            copied.append(f"_resources/{safe_name}")
+    return copied
 
 
 def _manifest_entries(adapted_manifest: dict[str, Any]) -> list[dict[str, Any]]:
@@ -3639,10 +3817,12 @@ def aggregate_aclgraph_adapted_trees(
     *,
     package_name: str = "op_extension",
     package_version: str = "0.1.0",
+    operator_build_config: Path | None = None,
 ) -> dict[str, Any]:
     """Render one aclgraph-canonical package tree from multiple adapted outputs."""
     if not adapted_roots:
         raise ValueError("at least one adapted output directory is required")
+    build_config = _load_operator_build_config(operator_build_config)
     output_root.mkdir(parents=True, exist_ok=True)
     adapted_dir = output_root / "operator-sk-adapted"
     if adapted_dir.exists():
@@ -3776,6 +3956,10 @@ def aggregate_aclgraph_adapted_trees(
     package_dir_name = _safe_identifier(package_name, "op_extension")
     op_extension = adapted_dir / package_dir_name
     op_extension.mkdir(parents=True)
+    copied_package_files = _copy_operator_package_files(op_extension, build_config)
+    package_data = ["_name_resolution.json"]
+    if copied_package_files:
+        package_data.append("_resources/**/*")
     (op_extension / "__init__.py").write_text(
         render_op_extension_init_py(module_name, pybind_entries), encoding="utf-8"
     )
@@ -3795,6 +3979,8 @@ def aggregate_aclgraph_adapted_trees(
             pybind_entries,
             package_name=package_name,
             package_version=package_version,
+            operator_build_config=build_config,
+            package_data=package_data,
         ),
         encoding="utf-8",
     )
@@ -3808,6 +3994,10 @@ def aggregate_aclgraph_adapted_trees(
                 if name_resolution_payload is not None
                 else []
             ),
+            *[
+                f"operator-sk-adapted/{package_dir_name}/{path}"
+                for path in copied_package_files
+            ],
             "operator-sk-adapted/setup.py",
         ]
     )
@@ -3824,6 +4014,8 @@ def aggregate_aclgraph_adapted_trees(
         "pybind_module": module_name,
         "canonical_written_files": canonical_written,
         "target_chips": ",".join(dict.fromkeys(target_chips)),
+        "operator_build_config": build_config,
+        "operator_package_files": copied_package_files,
         "name_resolution": name_resolution_payload
         or {"policy": "none", "renamed_entry_count": 0, "resolutions": []},
         "per_file": aggregate_per_file,

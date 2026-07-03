@@ -95,6 +95,8 @@ CLI 默认 profile 是 `release`。如果只是开发验证，建议显式传 `-
 | `--asset-root-mode auto|aggregate|separate` | 扫描目录时自动聚合或按资产分别运行 |
 | `--duplicate-entry-policy reject|namespace` | 聚合模式遇到同名入口时默认拒绝；显式选择 `namespace` 后按资产命名空间改名并保留原始 launch target |
 | `--io-contract FILE` | 明确算子 tensor IO 语义；多 tensor 参数的输入、输出、workspace 和 pybind 返回值不能由脚本猜测，需通过该契约提供 |
+| `--operator-build-config FILE` | 声明用户自定义 include、support source、链接库、编译参数、环境变量和需要打包的资源 |
+| `--operator-build-config-set FIELD=JSON_VALUE` | 临时覆盖 build config 字段；可重复传入，适合调试 |
 | `--stages 01,02,03` | 只运行指定阶段 |
 | `--profile fast|release` | 选择快速或发布 profile |
 | `--target-chip ascend-910b` | 目标芯片；仅对有来源背书的芯片映射生成 `--npu-arch` |
@@ -171,6 +173,44 @@ IO 契约示例：
 被 `--duplicate-entry-policy namespace` 改名后，会优先匹配公开名，再回退到原始 entry 名。没有契约时，
 多 tensor-like 参数的算子会进入 `needs-human`，避免把变量名当成输出语义。契约匹配但遗漏 tensor-like
 参数时同样会进入 `needs-human`，需要把遗漏项归类到 `inputs`、`outputs` 或 `workspaces`。
+
+构建配置示例：
+
+```json
+{
+  "schema_version": "sk.operator.build_config.v1",
+  "include_dirs": ["include"],
+  "support_dirs": ["common"],
+  "force_includes": ["include/force_config.h"],
+  "compile_options": ["-DEXTRA_OPTION=1"],
+  "compile_definitions": ["EXTRA_DEFINE=1"],
+  "link_dirs": ["lib"],
+  "link_libraries": ["custom_runtime"],
+  "link_options": ["-Wl,--as-needed"],
+  "build_env": {"CUSTOM_BUILD_FLAG": "1"},
+  "runtime_env": {"CUSTOM_RUNTIME_FLAG": "1"},
+  "package_files": ["resources/table.json"]
+}
+```
+
+`operator-build-config.json` 只表达用户私有依赖，是流水线输入契约，不是 wheel 的运行交付物。CANN 标准依赖由 pipeline 根据
+`--target-cann`、`ASCEND_HOME_PATH` 或 `ASCEND_TOOLKIT_HOME` 推导，并在
+`work/stage-work/<asset>/operator-build-config.resolved.json` 记录候选路径和存在性。
+使用配置文件时，相对路径按 JSON 文件所在目录解析；只使用 CLI 覆盖时，相对路径按当前执行目录解析。
+核心脚本不会全仓搜索 include/lib。显式声明的绝对路径会按用户输入直接使用；
+路径不存在时报错，路径位于 repo/CANN 之外时只在 resolved 记录中标记为 `external-explicit`，不阻断构建。
+只有 `package_files` 中声明的运行期资源会被复制进 wheel 的 `_resources/`。
+
+调试时可以用 `--operator-build-config-set FIELD=JSON_VALUE` 临时覆盖已支持的 build config 字段：
+
+```bash
+--operator-build-config-set include_dirs='["include"]'
+--operator-build-config-set build_env.DEBUG='"1"'
+--operator-build-config-set compile_options='["-DEXTRA=1"]'
+```
+
+覆盖值必须是合法 JSON。使用配置文件时，相对路径仍按配置文件所在目录解析；只使用
+`--operator-build-config-set` 时，相对路径按当前执行目录解析。
 
 阶段说明：
 

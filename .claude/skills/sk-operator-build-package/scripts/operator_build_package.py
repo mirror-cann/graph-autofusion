@@ -1317,13 +1317,18 @@ def _normalize_ascend_force_includes(raw_paths: list[str] | None) -> list[str]:
 
 def _ascend_derived_include_dirs(cann_path: Path) -> list[str]:
     asc_root = cann_path / "aarch64-linux" / "asc"
-    return [
-        str(asc_root / "include"),
-        str(asc_root / "include" / "basic_api"),
-        str(asc_root / "impl"),
-        str(asc_root / "impl" / "basic_api"),
-        str(asc_root),
+    ascendc_highlevel_root = (
+        cann_path / "aarch64-linux" / "ascendc" / "include" / "highlevel_api"
+    )
+    candidates = [
+        asc_root / "include",
+        asc_root / "include" / "basic_api",
+        ascendc_highlevel_root,
+        asc_root / "impl",
+        asc_root / "impl" / "basic_api",
+        asc_root,
     ]
+    return [str(path) for path in candidates if path.is_dir()]
 
 
 def _normalize_ascend_compile_contract(
@@ -7222,6 +7227,8 @@ def cmd_build_native_wheel(args: argparse.Namespace) -> int:
         "target_chips": env.get("SK_TARGET_CHIPS", ""),
         "torch_device_backend_autoload": env.get("TORCH_DEVICE_BACKEND_AUTOLOAD", ""),
         "structural": structural_toolchain,
+        "operator_build_config": binding_manifest.get("operator_build_config", {}),
+        "operator_package_files": binding_manifest.get("operator_package_files", []),
         "extension_module_pattern": binding_manifest.get(
             "extension_module_pattern", ""
         ),
@@ -7410,6 +7417,7 @@ def cmd_build_standalone_executable(args: argparse.Namespace) -> int:
         "standalone_verify_dir": verify_manifest["standalone_verify_dir"],
         "target_chip": args.target_chip or "",
         "target_cann": getattr(args, "target_cann", "") or "",
+        "operator_build_config": verify_manifest.get("operator_build_config", {}),
         "build_dir": str(build_dir),
         "configure_command": configure_cmd,
         "build_command": build_cmd,

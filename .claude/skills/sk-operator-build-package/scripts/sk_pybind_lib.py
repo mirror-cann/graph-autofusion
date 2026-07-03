@@ -168,6 +168,8 @@ def generate_pybind_artifacts(
         "extension_module_pattern": f"{package_dir_name}.<entry_module_base>_<arch_suffix>",
         "extension_modules_by_entry": extension_modules_by_entry,
         "supported_arches_by_entry": supported_arches_by_entry,
+        "operator_build_config": adapted_manifest.get("operator_build_config", {}),
+        "operator_package_files": adapted_manifest.get("operator_package_files", []),
         "kernel_entries": [
             {
                 "entry_name": entry["entry_name"],

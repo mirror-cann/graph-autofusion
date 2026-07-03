@@ -1804,13 +1804,18 @@ def _normalize_ascend_force_includes(raw_paths: list[str] | None) -> list[str]:
 
 def _ascend_derived_include_dirs(cann_path: Path) -> list[str]:
     asc_root = cann_path / "aarch64-linux" / "asc"
-    return [
-        str(asc_root / "include"),
-        str(asc_root / "include" / "basic_api"),
-        str(asc_root / "impl"),
-        str(asc_root / "impl" / "basic_api"),
-        str(asc_root),
+    ascendc_highlevel_root = (
+        cann_path / "aarch64-linux" / "ascendc" / "include" / "highlevel_api"
+    )
+    candidates = [
+        asc_root / "include",
+        asc_root / "include" / "basic_api",
+        ascendc_highlevel_root,
+        asc_root / "impl",
+        asc_root / "impl" / "basic_api",
+        asc_root,
     ]
+    return [str(path) for path in candidates if path.is_dir()]
 
 
 def _normalize_ascend_compile_contract(
@@ -4918,6 +4923,11 @@ def cmd_aggregate_sk_adapted(args: argparse.Namespace) -> int:
         output_dir,
         package_name=args.aggregate_wheel_name,
         package_version=args.package_version,
+        operator_build_config=(
+            Path(args.operator_build_config_resolved).resolve()
+            if args.operator_build_config_resolved
+            else None
+        ),
     )
     entry_count = 0
     for item in manifest["per_file"]:
@@ -4957,6 +4967,11 @@ def cmd_generate_standalone_compare(args: argparse.Namespace) -> int:
         runtime_fixture_dir=fixture_dir,
         target_chip=args.target_chip or "",
         npu_arch=args.npu_arch or "",
+        operator_build_config=(
+            Path(args.operator_build_config_resolved).resolve()
+            if args.operator_build_config_resolved
+            else None
+        ),
     )
     _emit(
         json.dumps({"status": manifest["status"], "entries": len(manifest["entries"])})
@@ -5327,6 +5342,10 @@ def build_parser() -> argparse.ArgumentParser:
         default="0.1.0",
         help="Distribution package version for the aggregate wheel",
     )
+    aggregate_sk.add_argument(
+        "--operator-build-config-resolved",
+        help="Resolved operator-build-config JSON produced by sk-operator-pipeline",
+    )
     aggregate_sk.set_defaults(func=cmd_aggregate_sk_adapted)
 
     standalone_compare = subparsers.add_parser(
@@ -5354,6 +5373,10 @@ def build_parser() -> argparse.ArgumentParser:
         "--npu-arch",
         default="",
         help="ASC --npu-arch value. When omitted, --target-chip must resolve to one source-backed arch.",
+    )
+    standalone_compare.add_argument(
+        "--operator-build-config-resolved",
+        help="Resolved operator-build-config JSON produced by sk-operator-pipeline",
     )
     standalone_compare.set_defaults(func=cmd_generate_standalone_compare)
 

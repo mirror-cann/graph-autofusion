@@ -527,6 +527,7 @@ def _run_asset_root_separately(
     orchestrator: Any,
     wheel_mode: str | None,
     build_cache_dir: Path,
+    build_config: dict[str, Any],
 ) -> tuple[int, dict[str, Any]]:
     from sk_artifact_layout import ArtifactLayout, package_name_for_slug
     from sk_pipeline_orchestrator import PipelineOrchestrator
@@ -578,6 +579,7 @@ def _run_asset_root_separately(
                     if getattr(args, "io_contract", None)
                     else None
                 ),
+                build_config=build_config,
                 allow_structural_toolchain=bool(
                     getattr(args, "allow_structural_toolchain", False)
                 ),
@@ -882,6 +884,7 @@ def cmd_run_sk_pipeline(args: argparse.Namespace) -> int:
         _sys.path.insert(0, str(SCRIPT_DIR))
     from sk_pipeline_orchestrator import OrchestratorError, PipelineOrchestrator
     from sk_artifact_layout import prepare_output_dir
+    from sk_operator_build_config import BuildConfigError, resolve_operator_build_config
 
     skills_root = _resolve_skills_root(args.skills_root)
     repo_root = _find_repo_root(args.repo_root)
@@ -956,6 +959,20 @@ def cmd_run_sk_pipeline(args: argparse.Namespace) -> int:
     orchestrator = PipelineOrchestrator(
         skills_root, _sys.executable, repo_root=repo_root
     )
+    try:
+        build_config = resolve_operator_build_config(
+            repo_root=repo_root,
+            config_path=(
+                Path(args.operator_build_config).resolve()
+                if getattr(args, "operator_build_config", None)
+                else None
+            ),
+            cli_base_dir=Path.cwd().resolve(),
+            target_cann=getattr(args, "target_cann", "") or "",
+            overrides=getattr(args, "operator_build_config_set", None),
+        )
+    except BuildConfigError as exc:
+        raise CliUsageError(str(exc)) from exc
     wheel_mode = (
         "never" if args.no_package and args.wheel_mode is None else args.wheel_mode
     )
@@ -997,6 +1014,7 @@ def cmd_run_sk_pipeline(args: argparse.Namespace) -> int:
                 orchestrator=orchestrator,
                 wheel_mode=wheel_mode,
                 build_cache_dir=build_cache_dir,
+                build_config=build_config,
             )
             _emit(
                 json.dumps(
@@ -1081,6 +1099,7 @@ def cmd_run_sk_pipeline(args: argparse.Namespace) -> int:
                 if getattr(args, "io_contract", None)
                 else None
             ),
+            build_config=build_config,
             allow_structural_toolchain=bool(
                 getattr(args, "allow_structural_toolchain", False)
             ),
@@ -1211,6 +1230,19 @@ def build_parser() -> argparse.ArgumentParser:
         help=(
             "JSON tensor IO contract forwarded to adapt-sk-from-global; required "
             "when multi-tensor output semantics are ambiguous"
+        ),
+    )
+    pipeline.add_argument(
+        "--operator-build-config",
+        help="JSON build config declaring extra operator include/link/env/package inputs",
+    )
+    pipeline.add_argument(
+        "--operator-build-config-set",
+        action="append",
+        default=[],
+        help=(
+            "Override one operator build config field as FIELD=JSON_VALUE; "
+            "repeatable and intended for temporary debugging"
         ),
     )
     pipeline.add_argument(

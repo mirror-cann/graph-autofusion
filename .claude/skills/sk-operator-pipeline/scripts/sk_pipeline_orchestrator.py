@@ -584,6 +584,7 @@ class PipelineOrchestrator:
         name_resolution: Path | None = None,
         asset_names: dict[str, str] | None = None,
         io_contract: Path | None = None,
+        build_config: dict[str, Any] | None = None,
         allow_structural_toolchain: bool = False,
         allow_mock_npu: bool = False,
     ) -> dict[str, Any]:
@@ -602,6 +603,16 @@ class PipelineOrchestrator:
         output_dir = public_output_dir / "work" / "stage-work" / run_slug
         output_dir.mkdir(parents=True, exist_ok=True)
         self._current_target_chip = target_chip
+        resolved_build_config = build_config or {"status": "ready"}
+        build_env = resolved_build_config.get("build_env")
+        runtime_env = resolved_build_config.get("runtime_env")
+        if isinstance(build_env, dict) or isinstance(runtime_env, dict):
+            env = (self.env or os.environ).copy()
+            if isinstance(build_env, dict):
+                env.update({str(key): str(value) for key, value in build_env.items()})
+            if isinstance(runtime_env, dict):
+                env.update({str(key): str(value) for key, value in runtime_env.items()})
+            self.env = env
         if allow_mock_npu:
             if self.env is None:
                 self.env = os.environ.copy()
@@ -646,6 +657,8 @@ class PipelineOrchestrator:
         if not cache_dir.is_absolute():
             cache_dir = self.repo_root / cache_dir
         cache_dir = cache_dir.resolve()
+        build_config_path = output_dir / "operator-build-config.resolved.json"
+        self._write_json(build_config_path, resolved_build_config)
         config = {
             "schema_version": 1,
             "assets": asset_understanding["assets"],
@@ -664,6 +677,10 @@ class PipelineOrchestrator:
             "jobs": resolved_jobs,
             "name_resolution": str(name_resolution) if name_resolution else "",
             "io_contract": str(io_contract) if io_contract else "",
+            "operator_build_config": str(build_config_path),
+            "operator_build_config_status": resolved_build_config.get(
+                "status", "ready"
+            ),
             "allow_structural_toolchain": allow_structural_toolchain,
             "allow_mock_npu": allow_mock_npu,
         }
@@ -681,6 +698,26 @@ class PipelineOrchestrator:
             "wheel_mode": resolved_wheel_mode,
             "build_cache_dir": str(cache_dir),
             "jobs": resolved_jobs,
+            "operator_build_config": {
+                "path": str(build_config_path),
+                "status": resolved_build_config.get("status", "ready"),
+                "source_config": resolved_build_config.get("source_config", ""),
+                "external_paths": resolved_build_config.get("external_paths", []),
+                "include_dirs": resolved_build_config.get("include_dirs", []),
+                "support_dirs": resolved_build_config.get("support_dirs", []),
+                "link_dirs": resolved_build_config.get("link_dirs", []),
+                "link_libraries": resolved_build_config.get("link_libraries", []),
+                "runtime_env_keys": sorted(
+                    str(key)
+                    for key in (
+                        resolved_build_config.get("runtime_env", {})
+                        if isinstance(
+                            resolved_build_config.get("runtime_env", {}), dict
+                        )
+                        else {}
+                    )
+                ),
+            },
             "allow_structural_toolchain": allow_structural_toolchain,
             "allow_mock_npu": allow_mock_npu,
             "public_output_dir": str(public_output_dir),
@@ -787,6 +824,9 @@ class PipelineOrchestrator:
                 self._materialize_input(stage_asset, inputs / "asset")
                 stage_io_contract = self._stage_io_contract(io_contract, inputs)
                 support_args: list[str] = []
+                raw_support_specs = resolved_build_config.get("support_dir_specs", [])
+                if isinstance(raw_support_specs, list):
+                    support_args.extend(str(item) for item in raw_support_specs)
                 source_asset = Path(op.get("source_asset", op["asset"]))
                 for (
                     support_name,
@@ -796,7 +836,9 @@ class PipelineOrchestrator:
                 ):
                     support_dest = inputs / "support" / support_name
                     self._materialize_input(support_source, support_dest)
-                    support_args.append(f"{support_name}={support_dest}")
+                    support_spec = f"{support_name}={support_dest}"
+                    if support_spec not in support_args:
+                        support_args.append(support_spec)
                 manifest = self._adapt(
                     inputs / "asset",
                     outputs,
@@ -913,6 +955,7 @@ class PipelineOrchestrator:
                 aggregate_outputs,
                 aggregate_wheel_name,
                 package_version,
+                build_config_path=build_config_path,
             )
             state["aggregate"] = {
                 "stage02_outputs": str(aggregate_outputs),
@@ -1199,6 +1242,7 @@ class PipelineOrchestrator:
                 standalone_outputs,
                 standalone_inputs / "runtime-fixtures",
                 target_chip,
+                build_config_path=build_config_path,
             )
             if standalone_manifest.get("status") == "needs-target-arch":
                 standalone_build_status = "skipped-target-arch"
@@ -1221,6 +1265,7 @@ class PipelineOrchestrator:
                     target_chip=target_chip,
                     target_cann=target_cann,
                     fixture_dir=standalone_inputs / "runtime-fixtures",
+                    build_config_path=build_config_path,
                 )
                 cached_standalone = self._copy_cached_namespace(
                     cache_dir, "standalone", standalone_cache_key, standalone_outputs
@@ -1384,6 +1429,7 @@ class PipelineOrchestrator:
                         target_cann=target_cann,
                         package_name=aggregate_wheel_name,
                         package_version=package_version,
+                        build_config_path=build_config_path,
                     )
                     wheel_summary["cache_key"] = wheel_cache_key
                     cached_wheel = None
@@ -2115,6 +2161,8 @@ class PipelineOrchestrator:
         output_dir: Path,
         package_name: str,
         package_version: str,
+        *,
+        build_config_path: Path | None = None,
     ) -> dict[str, Any]:
         argv: list[str] = ["aggregate-sk-adapted"]
         for adapted_output in adapted_outputs:
@@ -2129,6 +2177,8 @@ class PipelineOrchestrator:
                 package_version,
             ]
         )
+        if build_config_path is not None:
+            argv.extend(["--operator-build-config-resolved", str(build_config_path)])
         result = self._run("codegen", *argv)
         if result.returncode != 0:
             raise OrchestratorError(f"aggregate-sk-adapted failed: {result.stdout}")
@@ -2327,9 +2377,10 @@ class PipelineOrchestrator:
         output_dir: Path,
         fixture_dir: Path,
         target_chip: str,
+        *,
+        build_config_path: Path | None = None,
     ) -> dict[str, Any]:
-        result = self._run(
-            "codegen",
+        argv = [
             "generate-standalone-compare",
             str(aggregate_output_dir),
             "--output-dir",
@@ -2338,7 +2389,10 @@ class PipelineOrchestrator:
             str(fixture_dir),
             "--target-chip",
             target_chip,
-        )
+        ]
+        if build_config_path is not None:
+            argv.extend(["--operator-build-config-resolved", str(build_config_path)])
+        result = self._run("codegen", *argv)
         if result.returncode != 0:
             raise OrchestratorError(
                 f"generate-standalone-compare failed: {result.stdout}"
@@ -2387,6 +2441,7 @@ class PipelineOrchestrator:
         target_chip: str,
         target_cann: str,
         fixture_dir: Path,
+        build_config_path: Path | None = None,
     ) -> str:
         lib = self._cache_lib()
         env = self.env if self.env is not None else os.environ
@@ -2410,6 +2465,7 @@ class PipelineOrchestrator:
                         self._skill_path("build_package"),
                         self._script_dir("sk-operator-build-package")
                         / "sk_build_cache_lib.py",
+                        *([build_config_path] if build_config_path else []),
                     ]
                 ),
                 "files": lib.hash_paths(
@@ -2442,6 +2498,7 @@ class PipelineOrchestrator:
         target_cann: str,
         package_name: str,
         package_version: str,
+        build_config_path: Path | None = None,
     ) -> str:
         lib = self._cache_lib()
         package_root = wheel_output_dir / "operator-sk-adapted"
@@ -2463,6 +2520,7 @@ class PipelineOrchestrator:
                         / "sk_pybind_lib.py",
                         self._script_dir("sk-operator-build-package")
                         / "sk_build_cache_lib.py",
+                        *([build_config_path] if build_config_path else []),
                     ]
                 ),
                 "files": lib.hash_paths(

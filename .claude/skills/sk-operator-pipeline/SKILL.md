@@ -27,6 +27,8 @@ run-sk-pipeline [--asset OP ...] [--asset-root OPS_DIR]
                 [--target-chip ascend-910b]
                 [--profile fast|release]
                 [--io-contract operator-io-contract.json]
+                [--operator-build-config operator-build-config.json]
+                [--operator-build-config-set FIELD=JSON_VALUE]
                 [--verify-backend standalone|wheel|both|none]
                 [--wheel-mode never|cache|always] [--reuse-wheel WHL]
                 [--duplicate-entry-policy reject|namespace]
@@ -37,6 +39,8 @@ run-sk-pipeline [--asset OP ...] [--asset-root OPS_DIR]
 `--asset` 可重复，并且可以和 `--asset-root` 混用。`asset-root` 只扫描直接子目录，并筛选像算子源码资产的目录。
 
 `--io-contract` 为 codegen 声明 tensor IO 语义，包括 `inputs`、`outputs`、`workspaces` 和 `pybind_return_tensor`。核心脚本不根据参数名推断输出 buffer；多 tensor 参数语义不明确或契约不完整时，进入 `needs-human`，除非用户或 asset adapter 提供明确契约。asset-root 场景下，契约可以包含所有 entry 的全集；每个 Stage 02 子任务只消费匹配自己的 entry，优先匹配公开 namespace 名，再回退到源码 entry 名。
+
+`--operator-build-config` 为 pipeline 声明用户私有构建依赖，包括 include 目录、support source、强制 include、编译参数、链接参数、构建环境、运行环境和需要进入 wheel 的资源文件。调试时可用 `--operator-build-config-set FIELD=JSON_VALUE` 临时覆盖配置字段，例如 `build_env.DEBUG='"1"'`。CANN 标准依赖由 pipeline 根据 `--target-cann`、`ASCEND_HOME_PATH` 或 `ASCEND_TOOLKIT_HOME` 推导；核心脚本不全仓搜索 include/lib。显式声明的绝对路径会按用户输入直接使用，路径不存在时报错，repo/CANN 外部路径只在 resolved 记录中标记为 `external-explicit`。
 
 输出布局以阶段为主：
 
