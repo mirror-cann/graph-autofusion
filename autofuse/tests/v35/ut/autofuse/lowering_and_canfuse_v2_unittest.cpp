@@ -35,6 +35,7 @@
 #include "all_ops_cpp.h"
 #include "compliant_op_desc_builder.h"
 #include "esb_graph.h"
+#include "loop_test_utils.h"
 #include "platform_context.h"
 #include "base/att_const_values.h"
 #include "depends/runtime/src/runtime_stub.h"

@@ -40,6 +40,32 @@ namespace {
 std::string ToString(const af::Expression &e) {
   return std::string(e.Serialize().get());
 }
+
+template <typename BuildDownstream>
+void ExpectScalarDataBlkTensorInit(BuildDownstream build_downstream) {
+  af::AscGraph graph("test");
+
+  ScalarData scalar_data("scalar_data", graph);
+  scalar_data.ir_attr.SetIndex(0);
+  scalar_data.y.dtype = ge::DT_FLOAT;
+
+  build_downstream(graph, scalar_data);
+
+  auto scalar_node = graph.FindNode("scalar_data");
+  scalar_node->outputs[0].attr.mem.tensor_id = 0;
+
+  codegen::Kernel kernel(graph.GetName());
+  EXPECT_EQ(kernel.tpipe.AddTensor(ascgen_utils::GenValidName(scalar_node->GetName()), scalar_node->outputs[0],
+                                   "scalar_data_y"),
+            ge::SUCCESS);
+  EXPECT_EQ(kernel.ParseOptimizeInfo(scalar_node, scalar_node->outputs[0]), ge::SUCCESS);
+
+  std::string result;
+  EXPECT_EQ(kernel.tpipe.BlkTensorAllocAndInit(result), ge::SUCCESS);
+  EXPECT_NE(result.find("LocalTensor<float> local_blk_tensor_of_scalar_data"), std::string::npos);
+  EXPECT_NE(result.find("Duplicate(local_blk_tensor_of_scalar_data[0], static_cast<float>(scalar_data)"),
+            std::string::npos);
+}
 }  // namespace
 TEST(CodegenKernel, Type_StrWillReturnTypeName) {
   codegen::Type t{"int"};
@@ -6119,6 +6145,27 @@ TEST(CodegenKernel, ScalarDataOutputTensor_test) {
   std::string result;
   EXPECT_EQ(kernel.GlobalTensorInit(result), 0);
   EXPECT_EQ(result, "GlobalTensor<float> global_1;\nglobal_1.SetGlobalBuffer((__gm__ float*)scalar_data);\n");
+}
+
+TEST(CodegenKernel, ScalarDataSupportedBlkTensorInputsGenerateBlkTensorInit) {
+  ExpectScalarDataBlkTensorInit([](af::AscGraph &graph, ScalarData &scalar_data) {
+    af::ascir_op::Cast cast_op("cast");
+    graph.AddNode(cast_op);
+    cast_op.x = scalar_data.y;
+    cast_op.y.dtype = ge::DT_FLOAT16;
+  });
+
+  ExpectScalarDataBlkTensorInit([](af::AscGraph &graph, ScalarData &scalar_data) {
+    af::ascir_op::Where where_op("where");
+    graph.AddNode(where_op);
+    where_op.x2 = scalar_data.y;
+  });
+
+  ExpectScalarDataBlkTensorInit([](af::AscGraph &graph, ScalarData &scalar_data) {
+    af::ascir_op::Gt gt_op("gt");
+    graph.AddNode(gt_op);
+    gt_op.x2 = scalar_data.y;
+  });
 }
 
 // ==================== Conv2D 新增功能测试 ====================

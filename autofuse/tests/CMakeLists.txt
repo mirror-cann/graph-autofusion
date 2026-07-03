@@ -195,6 +195,9 @@ cmake_print_variables(ENABLE_OPEN_SRC)
 ####################################common############################################
 set(COMMON_DIR ${CODE_ROOT_DIR}/common)
 file(GLOB_RECURSE CODEGEN_COMMON_SRCS CONFIGURE_DEPENDS "${COMMON_DIR}/*.cpp" "${COMMON_DIR}/*.cc")
+list(REMOVE_ITEM CODEGEN_COMMON_SRCS
+        "${COMMON_DIR}/autofuse_backend_spec_api.cpp"
+)
 add_library(ascgen_common SHARED
         ${CODEGEN_COMMON_SRCS}
 )
@@ -360,7 +363,7 @@ add_library(codegen SHARED
 
 set(CMAKE_LIBRARY_PATH "${CMAKE_LIBRARY_PATH};${CODE_ROOT_DIR}/att/build")
 
-target_compile_options(codegen PRIVATE 
+target_compile_options(codegen PRIVATE
     -Wfloat-equal -Wextra
 )
 

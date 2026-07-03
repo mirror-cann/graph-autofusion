@@ -64,7 +64,7 @@ void OperatorImpl::SetInputImpl(const std::string &dst_name, const Operator &src
 void OperatorImpl::SetInputImpl(const std::string &dst_name, const OutHandler &out_handler) {
   GE_CHK_BOOL_EXEC(out_handler != nullptr,
                    REPORT_INNER_ERR_MSG("E18888", "param out_handler is nullptr, check invalid.");
-                   return, "[Check][Param] SetInputImpl faild, as out_handler is nullptr.");
+                   return, "[Check][Param] SetInputImpl failed, as out_handler is nullptr.");
   GE_CHK_BOOL_EXEC(!dst_name.empty(), REPORT_INNER_ERR_MSG("E18888", "param dst_name is empty, check invalid.");
                    return, "[Check][Param] dst name is empty");
   GE_CHK_BOOL_EXEC(op_desc_ != nullptr, REPORT_INNER_ERR_MSG("E18888", "op_desc_ is nullptr.");

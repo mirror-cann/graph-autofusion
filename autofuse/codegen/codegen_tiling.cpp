@@ -4279,7 +4279,7 @@ std::string TilingLib::GenTopnSelectorHelpersForInductor() const {
   ss << "    const std::string &repr = solutions[i].canonical_repr;" << std::endl;
   ss << "    const size_t chunk = 800;" << std::endl;
   ss << "    for (size_t off = 0; off < repr.size(); off += chunk) {" << std::endl;
-  ss << "      OP_LOGD(OP_NAME, \"  repr[%zu..%zu]: %.*s\", off, std::min(off + chunk, repr.size()), "
+  ss << "      OP_LOGI(OP_NAME, \"  repr[%zu..%zu]: %.*s\", off, std::min(off + chunk, repr.size()), "
      << "static_cast<int>(std::min(chunk, repr.size() - off)), repr.c_str() + off);" << std::endl;
   ss << "    }" << std::endl;
   ss << "  }" << std::endl;

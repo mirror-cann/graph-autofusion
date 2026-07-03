@@ -40,6 +40,7 @@
 #include "all_ops_cpp.h"
 #include "compliant_op_desc_builder.h"
 #include "esb_graph.h"
+#include "loop_test_utils.h"
 #include "op_creator_register.h"
 
 using namespace std;

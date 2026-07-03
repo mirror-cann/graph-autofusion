@@ -125,7 +125,8 @@ class TilingCodeGenImpl {
 
   void GenScheduleResultGetTilingCalling(const std::string &index, const std::string &ident = "");
   ge::Status GenGetAllSchedulesResults(const AscGraphNamepspaceMap &namespace_map);
-  void GenPGOUpdateTilingInfo(const size_t asc_graph_id, const size_t impl_graph_id);
+  void GenPGOUpdateTilingInfo(const size_t asc_graph_id, const size_t impl_graph_id,
+                              const std::map<size_t, std::pair<std::string, std::string>> &graph_info);
   void GenFillOtherGroupsGetTiling(const size_t asc_graph_id, const size_t impl_graph_id,
                                    const std::map<size_t, std::pair<std::string, std::string>> &graph_info,
                                    const std::pair<size_t, std::pair<std::string, std::string>> &group_info,

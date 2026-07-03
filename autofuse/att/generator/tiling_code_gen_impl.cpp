@@ -246,6 +246,16 @@ inline std::string GenCurMaxBlockDim(const std::string &item_prefix, const std::
   return "      cur_block_dim = " + (!block_num.empty() ? call_max_block_dim : cur_block) + ";";
 }
 
+inline std::string GenScheduleResultBlockDimExpr(
+    const std::map<size_t, std::pair<std::string, std::string>> &graph_info) {
+  std::string block_dim_expr;
+  for (const auto &group_info : graph_info) {
+    const std::string group_block_dim = "tiling_data." + group_info.second.second + "_tiling_data.get_block_dim()";
+    block_dim_expr = block_dim_expr.empty() ? group_block_dim : "Max(" + block_dim_expr + ", " + group_block_dim + ")";
+  }
+  return block_dim_expr.empty() ? "tiling_data.get_block_dim()" : block_dim_expr;
+}
+
 inline bool HasSymbol(const Expr &expr) {
   return !expr.FreeSymbols().empty();
 }
@@ -3457,7 +3467,10 @@ void TilingCodeGenImpl::GenPGOByCoreNumGetScheduleResult(
     tiling_func_.AddLine("");
   }
   tiling_func_.AddLine("  for (auto &tiling_data : tiling_data_list_tmp" + std::to_string(group_index) + ") {");
-  GenPGOUpdateTilingInfo(asc_graph_id, impl_graph_id);
+  if (enable_group_parallels_[asc_graph_id][impl_graph_id]) {
+    tiling_func_.AddLine("    const uint32_t ori_block_dim = tiling_data.get_block_dim();");
+  }
+  GenPGOUpdateTilingInfo(asc_graph_id, impl_graph_id, graph_info);
   tiling_func_.AddLine("  }");
   tiling_func_.AddLine("  tiling_data_list.insert(tiling_data_list.end(), tiling_data_list_tmp" +
                        std::to_string(group_index) + ".begin(), tiling_data_list_tmp" + std::to_string(group_index) +
@@ -3466,11 +3479,14 @@ void TilingCodeGenImpl::GenPGOByCoreNumGetScheduleResult(
   tiling_func_.AddLine("}");
 }
 
-void TilingCodeGenImpl::GenPGOUpdateTilingInfo(const size_t asc_graph_id, const size_t impl_graph_id) {
+void TilingCodeGenImpl::GenPGOUpdateTilingInfo(
+    const size_t asc_graph_id, const size_t impl_graph_id,
+    const std::map<size_t, std::pair<std::string, std::string>> &graph_info) {
+  tiling_func_.AddLine("      tiling_data.set_block_dim(" + GenScheduleResultBlockDimExpr(graph_info) + ");");
   GenUpdateWorkspace(asc_graph_id, impl_graph_id);
   if (enable_group_parallels_[asc_graph_id][impl_graph_id]) {
     tiling_func_.AddLine("      ArrangeBlockOffsetsAscGraph" + std::to_string(asc_graph_id) + "Result" +
-                         std::to_string(impl_graph_id) + "(tiling_data, tiling_data.get_block_dim());");
+                         std::to_string(impl_graph_id) + "(tiling_data, ori_block_dim);");
   }
 }
 
@@ -3536,7 +3552,7 @@ ge::Status TilingCodeGenImpl::GenPGOGetScheduleResultPerGroup(
   tiling_func_.AddLine("      workspace_map.reserve(workspace_map_filter_use.size());");
   tiling_func_.AddLine("      workspace_map.insert(workspace_map_filter_use.begin(), workspace_map_filter_use.end());");
   GenFillOtherGroupsGetTiling(asc_graph_id, impl_graph_id, graph_info, group_info, hardware_map);
-  GenPGOUpdateTilingInfo(asc_graph_id, impl_graph_id);
+  GenPGOUpdateTilingInfo(asc_graph_id, impl_graph_id, graph_info);
   tiling_func_.AddLine("      auto workspaceSizeTmp = GetWorkspaceSize(tiling_data);");
   tiling_func_.AddLine("      if (workspaceSizeTmp > workspaceSize) {");
   tiling_func_.AddLine("        workspaceSize = workspaceSizeTmp;");

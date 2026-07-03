@@ -61,7 +61,7 @@ class GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY Graph {
    */
   graphStatus SetOutputs(const std::vector<std::pair<GNode, int32_t>> &outputs);
 
-  Graph &SetOutputs(const std::vector<std::pair<Operator, std::vector<size_t>>> &output_indexs);
+  Graph &SetOutputs(const std::vector<std::pair<Operator, std::vector<size_t>>> &output_indexes);
 
   ATTRIBUTED_DEPRECATED(Graph &SetOutputs(const std::vector < std::pair < ge::Operator, AscendString) &)
   Graph &SetOutputs(const std::vector<std::pair<af::Operator, std::string>> &outputs);

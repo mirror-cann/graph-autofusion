@@ -27,6 +27,7 @@
 #include "post_process/scheduler_adapter/torch_adaption_fallback_load.h"
 #include "expression/testcase/source_stub.h"
 #include "depends/runtime/src/runtime_stub.h"
+#include "loop_test_utils.h"
 
 #include "platform_context.h"
 

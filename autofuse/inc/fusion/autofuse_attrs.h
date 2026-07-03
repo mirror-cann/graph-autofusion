@@ -11,10 +11,14 @@
 #ifndef AIR_CXX_COMPILER_GRAPH_OPTIMIZE_AUTOFUSE_INC_FUSION_AUTOFUSE_ATTRS_H_
 #define AIR_CXX_COMPILER_GRAPH_OPTIMIZE_AUTOFUSE_INC_FUSION_AUTOFUSE_ATTRS_H_
 
+#include <map>
 #include <memory>
+#include <set>
+#include <string>
+#include <utility>
 #include <vector>
 
-#include "fusion/loop_types.h"
+#include "fusion/fuse_type.h"
 #include "fusion/fusion_decider.h"
 #include "autoschedule/axis_group.h"
 #include "graph/debug/ge_attr_define.h"

@@ -7,6 +7,7 @@
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
+#include <algorithm>
 #include <string>
 #include <iostream>
 #include "gtest/gtest.h"
@@ -155,6 +156,26 @@ TEST_F(TestPipePerfExpr, case0) {
 }
 
 namespace {
+TensorPtr CreateTensor(const std::string &name, const std::string &dtype, const Expr &repeat) {
+  TensorPtr tensor = std::make_shared<Tensor>();
+  tensor->name = name;
+  tensor->data_type = dtype;
+  tensor->data_type_size = dtype == kFloat16 ? 2U : 4U;
+  tensor->repeat = {repeat};
+  tensor->stride = {af::sym::kSymbolOne};
+  return tensor;
+}
+
+NodeInfo CreateSubNodeInfo(const std::string &name, const std::string &type, const std::string &input_dtype,
+                           const std::string &output_dtype, const Expr &output_repeat) {
+  NodeInfo node_info;
+  node_info.name = name;
+  node_info.node_type = type;
+  node_info.inputs.emplace_back(CreateTensor(name + "_input_0", input_dtype, output_repeat));
+  node_info.outputs.emplace_back(CreateTensor(name + "_output_0", output_dtype, output_repeat));
+  return node_info;
+}
+
 // 辅助函数：验证 contrib 变量
 void VerifyContribVar(const std::map<Expr, TernaryOp, ExprCmp> &exe_times) {
   bool found_aiv_vec_contrib = false;
@@ -189,6 +210,88 @@ void VerifyDescriptions(const std::map<Expr, TernaryOp, ExprCmp> &exe_times) {
   EXPECT_TRUE(found_eq_desc) << "Should find Eq node with description";
 }
 }  // namespace
+
+TEST_F(TestPipePerfExpr, VectorFuncParserUsesSubgraphNodeTensorInfo) {
+  af::AscGraph graph("vf_graph");
+  ASSERT_EQ(af::ascir::cg::BuildVectorFuncTestGraph(graph), af::SUCCESS);
+
+  TuningSpacePtr ts = std::make_shared<TuningSpace>();
+  ASSERT_NE(ts, nullptr);
+  att::AscendGraphParser ascend_graph_parser(ts);
+  EXPECT_EQ(ascend_graph_parser.GraphParser(graph), af::SUCCESS);
+
+  const auto vector_func_iter = std::find_if(ts->node_infos.begin(), ts->node_infos.end(),
+                                             [](const NodeInfo &node) { return node.node_type == kVectorFunc; });
+  ASSERT_NE(vector_func_iter, ts->node_infos.end());
+  const auto abs_iter = std::find_if(vector_func_iter->sub_nodes_infos.begin(), vector_func_iter->sub_nodes_infos.end(),
+                                     [](const NodeInfo &node) { return node.name == "abs1"; });
+  ASSERT_NE(abs_iter, vector_func_iter->sub_nodes_infos.end());
+  ASSERT_FALSE(abs_iter->inputs.empty());
+  ASSERT_FALSE(abs_iter->outputs.empty());
+  EXPECT_EQ(abs_iter->inputs[0]->name, "abs1_input_0");
+  EXPECT_EQ(abs_iter->outputs[0]->name, "abs1_output_0");
+}
+
+TEST_F(TestPipePerfExpr, VectorFuncParserUsesGraphAxisWhenVectorizedAxisNotInTensorAxis) {
+  af::AscGraph graph("vf_graph");
+  ASSERT_EQ(af::ascir::cg::BuildVectorFuncTestGraph(graph), af::SUCCESS);
+  auto merged_axis = graph.CreateAxis("merged_axis", af::Axis::kAxisTypeMerged, CreateExpr("merged_size"), {}, -1);
+  af::AscGraph subgraph("vector_func");
+  ASSERT_EQ(graph.FindSubGraph("vector_func", subgraph), af::SUCCESS);
+  auto abs_node = subgraph.FindNode("abs1");
+  ASSERT_NE(abs_node, nullptr);
+  abs_node->outputs[0].attr.vectorized_axis = {merged_axis.id};
+  abs_node->outputs[0].attr.vectorized_strides = {af::sym::kSymbolOne};
+
+  TuningSpacePtr ts = std::make_shared<TuningSpace>();
+  ASSERT_NE(ts, nullptr);
+  att::AscendGraphParser ascend_graph_parser(ts);
+  EXPECT_EQ(ascend_graph_parser.GraphParser(graph), af::SUCCESS);
+
+  const auto vector_func_iter = std::find_if(ts->node_infos.begin(), ts->node_infos.end(),
+                                             [](const NodeInfo &node) { return node.node_type == kVectorFunc; });
+  ASSERT_NE(vector_func_iter, ts->node_infos.end());
+  const auto abs_iter = std::find_if(vector_func_iter->sub_nodes_infos.begin(), vector_func_iter->sub_nodes_infos.end(),
+                                     [](const NodeInfo &node) { return node.name == "abs1"; });
+  ASSERT_NE(abs_iter, vector_func_iter->sub_nodes_infos.end());
+  ASSERT_FALSE(abs_iter->outputs.empty());
+  ASSERT_EQ(abs_iter->outputs[0]->repeat.size(), 1UL);
+  EXPECT_EQ(Str(abs_iter->outputs[0]->repeat[0]), "merged_size");
+}
+
+TEST_F(TestPipePerfExpr, ConvertToPerfInfoUsesEachSubNodeOutputDims) {
+  TuningSpacePtr ts = std::make_shared<TuningSpace>();
+  PipePerfExpr pipe_perf(ts);
+  std::vector<NodeInfo> sub_nodes = {
+      CreateSubNodeInfo("cast1", kCast, kFloat16, kFloat32, CreateExpr("cast_size")),
+      CreateSubNodeInfo("relu1", kRelu, kFloat32, kFloat32, CreateExpr("relu_size")),
+  };
+  std::vector<NodePerfInfo> node_perf_infos;
+
+  ASSERT_EQ(pipe_perf.ConvertToPerfInfo(sub_nodes, node_perf_infos), af::SUCCESS);
+
+  ASSERT_EQ(node_perf_infos.size(), 2UL);
+  ASSERT_EQ(node_perf_infos[0].dims.size(), 1UL);
+  ASSERT_EQ(node_perf_infos[1].dims.size(), 1UL);
+  EXPECT_EQ(Str(node_perf_infos[0].dims[0]), "cast_size");
+  EXPECT_EQ(Str(node_perf_infos[1].dims[0]), "relu_size");
+}
+
+TEST_F(TestPipePerfExpr, ConvertToPerfInfoUsesParentGraphDims) {
+  TuningSpacePtr ts = std::make_shared<TuningSpace>();
+  PipePerfExpr pipe_perf(ts);
+  std::vector<NodeInfo> sub_nodes = {
+      CreateSubNodeInfo("relu1", kRelu, kFloat32, kFloat32, CreateExpr("ndbt_size")),
+  };
+  std::vector<NodePerfInfo> node_perf_infos;
+  std::vector<Expr> vector_func_dims = {CreateExpr("z0bt_size")};
+
+  ASSERT_EQ(pipe_perf.ConvertToPerfInfo(sub_nodes, node_perf_infos, vector_func_dims), af::SUCCESS);
+
+  ASSERT_EQ(node_perf_infos.size(), 1UL);
+  ASSERT_EQ(node_perf_infos[0].dims.size(), 1UL);
+  EXPECT_EQ(Str(node_perf_infos[0].dims[0]), "z0bt_size");
+}
 
 TEST_F(TestPipePerfExpr, case_get_perf_for_loop) {
   af::AscGraph graph("graph");
