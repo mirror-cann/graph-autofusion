@@ -75,8 +75,8 @@ static void ConstructVVAscGraphAxisInfo(af::AscGraph &graph, size_t dims_size) {
     std::string sym_str = "s" + std::to_string(i);
     std::string axis_str = "z" + std::to_string(i);
     const auto sym_s = Symbol(sym_str.c_str());
-    auto aixs_z = graph.CreateAxis(axis_str.c_str(), sym_s);
-    axis.push_back(aixs_z.id);
+    auto axis_z = graph.CreateAxis(axis_str.c_str(), sym_s);
+    axis.push_back(axis_z.id);
     repeats.push_back(sym_s);
     strides.push_back(ONE);
   }
@@ -109,8 +109,8 @@ static void ConstructVVConstAscGraphAxisInfo(af::AscGraph &graph, size_t dims_si
     std::string sym_str = "s" + std::to_string(i);
     std::string axis_str = "z" + std::to_string(i);
     const auto sym_s = Symbol(dims[i], sym_str.c_str());
-    auto aixs_z = graph.CreateAxis(axis_str.c_str(), sym_s);
-    axis.push_back(aixs_z.id);
+    auto axis_z = graph.CreateAxis(axis_str.c_str(), sym_s);
+    axis.push_back(axis_z.id);
     repeats.push_back(sym_s);
     strides.push_back(ONE);
   }
@@ -143,8 +143,8 @@ static void ConstructVVAscGraphAxisInfo(af::AscGraph &graph, size_t dims_size, s
     std::string sym_str = "s" + std::to_string(i);
     std::string axis_str = "z" + std::to_string(i);
     const auto sym_s = Symbol(sym_str.c_str());
-    auto aixs_z = graph.CreateAxis(axis_str.c_str(), sym_s);
-    axis.push_back(aixs_z.id);
+    auto axis_z = graph.CreateAxis(axis_str.c_str(), sym_s);
+    axis.push_back(axis_z.id);
     repeats.push_back(sym_s);
     strides.push_back(ONE);
   }
@@ -182,8 +182,8 @@ static void ConstructVVAscGraphAxisInfo(af::AscGraph &graph, size_t dims_size, v
     std::string sym_str = "s" + std::to_string(i);
     std::string axis_str = "z" + std::to_string(i);
     const auto sym_s = Symbol(sym_str.c_str());
-    auto aixs_z = graph.CreateAxis(axis_str.c_str(), sym_s);
-    axis.push_back(aixs_z.id);
+    auto axis_z = graph.CreateAxis(axis_str.c_str(), sym_s);
+    axis.push_back(axis_z.id);
     repeats.push_back(sym_s);
     strides.push_back(ONE);
   }
@@ -234,8 +234,8 @@ static void ConstructVVAscGraphAxisInfo(af::AscGraph &graph, const std::vector<s
     }
     std::string sym_str = "s" + std::to_string(i);
     std::string axis_str = "z" + std::to_string(i);
-    auto aixs_z = graph.CreateAxis(axis_str.c_str(), sym_s);
-    axis.push_back(aixs_z.id);
+    auto axis_z = graph.CreateAxis(axis_str.c_str(), sym_s);
+    axis.push_back(axis_z.id);
     repeats.push_back(sym_s);
     strides.push_back(ONE);
   }
@@ -277,8 +277,8 @@ static void ConstructVVConstAscGraphAxisInfo(af::AscGraph &graph, size_t dims_si
     std::string sym_str = "s" + std::to_string(i);
     std::string axis_str = "z" + std::to_string(i);
     const auto sym_s = Symbol(dims[i], sym_str.c_str());
-    auto aixs_z = graph.CreateAxis(axis_str.c_str(), sym_s);
-    axis.push_back(aixs_z.id);
+    auto axis_z = graph.CreateAxis(axis_str.c_str(), sym_s);
+    axis.push_back(axis_z.id);
     repeats.push_back(sym_s);
     strides.push_back(ONE);
   }
@@ -7888,8 +7888,8 @@ static void ConstructVVAscGraphAxisInfoForOneAxisGather(af::AscGraph &graph, siz
     std::string sym_str = "s" + std::to_string(i);
     std::string axis_str = "z" + std::to_string(i);
     const auto sym_s = Symbol(2);
-    auto aixs_z = graph.CreateAxis(axis_str.c_str(), sym_s);
-    axis.push_back(aixs_z.id);
+    auto axis_z = graph.CreateAxis(axis_str.c_str(), sym_s);
+    axis.push_back(axis_z.id);
     repeats.push_back(sym_s);
     strides.push_back(ONE);
   }
