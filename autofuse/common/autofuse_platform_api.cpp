@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Huawei Technologies Co., Ltd.
+ * Copyright (c) 2026 Huawei Technologies Co., Ltd.
  * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
@@ -8,16 +8,20 @@
  * See LICENSE in the root of the software repository for the full text of the License.
  */
 
-#ifndef ATT_CXX_AUTOFUSE_BASE_TYPE_H
-#define ATT_CXX_AUTOFUSE_BASE_TYPE_H
+#include "common/autofuse_platform_api.h"
+#include "common/platform_context.h"
 
-#include <cstdint>
 namespace ge {
-enum class AutoFuseConfigType : int32_t {
-  INI_CONFIG_FILE,
-  ENV_CONFIG,
-  INVALID_CONFIG_TYPE,
-};
-}  // namespace ge
+ge::Status SetAutofusePlatform(const std::string &platform_name) {
+  PlatformContext::GetInstance().SetPlatform(platform_name);
+  return ge::SUCCESS;
+}
 
-#endif  // ATT_CXX_AUTOFUSE_BASE_TYPE_H
+ge::Status GetAutofusePlatform(std::string &platform_name) {
+  return PlatformContext::GetInstance().GetCurrentPlatformString(platform_name);
+}
+
+void ResetAutofusePlatform() {
+  PlatformContext::GetInstance().Reset();
+}
+}  // namespace ge

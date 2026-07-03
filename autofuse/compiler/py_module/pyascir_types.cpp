@@ -15,8 +15,8 @@
 #include "ascir_ops.h"
 #include "ascir_ops_utils.h"
 #include "ascgen_log.h"
+#include "graph/utils/type_utils.h"
 #include "graph/ascendc_ir/utils/asc_graph_utils.h"
-#include "fusion/loop_types.h"
 #include "common/platform_context.h"
 
 #include "pyascir_types.h"
@@ -35,6 +35,17 @@ std::map<std::string, pyascir::InferDtypeFunc> kInferDtypeFuncs = {
 #undef OP
 };
 namespace {
+std::string DataTypesToString(const std::vector<af::DataType> &dtypes) {
+  if (dtypes.empty()) {
+    return "[]";
+  }
+  std::string result = "[" + ge::TypeUtils::DataTypeToSerialString(dtypes[0]);
+  for (size_t i = 1U; i < dtypes.size(); ++i) {
+    result += ", " + ge::TypeUtils::DataTypeToSerialString(dtypes[i]);
+  }
+  return result + "]";
+}
+
 InferDtypeFunc GetInferDtypeFunc(const std::string &node_type) {
   auto iter = kInferDtypeFuncs.find(node_type);
   PY_ASSERT(iter != kInferDtypeFuncs.end(), "%s has no infer dtype func", node_type.c_str());
@@ -171,15 +182,15 @@ bool DoDynamicOutputInference(const af::AscNodePtr &node, InferDtypeFunc infer_f
   if (has_complete_output_dtypes) {
     PY_ASSERT_SUCCESS(infer_func(input_dtypes, output_dtyps, npu_arch),
                       "Check dtype failed for %s %s; input_dtypes: %s, output_dytpes: %s", node->GetNamePtr(),
-                      node->GetTypePtr(), ge::loop::StrJoin(input_dtypes).c_str(),
-                      ge::loop::StrJoin(output_dtyps).c_str());
+                      node->GetTypePtr(), DataTypesToString(input_dtypes).c_str(),
+                      DataTypesToString(output_dtyps).c_str());
     return true;
   }
 
   PY_ASSERT_SUCCESS(infer_func(input_dtypes, output_dtyps, npu_arch),
                     "Infer dtype failed for %s %s; input_dtypes: %s is not supportted now", node->GetNamePtr(),
-                    node->GetTypePtr(), ge::loop::StrJoin(input_dtypes).c_str(),
-                    ge::loop::StrJoin(output_dtyps).c_str());
+                    node->GetTypePtr(), DataTypesToString(input_dtypes).c_str(),
+                    DataTypesToString(output_dtyps).c_str());
 
   PY_ASSERT_EQ(output_dtyps.size(), ir_outputs.size());
   std::vector<af::DataType> expanded_output_dtypes;
@@ -222,14 +233,14 @@ bool DoInference(const af::AscNodePtr &node, InferDtypeFunc infer_func, const st
   if (!for_infer) {
     PY_ASSERT_SUCCESS(infer_func(input_dtypes, output_dtyps, npu_arch),
                       "Check dtype failed for %s %s; input_dtypes: %s, output_dytpes: %s", node->GetNamePtr(),
-                      node->GetTypePtr(), ge::loop::StrJoin(input_dtypes).c_str(),
-                      ge::loop::StrJoin(output_dtyps).c_str());
+                      node->GetTypePtr(), DataTypesToString(input_dtypes).c_str(),
+                      DataTypesToString(output_dtyps).c_str());
     return true;
   }
   PY_ASSERT_SUCCESS(infer_func(input_dtypes, output_dtyps, npu_arch),
                     "Infer dtype failed for %s %s; input_dtypes: %s is not supportted now", node->GetNamePtr(),
-                    node->GetTypePtr(), ge::loop::StrJoin(input_dtypes).c_str(),
-                    ge::loop::StrJoin(output_dtyps).c_str());
+                    node->GetTypePtr(), DataTypesToString(input_dtypes).c_str(),
+                    DataTypesToString(output_dtyps).c_str());
 
   PY_ASSERT_EQ(output_dtyps.size(), op_desc->GetOutputsSize());
   for (size_t i = 0UL; i < output_dtyps.size(); ++i) {
