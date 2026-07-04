@@ -48,7 +48,7 @@ bool IsMulConsumerStruct(const af::NodePtr &node) {
 Status FindNodeSequence(af::Node *start_node, std::unordered_set<af::Node *> &reduce_sequences) {
   GE_ASSERT_NOTNULL(start_node);
   if (reduce_sequences.count(start_node) > 0UL) {
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
   std::queue<af::Node *> node_queue;
   node_queue.emplace(start_node);
@@ -65,7 +65,7 @@ Status FindNodeSequence(af::Node *start_node, std::unordered_set<af::Node *> &re
     }
   }
 
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 }  // namespace
 namespace optimize {
@@ -122,7 +122,7 @@ bool ScheduleUtils::IsContinuesStrides(const std::vector<af::Expression> &repeat
 
 bool ScheduleUtils::IsContinuesVecStrides(const ascir::NodeView &node) {
   std::vector<af::Expression> vec_repeats;
-  GE_WARN_ASSERT(GetNodeOutVectorRepeats(node, vec_repeats) == ge::SUCCESS);
+  GE_WARN_ASSERT(GetNodeOutVectorRepeats(node, vec_repeats) == af::SUCCESS);
   return IsContinuesStrides(vec_repeats, node->outputs[0].attr.vectorized_strides);
 }
 
@@ -275,7 +275,7 @@ Status ScheduleUtils::GetNonBrcInputTensor(const ascir::NodeView &node, const si
   GE_WARN_ASSERT(in_node != nullptr);
   const auto &input = af::ops::IsOps<af::ascir_op::Broadcast>(in_node) ? in_node->inputs[0] : node->inputs[index];
   tensor = af::ComGraphMakeUnique<af::AscTensor>(input);
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 bool ScheduleUtils::GetTailAxisDataSize(const af::AscNodePtr &node, uint32_t &size) {
@@ -319,7 +319,7 @@ Status ScheduleUtils::TopologicalSorting(af::AscGraph &graph) {
   }
 
   if (!is_need_fix_topo) {
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
 
   GELOGI("Graph [%s] will be sorted with a specific rule.", graph.GetName().c_str());
@@ -343,7 +343,7 @@ Status ScheduleUtils::TopologicalSorting(af::AscGraph &graph) {
 
   compute_graph->TopologicalSorting(func);
 
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status ScheduleUtils::RemoveUnusedAxes(af::AscGraph &graph) {
@@ -384,7 +384,7 @@ Status ScheduleUtils::RemoveUnusedAxes(af::AscGraph &graph) {
   GELOGD("after: axes = %s", AxesToString(graph_attr->axis).c_str());
 
   GELOGD("RemoveUnusedAxes success, graph = %s", graph.GetName().c_str());
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 static void ReplaceAxisId(const std::unordered_map<int64_t, int64_t> &old_id_to_new_id,
@@ -404,7 +404,7 @@ Status ScheduleUtils::GetVectorRepeats(const std::vector<af::Expression> &repeat
   GE_WARN_ASSERT(vector_axis.size() <= axis.size(), "Vector axis size(%zu) >= axis size(%zu)", vector_axis.size(),
                  axis.size());
   if (vector_axis.empty()) {
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
 
   std::map<int64_t, af::Expression> id_2_repeat_map;
@@ -416,7 +416,7 @@ Status ScheduleUtils::GetVectorRepeats(const std::vector<af::Expression> &repeat
     GE_ASSERT_TRUE(id_2_repeat_map.find(v_axis) != id_2_repeat_map.end(), "Not found axis=%ld", v_axis);
     vector_repeats.push_back(id_2_repeat_map.at(v_axis));
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status ScheduleUtils::GetNodeInputVectorRepeats(const ascir::NodeView &node,
@@ -450,7 +450,7 @@ Status ScheduleUtils::GetConcatDim(const af::AscNodePtr &node, size_t &concat_di
     GE_ASSERT_TRUE(af::SymbolicUtils::StaticCheckEq(input_repeats[i], output_repeats[i]) == af::TriBool::kTrue,
                    "The [%zu]th sizes of the non-concat_dim do not match.", i);
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 void ScheduleUtils::NormalizeAxisIds(const af::AscGraph &graph) {
@@ -744,7 +744,7 @@ Status ScheduleUtils::SwapInputIndex(const ascir::NodeView &node, const int32_t 
   GE_ASSERT_SUCCESS(af::GraphUtils::RemoveEdge(second_out_anchor, second_in_anchor));
   GE_ASSERT_SUCCESS(af::GraphUtils::AddEdge(first_out_anchor, second_in_anchor));
   GE_ASSERT_SUCCESS(af::GraphUtils::AddEdge(second_out_anchor, first_in_anchor));
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status ScheduleUtils::GetInputForTranspose(af::AscNode &node, std::vector<ascir::AxisId> &input_axis) {
@@ -755,7 +755,7 @@ Status ScheduleUtils::GetInputForTranspose(af::AscNode &node, std::vector<ascir:
   input_axis = parent_nodes[0]->outputs[0].attr.axis;
   GELOGD("Found transpose input from %s, the axis is %s.", parent_nodes[0]->GetNamePtr(),
          af::ViewMemberToString(input_axis).c_str());
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 bool ScheduleUtils::IsNeedDiscontinuousAligned(const af::AscTensorAttr &attr) {
@@ -788,7 +788,7 @@ Status ScheduleUtils::RemoveNode(const ascir::ImplGraph &impl_graph, const af::A
   af::NodeUtils::UnlinkAll(*node);
   GE_CHECK_NOTNULL(af::AscGraphUtils::GetComputeGraph(impl_graph));
   af::GraphUtils::RemoveNodeWithoutRelink(af::AscGraphUtils::GetComputeGraph(impl_graph), node);
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 bool ScheduleUtils::FindContinuesBroadcastNode(const ascir::NodeView &node,
@@ -835,7 +835,7 @@ Status ScheduleUtils::AddRemovePadAfter(af::AscGraph &graph, const af::AscNodePt
     GE_ASSERT_SUCCESS(af::GraphUtils::ReplaceEdgeSrc(out_anchor, in_anchor, remove_pad_node->GetOutDataAnchor(0)));
   }
   GE_ASSERT_SUCCESS(af::GraphUtils::AddEdge(out_anchor, remove_pad_node->GetInDataAnchor(0)));
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status ScheduleUtils::RemoveNodeDst(const ascir::ImplGraph &impl_graph, const af::AscNodePtr &node,
@@ -849,7 +849,7 @@ Status ScheduleUtils::RemoveNodeDst(const ascir::ImplGraph &impl_graph, const af
   af::NodeUtils::UnlinkAll(*node);
   GE_CHECK_NOTNULL(af::AscGraphUtils::GetComputeGraph(impl_graph));
   af::GraphUtils::RemoveNodeWithoutRelink(af::AscGraphUtils::GetComputeGraph(impl_graph), node);
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 bool ScheduleUtils::IsOutNodeWithMultiInputs(const af::AscNodePtr &node) {
@@ -885,7 +885,7 @@ Status ScheduleUtils::ResolveDiffDim(const af::AscNodePtr &node, size_t &diff_di
   is_first_dim = (is_first_dim || (diff_dim == 0UL));  // 单输入时，当成首轴转store处理
   GELOGI("node:%s input_shape = %s, output_shape = %s, is_first_dim = %d, diff_dim = %zu", node->GetName().c_str(),
          af::ToString(input_repeats).c_str(), af::ToString(output_repeats).c_str(), is_first_dim, diff_dim);
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status ScheduleUtils::RecalculateStridesFromRepeats(const std::vector<af::Expression> &repeats,
@@ -902,7 +902,7 @@ Status ScheduleUtils::RecalculateStridesFromRepeats(const std::vector<af::Expres
       current_stride = current_stride * repeats[idx];
     }
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status ScheduleUtils::ClearAllSizeVar(const af::AscGraph &graph) {
@@ -911,7 +911,7 @@ Status ScheduleUtils::ClearAllSizeVar(const af::AscGraph &graph) {
   const auto graph_attr = af::AscGraphUtils::GetComputeGraph(graph)->GetOrCreateAttrsGroup<af::AscGraphAttr>();
   GE_ASSERT_NOTNULL(graph_attr);
   graph_attr->size_vars.clear();
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 // 判断节点的Micro API是否支持Scalar输入，用于scalar_broadcast优化

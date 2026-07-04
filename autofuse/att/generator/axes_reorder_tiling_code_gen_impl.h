@@ -23,15 +23,15 @@ class AxesReorderTilingCodeGenImpl : public TilingCodeGenImpl {
   ~AxesReorderTilingCodeGenImpl() override = default;
 
  protected:
-  ge::Status GenSolverBaseClass() override;
-  ge::Status GenTilingImplPublicFunc() override;
-  ge::Status GenSolverTiling(const ModelInfo &model_info) override;
-  ge::Status GenDoTiling(const ModelInfo &model_info) override;
-  ge::Status GenToolFuncs() override;
-  ge::Status GenHardwareCons(const ModelInfo &model_info) override;
-  ge::Status GenPipeTypeObj(const ModelInfo &model_info) override;
-  ge::Status GenGetObj(const ModelInfo &model_info) override;
-  ge::Status GenExtraSummaryInfo(const ModelInfo &model_info, const ArgsManager &args_manager,
+  af::Status GenSolverBaseClass() override;
+  af::Status GenTilingImplPublicFunc() override;
+  af::Status GenSolverTiling(const ModelInfo &model_info) override;
+  af::Status GenDoTiling(const ModelInfo &model_info) override;
+  af::Status GenToolFuncs() override;
+  af::Status GenHardwareCons(const ModelInfo &model_info) override;
+  af::Status GenPipeTypeObj(const ModelInfo &model_info) override;
+  af::Status GenGetObj(const ModelInfo &model_info) override;
+  af::Status GenExtraSummaryInfo(const ModelInfo &model_info, const ArgsManager &args_manager,
                                  std::string &case_info_str) override;
 
  private:

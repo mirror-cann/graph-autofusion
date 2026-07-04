@@ -44,7 +44,7 @@ Status BinaryApiCallV2::BuildApiParam(const TPipe &tpipe, const std::vector<asci
   api_param->cal_count = CombinedExprFactory::SymbolVar(x1.actual_size.Str());
 
   GE_CHK_STATUS_RET(CodegenApiParam::Register(this->node, api_param));
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 static ApiCallRegister<BinaryApiCallV2> register_binary_v2_api_call("BinaryApiCallV2");

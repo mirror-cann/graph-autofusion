@@ -288,7 +288,7 @@ TEST_F(ConcatScheduleCaseGeneratorV2Test, OptimizeSameShapeConcat) {
   std::vector<std::string> score_functions;
   std::vector<::ascir::ImplGraph> graphs;
   optimize::ConcatFusionCaseGenerator generator;
-  EXPECT_EQ(generator.Generate(graph, graphs, score_functions), SUCCESS);
+  EXPECT_EQ(generator.Generate(graph, graphs, score_functions), af::SUCCESS);
   EXPECT_EQ(graphs.size(), 2);
   EXPECT_TRUE(graphs[0].FindNode("load0_ub_cpy_input_0") != nullptr);
 }
@@ -320,7 +320,7 @@ TEST_F(ConcatScheduleCaseGeneratorV2Test, DowncastCastOptimizeAfterGenerate) {
   std::vector<std::string> score_functions;
   std::vector<::ascir::ImplGraph> graphs;
   optimize::ConcatFusionCaseGenerator generator;
-  ASSERT_EQ(generator.Generate(graph, graphs, score_functions), SUCCESS);
+  ASSERT_EQ(generator.Generate(graph, graphs, score_functions), af::SUCCESS);
   ASSERT_GE(graphs.size(), 1U);
 
   size_t cast_count = 0U;
@@ -473,7 +473,7 @@ TEST_F(ConcatScheduleCaseGeneratorV2Test, Generate_SkipsUBConcatForGraphWithTran
   std::vector<std::string> score_functions;
   std::vector<::ascir::ImplGraph> graphs_with_reduce;
   optimize::ConcatFusionCaseGenerator generator;
-  EXPECT_EQ(generator.Generate(graph_with_reduce, graphs_with_reduce, score_functions), SUCCESS);
+  EXPECT_EQ(generator.Generate(graph_with_reduce, graphs_with_reduce, score_functions), af::SUCCESS);
 
   auto graph_no_reduce = af::testing::AscGraphBuilder("graph_no_reduce")
                              .Loops({s0, s2})
@@ -489,7 +489,7 @@ TEST_F(ConcatScheduleCaseGeneratorV2Test, Generate_SkipsUBConcatForGraphWithTran
   std::vector<std::string> score_functions2;
   std::vector<::ascir::ImplGraph> graphs_no_reduce;
   optimize::ConcatFusionCaseGenerator generator2;
-  EXPECT_EQ(generator2.Generate(graph_no_reduce, graphs_no_reduce, score_functions2), SUCCESS);
+  EXPECT_EQ(generator2.Generate(graph_no_reduce, graphs_no_reduce, score_functions2), af::SUCCESS);
   EXPECT_FALSE(graphs_no_reduce.empty());
 
   EXPECT_TRUE(graphs_no_reduce.size() > graphs_with_reduce.size());

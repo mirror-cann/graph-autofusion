@@ -151,13 +151,13 @@ std::string codegen::TilingData::pgo_perf_struct = {
     "  double best_perf;\n"
     "};\n"};
 
-ge::Status codegen::TilingData::ProcessCubeFusionResult(ascir::FusedScheduledResult &schedule_result) {
+af::Status codegen::TilingData::ProcessCubeFusionResult(ascir::FusedScheduledResult &schedule_result) {
   if (ascgen_utils::IsCubeUBFusedScheduled(schedule_result)) {
     GE_ASSERT_SUCCESS(ascgen_utils::CreateCVFusionResult(schedule_result));
   } else if (ascgen_utils::IsCubeCommonFusedScheduled(schedule_result)) {
     GE_ASSERT_SUCCESS(ascgen_utils::CreateCVFusionCommonResult(schedule_result));
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 std::string codegen::TilingData::Generate(const ascir::FusedScheduledResult &fused_schedule_result, bool is_inductor) {
@@ -351,7 +351,7 @@ std::string codegen::TilingData::ClassRegister() {
   return ss.str();
 }
 
-ge::Status codegen::TilingData::GetApiTilingDataName(const ascir::NodeView &node,
+af::Status codegen::TilingData::GetApiTilingDataName(const ascir::NodeView &node,
                                                      std::vector<std::string> &api_tiling_data_names) {
   // transpose api tiling data包含的字段：
   // param0, param1, param2, ... param17
@@ -388,18 +388,18 @@ ge::Status codegen::TilingData::GetApiTilingDataName(const ascir::NodeView &node
                                                                           {"Pad", pad_params}};
   auto it = node_with_api_tiling.find(node->GetType());
   if (it == node_with_api_tiling.end()) {
-    GELOGE(ge::FAILED, "not supported const api tilingdata node type:%s.", node->GetType().c_str());
-    return ge::FAILED;
+    GELOGE(af::FAILED, "not supported const api tilingdata node type:%s.", node->GetType().c_str());
+    return af::FAILED;
   }
 
   api_tiling_data_names.assign(it->second.begin(), it->second.end());
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 std::string codegen::TilingData::ConstApiTilingDataFiledDefine(std::string &type_name, std::string &field_name,
                                                                const ascir::NodeView &node) {
   std::vector<std::string> node_with_api_tiling;
-  if (GetApiTilingDataName(node, node_with_api_tiling) != ge::SUCCESS) {
+  if (GetApiTilingDataName(node, node_with_api_tiling) != af::SUCCESS) {
     return "";
   }
 
@@ -429,8 +429,8 @@ void codegen::TilingData::AddApiTilingData(const af::AscGraph &graph, std::strin
     std::string device_type_name;
     std::string host_type_name;
     std::string field_name;
-    if (ge::SUCCESS == GetApiTilingTypeName(node, device_type_name) &&
-        (ge::SUCCESS == GetApiTilingFieldName(node, field_name))) {
+    if (af::SUCCESS == GetApiTilingTypeName(node, device_type_name) &&
+        (af::SUCCESS == GetApiTilingFieldName(node, field_name))) {
       host_type_name = "optiling::" + device_type_name;
       field_name = field_name + "_" + std::to_string(tiling_case_id);
       const_tiling_data_field.push_back(field_name);
@@ -595,7 +595,7 @@ void codegen::TilingData::ConstTilingDataFieldPopBack() {
     const_tiling_data_field.pop_back();
   } else {
     // todo: tilingData的生成过程中遇错终止, 此处是内部逻辑错误，先打印一条Error日志
-    GELOGE(ge::FAILED, "The const_tiling_data_field is empty.");
+    GELOGE(af::FAILED, "The const_tiling_data_field is empty.");
   }
 }
 

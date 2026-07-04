@@ -20,14 +20,14 @@ class ReuseGroupUtils {
   static bool IsGroupGraphsEquivalent(const std::vector<af::AscGraph> &graphs_to,
                                       const std::vector<af::AscGraph> &graphs_from,
                                       ReuseScheduleGroupInfo &group_info_to, ReuseScheduleGroupInfo &group_info_from);
-  static ge::Status InitReuseScheduleGroup(const ScheduleGroupIdent &group_ident,
+  static af::Status InitReuseScheduleGroup(const ScheduleGroupIdent &group_ident,
                                            TilingModelInfo &group_tiling_model_info);
-  static ge::Status MergeAllReusableGroups(
+  static af::Status MergeAllReusableGroups(
       const std::vector<std::vector<std::vector<std::vector<af::AscGraph>>>> &all_graphs_lists,
       FusedParsedScheduleResult &out_fused_schedule_result);
 
  private:
-  static ge::Status MergeEqualReusableGroups(
+  static af::Status MergeEqualReusableGroups(
       const ReuseScheduleGroupPtr &group_to, const ReuseScheduleGroupPtr &group_from,
       const std::vector<std::vector<std::vector<std::vector<af::AscGraph>>>> &all_graphs_lists,
       FusedParsedScheduleResult &out_fused_schedule_result);

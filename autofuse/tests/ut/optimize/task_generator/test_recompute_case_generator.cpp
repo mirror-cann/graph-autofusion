@@ -53,7 +53,7 @@ TEST_F(RecomputeCaseGeneratorTest, TestDynamicGraphSplit) {
   optimize::RecomputeCaseGenerator generator;
   std::vector<ScheduleTask> tasks;
   std::vector<std::string> score_functions;
-  EXPECT_EQ(generator.GeneratorTask(graph, tasks, {}), ge::SUCCESS);
+  EXPECT_EQ(generator.GeneratorTask(graph, tasks, {}), af::SUCCESS);
   ASSERT_EQ(tasks.size(), 2UL);
   ASSERT_EQ(tasks[0].grouped_graphs.size(), 1UL);
   ASSERT_EQ(tasks[1].grouped_graphs.size(), 2UL);
@@ -84,7 +84,7 @@ TEST_F(RecomputeCaseGeneratorTest, TestDynamicGraphSplitTwoLine) {
   optimize::RecomputeCaseGenerator generator;
   std::vector<ScheduleTask> tasks;
   std::vector<std::string> score_functions;
-  EXPECT_EQ(generator.GeneratorTask(graph, tasks, {}), ge::SUCCESS);
+  EXPECT_EQ(generator.GeneratorTask(graph, tasks, {}), af::SUCCESS);
   ASSERT_EQ(tasks.size(), 2UL);
   ASSERT_EQ(tasks[0].grouped_graphs.size(), 1UL);
   ASSERT_EQ(tasks[1].grouped_graphs.size(), 2UL);
@@ -115,7 +115,7 @@ TEST_F(RecomputeCaseGeneratorTest, TestStaticGraphSplitTwoLine) {
   optimize::RecomputeCaseGenerator generator;
   std::vector<ScheduleTask> tasks;
   std::vector<std::string> score_functions;
-  EXPECT_EQ(generator.GeneratorTask(graph, tasks, {}), ge::SUCCESS);
+  EXPECT_EQ(generator.GeneratorTask(graph, tasks, {}), af::SUCCESS);
   ASSERT_EQ(tasks.size(), 2UL);
   ASSERT_EQ(tasks[0].grouped_graphs.size(), 1UL);
   ASSERT_EQ(tasks[1].grouped_graphs.size(), 2UL);
@@ -152,7 +152,7 @@ TEST_F(RecomputeCaseGeneratorTest, TestStaticGraphSplitWithBrc) {
   optimize::RecomputeCaseGenerator generator;
   std::vector<ScheduleTask> tasks;
   std::vector<std::string> score_functions;
-  EXPECT_EQ(generator.GeneratorTask(graph, tasks, {}), ge::SUCCESS);
+  EXPECT_EQ(generator.GeneratorTask(graph, tasks, {}), af::SUCCESS);
   ASSERT_EQ(tasks.size(), 2UL);
   ASSERT_EQ(tasks[0].grouped_graphs.size(), 1UL);
   ASSERT_EQ(tasks[1].grouped_graphs.size(), 2UL);

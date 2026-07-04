@@ -59,6 +59,6 @@ Status ContinuesBroadcastOptimizationPass::RunPass(af::AscGraph &graph) {
       af::GraphUtils::RemoveNodeWithoutRelink(continues_brc_node->GetOwnerComputeGraph(), continues_brc_node);
     }
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 }  // namespace optimize

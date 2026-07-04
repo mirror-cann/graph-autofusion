@@ -46,7 +46,7 @@ void OperatorImpl::SetInputImpl(const std::string &dst_name, const Operator &src
       REPORT_INNER_ERR_MSG("E18888", "The source op is nullptr, check invalid.");
       return;
     }
-    GELOGE(ge::FAILED, "[Check][Param] The source operator[%s] must be single output operator",
+    GELOGE(af::FAILED, "[Check][Param] The source operator[%s] must be single output operator",
            src_oprt.operator_impl_->op_desc_->GetName().c_str());
     REPORT_INNER_ERR_MSG("E18888", "The source operator[%s] must be single output operator",
                          src_oprt.operator_impl_->op_desc_->GetName().c_str());
@@ -127,7 +127,7 @@ void OperatorImpl::SetInputImpl(const std::string &dst_name, const OutHandler &o
 void OperatorImpl::AddControlInputImp(const Operator &src_oprt) {
   if (src_oprt.operator_impl_ == nullptr) {
     REPORT_INNER_ERR_MSG("E18888", "Src operator impl is nullptr, check invalid");
-    GELOGE(ge::FAILED, "[Check][Param] Src operator impl is nullptr");
+    GELOGE(af::FAILED, "[Check][Param] Src operator impl is nullptr");
     return;
   }
   for (auto &input : control_input_link_) {
@@ -298,7 +298,7 @@ graphStatus OperatorImpl::GetInputConstDataOut(const std::string &dst_name, Tens
   OpIO out_handle("", 0, nullptr);
   if (GetInputImpl(dst_name, out_handle) != GRAPH_SUCCESS) {
     REPORT_INNER_ERR_MSG("E18888", "%s get input impl failed", dst_name.c_str());
-    GELOGE(ge::FAILED, "[Get][InputImpl] failed, dst_name:%s", dst_name.c_str());
+    GELOGE(af::FAILED, "[Get][InputImpl] failed, dst_name:%s", dst_name.c_str());
     return ge::GRAPH_FAILED;
   }
   if ((out_handle.GetOwner() != nullptr) && (out_handle.GetOwner()->GetOpDescImpl() != nullptr)) {

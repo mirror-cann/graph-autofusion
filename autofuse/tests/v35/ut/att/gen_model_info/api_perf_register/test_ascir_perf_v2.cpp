@@ -289,7 +289,7 @@ TEST_F(UTestAscirPerfV2, TestStoreApiCacheLineExprUsesSingleTransferLen) {
   node.node_ptr = GraphConstructUtils::ConstructSingleOp("Store", 1, 1);
   auto result = perf(input_shapes, output_shapes, node, perf_res);
 
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   ASSERT_EQ(config.size(), 1U);
   EXPECT_TRUE(config[0].cache_line_expr == inner_bytes);
   EXPECT_EQ(config[0].direction, CacheLineDirection::kUbToGm);
@@ -2691,7 +2691,7 @@ TEST_F(UTestAscirPerfV2, TestLoadApiExpandBlockLenSmallBlock) {
   auto perf = load_v2->GetPerfFunc();
   node.node_ptr = GraphConstructUtils::ConstructSingleOp("Load", 1, 1);
   auto result = perf(input_shapes, output_shapes, node, perf_res);
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   Expr res = perf_res.pipe_res[PipeType::AIV_MTE2];
   auto ternary_ops = perf_res.ternary_ops;
   auto ret = ConcursiveReplaceVars(ternary_ops);
@@ -2729,7 +2729,7 @@ TEST_F(UTestAscirPerfV2, TestLoadApiExpandBlockLenLargeBlock) {
   auto perf = load_v2->GetPerfFunc();
   node.node_ptr = GraphConstructUtils::ConstructSingleOp("Load", 1, 1);
   auto result = perf(input_shapes, output_shapes, node, perf_res);
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   Expr res = perf_res.pipe_res[PipeType::AIV_MTE2];
   auto ternary_ops = perf_res.ternary_ops;
   auto ret = ConcursiveReplaceVars(ternary_ops);
@@ -2764,7 +2764,7 @@ TEST_F(UTestAscirPerfV2, TestLoadApiExpandBlockLenContinuous) {
   auto perf = load_v2->GetPerfFunc();
   node.node_ptr = GraphConstructUtils::ConstructSingleOp("Load", 1, 1);
   auto result = perf(input_shapes, output_shapes, node, perf_res);
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   Expr res = perf_res.pipe_res[PipeType::AIV_MTE2];
   auto ternary_ops = perf_res.ternary_ops;
   auto ret = ConcursiveReplaceVars(ternary_ops);

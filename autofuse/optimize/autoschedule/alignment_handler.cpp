@@ -11,7 +11,7 @@
 #include "alignment_handler.h"
 
 namespace optimize::autoschedule {
-ge::Status AlignmentHandler::AlignVectorizedStrides(ascir::ImplGraph &impl_graph) {
+af::Status AlignmentHandler::AlignVectorizedStrides(ascir::ImplGraph &impl_graph) {
   const auto &platform = PlatformFactory::GetInstance().GetPlatform();
   GE_CHECK_NOTNULL(platform, "Platform is not found.");
   const auto &strategy = platform->GetAlignmentStrategy();
@@ -19,7 +19,7 @@ ge::Status AlignmentHandler::AlignVectorizedStrides(ascir::ImplGraph &impl_graph
   return strategy->AlignVectorizedStrides(impl_graph);
 }
 
-ge::Status AlignmentHandler::ModifyVectorizedStrides(ascir::ImplGraph &impl_graph) {
+af::Status AlignmentHandler::ModifyVectorizedStrides(ascir::ImplGraph &impl_graph) {
   const auto &platform = PlatformFactory::GetInstance().GetPlatform();
   GE_CHECK_NOTNULL(platform, "Platform is not found.");
   const auto &strategy = platform->GetAlignmentStrategy();

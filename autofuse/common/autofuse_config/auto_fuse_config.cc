@@ -37,7 +37,7 @@ template <typename T>
 inline Status TrySetVal(const std::unordered_map<std::string, std::string> &config, const std::string &key,
                         AutoFuseConfigValue<T> &config_val, T &result_val, bool &is_set) {
   if (config.find(key) == config.end()) {
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
   const std::string &val_str = config.at(key);
 
@@ -48,7 +48,7 @@ inline Status TrySetVal(const std::unordered_map<std::string, std::string> &conf
     result_val = config_val.GetVal();
     is_set = true;
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 }  // namespace
 
@@ -112,7 +112,7 @@ Status AttStrategyConfig::SetEnvVal(std::unordered_map<std::string, std::string>
                               force_tiling_case, set_force_tiling_case));
   GE_ASSERT_SUCCESS(TrySetVal(merged_configs, kExperimentalAutofusionAttForceOpName, force_template_op_name_val,
                               force_template_op_name, set_force_template_op_name));
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status AutofuseEnvParaParse(std::unordered_map<std::string, std::string> &merged_configs,
@@ -124,7 +124,7 @@ Status AutofuseEnvParaParse(std::unordered_map<std::string, std::string> &merged
     merged_configs[env_config.first] = env_config.second;
   }
 
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status AttStrategyConfig::Init() {
@@ -139,7 +139,7 @@ Status AttStrategyConfig::Init() {
               kExperimentalAutofusionAttForceOpName      // 用于强制模板选择，不对外开放
           });
   if (initialized_) {
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
   auto env_configs = env_config_parser.Parse();
   if (env_configs.empty()) {
@@ -160,12 +160,12 @@ Status AttStrategyConfig::Init() {
          force_schedule_result, kExperimentalAutofusionAttTilingCase, force_tiling_case.c_str(),
          kExperimentalAutofusionAttForceOpName, force_template_op_name.c_str());
   initialized_ = true;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status AttStrategyConfig::Reset() {
   *this = AttStrategyConfig();
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status PgoStrategyConfig::SetEnvVal(std::unordered_map<std::string, std::string> &merged_configs) {
@@ -184,12 +184,12 @@ Status PgoStrategyConfig::SetEnvVal(std::unordered_map<std::string, std::string>
   GE_ASSERT_SUCCESS(TrySetVal(merged_configs, kExperimentalAutofusionEnablePgoStepMax, autofuse_pgo_algo_step_max_val,
                               autofuse_pgo_algo_step_max, set_env_autofuse_pgo_algo_step_max));
 
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status PgoStrategyConfig::Init() {
   if (!is_first_init) {
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
   ge::AutoFuseEnvConfigParser env_config_parser(
       {kExperimentalAutofusionEnablePGO},
@@ -207,6 +207,6 @@ Status PgoStrategyConfig::Init() {
          kExperimentalAutofusionEnablePgoOptAlgo, autofuse_pgo_algo_select.c_str(),
          kExperimentalAutofusionEnablePgoStepMax, autofuse_pgo_algo_step_max);
   is_first_init = false;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 }  // namespace att

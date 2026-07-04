@@ -25,6 +25,6 @@ Status GatherToLoadPass::RunPass(af::AscGraph &graph) {
       node->attr.api.compute_type = af::ComputeType::kComputeLoad;
     }
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 }  // namespace optimize

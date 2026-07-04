@@ -170,7 +170,7 @@ ReduceMergedShape codegen::BuildReduceMergedShape(const std::vector<ge::Expressi
   return shape;
 }
 
-ge::Status codegen::BuildReduceSpecificParams(const ReduceSpecificParamBuildInput &input, ReduceSpecificParams &param) {
+af::Status codegen::BuildReduceSpecificParams(const ReduceSpecificParamBuildInput &input, ReduceSpecificParams &param) {
   param = ReduceSpecificParams{};
   GE_ASSERT_TRUE(IsValidReduceSpecificInput(input), "Invalid reduce specific param input, node[%s].",
                  input.node_name.c_str());
@@ -188,16 +188,16 @@ ge::Status codegen::BuildReduceSpecificParams(const ReduceSpecificParamBuildInpu
         BuildReduceMergedShape(input.input_repeats, input.input_strides, input.output_strides, input.dtype_size);
     param.merged_dims = {shape.valid, shape.first, shape.last};
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status CodegenApiParam::Register(af::AscNodePtr node, CodegenApiParamPtr api_param) {
+af::Status CodegenApiParam::Register(af::AscNodePtr node, CodegenApiParamPtr api_param) {
   GE_ASSERT_NOTNULL(node);
   auto op_desc = node->GetOpDesc();
   GE_ASSERT_NOTNULL(op_desc);
   GE_ASSERT_TRUE(op_desc->SetExtAttr(kCodegenApiParam, api_param), "Graph:%s, Node:%s SetExtAttr failed",
                  node->GetOwnerComputeGraph()->GetName().c_str(), node->GetNamePtr());
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 CodegenApiParamPtr CodegenApiParam::GetNodeApiParam(af::AscNodePtr node) {

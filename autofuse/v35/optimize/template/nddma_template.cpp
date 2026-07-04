@@ -30,14 +30,14 @@ std::string NddmaTemplate::GenName(const std::string &general_case_name) {
   return general_case_name + "_nddma";
 }
 
-ge::Status NddmaTemplate::ReAlignVectorizedStrides(const af::AscNodePtr &node) {
+af::Status NddmaTemplate::ReAlignVectorizedStrides(const af::AscNodePtr &node) {
   auto &output_attr = node->outputs[0].attr;
   const auto dtype_size = GetSizeByDataType(output_attr.dtype);
   GE_ASSERT_TRUE(dtype_size > 0, "Node [%s] output tensor dtype is invalid.", node->GetNamePtr());
   const auto &output_vec_axis = output_attr.vectorized_axis;
   if (output_vec_axis.empty()) {
     GELOGD("Vectorized axis is empty, no need to be realigned.");
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
   af::Expression size_product = af::sym::kSymbolOne;
   for (auto vec_axis_id = static_cast<int64_t>(output_vec_axis.size() - 1); vec_axis_id >= 0; vec_axis_id--) {
@@ -63,7 +63,7 @@ ge::Status NddmaTemplate::ReAlignVectorizedStrides(const af::AscNodePtr &node) {
     vectorized_stride = size_product;
     size_product = size_product * repeat;
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 /**
@@ -88,10 +88,10 @@ Status NddmaTemplate::GenNddmaNode(const af::AscNodePtr &node_pre, const af::Asc
   node_pre->outputs[0].attr.repeats = brc_output_attr.repeats;
   node_pre->outputs[0].attr.vectorized_strides = brc_output_attr.vectorized_strides;
   if (!is_need_realignment) {
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
   ReAlignVectorizedStrides(node_pre);
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status NddmaTemplate::AddTransposeNodeAfter(af::AscGraph &graph, const af::AscNodePtr &node,
@@ -122,7 +122,7 @@ Status NddmaTemplate::AddTransposeNodeAfter(af::AscGraph &graph, const af::AscNo
     GE_ASSERT_SUCCESS(af::GraphUtils::ReplaceEdgeSrc(out_anchor, in_anchor, new_transpose_node->GetOutDataAnchor(0)));
   }
   GE_ASSERT_SUCCESS(af::GraphUtils::AddEdge(out_anchor, new_transpose_node->GetInDataAnchor(0)));
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status NddmaTemplate::MergeLoadAndTranspose(const af::AscNodePtr &load_node, af::AscGraph &new_case) {
@@ -138,7 +138,7 @@ Status NddmaTemplate::MergeLoadAndTranspose(const af::AscNodePtr &load_node, af:
   load_node->attr.type = "Nddma";
   // 删除transpose节点
   GE_ASSERT_SUCCESS(ScheduleUtils::RemoveNode(new_case, out_node, load_node->GetOutDataAnchor(0)));
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status NddmaTemplate::TransposeToNddmaNode(const af::AscNodePtr &transpose_node, af::AscGraph &new_case) {
@@ -192,13 +192,13 @@ Status NddmaTemplate::TransposeToNddmaNode(const af::AscNodePtr &transpose_node,
   for (const auto &load_node : load_nodes) {
     GE_ASSERT_SUCCESS(MergeLoadAndTranspose(load_node, new_case));
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status NddmaTemplate::ProcessSliceToNddma(const af::AscNodePtr &node_load, bool &is_nddma_generated_cur) {
+af::Status NddmaTemplate::ProcessSliceToNddma(const af::AscNodePtr &node_load, bool &is_nddma_generated_cur) {
   if (is_nddma_generated_cur) {
     GELOGD("Node [%s] has already converted to Nddma.", node_load->GetNamePtr());
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
   GE_CHECK_NOTNULL(node_load);
   GE_CHECK_NOTNULL(node_load->GetOpDesc());
@@ -216,7 +216,7 @@ ge::Status NddmaTemplate::ProcessSliceToNddma(const af::AscNodePtr &node_load, b
     }
   }
 
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 /**
@@ -226,7 +226,7 @@ ge::Status NddmaTemplate::ProcessSliceToNddma(const af::AscNodePtr &node_load, b
  * 3. 判断load/nddma节点的输出是否为brc节点，若是则将load/nddma和brc继续合并为nddma节点
  */
 
-ge::Status NddmaTemplate::ProcessTransposeNodes(af::AscGraph &new_case, bool &is_nddma_generated) {
+af::Status NddmaTemplate::ProcessTransposeNodes(af::AscGraph &new_case, bool &is_nddma_generated) {
   for (const auto &node : new_case.GetAllNodes()) {
     GE_CHECK_NOTNULL(node);
     if (af::ops::IsOps<af::ascir_op::Transpose>(node)) {
@@ -234,10 +234,10 @@ ge::Status NddmaTemplate::ProcessTransposeNodes(af::AscGraph &new_case, bool &is
       is_nddma_generated = true;
     }
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status NddmaTemplate::Generate([[maybe_unused]] const af::AscGraph &origin_graph,
+af::Status NddmaTemplate::Generate([[maybe_unused]] const af::AscGraph &origin_graph,
                                    [[maybe_unused]] const af::AscGraph &based_case, af::AscGraph &new_case) {
   bool is_nddma_generated = false;
   GE_ASSERT_SUCCESS(ProcessTransposeNodes(new_case, is_nddma_generated));
@@ -263,7 +263,7 @@ ge::Status NddmaTemplate::Generate([[maybe_unused]] const af::AscGraph &origin_g
       is_nddma_generated_cur = true;
     }
     if (af::ops::IsOps<af::ascir_op::Cast>(out_node) &&
-        SwapCastBrcAndGenNddma(std::dynamic_pointer_cast<af::AscNode>(out_node), node, new_case) == ge::SUCCESS) {
+        SwapCastBrcAndGenNddma(std::dynamic_pointer_cast<af::AscNode>(out_node), node, new_case) == af::SUCCESS) {
       is_nddma_generated_cur = true;
     }
     GE_ASSERT_SUCCESS(ProcessSliceToNddma(node, is_nddma_generated_cur));
@@ -278,14 +278,14 @@ ge::Status NddmaTemplate::Generate([[maybe_unused]] const af::AscGraph &origin_g
   }
   if (!is_nddma_generated) {
     GELOGD("No nddma template generated.");
-    return ge::FAILED;
+    return af::FAILED;
   }
   if (is_transpose_nddma_generated) {
     GE_ASSERT_SUCCESS(
         UnAlignmentStrategy::ModifyTransposeFusionVectorizedStrides(new_case, BaseAlignmentStrategy::GetAlignWidth()));
   }
   GE_ASSERT_SUCCESS(ScheduleUtils::TopologicalSorting(new_case));
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 bool NddmaTemplate::IsSecondaryTailAxisAligned(const af::AscNodePtr &node) {
@@ -316,7 +316,7 @@ bool NddmaTemplate::IsSecondaryTailAxisAligned(const af::AscNodePtr &node) {
 /**
  * 参照node_src对node_dst的repeats属性重排
  */
-ge::Status NddmaTemplate::ReorderRepeats(const af::AscNodePtr &node_src, const af::AscNodePtr &node_dst) {
+af::Status NddmaTemplate::ReorderRepeats(const af::AscNodePtr &node_src, const af::AscNodePtr &node_dst) {
   // 获取dst节点的axis和repeats
   const auto &dst_axis = node_dst->outputs[0].attr.axis;
   const auto &dst_repeats = node_dst->outputs[0].attr.repeats;
@@ -352,15 +352,15 @@ ge::Status NddmaTemplate::ReorderRepeats(const af::AscNodePtr &node_src, const a
   // 更新dst节点的repeats
   node_dst->outputs[0].attr.repeats = new_dst_repeats;
 
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status NddmaTemplate::SwapCastBrcAndGenNddma(const af::AscNodePtr &node_cast, const af::AscNodePtr &node_load,
+af::Status NddmaTemplate::SwapCastBrcAndGenNddma(const af::AscNodePtr &node_cast, const af::AscNodePtr &node_load,
                                                  af::AscGraph &new_case) {
   // 针对cast输出多引用的场景不做处理
   if (node_cast->GetOutNodesSize() != 1UL) {
     GELOGD("Node %s with single output and multiple refs, do not support gen nddma.", node_cast->GetNamePtr());
-    return ge::FAILED;
+    return af::FAILED;
   }
   // 判断是否为load-cast-brc场景
   auto cast_out_anchor = node_cast->GetOutDataAnchor(0);
@@ -371,7 +371,7 @@ ge::Status NddmaTemplate::SwapCastBrcAndGenNddma(const af::AscNodePtr &node_cast
   GE_CHECK_NOTNULL(next_node);
   if (!af::ops::IsOps<af::ascir_op::Broadcast>(next_node)) {
     GELOGD("The subgraph is not load-cast-brc, do not gen nddma.");
-    return ge::FAILED;
+    return af::FAILED;
   }
   auto load_out_anchor = node_load->GetOutDataAnchor(0);
   GE_CHECK_NOTNULL(load_out_anchor);
@@ -402,7 +402,7 @@ ge::Status NddmaTemplate::SwapCastBrcAndGenNddma(const af::AscNodePtr &node_cast
   node_cast->outputs[0].attr.vectorized_strides = next_node->outputs[0].attr.vectorized_strides;
   GE_ASSERT_SUCCESS(
       GenNddmaNode(node_load, std::dynamic_pointer_cast<af::AscNode>(next_node), new_case, is_need_realignment));
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 bool NddmaTemplate::NeedDropBasedCase(const af::AscGraph &origin_graph, [[maybe_unused]] const af::AscGraph &based_case,

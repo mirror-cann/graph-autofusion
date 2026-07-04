@@ -62,7 +62,7 @@ int32_t CreateDeviceData(const std::vector<int8_t> &host_data, const std::vector
   ret = aclrtMemcpy(*device_addr, size, host_data.data(), size, ACL_MEMCPY_HOST_TO_DEVICE);
   CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclrtMemcpy failed. ERROR: %d\n", ret); return ret);
 
-  return SUCCESS;
+  return af::SUCCESS;
 }
 
 int32_t CreateDeviceDataV2(const void *host_addr, const std::vector<int64_t> &shape, ge::DataType dtype,
@@ -75,7 +75,7 @@ int32_t CreateDeviceDataV2(const void *host_addr, const std::vector<int64_t> &sh
   ret = aclrtMemcpy(*device_addr, size, host_addr, size, ACL_MEMCPY_HOST_TO_DEVICE);
   CHECK_RET(ret == ACL_SUCCESS, LOG_PRINT("aclrtMemcpy failed. ERROR: %d\n", ret); return ret);
 
-  return SUCCESS;
+  return af::SUCCESS;
 }
 
 void Finalize(int32_t deviceId, aclrtStream stream) {
@@ -114,7 +114,7 @@ int32_t SaveBinToFile(const std::string &file_path, void *data, size_t data_len)
   }
   file.write(reinterpret_cast<char *>(data), data_len);
   file.close();
-  return SUCCESS;
+  return af::SUCCESS;
 }
 
 int32_t ReadConfigJson(const std::string &json_path, json &config_json) {
@@ -129,7 +129,7 @@ int32_t ReadConfigJson(const std::string &json_path, json &config_json) {
     LOG_PRINT("ERROR: fail to read file %s, error msg: %s.\n", json_path.c_str(), e.what());
     return FAILED;
   }
-  return SUCCESS;
+  return af::SUCCESS;
 }
 
 int32_t ParseMapConfig(const json &config_json, const std::string &key, std::map<std::string, std::string> &configs) {
@@ -148,7 +148,7 @@ int32_t ParseMapConfig(const json &config_json, const std::string &key, std::map
     LOG_PRINT("ERROR: fail to parse %s from json %s\n", key.c_str(), config_json[key].dump().c_str());
     return FAILED;
   }
-  return SUCCESS;
+  return af::SUCCESS;
 }
 
 std::vector<std::vector<int64_t>> ParseDataShape(const std::string &data_shape) {
@@ -185,34 +185,34 @@ std::vector<ge::DataType> ParseDataType(std::string &data_type) {
 int32_t AutofuseKernelInfo::Init(void *stream, const std::string &config_path) {
   stream_ = stream;
   auto ret = InitKernelConfig(config_path);
-  if (ret != SUCCESS) {
+  if (ret != af::SUCCESS) {
     LOG_PRINT("ERROR: InitKernelConfig fail\n.");
     return FAILED;
   }
   (void)InitDeviceData();
-  return SUCCESS;
+  return af::SUCCESS;
 }
 
 int32_t AutofuseKernelInfo::InitKernelConfig(const std::string &config_file_path) {
   json config_json;
-  if (ReadConfigJson(config_file_path, config_json) != SUCCESS) {
+  if (ReadConfigJson(config_file_path, config_json) != af::SUCCESS) {
     LOG_PRINT("ERROR: Fail to read config json: %s\n.", config_file_path.c_str());
     return FAILED;
   }
   const std::string kernel_config_key = "kernel_config";
   std::map<std::string, std::string> json_kernel_config;
-  if (ParseMapConfig(config_json, kernel_config_key, json_kernel_config) != SUCCESS) {
+  if (ParseMapConfig(config_json, kernel_config_key, json_kernel_config) != af::SUCCESS) {
     LOG_PRINT("ERROR: Fail to parse config: %s\n.", kernel_config_key.c_str());
     return FAILED;
   }
   for (auto &config : json_kernel_config) {
     LOG_PRINT("kernel_config: %s : %s\n.", config.first.c_str(), config.second.c_str());
   }
-  if (SetKernelConfig(json_kernel_config) != SUCCESS) {
+  if (SetKernelConfig(json_kernel_config) != af::SUCCESS) {
     LOG_PRINT("ERROR: Fail to set kernel config: %s\n.", kernel_config_key.c_str());
     return FAILED;
   }
-  return SUCCESS;
+  return af::SUCCESS;
 }
 
 int32_t AutofuseKernelInfo::SetKernelConfig(std::map<std::string, std::string> &src_kernel_config) {
@@ -229,7 +229,7 @@ int32_t AutofuseKernelInfo::SetKernelConfig(std::map<std::string, std::string> &
               kernel_config_.input_shape.size());
     return FAILED;
   }
-  return SUCCESS;
+  return af::SUCCESS;
 }
 
 int32_t AutofuseKernelInfo::InitDeviceData() {
@@ -267,7 +267,7 @@ int32_t AutofuseKernelInfo::InitDeviceData() {
     CHECK_RET(ret == SUCCESS, LOG_PRINT("Create output device data failed. output: %d, ERROR: %d\n", i, ret);
               return FAILED);
   }
-  return SUCCESS;
+  return af::SUCCESS;
 }
 
 int32_t AutofuseKernelInfo::LoadSoHandles() {
@@ -286,7 +286,7 @@ int32_t AutofuseKernelInfo::LoadSoHandles() {
     return FAILED;
   }
   LOG_PRINT("so %s open success, handles_:%p\n", so_path.c_str(), handles_);
-  return SUCCESS;
+  return af::SUCCESS;
 }
 
 int32_t AutofuseKernelInfo::ParseTaskRunParam() {
@@ -301,7 +301,7 @@ int32_t AutofuseKernelInfo::ParseTaskRunParam() {
   tiling_size_ = get_tiling_size_func();
   LOG_PRINT("name: %s, tiling_size_: %zu, func_name: %s\n", graph_name_snake_.c_str(), tiling_size_,
             get_tiling_size_func_name.c_str());
-  return SUCCESS;
+  return af::SUCCESS;
 }
 
 int32_t AutofuseKernelInfo::DoTiling(std::unique_ptr<uint8_t[]> &tiling_data_holder, uint32_t &workspace_size) {
@@ -318,13 +318,13 @@ int32_t AutofuseKernelInfo::DoTiling(std::unique_ptr<uint8_t[]> &tiling_data_hol
     LOG_PRINT("ERROR: tiling_func failed, ret: %d\n", ret);
     return FAILED;
   }
-  return SUCCESS;
+  return af::SUCCESS;
 }
 
 int32_t AutofuseKernelInfo::MallocWorkSpace(uint32_t &size) {
   if (size == 0) {
     LOG_PRINT("WARN: workspace size is %u\n", size);
-    return SUCCESS;
+    return af::SUCCESS;
   }
 
   auto ret = aclrtMalloc(&workspace_, size, ACL_MEM_MALLOC_HUGE_FIRST);
@@ -338,7 +338,7 @@ int32_t AutofuseKernelInfo::MallocWorkSpace(uint32_t &size) {
     (void)aclrtFree(workspace_);
     return FAILED;
   }
-  return SUCCESS;
+  return af::SUCCESS;
 }
 
 void ReportApiInfo(const uint64_t beginTime) {
@@ -395,7 +395,7 @@ int32_t AutofuseKernelInfo::Distribute(uint64_t *tiling_data) {
     SaveBinToFile(file_path, (void *)result_data.data(), output_size);
   }
 
-  return SUCCESS;
+  return af::SUCCESS;
 }
 
 int FuseGraphTest(int deviceId, aclrtStream &stream, const std::string config_path) {
@@ -459,5 +459,5 @@ int main(int argc, char *argv[]) {
   CHECK_FREE_RET(ret == ACL_SUCCESS, LOG_PRINT("FuseGraphTest failed. ERROR: %d\n", ret); return ret);
 
   Finalize(deviceId, stream);
-  return SUCCESS;
+  return af::SUCCESS;
 }

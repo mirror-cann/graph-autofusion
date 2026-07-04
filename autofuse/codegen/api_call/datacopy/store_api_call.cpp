@@ -33,7 +33,7 @@ Status StoreApiCall::ParseAttr(const ascir::NodeView &node) {
   // 存在多个Store写同一个Tensor不同offset的场景, repeats用当前Store节点的
   repeats_ = node->outputs[0U].attr.repeats;
   (void)node->attr.ir_attr->GetAttrValue("offset", offset_);
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status StoreApiCall::PreProcess(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
@@ -42,7 +42,7 @@ Status StoreApiCall::PreProcess(const TPipe &tpipe, const std::vector<ascir::Axi
   GE_ASSERT_TRUE(!outputs.empty());
   const_cast<Tensor &>(outputs.front().get()).axis_size = repeats_;
   GE_ASSERT_SUCCESS(ApiCall::PreProcess(tpipe, current_axis, outputs, result));
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status StoreApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
@@ -75,7 +75,7 @@ Status StoreApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::AxisI
   }
 
   result = ss.str();
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 static ApiCallRegister<StoreApiCall> register_store_api_call("StoreApiCall");
 }  // namespace codegen

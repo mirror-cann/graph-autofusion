@@ -50,7 +50,7 @@ TEST_F(TestGenModelInfo, case0)
   config.type = TilingImplType::HIGH_PERF;
   config.gen_extra_infos = true;
   TilingCodeGenerator generator;
-  EXPECT_EQ(generator.GenTilingCode(op_name, model_info_list, config), ge::SUCCESS);
+  EXPECT_EQ(generator.GenTilingCode(op_name, model_info_list, config), af::SUCCESS);
 
   auto ret = std::system(std::string("cp ").append(TILING_DATA_DIR).append("/tiling_func_main_fa.cpp ./ -f").c_str());
   ret = std::system(std::string("cp ").append(ST_DIR).append("/testcase/stub/op_log.h ./ -f").c_str());
@@ -99,7 +99,7 @@ TEST_F(TestGenModelInfo, case1)
   FaBeforeAutoFuse(graph);
   FaAfterScheduler(graph);
   FaAfterQueBufAlloc(graph);
-  EXPECT_EQ(GetApiTilingInfo(graph, "TilingData"), ge::SUCCESS);
+  EXPECT_EQ(GetApiTilingInfo(graph, "TilingData"), af::SUCCESS);
   for (auto node_tiling : ApiTilingMgr::Instance().GetApiTilingFunc(0u)) {
     std::cout  << node_tiling.first << " " << node_tiling.second << std::endl;
   }
@@ -129,7 +129,7 @@ TEST_F(TestGenModelInfo, case2_axes_tiling_data_gen)
   config.type = TilingImplType::HIGH_PERF;
   config.gen_extra_infos = true;
   TilingCodeGenerator generator;
-  EXPECT_EQ(generator.GenTilingCode(op_name, model_info_list, config), ge::SUCCESS);
+  EXPECT_EQ(generator.GenTilingCode(op_name, model_info_list, config), af::SUCCESS);
   auto ret = std::system(std::string("cp ").append(TILING_DATA_DIR).append("/tiling_func_main_fa.cpp ./ -f").c_str());
   ret = std::system(std::string("cp ").append(ST_DIR).append("/testcase/stub/op_log.h ./ -f").c_str());
   EXPECT_EQ(ret, 0);
@@ -152,7 +152,7 @@ TEST_F(TestGenModelInfo, test_sketch_gen)
   graphs.emplace_back(graph);
   std::map<std::string, std::string> options;
   options[kDumpDebugInfo] = "./";
-  EXPECT_EQ(att::GenerateModelInfo(graphs, model_info_list, options), ge::SUCCESS);
+  EXPECT_EQ(att::GenerateModelInfo(graphs, model_info_list, options), af::SUCCESS);
 }
 
 TEST_F(TestGenModelInfo, input_check_01)
@@ -195,7 +195,7 @@ TEST_F(TestGenModelInfo, input_check_01)
   graphs.emplace_back(graph);
   std::map<std::string, std::string> options;
 
-  EXPECT_EQ(att::GenerateModelInfo(graphs, model_info_list, options), ge::SUCCESS);
+  EXPECT_EQ(att::GenerateModelInfo(graphs, model_info_list, options), af::SUCCESS);
 }
 
 TEST_F(TestGenModelInfo, input_check_02)
@@ -239,7 +239,7 @@ TEST_F(TestGenModelInfo, input_check_02)
   graphs.emplace_back(graph);
   std::map<std::string, std::string> options;
 
-  EXPECT_NE(att::GenerateModelInfo(graphs, model_info_list, options), ge::SUCCESS);
+  EXPECT_NE(att::GenerateModelInfo(graphs, model_info_list, options), af::SUCCESS);
 }
 
 TEST_F(TestGenModelInfo, input_check_03)
@@ -283,7 +283,7 @@ TEST_F(TestGenModelInfo, input_check_03)
   graphs.emplace_back(graph);
   std::map<std::string, std::string> options;
 
-  EXPECT_NE(att::GenerateModelInfo(graphs, model_info_list, options), ge::SUCCESS);
+  EXPECT_NE(att::GenerateModelInfo(graphs, model_info_list, options), af::SUCCESS);
 }
 
 TEST_F(TestGenModelInfo, input_check_04)
@@ -327,7 +327,7 @@ TEST_F(TestGenModelInfo, input_check_04)
   graphs.emplace_back(graph);
   std::map<std::string, std::string> options;
 
-  EXPECT_NE(att::GenerateModelInfo(graphs, model_info_list, options), ge::SUCCESS);
+  EXPECT_NE(att::GenerateModelInfo(graphs, model_info_list, options), af::SUCCESS);
 }
 
 TEST_F(TestGenModelInfo, input_check_05)
@@ -375,7 +375,7 @@ TEST_F(TestGenModelInfo, input_check_05)
   graphs.emplace_back(graph);
   std::map<std::string, std::string> options;
 
-  EXPECT_NE(att::GenerateModelInfo(graphs, model_info_list, options), ge::SUCCESS);
+  EXPECT_NE(att::GenerateModelInfo(graphs, model_info_list, options), af::SUCCESS);
 }
 
 TEST_F(TestGenModelInfo, input_check_06)
@@ -421,7 +421,7 @@ TEST_F(TestGenModelInfo, input_check_06)
   graphs.emplace_back(graph);
   std::map<std::string, std::string> options;
 
-  EXPECT_NE(att::GenerateModelInfo(graphs, model_info_list, options), ge::SUCCESS);
+  EXPECT_NE(att::GenerateModelInfo(graphs, model_info_list, options), af::SUCCESS);
 }
 
 TEST_F(TestGenModelInfo, OptionTest01) {

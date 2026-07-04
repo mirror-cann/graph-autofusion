@@ -43,14 +43,14 @@ Status LeakyReluApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::A
      << "(" << x_dtype << ")" << std::to_string(this->negative_slope) << ", " << x.actual_size << ");" << std::endl;
   result = ss.str();
 
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status LeakyReluApiCall::ParseAttr(const ascir::NodeView &node) {
   GE_CHK_GRAPH_STATUS_RET(node->attr.ir_attr->GetAttrValue("negative_slope", this->negative_slope),
                           "Failed to get LeakyRelu negative_slope attr, node = %s", node->GetNamePtr());
   GELOGI("name:%s, negative_slope:%f", node->GetNamePtr(), this->negative_slope);
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 static ApiCallRegister<LeakyReluApiCall> register_leaky_relu_api_call("LeakyReluApiCall");

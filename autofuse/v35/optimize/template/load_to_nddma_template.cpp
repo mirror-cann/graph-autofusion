@@ -26,11 +26,11 @@ std::string LoadToNddmaTemplate::GenName(const std::string &general_case_name) {
  * 2. 遍历图上所有节点，找到load节点时，判断是否为输出多引用，若不是则继续执行步骤2
  * 3. 判断load节点的尾轴是否做了transpose，若是则将load替换为nddma节点
  */
-ge::Status LoadToNddmaTemplate::Generate(const af::AscGraph &origin_graph,
+af::Status LoadToNddmaTemplate::Generate(const af::AscGraph &origin_graph,
                                          [[maybe_unused]] const af::AscGraph &based_case, af::AscGraph &new_case) {
   if (ScheduleUtils::HasComputeType(origin_graph, af::ComputeType::kComputeTranspose)) {
     GELOGD("No load_to_nddma template generated because origin_graph contains Transpose nodes.");
-    return ge::FAILED;
+    return af::FAILED;
   }
   bool is_nddma_generated = false;
   for (const auto &node : new_case.GetAllNodes()) {
@@ -49,10 +49,10 @@ ge::Status LoadToNddmaTemplate::Generate(const af::AscGraph &origin_graph,
   }
   if (!is_nddma_generated) {
     GELOGD("No load_to_nddma template generated.");
-    return ge::FAILED;
+    return af::FAILED;
   }
   GE_ASSERT_SUCCESS(ScheduleUtils::TopologicalSorting(new_case));
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 bool LoadToNddmaTemplate::NeedDropBasedCase([[maybe_unused]] const af::AscGraph &origin_graph,

@@ -23,7 +23,7 @@
 #include <map>
 #include <algorithm>
 #include "graph/def_types.h"
-#include "ge_common/ge_api_types.h"
+#include "ge_common_af/ge_api_types.h"
 #include "graph/symbolizer/symbolic.h"
 #include "graph/expression/const_values.h"
 #include "graph/symbolizer/symbolic_utils.h"
@@ -31,7 +31,6 @@
 #ifdef AUTOFUSE_USE_GE_METADEF
 namespace af {
 using ge::Expression;
-using ge::Status;
 using ge::Symbol;
 using ge::SymbolicUtils;
 }  // namespace af

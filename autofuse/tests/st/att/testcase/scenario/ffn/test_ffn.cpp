@@ -57,8 +57,8 @@ TEST_F(TestGenFFNModelInfoE2E, case1) {
   config.gen_extra_infos = true;
   config.tiling_data_type_name = "FFNTilingData";
   TilingCodeGenerator generator;
-  EXPECT_EQ(ReuseGroupUtils::InitReuseScheduleGroup({0UL, 0UL, 0UL}, modelInfos), ge::SUCCESS);
-  EXPECT_EQ(generator.GenTilingCode("FFN", modelInfos, config), ge::SUCCESS);
+  EXPECT_EQ(ReuseGroupUtils::InitReuseScheduleGroup({0UL, 0UL, 0UL}, modelInfos), af::SUCCESS);
+  EXPECT_EQ(generator.GenTilingCode("FFN", modelInfos, config), af::SUCCESS);
   AddHeaderGuardToFile("autofuse_tiling_func_common.h", "__AUTOFUSE_TILING_FUNC_COMMON_H__");
 
   ret = std::system(std::string("cp ").append(TILING_DATA_DIR).append("/tiling_func_ffn_main.cpp ./ -f").c_str());
@@ -82,8 +82,8 @@ TEST_F(TestGenFFNModelInfoE2E, axes_reorder) {
   config.gen_extra_infos = true;
   config.tiling_data_type_name = "FFNTilingData";
   TilingCodeGenerator generator;
-  EXPECT_EQ(ReuseGroupUtils::InitReuseScheduleGroup({0UL, 0UL, 0UL}, modelInfos), ge::SUCCESS);
-  EXPECT_EQ(generator.GenTilingCode("FFN", modelInfos, config), ge::SUCCESS);
+  EXPECT_EQ(ReuseGroupUtils::InitReuseScheduleGroup({0UL, 0UL, 0UL}, modelInfos), af::SUCCESS);
+  EXPECT_EQ(generator.GenTilingCode("FFN", modelInfos, config), af::SUCCESS);
   AddHeaderGuardToFile("autofuse_tiling_func_common.h", "__AUTOFUSE_TILING_FUNC_COMMON_H__");
 
   ret = std::system(std::string("cp ").append(TILING_DATA_DIR).append("/tiling_func_ffn_main.cpp ./ -f").c_str());

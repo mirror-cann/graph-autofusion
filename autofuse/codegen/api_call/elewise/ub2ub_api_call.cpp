@@ -39,7 +39,7 @@ Status Ub2ubApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::AxisI
      << tpipe.tiler.TensorVectorizedOffset(current_axis, x) << "], " << blk_align << "(" << x.actual_size << "));"
      << std::endl;
   result = ss.str();
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 static ApiCallRegister<Ub2ubApiCall> register_ub2ub_api_call("Ub2ubApiCall");

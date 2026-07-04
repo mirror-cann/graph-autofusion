@@ -11,7 +11,7 @@
 #include "gen_autofuse_api_tiling.h"
 #include "api_tiling_gen_register.h"
 namespace att {
-ge::Status AutofuseApiTilingGenerator::Generate() {
+af::Status AutofuseApiTilingGenerator::Generate() {
   auto gen_func_impl = ApiTilingGenRegistry::Instance().GetApiTilingGenImplFunc(node_->GetType());
   auto gen_func_invoke = ApiTilingGenRegistry::Instance().GetApiTilingGenInvokeFunc(node_->GetType());
   auto gen_head_files = ApiTilingGenRegistry::Instance().GetApiTilingGenHeadFiles(node_->GetType());
@@ -28,6 +28,6 @@ ge::Status AutofuseApiTilingGenerator::Generate() {
   GE_ASSERT_SUCCESS(gen_head_files(tiling_data_type_, graph_, node_, head_files_, tiling_case_id_),
                     "Generate head files code failed, graph[%s], node[%s] tiling data type[%s]",
                     graph_.GetName().c_str(), node_->GetName().c_str(), tiling_data_type_.c_str());
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 }  // namespace att

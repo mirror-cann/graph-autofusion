@@ -93,7 +93,7 @@ Status TrueDivApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::Axi
   }
 
   result = ss.str();
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 static ApiCallRegister<TrueDivApiCall> register_truediv_api_call("TrueDivApiCall");

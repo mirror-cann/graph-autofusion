@@ -18,7 +18,7 @@
 #include <functional>
 #include <iostream>
 
-#include "ge_common/ge_api_error_codes.h"
+#include "ge_common_af/ge_api_error_codes.h"
 #include "graph/def_types.h"
 #include "utils/extern_math_util.h"
 #include "common/ge_common/debug/log.h"
@@ -66,7 +66,7 @@ Status NnSet(const int32_t n, const Dtype alpha, Dtype *const output) {
   for (int32_t i = 0; i < n; ++i) {
     output[i] = alpha;
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 template <typename T, typename TR>
@@ -141,7 +141,7 @@ inline Status GeMemcpy(uint8_t *dst_ptr, size_t dst_size, const uint8_t *src_ptr
     offset += copy_size;
     remain_size -= copy_size;
   } while (remain_size > 0U);
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 }  // namespace af
 
@@ -151,8 +151,8 @@ inline Status GeMemcpy(uint8_t *dst_ptr, size_t dst_size, const uint8_t *src_ptr
       std::stringstream ss;                                                                                  \
       ss << #v << " value " << (v) << " out of " << #T << " range [" << std::numeric_limits<T>::min() << "," \
          << std::numeric_limits<T>::max() << "]";                                                            \
-      GELOGE(ge::FAILED, "%s", ss.str().c_str());                                                            \
-      return ge::FAILED;                                                                                     \
+      GELOGE(af::FAILED, "%s", ss.str().c_str());                                                            \
+      return af::FAILED;                                                                                     \
     }                                                                                                        \
   } while (false)
 
@@ -163,8 +163,8 @@ inline Status GeMemcpy(uint8_t *dst_ptr, size_t dst_size, const uint8_t *src_ptr
       ss << #v << " value " << static_cast<int32_t>(v) << " out of " << #T << " range [" \
          << static_cast<int32_t>(std::numeric_limits<T>::min()) << ","                   \
          << static_cast<int32_t>(std::numeric_limits<T>::max()) << "]";                  \
-      GELOGE(ge::FAILED, "%s", ss.str().c_str());                                        \
-      return ge::FAILED;                                                                 \
+      GELOGE(af::FAILED, "%s", ss.str().c_str());                                        \
+      return af::FAILED;                                                                 \
     }                                                                                    \
   } while (false)
 

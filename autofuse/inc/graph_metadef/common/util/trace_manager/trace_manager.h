@@ -64,7 +64,7 @@ class TraceManager {
   TraceManager(TraceManager &&) = delete;
   TraceManager &operator=(const TraceManager &) = delete;
   TraceManager &operator=(TraceManager &&) = delete;
-  ge::Status Initialize(const char_t *file_save_path);
+  af::Status Initialize(const char_t *file_save_path);
   void Finalize();
 
   std::string NextFileName();

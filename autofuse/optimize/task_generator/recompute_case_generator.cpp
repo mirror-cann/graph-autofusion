@@ -28,7 +28,7 @@ bool IsSupportedComputeType(af::ComputeType compute_type) {
   return supported_types.count(compute_type) > 0UL;
 }
 
-ge::Status CopyRecomputeNode(af::Node *ori_node, af::AscGraph &graph, af::AscNodePtr &new_node) {
+af::Status CopyRecomputeNode(af::Node *ori_node, af::AscGraph &graph, af::AscNodePtr &new_node) {
   const auto &op_desc = af::GraphUtils::CopyOpDesc(ori_node->GetOpDesc(), nullptr);
   GE_CHECK_NOTNULL(op_desc);
   op_desc->SetName(ori_node->GetName() + "_recompute");
@@ -39,7 +39,7 @@ ge::Status CopyRecomputeNode(af::Node *ori_node, af::AscGraph &graph, af::AscNod
   GE_ASSERT_NOTNULL(src_asc_node);
   GE_ASSERT_TRUE(af::AscGraph::CopyAscNodeTensorAttr(src_asc_node, new_node),
                  "DoCopyAscNodeTensorAttr failed, node = %s[%s]", ori_node->GetNamePtr(), ori_node->GetTypePtr());
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 size_t CountComputeNodes(const std::unordered_set<af::Node *> &nodes) {
@@ -92,7 +92,7 @@ Status RecomputeCaseGenerator::GeneratorTask(ascir::HintGraph &hint_graph, std::
   }
 
   GE_ASSERT_SUCCESS(DoTaskGenerator(hint_graph, tasks));
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status RecomputeCaseGenerator::AnalyzeSplittablePath(ascir::HintGraph &hint_graph,
@@ -115,7 +115,7 @@ Status RecomputeCaseGenerator::AnalyzeSplittablePath(ascir::HintGraph &hint_grap
     bool current_valid = IsRecomputableNode(hint_graph, top_node);
     if (!current_valid) {
       GELOGD("Store node [%s] cannot be split for node:[%s].", top_node->GetNamePtr(), potential_store->GetNamePtr());
-      return ge::SUCCESS;
+      return af::SUCCESS;
     }
 
     GELOGD("Add path node [%s] in path of split node:[%s].", potential_store->GetNamePtr(), top_node->GetNamePtr());
@@ -145,7 +145,7 @@ Status RecomputeCaseGenerator::AnalyzeSplittablePath(ascir::HintGraph &hint_grap
   }
   result_.valid_path_results.emplace_back(std::move(single_path_results));
 
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 void RecomputeCaseGenerator::MergeAllPaths() {
@@ -192,7 +192,7 @@ Status RecomputeCaseGenerator::DoTaskGenerator(ascir::ImplGraph &impl_graph, std
                     impl_graph.GetName().c_str());
   GE_ASSERT_SUCCESS(GroupPartitionAndGenTasks(impl_graph, tasks));
 
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status RecomputeCaseGenerator::DoGraphSplit(af::AscGraph &graph) const {
@@ -245,7 +245,7 @@ Status RecomputeCaseGenerator::DoGraphSplit(af::AscGraph &graph) const {
     }
   }
 
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 bool RecomputeCaseGenerator::IsRecomputableNode(ascir::HintGraph &hint_graph, af::AscNode *node) const {

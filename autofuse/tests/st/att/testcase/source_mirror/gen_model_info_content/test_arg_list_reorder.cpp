@@ -181,7 +181,7 @@ TEST_F(TestArgListReorder, case0) {
   auto model_info = BuildModelInfo({"m", "k", "n", "a", "b"});
   ArgListReorder arg_list_reorder(tuning_space);
   std::vector<AttAxisPtr> tiling_R_arg_list;
-  EXPECT_EQ(arg_list_reorder.SortArgList(model_info.arg_list, tiling_R_arg_list), ge::SUCCESS);
+  EXPECT_EQ(arg_list_reorder.SortArgList(model_info.arg_list, tiling_R_arg_list), af::SUCCESS);
   auto arg_id_map = BuildArgIdMap(model_info.arg_list);
   EXPECT_EQ(arg_id_map["k"], 0);
   EXPECT_EQ(arg_id_map["n"], 1);
@@ -194,7 +194,7 @@ TEST_F(TestArgListReorder, case1) {
 
   ArgListReorder arg_list_reorder(ctx.tuning_space);
   std::vector<AttAxisPtr> tiling_R_arg_list;
-  EXPECT_EQ(arg_list_reorder.SortArgList(ctx.model_info.arg_list, tiling_R_arg_list), ge::SUCCESS);
+  EXPECT_EQ(arg_list_reorder.SortArgList(ctx.model_info.arg_list, tiling_R_arg_list), af::SUCCESS);
   auto arg_id_map = BuildArgIdMap(ctx.model_info.arg_list);
   EXPECT_EQ(arg_id_map["z0z1t"] < arg_id_map["z2t"], true);
 }
@@ -210,7 +210,7 @@ TEST_F(TestArgListReorder, case2) {
 
   ArgListReorder arg_list_reorder(ctx.tuning_space);
   std::vector<AttAxisPtr> tiling_R_arg_list;
-  EXPECT_EQ(arg_list_reorder.SortArgList(ctx.model_info.arg_list, tiling_R_arg_list), ge::SUCCESS);
+  EXPECT_EQ(arg_list_reorder.SortArgList(ctx.model_info.arg_list, tiling_R_arg_list), af::SUCCESS);
   auto arg_id_map = BuildArgIdMap(ctx.model_info.arg_list);
   EXPECT_EQ(arg_id_map["z0z1t"] < arg_id_map["z2t"], true);
 }

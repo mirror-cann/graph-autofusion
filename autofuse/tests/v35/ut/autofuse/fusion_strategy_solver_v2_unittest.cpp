@@ -1283,7 +1283,7 @@ class UtestFusionStrategySolverV2 : public testing::Test {
       GetInterAttrs(GetOrCreateAutoFuseAttrs(node->GetOpDesc())).origin_input_names_ = origin_input_names;
       GetInterAttrs(GetOrCreateAutoFuseAttrs(node->GetOpDesc())).origin_output_names_ = origin_output_names;
     }
-    return SUCCESS;
+    return af::SUCCESS;
   }
 
   class MockFusionDecider : public AscBackendFusionDecider {
@@ -1338,14 +1338,14 @@ class UtestFusionStrategySolverV2 : public testing::Test {
       }
 
       ComputeGraphPtr fused_graph;
-      EXPECT_EQ(BackendUtils::GetNodeFusedGraph(node, fused_graph), SUCCESS);
+      EXPECT_EQ(BackendUtils::GetNodeFusedGraph(node, fused_graph), af::SUCCESS);
       for (const auto &fused_node : fused_graph->GetAllNodes()) {
         if (fused_node->GetType() != kAscBackendType) {
           continue;
         }
 
         ComputeGraphPtr asc_graph;
-        EXPECT_EQ(BackendUtils::GetNodeFusedGraph(fused_node, asc_graph), SUCCESS);
+        EXPECT_EQ(BackendUtils::GetNodeFusedGraph(fused_node, asc_graph), af::SUCCESS);
         for (const auto &asc_node : asc_graph->GetAllNodes()) {
           if ((asc_node->GetType() != "Data") && (asc_node->GetType() != "Load") && (asc_node->GetType() != "Store") &&
               (asc_node->GetType() != "Output")) {
@@ -1435,7 +1435,7 @@ TEST_F(UtestFusionStrategySolverV2, Fuse_gather_reduce) {
   FusionDeciderRegistry::Instance().Register(std::unique_ptr<FusionDecider>(new MockFusionDecider()));
   FusionStrategySolver fusion_strategy_solver;
   dlog_setlevel(ASCGEN_MODULE_NAME, DLOG_INFO, 0);
-  EXPECT_EQ(fusion_strategy_solver.Fuse(graph), SUCCESS);
+  EXPECT_EQ(fusion_strategy_solver.Fuse(graph), af::SUCCESS);
   dlog_setlevel(ASCGEN_MODULE_NAME, DLOG_ERROR, 0);
   auto post_nodes_size = graph->GetAllNodesSize();
   EXPECT_EQ(pre_nodes_size - 1U, post_nodes_size);
@@ -1510,7 +1510,7 @@ TEST_F(UtestFusionStrategySolverV2, Fuse_gather_reduce_broadcast) {
   FusionDeciderRegistry::Instance().Register(std::unique_ptr<FusionDecider>(new MockFusionDecider()));
   FusionStrategySolver fusion_strategy_solver;
   dlog_setlevel(ASCGEN_MODULE_NAME, DLOG_INFO, 0);
-  EXPECT_EQ(fusion_strategy_solver.Fuse(graph), SUCCESS);
+  EXPECT_EQ(fusion_strategy_solver.Fuse(graph), af::SUCCESS);
   dlog_setlevel(ASCGEN_MODULE_NAME, DLOG_ERROR, 0);
   auto post_nodes_size = graph->GetAllNodesSize();
   EXPECT_EQ(pre_nodes_size - 1U, post_nodes_size);
@@ -1639,7 +1639,7 @@ TEST_F(UtestFusionStrategySolverV2, Fuse_concat_backward) {
   FusionDeciderRegistry::Instance().Register(std::unique_ptr<FusionDecider>(new ConcatFusionDecider()));
   FusionStrategySolver fusion_strategy_solver;
   dlog_setlevel(ASCGEN_MODULE_NAME, DLOG_INFO, 0);
-  EXPECT_EQ(fusion_strategy_solver.Fuse(graph), SUCCESS);
+  EXPECT_EQ(fusion_strategy_solver.Fuse(graph), af::SUCCESS);
   dlog_setlevel(ASCGEN_MODULE_NAME, DLOG_ERROR, 0);
   auto post_nodes_size = graph->GetAllNodesSize();
   EXPECT_EQ(pre_nodes_size - 6U, post_nodes_size);
@@ -1720,7 +1720,7 @@ TEST_F(UtestFusionStrategySolverV2, Fuse_concat_backward_merge_split) {
   auto pre_nodes_size = graph->GetAllNodesSize();
   FusionDeciderRegistry::Instance().Register(std::unique_ptr<FusionDecider>(new ConcatFusionDecider()));
   const FusionStrategySolver fusion_strategy_solver;
-  EXPECT_EQ(fusion_strategy_solver.Fuse(graph), SUCCESS);
+  EXPECT_EQ(fusion_strategy_solver.Fuse(graph), af::SUCCESS);
   auto post_nodes_size = graph->GetAllNodesSize();
   EXPECT_EQ(pre_nodes_size - 2U, post_nodes_size);
   std::map<size_t, std::set<std::string>> expect_nodes;
@@ -1795,7 +1795,7 @@ TEST_F(UtestFusionStrategySolverV2, Fuse_concat_backward_no_merge_split) {
   auto pre_nodes_size = graph->GetAllNodesSize();
   FusionDeciderRegistry::Instance().Register(std::unique_ptr<FusionDecider>(new ConcatFusionDecider()));
   const FusionStrategySolver fusion_strategy_solver;
-  EXPECT_EQ(fusion_strategy_solver.Fuse(graph), SUCCESS);
+  EXPECT_EQ(fusion_strategy_solver.Fuse(graph), af::SUCCESS);
   auto post_nodes_size = graph->GetAllNodesSize();
   EXPECT_EQ(pre_nodes_size - 2U, post_nodes_size);
   std::map<size_t, std::set<std::string>> expect_nodes;

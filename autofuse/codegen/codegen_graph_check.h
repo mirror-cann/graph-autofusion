@@ -16,9 +16,9 @@
 
 namespace codegen {
 
-ge::Status IsDataTypeSupported(const ::ascir::ImplGraph &graph);
-ge::Status IsRepeatStrideValid(const ::ascir::ImplGraph &graph);
-ge::Status IsGraphNodeValid(const ::ascir::ImplGraph &graph);
+af::Status IsDataTypeSupported(const ::ascir::ImplGraph &graph);
+af::Status IsRepeatStrideValid(const ::ascir::ImplGraph &graph);
+af::Status IsGraphNodeValid(const ::ascir::ImplGraph &graph);
 bool CheckGraphValidity(const ::ascir::ImplGraph &graph);
 
 }  // namespace codegen

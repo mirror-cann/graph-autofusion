@@ -1089,11 +1089,11 @@ TEST_F(VfPartition, ScalarDataInputDisableVf) {
 
   SetupGraphAxes(graph, {af::Symbol(10), af::Symbol(2)});
 
-  ASSERT_EQ(AlignmentHandler::AlignVectorizedStrides(graph), ge::SUCCESS);
+  ASSERT_EQ(AlignmentHandler::AlignVectorizedStrides(graph), af::SUCCESS);
   VectorFuncPartitioner partitioner(graph);
-  ASSERT_EQ(partitioner.Partition(), ge::SUCCESS);
+  ASSERT_EQ(partitioner.Partition(), af::SUCCESS);
   std::vector<af::AscGraph> sub_graphs;
-  EXPECT_EQ(graph.GetAllSubGraphs(sub_graphs), ge::SUCCESS);
+  EXPECT_EQ(graph.GetAllSubGraphs(sub_graphs), af::SUCCESS);
   ASSERT_EQ(sub_graphs.size(), 1UL);
 
   auto scalardata_node = graph.FindNode("scalar_data0");
@@ -1666,7 +1666,7 @@ TEST_F(VfPartition, tail_axis_stride_not_one_disable_vf) {
   store.y.dtype = ge::DT_FLOAT;
 
   SetupGraphAxes(graph, {s0, s1, s2});
-  ASSERT_EQ(AlignmentHandler::AlignVectorizedStrides(graph), ge::SUCCESS);
+  ASSERT_EQ(AlignmentHandler::AlignVectorizedStrides(graph), af::SUCCESS);
 
   // 设置尾轴stride!=1，应该禁用VF
   std::vector<af::Expression> strides = {s1 * s2, s2, af::Symbol(2)};
@@ -1675,10 +1675,10 @@ TEST_F(VfPartition, tail_axis_stride_not_one_disable_vf) {
   graph.FindNode("store")->outputs[0].attr.vectorized_strides = strides;
 
   VectorFuncPartitioner partitioner(graph);
-  ASSERT_EQ(partitioner.Partition(), ge::SUCCESS);
+  ASSERT_EQ(partitioner.Partition(), af::SUCCESS);
 
   std::vector<af::AscGraph> sub_graphs;
-  EXPECT_EQ(graph.GetAllSubGraphs(sub_graphs), ge::SUCCESS);
+  EXPECT_EQ(graph.GetAllSubGraphs(sub_graphs), af::SUCCESS);
   EXPECT_EQ(sub_graphs.size(), 0UL);
 }
 }  // namespace optimize

@@ -25,7 +25,7 @@ class TracingRecorderManager {
   void RecordDuration(TracingModule module, const std::vector<std::string> &msgs, uint64_t start,
                       uint64_t duration) const;
   // 上报Tracing日志(落盘)
-  Status Report(const TracingModule module) const;
+  af::Status Report(const TracingModule module) const;
   TracingRecorderManager(const TracingRecorderManager &) = delete;
   TracingRecorderManager(TracingRecorderManager &&) = delete;
   TracingRecorderManager &operator=(const TracingRecorderManager &) = delete;

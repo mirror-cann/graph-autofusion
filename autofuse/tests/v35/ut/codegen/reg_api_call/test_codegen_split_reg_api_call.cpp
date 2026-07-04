@@ -149,7 +149,7 @@ TEST_F(SplitRegApiCallUTest, AllAligned) {
   call.inputs.push_back(&x1);
 
   std::string result;
-  EXPECT_EQ(call.Generate(tpipe, vector<af::AxisId>{}, result), SUCCESS);
+  EXPECT_EQ(call.Generate(tpipe, vector<af::AxisId>{}, result), af::SUCCESS);
   EXPECT_EQ(result,
             "constexpr SplitTilingAllAligned<2> split_tiling {\n"
             "  .src_col_size = 48,\n"
@@ -184,7 +184,7 @@ TEST_F(SplitRegApiCallUTest, Unaligned_B8) {
   call.inputs.push_back(&x1);
 
   std::string result;
-  EXPECT_EQ(call.Generate(tpipe, vector<af::AxisId>{}, result), SUCCESS);
+  EXPECT_EQ(call.Generate(tpipe, vector<af::AxisId>{}, result), af::SUCCESS);
   EXPECT_EQ(
       result,
       "const split::SplitTiling<2> split_tiling {\n  .num_rows = static_cast<uint32_t>(t->s0), \n  .num_src_cols = "
@@ -217,7 +217,7 @@ TEST_F(SplitRegApiCallUTest, Unaligned_B8ToB16) {
   call.inputs.push_back(&x1);
 
   std::string result;
-  EXPECT_EQ(call.Generate(tpipe, vector<af::AxisId>{}, result), SUCCESS);
+  EXPECT_EQ(call.Generate(tpipe, vector<af::AxisId>{}, result), af::SUCCESS);
   EXPECT_EQ(result,
             "const split::SplitTiling<2> split_tiling {\n  .num_rows = static_cast<uint32_t>(t->s0), \n  .num_src_cols "
             "= ((16 + t->s2_1))/(1), \n  .num_dsts_cols = {(t->s2_1)/(1), 16, }\n};\nuint16_t *split_dst_addrs[] { "
@@ -249,7 +249,7 @@ TEST_F(SplitRegApiCallUTest, Unaligned_B16) {
   call.inputs.push_back(&x1);
 
   std::string result;
-  EXPECT_EQ(call.Generate(tpipe, vector<af::AxisId>{}, result), SUCCESS);
+  EXPECT_EQ(call.Generate(tpipe, vector<af::AxisId>{}, result), af::SUCCESS);
   EXPECT_EQ(
       result,
       "const split::SplitTiling<2> split_tiling {\n  .num_rows = static_cast<uint32_t>(t->s0), \n  .num_src_cols = "
@@ -282,7 +282,7 @@ TEST_F(SplitRegApiCallUTest, Unaligned_B32) {
   call.inputs.push_back(&x1);
 
   std::string result;
-  EXPECT_EQ(call.Generate(tpipe, vector<af::AxisId>{}, result), SUCCESS);
+  EXPECT_EQ(call.Generate(tpipe, vector<af::AxisId>{}, result), af::SUCCESS);
   EXPECT_EQ(
       result,
       "const split::SplitTiling<2> split_tiling {\n  .num_rows = static_cast<uint32_t>(t->s0), \n  .num_src_cols = "
@@ -315,7 +315,7 @@ TEST_F(SplitRegApiCallUTest, Unalign_B64) {
   call.inputs.push_back(&x1);
 
   std::string result;
-  EXPECT_EQ(call.Generate(tpipe, vector<af::AxisId>{}, result), SUCCESS);
+  EXPECT_EQ(call.Generate(tpipe, vector<af::AxisId>{}, result), af::SUCCESS);
   EXPECT_EQ(
       result,
       "const split::SplitTiling<2> split_tiling {\n  .num_rows = static_cast<uint32_t>(t->s0), \n  .num_src_cols = "

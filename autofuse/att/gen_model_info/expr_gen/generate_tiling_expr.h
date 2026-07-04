@@ -27,48 +27,48 @@ class GenerateTilingExpr {
   explicit GenerateTilingExpr(TuningSpacePtr tuning_space) : tuning_space_(std::move(tuning_space)) {}
   virtual ~GenerateTilingExpr() = default;
 
-  ge::Status Generate(ModelInfo &model_info);
+  af::Status Generate(ModelInfo &model_info);
 
  private:
   // 获取tensor内存占用表达式
-  ge::Status GetTensorExpr(std::map<std::string, Expr> &tensor_exprs);
+  af::Status GetTensorExpr(std::map<std::string, Expr> &tensor_exprs);
 
   // 获取每个tensor_id的workspace表达式
-  ge::Status GetWorkSpaceSize(std::map<int64_t, Expr> &workspace_size_map);
+  af::Status GetWorkSpaceSize(std::map<int64_t, Expr> &workspace_size_map);
 
   // 获取内存相关的约束
-  ge::Status GetBufConstraint(std::map<HardwareDef, Expr> &hardware_cons, std::map<std::string, Expr> &container_exprs);
+  af::Status GetBufConstraint(std::map<HardwareDef, Expr> &hardware_cons, std::map<std::string, Expr> &container_exprs);
 
   // 获取预留的ub空间大小
-  ge::Status GetReservedUbSize(Expr &reserved_ub_size);
+  af::Status GetReservedUbSize(Expr &reserved_ub_size);
 
   // 获取算子流水约束
-  ge::Status GetPipePerformance(std::map<PipeType, Expr> &pipe_perf_object,
+  af::Status GetPipePerformance(std::map<PipeType, Expr> &pipe_perf_object,
                                 std::map<Expr, TernaryOp, ExprCmp> &ternary_ops,
                                 std::vector<PerfBreakdownGroup> &perf_breakdowns, Expr &head_cost);
 
   // 获取block dim约束
-  ge::Status GetCoreConstraint(std::map<HardwareDef, Expr> &hardware_cons);
+  af::Status GetCoreConstraint(std::map<HardwareDef, Expr> &hardware_cons);
 
   // 创建一个model info的轴
-  ge::Status MakeArg(const SubAxis *sub_axis, std::map<const SubAxis *, std::set<HardwareDef>> related_scopes,
+  af::Status MakeArg(const SubAxis *sub_axis, std::map<const SubAxis *, std::set<HardwareDef>> related_scopes,
                      AttAxisPtr &arg_info) const;
 
   // 初始化轴基本信息
   void InitArgInfo(const SubAxis *sub_axis, AttAxisPtr &arg_info) const;
 
   // 创建常量类型的轴信息
-  ge::Status MakeConstArg(const SubAxis *sub_axis, AttAxisPtr &arg_info) const;
+  af::Status MakeConstArg(const SubAxis *sub_axis, AttAxisPtr &arg_info) const;
 
   // 创建变量类型的轴信息
-  ge::Status MakeVarArg(const SubAxis *sub_axis, std::map<const SubAxis *, std::set<HardwareDef>> &related_scopes,
+  af::Status MakeVarArg(const SubAxis *sub_axis, std::map<const SubAxis *, std::set<HardwareDef>> &related_scopes,
                         AttAxisPtr &arg_info) const;
 
   // 获取所有轴信息
-  ge::Status GetSubAxisArgs(std::vector<AttAxisPtr> &arg_lists);
+  af::Status GetSubAxisArgs(std::vector<AttAxisPtr> &arg_lists);
 
   // 获取轴和父轴约束
-  ge::Status GetAxisConstraints(std::map<std::string, std::vector<std::pair<Expr, Expr>>> &eq_exprs,
+  af::Status GetAxisConstraints(std::map<std::string, std::vector<std::pair<Expr, Expr>>> &eq_exprs,
                                 std::map<std::string, std::vector<Expr>> &leq_exprs);
 
   // 获取output数量

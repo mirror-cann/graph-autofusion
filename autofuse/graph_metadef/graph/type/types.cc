@@ -89,29 +89,29 @@ static int64_t CeilDiv(const int64_t n1, const int64_t n2) {
   return (n2 != 0) ? (((n1 - 1) / n2) + 1) : 0;
 }
 
-static Status CheckInt64MulOverflow(const int64_t a, const int64_t b) {
+static af::Status CheckInt64MulOverflow(const int64_t a, const int64_t b) {
   if (a > 0) {
     if (b > 0) {
       if (a > (INT64_MAX / b)) {
-        return FAILED;
+        return af::FAILED;
       }
     } else {
       if (b < (INT64_MIN / a)) {
-        return FAILED;
+        return af::FAILED;
       }
     }
   } else {
     if (b > 0) {
       if (a < (INT64_MIN / b)) {
-        return FAILED;
+        return af::FAILED;
       }
     } else {
       if ((a != 0) && (b < (INT64_MAX / a))) {
-        return FAILED;
+        return af::FAILED;
       }
     }
   }
-  return SUCCESS;
+  return af::SUCCESS;
 }
 
 int64_t GetSizeInBytes(int64_t element_count, DataType data_type) {
@@ -125,13 +125,13 @@ int64_t GetSizeInBytes(int64_t element_count, DataType data_type) {
     return -1;
   } else if (type_size > kDataTypeSizeBitOffset) {
     const auto bit_size = type_size - kDataTypeSizeBitOffset;
-    if (CheckInt64MulOverflow(element_count, static_cast<int64_t>(bit_size)) == FAILED) {
+    if (CheckInt64MulOverflow(element_count, static_cast<int64_t>(bit_size)) == af::FAILED) {
       GELOGW("[Check][overflow]GetSizeInBytes failed, when multiplying %" PRId64 " and %d.", element_count, bit_size);
       return -1;
     }
     return CeilDiv(element_count * bit_size, kBitNumOfOneByte);
   } else {
-    if (CheckInt64MulOverflow(element_count, static_cast<int64_t>(type_size)) == FAILED) {
+    if (CheckInt64MulOverflow(element_count, static_cast<int64_t>(type_size)) == af::FAILED) {
       GELOGW("[Check][overflow]GetSizeInBytes failed, when multiplying %" PRId64 " and %" PRId32 ".", element_count,
              type_size);
       return -1;

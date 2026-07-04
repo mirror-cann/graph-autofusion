@@ -12,7 +12,7 @@
 #define AUTOFUSE_CLUSTER_H
 
 #include "graph/node.h"
-#include "ge_common/ge_api_error_codes.h"
+#include "ge_common_af/ge_api_error_codes.h"
 #include "ascendc_ir.h"
 
 namespace optimize {

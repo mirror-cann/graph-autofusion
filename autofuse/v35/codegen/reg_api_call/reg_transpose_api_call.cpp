@@ -60,7 +60,7 @@ Status ReorderInputStrideByOutputAxisOrder(const Tensor &x, const Tensor &y,
     auto axis_pos = static_cast<uint64_t>(std::distance(x.vectorized_axis.begin(), it));
     reordered_input_stride.emplace_back(x.vectorized_strides[axis_pos]);
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 void BuildTransposeLoopParams(TransposeSpecificParams &transpose_specific_params,
@@ -137,7 +137,7 @@ Status TransposeRegApiCall::BuildApiParam(const TPipe &tpipe, const std::vector<
   api_param->specific_params = transpose_specific_params;
 
   GE_CHK_STATUS_RET(CodegenApiParam::Register(this->node, api_param));
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status GenTransposeDimParam(const CodegenApiParam &api_param, const Tiler &tiler, std::string graph_name,
@@ -172,7 +172,7 @@ Status GenTransposeDimParam(const CodegenApiParam &api_param, const Tiler &tiler
   }
   ss << "}";
   ss << ");" << std::endl;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status TransposeRegApiCall::GenDimensionParam(const CodegenApiParam &api_param, const Tiler &tiler,

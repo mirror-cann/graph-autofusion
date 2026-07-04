@@ -277,7 +277,7 @@ TEST_F(SplitScheduleCaseGeneratorTest, split_data_to_different_axis) {
   optimize::SplitFusionCaseGenerator generator;
   std::vector<af::AscGraph> generated_graphs;
   std::vector<std::string> score_functions;
-  EXPECT_EQ(generator.Generate(graph, generated_graphs, score_functions), ge::SUCCESS);
+  EXPECT_EQ(generator.Generate(graph, generated_graphs, score_functions), af::SUCCESS);
   ASSERT_EQ(generated_graphs.size(), 2UL);
 
   auto cg0 = af::AscGraphUtils::GetComputeGraph(generated_graphs[0]);
@@ -400,7 +400,7 @@ TEST_F(SplitScheduleCaseGeneratorTest, split_to_load_axis_connect_broadcast) {
   optimize::SplitFusionCaseGenerator generator;
   std::vector<af::AscGraph> generated_graphs;
   std::vector<std::string> score_functions;
-  EXPECT_EQ(generator.Generate(graph, generated_graphs, score_functions), ge::SUCCESS);
+  EXPECT_EQ(generator.Generate(graph, generated_graphs, score_functions), af::SUCCESS);
   ASSERT_EQ(generated_graphs.size(), 2UL);
 
   auto cg0 = af::AscGraphUtils::GetComputeGraph(generated_graphs[0]);
@@ -510,7 +510,7 @@ TEST_F(SplitScheduleCaseGeneratorTest, split_data_first_dim) {
   optimize::SplitFusionCaseGenerator generator;
   std::vector<af::AscGraph> generated_graphs;
   std::vector<std::string> score_functions;
-  EXPECT_EQ(generator.Generate(graph, generated_graphs, score_functions), ge::SUCCESS);
+  EXPECT_EQ(generator.Generate(graph, generated_graphs, score_functions), af::SUCCESS);
   ASSERT_EQ(generated_graphs.size(), 1UL);
 
   auto cg0 = af::AscGraphUtils::GetComputeGraph(generated_graphs[0]);
@@ -622,7 +622,7 @@ TEST_F(SplitScheduleCaseGeneratorTest, SplitScoreFunc_Aligned) {
   ASSERT_TRUE(split_node != nullptr);
   optimize::SplitScoreFunctionGenerator generator(graph, split_node, 1);
   std::string score_func;
-  EXPECT_EQ(generator.Generate(score_func), ge::SUCCESS);
+  EXPECT_EQ(generator.Generate(score_func), af::SUCCESS);
   EXPECT_TRUE(score_func.find("return 1;") != std::string::npos);
 }
 
@@ -729,7 +729,7 @@ TEST_F(SplitScheduleCaseGeneratorTest, SplitScoreFunc_compile_cannot_decide) {
   ASSERT_TRUE(split_node != nullptr);
   optimize::SplitScoreFunctionGenerator generator(graph, split_node, 1);
   std::string score_func;
-  EXPECT_EQ(generator.Generate(score_func), ge::SUCCESS);
+  EXPECT_EQ(generator.Generate(score_func), af::SUCCESS);
   EXPECT_TRUE(score_func.find("return 1;") != std::string::npos);
 }
 
@@ -836,7 +836,7 @@ TEST_F(SplitScheduleCaseGeneratorTest, SplitScoreFunc_Not_Aligned) {
   ASSERT_TRUE(split_node != nullptr);
   optimize::SplitScoreFunctionGenerator generator(graph, split_node, 1);
   std::string score_func;
-  EXPECT_EQ(generator.Generate(score_func), ge::SUCCESS);
+  EXPECT_EQ(generator.Generate(score_func), af::SUCCESS);
   EXPECT_TRUE(score_func.find("return -1;") != std::string::npos);
 }
 
@@ -944,7 +944,7 @@ TEST_F(SplitScheduleCaseGeneratorTest, SplitScoreFunc_stridenotalign_totalalign)
   ASSERT_TRUE(split_node != nullptr);
   optimize::SplitScoreFunctionGenerator generator(graph, split_node, 1);
   std::string score_func;
-  EXPECT_EQ(generator.Generate(score_func), ge::SUCCESS);
+  EXPECT_EQ(generator.Generate(score_func), af::SUCCESS);
   EXPECT_TRUE(score_func.find("return 1;") != std::string::npos);
 }
 // TEST_F(SplitScheduleCaseGeneratorTest, split_tail_dim1_scene) {
@@ -1014,7 +1014,7 @@ TEST_F(SplitScheduleCaseGeneratorTest, SplitScoreFunc_stridenotalign_totalalign)
 //   optimize::SplitFusionCaseGenerator generator;
 //   std::vector<af::AscGraph> generated_graphs;
 //   std::vector<std::string> score_functions;
-//   EXPECT_EQ(generator.Generate(graph, generated_graphs, score_functions), ge::SUCCESS);
+//   EXPECT_EQ(generator.Generate(graph, generated_graphs, score_functions), af::SUCCESS);
 //   EXPECT_EQ(generated_graphs.size(), 2UL);
 //   std::string load0_repeats = RepeatsToStr(generated_graphs[0], "load0");
 //   EXPECT_EQ(load0_repeats, "s0, 1, s2, 1, ");
@@ -1030,7 +1030,7 @@ TEST_F(SplitScheduleCaseGeneratorTest, SplitScoreFunc) {
   ASSERT_TRUE(split_node != nullptr);
   optimize::SplitScoreFunctionGenerator generator(graph, split_node, 1);
   std::string score_func;
-  EXPECT_EQ(generator.Generate(score_func), ge::SUCCESS);
+  EXPECT_EQ(generator.Generate(score_func), af::SUCCESS);
   EXPECT_TRUE(!score_func.empty());
 }
 
@@ -1042,7 +1042,7 @@ TEST_F(SplitScheduleCaseGeneratorTest, SplitScoreFunc_stride_aligned) {
   ASSERT_TRUE(split_node != nullptr);
   optimize::SplitScoreFunctionGenerator generator(graph, split_node, 1);
   std::string score_func;
-  EXPECT_EQ(generator.Generate(score_func), ge::SUCCESS);
+  EXPECT_EQ(generator.Generate(score_func), af::SUCCESS);
   EXPECT_TRUE(score_func.find("return 1;") != std::string::npos);
 }
 
@@ -1054,7 +1054,7 @@ TEST_F(SplitScheduleCaseGeneratorTest, SplitScoreFunc_split_dim_aligned) {
   ASSERT_TRUE(split_node != nullptr);
   optimize::SplitScoreFunctionGenerator generator(graph, split_node, 1);
   std::string score_func;
-  EXPECT_EQ(generator.Generate(score_func), ge::SUCCESS);
+  EXPECT_EQ(generator.Generate(score_func), af::SUCCESS);
   EXPECT_TRUE(score_func.find("return 1;") != std::string::npos);
 }
 
@@ -1066,7 +1066,7 @@ TEST_F(SplitScheduleCaseGeneratorTest, SplitScoreFunc_split_dim_unaligned) {
   ASSERT_TRUE(split_node != nullptr);
   optimize::SplitScoreFunctionGenerator generator(graph, split_node, 1);
   std::string score_func;
-  EXPECT_EQ(generator.Generate(score_func), ge::SUCCESS);
+  EXPECT_EQ(generator.Generate(score_func), af::SUCCESS);
   EXPECT_TRUE(score_func.find("return -1;") != std::string::npos);
 }
 
@@ -1078,7 +1078,7 @@ TEST_F(SplitScheduleCaseGeneratorTest, SplitScoreFunc_split_dim_dynamic) {
   ASSERT_TRUE(split_node != nullptr);
   optimize::SplitScoreFunctionGenerator generator(graph, split_node, 1);
   std::string score_func;
-  EXPECT_EQ(generator.Generate(score_func), ge::SUCCESS);
+  EXPECT_EQ(generator.Generate(score_func), af::SUCCESS);
   // 验证生成实际的函数
   EXPECT_TRUE(score_func.find("graph0_result0_g0_tiling_data") != std::string::npos);
 }

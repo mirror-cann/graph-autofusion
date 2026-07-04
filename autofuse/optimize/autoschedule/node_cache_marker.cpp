@@ -29,7 +29,7 @@ af::Status NodeCacheMarker::GetAscNodeInputAttr(const af::NodePtr &node, int32_t
   GE_ASSERT_NOTNULL(pre_asc_node);
   GE_ASSERT_TRUE(pre_asc_node->GetOutDataNodesSize() > static_cast<uint32_t>(pre_out_anchor->GetIdx()));
   attr = pre_asc_node->outputs[pre_out_anchor->GetIdx()].attr;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 bool NodeCacheMarker::IsNodeVisited(const af::NodePtr &node) const {
@@ -218,10 +218,10 @@ void NodeCacheMarker::MarkNodesCacheableUpBottom(const af::NodePtr &node) {
 
 af::Status NodeCacheMarker::ReverseDfsCacheNode(const af::NodePtr &ge_node) {
   if (ScheduleUtils::IsIOBuffer(ge_node) || ge_node->GetInDataNodesSize() == 0UL) {
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
   if (IsNodeVisited(ge_node)) {
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
   VisitNode(ge_node);
 
@@ -234,14 +234,14 @@ af::Status NodeCacheMarker::ReverseDfsCacheNode(const af::NodePtr &ge_node) {
       MarkNodeCacheable(node);
       MarkNodesCacheableBottomUp(node, condition);
       GELOGD("Graph(%s) Broadcast(%s) supports brc cache.", graph_.GetName().c_str(), node->GetNamePtr());
-      return ge::SUCCESS;
+      return af::SUCCESS;
     }
   }
   // Stage1，其他节点
   for (const auto &in_node : node->GetInDataNodes()) {
-    GE_WARN_ASSERT(ReverseDfsCacheNode(in_node) == ge::SUCCESS);
+    GE_WARN_ASSERT(ReverseDfsCacheNode(in_node) == af::SUCCESS);
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 /**
@@ -261,7 +261,7 @@ af::Status NodeCacheMarker::ReverseDfsCacheNode(const af::NodePtr &ge_node) {
 af::Status NodeCacheMarker::MarkIfNodeNeedsCache() {
   // 若子图里有Transpose节点，则不缓存，否则后续transpose双切分会有精度问题
   if (ScheduleUtils::HasComputeType(graph_, af::ComputeType::kComputeTranspose)) {
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
   // Stage1，step1: 倒序查找，先收集所有的Store节点，因为Output只有1个输入且必定是Store
   std::vector<af::NodePtr> store_nodes;
@@ -272,19 +272,19 @@ af::Status NodeCacheMarker::MarkIfNodeNeedsCache() {
   }
   if (store_nodes.empty()) {
     GELOGD("Graph(%s) has no store node, returning.", graph_.GetName().c_str());
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
   visited_nodes_.clear();
   cache_start_nodes_.clear();
   for (const auto &node : store_nodes) {
-    GE_WARN_ASSERT(ReverseDfsCacheNode(node) == ge::SUCCESS);
+    GE_WARN_ASSERT(ReverseDfsCacheNode(node) == af::SUCCESS);
   }
 
   // Stage2，正向刷新
   for (const auto &node : cache_start_nodes_) {
     MarkNodesCacheableUpBottom(node);
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 }  // namespace optimize::autoschedule

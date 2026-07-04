@@ -11,6 +11,7 @@
 #include "common_gen_utils.h"
 #include <iostream>
 #include <regex>
+#include "common/ge_common/error_codes_define.h"
 #include "gtest/gtest.h"
 #include "gen_model_info.h"
 #include "graph/types.h"
@@ -858,7 +859,7 @@ TEST_F(TestGenModelInfo, ModelInfoParserFor4DTranspose0123ApiTiling) {
   ASSERT_EQ(af::ascir::cg::Build4DTransposeAscendGraph(graph, {0, 1, 2, 3}), af::SUCCESS);
   graphs.emplace_back(graph);
   const auto &tiling_data_name = graph.GetName() + "TilingData";
-  EXPECT_EQ(GenerateModelInfo(graphs, model_info_list, {{kTilingDataTypeName, tiling_data_name}}), ge::PARAM_INVALID);
+  EXPECT_EQ(GenerateModelInfo(graphs, model_info_list, {{kTilingDataTypeName, tiling_data_name}}), af::PARAM_INVALID);
 }
 
 TEST_F(TestGenModelInfo, GetModelMap_set_env_small_shape) {

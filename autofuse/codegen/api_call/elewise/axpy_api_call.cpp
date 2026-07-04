@@ -50,14 +50,14 @@ Status AxpyApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::AxisId
      << x1.actual_size << ");" << std::endl;
   result = ss.str();
 
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status AxpyApiCall::ParseAttr(const ascir::NodeView &node) {
   GE_CHK_GRAPH_STATUS_RET(node->attr.ir_attr->GetAttrValue("alpha", this->alpha),
                           "Failed to get Axpy alpha attr, node = %s", node->GetNamePtr());
   GELOGI("name:%s, alpha:%f", node->GetNamePtr(), this->alpha);
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 static ApiCallRegister<AxpyApiCall> register_axpy_api_call("AxpyApiCall");

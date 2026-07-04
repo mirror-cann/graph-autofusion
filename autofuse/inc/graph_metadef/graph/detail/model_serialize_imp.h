@@ -12,11 +12,10 @@
 #define INC_GRAPH_DETAIL_MODEL_SERIALIZE_IMP_H_
 
 #include <google/protobuf/repeated_field.h>
-#include "external/ge_common/ge_api_types.h"
+#include "external/ge_common_af/ge_api_types.h"
 #include "graph/model.h"
 
 namespace af {
-using ge::Status;
 using ComputeGraphPtr = std::shared_ptr<ComputeGraph>;
 using AnchorWithIndex = std::pair<AnchorPtr, int64_t>;
 struct MyCmp {

@@ -247,7 +247,7 @@ TEST_F(ArgMaxScheduleCaseGeneratorTest, TestArgMax_Three_Elewise_Store) {
   std::vector<ScheduleTask> tasks;
   optimize::ReducePartitionCaseGenerator generator;
   OptimizerOptions options;
-  EXPECT_EQ(generator.GeneratorTask(graph, tasks, options), SUCCESS);
+  EXPECT_EQ(generator.GeneratorTask(graph, tasks, options), af::SUCCESS);
   ASSERT_EQ(tasks.size(), 1UL);
   ASSERT_EQ(tasks[0].grouped_graphs.size(), 1UL);
 }

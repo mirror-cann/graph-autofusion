@@ -309,7 +309,7 @@ af::Status GetConfusionTransposeTilingDefine([[maybe_unused]] const std::string 
   }
   code_string = oss.str();
 
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 AutoFuseTransposeType ConvertPermuteToTransposeType(af::AscTensorAttr &input_tensor_attr,
@@ -337,7 +337,7 @@ AutoFuseTransposeType ConvertPermuteToTransposeType(af::AscTensorAttr &input_ten
     if (i != 0) oss << ", ";
     oss << output_vectorized_axis[i];
   }
-  GELOGE(ge::FAILED, "Unsupported transpose pattern. Axes count: %zu, pattern: [%s]", output_vectorized_axis.size(),
+  GELOGE(af::FAILED, "Unsupported transpose pattern. Axes count: %zu, pattern: [%s]", output_vectorized_axis.size(),
          oss.str().c_str());
   return AutoFuseTransposeType::TRANSPOSE_INVALID;
 }
@@ -383,7 +383,7 @@ af::Status GenSrcShapeCode(af::AscTensorAttr &input_tensor_attr, const af::AscGr
     int64_t val = input_tensor_attr.vectorized_axis[i];
     auto it = std::find(input_tensor_attr.axis.begin(), input_tensor_attr.axis.end(), val);
     if (it == input_tensor_attr.axis.end()) {
-      return ge::FAILED;
+      return af::FAILED;
     }
     indices.push_back(std::distance(input_tensor_attr.axis.begin(), it));
     for (size_t group_idx = 0; group_idx < merge_axis.size(); group_idx++) {
@@ -409,7 +409,7 @@ af::Status GenSrcShapeCode(af::AscTensorAttr &input_tensor_attr, const af::AscGr
   }
   dims_str += "};\nge::Shape srcShape{dims};\n";
   shape_code = std::move(dims_str);
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 af::Status GetConfusionTransposeTilingCall([[maybe_unused]] const std::string &tiling_data_type,
@@ -451,7 +451,7 @@ af::Status GetConfusionTransposeTilingCall([[maybe_unused]] const std::string &t
       << ", static_cast<uint32_t>(transpose_type), apiConfusionTransposeTiling);\n";
 
   code_string = oss.str();
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 af::Status GetConfusionTransposeTilingHeadFiles([[maybe_unused]] const std::string &tiling_data_type,
@@ -482,7 +482,7 @@ enum class AutoFuseTransposeType: uint8_t {
 )";
 
   code_string = kHeaderContent;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 REGISTER_API_TILING_FUNC(kConfusionTransposeType, GetConfusionTransposeTilingCall, GetConfusionTransposeTilingDefine,

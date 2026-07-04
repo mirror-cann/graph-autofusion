@@ -116,12 +116,12 @@ Status MicroLoadApiCall::Generate(const TensorManager &tensor_mng, const TPipe &
   }
 
   result = ss.str();
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status MicroLoadApiCall::Init(const ascir::NodeView &node) {
   (void)node;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 // 对于DIST_BRC_XXX属性，由于Init函数入参不包含TPipe字段，导致无法拿到输入tensor的stride信息，去判断是否需要使用DIST_BRC_XXX模式
@@ -135,7 +135,7 @@ Status MicroLoadApiCall::UpdateDistModeByStrideInfo(const TPipe &tpipe) {
   ascir::SizeExpr last_dim_stride = tensor_ptr->vectorized_strides.back();
   if (af::SymbolicUtils::StaticCheckEq(last_dim_stride.Simplify(), af::sym::kSymbolZero) != af::TriBool::kTrue) {
     // 尾轴stride不为0，默认采用DIST_NORM加载
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
 
   bool is_all_zero = std::all_of(
@@ -144,14 +144,14 @@ Status MicroLoadApiCall::UpdateDistModeByStrideInfo(const TPipe &tpipe) {
       });
   if (is_all_zero) {
     // 如果stride全部为0，也是用DIST_NORM模式进行加载
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
 
   std::map<int, string> LOAD_BRC_DIST_MODE = {
       {DTYPE_SIZE_1BYTE, "DIST_BRC_B8"}, {DTYPE_SIZE_2BYTE, "DIST_BRC_B16"}, {DTYPE_SIZE_4BYTE, "DIST_BRC_B32"}};
   auto dtype_size = ge::GetSizeByDataType(tensor_ptr->dtype);
   this->dist_ = LOAD_BRC_DIST_MODE[dtype_size];
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 static MicroApiCallRegister<MicroLoadApiCall> register_micro_load_api_call("MicroLoadApiCall");

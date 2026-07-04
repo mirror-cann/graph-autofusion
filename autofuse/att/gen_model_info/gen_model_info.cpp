@@ -39,7 +39,7 @@ constexpr uint32_t kDefaultAlignValue = 1U;
 const std::string kModelInfoFilePath = "./";
 }  // namespace
 
-ge::Status GenerateModelInfo(const af::AscGraph &graph, ModelInfo &model_info, TuningSpacePtr &tuning_space,
+af::Status GenerateModelInfo(const af::AscGraph &graph, ModelInfo &model_info, TuningSpacePtr &tuning_space,
                              const uint32_t tiling_case_id) {
   GELOGI("[DFX]Begin to generate model info for graph %s of tiling case id %u", graph.GetName().c_str(),
          tiling_case_id);
@@ -69,10 +69,10 @@ ge::Status GenerateModelInfo(const af::AscGraph &graph, ModelInfo &model_info, T
     }
   }
   GELOGI("[DFX]End to generate model info for graph %s of tiling case id %u", graph.GetName().c_str(), tiling_case_id);
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status CheckKeyValid(const std::vector<af::AscGraph> &graph_list) {
+af::Status CheckKeyValid(const std::vector<af::AscGraph> &graph_list) {
   if (graph_list.size() > 0) {
     bool has_set_key = (graph_list[0].GetTilingKey() >= 0);
     for (auto &graph : graph_list) {
@@ -80,10 +80,10 @@ ge::Status CheckKeyValid(const std::vector<af::AscGraph> &graph_list) {
                      "If the user has set tiling_case_id for a graph, the tiling_case_id of all graphs must be set.");
     }
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status GenerateModelInfo(const std::vector<af::AscGraph> &graph_list, std::vector<ModelInfo> &model_info_list) {
+af::Status GenerateModelInfo(const std::vector<af::AscGraph> &graph_list, std::vector<ModelInfo> &model_info_list) {
   GE_ASSERT_SUCCESS(CheckKeyValid(graph_list));
   uint32_t tiling_key = 0U;
   for (auto &graph : graph_list) {
@@ -96,7 +96,7 @@ ge::Status GenerateModelInfo(const std::vector<af::AscGraph> &graph_list, std::v
     tiling_key++;
   }
   GE_ASSERT_TRUE(!model_info_list.empty(), "No graph need convert.");
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 void to_json(nlohmann::json &j, const SymInfoPtr &arg) {
@@ -257,7 +257,7 @@ void ProcessGraphOriginalSizeVar(const af::AscGraph &graph, ModelInfo &model_inf
 
 inline bool IsAxesReorderAlgorithm() {
   const auto res = AutoFuseConfig::MutableAttStrategyConfig().Init();
-  if (res == ge::SUCCESS) {
+  if (res == af::SUCCESS) {
     // 环境变量无配置则默认使用轴排序算法
     const auto &att_config = AutoFuseConfig::GetAttStrategyConfig();
     if (att_config.set_env_tiling_algorithm) {
@@ -267,7 +267,7 @@ inline bool IsAxesReorderAlgorithm() {
   return true;
 }
 
-ge::Status GenerateModelInfo(const std::vector<af::AscGraph> &graph_list, std::vector<ModelInfo> &model_info_list,
+af::Status GenerateModelInfo(const std::vector<af::AscGraph> &graph_list, std::vector<ModelInfo> &model_info_list,
                              const std::map<std::string, std::string> &options, bool enable_group_parallel) {
   GE_ASSERT_SUCCESS(CheckKeyValid(graph_list));
   uint32_t tiling_key = 0U;
@@ -305,24 +305,24 @@ ge::Status GenerateModelInfo(const std::vector<af::AscGraph> &graph_list, std::v
     DumpModelInfo(model_info_list, options.at(kDumpDebugInfo).back() == '/' ? options.at(kDumpDebugInfo)
                                                                             : options.at(kDumpDebugInfo) + "/");
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status MakeJsonIner(const std::vector<ModelInfo> &model_info_list, std::string &json_info) {
+af::Status MakeJsonIner(const std::vector<ModelInfo> &model_info_list, std::string &json_info) {
   nlohmann::json j = nlohmann::json{
       {"model_info", model_info_list},
   };
   json_info = j.dump();
   DumpModelInfo(model_info_list);
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status MakeJson(std::vector<ModelInfo> &model_info_list, std::string &json_info) {
+af::Status MakeJson(std::vector<ModelInfo> &model_info_list, std::string &json_info) {
   GE_ASSERT_SUCCESS(MakeJsonIner(model_info_list, json_info), "Make json failed.");
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status GetAllSubImplGraphs(const ascir::FusedScheduledResult &schedule_results,
+af::Status GetAllSubImplGraphs(const ascir::FusedScheduledResult &schedule_results,
                                std::vector<std::vector<std::vector<std::vector<af::AscGraph>>>> &all_graphs,
                                std::map<std::string, std::string> &all_graph_score_funcs) {
   bool has_none_graph = true;
@@ -343,11 +343,11 @@ ge::Status GetAllSubImplGraphs(const ascir::FusedScheduledResult &schedule_resul
     all_graphs.emplace_back(cur_asc_graphs);
   }
   GE_ASSERT_TRUE(!has_none_graph);
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 namespace {
-ge::Status ProcessAndSetScheduleGroupInfo(const std::vector<std::vector<af::AscGraph>> &schedule_groups,
+af::Status ProcessAndSetScheduleGroupInfo(const std::vector<std::vector<af::AscGraph>> &schedule_groups,
                                           const std::map<std::string, std::string> &all_graph_score_funcs,
                                           const ascir::FusedScheduledResult &schedule_results,
                                           const std::map<std::string, std::string> &options,
@@ -384,11 +384,11 @@ ge::Status ProcessAndSetScheduleGroupInfo(const std::vector<std::vector<af::AscG
                       "Init reuse schedule group failed, impl_graph_id[%zu], group_ident[%s].", impl_graph_id,
                       ident.GetItemPrefix().c_str());
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 }  // namespace
 
-ge::Status GetModelInfoMap(const ascir::FusedScheduledResult &schedule_results,
+af::Status GetModelInfoMap(const ascir::FusedScheduledResult &schedule_results,
                            const std::map<std::string, std::string> &options,
                            FusedParsedScheduleResult &out_all_model_infos) {
   std::vector<std::vector<std::vector<std::vector<af::AscGraph>>>> all_graphs_lists;
@@ -422,6 +422,6 @@ ge::Status GetModelInfoMap(const ascir::FusedScheduledResult &schedule_results,
   }
   // 合并所有可以复用的group
   GE_ASSERT_SUCCESS(ReuseGroupUtils::MergeAllReusableGroups(all_graphs_lists, out_all_model_infos));
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 }  // namespace att

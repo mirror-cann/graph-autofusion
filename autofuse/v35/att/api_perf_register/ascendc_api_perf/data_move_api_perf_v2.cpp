@@ -24,7 +24,7 @@ uint32_t GetCacheLineSize() {
 }
 
 // 初始化block_len扩展所需的参数
-ge::Status InitBlockLenExpandParams(const NodeDetail &node_info, const std::vector<Expr> &dims, Expr &block_len,
+af::Status InitBlockLenExpandParams(const NodeDetail &node_info, const std::vector<Expr> &dims, Expr &block_len,
                                     Expr &cache_line_ele_num) {
   const size_t dim_size = dims.size();
   block_len = dims[dim_size - 1UL];
@@ -33,10 +33,10 @@ ge::Status InitBlockLenExpandParams(const NodeDetail &node_info, const std::vect
   GE_ASSERT_TRUE(data_type_size != kDataTypeSizeMap.cend(), "Check data type size failed, node[%s]",
                  node_info.ToString().c_str());
   cache_line_ele_num = CreateExpr(kCacheLineSize) / data_type_size->second;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status AppendCacheLineConfig(const NodeDetail &node_info, CacheLineDirection direction,
+af::Status AppendCacheLineConfig(const NodeDetail &node_info, CacheLineDirection direction,
                                  vector<CacheLineConfig> *cache_line_config) {
   if (cache_line_config != nullptr) {
     GE_ASSERT_TRUE(!node_info.input_dims.empty(), "Check cache line dims failed, node[%s]",
@@ -55,10 +55,10 @@ ge::Status AppendCacheLineConfig(const NodeDetail &node_info, CacheLineDirection
     }
     cache_line_config->push_back(std::move(cfg));
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status GetLoadCase(const NodeDetail &node_info, Expr &blk, int32_t &use_case) {
+af::Status GetLoadCase(const NodeDetail &node_info, Expr &blk, int32_t &use_case) {
   size_t dim_size = node_info.input_dims.size();
   GE_ASSERT_TRUE(!node_info.input_dims.empty(), "Check node input dims failed, node[%s]", node_info.ToString().c_str());
   const auto blk_len = node_info.input_dims[dim_size - 1UL];
@@ -78,10 +78,10 @@ ge::Status GetLoadCase(const NodeDetail &node_info, Expr &blk, int32_t &use_case
   }
   GELOGD("input dtype is %s, dim_size[%zu], block_len[%s], use_case[%d], node[%s]", node_info.input_dtype[0].c_str(),
          dim_size, blk_len.Str().get(), use_case, node_info.ToString().c_str());
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status InitBlockLenExpand(const NodeDetail &node_info, std::vector<Expr> &dims, Expr &block_len,
+af::Status InitBlockLenExpand(const NodeDetail &node_info, std::vector<Expr> &dims, Expr &block_len,
                               Expr &cache_line_ele_num, Expr &block_len_ref, int32_t &kCacheLineSize,
                               int32_t &blk_len_val, int32_t &stride_val) {
   GE_ASSERT_SUCCESS(InitBlockLenExpandParams(node_info, dims, block_len, cache_line_ele_num));
@@ -90,9 +90,9 @@ ge::Status InitBlockLenExpand(const NodeDetail &node_info, std::vector<Expr> &di
   if (block_len_ref.IsConstExpr() && node_info.gm_stride.IsConstExpr()) {
     block_len_ref.GetConstValue(blk_len_val);
     node_info.gm_stride.GetConstValue(stride_val);
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
-  return ge::FAILED;
+  return af::FAILED;
 }
 
 // 静态分支初始化结果
@@ -104,26 +104,26 @@ struct StaticExpandResult {
   Expr cache_line_ele_num;
 };
 
-// 尝试静态初始化block_len扩展参数，成功返回ge::SUCCESS
-ge::Status TryInitStaticExpand(const NodeDetail &node_info, std::vector<Expr> &dims, StaticExpandResult &result) {
+// 尝试静态初始化block_len扩展参数，成功返回af::SUCCESS
+af::Status TryInitStaticExpand(const NodeDetail &node_info, std::vector<Expr> &dims, StaticExpandResult &result) {
   Expr block_len;
   Expr block_len_ref;
   result.cache_line_size = static_cast<int32_t>(GetCacheLineSize());
   if (InitBlockLenExpand(node_info, dims, block_len, result.cache_line_ele_num, block_len_ref, result.cache_line_size,
-                         result.blk_len_val, result.stride_val) != ge::SUCCESS) {
-    return ge::FAILED;
+                         result.blk_len_val, result.stride_val) != af::SUCCESS) {
+    return af::FAILED;
   }
   const auto &data_type_size = kDataTypeSizeMap.find(node_info.input_dtype[0]);
   data_type_size->second.GetConstValue(result.data_type_size_val);
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 // Load场景的block_len扩展：非连续且block_len字节<cache_line时pad到cache_line_ele_num
-ge::Status ExpandLoadBlockLen(const NodeDetail &node_info, PerfOutputInfo &perf, std::vector<Expr> &dims) {
+af::Status ExpandLoadBlockLen(const NodeDetail &node_info, PerfOutputInfo &perf, std::vector<Expr> &dims) {
   StaticExpandResult static_res;
   const int32_t kCacheLineSize = static_cast<int32_t>(GetCacheLineSize());
 
-  if (TryInitStaticExpand(node_info, dims, static_res) == ge::SUCCESS) {
+  if (TryInitStaticExpand(node_info, dims, static_res) == af::SUCCESS) {
     int32_t block_len_bytes = static_res.blk_len_val * static_res.data_type_size_val;
     if ((block_len_bytes < static_res.cache_line_size) && (static_res.stride_val > 0)) {
       dims[dims.size() - 1UL] = static_res.cache_line_ele_num;
@@ -153,10 +153,10 @@ ge::Status ExpandLoadBlockLen(const NodeDetail &node_info, PerfOutputInfo &perf,
     GELOGD("Load block len checker[%s], need_expand[%d], block_len[%s]", need_expand_checker.Serialize().get(),
            need_expand, block_len_ref_actual.Serialize().get());
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status LoadPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
+af::Status LoadPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res_normal;
   Expr res_small_blk;
   Expr blk;
@@ -193,12 +193,12 @@ ge::Status LoadPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
     perf.ternary_ops[res] = ternary_op;
     perf.pipe_res[PipeType::AIV_MTE2] = res;
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status ExpandMTE3BlockLen(const NodeDetail &node_info, PerfOutputInfo &perf, std::vector<Expr> &dims);
+af::Status ExpandMTE3BlockLen(const NodeDetail &node_info, PerfOutputInfo &perf, std::vector<Expr> &dims);
 
-ge::Status StorePerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
+af::Status StorePerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res_normal;
   Expr res_stride;
   GELOGD("Dma with Store: %s", node_info.ToString().c_str());
@@ -213,14 +213,14 @@ ge::Status StorePerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
                             res_stride));
   GE_ASSERT_SUCCESS(AppendCacheLineConfig(node_info, CacheLineDirection::kUbToGm, perf.cache_line_config));
   perf.pipe_res[PipeType::AIV_MTE3] = res_normal + res_stride;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status ExpandBlockLen(const NodeDetail &node_info, PerfOutputInfo &perf, std::vector<Expr> &dims) {
+af::Status ExpandBlockLen(const NodeDetail &node_info, PerfOutputInfo &perf, std::vector<Expr> &dims) {
   // 满足gm非连续且搬运小于cache line，扩展每次搬运数据量到cache line
   StaticExpandResult static_res;
 
-  if (TryInitStaticExpand(node_info, dims, static_res) == ge::SUCCESS) {
+  if (TryInitStaticExpand(node_info, dims, static_res) == af::SUCCESS) {
     // 存在非连续并且block_len较小，无法并包，考虑将block_len对齐到cache line大小
     // 原有行为：block_len_ref是局部拷贝，赋值不反映到dims
     if ((static_res.blk_len_val < static_res.cache_line_size) && (static_res.stride_val > 0)) {
@@ -250,14 +250,14 @@ ge::Status ExpandBlockLen(const NodeDetail &node_info, PerfOutputInfo &perf, std
     GELOGD("Block len checker[%s], is_small_block_len[%d], block_len[%s]", is_small_block_len_checker.Serialize().get(),
            is_small_block_len, block_len_ref_actual.Serialize().get());
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status ExpandMTE3BlockLen(const NodeDetail &node_info, PerfOutputInfo &perf, std::vector<Expr> &dims) {
+af::Status ExpandMTE3BlockLen(const NodeDetail &node_info, PerfOutputInfo &perf, std::vector<Expr> &dims) {
   // 满足GM非连续且搬运小于cache line，扩展每次搬运数据量到cache line大小
   StaticExpandResult static_res;
 
-  if (TryInitStaticExpand(node_info, dims, static_res) == ge::SUCCESS) {
+  if (TryInitStaticExpand(node_info, dims, static_res) == af::SUCCESS) {
     // MTE3静态分支：原有行为中block_len_ref是局部拷贝，pad未反映到dims
     int32_t block_len_bytes = static_res.blk_len_val * static_res.data_type_size_val;
     if ((block_len_bytes < static_res.cache_line_size) && (static_res.stride_val > 0)) {
@@ -291,10 +291,10 @@ ge::Status ExpandMTE3BlockLen(const NodeDetail &node_info, PerfOutputInfo &perf,
     GELOGD("MTE3 Block len padding checker[%s], need_padding[%d], block_len[%s]",
            need_padding_checker.Serialize().get(), need_padding, block_len_ref_actual.Serialize().get());
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status NddmaPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
+af::Status NddmaPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res_normal;
   Expr res_stride;
   GELOGD("Dma with nddma: %s", node_info.ToString().c_str());
@@ -310,7 +310,7 @@ ge::Status NddmaPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
                             res_stride));
   GE_ASSERT_SUCCESS(AppendCacheLineConfig(node_info, CacheLineDirection::kGmToUb, perf.cache_line_config));
   perf.pipe_res[PipeType::AIV_MTE2] = res_normal + res_stride;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 }  // namespace ascendcapi_v2

@@ -20,25 +20,25 @@ namespace {
 constexpr ge::char_t kDefaultConfigMaxIterHeader[] = "cfg_iterations = ";
 constexpr ge::char_t kDefaultConfigMaxIterValue[] = "100";
 }  // namespace
-ge::Status HighPerfTilingCodeGenImpl::GenExternFuncDef() {
+af::Status HighPerfTilingCodeGenImpl::GenExternFuncDef() {
   GE_ASSERT_SUCCESS(TilingCodeGenImpl::GenExternFuncDef(), "Generate extern func definition failed.");
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status HighPerfTilingCodeGenImpl::GenTilingImplPublicFunc() {
+af::Status HighPerfTilingCodeGenImpl::GenTilingImplPublicFunc() {
   GE_ASSERT_SUCCESS(TilingCodeGenImpl::GenTilingImplPublicFunc(), "Generate tiling public func failed.");
   GE_ASSERT_SUCCESS(GenVirtualDataTransferFuncs(), "Generate virtual data transfer funcs failed.");
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status HighPerfTilingCodeGenImpl::GenToolFuncs() {
+af::Status HighPerfTilingCodeGenImpl::GenToolFuncs() {
   GE_ASSERT_SUCCESS(TilingCodeGenImpl::GenToolFuncs(), "Generate tool funcs.");
   GE_ASSERT_SUCCESS(TilingCodeGenImpl::GenStructCopyDef(), "Generate struct copy.");
   GE_ASSERT_SUCCESS(TilingCodeGenImpl::GenCacheHashMapDef(), "Generate cache hash map.");
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status HighPerfTilingCodeGenImpl::GenSolverBaseClass() {
+af::Status HighPerfTilingCodeGenImpl::GenSolverBaseClass() {
   std::vector<ArgsManager> total_models;
   for (const auto &model_info_iter : tiling_model_info_) {
     ArgsManager args_manager(model_info_iter);
@@ -58,17 +58,17 @@ ge::Status HighPerfTilingCodeGenImpl::GenSolverBaseClass() {
       kDefaultConfigMaxIterHeader + std::to_string(AutoFuseConfig::GetAttStrategyConfig().max_iter_num));
   tiling_head_.AddLine(result_head);
   tiling_func_.AddLine(result_func);
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status HighPerfTilingCodeGenImpl::GenSolverTiling(const ModelInfo &model_info) {
+af::Status HighPerfTilingCodeGenImpl::GenSolverTiling(const ModelInfo &model_info) {
   ArgsManager args_manager(model_info);
   SolverPassManager solver_pass_manager(args_manager, {args_manager.GetTilingCaseId()}, config_.tiling_data_type_name);
   tiling_func_.AddLine(solver_pass_manager.GenClassPass());
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status HighPerfTilingCodeGenImpl::GenDoTiling(const ModelInfo &model_info) {
+af::Status HighPerfTilingCodeGenImpl::GenDoTiling(const ModelInfo &model_info) {
   ArgsManager manager(model_info);
   GE_ASSERT_TRUE(manager.Process(false), "Args manager process failed.");
   SolverPassManager solver_pass_manager(manager, {manager.GetTilingCaseId()}, config_.tiling_data_type_name);

@@ -24,7 +24,7 @@ RepeatParams CalculateRepeatParams(const std::string &input_dtype, const Expr &c
 }
 
 namespace {
-ge::Status RegVfPerf(const std::string &vf_instruct_type, const NodeDetail &node_info, PerfOutputInfo &perf) {
+af::Status RegVfPerf(const std::string &vf_instruct_type, const NodeDetail &node_info, PerfOutputInfo &perf) {
   GELOGD("[ATT Reduce] %s node info is %s.", vf_instruct_type.c_str(), node_info.ToString().c_str());
   Expr cal_count = node_info.input_dims[kNumZero];
   RepeatParams params = CalculateRepeatParams(node_info.input_dtype[0], cal_count);
@@ -39,7 +39,7 @@ ge::Status RegVfPerf(const std::string &vf_instruct_type, const NodeDetail &node
   Expr res = VfPerfUtils::GetVFHeadCost() + max_latency + all_vf_instruct_cost;
   res.Simplify();
   perf.pipe_res[PipeType::AIV_VEC] = res;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 }  // namespace
 
@@ -84,7 +84,7 @@ ge::Status RegVfPerf(const std::string &vf_instruct_type, const NodeDetail &node
 ===========================================================================
 */
 namespace {
-ge::Status CompareB64SpecificPerf(const std::string &compare_mode, const Expr &cal_count, const Expr &repeat_elm,
+af::Status CompareB64SpecificPerf(const std::string &compare_mode, const Expr &cal_count, const Expr &repeat_elm,
                                   Expr &max_latency, Expr &all_vf_instruct_cost) {
   Expr repeat_time = af::sym::Ceiling(cal_count / (repeat_elm * kSymTwo));
   GELOGD("cal_count is [%s], repeat_elm is [%s], repeat_time is [%s].", af::SymbolicUtils::ToString(cal_count).c_str(),
@@ -93,23 +93,23 @@ ge::Status CompareB64SpecificPerf(const std::string &compare_mode, const Expr &c
     GE_ASSERT_SUCCESS(
         VfPerfUtils::AddVfInstructPerf(kEq, kFloat32, max_latency, all_vf_instruct_cost, repeat_time * kSymTwo));
     GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kMaskAnd, kUInt8, max_latency, all_vf_instruct_cost, repeat_time));
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
   if (compare_mode == kNe) {
     GE_ASSERT_SUCCESS(
         VfPerfUtils::AddVfInstructPerf(kNe, kFloat32, max_latency, all_vf_instruct_cost, repeat_time * kSymTwo));
     GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kMaskOr, kUInt8, max_latency, all_vf_instruct_cost, repeat_time));
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
   GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kEq, kFloat32, max_latency, all_vf_instruct_cost, repeat_time));
   GE_ASSERT_SUCCESS(
       VfPerfUtils::AddVfInstructPerf(compare_mode, kFloat32, max_latency, all_vf_instruct_cost, repeat_time * kSymTwo));
   GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kMaskSel, kUInt8, max_latency, all_vf_instruct_cost, repeat_time));
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 }  // namespace
 
-ge::Status CompareSpecificPerf(const std::string compare_mode, const NodeDetail &node_info, PerfOutputInfo &perf) {
+af::Status CompareSpecificPerf(const std::string compare_mode, const NodeDetail &node_info, PerfOutputInfo &perf) {
   GELOGD("Compare mode[%s]: node info is %s.", compare_mode.c_str(), node_info.ToString().c_str());
   Expr cal_count = node_info.input_dims[kNumZero];
   Expr repeat_elm = kRptSizeFloat;
@@ -134,30 +134,30 @@ ge::Status CompareSpecificPerf(const std::string compare_mode, const NodeDetail 
   Expr res = VfPerfUtils::GetVFHeadCost() + max_latency + all_vf_instruct_cost;
   res.Simplify();
   perf.pipe_res[PipeType::AIV_VEC] = res;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status CompareGEPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
+af::Status CompareGEPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   return CompareSpecificPerf(kGe, node_info, perf);
 }
 
-ge::Status CompareEQPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
+af::Status CompareEQPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   return CompareSpecificPerf(kEq, node_info, perf);
 }
 
-ge::Status CompareNEPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
+af::Status CompareNEPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   return CompareSpecificPerf(kNe, node_info, perf);
 }
 
-ge::Status CompareGTPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
+af::Status CompareGTPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   return CompareSpecificPerf(kGt, node_info, perf);
 }
 
-ge::Status CompareLEPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
+af::Status CompareLEPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   return CompareSpecificPerf(kLe, node_info, perf);
 }
 
-ge::Status CompareLTPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
+af::Status CompareLTPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   return CompareSpecificPerf(kLt, node_info, perf);
 }
 
@@ -171,7 +171,7 @@ ge::Status CompareLTPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
     调用 vf_ins_vabs
 ===========================================================================
 */
-ge::Status AbsPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
+af::Status AbsPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   GELOGD("Abs node info is %s.", node_info.ToString().c_str());
   Expr cal_count = node_info.input_dims[kNumZero];
   RepeatParams params = CalculateRepeatParams(node_info.input_dtype[0], cal_count);
@@ -186,7 +186,7 @@ ge::Status AbsPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res = VfPerfUtils::GetVFHeadCost() + max_latency + all_vf_instruct_cost;
   res.Simplify();
   perf.pipe_res[PipeType::AIV_VEC] = res;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 /*
@@ -199,7 +199,7 @@ ge::Status AbsPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
     调用 vf_ins_vexp
 ===========================================================================
 */
-ge::Status ExpPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
+af::Status ExpPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   GELOGD("Exp node info is %s.", node_info.ToString().c_str());
   Expr cal_count = node_info.input_dims[kNumZero];
   RepeatParams params = CalculateRepeatParams(node_info.input_dtype[0], cal_count);
@@ -214,7 +214,7 @@ ge::Status ExpPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res = VfPerfUtils::GetVFHeadCost() + max_latency + all_vf_instruct_cost;
   res.Simplify();
   perf.pipe_res[PipeType::AIV_VEC] = res;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 /*
@@ -227,7 +227,7 @@ ge::Status ExpPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
     调用 vf_ins_vln
 ===========================================================================
 */
-ge::Status LnPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
+af::Status LnPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   GELOGD("Ln node info is %s.", node_info.ToString().c_str());
   Expr cal_count = node_info.input_dims[kNumZero];
   RepeatParams params = CalculateRepeatParams(node_info.input_dtype[0], cal_count);
@@ -242,7 +242,7 @@ ge::Status LnPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res = VfPerfUtils::GetVFHeadCost() + max_latency + all_vf_instruct_cost;
   res.Simplify();
   perf.pipe_res[PipeType::AIV_VEC] = res;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 /*
@@ -255,7 +255,7 @@ ge::Status LnPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
     调用 vf_ins_vsqrt
 ===========================================================================
 */
-ge::Status SqrtPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
+af::Status SqrtPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   GELOGD("Sqrt node info is %s.", node_info.ToString().c_str());
   Expr cal_count = node_info.input_dims[kNumZero];
   RepeatParams params = CalculateRepeatParams(node_info.input_dtype[0], cal_count);
@@ -270,7 +270,7 @@ ge::Status SqrtPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res = VfPerfUtils::GetVFHeadCost() + max_latency + all_vf_instruct_cost;
   res.Simplify();
   perf.pipe_res[PipeType::AIV_VEC] = res;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 /*
@@ -285,7 +285,7 @@ ge::Status SqrtPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
     调用 vf_ins_vsel
 ===========================================================================
 */
-ge::Status RsqrtPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
+af::Status RsqrtPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   GELOGD("Rsqrt node info is %s.", node_info.ToString().c_str());
   Expr cal_count = node_info.input_dims[kNumZero];
   RepeatParams params = CalculateRepeatParams(node_info.input_dtype[0], cal_count);
@@ -304,7 +304,7 @@ ge::Status RsqrtPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res = VfPerfUtils::GetVFHeadCost() + max_latency + all_vf_instruct_cost;
   res.Simplify();
   perf.pipe_res[PipeType::AIV_VEC] = res;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 /*
@@ -317,7 +317,7 @@ ge::Status RsqrtPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
     调用 vf_ins_vdiv
 ===========================================================================
 */
-ge::Status DivPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
+af::Status DivPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   GELOGD("Div node info is %s.", node_info.ToString().c_str());
   Expr cal_count = node_info.input_dims[kNumZero];
   RepeatParams params = CalculateRepeatParams(node_info.input_dtype[0], cal_count);
@@ -332,7 +332,7 @@ ge::Status DivPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res = VfPerfUtils::GetVFHeadCost() + max_latency + all_vf_instruct_cost;
   res.Simplify();
   perf.pipe_res[PipeType::AIV_VEC] = res;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 /*
@@ -346,7 +346,7 @@ ge::Status DivPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
     调用 vf_ins_vdiv
 ===========================================================================
 */
-ge::Status ReciprocalPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
+af::Status ReciprocalPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   GELOGD("Reciprocal node info is %s.", node_info.ToString().c_str());
   Expr cal_count = node_info.input_dims[kNumZero];
   RepeatParams params = CalculateRepeatParams(node_info.input_dtype[0], cal_count);
@@ -363,7 +363,7 @@ ge::Status ReciprocalPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res = VfPerfUtils::GetVFHeadCost() + max_latency + all_vf_instruct_cost;
   res.Simplify();
   perf.pipe_res[PipeType::AIV_VEC] = res;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 /*
@@ -376,7 +376,7 @@ ge::Status ReciprocalPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
     调用 vf_ins_vrelu
 ===========================================================================
 */
-ge::Status ReluPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
+af::Status ReluPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   GELOGD("Relu node info is %s.", node_info.ToString().c_str());
   Expr cal_count = node_info.input_dims[kNumZero];
   RepeatParams params = CalculateRepeatParams(node_info.input_dtype[0], cal_count);
@@ -391,7 +391,7 @@ ge::Status ReluPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res = VfPerfUtils::GetVFHeadCost() + max_latency + all_vf_instruct_cost;
   res.Simplify();
   perf.pipe_res[PipeType::AIV_VEC] = res;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 /*
@@ -404,7 +404,7 @@ ge::Status ReluPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
     调用 vf_ins_vmax
 ===========================================================================
 */
-ge::Status MaxPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
+af::Status MaxPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   GELOGD("Max node info is %s.", node_info.ToString().c_str());
   Expr cal_count = node_info.input_dims[kNumZero];
   RepeatParams params = CalculateRepeatParams(node_info.input_dtype[0], cal_count);
@@ -419,7 +419,7 @@ ge::Status MaxPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res = VfPerfUtils::GetVFHeadCost() + max_latency + all_vf_instruct_cost;
   res.Simplify();
   perf.pipe_res[PipeType::AIV_VEC] = res;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 /*
@@ -432,7 +432,7 @@ ge::Status MaxPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
     调用 vf_ins_vmin
 ===========================================================================
 */
-ge::Status MinPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
+af::Status MinPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   GELOGD("Min node info is %s.", node_info.ToString().c_str());
   Expr cal_count = node_info.input_dims[kNumZero];
   RepeatParams params = CalculateRepeatParams(node_info.input_dtype[0], cal_count);
@@ -447,14 +447,14 @@ ge::Status MinPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res = VfPerfUtils::GetVFHeadCost() + max_latency + all_vf_instruct_cost;
   res.Simplify();
   perf.pipe_res[PipeType::AIV_VEC] = res;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status ReduceMaxPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
+af::Status ReduceMaxPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   return RegVfPerf(kReduceMax, node_info, perf);
 }
 
-ge::Status ReduceMinPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
+af::Status ReduceMinPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   return RegVfPerf(kReduceMin, node_info, perf);
 }
 
@@ -468,7 +468,7 @@ ge::Status ReduceMinPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
     调用 vf_ins_vmuls
 ===========================================================================
 */
-ge::Status NegPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
+af::Status NegPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   GELOGD("Neg node info is %s.", node_info.ToString().c_str());
   Expr cal_count = node_info.input_dims[kNumZero];
   RepeatParams params = CalculateRepeatParams(node_info.input_dtype[0], cal_count);
@@ -483,7 +483,7 @@ ge::Status NegPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res = VfPerfUtils::GetVFHeadCost() + max_latency + all_vf_instruct_cost;
   res.Simplify();
   perf.pipe_res[PipeType::AIV_VEC] = res;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 /*
@@ -496,7 +496,7 @@ ge::Status NegPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
     调用 vf_ins_vmuls
 ===========================================================================
 */
-ge::Status MeanPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
+af::Status MeanPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   GELOGD("Mean node info is %s.", node_info.ToString().c_str());
   Expr cal_count = node_info.input_dims[kNumZero];
   RepeatParams params = CalculateRepeatParams(node_info.input_dtype[0], cal_count);
@@ -511,7 +511,7 @@ ge::Status MeanPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res = VfPerfUtils::GetVFHeadCost() + max_latency + all_vf_instruct_cost;
   res.Simplify();
   perf.pipe_res[PipeType::AIV_VEC] = res;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 /*
@@ -524,7 +524,7 @@ ge::Status MeanPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
     调用 vf_ins_vadd
 ===========================================================================
 */
-ge::Status AddPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
+af::Status AddPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   GELOGD("Add node info is %s.", node_info.ToString().c_str());
   Expr cal_count = node_info.input_dims[kNumZero];
   RepeatParams params = CalculateRepeatParams(node_info.input_dtype[0], cal_count);
@@ -539,7 +539,7 @@ ge::Status AddPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res = VfPerfUtils::GetVFHeadCost() + max_latency + all_vf_instruct_cost;
   res.Simplify();
   perf.pipe_res[PipeType::AIV_VEC] = res;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 /*
@@ -552,7 +552,7 @@ ge::Status AddPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
     调用 vf_ins_vsub
 ===========================================================================
 */
-ge::Status SubPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
+af::Status SubPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   GELOGD("Sub node info is %s.", node_info.ToString().c_str());
   Expr cal_count = node_info.input_dims[kNumZero];
   RepeatParams params = CalculateRepeatParams(node_info.input_dtype[0], cal_count);
@@ -567,7 +567,7 @@ ge::Status SubPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res = VfPerfUtils::GetVFHeadCost() + max_latency + all_vf_instruct_cost;
   res.Simplify();
   perf.pipe_res[PipeType::AIV_VEC] = res;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 /*
@@ -580,7 +580,7 @@ ge::Status SubPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
     调用 vf_ins_vmul
 ===========================================================================
 */
-ge::Status MulPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
+af::Status MulPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   GELOGD("Mul node info is %s.", node_info.ToString().c_str());
   Expr cal_count = node_info.input_dims[kNumZero];
   RepeatParams params = CalculateRepeatParams(node_info.input_dtype[0], cal_count);
@@ -595,7 +595,7 @@ ge::Status MulPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res = VfPerfUtils::GetVFHeadCost() + max_latency + all_vf_instruct_cost;
   res.Simplify();
   perf.pipe_res[PipeType::AIV_VEC] = res;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 /*
@@ -608,7 +608,7 @@ ge::Status MulPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
     调用 vf_ins_vlrelu
 ===========================================================================
 */
-ge::Status LeakyReluPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
+af::Status LeakyReluPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   GELOGD("LeakyRelu node info is %s.", node_info.ToString().c_str());
   Expr cal_count = node_info.input_dims[kNumZero];
   RepeatParams params = CalculateRepeatParams(node_info.input_dtype[0], cal_count);
@@ -623,7 +623,7 @@ ge::Status LeakyReluPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res = VfPerfUtils::GetVFHeadCost() + max_latency + all_vf_instruct_cost;
   res.Simplify();
   perf.pipe_res[PipeType::AIV_VEC] = res;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 /*
@@ -640,7 +640,7 @@ ge::Status LeakyReluPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
       调用 vf_ins_vcvt(dst_type, src_type)
 ===========================================================================
 */
-ge::Status CastPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
+af::Status CastPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   GELOGD("Cast node info is %s.", node_info.ToString().c_str());
   Expr cal_count = node_info.input_dims[kNumZero];
   Expr oneRepSize = kRptSizeFloat;
@@ -670,7 +670,7 @@ ge::Status CastPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res = VfPerfUtils::GetVFHeadCost() + max_latency + all_vf_instruct_cost;
   res.Simplify();
   perf.pipe_res[PipeType::AIV_VEC] = res;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 /*
@@ -697,7 +697,7 @@ ge::Status CastPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
       调用 vf_ins_vcadd
 ===========================================================================
 */
-ge::Status SumPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
+af::Status SumPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   GELOGD("Sum node info is %s.", node_info.ToString().c_str());
   Expr cal_count = node_info.input_dims[kNumZero];
   Expr oneRepSize = kRptSizeFloat;
@@ -737,7 +737,7 @@ ge::Status SumPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res = VfPerfUtils::GetVFHeadCost() + max_latency + all_vf_instruct_cost;
   res.Simplify();
   perf.pipe_res[PipeType::AIV_VEC] = res;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 /*
@@ -750,7 +750,7 @@ ge::Status SumPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
     调用 vf_ins_vsqz
 ===========================================================================
 */
-ge::Status RemovePadPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
+af::Status RemovePadPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   GELOGD("RemovePad node info is %s.", node_info.ToString().c_str());
   Expr cal_count = node_info.input_dims[kNumZero];
   RepeatParams params = CalculateRepeatParams(node_info.input_dtype[0], cal_count);
@@ -765,7 +765,7 @@ ge::Status RemovePadPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res = VfPerfUtils::GetVFHeadCost() + max_latency + all_vf_instruct_cost;
   res.Simplify();
   perf.pipe_res[PipeType::AIV_VEC] = res;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 /*
@@ -780,7 +780,7 @@ ge::Status RemovePadPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
     调用 vf_ins_vsel（向量选择，按比较结果赋值）
 ===========================================================================
 */
-ge::Status WherePerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
+af::Status WherePerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   GELOGD("Where node info is %s.", node_info.ToString().c_str());
   Expr cal_count = node_info.input_dims[kNumZero];
   RepeatParams params = CalculateRepeatParams(node_info.input_dtype[0], cal_count);
@@ -799,10 +799,10 @@ ge::Status WherePerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res = VfPerfUtils::GetVFHeadCost() + max_latency + all_vf_instruct_cost;
   res.Simplify();
   perf.pipe_res[PipeType::AIV_VEC] = res;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-inline ge::Status ProcessFloatPow(const NodeDetail &node_info, Expr &cal_count, Expr &max_latency,
+inline af::Status ProcessFloatPow(const NodeDetail &node_info, Expr &cal_count, Expr &max_latency,
                                   Expr &all_vf_instruct_cost) {
   Expr eleCountPerVL = kRptSizeFloat;
   Expr repeatTimes = af::sym::Ceiling(cal_count / eleCountPerVL);
@@ -887,10 +887,10 @@ inline ge::Status ProcessFloatPow(const NodeDetail &node_info, Expr &cal_count, 
                                                    all_vf_instruct_cost, repeatTimes));
   GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kCompareScalarLT, node_info.input_dtype[0], max_latency,
                                                    all_vf_instruct_cost, repeatTimes));
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-inline ge::Status ProcessIntegerPow(const NodeDetail &node_info, Expr &cal_count, Expr &max_latency,
+inline af::Status ProcessIntegerPow(const NodeDetail &node_info, Expr &cal_count, Expr &max_latency,
                                     Expr &all_vf_instruct_cost) {
   Expr dataSize = af::sym::kSymbolZero;
   auto it = kDataTypeSizeMap.find(node_info.input_dtype[0]);
@@ -949,7 +949,7 @@ inline ge::Status ProcessIntegerPow(const NodeDetail &node_info, Expr &cal_count
     GE_ASSERT_SUCCESS(VfPerfUtils::AddVfInstructPerf(kMaskAnd, node_info.input_dtype[0], max_latency,
                                                      all_vf_instruct_cost, repeat_times));
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 /*
@@ -995,7 +995,7 @@ inline ge::Status ProcessIntegerPow(const NodeDetail &node_info, Expr &cal_count
           调用 vf_ins_vsel
 ===========================================================================
 */
-ge::Status PowPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
+af::Status PowPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   GELOGD("Pow node info is %s.", node_info.ToString().c_str());
   Expr cal_count = accumulate(node_info.input_dims.begin(), node_info.input_dims.end(), CreateExpr(1),
                               [](const Expr &a, const Expr &b) { return a * b; });
@@ -1010,7 +1010,7 @@ ge::Status PowPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res = VfPerfUtils::GetVFHeadCost() + max_latency + all_vf_instruct_cost;
   res.Simplify();
   perf.pipe_res[PipeType::AIV_VEC] = res;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 /*
@@ -1036,7 +1036,7 @@ ge::Status PowPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
    vf_ins_datacopy_reg2ub
 ===========================================================================
 */
-ge::Status ErfPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
+af::Status ErfPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr cal_count = node_info.input_dims[kNumZero];
   Expr repeat_elm = kRptSizeFloat;
   Expr repeat_time = af::sym::Ceiling(cal_count / repeat_elm);
@@ -1074,7 +1074,7 @@ ge::Status ErfPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res = VfPerfUtils::GetVFHeadCost() + max_latency + all_vf_instruct_cost;
   res.Simplify();
   perf.pipe_res[PipeType::AIV_VEC] = res;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 /*
@@ -1100,7 +1100,7 @@ ge::Status ErfPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
    vf_ins_datacopy_reg2ub
 ===========================================================================
 */
-ge::Status TanhPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
+af::Status TanhPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   GELOGD("Tanh node info is %s.", node_info.ToString().c_str());
   Expr cal_count = node_info.input_dims[kNumZero];
   Expr repeat_elm = kRptSizeFloat;
@@ -1139,7 +1139,7 @@ ge::Status TanhPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res = VfPerfUtils::GetVFHeadCost() + max_latency + all_vf_instruct_cost;
   res.Simplify();
   perf.pipe_res[PipeType::AIV_VEC] = res;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 /*
@@ -1164,7 +1164,7 @@ ge::Status TanhPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
    vf_ins_datacopy_reg2ub
 ===========================================================================
 */
-ge::Status SigmoidPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
+af::Status SigmoidPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   GELOGD("Sigmoid node info is %s.", node_info.ToString().c_str());
   Expr cal_count = node_info.input_dims[kNumZero];
   Expr repeat_elm = kRptSizeFloat;
@@ -1201,7 +1201,7 @@ ge::Status SigmoidPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res = VfPerfUtils::GetVFHeadCost() + max_latency + all_vf_instruct_cost;
   res.Simplify();
   perf.pipe_res[PipeType::AIV_VEC] = res;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 /*
@@ -1225,7 +1225,7 @@ ge::Status SigmoidPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
    vf_ins_datacopy_reg2ub
 ===========================================================================
 */
-ge::Status GeluPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
+af::Status GeluPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr cal_count = node_info.input_dims[kNumZero];
   RepeatParams params = CalculateRepeatParams(node_info.input_dtype[0], cal_count);
   Expr repeat_elm = params.repeat_elm;
@@ -1261,7 +1261,7 @@ ge::Status GeluPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res = VfPerfUtils::GetVFHeadCost() + max_latency + all_vf_instruct_cost;
   res.Simplify();
   perf.pipe_res[PipeType::AIV_VEC] = res;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 /*
@@ -1281,7 +1281,7 @@ ge::Status GeluPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
    vf_ins_datacopy_reg2ub
 ===========================================================================
 */
-ge::Status SignPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
+af::Status SignPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr cal_count = node_info.input_dims[kNumZero];
   RepeatParams params = CalculateRepeatParams(node_info.input_dtype[0], cal_count);
   Expr repeat_elm = params.repeat_elm;
@@ -1309,7 +1309,7 @@ ge::Status SignPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res = VfPerfUtils::GetVFHeadCost() + max_latency + all_vf_instruct_cost;
   res.Simplify();
   perf.pipe_res[PipeType::AIV_VEC] = res;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 /*
@@ -1332,7 +1332,7 @@ ge::Status SignPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
    vf_ins_datacopy_reg2ub
 ===========================================================================
 */
-ge::Status LogicalNotPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
+af::Status LogicalNotPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   GELOGD("LogicalNot node info is %s.", node_info.ToString().c_str());
   Expr cal_count = node_info.input_dims[kNumZero];
   RepeatParams params = CalculateRepeatParams(node_info.input_dtype[0], cal_count);
@@ -1367,7 +1367,7 @@ ge::Status LogicalNotPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res = VfPerfUtils::GetVFHeadCost() + max_latency + all_vf_instruct_cost;
   res.Simplify();
   perf.pipe_res[PipeType::AIV_VEC] = res;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 /*
@@ -1391,7 +1391,7 @@ ge::Status LogicalNotPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
    vf_ins_datacopy_reg2ub
 ===========================================================================
 */
-inline ge::Status LogicalAndOrImpl(const std::string &type, const NodeDetail &node_info, PerfOutputInfo &perf) {
+inline af::Status LogicalAndOrImpl(const std::string &type, const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr cal_count = node_info.input_dims[kNumZero];
   RepeatParams params = CalculateRepeatParams(node_info.input_dtype[0], cal_count);
   Expr repeat_elm = params.repeat_elm;
@@ -1432,14 +1432,14 @@ inline ge::Status LogicalAndOrImpl(const std::string &type, const NodeDetail &no
   Expr res = VfPerfUtils::GetVFHeadCost() + max_latency + all_vf_instruct_cost;
   res.Simplify();
   perf.pipe_res[PipeType::AIV_VEC] = res;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status LogicalOrPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
+af::Status LogicalOrPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   return LogicalAndOrImpl(kMaskOr, node_info, perf);
 }
 
-ge::Status LogicalAndPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
+af::Status LogicalAndPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   return LogicalAndOrImpl(kMaskAnd, node_info, perf);
 }
 
@@ -1458,7 +1458,7 @@ ge::Status LogicalAndPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
    vf_ins_datacopy_reg2ub
 ===========================================================================
 */
-ge::Status ClipByValuePerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
+af::Status ClipByValuePerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr cal_count = node_info.input_dims[kNumZero];
   RepeatParams params = CalculateRepeatParams(node_info.input_dtype[0], cal_count);
   Expr repeat_elm = params.repeat_elm;
@@ -1482,7 +1482,7 @@ ge::Status ClipByValuePerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res = VfPerfUtils::GetVFHeadCost() + max_latency + all_vf_instruct_cost;
   res.Simplify();
   perf.pipe_res[PipeType::AIV_VEC] = res;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 /*
@@ -1504,7 +1504,7 @@ ge::Status ClipByValuePerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
    vf_ins_datacopy_reg2ub
 ===========================================================================
 */
-ge::Status BitwiseAndPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
+af::Status BitwiseAndPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   GELOGD("BitwiseAnd node info is %s.", node_info.ToString().c_str());
   Expr cal_count = node_info.input_dims[kNumZero];
   RepeatParams params = CalculateRepeatParams(node_info.input_dtype[0], cal_count);
@@ -1533,7 +1533,7 @@ ge::Status BitwiseAndPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res = VfPerfUtils::GetVFHeadCost() + max_latency + all_vf_instruct_cost;
   res.Simplify();
   perf.pipe_res[PipeType::AIV_VEC] = res;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 /*
@@ -1558,7 +1558,7 @@ ge::Status BitwiseAndPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
    vf_ins_datacopy_reg2ub
 ===========================================================================
 */
-ge::Status FloorDivPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
+af::Status FloorDivPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   GELOGD("FloorDiv node info is %s.", node_info.ToString().c_str());
   Expr size = node_info.input_dims[kNumZero];
   RepeatParams params = CalculateRepeatParams(node_info.input_dtype[0], size);
@@ -1595,7 +1595,7 @@ ge::Status FloorDivPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res = VfPerfUtils::GetVFHeadCost() + max_latency + all_vf_instruct_cost;
   res.Simplify();
   perf.pipe_res[PipeType::AIV_VEC] = res;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 }  // namespace ascendcperf_v2
 }  // namespace att

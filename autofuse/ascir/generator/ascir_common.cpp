@@ -122,7 +122,7 @@ Status ValidateInputTensorLoopAxis(const AscNode &node, size_t input_id, size_t 
   if ((SymbolicUtils::StaticCheckEq(output_attr.repeats[output_axis_id], input_attr.repeats[input_axis_id]) ==
        TriBool::kTrue) ||
       (SymbolicUtils::StaticCheckEq(input_attr.repeats[input_axis_id], Symbol(1)) == TriBool::kTrue)) {
-    return ge::SUCCESS;
+    return af::SUCCESS;
   } else if (SymbolicUtils::StaticCheckEq(output_attr.repeats[output_axis_id], input_attr.repeats[input_axis_id]) ==
              TriBool::kUnknown) {
     GELOGW(
@@ -130,15 +130,15 @@ Status ValidateInputTensorLoopAxis(const AscNode &node, size_t input_id, size_t 
         "be equal or broadcastable(relation cannot be determined)",
         node.GetTypePtr(), node.GetNamePtr(), input_id, input_axis_id, input_attr.repeats[input_axis_id].Str().get(),
         output_axis_id, output_attr.repeats[output_axis_id].Str().get());
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
 
-  GELOGE(ge::FAILED,
+  GELOGE(af::FAILED,
          "Node %s[%s]: input tensor %zu loop axis %zu repeat %s and output tensor 0 loop axis %zu repeat "
          "%s are not equal or broadcastable",
          node.GetTypePtr(), node.GetNamePtr(), input_id, input_axis_id, input_attr.repeats[input_axis_id].Str().get(),
          output_axis_id, output_attr.repeats[output_axis_id].Str().get());
-  return ge::FAILED;
+  return af::FAILED;
 }
 
 Status ValidateInputTensorVectorizedAxis(const AscNode &node, size_t input_id, size_t input_axis_id,
@@ -157,7 +157,7 @@ Status ValidateInputTensorVectorizedAxis(const AscNode &node, size_t input_id, s
   if ((SymbolicUtils::StaticCheckEq(output_attr.repeats[output_axis_id], input_attr.repeats[input_axis_id]) ==
        TriBool::kTrue) ||
       IsVectorizedAxisSupportBrc(node, input_id, broadcast_capability)) {
-    return ge::SUCCESS;
+    return af::SUCCESS;
   } else if (SymbolicUtils::StaticCheckEq(output_attr.repeats[output_axis_id], input_attr.repeats[input_axis_id]) ==
              TriBool::kUnknown) {
     GELOGW(
@@ -165,15 +165,15 @@ Status ValidateInputTensorVectorizedAxis(const AscNode &node, size_t input_id, s
         "repeat: %s may not be equal or broadcastable(relation cannot be determined)",
         node.GetTypePtr(), node.GetNamePtr(), input_id, input_axis_id, input_attr.repeats[input_axis_id].Str().get(),
         output_axis_id, output_attr.repeats[output_axis_id].Str().get());
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
 
-  GELOGE(ge::FAILED,
+  GELOGE(af::FAILED,
          "Node %s[%s]: input tensor %zu vectorized_axis %zu repeat: %s and output tensor 0 vectorized_axis "
          "%zu repeat: %s are not equal or broadcastable",
          node.GetTypePtr(), node.GetNamePtr(), input_id, input_axis_id, input_attr.repeats[input_axis_id].Str().get(),
          output_axis_id, output_attr.repeats[output_axis_id].Str().get());
-  return ge::FAILED;
+  return af::FAILED;
 }
 
 Status ValidateShapeConsistencyWithSingleOutput(const AscNode &node, const BroadcastCapability &broadcast_capability) {
@@ -207,7 +207,7 @@ Status ValidateShapeConsistencyWithSingleOutput(const AscNode &node, const Broad
       }
     }
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 bool IsNodeHasScalarInput(const AscNode &node) {

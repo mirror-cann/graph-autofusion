@@ -40,19 +40,19 @@ Status GatherRegApiCall::GetGatherCase(const Tensor &x1, std::string &result) co
   const int64_t x1_axis_size = static_cast<int64_t>(x1.axis.size());
   if (x1_axis_size == 1 && this->axis == 0) {
     result = single_axis;
-    return ge::SUCCESS;
+    return af::SUCCESS;
   } else if (x1_axis_size > 1 && this->axis == 0) {
     result = begin_axis;
-    return ge::SUCCESS;
+    return af::SUCCESS;
   } else if (x1_axis_size > 1 && this->axis == x1_axis_size - 1) {
     result = end_axis;
-    return ge::SUCCESS;
+    return af::SUCCESS;
   } else if (x1_axis_size > 1 && this->axis != x1_axis_size - 1 && this->axis > 0) {  // 对中间轴gahter
     result = mid_axis;
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
-  GELOGE(ge::FAILED, "gather axis(%d) is larger than x1 axis size(%d) or below 0", this->axis, x1_axis_size);
-  return ge::FAILED;
+  GELOGE(af::FAILED, "gather axis(%d) is larger than x1 axis size(%d) or below 0", this->axis, x1_axis_size);
+  return af::FAILED;
 }
 
 std::string GenerateNonLastAxisGatherSimt(const std::vector<ascir::AxisId> &current_axis,
@@ -119,8 +119,8 @@ Status GatherRegApiCall::GenerateComputeTypeGather(const TPipe &tpipe, const std
   x2_offset.erase(0, x2_offset.find_first_not_of(" "));
   const int64_t x1_axis_size = static_cast<int64_t>(x1.axis.size());
   if (this->axis + 1 > x1_axis_size) {
-    GELOGE(ge::FAILED, "gather axis(%d) is larger than x1 axis size(%d)", this->axis, x1_axis_size);
-    return ge::FAILED;
+    GELOGE(af::FAILED, "gather axis(%d) is larger than x1 axis size(%d)", this->axis, x1_axis_size);
+    return af::FAILED;
   }
   if (this->axis + 1 != x1_axis_size) {
     ss << GenerateNonLastAxisGatherSimt(current_axis, inputs, outputs, this->axis, tpipe);
@@ -149,7 +149,7 @@ Status GatherRegApiCall::GenerateComputeTypeGather(const TPipe &tpipe, const std
     }
   }
   result = ss.str();
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status GatherRegApiCall::GenerateComputeTypeLoad(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
@@ -166,9 +166,9 @@ Status GatherRegApiCall::GenerateComputeTypeLoad(const TPipe &tpipe, const std::
   x2.DtypeName(x2.dtype, dtypename);
   ss << dtypename << ", ";
   std::string case_;
-  if (GetGatherCase(x1, case_) == ge::FAILED) {
-    GELOGE(ge::FAILED, "gather_dim status need add");
-    return ge::FAILED;
+  if (GetGatherCase(x1, case_) == af::FAILED) {
+    GELOGE(af::FAILED, "gather_dim status need add");
+    return af::FAILED;
   }
   ss << case_ << ", " << y.vectorized_axis.size() << ", " << this->negative_index_support << ">(";
   ss << y << ", " << x1 << ", " << x2 << ", ";
@@ -217,7 +217,7 @@ Status GatherRegApiCall::GenerateComputeTypeLoad(const TPipe &tpipe, const std::
      << std::
             endl;  // Gather以load形式存在，可能会存在同步遗漏的情况（比如直接接concat），在这里手动加一个。可能是由于SIMT影响，仅增加PIPE_V不行。
   result = ss.str();
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status GatherRegApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
@@ -237,8 +237,8 @@ Status GatherRegApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::A
   } else if (this->compute_type == af::ComputeType::kComputeLoad) {
     return GenerateComputeTypeLoad(tpipe, current_axis, inputs, outputs, id, result);
   }
-  GELOGE(ge::FAILED, "gather's compute_type(%d) must be kComputeLoad or kComputeGather", this->compute_type);
-  return ge::FAILED;
+  GELOGE(af::FAILED, "gather's compute_type(%d) must be kComputeLoad or kComputeGather", this->compute_type);
+  return af::FAILED;
 }
 
 Status GatherRegApiCall::ParseAttr(const ascir::NodeView &node) {
@@ -253,7 +253,7 @@ Status GatherRegApiCall::ParseAttr(const ascir::NodeView &node) {
     GELOGI("name:%s, axis:%lld", node->GetNamePtr(), this->axis);
   }
   this->compute_type = node->attr.api.compute_type;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 static ApiCallRegister<GatherRegApiCall> register_gather_api_call("GatherRegApiCall");

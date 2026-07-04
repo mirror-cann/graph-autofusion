@@ -20,11 +20,11 @@ class BrcInlineTemplateV2 : public BrcInlineTemplate {
   explicit BrcInlineTemplateV2() = default;
 
   static bool IsNodeSupportBrcInline(const af::NodePtr &node);
-  static ge::Status AlignTensor(const af::NodePtr &node, const af::AscTensor *tensor);
-  ge::Status AlignAssociateNodes(const af::AscGraph &graph, const af::AscNodePtr &brc_node);
+  static af::Status AlignTensor(const af::NodePtr &node, const af::AscTensor *tensor);
+  af::Status AlignAssociateNodes(const af::AscGraph &graph, const af::AscNodePtr &brc_node);
 
   GenerationMode GetGenerationMode() override;
-  ge::Status Generate(const af::AscGraph &origin_graph, const af::AscGraph &based_case,
+  af::Status Generate(const af::AscGraph &origin_graph, const af::AscGraph &based_case,
                       af::AscGraph &new_case) override;
   bool NeedDropBasedCase(const af::AscGraph &origin_graph, const af::AscGraph &based_case,
                          const af::AscGraph &new_case) override;

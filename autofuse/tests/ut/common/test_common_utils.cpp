@@ -684,7 +684,7 @@ TEST(CodegenApiParamReduceTest, BuildReduceSpecificParamsBuildsArSingleReduce) {
   input.reuse = {true, false};
 
   codegen::ReduceSpecificParams param;
-  EXPECT_EQ(codegen::BuildReduceSpecificParams(input, param), ge::SUCCESS);
+  EXPECT_EQ(codegen::BuildReduceSpecificParams(input, param), af::SUCCESS);
   EXPECT_TRUE(param.valid);
   EXPECT_EQ(param.reduce_type, "ReduceMax");
   EXPECT_EQ(param.pattern, codegen::ReducePattern::kAR);
@@ -710,7 +710,7 @@ TEST(CodegenApiParamReduceTest, BuildReduceSpecificParamsBuildsCopyMode) {
   input.merge_times = CreateExpr("r_axis_size");
 
   codegen::ReduceSpecificParams param;
-  EXPECT_EQ(codegen::BuildReduceSpecificParams(input, param), ge::SUCCESS);
+  EXPECT_EQ(codegen::BuildReduceSpecificParams(input, param), af::SUCCESS);
   EXPECT_TRUE(param.valid);
   EXPECT_EQ(param.merge_mode, codegen::ReduceMergeMode::kCopy);
   EXPECT_EQ(param.merge_size, CreateExpr(8));
@@ -731,7 +731,7 @@ TEST(CodegenApiParamReduceTest, BuildReduceSpecificParamsKeepsValidWhenOutputStr
   input.merge_times = CreateExpr(1);
 
   codegen::ReduceSpecificParams param;
-  EXPECT_EQ(codegen::BuildReduceSpecificParams(input, param), ge::SUCCESS);
+  EXPECT_EQ(codegen::BuildReduceSpecificParams(input, param), af::SUCCESS);
   EXPECT_TRUE(param.valid);
   EXPECT_FALSE(param.merged_dims.valid);
 }
@@ -748,7 +748,7 @@ TEST(CodegenApiParamReduceTest, BuildReduceSpecificParamsRejectsInvalidInput) {
   input.pattern = codegen::ReducePattern::kAR;
 
   codegen::ReduceSpecificParams param;
-  EXPECT_NE(codegen::BuildReduceSpecificParams(input, param), ge::SUCCESS);
+  EXPECT_NE(codegen::BuildReduceSpecificParams(input, param), af::SUCCESS);
   EXPECT_FALSE(param.valid);
 }
 }  // namespace ascgen_utils

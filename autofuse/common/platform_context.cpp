@@ -57,19 +57,19 @@ void PlatformContext::SetPlatformInfo(const PlatformInfo &platform_info) {
   }
 }
 
-ge::Status PlatformContext::GetCurrentPlatformString(std::string &platform_name) {
+af::Status PlatformContext::GetCurrentPlatformString(std::string &platform_name) {
   if (!initialized_) {
     GE_ASSERT_SUCCESS(Initialize(), "Failed to init platform info with name %s.", platform_name.c_str());
   }
   std::lock_guard<std::mutex> lg(mutex_);
   platform_name = platform_info_.soc_ver;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status PlatformContext::Initialize() {
+af::Status PlatformContext::Initialize() {
   std::lock_guard<std::mutex> lg(mutex_);
   if (initialized_) {
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
   char soc_version[kSocStrMaxLen] = {};
   auto res = rtGetSocSpec("version", "NpuArch", soc_version, kSocStrMaxLen);
@@ -77,10 +77,10 @@ ge::Status PlatformContext::Initialize() {
   platform_info_.soc_ver = std::string(soc_version);
 
   GE_ASSERT_SUCCESS(InitPlatformInfo(), "Failed to init platform info.");
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status PlatformContext::InitPlatformInfo() {
+af::Status PlatformContext::InitPlatformInfo() {
   char aiv_num_str[kMaxValueLen] = {};
   auto res = rtGetSocSpec(kSocInfo, kVectorCoreCnt, aiv_num_str, kMaxValueLen);
   GE_ASSERT_TRUE(res == RT_ERROR_NONE, "Failed to get vector_core_cnt.");
@@ -95,10 +95,10 @@ ge::Status PlatformContext::InitPlatformInfo() {
   GELOGI("Platform info: soc_ver=%s, aiv_num=%lld, ub_size=%lld", platform_info_.soc_ver.c_str(),
          platform_info_.aiv_num, platform_info_.ub_size);
 
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status PlatformContext::GetPlatformInfo(PlatformInfo &platform_info) {
+af::Status PlatformContext::GetPlatformInfo(PlatformInfo &platform_info) {
   if (!initialized_) {
     GE_ASSERT_SUCCESS(Initialize(), "Failed to init platform info.");
   }
@@ -106,6 +106,6 @@ ge::Status PlatformContext::GetPlatformInfo(PlatformInfo &platform_info) {
   platform_info = platform_info_;
   GELOGD("GetPlatformInfo: soc_ver=%s, aiv_num=%lld, ub_size=%lld", platform_info_.soc_ver.c_str(),
          platform_info_.aiv_num, platform_info_.ub_size);
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 }  // namespace ge

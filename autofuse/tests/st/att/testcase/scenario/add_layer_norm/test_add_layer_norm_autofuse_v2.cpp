@@ -118,7 +118,7 @@ void GenerateTilingDataFile(const std::string &op_name, const ascir::FusedSchedu
   generator_config.tiling_data_type_name = options.at(kTilingDataTypeName);
   generator_config.gen_tiling_data = true;
   generator_config.gen_extra_infos = true;
-  EXPECT_EQ(generator.GenTilingCode(op_name, all_model_infos, generator_config, tiling_res), ge::SUCCESS);
+  EXPECT_EQ(generator.GenTilingCode(op_name, all_model_infos, generator_config, tiling_res), af::SUCCESS);
   WriteFile(output_file, tiling_res[tiling_data_name]);
 }
 

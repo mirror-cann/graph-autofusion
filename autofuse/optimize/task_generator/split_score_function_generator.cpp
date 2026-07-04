@@ -56,7 +56,7 @@ af::Status SplitScoreFunctionGenerator::ParseStride() {
   }
   GE_ASSERT_TRUE(const_part_stride.GetConstValue(const_part_stride_), "Failed to get int value, expr = %s",
                  const_part_stride.Str().get());
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 void SplitScoreFunctionGenerator::GenerateReturnValue(int32_t score) {
@@ -68,7 +68,7 @@ Status SplitScoreFunctionGenerator::TryGetScoreByConstExpr(int32_t &score) {
   auto &output_split_dim = split_node_->outputs[0].attr.repeats[split_dim_];
   if (!output_split_dim.IsConstExpr()) {
     GELOGI("output split dim is non-const, cannot resolve score at compile time");
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
   int64_t split_dim_size = -1;
   GE_ASSERT_TRUE(output_split_dim.GetConstValue(split_dim_size), "Failed to get int value, expr = %s",

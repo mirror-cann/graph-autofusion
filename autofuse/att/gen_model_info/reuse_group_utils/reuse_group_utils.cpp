@@ -17,7 +17,7 @@
 #include "generator/preprocess/args_manager.h"
 namespace att {
 namespace {
-ge::Status GetGroupAscGraphsByIdent(
+af::Status GetGroupAscGraphsByIdent(
     const ScheduleGroupIdent &group_ident,
     const std::vector<std::vector<std::vector<std::vector<af::AscGraph>>>> &all_graphs_lists,
     std::vector<af::AscGraph> &group_asc_graphs) {
@@ -36,7 +36,7 @@ ge::Status GetGroupAscGraphsByIdent(
       reuse_asc_graph_id, reuse_group_id, reuse_result_id,
       all_graphs_lists[reuse_asc_graph_id][reuse_result_id].size());
   group_asc_graphs = all_graphs_lists[reuse_asc_graph_id][reuse_result_id][reuse_group_id];
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 TilingModelInfo *GetGroupModelInfosByIdent(FusedParsedScheduleResult &all_model_infos,
@@ -53,7 +53,7 @@ TilingModelInfo *GetGroupModelInfosByIdent(FusedParsedScheduleResult &all_model_
   return &groups_iter->second;
 }
 
-ge::Status MergeScheduleReuseGroups(ReuseScheduleGroupPtr &merge_from, ReuseScheduleGroupPtr &merge_to) {
+af::Status MergeScheduleReuseGroups(ReuseScheduleGroupPtr &merge_from, ReuseScheduleGroupPtr &merge_to) {
   GE_ASSERT_NOTNULL(merge_from, "merge_from is nullptr.");
   GE_ASSERT_NOTNULL(merge_to, "merge_to is nullptr.");
   merge_to->schedule_group_to_info[merge_from->reuse_group_ident].reuse_input_axes = merge_from->info.reuse_input_axes;
@@ -61,10 +61,10 @@ ge::Status MergeScheduleReuseGroups(ReuseScheduleGroupPtr &merge_from, ReuseSche
       merge_from->info.reuse_search_axes;
   merge_to->schedule_group_to_info[merge_from->reuse_group_ident].tiling_keys = merge_from->info.tiling_keys;
   merge_from = merge_to;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status MergeScheduleReuseGroups(TilingModelInfo *merge_from, TilingModelInfo *merge_to) {
+af::Status MergeScheduleReuseGroups(TilingModelInfo *merge_from, TilingModelInfo *merge_to) {
   GE_ASSERT_NOTNULL(merge_from, "merge_from is nullptr.");
   GE_ASSERT_NOTNULL(merge_to, "merge_to is nullptr.");
   GE_ASSERT_TRUE(merge_from->size() == merge_to->size(),
@@ -76,7 +76,7 @@ ge::Status MergeScheduleReuseGroups(TilingModelInfo *merge_from, TilingModelInfo
     GE_ASSERT_SUCCESS(
         MergeScheduleReuseGroups(merge_from->at(i).reuse_schedule_group, merge_to->at(i).reuse_schedule_group));
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 bool IsGroupEqualSize(const ReuseScheduleGroupInfo &group_info1, const ReuseScheduleGroupInfo &group_info2) {
@@ -128,7 +128,7 @@ bool ReuseGroupUtils::IsGroupGraphsEquivalent(const std::vector<af::AscGraph> &g
   return true;
 }
 
-ge::Status ReuseGroupUtils::InitReuseScheduleGroup(const ScheduleGroupIdent &group_ident,
+af::Status ReuseGroupUtils::InitReuseScheduleGroup(const ScheduleGroupIdent &group_ident,
                                                    TilingModelInfo &group_tiling_model_info) {
   auto reuse_schedule_groups = std::make_shared<ReuseScheduleGroup>();
   GE_ASSERT_NOTNULL(reuse_schedule_groups);
@@ -166,10 +166,10 @@ ge::Status ReuseGroupUtils::InitReuseScheduleGroup(const ScheduleGroupIdent &gro
     reuse_schedule_groups->info.tiling_keys.emplace_back(model_info.tiling_case_id);
     model_info.reuse_schedule_group = reuse_schedule_groups;
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status ReuseGroupUtils::MergeEqualReusableGroups(
+af::Status ReuseGroupUtils::MergeEqualReusableGroups(
     const ReuseScheduleGroupPtr &group_to, const ReuseScheduleGroupPtr &group_from,
     const std::vector<std::vector<std::vector<std::vector<af::AscGraph>>>> &all_graphs_lists,
     FusedParsedScheduleResult &out_fused_schedule_result) {
@@ -189,10 +189,10 @@ ge::Status ReuseGroupUtils::MergeEqualReusableGroups(
     GE_ASSERT_NOTNULL(model_group_to);
     GE_ASSERT_SUCCESS(MergeScheduleReuseGroups(model_group_from, model_group_to));
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status ReuseGroupUtils::MergeAllReusableGroups(
+af::Status ReuseGroupUtils::MergeAllReusableGroups(
     const std::vector<std::vector<std::vector<std::vector<af::AscGraph>>>> &all_graphs_lists,
     FusedParsedScheduleResult &out_fused_schedule_result) {
   std::vector<ReuseScheduleGroupPtr> reuse_schedule_groups;
@@ -227,6 +227,6 @@ ge::Status ReuseGroupUtils::MergeAllReusableGroups(
       }
     }
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 }  // namespace att

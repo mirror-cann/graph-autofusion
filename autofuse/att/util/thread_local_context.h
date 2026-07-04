@@ -14,12 +14,12 @@
 #include <map>
 #include <string>
 #include <mutex>
-#include "ge_common/ge_api_error_codes.h"
+#include "ge_common_af/ge_api_error_codes.h"
 
 namespace att {
 class ThreadLocalContext {
  public:
-  ge::Status GetOption(const std::string &key, std::string &option);
+  af::Status GetOption(const std::string &key, std::string &option);
   void SetOption(const std::map<std::string, std::string> &options_map);
 
  private:

@@ -464,7 +464,7 @@ class GraphUtils {
    * @param suffix 用于拼接文件名
    * @param user_graph_name 用于指定落盘的文件名和文件路径
    * @param [out] real_path_name 生成的文件绝对路径
-   * @return ge::SUCCESS：成功，其他：失败
+   * @return af::SUCCESS：成功，其他：失败
    */
   static graphStatus GenDumpReadableTxtFileName(const ComputeGraphPtr &compute_graph, const std::string &suffix,
                                                 const std::string &user_graph_name, std::string &real_path_name);
@@ -514,7 +514,7 @@ class GraphUtils {
    * @brief 将Readable Dump写入输出流
    * @param readable_ss 字符串流
    * @param o_stream 输出流
-   * @return ge::SUCCESS：成功，其他：失败
+   * @return af::SUCCESS：成功，其他：失败
    */
   static graphStatus WriteReadableDumpToOStream(const std::stringstream &readable_ss, std::ostream &o_stream);
 

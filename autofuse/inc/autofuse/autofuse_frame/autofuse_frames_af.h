@@ -14,7 +14,7 @@
 #include <cstdint>
 #include <functional>
 
-#include "ge_common/ge_api_types.h"
+#include "ge_common_af/ge_api_types.h"
 #include "graph/gnode.h"
 #include "graph/node.h"
 

@@ -44,15 +44,15 @@ TEST_F(STestReduceSplitPenalty, reduce_split_penalty_basic) {
   // - s2t is the Reduce axis (reduced by Mean operation)
   // - s1Ts2T is the merged axis that gets split for multi-core
   std::vector<ascir::ScheduledResult> schedule_results;
-  ASSERT_EQ(ConstructSingleCaseForReduceSplitPenalty(schedule_results), ge::SUCCESS);
+  ASSERT_EQ(ConstructSingleCaseForReduceSplitPenalty(schedule_results), af::SUCCESS);
   RunBasicTilingTest("ReduceSplitPenalty", schedule_results);
 }
 
 TEST_F(STestReduceSplitPenalty, reduce_split_penalty_run) {
   int32_t ret = 0;
   std::vector<ascir::ScheduledResult> schedule_results;
-  ASSERT_EQ(ConstructSingleCaseForReduceSplitPenalty(schedule_results), ge::SUCCESS);
-  ASSERT_EQ(GenTilingImpl(schedule_results), ge::SUCCESS);
+  ASSERT_EQ(ConstructSingleCaseForReduceSplitPenalty(schedule_results), af::SUCCESS);
+  ASSERT_EQ(GenTilingImpl(schedule_results), af::SUCCESS);
   std::ofstream oss;
   oss.open("tiling_func_main_ReduceSplitPenalty.cpp", std::ios::out);
   oss << "#include \"ReduceSplitPenalty_tiling_data.h\"" << ResultCheckerUtils::DefineCheckerFunction()

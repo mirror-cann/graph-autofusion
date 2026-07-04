@@ -34,12 +34,12 @@ struct GenTilingTailExtParams {
 
 class TilingCodeGenerator {
  public:
-  ge::Status GenTilingCode(const std::string &op_type, const TilingModelInfo &model_infos,
+  af::Status GenTilingCode(const std::string &op_type, const TilingModelInfo &model_infos,
                            const TilingCodeGenConfig &config, std::map<std::string, std::string> &tiling_res);
-  ge::Status GenTilingCode(const std::string &op_type, const TilingModelInfo &model_infos,
+  af::Status GenTilingCode(const std::string &op_type, const TilingModelInfo &model_infos,
                            const TilingCodeGenConfig &config);
   // for autofuse
-  ge::Status GenTilingCode(const std::string &op_type, const FusedParsedScheduleResult &fused_parsed_schedule_result,
+  af::Status GenTilingCode(const std::string &op_type, const FusedParsedScheduleResult &fused_parsed_schedule_result,
                            const TilingCodeGenConfig &config, std::map<std::string, std::string> &tiling_res);
 
  protected:
@@ -48,23 +48,23 @@ class TilingCodeGenerator {
                                                        const ScoreFuncs &score_funcs, const bool is_uniq_group);
 
  private:
-  ge::Status GenTilingHead(const std::string &op_type, const TilingModelInfo &all_model_infos,
+  af::Status GenTilingHead(const std::string &op_type, const TilingModelInfo &all_model_infos,
                            const TilingCodeGenConfig &config, std::map<std::string, std::string> &tiling_res,
                            const EnableGroupParallels &enable_group_parallels);
-  ge::Status GenTilingBody(const GenTilingParams &params, std::map<std::string, std::string> &tiling_res,
+  af::Status GenTilingBody(const GenTilingParams &params, std::map<std::string, std::string> &tiling_res,
                            const bool is_uniq_group, uint32_t cache_capacity,
                            const EnableGroupParallels &enable_group_parallels);
-  ge::Status GenTilingTail(const GenTilingParams &params, std::map<std::string, std::string> &tiling_res,
+  af::Status GenTilingTail(const GenTilingParams &params, std::map<std::string, std::string> &tiling_res,
                            const GenTilingTailExtParams &ext_params);
 
   // 辅助方法：收集所有 model_infos 和相关元数据
-  ge::Status CollectModelInfosAndMetadata(const FusedParsedScheduleResult &fused_parsed_schedule_result,
+  af::Status CollectModelInfosAndMetadata(const FusedParsedScheduleResult &fused_parsed_schedule_result,
                                           TilingModelInfo &all_model_infos, size_t &group_num,
                                           ScoreFuncs &schedule_result_score_func, VarRelations &var_relations,
                                           EnableGroupParallels &enable_group_parallels,
                                           TensorIdSet &workspace_tensor_id_set);
   // 辅助方法：生成所有 schedule group 的 tiling 代码
-  ge::Status GenScheduleGroupTilingBodies(const std::string &op_type,
+  af::Status GenScheduleGroupTilingBodies(const std::string &op_type,
                                           const FusedParsedScheduleResult &fused_parsed_schedule_result,
                                           const TilingCodeGenConfig &config,
                                           const std::unordered_map<std::string, std::string> &cache_reuse_info,

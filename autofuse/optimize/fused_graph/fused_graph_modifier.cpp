@@ -49,7 +49,7 @@ Status FusedGraphModifier::InitAscbcOutAnchorAttr(
       }
     }
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 int64_t FusedGraphModifier::ReuseWorkspaceId(std::set<int64_t> &free_ws_ids, const std::set<int64_t> &data_used_ids,
@@ -78,7 +78,7 @@ Status FusedGraphModifier::ProcessOutputNodes(const af::AscNodePtr &sub_out_node
     (void)ir_attr->SetIndex(out_attr.linked_output_ir_idx);
     GELOGD("Node [%s] connect to output directly, set with index [%ld].", sub_out_node->GetNamePtr(),
            out_attr.linked_output_ir_idx);
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
   out_attr.used_ws_idx = ReuseWorkspaceId(context.free_workspace_id, context.data_used_ids, max_workspace_num);
   std::string ws_name = kWorkspacePrefix + std::to_string(out_attr.used_ws_idx);
@@ -93,7 +93,7 @@ Status FusedGraphModifier::ProcessOutputNodes(const af::AscNodePtr &sub_out_node
   af::NodeUtils::UnlinkAll(*sub_out_node);
   auto compute_graph = af::AscGraphUtils::GetComputeGraph(asc_graph);
   af::GraphUtils::RemoveNodeWithoutRelink(compute_graph, sub_out_node);
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status FusedGraphModifier::ProcessDataNodes(const af::AscNodePtr &sub_data_node, const af::Node *const ascbc_node,
@@ -117,7 +117,7 @@ Status FusedGraphModifier::ProcessDataNodes(const af::AscNodePtr &sub_data_node,
     GE_ASSERT_TRUE(ir_idx >= 0, "Get invalid ir_index from node :[%s].", op_desc->GetNamePtr());
     auto ir_attr = sub_data_node->attr.ir_attr->DownCastTo<af::AscDataIrAttrDef>();
     (void)ir_attr->SetIndex(ir_idx);
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
 
   // data 改成workspace、output
@@ -149,7 +149,7 @@ Status FusedGraphModifier::ProcessDataNodes(const af::AscNodePtr &sub_data_node,
   auto compute_graph = af::AscGraphUtils::GetComputeGraph(asc_graph);
   GE_ASSERT_SUCCESS(af::GraphUtils::RemoveNodeWithoutRelink(compute_graph, sub_data_node), "Remove node [%s] failed.",
                     sub_data_node->GetNamePtr());
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status FusedGraphModifier::SubgraphConnectionsToWorkspace(const af::ComputeGraphPtr &fused_graph,
@@ -185,7 +185,7 @@ Status FusedGraphModifier::SubgraphConnectionsToWorkspace(const af::ComputeGraph
 
     GE_ASSERT_GRAPH_SUCCESS(ScheduleUtils::TopologicalSorting(iter->second));
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status FusedGraphModifier::ChangeStartingOutputToWorkspace(std::vector<ascir::ScheduleGroup> &schedule_groups) {
@@ -208,7 +208,7 @@ Status FusedGraphModifier::ChangeStartingOutputToWorkspace(std::vector<ascir::Sc
       }
     }
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 }  // namespace optimize

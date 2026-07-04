@@ -14,7 +14,7 @@
 #include "ascir_node_param/ascir_node_param.h"
 
 namespace ascir_param {
-ge::Status EnrichAscirGraphNodeParams(const af::AscGraph &graph);
+af::Status EnrichAscirGraphNodeParams(const af::AscGraph &graph);
 }  // namespace ascir_param
 
 #endif  // ASCIR_NODE_PARAM_ASCIR_PARAM_BUILDER_H_

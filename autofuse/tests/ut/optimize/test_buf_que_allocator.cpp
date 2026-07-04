@@ -679,7 +679,7 @@ TEST_F(BufQueAllocatorUT, test_shorten_load_lifetime) {
   BufQueAllocator().AllocateWithinGroup(graph, total_vecin_nums, total_vecout_nums);
   BufQueAllocator().SetOutputTensorAttr(graph);
   EXPECT_EQ(total_vecin_nums, 6UL);
-  EXPECT_EQ(BufQueAllocator().ShortenVecinLifetime(graph, 4), ge::SUCCESS);
+  EXPECT_EQ(BufQueAllocator().ShortenVecinLifetime(graph, 4), af::SUCCESS);
 
   ScheduleUtils::TopologicalSorting(graph);
   size_t new_vecin_nums = 0UL;
@@ -749,7 +749,7 @@ TEST_F(BufQueAllocatorUT, test_shorten_vecin_lifecycle_with_sorting) {
   optimize::AscGraphInfoComplete::CompleteApiInfo(graph);
 
   ScheduleUtils::TopologicalSorting(graph);
-  EXPECT_EQ(BufQueAllocator().AllocBufQueForSingleImplGraph(graph, 4), ge::SUCCESS);
+  EXPECT_EQ(BufQueAllocator().AllocBufQueForSingleImplGraph(graph, 4), af::SUCCESS);
 
   std::set<uint32_t> vecin_ids;
   std::set<uint32_t> vecout_ids;
@@ -1055,7 +1055,7 @@ TEST_F(BufQueAllocatorUT, test_shorten_vecout_lifetime) {
   output10.attr.api.type = af::ApiType::kAPITypeBuffer;
 
   ScheduleUtils::TopologicalSorting(graph);
-  EXPECT_EQ(BufQueAllocator().AllocBufQueForSingleImplGraph(graph, 4), ge::SUCCESS);
+  EXPECT_EQ(BufQueAllocator().AllocBufQueForSingleImplGraph(graph, 4), af::SUCCESS);
 
   std::set<uint32_t> vecin_ids;
   std::set<uint32_t> vecout_ids;
@@ -1682,7 +1682,7 @@ TEST_F(BufQueAllocatorUT, test_scalar_data_input_allocation) {
   // 验证 buffer 分配成功
   size_t total_vecin_nums = 0UL;
   size_t total_vecout_nums = 0UL;
-  EXPECT_EQ(BufQueAllocator().AllocateWithinGroup(graph, total_vecin_nums, total_vecout_nums), ge::SUCCESS);
+  EXPECT_EQ(BufQueAllocator().AllocateWithinGroup(graph, total_vecin_nums, total_vecout_nums), af::SUCCESS);
 
   // 验证 load 节点的 buffer 分配正常（不受 ScalarData 影响）
   auto load_result = graph.FindNode("load0");

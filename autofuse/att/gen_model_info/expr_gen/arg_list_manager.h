@@ -29,15 +29,15 @@ class ArgListManager {
   static ArgListManager &GetInstance();
 
   // 按照目标名保存表达式
-  ge::Status SetArgExpr(const std::string &name, const Expr &expr) {
+  af::Status SetArgExpr(const std::string &name, const Expr &expr) {
     if (arg_list_map_.find(name) == arg_list_map_.end()) {
       arg_list_map_[name] = expr;
     }
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
 
   // 添加表达式
-  ge::Status AddArgExpr(const std::string &name, const Expr &size) {
+  af::Status AddArgExpr(const std::string &name, const Expr &size) {
     return SetArgExpr(name, size);
   }
 
@@ -71,16 +71,16 @@ class ArgListManager {
     }
   }
 
-  ge::Status GetArgList(const std::vector<std::string> &names, std::vector<Expr> &arg_list) {
+  af::Status GetArgList(const std::vector<std::string> &names, std::vector<Expr> &arg_list) {
     arg_list.clear();
     for (const auto &name : names) {
       if (arg_list_map_.find(name) == arg_list_map_.end()) {
-        GELOGE(ge::FAILED, "Variable [%s] has no expr.", name.c_str());
-        return ge::FAILED;
+        GELOGE(af::FAILED, "Variable [%s] has no expr.", name.c_str());
+        return af::FAILED;
       }
       arg_list.emplace_back(arg_list_map_[name]);
     }
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
 
   ExprExprMap GetVariableExprMap() const {
@@ -100,7 +100,7 @@ class ArgListManager {
   }
 
   // 设置轴、buffer、queue、tensor size表达式
-  ge::Status LoadArgList(const TuningSpacePtr &tuning_space);
+  af::Status LoadArgList(const TuningSpacePtr &tuning_space);
 
   Expr SetTensorInfo(const std::string &name, const Expr &expr) {
     size_t idx = replace_container_.size();
@@ -114,7 +114,7 @@ class ArgListManager {
 
  private:
   // 设置tensor大小的表达式
-  ge::Status SetTensorSizeExpr(const std::vector<TensorPtr> &allocated_tensors);
+  af::Status SetTensorSizeExpr(const std::vector<TensorPtr> &allocated_tensors);
 
  private:
   ArgListManager() = default;

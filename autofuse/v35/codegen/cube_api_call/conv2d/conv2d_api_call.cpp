@@ -25,7 +25,7 @@ using namespace ascgen_utils;
 
 Status Conv2DApiCall::ParseAttr(const ascir::NodeView &node) {
   GE_ASSERT_SUCCESS(ascgen_utils::ParseConv2DAttr(node, conv_attr_data_));
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status Conv2DApiCall::PreProcess(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
@@ -35,14 +35,14 @@ Status Conv2DApiCall::PreProcess(const TPipe &tpipe, const std::vector<ascir::Ax
   (void)current_axis;
   (void)outputs;
   (void)result;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status Conv2DApiCall::GenerateFuncDefinition(const TPipe &tpipe, const Tiler &tiler, std::stringstream &ss) const {
   (void)tpipe;
   (void)tiler;
   (void)ss;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status Conv2DApiCall::PostProcess(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
@@ -52,7 +52,7 @@ Status Conv2DApiCall::PostProcess(const TPipe &tpipe, const std::vector<ascir::A
   (void)current_axis;
   (void)outputs;
   (void)result;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status Conv2DApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
@@ -60,7 +60,7 @@ Status Conv2DApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::Axis
   (void)tpipe;
   (void)current_axis;
   (void)result;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status Conv2DApiCall::GenerateMacro(std::string &result) const {
@@ -73,7 +73,7 @@ Status Conv2DApiCall::GenerateMacro(std::string &result) const {
   GE_ASSERT_SUCCESS(GenerateFuncDefinition(t_pipe, tiler, ss));
   GE_ASSERT_SUCCESS(Generate(t_pipe, {}, result));
   GE_ASSERT_SUCCESS(PostProcess(t_pipe, {}, {}, result));
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 static ApiCallRegister<Conv2DApiCall> register_conv2d_api_call("Conv2DApiCall");

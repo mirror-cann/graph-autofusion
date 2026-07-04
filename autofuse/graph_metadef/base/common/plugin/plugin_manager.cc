@@ -461,7 +461,7 @@ bool PluginManager::CheckOppAndCompilerVersions(const std::string &opp_version, 
 // 需要打包进om的so优先级：
 // 1. ASCEND_CUSTOM_OPP_PATH
 // 2. ASCEND_OPP_PATH + vendors + 厂商名
-// 3. ASCEND_OPP_PATH + build-in
+// 3. ASCEND_OPP_PATH + built-in
 void PluginManager::GetPackageSoPath(std::vector<std::string> &vendors) {
   std::string custom_opp_path;
   PluginManager::GetPluginPathFromCustomOppPath("", custom_opp_path);
@@ -509,7 +509,7 @@ Status PluginManager::GetOppPluginPathNew(const std::string &opp_path, const std
 bool PluginManager::IsSplitOpp() {
   std::string opp_path;
   if (GetOppPath(opp_path) != SUCCESS) {
-    GELOGE(ge::FAILED, "Failed to get opp path:[%s]", opp_path.c_str());
+    GELOGE(af::FAILED, "Failed to get opp path:[%s]", opp_path.c_str());
     return false;
   }
   std::string os_type;
@@ -621,9 +621,9 @@ Status PluginManager::GetOpsProtoPath(std::string &opsproto_path) {
 Status PluginManager::GetUpgradedOpsProtoPath(std::string &opsproto_path) {
   GELOGI("Start to get upgraded ops proto path");
   std::string upgraded_opp_path;
-  if (GetUpgradedOppPath(upgraded_opp_path) != ge::SUCCESS) {
+  if (GetUpgradedOppPath(upgraded_opp_path) != af::SUCCESS) {
     GELOGW("Failed to get upgraded opp path!");
-    return ge::FAILED;
+    return af::FAILED;
   }
   return GetOppPluginPathNew(upgraded_opp_path, "%s/op_proto", opsproto_path, "");
 }
@@ -631,9 +631,9 @@ Status PluginManager::GetUpgradedOpsProtoPath(std::string &opsproto_path) {
 Status PluginManager::GetUpgradedOpMasterPath(std::string &op_tiling_path) {
   GELOGI("Start to get upgraded op tiling path");
   std::string upgraded_opp_path;
-  if (GetUpgradedOppPath(upgraded_opp_path) != ge::SUCCESS) {
+  if (GetUpgradedOppPath(upgraded_opp_path) != af::SUCCESS) {
     GELOGW("Failed to get upgraded opp path!");
-    return ge::FAILED;
+    return af::FAILED;
   }
   return GetOppPluginPathNew(upgraded_opp_path, "%s/op_impl/ai_core/tbe", op_tiling_path, "");
 }

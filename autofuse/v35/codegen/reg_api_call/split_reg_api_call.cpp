@@ -21,7 +21,7 @@ using namespace ascgen_utils;
 constexpr uint32_t kDataBlockSize = 32;
 Status SplitRegApiCall::ParseAttr(const ascir::NodeView &node) {
   node_ = node;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status SplitRegApiCall::ParseSplitDim(const Tensor &x, const Tensor &y0, size_t &split_dim) {
@@ -34,7 +34,7 @@ Status SplitRegApiCall::ParseSplitDim(const Tensor &x, const Tensor &y0, size_t 
          VectorToStr(y0.vectorized_axis).c_str(), VectorToStr(y0.vectorized_axis_pos).c_str(),
          VectorToStr(y0.vectorized_strides).c_str());
 
-  GE_CHK_BOOL_RET_STATUS(x.vectorized_axis.size() == y0.vectorized_axis.size(), ge::FAILED,
+  GE_CHK_BOOL_RET_STATUS(x.vectorized_axis.size() == y0.vectorized_axis.size(), af::FAILED,
                          "Codegen split input output vectorized_axis not equal");
   // 遍历向量化轴, 确定split轴
   bool find_split_dim = false;
@@ -48,7 +48,7 @@ Status SplitRegApiCall::ParseSplitDim(const Tensor &x, const Tensor &y0, size_t 
     }
   }
   GE_ASSERT_TRUE(find_split_dim, "not find split dim in vectorized_axis");
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status SplitFindNonZeroStride(const std::vector<ascir::SizeExpr> &vectorized_strides, int32_t index,
@@ -61,7 +61,7 @@ Status SplitFindNonZeroStride(const std::vector<ascir::SizeExpr> &vectorized_str
   }
   GE_ASSERT_TRUE(stride != af::ops::Zero, "Failed to find non-zero v_stride before index = %d, v_strides = %s", index,
                  af::ToString(vectorized_strides).c_str());
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status SplitRegApiCall::InitializeTiling(size_t split_dim, const vector<std::reference_wrapper<const Tensor>> &outputs,
@@ -98,7 +98,7 @@ Status SplitRegApiCall::InitializeTiling(size_t split_dim, const vector<std::ref
     tiling.dst_col_actual_size_exprs[output_index] =
         y.axis_size[y.vectorized_axis_pos[split_dim]] * split_dim_stride_dst;
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 bool SplitRegApiCall::IsAllAligned(SplitRegApiCall::SplitTiling &tiling) {
@@ -153,7 +153,7 @@ void SplitRegApiCall::GenSrcTensors(const std::vector<std::reference_wrapper<con
   ss << "};" << std::endl;
 }
 
-ge::Status SplitRegApiCall::GenerateForAllAligned(const vector<std::reference_wrapper<const Tensor>> &outputs,
+af::Status SplitRegApiCall::GenerateForAllAligned(const vector<std::reference_wrapper<const Tensor>> &outputs,
                                                   const Tensor &x, SplitRegApiCall::SplitTiling &tiling,
                                                   const Tiler &tiler, std::stringstream &ss) {
   std::string dtype_name;
@@ -165,14 +165,14 @@ ge::Status SplitRegApiCall::GenerateForAllAligned(const vector<std::reference_wr
      << ", " << "split_tiling"
      << ", " << x << ", " << "split_dst_tensors"
      << ");" << std::endl;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status SplitRegApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
                                  const vector<std::reference_wrapper<const Tensor>> &inputs,
                                  const vector<std::reference_wrapper<const Tensor>> &outputs, string &result) const {
   (void)current_axis;
-  GE_CHK_BOOL_RET_STATUS((!inputs.empty()) && (!outputs.empty()), ge::FAILED,
+  GE_CHK_BOOL_RET_STATUS((!inputs.empty()) && (!outputs.empty()), af::FAILED,
                          "Codegen input or output tensor is empty");
   const auto &x = inputs[0].get();
   const auto &y0 = outputs[0].get();
@@ -198,10 +198,10 @@ Status SplitRegApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::Ax
     GE_ASSERT_SUCCESS(GenerateDefault(outputs, x, split_tiling, tpipe, ss, id));
   }
   result = ss.str();
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status SplitRegApiCall::GenerateDefault(const vector<std::reference_wrapper<const Tensor>> &outputs,
+af::Status SplitRegApiCall::GenerateDefault(const vector<std::reference_wrapper<const Tensor>> &outputs,
                                             const Tensor &x, SplitRegApiCall::SplitTiling &tiling, const TPipe &t_pipe,
                                             std::stringstream &ss, const int64_t tmp_buf_id) {
   std::string dtype_name;
@@ -237,7 +237,7 @@ ge::Status SplitRegApiCall::GenerateDefault(const vector<std::reference_wrapper<
      << "(" << dtype_name << " *)" << x << ".GetPhyAddr()"
      << ", " << "split_dst_addrs, " << t_pipe.tmp_buf << "_" << std::to_string(tmp_buf_id) << ", split_tiling);"
      << std::endl;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 bool SplitRegApiCall::NeedB8ToB16(SplitRegApiCall::SplitTiling &tiling) {

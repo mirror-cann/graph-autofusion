@@ -20,7 +20,7 @@ namespace att {
 const uint64_t kRptSize = 512U;
 
 namespace ascendcperf {
-ge::Status GetAlignedCase(const NodeDetail &node_info, Expr &aligned_case, int32_t &use_case) {
+af::Status GetAlignedCase(const NodeDetail &node_info, Expr &aligned_case, int32_t &use_case) {
   auto dims = node_info.input_dims;
   Expr dim_product = accumulate(dims.begin(), dims.end(), CreateExpr(1), [](Expr a, Expr b) { return Mul(a, b); });
   auto iter1 = kRptEleMap.find(node_info.input_dtype[0]);
@@ -38,10 +38,10 @@ ge::Status GetAlignedCase(const NodeDetail &node_info, Expr &aligned_case, int32
     use_case = kCaseDefault;
     aligned_case = af::sym::Mod(data_size, kSymPowerofEight);
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status RptElementwisePerf(const NodeDetail &node_info, const Expr &aligned_res, const Expr &unaligned_res,
+af::Status RptElementwisePerf(const NodeDetail &node_info, const Expr &aligned_res, const Expr &unaligned_res,
                               PerfOutputInfo &perf) {
   int32_t use_case;
   Expr aligned_case;
@@ -62,17 +62,17 @@ ge::Status RptElementwisePerf(const NodeDetail &node_info, const Expr &aligned_r
     perf.ternary_ops[res] = ternary_op;
     perf.pipe_res[PipeType::AIV_VEC] = res;
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status GetDatasize(const TensorShapeInfo &shape, Expr &dim_product) {
+af::Status GetDatasize(const TensorShapeInfo &shape, Expr &dim_product) {
   auto dims = shape.dims;
   GE_ASSERT_TRUE(!dims.empty());
   dim_product = accumulate(dims.begin(), dims.end(), CreateExpr(1), [](Expr a, Expr b) { return af::sym::Mul(a, b); });
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status LoadPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
+af::Status LoadPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   std::string registered_key_name;
   GE_ASSERT_SUCCESS(GetApiRegisterVerName(registered_key_name));
   const auto load_perf_func = GetAscendCPerfFunc(kLoad + registered_key_name);
@@ -85,12 +85,12 @@ Absapi的性能公式：
   float16: (0.0077 * data_size + 20.0153) * 调用次数 + 37.37(PIPE头开销)
   float32: (0.0147 * data_size + 20.0592) * 调用次数 + 37.37(PIPE头开销)
 */
-ge::Status AbsPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
+af::Status AbsPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res;
   GE_ASSERT_SUCCESS(GetPerf(
       {kAbs, node_info.input_dtype[0], node_info.output_dtype[0], node_info.output_dims, node_info.gm_stride}, res));
   perf.pipe_res[PipeType::AIV_VEC] = res;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 /*
@@ -98,12 +98,12 @@ Addsapi的性能公式：
   float16: (0.0071 * data_size + 22.0938) * 调用次数 + 37.37(PIPE头开销)
   float32: (0.0141 * data_size + 22.0936) * 调用次数 + 37.37(PIPE头开销)
 */
-ge::Status AddsPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
+af::Status AddsPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res;
   GE_ASSERT_SUCCESS(GetPerf(
       {kAdds, node_info.input_dtype[0], node_info.output_dtype[0], node_info.output_dims, node_info.gm_stride}, res));
   perf.pipe_res[PipeType::AIV_VEC] = res;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 /*
@@ -111,12 +111,12 @@ Addapi的性能公式：
   float16: (0.0103 * data_size + 22.2173) * 调用次数 + 37.37(PIPE头开销)
   float32: (0.0206 * data_size + 23.2225) * 调用次数 + 37.37(PIPE头开销)
 */
-ge::Status AddPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
+af::Status AddPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res;
   GE_ASSERT_SUCCESS(GetPerf(
       {kAdd, node_info.input_dtype[0], node_info.output_dtype[0], node_info.output_dims, node_info.gm_stride}, res));
   perf.pipe_res[PipeType::AIV_VEC] = res;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 /*
@@ -124,12 +124,12 @@ Andapi的性能公式：
   float16: (0.0107 * data_size + 17.1393) * 调用次数 + 37.37(PIPE头开销)
   float32: (0.0112 * data_size + 17.5611) * 调用次数 + 37.37(PIPE头开销)
 */
-ge::Status AndPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
+af::Status AndPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res;
   GE_ASSERT_SUCCESS(GetPerf(
       {kAnd, node_info.input_dtype[0], node_info.output_dtype[0], node_info.output_dims, node_info.gm_stride}, res));
   perf.pipe_res[PipeType::AIV_VEC] = res;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 /*
@@ -137,13 +137,13 @@ BlockReduceMaxapi的性能公式：
   float16: (0.0547 * data_size + 18.0042) * 调用次数 + 37.37(PIPE头开销)
   float32: (0.0198 * data_size + 16.7401) * 调用次数 + 37.37(PIPE头开销)
 */
-ge::Status BlockReduceMaxPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
+af::Status BlockReduceMaxPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res;
   GE_ASSERT_SUCCESS(GetPerf(
       {kBlockReduceMax, node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride},
       res));
   perf.pipe_res[PipeType::AIV_VEC] = res;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 /*
@@ -151,13 +151,13 @@ BlockReduceMinapi的性能公式：
   float16: (0.0547 * data_size + 18.0092) * 调用次数 + 37.37(PIPE头开销)
   float32: (0.0198 * data_size + 16.7413) * 调用次数 + 37.37(PIPE头开销)
 */
-ge::Status BlockReduceMinPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
+af::Status BlockReduceMinPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res;
   GE_ASSERT_SUCCESS(GetPerf(
       {kBlockReduceMin, node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride},
       res));
   perf.pipe_res[PipeType::AIV_VEC] = res;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 /*
@@ -165,12 +165,12 @@ Brcbapi的性能公式：
   float16: (0.0074 * data_size + 13.0572) * 调用次数 + 37.37(PIPE头开销)
   float32: (0.0146 * data_size + 13.0732) * 调用次数 + 37.37(PIPE头开销)
 */
-ge::Status BrcbPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
+af::Status BrcbPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res;
   GE_ASSERT_SUCCESS(GetPerf(
       {kBrcb, node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride}, res));
   perf.pipe_res[PipeType::AIV_VEC] = res;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 /*
@@ -179,12 +179,12 @@ Castapi的性能公式：
   fp16tofp32: (0.0147 * data_size + 20.1204) * 调用次数 + 37.37(PIPE头开销)
   fp32tofp16: (0.0087 * data_size + 20.4393) * 调用次数 + 37.37(PIPE头开销)
 */
-ge::Status CastPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
+af::Status CastPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res;
   GE_ASSERT_SUCCESS(GetPerf(
       {kCast, node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride}, res));
   perf.pipe_res[PipeType::AIV_VEC] = res;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 /*
@@ -192,12 +192,12 @@ CopyUbtoUbapi的性能公式：
   fp16: (0.0076 * data_size + 11.6372) * 调用次数 + 37.37(PIPE头开销)
   fp32: (0.0152 * data_size + 11.6372) * 调用次数 + 37.37(PIPE头开销)
 */
-ge::Status CopyUbtoUbPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
+af::Status CopyUbtoUbPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res;
   GE_ASSERT_SUCCESS(GetPerf(
       {kUb2ub, node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride}, res));
   perf.pipe_res[PipeType::AIV_VEC] = res;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 /*
@@ -205,12 +205,12 @@ CopyUbapi的性能公式：
   fp16: (0.0078 * data_size + 13.0049) * 调用次数 + 37.37(PIPE头开销)
   fp32: (0.0157 * data_size + 12.9966) * 调用次数 + 37.37(PIPE头开销)
 */
-ge::Status CopyPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
+af::Status CopyPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res;
   GE_ASSERT_SUCCESS(GetPerf(
       {kCopy, node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride}, res));
   perf.pipe_res[PipeType::AIV_VEC] = res;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 /*
@@ -218,13 +218,13 @@ CompareScalarEQapi的性能公式：
   float16: (0.0084 * data_size + 21.9204) * 调用次数 + 37.37(PIPE头开销)
   float32: (0.0160 * data_size + 21.9749) * 调用次数 + 37.37(PIPE头开销)
 */
-ge::Status CompareScalarEQPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
+af::Status CompareScalarEQPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res;
   GE_ASSERT_SUCCESS(GetPerf({kCompareScalarEQ, node_info.input_dtype[0], node_info.output_dtype[0],
                              node_info.input_dims, node_info.gm_stride},
                             res));
   perf.pipe_res[PipeType::AIV_VEC] = res;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 /*
@@ -234,7 +234,7 @@ CompareEQapi的性能公式：
   float32: (0.0310 * data_size + 21.0316) * 调用次数 + 37.37(PIPE头开销) (data_size % 512B == 0)
            (0.0157 * data_size + 21.0316) * 调用次数 + 37.37(PIPE头开销) (data_size % 512B != 0)
 */
-ge::Status CompareEQPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
+af::Status CompareEQPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr aligned_res;
   Expr unaligned_res;
   GE_ASSERT_SUCCESS(GetPerf({kCompareEQ + "Aligned", node_info.input_dtype[0], node_info.output_dtype[0],
@@ -244,7 +244,7 @@ ge::Status CompareEQPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
                              node_info.input_dims, node_info.gm_stride},
                             unaligned_res));
   GE_ASSERT_SUCCESS(RptElementwisePerf(node_info, aligned_res, unaligned_res, perf));
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 /*
@@ -252,13 +252,13 @@ CompareScalarGEapi的性能公式：
   float16: (0.0086 * data_size + 21.9025) * 调用次数 + 37.37(PIPE头开销)
   float32: (0.0161 * data_size + 21.9643) * 调用次数 + 37.37(PIPE头开销)
 */
-ge::Status CompareScalarGEPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
+af::Status CompareScalarGEPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res;
   GE_ASSERT_SUCCESS(GetPerf({kCompareScalarGE, node_info.input_dtype[0], node_info.output_dtype[0],
                              node_info.input_dims, node_info.gm_stride},
                             res));
   perf.pipe_res[PipeType::AIV_VEC] = res;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 /*
@@ -268,7 +268,7 @@ CompareGEapi的性能公式：
   float32: (0.0310 * data_size + 20.9711) * 调用次数 + 37.37(PIPE头开销) (data_size % 512B == 0)
            (0.0156 * data_size + 20.9711) * 调用次数 + 37.37(PIPE头开销) (data_size % 512B != 0)
 */
-ge::Status CompareGEPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
+af::Status CompareGEPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr aligned_res;
   Expr unaligned_res;
   GE_ASSERT_SUCCESS(GetPerf({kCompareGE + "Aligned", node_info.input_dtype[0], node_info.output_dtype[0],
@@ -278,7 +278,7 @@ ge::Status CompareGEPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
                              node_info.input_dims, node_info.gm_stride},
                             unaligned_res));
   GE_ASSERT_SUCCESS(RptElementwisePerf(node_info, aligned_res, unaligned_res, perf));
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 /*
@@ -286,13 +286,13 @@ CompareScalarGTapi的性能公式：
   float16: (0.0084 * data_size + 21.9200) * 调用次数 + 37.37(PIPE头开销)
   float32: (0.0160 * data_size + 21.9712) * 调用次数 + 37.37(PIPE头开销)
 */
-ge::Status CompareScalarGTPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
+af::Status CompareScalarGTPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res;
   GE_ASSERT_SUCCESS(GetPerf({kCompareScalarGT, node_info.input_dtype[0], node_info.output_dtype[0],
                              node_info.input_dims, node_info.gm_stride},
                             res));
   perf.pipe_res[PipeType::AIV_VEC] = res;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 /*
@@ -302,7 +302,7 @@ CompareGTapi的性能公式：
   float32: (0.0310 * data_size + 21.0319) * 调用次数 + 37.37(PIPE头开销) (data_size % 512B == 0)
            (0.0157 * data_size + 21.0319) * 调用次数 + 37.37(PIPE头开销) (data_size % 512B != 0)
 */
-ge::Status CompareGTPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
+af::Status CompareGTPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr aligned_res;
   Expr unaligned_res;
   GE_ASSERT_SUCCESS(GetPerf({kCompareGT + "Aligned", node_info.input_dtype[0], node_info.output_dtype[0],
@@ -312,7 +312,7 @@ ge::Status CompareGTPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
                              node_info.input_dims, node_info.gm_stride},
                             unaligned_res));
   GE_ASSERT_SUCCESS(RptElementwisePerf(node_info, aligned_res, unaligned_res, perf));
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 /*
@@ -320,13 +320,13 @@ CompareScalarLEapi的性能公式：
   float16: (0.0084 * data_size + 21.9210) * 调用次数 + 37.37(PIPE头开销)
   float32: (0.0161 * data_size + 21.9722) * 调用次数 + 37.37(PIPE头开销)
 */
-ge::Status CompareScalarLEPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
+af::Status CompareScalarLEPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res;
   GE_ASSERT_SUCCESS(GetPerf({kCompareScalarLE, node_info.input_dtype[0], node_info.output_dtype[0],
                              node_info.input_dims, node_info.gm_stride},
                             res));
   perf.pipe_res[PipeType::AIV_VEC] = res;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 /*
@@ -336,7 +336,7 @@ CompareLEapi的性能公式：
   float32: (0.0310 * data_size + 21.0303) * 调用次数 + 37.37(PIPE头开销) (data_size % 512B == 0)
            (0.0156 * data_size + 21.0303) * 调用次数 + 37.37(PIPE头开销) (data_size % 512B != 0)
 */
-ge::Status CompareLEPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
+af::Status CompareLEPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr aligned_res;
   Expr unaligned_res;
   GE_ASSERT_SUCCESS(GetPerf({kCompareLE + "Aligned", node_info.input_dtype[0], node_info.output_dtype[0],
@@ -346,7 +346,7 @@ ge::Status CompareLEPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
                              node_info.input_dims, node_info.gm_stride},
                             unaligned_res));
   GE_ASSERT_SUCCESS(RptElementwisePerf(node_info, aligned_res, unaligned_res, perf));
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 /*
@@ -354,13 +354,13 @@ CompareScalarLTapi的性能公式：
   float16: (0.0084 * data_size + 21.9381) * 调用次数 + 37.37(PIPE头开销)
   float32: (0.0161 * data_size + 22.9860) * 调用次数 + 37.37(PIPE头开销)
 */
-ge::Status CompareScalarLTPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
+af::Status CompareScalarLTPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res;
   GE_ASSERT_SUCCESS(GetPerf({kCompareScalarLT, node_info.input_dtype[0], node_info.output_dtype[0],
                              node_info.input_dims, node_info.gm_stride},
                             res));
   perf.pipe_res[PipeType::AIV_VEC] = res;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 /*
@@ -370,7 +370,7 @@ CompareLTapi的性能公式：
   float32: (0.0316 * data_size + 20.9940) * 调用次数 + 37.37(PIPE头开销) (data_size % 512B == 0)
            (0.0173 * data_size + 20.9940) * 调用次数 + 37.37(PIPE头开销) (data_size % 512B != 0)
 */
-ge::Status CompareLTPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
+af::Status CompareLTPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr aligned_res;
   Expr unaligned_res;
   GE_ASSERT_SUCCESS(GetPerf({kCompareLT + "Aligned", node_info.input_dtype[0], node_info.output_dtype[0],
@@ -380,7 +380,7 @@ ge::Status CompareLTPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
                              node_info.input_dims, node_info.gm_stride},
                             unaligned_res));
   GE_ASSERT_SUCCESS(RptElementwisePerf(node_info, aligned_res, unaligned_res, perf));
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 /*
@@ -388,13 +388,13 @@ CompareScalarNEapi的性能公式：
   float16: (0.0084 * data_size + 21.9114) * 调用次数 + 37.37(PIPE头开销)
   float32: (0.0161 * data_size + 22.9690) * 调用次数 + 37.37(PIPE头开销)
 */
-ge::Status CompareScalarNEPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
+af::Status CompareScalarNEPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res;
   GE_ASSERT_SUCCESS(GetPerf({kCompareScalarNE, node_info.input_dtype[0], node_info.output_dtype[0],
                              node_info.input_dims, node_info.gm_stride},
                             res));
   perf.pipe_res[PipeType::AIV_VEC] = res;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 /*
@@ -404,7 +404,7 @@ CompareNEapi的性能公式：
   float32: (0.0310 * data_size + 21.0313) * 调用次数 + 37.37(PIPE头开销) (data_size % 512B == 0)
            (0.0156 * data_size + 21.0313) * 调用次数 + 37.37(PIPE头开销) (data_size % 512B != 0)
 */
-ge::Status CompareNEPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
+af::Status CompareNEPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr aligned_res;
   Expr unaligned_res;
   GE_ASSERT_SUCCESS(GetPerf({kCompareNE + "Aligned", node_info.input_dtype[0], node_info.output_dtype[0],
@@ -414,7 +414,7 @@ ge::Status CompareNEPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
                              node_info.input_dims, node_info.gm_stride},
                             unaligned_res));
   GE_ASSERT_SUCCESS(RptElementwisePerf(node_info, aligned_res, unaligned_res, perf));
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 /*
@@ -427,7 +427,7 @@ Powerapi的性能公式：
   float32: (0.69805 * data_size + 735.05) * 调用次数 + 37.37(PIPE头开销)
 */
 
-ge::Status PowerPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
+af::Status PowerPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res;
   if (node_info.input_dtype.size() == kNumTwo) {
     GE_ASSERT_SUCCESS(GetPerf({kPower + "AllTensor", node_info.input_dtype[0], node_info.output_dtype[0],
@@ -439,7 +439,7 @@ ge::Status PowerPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
                               res));
   }
   perf.pipe_res[PipeType::AIV_VEC] = res;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 /*
@@ -447,12 +447,12 @@ Divapi的性能公式：
   float16: (0.0460 * data_size + 29.1233) * 调用次数 + 37.37(PIPE头开销)
   float32: (0.0454 * data_size + 29.0892) * 调用次数 + 37.37(PIPE头开销)
 */
-ge::Status DivPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
+af::Status DivPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res;
   GE_ASSERT_SUCCESS(GetPerf(
       {kDiv, node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride}, res));
   perf.pipe_res[PipeType::AIV_VEC] = res;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 /*
@@ -460,13 +460,13 @@ Duplicateapi的性能公式：
   float16: (0.0078 * data_size + 16.9993) * 调用次数 + 37.37(PIPE头开销)
   float32: (0.0156 * data_size + 16.9965) * 调用次数 + 37.37(PIPE头开销)
 */
-ge::Status DuplicatePerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
+af::Status DuplicatePerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res;
   GE_ASSERT_SUCCESS(GetPerf(
       {kDuplicate, node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride},
       res));
   perf.pipe_res[PipeType::AIV_VEC] = res;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 /*
@@ -475,12 +475,12 @@ Erfapi的性能公式：
   float16: (0.6996 * data_size + 478.4175) * 调用次数 + 37.37(PIPE头开销)
   float32: (0.6038 * data_size + 458.2933) * 调用次数 + 37.37(PIPE头开销)
 */
-ge::Status ErfPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
+af::Status ErfPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res;
   GE_ASSERT_SUCCESS(GetPerf(
       {kErf, node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride}, res));
   perf.pipe_res[PipeType::AIV_VEC] = res;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 /*
@@ -488,12 +488,12 @@ Expapi的性能公式：
   float16: (0.0311 * data_size + 28.0144) * 调用次数 + 37.37(PIPE头开销)
   float32: (0.0307 * data_size + 28.0376) * 调用次数 + 37.37(PIPE头开销)
 */
-ge::Status ExpPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
+af::Status ExpPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res;
   GE_ASSERT_SUCCESS(GetPerf(
       {kExp, node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride}, res));
   perf.pipe_res[PipeType::AIV_VEC] = res;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 /*
@@ -501,12 +501,12 @@ Gatherapi的性能公式：
   float16: (0.1873 * data_size + 17.0248) * 调用次数 + 37.37(PIPE头开销)
   float32: (0.1875 * data_size + 15.0000) * 调用次数 + 37.37(PIPE头开销)
 */
-ge::Status GatherPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
+af::Status GatherPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res;
   GE_ASSERT_SUCCESS(GetPerf(
       {kGather, node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride}, res));
   perf.pipe_res[PipeType::AIV_VEC] = res;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 /*
@@ -514,13 +514,13 @@ Gathermaskapi的性能公式：
   float16: (0.0156 * data_size + 14.0242) * 调用次数 + 37.37(PIPE头开销)
   float32: (0.0313 * data_size + 14.0207) * 调用次数 + 37.37(PIPE头开销)
 */
-ge::Status GatherMaskPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
+af::Status GatherMaskPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res;
   GE_ASSERT_SUCCESS(GetPerf(
       {kGatherMask, node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride},
       res));
   perf.pipe_res[PipeType::AIV_VEC] = res;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 /*
@@ -528,12 +528,12 @@ Maxsapi的性能公式：
   float16: (0.0071 * data_size + 20.0912) * 调用次数 + 37.37(PIPE头开销)
   float32: (0.0141 * data_size + 20.0887) * 调用次数 + 37.37(PIPE头开销)
 */
-ge::Status MaxsPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
+af::Status MaxsPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res;
   GE_ASSERT_SUCCESS(GetPerf(
       {kMaxs, node_info.input_dtype[0], node_info.output_dtype[0], node_info.output_dims, node_info.gm_stride}, res));
   perf.pipe_res[PipeType::AIV_VEC] = res;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 /*
@@ -541,12 +541,12 @@ Maxapi的性能公式：
   float16: (0.0111 * data_size + 20.1200) * 调用次数 + 37.37(PIPE头开销)
   float32: (0.0215 * data_size + 20.1333) * 调用次数 + 37.37(PIPE头开销)
 */
-ge::Status MaxPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
+af::Status MaxPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res;
   GE_ASSERT_SUCCESS(GetPerf(
       {kMax, node_info.input_dtype[0], node_info.output_dtype[0], node_info.output_dims, node_info.gm_stride}, res));
   perf.pipe_res[PipeType::AIV_VEC] = res;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 /*
@@ -554,12 +554,12 @@ Minsapi的性能公式：
   float16: (0.0071 * data_size + 20.0896) * 调用次数 + 37.37(PIPE头开销)
   float32: (0.0142 * data_size + 20.0876) * 调用次数 + 37.37(PIPE头开销)
 */
-ge::Status MinsPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
+af::Status MinsPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res;
   GE_ASSERT_SUCCESS(GetPerf(
       {kMins, node_info.input_dtype[0], node_info.output_dtype[0], node_info.output_dims, node_info.gm_stride}, res));
   perf.pipe_res[PipeType::AIV_VEC] = res;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 /*
@@ -567,12 +567,12 @@ Minapi的性能公式：
   float16: (0.0111 * data_size + 20.1104) * 调用次数 + 37.37(PIPE头开销)
   float32: (0.0215 * data_size + 20.1271) * 调用次数 + 37.37(PIPE头开销)
 */
-ge::Status MinPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
+af::Status MinPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res;
   GE_ASSERT_SUCCESS(GetPerf(
       {kMin, node_info.input_dtype[0], node_info.output_dtype[0], node_info.output_dims, node_info.gm_stride}, res));
   perf.pipe_res[PipeType::AIV_VEC] = res;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 /*
@@ -580,12 +580,12 @@ Mulsapi的性能公式：
   float16: (0.0071 * data_size + 23.1006) * 调用次数 + 37.37(PIPE头开销)
   float32: (0.0142 * data_size + 23.0966) * 调用次数 + 37.37(PIPE头开销)
 */
-ge::Status MulsPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
+af::Status MulsPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res;
   GE_ASSERT_SUCCESS(GetPerf(
       {kMuls, node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride}, res));
   perf.pipe_res[PipeType::AIV_VEC] = res;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 /*
@@ -593,24 +593,24 @@ Mulapi的性能公式：
   float16: (0.0110 * data_size + 23.1243) * 调用次数 + 37.37(PIPE头开销)
   float32: (0.0206 * data_size + 23.2291) * 调用次数 + 37.37(PIPE头开销)
 */
-ge::Status MulPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
+af::Status MulPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res;
   GE_ASSERT_SUCCESS(GetPerf(
       {kMul, node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride}, res));
   perf.pipe_res[PipeType::AIV_VEC] = res;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 /*
 Orapi的性能公式：
   uint16: (0.0132 * data_size + 12.4018) * 调用次数 + 37.37(PIPE头开销)
 */
-ge::Status OrPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
+af::Status OrPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res;
   GE_ASSERT_SUCCESS(GetPerf(
       {kOr, node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride}, res));
   perf.pipe_res[PipeType::AIV_VEC] = res;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 /*
@@ -618,13 +618,13 @@ PairReduceSumapi的性能公式：
   float16: (0.0547 * data_size + 37.159) * 调用次数 + 37.37(PIPE头开销)
   float32: (0.1094 * data_size + 36.964) * 调用次数 + 37.37(PIPE头开销)
 */
-ge::Status PairReduceSumPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
+af::Status PairReduceSumPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res;
   GE_ASSERT_SUCCESS(GetPerf(
       {kPairReduceSum, node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride},
       res));
   perf.pipe_res[PipeType::AIV_VEC] = res;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 /*
@@ -632,13 +632,13 @@ Reciprocalapi的性能公式：
   float16: (0.0078 * data_size + 21.0076) * 调用次数 + 37.37(PIPE头开销)
   float32: (0.0146 * data_size + 21.0639) * 调用次数 + 37.37(PIPE头开销)
 */
-ge::Status ReciprocalPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
+af::Status ReciprocalPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res;
   GE_ASSERT_SUCCESS(GetPerf(
       {kReciprocal, node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride},
       res));
   perf.pipe_res[PipeType::AIV_VEC] = res;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 /*
@@ -646,12 +646,12 @@ Reluapi的性能公式：
   float16: (0.0077 * data_size + 20.0173) * 调用次数 + 37.37(PIPE头开销)
   float32: (0.0154 * data_size + 20.0189) * 调用次数 + 37.37(PIPE头开销)
 */
-ge::Status ReluPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
+af::Status ReluPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res;
   GE_ASSERT_SUCCESS(GetPerf(
       {kRelu, node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride}, res));
   perf.pipe_res[PipeType::AIV_VEC] = res;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 /*
@@ -659,12 +659,12 @@ Rsqrtapi的性能公式：
   float16: (0.0071 * data_size + 21.0970) * 调用次数 + 37.37(PIPE头开销)
   float32: (0.0143 * data_size + 21.0979) * 调用次数 + 37.37(PIPE头开销)
 */
-ge::Status RsqrtPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
+af::Status RsqrtPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res;
   GE_ASSERT_SUCCESS(GetPerf(
       {kRsqrt, node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride}, res));
   perf.pipe_res[PipeType::AIV_VEC] = res;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 /*
@@ -672,12 +672,12 @@ Selectapi的性能公式：
   float16: (0.0118 * data_size + 45.9656) * 调用次数 + 37.37(PIPE头开销)
   float32: (0.0229 * data_size + 43.9906) * 调用次数 + 37.37(PIPE头开销)
 */
-ge::Status SelectPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
+af::Status SelectPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res;
   GE_ASSERT_SUCCESS(GetPerf(
       {kSelect, node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride}, res));
   perf.pipe_res[PipeType::AIV_VEC] = res;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 /*
@@ -686,12 +686,12 @@ Sigmoidapi的性能公式：
   float16: (0.1011 * data_size + 116.0436) * 调用次数 + 37.37(PIPE头开销)
   float32: (0.1256 * data_size + 115.9747) * 调用次数 + 37.37(PIPE头开销)
 */
-ge::Status SigmoidPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
+af::Status SigmoidPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res;
   GE_ASSERT_SUCCESS(GetPerf(
       {kSigmoid, node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride}, res));
   perf.pipe_res[PipeType::AIV_VEC] = res;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 /*
@@ -700,12 +700,12 @@ Signapi的性能公式：
   float16: (0.0855 * data_size + 119.0821) * 调用次数 + 37.37(PIPE头开销)
   float32: (0.1701 * data_size + 119.0656) * 调用次数 + 37.37(PIPE头开销)
 */
-ge::Status SignPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
+af::Status SignPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res;
   GE_ASSERT_SUCCESS(GetPerf(
       {kSign, node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride}, res));
   perf.pipe_res[PipeType::AIV_VEC] = res;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 /*
@@ -713,12 +713,12 @@ Sqrtapi的性能公式：
   float16: (0.0312 * data_size + 29.0056) * 调用次数 + 37.37(PIPE头开销)
   float32: (0.0313 * data_size + 28.9961) * 调用次数 + 37.37(PIPE头开销)
 */
-ge::Status SqrtPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
+af::Status SqrtPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res;
   GE_ASSERT_SUCCESS(GetPerf(
       {kSqrt, node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride}, res));
   perf.pipe_res[PipeType::AIV_VEC] = res;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 /*
@@ -726,12 +726,12 @@ Subapi的性能公式：
   float16: (0.0107 * data_size + 22.1226) * 调用次数 + 37.37(PIPE头开销)
   float32: (0.0213 * data_size + 22.1254) * 调用次数 + 37.37(PIPE头开销)
 */
-ge::Status SubPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
+af::Status SubPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res;
   GE_ASSERT_SUCCESS(GetPerf(
       {kSub, node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride}, res));
   perf.pipe_res[PipeType::AIV_VEC] = res;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 /*
@@ -740,12 +740,12 @@ Tanhapi的性能公式：
   float16: (0.1976 * data_size + 181.6919) * 调用次数 + 37.37(PIPE头开销)
   float32: (0.1570 * data_size + 153.9298) * 调用次数 + 37.37(PIPE头开销)
 */
-ge::Status TanhPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
+af::Status TanhPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res;
   GE_ASSERT_SUCCESS(GetPerf(
       {kTanh, node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride}, res));
   perf.pipe_res[PipeType::AIV_VEC] = res;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 /*
@@ -753,13 +753,13 @@ WholeReduceSumapi的性能公式：
   float16: (0.0547 * data_size + 35.0021) * 调用次数 + 37.37(PIPE头开销)
   float32: (0.1094 * data_size + 32.0029) * 调用次数 + 37.37(PIPE头开销)
 */
-ge::Status WholeReduceSumPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
+af::Status WholeReduceSumPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res;
   GE_ASSERT_SUCCESS(GetPerf(
       {kWholeReduceSum, node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride},
       res));
   perf.pipe_res[PipeType::AIV_VEC] = res;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 /*
@@ -767,13 +767,13 @@ WholeReduceMaxapi的性能公式：
   float16: (0.0547 * data_size + 21.0027) * 调用次数 + 37.37(PIPE头开销)
   float32: (0.1094 * data_size + 20.0051) * 调用次数 + 37.37(PIPE头开销)
 */
-ge::Status WholeReduceMaxPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
+af::Status WholeReduceMaxPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res;
   GE_ASSERT_SUCCESS(GetPerf(
       {kWholeReduceMax, node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride},
       res));
   perf.pipe_res[PipeType::AIV_VEC] = res;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 /*
@@ -781,16 +781,16 @@ WholeReduceMinapi的性能公式：
   float16: (0.0547 * data_size + 21.0056) * 调用次数 + 37.37(PIPE头开销)
   float32: (0.1094 * data_size + 20.0068) * 调用次数 + 37.37(PIPE头开销)
 */
-ge::Status WholeReduceMinPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
+af::Status WholeReduceMinPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
   Expr res;
   GE_ASSERT_SUCCESS(GetPerf(
       {kWholeReduceMin, node_info.input_dtype[0], node_info.output_dtype[0], node_info.input_dims, node_info.gm_stride},
       res));
   perf.pipe_res[PipeType::AIV_VEC] = res;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status VectorCompute([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
+af::Status VectorCompute([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
                          [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
                          [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
   GE_ASSERT_TRUE(!input_shapes.empty() && !output_shapes.empty());
@@ -811,10 +811,10 @@ ge::Status VectorCompute([[maybe_unused]] const std::vector<TensorShapeInfo> &in
   cycles = Mul(cycles, weight);
   const auto kHeadCost = CreateExpr(4U);
   perf_res.pipe_res[PipeType::AIV_VEC] = Add(cycles, kHeadCost);
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status MatmulCompute([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
+af::Status MatmulCompute([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
                          [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
                          [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
   GE_ASSERT_TRUE(input_shapes.size() >= 2U && !output_shapes.empty());
@@ -856,136 +856,136 @@ ge::Status MatmulCompute([[maybe_unused]] const std::vector<TensorShapeInfo> &in
   auto ratio = Add(Add(ratio_a, ratio_b), ratio_c);
   ratio = Add(ratio, Add(Add(ratio_m, ratio_n), ratio_k));
   perf_res.pipe_res[PipeType::AIC_MTE2] = Div(mte2_cycle, ratio);
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status AndApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
+af::Status AndApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
                   [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
                   [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
   NodeDetail node_info;
   GE_ASSERT_SUCCESS(SetNodeDetail(input_shapes, output_shapes, node_info));
   GE_ASSERT_SUCCESS(ascendcperf::AndPerf(node_info, perf_res));
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status AddsApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
+af::Status AddsApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
                    [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
                    [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
   NodeDetail node_info;
   GE_ASSERT_SUCCESS(SetNodeDetail(input_shapes, output_shapes, node_info));
   GE_ASSERT_SUCCESS(ascendcperf::AddsPerf(node_info, perf_res));
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status BlockReduceMaxApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
+af::Status BlockReduceMaxApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
                              [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
                              [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
   NodeDetail node_info;
   GE_ASSERT_SUCCESS(SetNodeDetail(input_shapes, output_shapes, node_info));
   GE_ASSERT_SUCCESS(ascendcperf::BlockReduceMaxPerf(node_info, perf_res));
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status BlockReduceMinApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
+af::Status BlockReduceMinApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
                              [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
                              [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
   NodeDetail node_info;
   GE_ASSERT_SUCCESS(SetNodeDetail(input_shapes, output_shapes, node_info));
   GE_ASSERT_SUCCESS(ascendcperf::BlockReduceMinPerf(node_info, perf_res));
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status BrcbApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
+af::Status BrcbApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
                    [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
                    [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
   NodeDetail node_info;
   GE_ASSERT_SUCCESS(SetNodeDetail(input_shapes, output_shapes, node_info));
   GE_ASSERT_SUCCESS(ascendcperf::BrcbPerf(node_info, perf_res));
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status CompareScalarEQApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
+af::Status CompareScalarEQApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
                               [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
                               [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
   NodeDetail node_info;
   GE_ASSERT_SUCCESS(SetNodeDetail(input_shapes, output_shapes, node_info));
   GE_ASSERT_SUCCESS(ascendcperf::CompareScalarEQPerf(node_info, perf_res));
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status CompareScalarGEApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
+af::Status CompareScalarGEApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
                               [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
                               [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
   NodeDetail node_info;
   GE_ASSERT_SUCCESS(SetNodeDetail(input_shapes, output_shapes, node_info));
   GE_ASSERT_SUCCESS(ascendcperf::CompareScalarGEPerf(node_info, perf_res));
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status CompareScalarGTApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
+af::Status CompareScalarGTApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
                               [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
                               [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
   NodeDetail node_info;
   GE_ASSERT_SUCCESS(SetNodeDetail(input_shapes, output_shapes, node_info));
   GE_ASSERT_SUCCESS(ascendcperf::CompareScalarGTPerf(node_info, perf_res));
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status CompareScalarLEApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
+af::Status CompareScalarLEApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
                               [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
                               [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
   NodeDetail node_info;
   GE_ASSERT_SUCCESS(SetNodeDetail(input_shapes, output_shapes, node_info));
   GE_ASSERT_SUCCESS(ascendcperf::CompareScalarLEPerf(node_info, perf_res));
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status CompareScalarNEApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
+af::Status CompareScalarNEApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
                               [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
                               [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
   NodeDetail node_info;
   GE_ASSERT_SUCCESS(SetNodeDetail(input_shapes, output_shapes, node_info));
   GE_ASSERT_SUCCESS(ascendcperf::CompareScalarNEPerf(node_info, perf_res));
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status CompareScalarLTApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
+af::Status CompareScalarLTApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
                               [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
                               [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
   NodeDetail node_info;
   GE_ASSERT_SUCCESS(SetNodeDetail(input_shapes, output_shapes, node_info));
   GE_ASSERT_SUCCESS(ascendcperf::CompareScalarLTPerf(node_info, perf_res));
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status PowerApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
+af::Status PowerApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
                     [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
                     [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
   NodeDetail node_info;
   GE_ASSERT_SUCCESS(SetNodeDetail(input_shapes, output_shapes, node_info));
   GE_ASSERT_SUCCESS(ascendcperf::PowerPerf(node_info, perf_res));
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status PairReduceSumApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
+af::Status PairReduceSumApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
                             [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
                             [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
   NodeDetail node_info;
   GE_ASSERT_SUCCESS(SetNodeDetail(input_shapes, output_shapes, node_info));
   GE_ASSERT_SUCCESS(ascendcperf::PairReduceSumPerf(node_info, perf_res));
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status DuplicateApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
+af::Status DuplicateApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
                         [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
                         [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
   NodeDetail node_info;
   GE_ASSERT_SUCCESS(SetNodeDetail(input_shapes, output_shapes, node_info));
   GE_ASSERT_SUCCESS(ascendcperf::DuplicatePerf(node_info, perf_res));
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status DropoutCompute([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
+af::Status DropoutCompute([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
                           [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
                           [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
   (void)output_shapes;
@@ -998,77 +998,77 @@ ge::Status DropoutCompute([[maybe_unused]] const std::vector<TensorShapeInfo> &i
   auto cycles = Div(dim_product, t);
   cycles = Mul(cycles, c);
   perf_res.pipe_res[PipeType::AIV_VEC] = Add(cycles, h);
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status DefaultMTE1Api([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
+af::Status DefaultMTE1Api([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
                           [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
                           [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
   GE_ASSERT_TRUE(!input_shapes.empty() && !output_shapes.empty());
   perf_res.pipe_res[PipeType::AICORE_MTE1] = af::sym::kSymbolOne;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status DefaultMTE2Api([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
+af::Status DefaultMTE2Api([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
                           [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
                           [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
   GE_ASSERT_TRUE(!input_shapes.empty() && !output_shapes.empty());
   perf_res.pipe_res[PipeType::AICORE_MTE2] = af::sym::kSymbolOne;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status DefaultMTE3Api([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
+af::Status DefaultMTE3Api([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
                           [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
                           [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
   GE_ASSERT_TRUE(!input_shapes.empty() && !output_shapes.empty());
   perf_res.pipe_res[PipeType::AICORE_MTE3] = af::sym::kSymbolOne;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status DefaultVECApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
+af::Status DefaultVECApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
                          [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
                          [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
   GE_ASSERT_TRUE(!input_shapes.empty() && !output_shapes.empty());
   perf_res.pipe_res[PipeType::AIV_VEC] = af::sym::kSymbolOne;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status DefaultCUBEApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
+af::Status DefaultCUBEApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
                           [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
                           [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
   GE_ASSERT_TRUE(!input_shapes.empty() && !output_shapes.empty());
   perf_res.pipe_res[PipeType::AICORE_CUBE] = af::sym::kSymbolOne;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status WholeReduceMaxApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
+af::Status WholeReduceMaxApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
                              [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
                              [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
   NodeDetail node_info;
   GE_ASSERT_SUCCESS(SetNodeDetail(input_shapes, output_shapes, node_info));
   GE_ASSERT_SUCCESS(ascendcperf::WholeReduceMaxPerf(node_info, perf_res));
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status WholeReduceMinApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
+af::Status WholeReduceMinApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
                              [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
                              [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
   NodeDetail node_info;
   GE_ASSERT_SUCCESS(SetNodeDetail(input_shapes, output_shapes, node_info));
   GE_ASSERT_SUCCESS(ascendcperf::WholeReduceMinPerf(node_info, perf_res));
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status WholeReduceSumApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
+af::Status WholeReduceSumApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
                              [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
                              [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
   NodeDetail node_info;
   GE_ASSERT_SUCCESS(SetNodeDetail(input_shapes, output_shapes, node_info));
   GE_ASSERT_SUCCESS(ascendcperf::WholeReduceSumPerf(node_info, perf_res));
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status CubeCompute([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
+af::Status CubeCompute([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
                        [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
                        [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
   GE_ASSERT_TRUE(input_shapes.size() >= 2U && !output_shapes.empty());
@@ -1087,82 +1087,82 @@ ge::Status CubeCompute([[maybe_unused]] const std::vector<TensorShapeInfo> &inpu
     }
   }
   perf_res.pipe_res[PipeType::AICORE_CUBE] = res;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status GatherMaskApi(const std::vector<TensorShapeInfo> &input_shapes,
+af::Status GatherMaskApi(const std::vector<TensorShapeInfo> &input_shapes,
                          const std::vector<TensorShapeInfo> &output_shapes, [[maybe_unused]] const NodeInfo &node,
                          PerfOutputInfo &perf_res) {
   NodeDetail node_info;
   GE_ASSERT_SUCCESS(SetNodeDetail(input_shapes, output_shapes, node_info));
   GE_ASSERT_SUCCESS(ascendcperf::GatherMaskPerf(node_info, perf_res));
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status MaxsApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
+af::Status MaxsApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
                    [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
                    [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
   NodeDetail node_info;
   GE_ASSERT_SUCCESS(SetNodeDetail(input_shapes, output_shapes, node_info));
   GE_ASSERT_SUCCESS(ascendcperf::MaxsPerf(node_info, perf_res));
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status MinsApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
+af::Status MinsApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
                    [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
                    [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
   NodeDetail node_info;
   GE_ASSERT_SUCCESS(SetNodeDetail(input_shapes, output_shapes, node_info));
   GE_ASSERT_SUCCESS(ascendcperf::MinsPerf(node_info, perf_res));
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status MulsApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
+af::Status MulsApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
                    [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
                    [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
   NodeDetail node_info;
   GE_ASSERT_SUCCESS(SetNodeDetail(input_shapes, output_shapes, node_info));
   GE_ASSERT_SUCCESS(ascendcperf::MulsPerf(node_info, perf_res));
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status MulApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
+af::Status MulApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
                   [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
                   [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
   NodeDetail node_info;
   GE_ASSERT_SUCCESS(SetNodeDetail(input_shapes, output_shapes, node_info));
   GE_ASSERT_SUCCESS(ascendcperf::MulPerf(node_info, perf_res));
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status OrApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
+af::Status OrApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
                  [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
                  [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
   NodeDetail node_info;
   GE_ASSERT_SUCCESS(SetNodeDetail(input_shapes, output_shapes, node_info));
   GE_ASSERT_SUCCESS(ascendcperf::OrPerf(node_info, perf_res));
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 /*
 SetVectorMaskApi与shape无关，性能为0
 */
-ge::Status SetVectorMaskApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
+af::Status SetVectorMaskApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
                             [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
                             [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
   (void)input_shapes;
   (void)output_shapes;
   perf_res.pipe_res[PipeType::AIV_VEC] = af::sym::kSymbolZero;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status SigmoidApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
+af::Status SigmoidApi([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
                       [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
                       [[maybe_unused]] const NodeInfo &node, PerfOutputInfo &perf_res) {
   NodeDetail node_info;
   GE_ASSERT_SUCCESS(SetNodeDetail(input_shapes, output_shapes, node_info));
   GE_ASSERT_SUCCESS(ascendcperf::SigmoidPerf(node_info, perf_res));
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 }  // namespace ascendcperf
 

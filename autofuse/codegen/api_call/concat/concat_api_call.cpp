@@ -34,7 +34,7 @@ Status FindNonZeroStride(const std::vector<ascir::SizeExpr> &vectorized_strides,
   }
   GE_ASSERT_TRUE(stride != af::ops::Zero, "Failed to find non-zero v_stride before index = %d, v_strides = %s", index,
                  af::ToString(vectorized_strides).c_str());
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 }  // namespace
 
@@ -43,14 +43,14 @@ Status ConcatApiCall::ParseAttr(const ascir::NodeView &node) {
   GE_ASSERT_SUCCESS(ApiCall::ParseAttr(node));
   (void)af::AttrUtils::GetBool(node->GetOpDesc(), "_concat_small_tail", use_concat_small_tail_api_);
   node_ = node;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status ConcatApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
                                const vector<std::reference_wrapper<const Tensor>> &inputs,
                                const vector<std::reference_wrapper<const Tensor>> &outputs, string &result) const {
   (void)current_axis;
-  GE_CHK_BOOL_RET_STATUS((!inputs.empty()) && (!outputs.empty()), ge::FAILED,
+  GE_CHK_BOOL_RET_STATUS((!inputs.empty()) && (!outputs.empty()), af::FAILED,
                          "Codegen input or output tensor is empty");
   const auto &x0 = inputs[0].get();
   const auto &y = outputs[0].get();
@@ -101,10 +101,10 @@ Status ConcatApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::Axis
     }
   }
   result = ss.str();
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status ConcatApiCall::GenerateForAllAligned(const vector<std::reference_wrapper<const Tensor>> &inputs,
+af::Status ConcatApiCall::GenerateForAllAligned(const vector<std::reference_wrapper<const Tensor>> &inputs,
                                                 const Tensor &y, const ConcatApiCall::ConcatTiling &tiling,
                                                 const Tiler &tiler, std::stringstream &ss) {
   std::string dtype_name;
@@ -116,7 +116,7 @@ ge::Status ConcatApiCall::GenerateForAllAligned(const vector<std::reference_wrap
      << ", " << "concat_tiling"
      << ", " << y << ", " << "concat_src_tensors"
      << ");" << std::endl;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 void ConcatApiCall::GenConcatParams(const std::vector<std::reference_wrapper<const Tensor>> &inputs, const Tensor &y,
@@ -177,7 +177,7 @@ Status ConcatApiCall::ParseConcatDim(const Tensor &x0, const Tensor &y, size_t &
          VectorToStr(y.vectorized_axis).c_str(), VectorToStr(y.vectorized_axis_pos).c_str(),
          VectorToStr(y.vectorized_strides).c_str());
 
-  GE_CHK_BOOL_RET_STATUS(x0.vectorized_axis.size() == y.vectorized_axis.size(), ge::FAILED,
+  GE_CHK_BOOL_RET_STATUS(x0.vectorized_axis.size() == y.vectorized_axis.size(), af::FAILED,
                          "Codegen concat input output vectorized_axis not equal");
   // 遍历向量化轴, 确定concat轴
   bool find_concat_dim = false;
@@ -191,7 +191,7 @@ Status ConcatApiCall::ParseConcatDim(const Tensor &x0, const Tensor &y, size_t &
     }
   }
   GE_ASSERT_TRUE(find_concat_dim, "not find concat dim in vectorized_axis");
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status ConcatApiCall::InitializeTiling(size_t concat_dim, const vector<std::reference_wrapper<const Tensor>> &inputs,
@@ -243,7 +243,7 @@ Status ConcatApiCall::InitializeTiling(size_t concat_dim, const vector<std::refe
     tiling.is_padded.emplace_back(is_padded);
     tiling.any_padded = (tiling.any_padded || is_padded);
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status ConcatApiCall::CalcTiling([[maybe_unused]] size_t concat_dim,
@@ -277,7 +277,7 @@ Status ConcatApiCall::CalcTiling([[maybe_unused]] size_t concat_dim,
   CalcTilingForInputs(inputs, kEltNumPerBlock, tiling);
   GELOGI("ConcatTiling: gcd=%u, tmp_buf_size=%u, max_repeat_times=%u, max_element_num=%u, max_orig_row_num=%u",
          tiling.gcd, tiling.tmp_buf_size, tiling.max_repeat_times, tiling.max_element_num, tiling.max_orig_row_num);
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status ConcatApiCall::CalcTilingForInputs(const vector<std::reference_wrapper<const Tensor>> &inputs, size_t block_size,
@@ -299,7 +299,7 @@ Status ConcatApiCall::CalcTilingForInputs(const vector<std::reference_wrapper<co
     concat_tiling.second_last_dim_strides.emplace_back(second_last_stride);
     concat_tiling.gather_mask_dim_sizes.emplace_back(last_dim_size);
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 void ConcatApiCall::DefineConcatTiling(const ConcatApiCall::ConcatTiling &tiling, std::stringstream &ss) {
@@ -375,7 +375,7 @@ void ConcatApiCall::DefineConcatShape(const ConcatApiCall::ConcatTiling &tiling,
   ss << "};" << std::endl;
 }
 
-ge::Status ConcatApiCall::DefineConcatContext(const ConcatTiling &tiling, const std::string &dtype_name,
+af::Status ConcatApiCall::DefineConcatContext(const ConcatTiling &tiling, const std::string &dtype_name,
                                               const Tiler &tiler, std::stringstream &ss) {
   std::string sub_type = "DiffDim";
   bool concat_same_dim = false;
@@ -402,7 +402,7 @@ ge::Status ConcatApiCall::DefineConcatContext(const ConcatTiling &tiling, const 
   ss << "> concat_context;" << std::endl;
   ss << "concat_context.total_row_num = " << tiler.ActualSize(tiling.total_rows_expr) << ";" << std::endl;
   ss << "concat_context.input_list = &input_list;" << std::endl;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 void ConcatApiCall::DefineInputList(const ConcatTiling &tiling, const std::string &dtype_name,

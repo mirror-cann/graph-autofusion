@@ -22,43 +22,43 @@ namespace optimize {
 class VectorFuncPartitioner {
  public:
   explicit VectorFuncPartitioner(af::AscGraph &impl_graph) : impl_graph_(impl_graph) {};
-  ge::Status Partition();
+  af::Status Partition();
 
  private:
   using InsertOrderMap = std::vector<std::pair<af::OutDataAnchorPtr, std::vector<af::InDataAnchorPtr>>>;
   void DebugMergeLog() const;
-  ge::Status InitClusters();
+  af::Status InitClusters();
   ClusterPtr CreateAndInitCluster(const af::AscNodePtr &node, size_t &rank);
   void EstablishClusterConnections(ClusterPtr &cluster, const af::AscNodePtr &node);
   void FixAllCompareClusterConnections();
   void RefineEnableVFFlag(const af::AscNodePtr &node, bool &enable_vf) const;
   static bool HasReduceNodeInGraph(const af::AscGraph &impl_graph);
-  static ge::Status InitClusterAttr(const std::unique_ptr<af::ascir::AscIrCodegen> &codegen_impl,
+  static af::Status InitClusterAttr(const std::unique_ptr<af::ascir::AscIrCodegen> &codegen_impl,
                                     const af::AscNodePtr &node, ClusterPtr &cluster);
-  ge::Status MergeClusters();
+  af::Status MergeClusters();
   static bool CanMergeClusters(const Cluster &from, const Cluster &to);
-  ge::Status SortClustersForBuildSubgraph();
-  ge::Status BuildSubgraphs();
-  ge::Status ModifySubgraphAttrs(af::AscGraph &vf_graph);
-  static ge::Status SetSubGraphAttrs(af::AscGraph &vf_graph);
-  ge::Status MergeContinuousVectorAxis(af::AscGraph &vf_graph);
-  ge::Status BuildSubgraph(const ClusterPtr &cluster, af::AscGraph &vf_graph, af::ascir_op::VectorFunc &vf_op);
-  static ge::Status InsertDataAndLoadNode(af::AscGraph &asc_graph, const af::OutDataAnchorPtr &out_anchor,
+  af::Status SortClustersForBuildSubgraph();
+  af::Status BuildSubgraphs();
+  af::Status ModifySubgraphAttrs(af::AscGraph &vf_graph);
+  static af::Status SetSubGraphAttrs(af::AscGraph &vf_graph);
+  af::Status MergeContinuousVectorAxis(af::AscGraph &vf_graph);
+  af::Status BuildSubgraph(const ClusterPtr &cluster, af::AscGraph &vf_graph, af::ascir_op::VectorFunc &vf_op);
+  static af::Status InsertDataAndLoadNode(af::AscGraph &asc_graph, const af::OutDataAnchorPtr &out_anchor,
                                           const std::vector<af::InDataAnchorPtr> &in_anchors, int64_t parent_in_index);
-  static ge::Status InsertScalarNode(af::AscGraph &asc_graph, const af::OutDataAnchorPtr &out_anchor,
+  static af::Status InsertScalarNode(af::AscGraph &asc_graph, const af::OutDataAnchorPtr &out_anchor,
                                      const std::vector<af::InDataAnchorPtr> &in_anchors, int64_t parent_in_index);
-  static ge::Status InsertStoreAndOutputNode(af::AscGraph &asc_graph, af::AscNode &pre_node, size_t out_anchor_index,
+  static af::Status InsertStoreAndOutputNode(af::AscGraph &asc_graph, af::AscNode &pre_node, size_t out_anchor_index,
                                              int64_t parent_out_index);
 
-  static ge::Status TopologicalSortingForVfGraph(af::AscGraph &graph);
+  static af::Status TopologicalSortingForVfGraph(af::AscGraph &graph);
 
-  static ge::Status ReorderAxesForBrcInline(const af::AscGraph &graph);
+  static af::Status ReorderAxesForBrcInline(const af::AscGraph &graph);
 
-  static ge::Status AddRemovePadForBrcInline(af::AscGraph &graph);
+  static af::Status AddRemovePadForBrcInline(af::AscGraph &graph);
 
-  static ge::Status AddInputDataAnchors(const af::NodePtr &node, InsertOrderMap &out_data_to_peer_in_anchors);
+  static af::Status AddInputDataAnchors(const af::NodePtr &node, InsertOrderMap &out_data_to_peer_in_anchors);
 
-  static ge::Status AddOutputDataAnchors(const af::NodePtr &node, InsertOrderMap &out_data_to_peer_in_anchors);
+  static af::Status AddOutputDataAnchors(const af::NodePtr &node, InsertOrderMap &out_data_to_peer_in_anchors);
 
   static bool HasDetectedCycle(const Cluster *const src, const Cluster *const dst);
   static bool IsCompareOp(const af::AscNodePtr &node);

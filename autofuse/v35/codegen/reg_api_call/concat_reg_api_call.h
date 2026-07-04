@@ -27,7 +27,7 @@ class ConcatRegApiCall : public ConcatApiCall {
 
  protected:
   Status ParseAttr(const ascir::NodeView &node) override;
-  static ge::Status GenerateDefault(const vector<std::reference_wrapper<const Tensor>> &inputs, const Tensor &y,
+  static af::Status GenerateDefault(const vector<std::reference_wrapper<const Tensor>> &inputs, const Tensor &y,
                                     const ConcatApiCall::ConcatTiling &tiling, const TPipe &t_pipe,
                                     std::stringstream &ss, const int64_t tmp_buf_id);
 
@@ -36,7 +36,7 @@ class ConcatRegApiCall : public ConcatApiCall {
   static Status GenerateForOneAxis(const vector<std::reference_wrapper<const Tensor>> &inputs, const Tensor &y,
                                    std::stringstream &ss);
   static bool CanConcatOneAxis(const std::vector<std::reference_wrapper<const Tensor>> &inputs, const Tensor &y);
-  static ge::Status GenerateForGather(const vector<std::reference_wrapper<const Tensor>> &inputs, const Tensor &y,
+  static af::Status GenerateForGather(const vector<std::reference_wrapper<const Tensor>> &inputs, const Tensor &y,
                                       const ConcatApiCall::ConcatTiling &tiling, const TPipe &t_pipe,
                                       std::stringstream &ss, const int64_t tmp_buf_id);
   static void DefineConcatTiling(const ConcatTiling &tiling, const Tiler &tiler, std::stringstream &ss);
@@ -47,7 +47,7 @@ class ConcatRegApiCall : public ConcatApiCall {
   bool IsShareInputs() const;
   static ConcatTiling B64ToB32(const ConcatTiling &tiling);
   static ConcatTiling B8ToB16(const ConcatTiling &tiling);
-  ge::Status CanUseGather(ConcatTiling &tiling) const;
+  af::Status CanUseGather(ConcatTiling &tiling) const;
   bool IsTile() const;
   static void NormalizeDtype(std::string &dtype_name);
 

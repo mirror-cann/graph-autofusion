@@ -91,7 +91,7 @@ void TracingRecorder::Initialize() {
 
 void TracingRecorder::SubmitTraceMsgs(const TracingRecord *tracing_record) {
   AtracingReporter reporter(handles_.back(), tracing_record);
-  if (reporter.Report() != SUCCESS) {
+  if (reporter.Report() != af::SUCCESS) {
     GELOGW("Report failed of module[%s] for record[%s].", GetHandleName().c_str(), tracing_record->Debug().c_str());
   }
 }

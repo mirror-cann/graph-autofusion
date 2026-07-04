@@ -32,7 +32,7 @@ Status MicroScalarBroadcastApiCall::Generate(const TensorManager &tensor_mng, co
   }
   ss << ", " << param.p_reg << ");" << std::endl;
   result = ss.str();
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 static MicroApiCallRegister<MicroScalarBroadcastApiCall> register_micro_scalar_broadcast_api_call(

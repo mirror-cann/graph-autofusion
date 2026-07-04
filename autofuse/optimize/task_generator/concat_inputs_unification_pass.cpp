@@ -20,7 +20,7 @@ Status ConcatInputUnificationPass::Run(std::vector<ascir::ImplGraph> &graphs) {
   for (auto &graph : graphs) {
     GE_ASSERT_SUCCESS(RunOneGraph(graph));
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status ConcatInputUnificationPass::RunOneGraph(ascir::ImplGraph &graph) {
@@ -44,7 +44,7 @@ Status ConcatInputUnificationPass::RunOneGraph(ascir::ImplGraph &graph) {
   if (changed) {
     ascir::utils::DumpGraph(graph, "AfterConcatInputUnificationPass");
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 bool ConcatInputUnificationPass::CanOptimize(const af::AscNodePtr &concat_node, size_t concat_dim) {
@@ -66,7 +66,7 @@ bool ConcatInputUnificationPass::CanOptimize(const af::AscNodePtr &concat_node, 
   }
 
   input_indices_need_copy.clear();
-  GE_WARN_ASSERT(GetQueInputIndices(concat_node, input_indices_need_copy) == ge::SUCCESS);
+  GE_WARN_ASSERT(GetQueInputIndices(concat_node, input_indices_need_copy) == af::SUCCESS);
   const auto load_num = static_cast<uint32_t>(input_indices_need_copy.size());
   if (load_num == concat_node->inputs.Size()) {
     GELOGI("all inputs are of compute type Load, can optimize");
@@ -152,7 +152,7 @@ Status ConcatInputUnificationPass::DoOptimize(ascir::ImplGraph &graph, const af:
     GE_ASSERT_SUCCESS(af::GraphUtils::AddEdge(out_anchor, ub2ub_node->GetInDataAnchor(0)));
     GELOGD("Ub2ub node: %s added", ub2ub_node->GetNamePtr());
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 af::Expression ConcatInputUnificationPass::GetColSize(const af::AscTensor &tensor, size_t concat_dim) {
@@ -178,7 +178,7 @@ af::Status ConcatInputUnificationPass::GetQueInputIndices(const af::AscNodePtr &
       input_indices_need_copy.emplace(in_anchor->GetIdx());
     }
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 bool ConcatInputUnificationPass::IsSrcColSizeAlignedToB4(const af::AscNodePtr &concat_node, size_t concat_dim,

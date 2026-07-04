@@ -29,7 +29,7 @@ class BasePassRunner {
     for (const auto &pass : passes_) {
       pass->RunPass(graph);
     }
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
 };
 }  // namespace optimize

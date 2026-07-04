@@ -119,7 +119,7 @@ class ApiCall {
 
   // 快速注册基本 dump 信息（api_name, inputs, outputs, tmp_buf, cal_count）
   // 供旧式 Generate 调用，不需要迁移到 BuildApiParam 即可输出初版 dump
-  ge::Status RegisterBasicDumpParam(const std::string &api_name,
+  af::Status RegisterBasicDumpParam(const std::string &api_name,
                                     const std::vector<std::reference_wrapper<const Tensor>> &inputs,
                                     const std::vector<std::reference_wrapper<const Tensor>> &outputs,
                                     const CombinedExpression &cal_count = CombinedExpression{},

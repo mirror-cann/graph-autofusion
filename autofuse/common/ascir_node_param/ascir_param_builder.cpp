@@ -67,7 +67,7 @@ struct ReduceAxisCount {
   int64_t valid_count{0L};
 };
 
-ge::Status RegisterAscirNodeParams(const af::AscNodePtr &node, const AscirNodeParamsPtr &params) {
+af::Status RegisterAscirNodeParams(const af::AscNodePtr &node, const AscirNodeParamsPtr &params) {
   GE_ASSERT_NOTNULL(node);
   GE_ASSERT_NOTNULL(params);
   auto op_desc = node->GetOpDesc();
@@ -86,10 +86,10 @@ ge::Status RegisterAscirNodeParams(const af::AscNodePtr &node, const AscirNodePa
   }
   GE_ASSERT_TRUE(op_desc->SetExtAttr(kAscirNodeParams, params), "Graph:%s, Node:%s SetExtAttr failed",
                  node->GetOwnerComputeGraph()->GetName().c_str(), node->GetNamePtr());
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status RegisterSkippedAscirNodeParams(const af::AscNodePtr &node) {
+af::Status RegisterSkippedAscirNodeParams(const af::AscNodePtr &node) {
   GE_ASSERT_NOTNULL(node);
   auto params = std::make_shared<AscirNodeParams>();
   params->api_name = node->GetType();
@@ -202,7 +202,7 @@ std::vector<TensorParamView> BuildOutputTensorParamViews(const af::AscNodePtr &n
   return views;
 }
 
-ge::Status BuildLoopAxisParamViews(const AscirParamSourceContext &source, std::vector<AxisParamView> &views) {
+af::Status BuildLoopAxisParamViews(const AscirParamSourceContext &source, std::vector<AxisParamView> &views) {
   const auto axis_map = BuildAxisMap(*source.graph);
   std::set<int64_t> visited;
   bool loop_inside_flag = false;
@@ -223,7 +223,7 @@ ge::Status BuildLoopAxisParamViews(const AscirParamSourceContext &source, std::v
       loop_inside_flag = true;
     }
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 const std::vector<int64_t> &GetMultiReduceAxisIds(const TensorParamView &tensor) {
@@ -394,7 +394,7 @@ codegen::ReducePattern GetReducePattern(const AscirParamBuildContext &ctx) {
                                                                           : codegen::ReducePattern::kRA;
 }
 
-ge::Status GetFirstInputOwnerNode(const af::AscNodePtr &node, af::AscNodePtr &input_node) {
+af::Status GetFirstInputOwnerNode(const af::AscNodePtr &node, af::AscNodePtr &input_node) {
   input_node = nullptr;
   GE_ASSERT_NOTNULL(node);
   auto node_in_anchor = node->GetInDataAnchor(0);
@@ -403,15 +403,15 @@ ge::Status GetFirstInputOwnerNode(const af::AscNodePtr &node, af::AscNodePtr &in
   GE_ASSERT_NOTNULL(peer_out_anchor);
   input_node = std::dynamic_pointer_cast<af::AscNode>(peer_out_anchor->GetOwnerNode());
   GE_ASSERT_NOTNULL(input_node);
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status FillReduceReuseSource(const af::AscNodePtr &node, codegen::ReduceReuseInfo &reuse) {
+af::Status FillReduceReuseSource(const af::AscNodePtr &node, codegen::ReduceReuseInfo &reuse) {
   af::AscNodePtr input_node;
   GE_ASSERT_SUCCESS(GetFirstInputOwnerNode(node, input_node));
   reuse.valid = true;
   reuse.is_reuse_source = input_node->GetOutAllNodes().size() == 1UL;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 bool IsReduceParamSupported(const std::string &api_name) {
@@ -421,7 +421,7 @@ bool IsReduceParamSupported(const std::string &api_name) {
   return kReduceTypes.count(api_name) != 0U;
 }
 
-ge::Status BuildReduceInput(const AscirParamBuildContext &ctx, codegen::ReduceSpecificParamBuildInput &input) {
+af::Status BuildReduceInput(const AscirParamBuildContext &ctx, codegen::ReduceSpecificParamBuildInput &input) {
   GE_ASSERT_TRUE(!ctx.inputs.empty(), "Reduce input tensor is empty, node[%s].", ctx.api_name.c_str());
   GE_ASSERT_TRUE(!ctx.outputs.empty(), "Reduce output tensor is empty, node[%s].", ctx.api_name.c_str());
   GE_ASSERT_TRUE(IsValidTensorView(ctx.inputs[0]), "Reduce input tensor is invalid, node[%s].", ctx.api_name.c_str());
@@ -444,10 +444,10 @@ ge::Status BuildReduceInput(const AscirParamBuildContext &ctx, codegen::ReduceSp
   if (ctx.node != nullptr) {
     GE_ASSERT_SUCCESS(FillReduceReuseSource(ctx.node, input.reuse));
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status BuildReduceNodeParams(const AscirParamBuildContext &ctx, AscirNodeParams &params) {
+af::Status BuildReduceNodeParams(const AscirParamBuildContext &ctx, AscirNodeParams &params) {
   params = AscirNodeParams{};
   params.api_name = ctx.api_name;
   codegen::ReduceSpecificParamBuildInput input;
@@ -461,10 +461,10 @@ ge::Status BuildReduceNodeParams(const AscirParamBuildContext &ctx, AscirNodePar
   }
   params.status = reduce_params.canonical_params.valid ? ParamBuildStatus::kBuilt : ParamBuildStatus::kInvalid;
   params.specific_params = reduce_params;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status BuildAscirParamContext(const AscirParamSourceContext &source, AscirParamBuildContext &ctx) {
+af::Status BuildAscirParamContext(const AscirParamSourceContext &source, AscirParamBuildContext &ctx) {
   GE_ASSERT_NOTNULL(source.node);
   GE_ASSERT_NOTNULL(source.graph);
   ctx = AscirParamBuildContext{};
@@ -475,27 +475,27 @@ ge::Status BuildAscirParamContext(const AscirParamSourceContext &source, AscirPa
   ctx.outputs = BuildOutputTensorParamViews(source.node);
   ctx.loop_axis_id = source.node->attr.sched.loop_axis;
   GE_ASSERT_SUCCESS(BuildLoopAxisParamViews(source, ctx.loop_axes));
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status BuildAscirNodeParams(const AscirParamBuildContext &ctx, AscirNodeParams &params) {
+af::Status BuildAscirNodeParams(const AscirParamBuildContext &ctx, AscirNodeParams &params) {
   params = AscirNodeParams{};
   params.api_name = ctx.api_name;
   if (!IsReduceParamSupported(ctx.api_name)) {
     params.status = ParamBuildStatus::kSkipped;
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
   return BuildReduceNodeParams(ctx, params);
 }
 
-ge::Status BuildAndRegisterAscirNodeParams(const AscirParamBuildContext &ctx) {
+af::Status BuildAndRegisterAscirNodeParams(const AscirParamBuildContext &ctx) {
   GE_ASSERT_NOTNULL(ctx.node);
   auto params = std::make_shared<AscirNodeParams>();
   GE_ASSERT_SUCCESS(BuildAscirNodeParams(ctx, *params));
   return RegisterAscirNodeParams(ctx.node, params);
 }
 
-ge::Status EnrichAscirNodeParams(const AscirParamSourceContext &source) {
+af::Status EnrichAscirNodeParams(const AscirParamSourceContext &source) {
   GE_ASSERT_NOTNULL(source.node);
   if (!IsReduceParamSupported(source.node->GetType())) {
     return RegisterSkippedAscirNodeParams(source.node);
@@ -506,10 +506,10 @@ ge::Status EnrichAscirNodeParams(const AscirParamSourceContext &source) {
 }
 }  // namespace
 
-ge::Status EnrichAscirGraphNodeParams(const af::AscGraph &graph) {
+af::Status EnrichAscirGraphNodeParams(const af::AscGraph &graph) {
   for (const auto &node : graph.GetAllNodes()) {
     GE_ASSERT_SUCCESS(EnrichAscirNodeParams({node, &graph}));
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 }  // namespace ascir_param

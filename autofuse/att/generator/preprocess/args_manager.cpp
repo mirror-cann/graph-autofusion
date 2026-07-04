@@ -192,7 +192,7 @@ VarInfo ArgsManager::GetNaiveVarInfo(const AttAxis *arg_axis) {
         arg_axis->name.c_str(), info.prompt_align, info.data_type_size, info.is_concat_inner_dim,
         info.is_concat_outer_dim);
   } else {
-    GELOGE(ge::FAILED, "Arg [%s] size type is not defined.", arg_axis->name.c_str());
+    GELOGE(af::FAILED, "Arg [%s] size type is not defined.", arg_axis->name.c_str());
   }
   info.is_node_innerest_dim_size = arg_axis->is_node_innerest_dim;
   for (const auto &from_axis : arg_axis->from_axis) {
@@ -594,7 +594,7 @@ Expr ArgsManager::GetDefaultInitValue(const Expr &var) const {
 
 Expr ArgsManager::GetVarAlignValue(const Expr &var) const {
   if (vars_infos_.find(var) == vars_infos_.end()) {
-    GELOGE(ge::FAILED, "CreateExpr : [%s] is not defined", var.Str().get());
+    GELOGE(af::FAILED, "CreateExpr : [%s] is not defined", var.Str().get());
     return af::Symbol(0U);
   }
   return vars_infos_.at(var).align;
@@ -602,7 +602,7 @@ Expr ArgsManager::GetVarAlignValue(const Expr &var) const {
 
 uint32_t ArgsManager::GetVarPromptAlignValue(const Expr &var) const {
   if (vars_infos_.find(var) == vars_infos_.end()) {
-    GELOGE(ge::FAILED, "CreateExpr : [%s] is not defined", var.Str().get());
+    GELOGE(af::FAILED, "CreateExpr : [%s] is not defined", var.Str().get());
     return 0u;
   }
   return vars_infos_.at(var).prompt_align;
@@ -616,7 +616,7 @@ uint32_t ArgsManager::GetDataTypeSizeVar(const Expr &var) const {
 
 bool ArgsManager::IsConcatOuterDim(const Expr &var) const {
   if (vars_infos_.find(var) == vars_infos_.end()) {
-    GELOGE(ge::FAILED, "CreateExpr : [%s] is not defined", var.Str().get());
+    GELOGE(af::FAILED, "CreateExpr : [%s] is not defined", var.Str().get());
     return false;
   }
   return vars_infos_.at(var).is_concat_outer_dim;
@@ -624,7 +624,7 @@ bool ArgsManager::IsConcatOuterDim(const Expr &var) const {
 
 bool ArgsManager::IsConcatInnerDim(const Expr &var) const {
   if (vars_infos_.find(var) == vars_infos_.end()) {
-    GELOGE(ge::FAILED, "CreateExpr : [%s] is not defined", var.Str().get());
+    GELOGE(af::FAILED, "CreateExpr : [%s] is not defined", var.Str().get());
     return false;
   }
   return vars_infos_.at(var).is_concat_inner_dim;

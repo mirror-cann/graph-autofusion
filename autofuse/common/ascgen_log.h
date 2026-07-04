@@ -73,7 +73,7 @@ constexpr std::int32_t ASCCOMMON_ERR = 1;
       std::stringstream ss;                                                                    \
       ss << "Assert (" << #x << " == " << #y << ") failed, expect " << yv << " actual " << xv; \
       PyErr_Format(PyExc_TypeError, "%s", ss.str().c_str());                                   \
-      GELOGE(ge::FAILED, "%s", ss.str().c_str());                                              \
+      GELOGE(af::FAILED, "%s", ss.str().c_str());                                              \
       return ::ErrorResult();                                                                  \
     }                                                                                          \
   } while (false)
@@ -84,23 +84,23 @@ constexpr std::int32_t ASCCOMMON_ERR = 1;
       auto msg = CreateErrorMsg(__VA_ARGS__);                    \
       if (msg.empty()) {                                         \
         PyErr_Format(PyExc_TypeError, "Assert %s failed", #exp); \
-        GELOGE(ge::FAILED, "Assert %s failed", #exp);            \
+        GELOGE(af::FAILED, "Assert %s failed", #exp);            \
       } else {                                                   \
         PyErr_Format(PyExc_TypeError, "%s", msg.data());         \
-        GELOGE(ge::FAILED, "Assert %s failed", msg.data());      \
+        GELOGE(af::FAILED, "Assert %s failed", msg.data());      \
       }                                                          \
       return ::ErrorResult();                                    \
     }                                                            \
   } while (false)
 #define PY_ASSERT_NOTNULL(v, ...) PY_ASSERT(((v) != nullptr), __VA_ARGS__)
-#define PY_ASSERT_SUCCESS(v, ...) PY_ASSERT(((v) == ge::SUCCESS), __VA_ARGS__)
+#define PY_ASSERT_SUCCESS(v, ...) PY_ASSERT(((v) == af::SUCCESS), __VA_ARGS__)
 #define PY_ASSERT_GRAPH_SUCCESS(v, ...) PY_ASSERT(((v) == ge::GRAPH_SUCCESS), __VA_ARGS__)
 #define PY_ASSERT_TRUE(exp, msg)                \
   do {                                          \
     if (!(exp)) {                               \
       PyErr_Clear();                            \
       PyErr_Format(PyExc_TypeError, "%s", msg); \
-      GELOGE(ge::FAILED, "%s", msg);            \
+      GELOGE(af::FAILED, "%s", msg);            \
       return nullptr;                           \
     }                                           \
   } while (false)

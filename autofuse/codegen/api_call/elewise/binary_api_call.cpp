@@ -100,7 +100,7 @@ Status BinaryApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::Axis
        << tpipe.tiler.TensorVectorizedOffset(current_axis, x2) << "], " << x1.actual_size << ");" << std::endl;
   }
   result = ss.str();
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 std::string BinaryApiCall::GetAscendApiName(const std::string &api_name) {
@@ -173,13 +173,13 @@ Status BinaryApiCall::BrcInlineGenerate(const TPipe &tpipe, const std::vector<as
      << static_cast<int>(type_size) << ", &" << GetAscendApiName(this->api_name_) << ", &"
      << GetAscendApiName(this->api_name_) << ");" << std::endl;
   result = ss.str();
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status BinaryApiCall::Init(const ascir::NodeView &node) {
   GE_CHK_STATUS_RET(ApiCall::Init(node));
   generalized_brc_inline_scene = IsGeneralizeBrcInlineScene(node, input_idx_2_brc_inline);
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 static ApiCallRegister<BinaryApiCall> register_binary_api_call("BinaryApiCall");

@@ -54,7 +54,7 @@ class InputValueSumSourceStub : public af::Source {
 
   [[nodiscard]] std::string GetSourceStr() const override {
     if (kGeDType2CppDtype.find(dtype_) == kGeDType2CppDtype.end()) {
-      GELOGE(FAILED, "Unsupported data type: %s", TypeUtils::DataTypeToSerialString(dtype_).c_str());
+      GELOGE(af::FAILED, "Unsupported data type: %s", TypeUtils::DataTypeToSerialString(dtype_).c_str());
       return "";
     }
     return R"([&]() -> int64_t {

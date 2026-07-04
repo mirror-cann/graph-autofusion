@@ -47,7 +47,7 @@ Status DoCopyAscNodeTensorAttr(const af::AscNodePtr &src_node, af::AscNodePtr &d
     GE_ASSERT_NOTNULL(tensor_attr_group);
     *tensor_attr_group = src_node->outputs[i].attr;
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status DoCopyWorkspaceTensorAttr(const af::AscNodePtr &src_node, af::AscNodePtr &workspace_node) {
@@ -56,7 +56,7 @@ Status DoCopyWorkspaceTensorAttr(const af::AscNodePtr &src_node, af::AscNodePtr 
   GE_ASSERT_TRUE(!src_node->outputs().empty());
   GE_ASSERT_TRUE(!workspace_node->outputs().empty());
   workspace_node->outputs[0].attr.dtype = src_node->outputs[0].attr.dtype;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 const std::unordered_map<std::string, std::function<ReduceType(const char *)>> reducers = {
@@ -1221,6 +1221,6 @@ Status RMulticorePhase2Graph::SetNodeOrder(std::vector<af::AscNodePtr> &node_ord
       }
     }
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 }  // namespace optimize

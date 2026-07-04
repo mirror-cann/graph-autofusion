@@ -16,7 +16,7 @@
 namespace af {
 namespace pre_process {
 
-ge::Status InsertBroadcastAfterScalarForAscGraph(af::AscGraph &asc_graph);
+af::Status InsertBroadcastAfterScalarForAscGraph(af::AscGraph &asc_graph);
 
 }  // namespace pre_process
 }  // namespace af

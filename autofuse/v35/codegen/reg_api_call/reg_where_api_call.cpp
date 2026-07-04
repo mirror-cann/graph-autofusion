@@ -45,7 +45,7 @@ Status WhereRegApiCall::PrepareInputsAndOutputs(const std::vector<std::reference
          static_cast<int32_t>(x3->is_constant), static_cast<int32_t>(x3->is_ub_scalar),
          static_cast<int32_t>(x3->need_gen_get_value_of_ub_scalar));
 
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status WhereRegApiCall::GenerateLoopParams(const Tensor &x1, const Tensor &x2, const Tensor &x3, const Tensor &y,
@@ -67,7 +67,7 @@ Status WhereRegApiCall::GenerateLoopParams(const Tensor &x1, const Tensor &x2, c
   GE_ASSERT_TRUE(status, "GenerateVectorizedAxisMergeStatus failed");
   SaveApiLoopAxisParams(merge_info, param);
 
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status WhereRegApiCall::GenerateNoLoopCase(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
@@ -94,7 +94,7 @@ Status WhereRegApiCall::GenerateNoLoopCase(const TPipe &tpipe, const std::vector
 
   ss << x1.actual_size << ");" << std::endl;
 
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status WhereRegApiCall::GenerateBothScalarCase(const TPipe &tpipe, const ApiLoopParams &param, const Tensor &x1,
@@ -132,7 +132,7 @@ Status WhereRegApiCall::GenerateBothScalarCase(const TPipe &tpipe, const ApiLoop
     CreateComputeNodeOuterFor(param.outer_repeats, ss1, ss, 0);
   }
 
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status WhereRegApiCall::GenerateX2ScalarCase(const TPipe &tpipe, const ApiLoopParams &param, const Tensor &x1,
@@ -176,7 +176,7 @@ Status WhereRegApiCall::GenerateX2ScalarCase(const TPipe &tpipe, const ApiLoopPa
     CreateComputeNodeOuterFor(param.outer_repeats, ss1, ss, 0);
   }
 
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status WhereRegApiCall::GenerateX3ScalarCase(const TPipe &tpipe, const ApiLoopParams &param, const Tensor &x1,
@@ -220,7 +220,7 @@ Status WhereRegApiCall::GenerateX3ScalarCase(const TPipe &tpipe, const ApiLoopPa
     CreateComputeNodeOuterFor(param.outer_repeats, ss1, ss, 0);
   }
 
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status WhereRegApiCall::GenerateNormalCase(const TPipe &tpipe, const ApiLoopParams &param, const Tensor &x1,
@@ -269,7 +269,7 @@ Status WhereRegApiCall::GenerateNormalCase(const TPipe &tpipe, const ApiLoopPara
     CreateComputeNodeOuterFor(param.outer_repeats, ss1, ss, 0);
   }
 
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status WhereRegApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
@@ -324,7 +324,7 @@ Status WhereRegApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::Ax
   }
 
   result = ss.str();
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 static ApiCallRegister<WhereRegApiCall> register_where_reg_api_call("WhereRegApiCall");

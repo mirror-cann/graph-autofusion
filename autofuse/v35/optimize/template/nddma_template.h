@@ -27,7 +27,7 @@ class NddmaTemplate : public BaseTemplate {
                                       af::AscNodePtr &new_transpose_node, const af::AscNodePtr &old_transpose_node);
   static Status MergeLoadAndTranspose(const af::AscNodePtr &load_node, af::AscGraph &new_case);
   static Status TransposeToNddmaNode(const af::AscNodePtr &transpose_node, af::AscGraph &new_case);
-  ge::Status Generate(const af::AscGraph &origin_graph, const af::AscGraph &based_case,
+  af::Status Generate(const af::AscGraph &origin_graph, const af::AscGraph &based_case,
                       af::AscGraph &new_case) override;
   static Status SwapCastBrcAndGenNddma(const af::AscNodePtr &node_cast, const af::AscNodePtr &node_load,
                                        af::AscGraph &new_case);
@@ -36,8 +36,8 @@ class NddmaTemplate : public BaseTemplate {
   static Status ReAlignVectorizedStrides(const af::AscNodePtr &node);
   static bool IsSecondaryTailAxisAligned(const af::AscNodePtr &node);
   std::string GetScoreFunc(const af::AscGraph &origin_graph, const af::AscGraph &nddma_graph) override;
-  static ge::Status ReorderRepeats(const af::AscNodePtr &node_src, const af::AscNodePtr &node_dst);
-  ge::Status ProcessSliceToNddma(const af::AscNodePtr &node, bool &is_nddma_generated_cur);
+  static af::Status ReorderRepeats(const af::AscNodePtr &node_src, const af::AscNodePtr &node_dst);
+  af::Status ProcessSliceToNddma(const af::AscNodePtr &node, bool &is_nddma_generated_cur);
   static Status ProcessTransposeNodes(af::AscGraph &new_case, bool &is_nddma_generated);
   NddmaTemplate(const NddmaTemplate &) = delete;
   NddmaTemplate &operator=(const NddmaTemplate &) = delete;

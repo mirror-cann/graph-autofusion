@@ -292,7 +292,7 @@ TEST_F(CubeScheduleCaseGeneratorTest, Test_Just_Matmul_Store) {
   std::vector<ScheduleTask> tasks;
   optimize::CubeFusionCaseGenerator generator;
   OptimizerOptions options;
-  EXPECT_EQ(generator.GeneratorTask(graph, tasks, options), SUCCESS);
+  EXPECT_EQ(generator.GeneratorTask(graph, tasks, options), af::SUCCESS);
   ASSERT_EQ(tasks.size(), 1UL);
   ASSERT_EQ(tasks[0].grouped_graphs.size(), 1UL);
 }

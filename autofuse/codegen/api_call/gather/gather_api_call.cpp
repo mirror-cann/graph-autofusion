@@ -100,8 +100,8 @@ Status GatherApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::Axis
   std::string x2_offset = (pos != std::string::npos) ? dst_offset.substr(pos + 1) : dst_offset;
   x2_offset.erase(0, x2_offset.find_first_not_of(" "));
   if (this->axis + 1 > static_cast<int64_t>(x1.axis_size.size())) {
-    GELOGE(ge::FAILED, "gather axis(%d) is larger than x1 axis size(%d)", this->axis, x1.axis_size.size());
-    return ge::FAILED;
+    GELOGE(af::FAILED, "gather axis(%d) is larger than x1 axis size(%d)", this->axis, x1.axis_size.size());
+    return af::FAILED;
   }
   if (this->axis + 1 != static_cast<int64_t>(x1.axis_size.size())) {
     ss << GenerateNonLastAxisGather(current_axis, inputs, outputs, this->axis, tpipe);
@@ -130,14 +130,14 @@ Status GatherApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::Axis
     }
   }
   result = ss.str();
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status GatherApiCall::ParseAttr(const ascir::NodeView &node) {
   GE_CHK_GRAPH_STATUS_RET(node->attr.ir_attr->GetAttrValue("axis", this->axis),
                           "Failed to get Gahter axis attr, node = %s", node->GetNamePtr());
   GELOGI("name:%s, axis:%lld", node->GetNamePtr(), this->axis);
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 static ApiCallRegister<GatherApiCall> register_gather_api_call("GatherApiCall");

@@ -17,7 +17,7 @@
 #include <memory>
 #include <algorithm>
 #include "common/checker.h"
-#include "ge_common/ge_api_types.h"
+#include "ge_common_af/ge_api_types.h"
 #include "ascgen_log.h"
 
 namespace att {
@@ -52,7 +52,7 @@ class AutoFuseConfigValue {
     } else {
       val_ = default_val_;
     }
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
   T GetVal() const {
     return val_;
@@ -68,11 +68,11 @@ class AutoFuseConfigValue {
     } else if constexpr (std::is_same_v<T, std::string>) {
       if (valid_range_.empty()) {  // 未设置范围表示无范围约束
         is_valid = true;
-        return ge::SUCCESS;
+        return af::SUCCESS;
       }
       is_valid = std::find(valid_range_.begin(), valid_range_.end(), input) != valid_range_.end();
     }
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
 
  private:

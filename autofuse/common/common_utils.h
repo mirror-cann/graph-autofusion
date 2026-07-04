@@ -13,7 +13,7 @@
 
 #include <string>
 #include "graph/symbolizer/symbolic.h"
-#include "external/ge_common/ge_api_types.h"
+#include "external/ge_common_af/ge_api_types.h"
 #include "graph/ascendc_ir/ascendc_ir_core/ascendc_ir.h"
 #include "graph/ascendc_ir/ascir_registry.h"
 #include "ascir.h"
@@ -237,13 +237,13 @@ af::Status ProcessCubeFusionResultDynamic(ascir::FusedScheduledResult &fused_res
 bool IsCVFusionUBGraph(const ascir::ImplGraph &impl_graph, ascir::CubeTemplateType cv_fusion_type);
 af::Status FilterCVFusionUBResult(ascir::FusedScheduledResult &ub_schedule_result);
 af::Status FilterCVFusionCommonResult(ascir::FusedScheduledResult &common_schedule_result);
-ge::Status DtypeName(ge::DataType dtype, std::string &dtype_name);
+af::Status DtypeName(ge::DataType dtype, std::string &dtype_name);
 bool IsConv2DFusedScheduled(const ascir::FusedScheduledResult &fused_schedule_result);
 af::Status ParseConv2DAttr(const ascir::NodeView &node, Conv2DAttr &conv_attr_data);
 bool IsConv2DGraphType(const ascir::ImplGraph &impl_graph);
 bool IsConv2DTypeWithBias(const ascir::ImplGraph &impl_graph);
 bool IsConv2DTypeWithOffsetW(const ascir::ImplGraph &impl_graph);
-ge::Status GetCubeInfo(const ascir::FusedScheduledResult &fused_schedule_result, bool &is_batch, bool &is_conv,
+af::Status GetCubeInfo(const ascir::FusedScheduledResult &fused_schedule_result, bool &is_batch, bool &is_conv,
                        std::string &input_type, std::string &output_type);
 }  // namespace ascgen_utils
 

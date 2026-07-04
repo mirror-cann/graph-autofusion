@@ -24,7 +24,7 @@ static inline std::shared_ptr<T> ComGraphMakeShared(Args &&...args) {
   } catch (const std::bad_alloc &) {
     ret = nullptr;
 #ifdef AUTOFUSE_USE_GE_METADEF
-    GELOGE(ge::FAILED, "Make shared failed", "");
+    GELOGE(af::FAILED, "Make shared failed", "");
 #else
     GELOGE(af::FAILED, "Make shared failed", "");
 #endif

@@ -18,7 +18,7 @@ ArgListManager &ArgListManager::GetInstance() {
 }
 
 const int32_t kContainerSizeSearch = -1;
-ge::Status ArgListManager::LoadArgList(const TuningSpacePtr &tuning_space) {
+af::Status ArgListManager::LoadArgList(const TuningSpacePtr &tuning_space) {
   // 每次加载清除历史信息
   arg_list_map_.clear();
   replace_container_.clear();
@@ -52,10 +52,10 @@ ge::Status ArgListManager::LoadArgList(const TuningSpacePtr &tuning_space) {
     GE_ASSERT_SUCCESS(SetTensorSizeExpr(container->allocated_tensors), "Set [%s]'s tensor expr failed.",
                       container->name.c_str());
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status ArgListManager::SetTensorSizeExpr(const std::vector<TensorPtr> &allocated_tensors) {
+af::Status ArgListManager::SetTensorSizeExpr(const std::vector<TensorPtr> &allocated_tensors) {
   for (const auto &tensor : allocated_tensors) {
     auto axis_size = tensor->dim_info.size();
     auto axis_repeats = tensor->repeat.size();
@@ -81,6 +81,6 @@ ge::Status ArgListManager::SetTensorSizeExpr(const std::vector<TensorPtr> &alloc
     GE_ASSERT_SUCCESS(SetArgExpr(tensor->name, tensor_expr), "Add tensor[%s] expr failed.", tensor->name.c_str());
     GELOGD("Get tensor[%s] size [%s].", tensor->name.c_str(), tensor_occupy_expr.Str().get());
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 }  // namespace att

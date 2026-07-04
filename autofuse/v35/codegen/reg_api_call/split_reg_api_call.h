@@ -61,9 +61,9 @@ class SplitRegApiCall : public ApiCall {
   static void GenSplitTilingForAllAligned(SplitTiling &tiling, const Tiler &tiler, std::stringstream &ss);
   static void GenSrcTensors(const std::vector<std::reference_wrapper<const Tensor>> &outputs,
                             const std::string &dtype_name, std::stringstream &ss);
-  static ge::Status GenerateForAllAligned(const vector<std::reference_wrapper<const Tensor>> &outputs, const Tensor &x,
+  static af::Status GenerateForAllAligned(const vector<std::reference_wrapper<const Tensor>> &outputs, const Tensor &x,
                                           SplitTiling &tiling, const Tiler &tiler, std::stringstream &ss);
-  static ge::Status GenerateDefault(const vector<std::reference_wrapper<const Tensor>> &outputs, const Tensor &x,
+  static af::Status GenerateDefault(const vector<std::reference_wrapper<const Tensor>> &outputs, const Tensor &x,
                                     SplitTiling &tiling, const TPipe &t_pipe, std::stringstream &ss,
                                     const int64_t tmp_buf_id);
   static void DefineSplitTiling(SplitTiling &tiling, const Tiler &tiler, std::stringstream &ss);

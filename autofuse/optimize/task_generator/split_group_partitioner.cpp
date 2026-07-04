@@ -50,12 +50,12 @@ Status SplitGroupPartitioner::Initialize() {
   const uint32_t max_output_num = num_outputs >= kLargeOutputNum ? kMaxOutputNum : 16U;
   max_output_num_per_group_ = std::min(max_output_num_per_group_, max_output_num);
   GELOGI("input_num = %u, max_output_num_per_group_ = %u", num_outputs, max_output_num_per_group_);
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status SplitGroupPartitioner::PartitionGroups([[maybe_unused]] const std::vector<SplitGroup> &groups) {
   GE_ASSERT_SUCCESS(Initialize());
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status SplitGroupPartitioner::RecomputeDiffAxes() {
@@ -67,12 +67,12 @@ Status SplitGroupPartitioner::RecomputeDiffAxes() {
 
   // 2. 触发跨组重计算
   GE_ASSERT_SUCCESS(RecomputeConsumersCrossGroups());
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status SplitGroupPartitioner::RecomputeConsumersCrossGroups() {
   for (const auto &group : groups_) {
-    std::set<af::InDataAnchor*> visited_in_anchors;
+    std::set<af::InDataAnchor *> visited_in_anchors;
     std::map<std::string, af::AscNodePtr> name_to_new_node;
 
     for (size_t i = group.start; i < group.end; ++i) {
@@ -89,7 +89,7 @@ Status SplitGroupPartitioner::RecomputeConsumersCrossGroups() {
         GE_ASSERT_SUCCESS(FindFirstMultiRefAncestors(out_anchor, i, visited_in_anchors, to_split));
 
         if (to_split == nullptr) {
-          break; // 找干净了，跳出当前输出端口的追溯
+          break;  // 找干净了，跳出当前输出端口的追溯
         }
 
         // 执行局部克隆与连线、拆分
@@ -98,7 +98,7 @@ Status SplitGroupPartitioner::RecomputeConsumersCrossGroups() {
       GE_ASSERT_TRUE(depth >= 0);
     }
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 bool SplitGroupPartitioner::HasCrossBranchConflictAndSizeDiff(af::OutDataAnchor *start_out_anchor,
@@ -108,8 +108,8 @@ bool SplitGroupPartitioner::HasCrossBranchConflictAndSizeDiff(af::OutDataAnchor 
     return false;
   }
 
-  std::queue<af::OutDataAnchor*> fw_queue({start_out_anchor});
-  std::set<af::OutDataAnchor*> fw_visited({start_out_anchor});
+  std::queue<af::OutDataAnchor *> fw_queue({start_out_anchor});
+  std::set<af::OutDataAnchor *> fw_visited({start_out_anchor});
 
   // 开始向下游执行前向 BFS 搜索，探查当前共享数据流的去向
   while (!fw_queue.empty()) {
@@ -131,8 +131,7 @@ bool SplitGroupPartitioner::HasCrossBranchConflictAndSizeDiff(af::OutDataAnchor 
           continue;
         }
         auto split_peer_out = ds_in->GetPeerOutAnchor();
-        if ((split_peer_out != nullptr) && 
-            (split_peer_out->GetOwnerNode() == split_node_) && 
+        if ((split_peer_out != nullptr) && (split_peer_out->GetOwnerNode() == split_node_) &&
             (static_cast<size_t>(split_peer_out->GetIdx()) != branch_idx)) {
           const auto &cur_expr = split_node_->outputs[out_anchor->GetIdx()].attr.repeats[split_dim_];
           const auto &target_expr = split_node_->outputs[split_peer_out->GetIdx()].attr.repeats[split_dim_];
@@ -153,15 +152,14 @@ bool SplitGroupPartitioner::HasCrossBranchConflictAndSizeDiff(af::OutDataAnchor 
   return false;
 }
 
-Status SplitGroupPartitioner::FindFirstMultiRefAncestors(const af::OutDataAnchorPtr &out_anchor,
-                                                         size_t branch_idx,
-                                                         std::set<af::InDataAnchor*> &visited_in_anchors,
-                                                         af::InDataAnchor* &to_split) const {
+Status SplitGroupPartitioner::FindFirstMultiRefAncestors(const af::OutDataAnchorPtr &out_anchor, size_t branch_idx,
+                                                         std::set<af::InDataAnchor *> &visited_in_anchors,
+                                                         af::InDataAnchor *&to_split) const {
   if ((split_node_ == nullptr) || (out_anchor == nullptr)) {
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
 
-  std::queue<af::InDataAnchor*> in_anchors;
+  std::queue<af::InDataAnchor *> in_anchors;
 
   // 1. 初始化搜集：提取当前 Split 分支所有直接下游消费算子的“其他输入”
   for (const auto &peer : out_anchor->GetPeerInDataAnchors()) {
@@ -202,7 +200,7 @@ Status SplitGroupPartitioner::FindFirstMultiRefAncestors(const af::OutDataAnchor
 
         // 成功锁定引起冲突的数据截断点，返回给外层触发重计算
         to_split = cur_in_anchor;
-        return ge::SUCCESS;
+        return af::SUCCESS;
       }
     }
 
@@ -213,18 +211,18 @@ Status SplitGroupPartitioner::FindFirstMultiRefAncestors(const af::OutDataAnchor
       }
     }
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status SplitGroupPartitioner::RecomputeUpstreamNodes(af::InDataAnchor *to_split, size_t branch_idx,
                                                      std::map<std::string, af::AscNodePtr> &name_to_new_node) {
   auto shared_out_anchor = to_split->GetPeerOutAnchor();
   if (shared_out_anchor == nullptr) {
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
   auto shared_node = std::dynamic_pointer_cast<af::AscNode>(shared_out_anchor->GetOwnerNode());
   if (shared_node == nullptr) {
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
 
   ascir::ImplGraph impl_graph("");
@@ -245,8 +243,8 @@ Status SplitGroupPartitioner::RecomputeUpstreamNodes(af::InDataAnchor *to_split,
     dst_new_node = impl_graph.AddNode(op);
 
     GE_ASSERT_TRUE(af::AscGraph::CopyAscNodeTensorAttr(shared_node, dst_new_node),
-                   "DoCopyAscNodeTensorAttr failed, node = %s[%s]", 
-                   shared_node->GetNamePtr(), shared_node->GetTypePtr());
+                   "DoCopyAscNodeTensorAttr failed, node = %s[%s]", shared_node->GetNamePtr(),
+                   shared_node->GetTypePtr());
 
     // 联动恢复克隆节点自身的输入边
     for (const auto &shared_in_anchor : shared_node->GetAllInDataAnchorsPtr()) {
@@ -267,8 +265,8 @@ Status SplitGroupPartitioner::RecomputeUpstreamNodes(af::InDataAnchor *to_split,
   if (curr_node != nullptr) {
     auto curr_in_anchor_ptr = curr_node->GetInDataAnchor(to_split->GetIdx());
     if (curr_in_anchor_ptr != nullptr) {
-      GELOGI("Disconnecting [%s] -> [%s] and connecting [%s] -> [%s]",
-            shared_node->GetNamePtr(), curr_node->GetNamePtr(), dst_new_node->GetNamePtr(), curr_node->GetNamePtr());
+      GELOGI("Disconnecting [%s] -> [%s] and connecting [%s] -> [%s]", shared_node->GetNamePtr(),
+             curr_node->GetNamePtr(), dst_new_node->GetNamePtr(), curr_node->GetNamePtr());
 
       curr_in_anchor_ptr->UnlinkAll();
       GE_ASSERT_GRAPH_SUCCESS(
@@ -276,7 +274,7 @@ Status SplitGroupPartitioner::RecomputeUpstreamNodes(af::InDataAnchor *to_split,
     }
   }
 
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 }  // namespace optimize

@@ -356,7 +356,7 @@ TEST_F(ConcatRegApiCallUTest, AllAligned) {
   call.inputs.push_back(&x2);
 
   std::string result;
-  EXPECT_EQ(call.Generate(tpipe, vector<af::AxisId>{}, result), SUCCESS);
+  EXPECT_EQ(call.Generate(tpipe, vector<af::AxisId>{}, result), af::SUCCESS);
   EXPECT_EQ(result,
             "constexpr ConcatTilingAllAligned<2> concat_tiling {\n"
             "  .dst_col_size = 48,\n"
@@ -398,7 +398,7 @@ TEST_F(ConcatRegApiCallUTest, Unaligned_B8) {
   call.is_input_tbuf_contiguous = true;
 
   std::string result;
-  EXPECT_EQ(call.Generate(tpipe, vector<af::AxisId>{}, result), SUCCESS);
+  EXPECT_EQ(call.Generate(tpipe, vector<af::AxisId>{}, result), af::SUCCESS);
   EXPECT_EQ(
       result,
       "const concat::ConcatTiling<2> concat_tiling {\n  .num_rows = static_cast<uint32_t>(t->s0),\n  .num_dst_cols = "
@@ -438,7 +438,7 @@ TEST_F(ConcatRegApiCallUTest, Unaligned_B8ToB16) {
   call.is_input_tbuf_contiguous = true;
 
   std::string result;
-  EXPECT_EQ(call.Generate(tpipe, vector<af::AxisId>{}, result), SUCCESS);
+  EXPECT_EQ(call.Generate(tpipe, vector<af::AxisId>{}, result), af::SUCCESS);
   EXPECT_EQ(
       result,
       "const concat::ConcatTiling<2> concat_tiling {\n  .num_rows = static_cast<uint32_t>(t->s0),\n  .num_dst_cols = "
@@ -478,7 +478,7 @@ TEST_F(ConcatRegApiCallUTest, Unaligned_B16) {
   call.is_input_tbuf_contiguous = true;
 
   std::string result;
-  EXPECT_EQ(call.Generate(tpipe, vector<af::AxisId>{}, result), SUCCESS);
+  EXPECT_EQ(call.Generate(tpipe, vector<af::AxisId>{}, result), af::SUCCESS);
   EXPECT_EQ(
       result,
       "const concat::ConcatTiling<2> concat_tiling {\n  .num_rows = static_cast<uint32_t>(t->s0),\n  .num_dst_cols = "
@@ -518,7 +518,7 @@ TEST_F(ConcatRegApiCallUTest, Unaligned_B32) {
   call.is_input_tbuf_contiguous = true;
 
   std::string result;
-  EXPECT_EQ(call.Generate(tpipe, vector<af::AxisId>{}, result), SUCCESS);
+  EXPECT_EQ(call.Generate(tpipe, vector<af::AxisId>{}, result), af::SUCCESS);
   EXPECT_EQ(
       result,
       "const concat::ConcatTiling<2> concat_tiling {\n  .num_rows = static_cast<uint32_t>(t->s0),\n  .num_dst_cols = "
@@ -558,7 +558,7 @@ TEST_F(ConcatRegApiCallUTest, Unalign_B64) {
   call.is_input_tbuf_contiguous = true;
 
   std::string result;
-  EXPECT_EQ(call.Generate(tpipe, vector<af::AxisId>{}, result), SUCCESS);
+  EXPECT_EQ(call.Generate(tpipe, vector<af::AxisId>{}, result), af::SUCCESS);
   EXPECT_EQ(
       result,
       "const concat::ConcatTiling<2> concat_tiling {\n  .num_rows = static_cast<uint32_t>(t->s0),\n  .num_dst_cols = "
@@ -596,7 +596,7 @@ TEST_F(ConcatRegApiCallUTest, Unaligned_B32_padded) {
   call.is_input_tbuf_contiguous = true;
 
   std::string result;
-  EXPECT_EQ(call.Generate(tpipe, vector<af::AxisId>{}, result), SUCCESS);
+  EXPECT_EQ(call.Generate(tpipe, vector<af::AxisId>{}, result), af::SUCCESS);
   std::cout << result << std::endl;
   EXPECT_EQ(result,
             "const ConcatTilingAllAligned<2> concat_tiling {\n  .dst_col_size = (((16 + t->s2_1) * 8))/(1),\n  "
@@ -632,7 +632,7 @@ TEST_F(ConcatRegApiCallUTest, Unaligned_B32_padded_concat_last_dim) {
   call.inputs.push_back(&x2);
 
   std::string result;
-  EXPECT_EQ(call.Generate(tpipe, vector<af::AxisId>{}, result), SUCCESS);
+  EXPECT_EQ(call.Generate(tpipe, vector<af::AxisId>{}, result), af::SUCCESS);
   EXPECT_EQ(
       result,
       "const concat::ConcatTilingPadded<2> concat_tiling {\n  .num_rows = static_cast<uint32_t>(t->s0),\n  "
@@ -667,7 +667,7 @@ TEST_F(ConcatRegApiCallUTest, OneAxis) {
   call.inputs.push_back(&x2);
 
   std::string result;
-  EXPECT_EQ(call.Generate(tpipe, vector<af::AxisId>{}, result), SUCCESS);
+  EXPECT_EQ(call.Generate(tpipe, vector<af::AxisId>{}, result), af::SUCCESS);
   std::cout << result << std::endl;
   EXPECT_TRUE(result.find("concat::ConcatOneAxis") != std::string::npos);
 }
@@ -701,7 +701,7 @@ TEST_F(ConcatRegApiCallUTest, ConcatByGather) {
   call.inputs.push_back(&x2);
 
   std::string result;
-  EXPECT_EQ(call.Generate(tpipe, vector<af::AxisId>{}, result), SUCCESS);
+  EXPECT_EQ(call.Generate(tpipe, vector<af::AxisId>{}, result), af::SUCCESS);
   std::cout << result;
   EXPECT_TRUE(result.find("concat::ConcatExtendByGather") != std::string::npos);
 }

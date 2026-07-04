@@ -82,13 +82,13 @@ Status PadApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::AxisId>
        << "));" << std::endl;
   }
   result = ss.str();
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status PadApiCall::ParseAttr(const ascir::NodeView &node) {
   GE_ASSERT_SUCCESS(GetApiTilingFieldName(node, this->api_tiling_data_field));
   GELOGD("Get Pad api tiling field name success, field_name: %s\n", this->api_tiling_data_field.c_str());
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 static ApiCallRegister<PadApiCall> register_pad_api_call("PadApiCall");

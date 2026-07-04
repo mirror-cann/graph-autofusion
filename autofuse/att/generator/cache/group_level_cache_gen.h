@@ -13,7 +13,7 @@
 
 #include "tiling_cache_code_gen.h"
 #include "base/model_info.h"
-#include "external/ge_common/ge_api_types.h"
+#include "external/ge_common_af/ge_api_types.h"
 
 namespace att {
 namespace cache {
@@ -29,26 +29,26 @@ class GroupLevelCacheGen : public TilingCacheCodeGen {
   /**
    * @brief 生成FixedSizeHashMap模板类定义
    * @param code_printer 代码打印器
-   * @return ge::Status
+   * @return af::Status
    */
-  ge::Status GenFixedSizeHashMapDef(ge::CodePrinter &code_printer) override;
+  af::Status GenFixedSizeHashMapDef(ge::CodePrinter &code_printer) override;
 
   /**
    * @brief 生成Group级缓存类型定义
    * @param code_printer 代码打印器
    * @param input_vars_size 输入变量大小
    * @param cache_capacity 缓存容量
-   * @return ge::Status
+   * @return af::Status
    */
-  ge::Status GenGroupCacheTypes(ge::CodePrinter &code_printer, size_t cache_capacity);
+  af::Status GenGroupCacheTypes(ge::CodePrinter &code_printer, size_t cache_capacity);
 
   /**
    * @brief 生成Group级缓存函数定义
    * @param code_printer 代码打印器
    * @param tiling_data_type_name TilingData类型名称
-   * @return ge::Status
+   * @return af::Status
    */
-  ge::Status GenGroupCacheFunctions(ge::CodePrinter &code_printer, const std::string &tiling_data_type_name);
+  af::Status GenGroupCacheFunctions(ge::CodePrinter &code_printer, const std::string &tiling_data_type_name);
 };
 }  // namespace cache
 }  // namespace att

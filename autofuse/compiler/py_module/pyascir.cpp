@@ -154,7 +154,7 @@ uint64_t InferFuseType(const af::AscGraph &graph) {
       {af::ComputeType::kComputeCube, ge::loop::FuseType::kCube}};
 
   uint64_t fuse_type = (1UL << static_cast<uint64_t>(ge::loop::FuseType::kExtern));
-  if (optimize::AscGraphInfoComplete::CompleteApiInfo(graph) == ge::SUCCESS) {
+  if (optimize::AscGraphInfoComplete::CompleteApiInfo(graph) == af::SUCCESS) {
     for (const auto &node : graph.GetAllNodes()) {
       auto it = kComputeTypeToFuseType.find(node->attr.api.compute_type);
       if (it != kComputeTypeToFuseType.end()) {
@@ -710,7 +710,7 @@ bool InitDynamicOutputs(OpType *op, const OpsOperatorTypeObject &ops_type, uint3
     std::stringstream ss;
     ss << "Dynamic output op should have exactly one ir output, actual " << ops_type.output_defs.size();
     PyErr_Format(PyExc_TypeError, "%s", ss.str().c_str());
-    GELOGE(ge::FAILED, "%s", ss.str().c_str());
+    GELOGE(af::FAILED, "%s", ss.str().c_str());
     return false;
   }
   op->DynamicOutputRegister(ops_type.output_defs[0U].first.c_str(), dynamic_output_num);
@@ -1178,7 +1178,8 @@ DEFINE_IR_ATTR_ACCESSORS(Axpy, AscAxpyIrAttrDef, kAlphaAttr, float, PyFloat_Chec
                          SetAlpha, GetAlpha)
 DEFINE_IR_ATTR_ACCESSORS(
     Unsupported, AscUnsupportedIrAttrDef, kErrorMsgAttr, std::string, PyUnicode_Check,
-    [](const std::string &str) { return PyUnicode_FromString(str.c_str()); }, PyUnicode_AsUTF8, SetError_msg, GetError_msg)
+    [](const std::string &str) { return PyUnicode_FromString(str.c_str()); }, PyUnicode_AsUTF8, SetError_msg,
+    GetError_msg)
 
 template <>
 PyObject *OpsOperatorIrAttr<af::ascir_op::Load, kOffsetAttr>::_getter(PyObject *self, void *closure) {

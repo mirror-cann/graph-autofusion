@@ -78,27 +78,27 @@ Status BroadcastRegApiCall::Generate(const TPipe &tpipe, const std::vector<ascir
   if (IsBroadcastConstantTensor(x)) {
     int64_t id = -1;
     BroadcastScalar(tpipe, current_axis, x, y, id, result, false);
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
 
   size_t min_vectorized_axis_size = 1UL;
   size_t max_vectorized_axis_size = 9UL;
   if (x.vectorized_axis.size() < min_vectorized_axis_size || x.vectorized_axis.size() > max_vectorized_axis_size) {
-    GELOGE(ge::FAILED, "Codegen broadcast input vec axis size[%zu] is either 0 or greater than 9",
+    GELOGE(af::FAILED, "Codegen broadcast input vec axis size[%zu] is either 0 or greater than 9",
            x.vectorized_axis.size());
-    return ge::FAILED;
+    return af::FAILED;
   }
 
   if (y.vectorized_axis.size() < min_vectorized_axis_size || y.vectorized_axis.size() > max_vectorized_axis_size) {
-    GELOGE(ge::FAILED, "Codegen broadcast output vec axis size[%zu] is either 0 or greater than 9",
+    GELOGE(af::FAILED, "Codegen broadcast output vec axis size[%zu] is either 0 or greater than 9",
            y.vectorized_axis.size());
-    return ge::FAILED;
+    return af::FAILED;
   }
 
   if (x.vectorized_axis.size() != y.vectorized_axis.size()) {
-    GELOGE(ge::FAILED, "Codegen broadcast input vec axis size[%zu] not equal output vec axis size[%zu]",
+    GELOGE(af::FAILED, "Codegen broadcast input vec axis size[%zu] not equal output vec axis size[%zu]",
            x.vectorized_axis.size(), y.vectorized_axis.size());
-    return ge::FAILED;
+    return af::FAILED;
   }
 
   std::stringstream ss;
@@ -119,7 +119,7 @@ Status BroadcastRegApiCall::Generate(const TPipe &tpipe, const std::vector<ascir
   ss << "dst_shape_" << x.id << "_brc_to_" << y.id << ", src_shape_" << x.id << "_brc_to_" << y.id << ");\n";
 
   result = ss.str();
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 static ApiCallRegister<BroadcastRegApiCall> register_broadcast_reg_api_call("BroadcastRegApiCall");

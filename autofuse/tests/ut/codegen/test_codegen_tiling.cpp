@@ -3457,7 +3457,7 @@ TEST_F(TestCodegenTiling, CodegenGenerateForInductorShouldEmitSplitMarkers) {
   codegen::Codegen codegen(codegen::CodegenOptions{});
   codegen::CodegenResult result;
 
-  ASSERT_EQ(codegen.GenerateForInductor(fused_schedule_result, result), ge::SUCCESS);
+  ASSERT_EQ(codegen.GenerateForInductor(fused_schedule_result, result), af::SUCCESS);
 
   EXPECT_NE(result.tiling.find("// AUTOFUSE_SPLIT_FILE_BEGIN: TilingHead"), std::string::npos);
   EXPECT_NE(result.tiling.find("// AUTOFUSE_SPLIT_FILE_END: TilingHead"), std::string::npos);
@@ -3493,7 +3493,7 @@ TEST_F(TestCodegenTiling, CodegenGenerateForInductorCvFusionShouldKeepCubeWrappe
   codegen::Codegen codegen(codegen::CodegenOptions{});
   codegen::CodegenResult result;
 
-  ASSERT_EQ(codegen.GenerateForInductor(fused_schedule_result, result), ge::SUCCESS);
+  ASSERT_EQ(codegen.GenerateForInductor(fused_schedule_result, result), af::SUCCESS);
 
   EXPECT_NE(result.tiling.find("class CubeKernelTilingWrapper"), std::string::npos);
   EXPECT_NE(result.tiling.find("// AUTOFUSE_SPLIT_FILE_BEGIN: BCubeKernelTilingWrapperCpp"), std::string::npos);
@@ -3511,7 +3511,7 @@ TEST_F(TestCodegenTiling, CodegenGenerateShouldNotEmitSplitMarkers) {
   codegen::Codegen codegen(codegen::CodegenOptions{});
   codegen::CodegenResult result;
 
-  ASSERT_EQ(codegen.Generate(fused_schedule_result, result), ge::SUCCESS);
+  ASSERT_EQ(codegen.Generate(fused_schedule_result, result), af::SUCCESS);
 
   EXPECT_EQ(result.tiling.find("AUTOFUSE_SPLIT_FILE_BEGIN"), std::string::npos);
   EXPECT_EQ(result.tiling.find("AUTOFUSE_SPLIT_FILE_END"), std::string::npos);

@@ -72,7 +72,7 @@ class MicroApiCall {
   // 生成outputs;
   virtual Status Init([[maybe_unused]] const ascir::NodeView &node) {
     this->unit = node->attr.api.unit;
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
 
   void AddInput(ascir::TensorId id, TensorType type = TensorType::REG_TENSOR) {

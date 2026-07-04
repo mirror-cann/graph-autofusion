@@ -61,12 +61,12 @@ inline bool IsVarNameValidAllowEmpty(const std::string &str) {
       auto msg = CreateErrorMsg(__VA_ARGS__);                     \
       if (msg.empty()) {                                          \
         REPORT_INNER_ERR_MSG("E19999", "Assert %s failed", #exp); \
-        GELOGE(ge::FAILED, "Assert %s failed", #exp);             \
-        throw af::AscIRException({ge::FAILED, #exp});             \
+        GELOGE(af::FAILED, "Assert %s failed", #exp);             \
+        throw af::AscIRException({af::FAILED, #exp});             \
       } else {                                                    \
         REPORT_INNER_ERR_MSG("E19999", "%s", msg.data());         \
-        GELOGE(ge::FAILED, "%s", msg.data());                     \
-        throw af::AscIRException({ge::FAILED, msg.data()});       \
+        GELOGE(af::FAILED, "%s", msg.data());                     \
+        throw af::AscIRException({af::FAILED, msg.data()});       \
       }                                                           \
     }                                                             \
   } while (false)

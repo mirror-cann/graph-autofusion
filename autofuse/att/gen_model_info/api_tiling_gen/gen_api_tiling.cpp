@@ -15,14 +15,14 @@
 #include "base/base_types.h"
 
 namespace att {
-ge::Status GetApiTilingInfo(const uint32_t tiling_case_id, const ApiTilingParams &params,
+af::Status GetApiTilingInfo(const uint32_t tiling_case_id, const ApiTilingParams &params,
                             std::map<std::string, NodeApiTilingCode> &node_name_to_api_code) {
   // 遍历图上的节点，判断节点是否需要tiling
   for (const auto &node : params.graph.GetAllNodes()) {
     // 判断节点是否需要tiling
     GE_ASSERT_NOTNULL(node, "Get graph node failed.");
     std::string api_tiling_type_name;
-    if (ascgen_utils::GetApiTilingTypeName(node, api_tiling_type_name) == ge::SUCCESS) {
+    if (ascgen_utils::GetApiTilingTypeName(node, api_tiling_type_name) == af::SUCCESS) {
       AutofuseApiTilingGenerator generator(params.graph, node, params.tiling_data_type, tiling_case_id);
       GE_ASSERT_SUCCESS(generator.Generate(),
                         "Generate api tiling code failed, graph[%s], node[%s] tiling data type[%s]",
@@ -33,6 +33,6 @@ ge::Status GetApiTilingInfo(const uint32_t tiling_case_id, const ApiTilingParams
       continue;
     }
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 }  // namespace att

@@ -54,7 +54,7 @@ class BaseAlignmentStrategy {
     return align_width_;
   }
   virtual af::Status ModifyVectorizedStrides([[maybe_unused]] ascir::ImplGraph &impl_graph) {
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
 
  protected:

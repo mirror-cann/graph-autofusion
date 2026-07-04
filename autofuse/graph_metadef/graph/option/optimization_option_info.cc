@@ -13,7 +13,7 @@
 #include <unordered_set>
 #include "common/ge_common/debug/ge_log.h"
 #include "graph/ge_local_context.h"
-#include "external/ge_common/ge_api_types.h"
+#include "external/ge_common_af/ge_api_types.h"
 
 namespace {
 const std::map<af::OoLevel, std::string> kOoLevelStr = {{af::OoLevel::kO1, "O1"}, {af::OoLevel::kO3, "O3"}};

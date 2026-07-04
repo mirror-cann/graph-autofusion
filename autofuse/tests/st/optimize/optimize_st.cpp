@@ -3449,18 +3449,18 @@ TEST_F(OptimizerSt, removepad_and_add_pad) {
   }
   // codegen pad算子暂未支持,先在ut/st中模拟整个流程
   AlignmentStrategyShadow handler;
-  EXPECT_EQ(handler.AccessSetAlignWidth(graph), SUCCESS);
-  EXPECT_EQ(handler.AccessAddRemovePadForTailAxisDiscontinuousLoad(graph), SUCCESS);
+  EXPECT_EQ(handler.AccessSetAlignWidth(graph), af::SUCCESS);
+  EXPECT_EQ(handler.AccessAddRemovePadForTailAxisDiscontinuousLoad(graph), af::SUCCESS);
   for (const auto &node : graph.GetAllNodes()) {
     EXPECT_EQ(handler.AccessInferAlignmentForOneNode(node), af::SUCCESS);
   }
-  EXPECT_EQ(handler.AccessAddPadForAlignmentConflictNode(graph), SUCCESS);
+  EXPECT_EQ(handler.AccessAddPadForAlignmentConflictNode(graph), af::SUCCESS);
 
   for (const auto &node : graph.GetAllNodes()) {
     if (optimize::ScheduleUtils::IsBuffer(node)) {
       continue;
     }
-    EXPECT_EQ(handler.AccessSetVectorizedStridesForOneNode(node), SUCCESS);
+    EXPECT_EQ(handler.AccessSetVectorizedStridesForOneNode(node), af::SUCCESS);
   }
 
   std::vector<af::Expression> golden1 = {af::Symbol(160), af::Symbol(16)};
@@ -4558,7 +4558,7 @@ TEST_F(OptimizerSt, transpose_reduce_eliminate) {
                    .Build();
 
   ::ascir::FusedScheduledResult fused_scheduled_result;
-  EXPECT_EQ(optimizer.Optimize(graph, fused_scheduled_result), ge::SUCCESS);
+  EXPECT_EQ(optimizer.Optimize(graph, fused_scheduled_result), af::SUCCESS);
   // Transpose 被 eliminate，不生成额外的保留模板，只有 Reduce 的调度结果
   EXPECT_GE(fused_scheduled_result.node_idx_to_scheduled_results[0].size(), 1UL);
 }

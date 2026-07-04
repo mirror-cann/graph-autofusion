@@ -18,7 +18,7 @@ class PlatformV2 : public BasePlatform {
  public:
   PlatformV2();
   ~PlatformV2() override = default;
-  ge::Status PartitionSubFunctions(af::AscGraph &impl_graph) override;
+  af::Status PartitionSubFunctions(af::AscGraph &impl_graph) override;
   std::unique_ptr<BaseAlignmentStrategy> GetAlignmentStrategy() override;
   unique_ptr<BasePassRunner> GetPassRunner() override;
   std::unique_ptr<BaseTemplateGenerator> GetTemplateGenerator() override;

@@ -789,7 +789,7 @@ Status BuildConcatGroupAscendGraphND(af::AscGraph &graph) {
       auto output2 = Output("output2", store2);
     }
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status BuildConcatGroupAscendGraphS0S1MultiTiling(af::AscGraph &graph) {
@@ -833,7 +833,7 @@ Status BuildConcatGroupAscendGraphS0S1MultiTiling(af::AscGraph &graph) {
     auto last_dim_name = GetVecString(node->outputs()[0]->attr.repeats);
     GELOGD("Found Tile split axis %s in load/store node", last_dim_name.c_str());
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status BuildConcatGroupAscendGraphS0S1_Reorder(af::AscGraph &graph) {
@@ -865,7 +865,7 @@ Status BuildConcatGroupAscendGraphS0S1_Reorder(af::AscGraph &graph) {
       auto output2 = Output("output2", store2);
     }
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status BuildConcatGroupAscendGraphS1S0_Reorder(af::AscGraph &graph) {
@@ -897,7 +897,7 @@ Status BuildConcatGroupAscendGraphS1S0_Reorder(af::AscGraph &graph) {
       auto output2 = Output("output2", store2);
     }
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status BuildConcatGroupAscendGraphS0(af::AscGraph &graph) {
@@ -927,7 +927,7 @@ Status BuildConcatGroupAscendGraphS0(af::AscGraph &graph) {
       auto output2 = Output("output2", store2);
     }
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status BuildConcatGroupAscendGraphND2(af::AscGraph &graph) {
@@ -956,7 +956,7 @@ Status BuildConcatGroupAscendGraphND2(af::AscGraph &graph) {
       auto output2 = Output("output2", store2);
     }
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status BuildConcatGroupAscendGraphND2WithAbs(af::AscGraph &graph) {
@@ -980,7 +980,7 @@ Status BuildConcatGroupAscendGraphND2WithAbs(af::AscGraph &graph) {
       auto output2 = Output("output2", store2);
     }
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status BuildConcatGroupAscendGraphND2TB(af::AscGraph &graph) {
@@ -1003,7 +1003,7 @@ Status BuildConcatGroupAscendGraphND2TB(af::AscGraph &graph) {
       auto output2 = Output("output2", store2);
     }
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status BuildConcatGroupAscendGraphStatic(af::AscGraph &graph) {
@@ -1033,7 +1033,7 @@ Status BuildConcatGroupAscendGraphStatic(af::AscGraph &graph) {
       auto output2 = Output("output2", store2);
     }
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status BuildTqueTbufAscendGraph_single_case(af::AscGraph &graph) {
@@ -1064,7 +1064,7 @@ Status BuildTqueTbufAscendGraph_single_case(af::AscGraph &graph) {
   }
   auto data = graph.FindNode("load1");
   data->attr.tmp_buffers.emplace_back(TmpBuffer{TmpBufDesc{af::Symbol(16 * 1024), -1}, {}, 0});
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status BuildTqueTbufAscendGraphMultiCaseG0(af::AscGraph &graph) {
@@ -1107,7 +1107,7 @@ Status BuildTqueTbufAscendGraphMultiCaseG0(af::AscGraph &graph) {
   auto data1_node = graph.FindNode("load2");
   data1_node->attr.tmp_buffers.emplace_back(TmpBuffer{TmpBufDesc{af::Symbol(1024), 0}, {}, 0});
   data1_node->attr.tmp_buffers.emplace_back(TmpBuffer{TmpBufDesc{af::Symbol(2 * 1024), 0}, {}, 0});
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status BuildTqueTbufAscendGraphMultiCaseG1(af::AscGraph &graph) {
@@ -1147,7 +1147,7 @@ Status BuildTqueTbufAscendGraphMultiCaseG1(af::AscGraph &graph) {
   }
   auto data_node = graph.FindNode("load1");
   data_node->attr.tmp_buffers.emplace_back(TmpBuffer{TmpBufDesc{af::Symbol(16 * 1024), 0}, {}, 0});
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status BuildMultiCaseG0(af::AscGraph &graph) {
@@ -1182,7 +1182,7 @@ Status BuildMultiCaseG0(af::AscGraph &graph) {
   auto data1_node = graph.FindNode("load2");
   data1_node->attr.tmp_buffers.emplace_back(TmpBuffer{TmpBufDesc{af::Symbol(1024), 0}, {}, 0});
   data1_node->attr.tmp_buffers.emplace_back(TmpBuffer{TmpBufDesc{af::Symbol(2 * 1024), 0}, {}, 0});
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status BuildMultiCaseG1(af::AscGraph &graph) {
@@ -1214,7 +1214,7 @@ Status BuildMultiCaseG1(af::AscGraph &graph) {
   }
   auto data_node = graph.FindNode("load1");
   data_node->attr.tmp_buffers.emplace_back(TmpBuffer{TmpBufDesc{af::Symbol(16 * 1024), 0}, {}, 0});
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status BuildSevenInputsMiddleAxisCacheLineConflict(ge::AscGraph &graph) {
@@ -1260,7 +1260,7 @@ Status BuildSevenInputsMiddleAxisCacheLineConflict(ge::AscGraph &graph) {
       auto output7 = Output("output7", store7);
     }
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 }  // namespace cg
 }  // namespace ascir
@@ -1294,7 +1294,7 @@ const std::string kSecondGraphName = "case1";
 TEST_F(STestGenConcat, tque_tbuf_case0) {
   const std::string kCaseName = "tque_tbuf_case0";
   ascir::AscGraph graph(kCaseName.c_str());
-  ASSERT_EQ(af::ascir::cg::BuildTqueTbufAscendGraph_single_case(graph), ge::SUCCESS);
+  ASSERT_EQ(af::ascir::cg::BuildTqueTbufAscendGraph_single_case(graph), af::SUCCESS);
   graph.SetTilingKey(0U);
 
   ascir::ScheduleGroup schedule_group;
@@ -1353,7 +1353,7 @@ std::map<std::string, std::string> GenerateTilingCodeCommon(const std::string &o
   generator_config.tiling_data_type_name = options.at(af::sym::kTilingDataTypeName);
   generator_config.gen_tiling_data = true;
   generator_config.gen_extra_infos = gen_extra_infos;
-  EXPECT_EQ(generator.GenTilingCode(op_name, all_model_infos, generator_config, tiling_res), ge::SUCCESS);
+  EXPECT_EQ(generator.GenTilingCode(op_name, all_model_infos, generator_config, tiling_res), af::SUCCESS);
 
   return tiling_res;
 }
@@ -1381,7 +1381,7 @@ void GenConcatTilingFullPipeline(const std::string &op_name, const ascir::FusedS
   generator_config.tiling_data_type_name = options[kTilingDataTypeName];
   generator_config.gen_tiling_data = true;
   generator_config.gen_extra_infos = true;
-  EXPECT_EQ(generator.GenTilingCode(op_name, all_model_infos, generator_config, tiling_res), ge::SUCCESS);
+  EXPECT_EQ(generator.GenTilingCode(op_name, all_model_infos, generator_config, tiling_res), af::SUCCESS);
   oss.open("Concat_tiling_data.h", std::ios::out);
   oss << tiling_res[graph_name + "TilingData"];
   oss.close();
@@ -1779,7 +1779,7 @@ namespace {
 void BuildEmptyTensorGraph(const std::string &graph_name, ascir::ScheduledResult &schedule_result) {
   ascir::ScheduleGroup schedule_group1;
   ascir::AscGraph graph(graph_name.c_str());
-  ASSERT_EQ(af::ascir::cg::BuildConcatGroupAscendGraphND(graph), ge::SUCCESS);
+  ASSERT_EQ(af::ascir::cg::BuildConcatGroupAscendGraphND(graph), af::SUCCESS);
   graph.SetTilingKey(0U);
   schedule_group1.impl_graphs.emplace_back(graph);
   GraphConstructUtils::UpdateGraphsVectorizedStride(schedule_group1.impl_graphs);
@@ -1845,7 +1845,7 @@ int main() {
 }
 }  // namespace
 
-ge::Status ConstructTQueTBufScheduleResults(std::vector<ascir::ScheduledResult> &schedule_results) {
+af::Status ConstructTQueTBufScheduleResults(std::vector<ascir::ScheduledResult> &schedule_results) {
   ascir::ScheduleGroup schedule_group1;
   ascir::ScheduleGroup schedule_group2;
   ascir::ScheduledResult schedule_result1;
@@ -1854,9 +1854,9 @@ ge::Status ConstructTQueTBufScheduleResults(std::vector<ascir::ScheduledResult> 
   std::vector<att::ModelInfo> model_info_list;
   ascir::AscGraph graph_0(kFirstGraphName.c_str());
   ascir::AscGraph graph_1(kSecondGraphName.c_str());
-  GE_ASSERT_EQ(af::ascir::cg::BuildTqueTbufAscendGraphMultiCaseG0(graph_0), ge::SUCCESS);
+  GE_ASSERT_EQ(af::ascir::cg::BuildTqueTbufAscendGraphMultiCaseG0(graph_0), af::SUCCESS);
   graph_0.SetTilingKey(0U);
-  GE_ASSERT_EQ(af::ascir::cg::BuildTqueTbufAscendGraphMultiCaseG1(graph_1), ge::SUCCESS);
+  GE_ASSERT_EQ(af::ascir::cg::BuildTqueTbufAscendGraphMultiCaseG1(graph_1), af::SUCCESS);
   graph_1.SetTilingKey(1U);
   schedule_group1.impl_graphs.emplace_back(graph_0);
   schedule_group2.impl_graphs.emplace_back(graph_1);
@@ -1871,10 +1871,10 @@ ge::Status ConstructTQueTBufScheduleResults(std::vector<ascir::ScheduledResult> 
       ("int32_t CalcScore(" + kFirstGraphName + "TilingData &tiling_data) { return 2;}").c_str();
   schedule_results.emplace_back(schedule_result1);
   schedule_results.emplace_back(schedule_result2);
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status ConstructAutoTuneResults(std::vector<ascir::ScheduledResult> &schedule_results) {
+af::Status ConstructAutoTuneResults(std::vector<ascir::ScheduledResult> &schedule_results) {
   ascir::ScheduleGroup schedule_group1;
   ascir::ScheduleGroup schedule_group2;
   ascir::ScheduledResult schedule_result1;
@@ -1883,9 +1883,9 @@ ge::Status ConstructAutoTuneResults(std::vector<ascir::ScheduledResult> &schedul
   std::vector<att::ModelInfo> model_info_list;
   ascir::AscGraph graph_0(kFirstGraphName.c_str());
   ascir::AscGraph graph_1(kSecondGraphName.c_str());
-  GE_ASSERT_EQ(af::ascir::cg::BuildMultiCaseG0(graph_0), ge::SUCCESS);
+  GE_ASSERT_EQ(af::ascir::cg::BuildMultiCaseG0(graph_0), af::SUCCESS);
   graph_0.SetTilingKey(0U);
-  GE_ASSERT_EQ(af::ascir::cg::BuildMultiCaseG1(graph_1), ge::SUCCESS);
+  GE_ASSERT_EQ(af::ascir::cg::BuildMultiCaseG1(graph_1), af::SUCCESS);
   graph_1.SetTilingKey(1U);
   schedule_group1.impl_graphs.emplace_back(graph_0);
   schedule_group2.impl_graphs.emplace_back(graph_1);
@@ -1900,24 +1900,24 @@ ge::Status ConstructAutoTuneResults(std::vector<ascir::ScheduledResult> &schedul
       ("int32_t CalcScore(" + kFirstGraphName + "TilingData &tiling_data) { return 2;}").c_str();
   schedule_results.emplace_back(schedule_result1);
   schedule_results.emplace_back(schedule_result2);
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status ConstructSingleCaseForMultiTileScheduleResult(std::vector<ascir::ScheduledResult> &schedule_results) {
+af::Status ConstructSingleCaseForMultiTileScheduleResult(std::vector<ascir::ScheduledResult> &schedule_results) {
   ascir::ScheduleGroup schedule_group1;
   ascir::ScheduledResult schedule_result1;
   std::vector<att::ModelInfo> model_info_list;
   ascir::AscGraph graph_0(kFirstGraphName.c_str());
-  GE_ASSERT_EQ(af::ascir::cg::BuildConcatGroupAscendGraphS0S1MultiTiling(graph_0), ge::SUCCESS);
+  GE_ASSERT_EQ(af::ascir::cg::BuildConcatGroupAscendGraphS0S1MultiTiling(graph_0), af::SUCCESS);
   graph_0.SetTilingKey(0U);
   schedule_group1.impl_graphs.emplace_back(graph_0);
   GraphConstructUtils::UpdateGraphsVectorizedStride(schedule_group1.impl_graphs);
   schedule_result1.schedule_groups.emplace_back(schedule_group1);
   schedule_results.emplace_back(schedule_result1);
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status GenTilingImpl(std::vector<ascir::ScheduledResult> &schedule_results) {
+af::Status GenTilingImpl(std::vector<ascir::ScheduledResult> &schedule_results) {
   std::map<std::string, std::string> options;
   std::map<std::string, std::string> tiling_funcs;
   std::string op_name = "Concat";
@@ -1929,37 +1929,37 @@ ge::Status GenTilingImpl(std::vector<ascir::ScheduledResult> &schedule_results) 
   GE_ASSERT_EQ(res, true);
   GE_ASSERT_EQ(att::test_common::GenTilingCodeToFile(op_name, tiling_funcs, fused_scheduled_result, options,
                                                      kFirstGraphName + "TilingData"),
-               ge::SUCCESS);
+               af::SUCCESS);
   auto ret = autofuse::test::CopyOpLog(TOP_DIR);
   GE_ASSERT_EQ(ret, 0);
   ret = autofuse::test::CopyStubFiles(TOP_DIR, "autofuse/tests/st/att/testcase/stub/");
   GE_ASSERT_EQ(ret, 0);
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status ConstructTQueTBufMultiCaseGroup() {
+af::Status ConstructTQueTBufMultiCaseGroup() {
   std::vector<ascir::ScheduledResult> schedule_results;
-  GE_ASSERT_EQ(ConstructTQueTBufScheduleResults(schedule_results), ge::SUCCESS);
-  GE_ASSERT_EQ(GenTilingImpl(schedule_results), ge::SUCCESS);
-  return ge::SUCCESS;
+  GE_ASSERT_EQ(ConstructTQueTBufScheduleResults(schedule_results), af::SUCCESS);
+  GE_ASSERT_EQ(GenTilingImpl(schedule_results), af::SUCCESS);
+  return af::SUCCESS;
 }
 
-ge::Status ConstructAutoTuneCaseGroup() {
+af::Status ConstructAutoTuneCaseGroup() {
   std::vector<ascir::ScheduledResult> schedule_results;
-  GE_ASSERT_EQ(ConstructAutoTuneResults(schedule_results), ge::SUCCESS);
-  GE_ASSERT_EQ(GenTilingImpl(schedule_results), ge::SUCCESS);
-  return ge::SUCCESS;
+  GE_ASSERT_EQ(ConstructAutoTuneResults(schedule_results), af::SUCCESS);
+  GE_ASSERT_EQ(GenTilingImpl(schedule_results), af::SUCCESS);
+  return af::SUCCESS;
 }
 
-ge::Status ConstructSingleCaseForMultiTile() {
+af::Status ConstructSingleCaseForMultiTile() {
   std::vector<ascir::ScheduledResult> schedule_results;
-  GE_ASSERT_EQ(ConstructSingleCaseForMultiTileScheduleResult(schedule_results), ge::SUCCESS);
-  GE_ASSERT_EQ(GenTilingImpl(schedule_results), ge::SUCCESS);
-  return ge::SUCCESS;
+  GE_ASSERT_EQ(ConstructSingleCaseForMultiTileScheduleResult(schedule_results), af::SUCCESS);
+  GE_ASSERT_EQ(GenTilingImpl(schedule_results), af::SUCCESS);
+  return af::SUCCESS;
 }
 
 TEST_F(STestGenConcat, construct_single_case_for_multi_tile) {
-  EXPECT_EQ(ConstructSingleCaseForMultiTile(), ge::SUCCESS);
+  EXPECT_EQ(ConstructSingleCaseForMultiTile(), af::SUCCESS);
   std::ofstream oss;
   oss.open("tiling_func_main_concat.cpp", std::ios::out);
   const std::string kRunTilingFuncMainLocal = R"(
@@ -2005,7 +2005,7 @@ int main() {
 // 3. UB利用率符合预期
 // 用例描述：验证同等优先级轴的切分功能
 TEST_F(STestGenConcat, equal_priority_tiling) {
-  EXPECT_EQ(ConstructSingleCaseForMultiTile(), ge::SUCCESS);
+  EXPECT_EQ(ConstructSingleCaseForMultiTile(), af::SUCCESS);
   std::ofstream oss;
   oss.open("tiling_func_main_concat_equal_priority.cpp", std::ios::out);
   oss << ResultCheckerUtils::DefineCheckerFunction() << kEqualPriorityTilingMain;
@@ -2027,7 +2027,7 @@ TEST_F(STestGenConcat, equal_priority_tiling) {
 TEST_F(STestGenConcat, equal_priority_tiling_trade_off) {
   setenv("AUTOFUSE_DFX_FLAGS",
          "--att_enable_multicore_ub_tradeoff=true;--att_corenum_threshold=100;--att_ub_threshold=10", 1);
-  EXPECT_EQ(ConstructSingleCaseForMultiTile(), ge::SUCCESS);
+  EXPECT_EQ(ConstructSingleCaseForMultiTile(), af::SUCCESS);
   std::ofstream oss("tiling_func_main_concat_equal_priority.cpp", std::ios::out);
   oss << ResultCheckerUtils::DefineCheckerFunction() << kEqualPriorityTradeoffMain;
   oss.close();
@@ -2041,7 +2041,7 @@ TEST_F(STestGenConcat, equal_priority_tiling_trade_off) {
 
 TEST_F(STestGenConcat, tque_tbuf_case1) {
   setenv("AUTOFUSE_DFX_FLAGS", "--att_accuracy_level=0", 1);
-  EXPECT_EQ(ConstructTQueTBufMultiCaseGroup(), ge::SUCCESS);
+  EXPECT_EQ(ConstructTQueTBufMultiCaseGroup(), af::SUCCESS);
   std::ofstream oss;
   oss.open("tiling_func_main_concat.cpp", std::ios::out);
   const std::string kRunTilingFuncMainLocal = R"(
@@ -2094,7 +2094,7 @@ int main() {
 // 2.使用核数未用满
 TEST_F(STestGenConcat, auto_tuning_accuracy_level_0) {
   setenv("AUTOFUSE_DFX_FLAGS", "--att_accuracy_level=0", 1);
-  EXPECT_EQ(ConstructAutoTuneCaseGroup(), ge::SUCCESS);
+  EXPECT_EQ(ConstructAutoTuneCaseGroup(), af::SUCCESS);
   std::ofstream oss;
   oss.open("tiling_func_main_concat.cpp", std::ios::out);
   const std::string kRunTilingFuncMainLocal = R"(
@@ -2136,7 +2136,7 @@ int main() {
 // 2.使用核数相较level0模式上升；
 TEST_F(STestGenConcat, auto_tuning_accuracy_level_1) {
   setenv("AUTOFUSE_DFX_FLAGS", "--att_accuracy_level=1", 1);
-  EXPECT_EQ(ConstructAutoTuneCaseGroup(), ge::SUCCESS);
+  EXPECT_EQ(ConstructAutoTuneCaseGroup(), af::SUCCESS);
   std::ofstream oss;
   oss.open("tiling_func_main_concat.cpp", std::ios::out);
   const std::string kRunTilingFuncMainLocal = R"(
@@ -2172,7 +2172,7 @@ int main() {
   EXPECT_EQ(ret, 0);
 }
 
-ge::Status ConstructConcatTwoTilingCaseS0S1() {
+af::Status ConstructConcatTwoTilingCaseS0S1() {
   const std::string kFirstName = "Concat";
   ascir::AscGraph graph_nd(kFirstName.c_str());
   ascir::AscGraph graph_s0("graph_s0");
@@ -2197,13 +2197,13 @@ ge::Status ConstructConcatTwoTilingCaseS0S1() {
   GE_ASSERT_EQ(GenTilingImplAutoFuseV3("Concat", fused_scheduled_result, options, tiling_funcs, true), true);
   GE_ASSERT_EQ(att::test_common::GenTilingCodeToFile("Concat", tiling_funcs, fused_scheduled_result, options,
                                                      kFirstName + "TilingData"),
-               ge::SUCCESS);
+               af::SUCCESS);
   auto ret = autofuse::test::CopyOpLog(TOP_DIR);
   ret = autofuse::test::CopyStubFiles(TOP_DIR, "autofuse/tests/st/att/testcase/stub/");
   GE_ASSERT_TRUE(ret == 0);
   std::ofstream oss("tiling_func_main_concat.cpp", std::ios::out);
   oss << CreateTilingMainFunc("Concat", "64", "245760", {{"S0", "1024"}, {"S1", "1024"}});
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 const std::string kS0S1TilingTestMain = R"(
@@ -2234,7 +2234,7 @@ int main() {
 }
 )";
 
-ge::Status ConstructTwoScheduleResultS0S1() {
+af::Status ConstructTwoScheduleResultS0S1() {
   const std::string graph_name = "graph_nd";
   ascir::AscGraph graph_nd(graph_name.c_str());
   ascir::AscGraph graph_s0("graph_s0");
@@ -2266,13 +2266,13 @@ ge::Status ConstructTwoScheduleResultS0S1() {
   GE_ASSERT_TRUE(GenTilingImplAutoFuseV3("Concat", fused_scheduled_result, options, tiling_funcs, true));
   GE_ASSERT_EQ(att::test_common::GenTilingCodeToFile("Concat", tiling_funcs, fused_scheduled_result, options,
                                                      graph_name + "TilingData"),
-               ge::SUCCESS);
+               af::SUCCESS);
   auto ret = autofuse::test::CopyOpLog(TOP_DIR);
   ret = autofuse::test::CopyStubFiles(TOP_DIR, "autofuse/tests/st/att/testcase/stub/");
   GE_ASSERT_TRUE(ret == 0);
   std::ofstream oss("tiling_func_main_concat.cpp", std::ios::out);
   oss << kS0S1TilingTestMain;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 TEST_F(STestGenConcat, case_axes_reorder) {
@@ -2315,7 +2315,7 @@ TEST_F(STestGenConcat, case_axes_reorder) {
 TEST_F(STestGenConcat, case_axes_reorder_got_static_shape) {
   const std::string kGraphName = "graph_static";
   ascir::AscGraph graph_static(kGraphName.c_str());
-  ASSERT_EQ(af::ascir::cg::BuildConcatGroupAscendGraphStatic(graph_static), ge::SUCCESS);
+  ASSERT_EQ(af::ascir::cg::BuildConcatGroupAscendGraphStatic(graph_static), af::SUCCESS);
   ascir::ScheduledResult schedule_result;
   ascir::ScheduleGroup schedule_group;
   BuildSingleGraphToScheduleGroup(graph_static, schedule_group, 0U);
@@ -2333,7 +2333,7 @@ TEST_F(STestGenConcat, case_axes_reorder_got_static_shape) {
 TEST_F(STestGenConcat, case_axes_reorder_got_dynamic_shape) {
   const std::string kGraphName = "graph_dynamic";
   ascir::AscGraph graph_dynamic(kGraphName.c_str());
-  ASSERT_EQ(af::ascir::cg::BuildConcatGroupAscendGraphND(graph_dynamic), ge::SUCCESS);
+  ASSERT_EQ(af::ascir::cg::BuildConcatGroupAscendGraphND(graph_dynamic), af::SUCCESS);
   ascir::ScheduledResult schedule_result;
   ascir::ScheduleGroup schedule_group;
   BuildSingleGraphToScheduleGroup(graph_dynamic, schedule_group, 0U);
@@ -2452,7 +2452,7 @@ void STestGenConcat::GenerateTilingDataAndHeader(const std::string &op_name, con
   generator_config.tiling_data_type_name = options.at(kTilingDataTypeName);
   generator_config.gen_tiling_data = true;
   generator_config.gen_extra_infos = true;
-  EXPECT_EQ(generator.GenTilingCode(op_name, all_model_infos, generator_config, tiling_res), ge::SUCCESS);
+  EXPECT_EQ(generator.GenTilingCode(op_name, all_model_infos, generator_config, tiling_res), af::SUCCESS);
 
   std::ofstream oss;
   oss.open("Concat_tiling_data.h", std::ios::out);
@@ -2529,8 +2529,8 @@ TEST_F(STestGenConcat, reuse_schedule_group_with_same_input_axis_name) {
   const std::string kGraphName = "graph_nd";
   ascir::AscGraph graph_nd(kGraphName.c_str());
   ascir::AscGraph graph_s0("graph_s0");
-  ASSERT_EQ(af::ascir::cg::BuildConcatGroupAscendGraphND(graph_nd), ge::SUCCESS);
-  ASSERT_EQ(af::ascir::cg::BuildConcatGroupAscendGraphND(graph_s0), ge::SUCCESS);
+  ASSERT_EQ(af::ascir::cg::BuildConcatGroupAscendGraphND(graph_nd), af::SUCCESS);
+  ASSERT_EQ(af::ascir::cg::BuildConcatGroupAscendGraphND(graph_s0), af::SUCCESS);
 
   std::map<std::string, std::string> options;
   options.emplace(kGenConfigType, "AxesReorder");
@@ -2567,9 +2567,9 @@ TEST_F(STestGenConcat, reuse_schedule_group_with_different_input_axis_name) {
   const std::string kGraphName = "graph_nd";
   ascir::AscGraph graph_nd(kGraphName.c_str());
   ascir::AscGraph graph_s0("graph_s0");
-  ASSERT_EQ(af::ascir::cg::BuildConcatGroupAscendGraphND(graph_nd), ge::SUCCESS);
+  ASSERT_EQ(af::ascir::cg::BuildConcatGroupAscendGraphND(graph_nd), af::SUCCESS);
   graph_nd.SetTilingKey(0U);
-  ASSERT_EQ(af::ascir::cg::BuildConcatGroupAscendGraphS0(graph_s0), ge::SUCCESS);
+  ASSERT_EQ(af::ascir::cg::BuildConcatGroupAscendGraphS0(graph_s0), af::SUCCESS);
   graph_s0.SetTilingKey(1U);
 
   std::map<std::string, std::string> options;
@@ -2584,9 +2584,9 @@ TEST_F(STestGenConcat, reuse_schedule_group_with_different_search_axis_name) {
   const std::string kGraphName = "graph_nd";
   ascir::AscGraph graph_nd(kGraphName.c_str());
   ascir::AscGraph graph_s0("graph_s0");
-  ASSERT_EQ(af::ascir::cg::BuildConcatGroupAscendGraphND(graph_nd), ge::SUCCESS);
+  ASSERT_EQ(af::ascir::cg::BuildConcatGroupAscendGraphND(graph_nd), af::SUCCESS);
   graph_nd.SetTilingKey(0U);
-  ASSERT_EQ(af::ascir::cg::BuildConcatGroupAscendGraphND2(graph_s0), ge::SUCCESS);
+  ASSERT_EQ(af::ascir::cg::BuildConcatGroupAscendGraphND2(graph_s0), af::SUCCESS);
   graph_s0.SetTilingKey(1U);
 
   std::map<std::string, std::string> options;
@@ -2598,7 +2598,7 @@ TEST_F(STestGenConcat, reuse_schedule_group_with_different_search_axis_name) {
 }
 
 TEST_F(STestGenConcat, reuse_schedule_group_with_different_input_axis_order) {
-  EXPECT_EQ(ConstructTwoScheduleResultS0S1(), ge::SUCCESS);
+  EXPECT_EQ(ConstructTwoScheduleResultS0S1(), af::SUCCESS);
   auto ret = std::system(kCompileCmd.c_str());
   EXPECT_EQ(ret, 0);
   ret = std::system("./tiling_func_main_concat > ./info.log");
@@ -2608,7 +2608,7 @@ TEST_F(STestGenConcat, reuse_schedule_group_with_different_input_axis_order) {
 
 TEST_F(STestGenConcat, reuse_schedule_group_with_different_input_axis_order_force_schedule_result) {
   setenv("AUTOFUSE_DFX_FLAGS", "--force_schedule_result=0", 1);
-  EXPECT_EQ(ConstructTwoScheduleResultS0S1(), ge::SUCCESS);
+  EXPECT_EQ(ConstructTwoScheduleResultS0S1(), af::SUCCESS);
   auto ret = std::system(kCompileCmd.c_str());
   EXPECT_EQ(ret, 0);
   ret = std::system("./tiling_func_main_concat > ./info.log");
@@ -2619,7 +2619,7 @@ TEST_F(STestGenConcat, reuse_schedule_group_with_different_input_axis_order_forc
 
 // 默认选择tiling key 0
 TEST_F(STestGenConcat, reuse_schedule_group_with_different_input_axis_order_normal_tiling_case) {
-  EXPECT_EQ(ConstructConcatTwoTilingCaseS0S1(), ge::SUCCESS);
+  EXPECT_EQ(ConstructConcatTwoTilingCaseS0S1(), af::SUCCESS);
   auto ret = std::system(kCompileCmd.c_str());
   EXPECT_EQ(ret, 0);
   ret = std::system("./tiling_func_main_concat > ./info.log");
@@ -2630,7 +2630,7 @@ TEST_F(STestGenConcat, reuse_schedule_group_with_different_input_axis_order_norm
 // 强制选择tiling case 1
 TEST_F(STestGenConcat, reuse_schedule_group_with_different_input_axis_order_force_tiling_case) {
   setenv("AUTOFUSE_DFX_FLAGS", "--force_tiling_case=1", 1);
-  EXPECT_EQ(ConstructConcatTwoTilingCaseS0S1(), ge::SUCCESS);
+  EXPECT_EQ(ConstructConcatTwoTilingCaseS0S1(), af::SUCCESS);
   auto ret = std::system(kCompileCmd.c_str());
   EXPECT_EQ(ret, 0);
   ret = std::system("./tiling_func_main_concat > ./info.log");
@@ -2642,7 +2642,7 @@ TEST_F(STestGenConcat, reuse_schedule_group_with_different_input_axis_order_forc
 // 强制指定op name,选择tiling case 1
 TEST_F(STestGenConcat, reuse_schedule_group_with_different_input_axis_order_force_op_name) {
   setenv("AUTOFUSE_DFX_FLAGS", "--force_template_op_name=Concat;--force_tiling_case=1", 1);
-  EXPECT_EQ(ConstructConcatTwoTilingCaseS0S1(), ge::SUCCESS);
+  EXPECT_EQ(ConstructConcatTwoTilingCaseS0S1(), af::SUCCESS);
   auto ret = std::system(kCompileCmd.c_str());
   EXPECT_EQ(ret, 0);
   ret = std::system("./tiling_func_main_concat > ./info.log");
@@ -2654,7 +2654,7 @@ TEST_F(STestGenConcat, reuse_schedule_group_with_different_input_axis_order_forc
 // 强制指定错误的op name,按照默认选择tiling case 0
 TEST_F(STestGenConcat, reuse_schedule_group_with_different_input_axis_order_force_error_op_name) {
   setenv("AUTOFUSE_DFX_FLAGS", "--force_template_op_name=Conct;--force_tiling_case=1", 1);
-  EXPECT_EQ(ConstructConcatTwoTilingCaseS0S1(), ge::SUCCESS);
+  EXPECT_EQ(ConstructConcatTwoTilingCaseS0S1(), af::SUCCESS);
   auto ret = std::system(kCompileCmd.c_str());
   EXPECT_EQ(ret, 0);
   ret = std::system("./tiling_func_main_concat > ./info.log");
@@ -2666,7 +2666,7 @@ TEST_F(STestGenConcat, reuse_schedule_group_with_different_input_axis_order_forc
 // 强制指定op name,强制选择group0的tiling case为case 1
 TEST_F(STestGenConcat, reuse_schedule_group_with_different_input_axis_order_force_op_name_group0_1) {
   setenv("AUTOFUSE_DFX_FLAGS", "--force_template_op_name=Concat;--force_tiling_case=g0_1", 1);
-  EXPECT_EQ(ConstructConcatTwoTilingCaseS0S1(), ge::SUCCESS);
+  EXPECT_EQ(ConstructConcatTwoTilingCaseS0S1(), af::SUCCESS);
   auto ret = std::system(kCompileCmd.c_str());
   EXPECT_EQ(ret, 0);
   ret = std::system("./tiling_func_main_concat > ./info.log");
@@ -2678,7 +2678,7 @@ TEST_F(STestGenConcat, reuse_schedule_group_with_different_input_axis_order_forc
 // 强制指定错误的op name,按照默认选择schedule result 0
 TEST_F(STestGenConcat, reuse_schedule_group_with_different_input_axis_order_force_error_op_name2) {
   setenv("AUTOFUSE_DFX_FLAGS", "--force_template_op_name=Conct;--force_schedule_result=1", 1);
-  EXPECT_EQ(ConstructConcatTwoTilingCaseS0S1(), ge::SUCCESS);
+  EXPECT_EQ(ConstructConcatTwoTilingCaseS0S1(), af::SUCCESS);
   auto ret = std::system(kCompileCmd.c_str());
   EXPECT_EQ(ret, 0);
   ret = std::system("./tiling_func_main_concat > ./info.log");
@@ -2690,7 +2690,7 @@ TEST_F(STestGenConcat, reuse_schedule_group_with_different_input_axis_order_forc
 // 强制指定正确的的op name,选择schedule result 1
 TEST_F(STestGenConcat, reuse_schedule_group_with_different_input_axis_order_force_op_name2) {
   setenv("AUTOFUSE_DFX_FLAGS", "--force_template_op_name=Concat;--force_schedule_result=1", 1);
-  EXPECT_EQ(ConstructTwoScheduleResultS0S1(), ge::SUCCESS);
+  EXPECT_EQ(ConstructTwoScheduleResultS0S1(), af::SUCCESS);
   auto ret = std::system(kCompileCmd.c_str());
   EXPECT_EQ(ret, 0);
   ret = std::system("./tiling_func_main_concat > ./info.log");
@@ -2702,7 +2702,7 @@ TEST_F(STestGenConcat, reuse_schedule_group_with_different_input_axis_order_forc
 // 测试att_accuracy_level=1场景，使能自动选择最优核数
 TEST_F(STestGenConcat, reuse_schedule_group_with_different_input_axis_order_auto_tuning) {
   setenv("AUTOFUSE_DFX_FLAGS", "--att_accuracy_level=1", 1);
-  EXPECT_EQ(ConstructTwoScheduleResultS0S1(), ge::SUCCESS);
+  EXPECT_EQ(ConstructTwoScheduleResultS0S1(), af::SUCCESS);
   auto ret = std::system(kCompileCmd.c_str());
   EXPECT_EQ(ret, 0);
   ret = std::system("./tiling_func_main_concat > ./info.log");
@@ -2717,18 +2717,18 @@ TEST_F(STestGenConcat, fused_schedule_result_reuse_schedule_group) {
   {
     ascir::AscGraph graph_nd(kGraphName.c_str());
     ascir::AscGraph graph_s0("graph_s0");
-    ASSERT_EQ(af::ascir::cg::BuildConcatGroupAscendGraphND(graph_nd), ge::SUCCESS);
+    ASSERT_EQ(af::ascir::cg::BuildConcatGroupAscendGraphND(graph_nd), af::SUCCESS);
     graph_nd.SetTilingKey(0U);
-    ASSERT_EQ(af::ascir::cg::BuildConcatGroupAscendGraphND2(graph_s0), ge::SUCCESS);
+    ASSERT_EQ(af::ascir::cg::BuildConcatGroupAscendGraphND2(graph_s0), af::SUCCESS);
     graph_s0.SetTilingKey(1U);
     ConstructTwoGraphTwoResult(kGraphName, graph_nd, graph_s0, fused_scheduled_result);
   }
   {
     ascir::AscGraph graph_nd("graph_s0s1");
     ascir::AscGraph graph_s0("graph_s1s0");
-    ASSERT_EQ(af::ascir::cg::BuildConcatGroupAscendGraphS0S1_Reorder(graph_nd), ge::SUCCESS);
+    ASSERT_EQ(af::ascir::cg::BuildConcatGroupAscendGraphS0S1_Reorder(graph_nd), af::SUCCESS);
     graph_nd.SetTilingKey(2U);
-    ASSERT_EQ(af::ascir::cg::BuildConcatGroupAscendGraphS1S0_Reorder(graph_s0), ge::SUCCESS);
+    ASSERT_EQ(af::ascir::cg::BuildConcatGroupAscendGraphS1S0_Reorder(graph_s0), af::SUCCESS);
     graph_s0.SetTilingKey(3U);
     ascir::ScheduleGroup sg1;
     ascir::ScheduleGroup sg2;
@@ -2770,10 +2770,10 @@ void BuildScoreCaseFirstBlock(const std::string &graph_name, ascir::FusedSchedul
   std::vector<ascir::AscGraph> sr0_graphs = {ascir::AscGraph(kSr0Names[0]), ascir::AscGraph(kSr0Names[1]),
                                              ascir::AscGraph(kSr0Names[2]), ascir::AscGraph(kSr0Names[3]),
                                              ascir::AscGraph(kSr0Names[4])};
-  ASSERT_EQ(af::ascir::cg::BuildConcatGroupAscendGraphND(graph_nd), ge::SUCCESS);
+  ASSERT_EQ(af::ascir::cg::BuildConcatGroupAscendGraphND(graph_nd), af::SUCCESS);
   graph_nd.SetTilingKey(0U);
   for (size_t i = 0; i < sr0_graphs.size(); i++) {
-    ASSERT_EQ(af::ascir::cg::BuildConcatGroupAscendGraphND2(sr0_graphs[i]), ge::SUCCESS);
+    ASSERT_EQ(af::ascir::cg::BuildConcatGroupAscendGraphND2(sr0_graphs[i]), af::SUCCESS);
     sr0_graphs[i].SetTilingKey(static_cast<uint32_t>(i + 1));
   }
   schedule_group1.impl_graphs.emplace_back(graph_nd);
@@ -2810,9 +2810,9 @@ TEST_F(STestGenConcat, fused_schedule_result_tiling_case_score) {
   {
     ascir::AscGraph graph_nd("graph_s0s1");
     ascir::AscGraph graph_s0("graph_s1s0");
-    ASSERT_EQ(af::ascir::cg::BuildConcatGroupAscendGraphS0S1_Reorder(graph_nd), ge::SUCCESS);
+    ASSERT_EQ(af::ascir::cg::BuildConcatGroupAscendGraphS0S1_Reorder(graph_nd), af::SUCCESS);
     graph_nd.SetTilingKey(6U);
-    ASSERT_EQ(af::ascir::cg::BuildConcatGroupAscendGraphS1S0_Reorder(graph_s0), ge::SUCCESS);
+    ASSERT_EQ(af::ascir::cg::BuildConcatGroupAscendGraphS1S0_Reorder(graph_s0), af::SUCCESS);
     graph_s0.SetTilingKey(7U);
     ConstructTwoGraphTwoResult(kGraphName, graph_nd, graph_s0, fused_scheduled_result);
   }
@@ -2836,11 +2836,11 @@ TEST_F(STestGenConcat, fused_schedule_result_tiling_case_score_same_schedule) {
     ascir::AscGraph sr0_g0_0(kGraphName.c_str());
     ascir::AscGraph sr0_g0_1("graph_nd_1");
     ascir::AscGraph sr0_g0_2("graph_nd_2");
-    ASSERT_EQ(af::ascir::cg::BuildConcatGroupAscendGraphND2TB(sr0_g0_0), ge::SUCCESS);
+    ASSERT_EQ(af::ascir::cg::BuildConcatGroupAscendGraphND2TB(sr0_g0_0), af::SUCCESS);
     sr0_g0_0.SetTilingKey(0U);
-    ASSERT_EQ(af::ascir::cg::BuildConcatGroupAscendGraphND2WithAbs(sr0_g0_1), ge::SUCCESS);
+    ASSERT_EQ(af::ascir::cg::BuildConcatGroupAscendGraphND2WithAbs(sr0_g0_1), af::SUCCESS);
     sr0_g0_1.SetTilingKey(1U);
-    ASSERT_EQ(af::ascir::cg::BuildConcatGroupAscendGraphND2(sr0_g0_2), ge::SUCCESS);
+    ASSERT_EQ(af::ascir::cg::BuildConcatGroupAscendGraphND2(sr0_g0_2), af::SUCCESS);
     sr0_g0_2.SetTilingKey(2U);
 
     ascir::ScheduleGroup schedule_group2;
@@ -2877,7 +2877,7 @@ TEST_F(STestGenConcat, fused_schedule_result_prompt_aligned) {
     ascir::ScheduledResult schedule_result2;
     std::vector<ascir::ScheduledResult> schedule_results;
     ascir::AscGraph graph_s0(kGraphName.c_str());
-    ASSERT_EQ(af::ascir::cg::BuildConcatGroupAscendGraphND2TB(graph_s0), ge::SUCCESS);
+    ASSERT_EQ(af::ascir::cg::BuildConcatGroupAscendGraphND2TB(graph_s0), af::SUCCESS);
     graph_s0.SetTilingKey(1U);
     schedule_group2.impl_graphs.emplace_back(graph_s0);
     GraphConstructUtils::UpdateGraphsVectorizedStride(schedule_group2.impl_graphs);
@@ -2925,7 +2925,7 @@ TEST_F(STestGenConcat, static_shape_cache_support) {
 
   const std::string kFirstGraphName = "graph_static_cache";
   ascir::AscGraph graph_static(kFirstGraphName.c_str());
-  ASSERT_EQ(af::ascir::cg::BuildConcatGroupAscendGraphStatic(graph_static), ge::SUCCESS);
+  ASSERT_EQ(af::ascir::cg::BuildConcatGroupAscendGraphStatic(graph_static), af::SUCCESS);
 
   // 使用辅助函数构建schedule_group
   BuildSingleGraphToScheduleGroup(graph_static, schedule_group1, 0U);
@@ -2975,8 +2975,8 @@ TEST_F(STestGenConcat, multi_group_with_enable_group_parallel_optimize) {
   const std::string kGraphName = "graph_nd";
   ascir::AscGraph graph_nd(kGraphName.c_str());
   ascir::AscGraph graph_s0("graph_s0");
-  ASSERT_EQ(af::ascir::cg::BuildConcatGroupAscendGraphND(graph_nd), ge::SUCCESS);
-  ASSERT_EQ(af::ascir::cg::BuildConcatGroupAscendGraphND(graph_s0), ge::SUCCESS);
+  ASSERT_EQ(af::ascir::cg::BuildConcatGroupAscendGraphND(graph_nd), af::SUCCESS);
+  ASSERT_EQ(af::ascir::cg::BuildConcatGroupAscendGraphND(graph_s0), af::SUCCESS);
   BuildSingleGraphToScheduleGroup(graph_nd, schedule_group1, 0U);
   BuildSingleGraphToScheduleGroup(graph_s0, schedule_group2, 1U);
   schedule_result1.schedule_groups.emplace_back(schedule_group1);

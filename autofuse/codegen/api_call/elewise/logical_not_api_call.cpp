@@ -46,7 +46,7 @@ Status LogicalNotApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::
      << tpipe.tiler.TensorVectorizedOffset(current_axis, x) << "], local_blk_tensor_of_half_1, " << tpipe.tmp_buf << "_"
      << std::to_string(id) << ", " << x.actual_size << ");" << std::endl;
   result = ss.str();
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 static ApiCallRegister<LogicalNotApiCall> register_logical_not_api_call("LogicalNotApiCall");
 }  // namespace codegen

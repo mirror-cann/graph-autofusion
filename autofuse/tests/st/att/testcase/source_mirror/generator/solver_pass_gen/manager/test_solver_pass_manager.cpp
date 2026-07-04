@@ -59,8 +59,8 @@ TEST_F(TestSolverPassManager, NormalStaticUint32Shape) {
   std::map<size_t, std::map<size_t, std::vector<ModelInfo>>> model_infos_new;
   model_infos_new[0][0] = model_infos;
   std::map<std::string, std::string> tiling_res;
-  EXPECT_EQ(ReuseGroupUtils::InitReuseScheduleGroup({0UL, 0UL, 0UL}, model_infos), ge::SUCCESS);
-  EXPECT_EQ(generator.GenTilingCode("OpTest", model_infos, config, tiling_res), ge::SUCCESS);
+  EXPECT_EQ(ReuseGroupUtils::InitReuseScheduleGroup({0UL, 0UL, 0UL}, model_infos), af::SUCCESS);
+  EXPECT_EQ(generator.GenTilingCode("OpTest", model_infos, config, tiling_res), af::SUCCESS);
   ASSERT_EQ(tiling_res.size(), 4);
 }
 
@@ -77,7 +77,7 @@ TEST_F(TestSolverPassManager, NormalStaticRationShape) {
   std::map<size_t, std::map<size_t, std::vector<ModelInfo>>> model_infos_new;
   model_infos_new[0][0] = model_infos;
   std::map<std::string, std::string> tiling_res;
-  EXPECT_EQ(ReuseGroupUtils::InitReuseScheduleGroup({0UL, 0UL, 0UL}, model_infos), ge::SUCCESS);
-  EXPECT_EQ(generator.GenTilingCode("OpTest", model_infos, config, tiling_res), ge::SUCCESS);
+  EXPECT_EQ(ReuseGroupUtils::InitReuseScheduleGroup({0UL, 0UL, 0UL}, model_infos), af::SUCCESS);
+  EXPECT_EQ(generator.GenTilingCode("OpTest", model_infos, config, tiling_res), af::SUCCESS);
   ASSERT_EQ(tiling_res.size(), 4);
 }

@@ -29,7 +29,7 @@ constexpr uint64_t kDmaMaxLen = 2U;
 namespace codegen {
 Status LoadApiCall::ParseAttr(const ascir::NodeView &node) {
   (void)node->attr.ir_attr->GetAttrValue("offset", offset_);
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status LoadApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
@@ -54,7 +54,7 @@ Status LoadApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::AxisId
   }
 
   result = ss.str();
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 static ApiCallRegister<LoadApiCall> register_load_api_call("LoadApiCall");
 }  // namespace codegen

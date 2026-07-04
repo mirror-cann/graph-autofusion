@@ -48,6 +48,6 @@ Status BroadcastConstToStorePass::RunPass(af::AscGraph &graph) {
     *scalar_broadcast.y.strides = node->outputs[0].attr.strides;
     scalar_broadcast.y.dtype = node->outputs[0].attr.dtype;
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 }  // namespace optimize

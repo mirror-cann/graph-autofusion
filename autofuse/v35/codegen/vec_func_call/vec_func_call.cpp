@@ -312,7 +312,7 @@ Status VfCall::ParseSubGraph(const ascir::NodeView &vf_node, const ascir::ImplGr
 Status VfCall::ParseInputOutputInfo(const TPipe &tpipe) const {
   for (const auto &in : inputs) {
     auto tensor_ptr = tpipe.GetTensor(in->id);
-    GE_CHK_BOOL_RET_STATUS(tensor_ptr != nullptr, ge::FAILED, "Check[Param] tensor_ptr is nullptr");
+    GE_CHK_BOOL_RET_STATUS(tensor_ptr != nullptr, af::FAILED, "Check[Param] tensor_ptr is nullptr");
     if (tensor_ptr->IsConstScalar()) {
       scalar_inputs_.emplace_back(*tensor_ptr);
     } else {
@@ -322,11 +322,11 @@ Status VfCall::ParseInputOutputInfo(const TPipe &tpipe) const {
 
   for (const auto &out : outputs) {
     auto tensor_ptr = tpipe.GetTensor(out.id);
-    GE_CHK_BOOL_RET_STATUS(tensor_ptr != nullptr, ge::FAILED, "Check[Param] tensor_ptr is nullptr");
+    GE_CHK_BOOL_RET_STATUS(tensor_ptr != nullptr, af::FAILED, "Check[Param] tensor_ptr is nullptr");
     ub_outputs_.emplace_back(*tensor_ptr);
   }
   // 处理合轴信息
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 void GenerateStridesEqualCheck(const std::vector<Tensor> &inputs, const std::vector<Tensor> &outputs,
@@ -497,7 +497,7 @@ Status VfCall::GenerateFuncDefinition(const TPipe &tpipe, const Tiler &tiler, st
   GetVFCallFuncBody(params.str(), vf_body.str(), ss);
   ss << "#endif" << std::endl;
 
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status VfCall::Generate(const TPipe &tpipe, [[maybe_unused]] const std::vector<ascir::AxisId> &current_axis,
@@ -526,7 +526,7 @@ Status VfCall::Generate(const TPipe &tpipe, [[maybe_unused]] const std::vector<a
   }
   ss << "#endif" << std::endl;
   result = ss.str();
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 VfCall::~VfCall() {

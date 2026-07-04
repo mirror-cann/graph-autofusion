@@ -65,7 +65,7 @@ Status UpdateInputDtypes(const af::OpDescPtr &op_desc, const std::shared_ptr<af:
   input_desc_mask->SetDataType(dtype_mask);
   input_desc_value->SetDataType(dtype_value);
   input_desc_x->SetDataType(dtype_x);
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status ReorderMaskedFillInput(const std::shared_ptr<af::AscNode> &node) {
@@ -75,7 +75,7 @@ Status ReorderMaskedFillInput(const std::shared_ptr<af::AscNode> &node) {
   if (in_anchors.size() < kMaskedFillMinInputCount) {
     GELOGD("MaskedFillInputReorderPass: node %s has %zu inputs (< %zu), skip reorder.", node->GetNamePtr(),
            in_anchors.size(), kMaskedFillMinInputCount);
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
 
   ge::DataType dtype_x = GetDtypeFromInput(in_anchors[kMaskedFillInputXIndex]);
@@ -105,7 +105,7 @@ Status MaskedFillInputReorderPass::RunPass(af::AscGraph &graph) {
     }
     GE_ASSERT_SUCCESS(ReorderMaskedFillInput(node));
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 }  // namespace optimize

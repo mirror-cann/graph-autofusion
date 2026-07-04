@@ -32,11 +32,11 @@ void TracingRecorderManager::RecordDuration(TracingModule module, const std::vec
   tracing_recorder->RecordDuration(msgs, start, duration);
 }
 
-Status TracingRecorderManager::Report(const TracingModule module) const {
+af::Status TracingRecorderManager::Report(const TracingModule module) const {
   auto tracing_recorder = GetTracingRecorder(module);
   GE_ASSERT_NOTNULL(tracing_recorder);
   tracing_recorder->Report();
-  return SUCCESS;
+  return af::SUCCESS;
 }
 
 void TracingRecorderManager::InitTracingRecorder() {

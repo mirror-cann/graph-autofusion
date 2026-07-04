@@ -558,7 +558,7 @@ const Tensor *Loop::GetReduceInputTensor(const TPipe &tpipe) const {
       return in_tensor_ptr;
     }
   }
-  GELOGE(ge::FAILED, "No valid reduce input tensor found.");
+  GELOGE(af::FAILED, "No valid reduce input tensor found.");
   return nullptr;
 }
 
@@ -1073,7 +1073,7 @@ BoolType ApiCall::WaitShareInputs(const TPipe &tpipe, const ApiTensor *in, const
   return BoolType::FALSE;
 }
 
-ge::Status DefineShareOffsets(const TPipe &tpipe, const ApiTensor &out, const Tensor &t, std::stringstream &ss) {
+af::Status DefineShareOffsets(const TPipe &tpipe, const ApiTensor &out, const Tensor &t, std::stringstream &ss) {
   std::map<int32_t, const ApiTensor *> order_to_tensor;
   for (auto it = out.share_prev; it != nullptr; it = it->share_prev) {
     order_to_tensor.emplace(it->share_order, it);
@@ -1492,7 +1492,7 @@ bool ApiCall::IsUnitLastRead(const ApiTensor &tensor) const {
   return false;
 }
 
-ge::Status ApiCall::RegisterBasicDumpParam(const std::string &api_name,
+af::Status ApiCall::RegisterBasicDumpParam(const std::string &api_name,
                                            const std::vector<std::reference_wrapper<const Tensor>> &inputs,
                                            const std::vector<std::reference_wrapper<const Tensor>> &outputs,
                                            const CombinedExpression &cal_count, const std::string &tmp_buf_name) const {

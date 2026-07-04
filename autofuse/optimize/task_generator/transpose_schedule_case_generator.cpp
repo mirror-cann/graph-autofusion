@@ -39,7 +39,7 @@ Status TransposeFusionCaseGenerator::TransposeNodeInputsAndOutputsCheck(const af
   const auto &transpose_in_data_nodes = transpose_node->GetInDataNodes();
   GE_ASSERT_TRUE(transpose_in_data_nodes.size() == 1UL, "%zu nodes links to transpose node:%s",
                  transpose_in_data_nodes.size(), transpose_node->GetNamePtr());
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 void TransposeFusionCaseGenerator::UpdateAxisByPath(::ascir::ImplGraph &owner_graph, const af::NodePtr &input_node,
@@ -85,7 +85,7 @@ Status TransposeFusionCaseGenerator::TransposeConvertProcess(ascir::HintGraph &g
 
   GE_ASSERT_GRAPH_SUCCESS(ScheduleUtils::TopologicalSorting(graph));
   ascir::utils::DumpGraph(graph, "AfterConvertTranspose");
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status TransposeFusionCaseGenerator::Generate(ascir::HintGraph &graph, std::vector<ascir::ImplGraph> &graphs,
@@ -103,7 +103,7 @@ Status TransposeFusionCaseGenerator::Generate(ascir::HintGraph &graph, std::vect
   const auto transpose_nodes = FindTransposeNodes(graph);
   if (transpose_nodes.empty()) {
     GELOGI("No transpose node found, skip");
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
 
   GraphPropertiesCache cache(graph);
@@ -114,7 +114,7 @@ Status TransposeFusionCaseGenerator::Generate(ascir::HintGraph &graph, std::vect
       GE_CHK_STATUS_RET(TransposeConvertProcess(graph, remaining.front()), "TransposeConvertProcess failed");
       remaining = FindTransposeNodes(graph);
     }
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
 
   if (transpose_nodes.size() == 1UL) {
@@ -145,7 +145,7 @@ Status TransposeFusionCaseGenerator::Generate(ascir::HintGraph &graph, std::vect
     graphs.emplace_back(optimized_graph);
   }
 
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status TransposeFusionCaseGenerator::GenerateScoreFuncForUbReorder(const ascir::HintGraph &graph,
@@ -161,7 +161,7 @@ TransposeScoreFunctionGenerator::TransposeScoreFunctionGenerator(const ascir::Hi
 Status TransposeScoreFunctionGenerator::ParseRepeat() {
   const auto last_idx = transpose_node_->inputs[0].attr.axis.size() - 1;
   repeat_ = transpose_node_->inputs[0].attr.repeats[last_idx];
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status TransposeScoreFunctionGenerator::Generate(std::string &score_func) {
@@ -172,7 +172,7 @@ Status TransposeScoreFunctionGenerator::Generate(std::string &score_func) {
   GE_CHK_STATUS_RET(GetScoreByExpr(score));
   GenerateReturnValue(score);
   score_func = ss_.str();
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 void TransposeScoreFunctionGenerator::GenerateReturnValue(const int32_t score) {
@@ -188,7 +188,7 @@ Status TransposeScoreFunctionGenerator::GetScoreByExpr(int32_t &score) const {
 
   if (input_tail_axis != output_tail_axis) {
     score = 1;
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
   // 非尾轴转置需要根据尾轴大小确定分数
   int32_t dim = -1;
@@ -196,6 +196,6 @@ Status TransposeScoreFunctionGenerator::GetScoreByExpr(int32_t &score) const {
                  af::SymbolicUtils::ToString(repeat_).c_str());
   const auto limited_size = transposeNoNeedUBConvertSize / GetSizeByDataType(transpose_node_->inputs[0].attr.dtype);
   score = dim < limited_size ? 1 : -1;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 }  // namespace optimize

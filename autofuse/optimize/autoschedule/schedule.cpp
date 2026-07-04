@@ -93,10 +93,10 @@ bool IsRedundantBroadcast(const ascir::ImplGraph &impl_graph, const af::AscNodeP
   std::vector<af::Expression> in_vec_repeats;
   const auto &in_attr = pre_node->outputs[pre_node_out_index].attr;
   GE_WARN_ASSERT(optimize::ScheduleUtils::GetVectorRepeats(in_attr.repeats, in_attr.axis, in_attr.vectorized_axis,
-                                                           in_vec_repeats) == ge::SUCCESS,
+                                                           in_vec_repeats) == af::SUCCESS,
                  "%s[%s] GetVectorRepeats failed", pre_node->GetTypePtr(), pre_node->GetNamePtr());
   std::vector<af::Expression> out_vec_repeats;
-  GE_WARN_ASSERT(optimize::ScheduleUtils::GetNodeOutVectorRepeats(brc_node, out_vec_repeats) == ge::SUCCESS);
+  GE_WARN_ASSERT(optimize::ScheduleUtils::GetNodeOutVectorRepeats(brc_node, out_vec_repeats) == af::SUCCESS);
 
   if (out_vec_repeats.size() != in_vec_repeats.size()) {
     GELOGD("Graph [%s] Broadcast [%s] output vector strides.size(%zu) != in vector strides.size(%zu), skip it",
@@ -146,12 +146,12 @@ bool IsContinuesBroadcast(const ascir::ImplGraph &impl_graph, const af::AscNodeP
   }
 
   std::vector<af::Expression> in_vec_repeats;
-  if (optimize::ScheduleUtils::GetNodeInputVectorRepeats(pre_node, in_vec_repeats) != ge::SUCCESS) {
+  if (optimize::ScheduleUtils::GetNodeInputVectorRepeats(pre_node, in_vec_repeats) != af::SUCCESS) {
     GELOGD("Graph [%s], get [%s] input vector repeats failed.", impl_graph.GetName().c_str(), pre_node->GetNamePtr());
     return false;
   }
   std::vector<af::Expression> out_vec_repeats;
-  if (optimize::ScheduleUtils::GetNodeOutVectorRepeats(brc_node, out_vec_repeats) != ge::SUCCESS) {
+  if (optimize::ScheduleUtils::GetNodeOutVectorRepeats(brc_node, out_vec_repeats) != af::SUCCESS) {
     GELOGD("Graph [%s], get [%s] output vector repeats failed.", impl_graph.GetName().c_str(), brc_node->GetNamePtr());
     return false;
   }
@@ -252,7 +252,7 @@ Status Scheduler::ReduceBlockTiling(std::vector<ascir::AxisId> &tile_out_axes,
   tiling_case_.block_tiling_id = block_axis->id;
   tile_out_axes.push_back(block_axis->id);
   tile_out_axes.push_back(tiling_case_.reduce_block_tiling.second->id);
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 void Scheduler::FuseTileOutAxes(const std::vector<ascir::AxisId> &non_reduce_outer_axes,
@@ -338,7 +338,7 @@ Status Scheduler::BlockSplit(std::vector<ascir::AxisId> &tile_out_axes) {
   // 对fuse后的外轴进行block切分
   HandleBlockSplitting(tile_out_axes, non_reduce_outer_axes, reduce_outer_axes);
 
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 // R 切多核场景，reduce_block_id 是R用于切多核部分
@@ -363,7 +363,7 @@ Status Scheduler::ModifyStoreAfterReduce(ascir::NodeView &node, ascir::AxisId re
     output_attr.repeats[index] = reduce_block_axis->size;
     output_attr.strides[index] = size_product;
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status Scheduler::ApplyBlockSplitToNode(ascir::NodeView &node, bool is_store_after_reduce) {
@@ -402,7 +402,7 @@ Status Scheduler::ApplyBlockSplitToNode(ascir::NodeView &node, bool is_store_aft
     // 多核切R场景，block_tiling_id 是merge出来的, 不需要ApplyTiling
     ApplyTiling(node, tiling_case_.block_tiling_id, tiling_case_.block_tiling);
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 void Scheduler::FindVectorizedAxes(std::vector<ascir::AxisId> &vectorized_axes,
@@ -473,7 +473,7 @@ Status Scheduler::RemoveRedundantBroadcastNode(const ascir::ImplGraph &impl_grap
     auto pre_node = std::dynamic_pointer_cast<af::AscNode>(pre_node_out_anchor->GetOwnerNode());
     GE_CHECK_NOTNULL(pre_node);
     auto pre_node_out_index = static_cast<uint32_t>(pre_node_out_anchor->GetIdx());
-    GE_CHK_BOOL_RET_STATUS(pre_node_out_index < pre_node->GetAllOutDataAnchorsSize(), ge::FAILED,
+    GE_CHK_BOOL_RET_STATUS(pre_node_out_index < pre_node->GetAllOutDataAnchorsSize(), af::FAILED,
                            "Broadcast input node %s[%s] output data anchor size is %u, but out anchor index is %u",
                            pre_node->GetTypePtr(), pre_node->GetNamePtr(), pre_node->GetAllOutDataAnchorsSize(),
                            pre_node_out_index);
@@ -493,7 +493,7 @@ Status Scheduler::RemoveRedundantBroadcastNode(const ascir::ImplGraph &impl_grap
       GELOGD("Graph [%s] Broadcast [%s] is useful, keep it.", impl_graph.GetName().c_str(), node->GetNamePtr());
     }
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status Scheduler::TileSplit() {
@@ -553,13 +553,13 @@ Status Scheduler::TileSplit() {
       }
     }
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status Scheduler::DoScheduler() {
   if (cube_template_ == ascir::CubeTemplateType::kFixpip) {
     ascir::utils::DumpGraph(graph_, "AfterDoTiling");
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
   RemoveDuplicatedAxisFromGroup();
   // Tile Split
@@ -574,13 +574,13 @@ Status Scheduler::DoScheduler() {
   }
   GE_CHK_STATUS_RET(RemoveRedundantBroadcastNode(graph_));
   auto align_ret = AlignmentHandler::AlignVectorizedStrides(graph_);
-  if (align_ret != ge::SUCCESS) {
+  if (align_ret != af::SUCCESS) {
     return align_ret;  // 返回 UNSUPPORTED 让上层跳过这个模板
   }
   GE_ASSERT_SUCCESS(NodeCacheMarker(graph_).MarkIfNodeNeedsCache());
   GE_ASSERT_SUCCESS(AlignmentHandler::ModifyVectorizedStrides(graph_));
   ascir::utils::DumpGraph(graph_, "AfterDoTiling");
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status Scheduler::ApplyBlockSplit(const std::vector<ascir::AxisId> &new_sched_axes) {
@@ -601,7 +601,7 @@ Status Scheduler::ApplyBlockSplit(const std::vector<ascir::AxisId> &new_sched_ax
     GE_ASSERT_SUCCESS(ApplyBlockSplitToNode(node, is_store_after_reduce));
     graph_.ApplySchedAxisReorder(node, node_new_sched_axes);
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 void Scheduler::RemoveDuplicatedAxisFromGroup() {

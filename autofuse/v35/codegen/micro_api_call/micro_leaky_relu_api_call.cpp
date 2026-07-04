@@ -32,7 +32,7 @@ Status MicroLeakyReluApiCall::Generate(const codegen::TensorManager &tensor_mng,
   ss << "(" << x_dtype << ")" << std::to_string(this->negative_slope_) << ", ";
   ss << param.p_reg << ");" << std::endl;
   result = ss.str();
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status MicroLeakyReluApiCall::Init(const ascir::NodeView &node) {
@@ -40,7 +40,7 @@ Status MicroLeakyReluApiCall::Init(const ascir::NodeView &node) {
   GE_CHK_GRAPH_STATUS_RET(node->attr.ir_attr->GetAttrValue("negative_slope", this->negative_slope_),
                           "Failed to get LeakyRelu negative_slope attr, node = %s", node->GetNamePtr());
   GELOGI("name:%s, negative_slope:%f", node->GetNamePtr(), this->negative_slope_);
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 static MicroApiCallRegister<MicroLeakyReluApiCall> register_micro_leaky_relu_api_call("MicroLeakyReluApiCall");

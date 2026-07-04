@@ -62,11 +62,11 @@ struct PerfOutputInfo {
     return res;
   }
 };
-using MicroPerfFunc = ge::Status (*)(const std::vector<NodePerfInfo> &node_perf_infos, Expr &res);
-using Perf = ge::Status (*)(const std::vector<TensorShapeInfo> &input_shapes,
+using MicroPerfFunc = af::Status (*)(const std::vector<NodePerfInfo> &node_perf_infos, Expr &res);
+using Perf = af::Status (*)(const std::vector<TensorShapeInfo> &input_shapes,
                             const std::vector<TensorShapeInfo> &output_shapes, const NodeInfo &node,
                             PerfOutputInfo &res);
-using AscendCPerf = ge::Status (*)(const NodeDetail &node_info, PerfOutputInfo &perf);
+using AscendCPerf = af::Status (*)(const NodeDetail &node_info, PerfOutputInfo &perf);
 class ApiPerf {
  public:
   ApiPerf(const std::string &api_name, Perf perf_func, MicroPerfFunc micro_perf_func, const PerfParamTable *perf_param,
@@ -101,11 +101,11 @@ class ApiPerf {
   std::string api_name_;
 };
 
-inline ge::Status DefaultGetPerf([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
+inline af::Status DefaultGetPerf([[maybe_unused]] const std::vector<TensorShapeInfo> &input_shapes,
                                  [[maybe_unused]] const std::vector<TensorShapeInfo> &output_shapes,
                                  [[maybe_unused]] const NodeInfo &node, [[maybe_unused]] PerfOutputInfo &res) {
   (void)res;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 }  // namespace att
 #endif

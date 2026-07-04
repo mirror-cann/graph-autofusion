@@ -38,7 +38,7 @@ af::Status PassUtils::PruneGraph(af::AscGraph &graph) {
   }
   if (out_nodes.empty()) {
     GELOGW("Graph [%s] does not contain valid output nodes, skip pruning.", graph_name.c_str());
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
 
   std::unordered_set<af::NodePtr> reserved_nodes;
@@ -83,7 +83,7 @@ af::Status PassUtils::PruneGraph(af::AscGraph &graph) {
     GELOGD("Remove redundant graph node [%s] in graph [%s].", node_ptr->GetNamePtr(), graph_name.c_str());
   }
 
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 af::Status PassUtils::RelinkAllOutNodeToSrc(const af::OutDataAnchorPtr &old_src, const af::OutDataAnchorPtr &new_src) {
@@ -92,7 +92,7 @@ af::Status PassUtils::RelinkAllOutNodeToSrc(const af::OutDataAnchorPtr &old_src,
   for (const auto &cur_next_in_anchor : old_src->GetPeerInDataAnchors()) {
     GE_ASSERT_SUCCESS(af::GraphUtils::ReplaceEdgeSrc(old_src, cur_next_in_anchor, new_src));
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 af::AscNodePtr PassUtils::CreateOneScalarBrc(af::AscGraph &graph, const af::AscNodePtr &ref_node) {

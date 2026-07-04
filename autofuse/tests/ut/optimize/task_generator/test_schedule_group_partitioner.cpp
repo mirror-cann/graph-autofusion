@@ -91,7 +91,7 @@ TEST_F(ScheduleGroupGraphPartitionerTest, ReduceGraphCount_LessThan5_NoChange) {
   graphs.push_back(CreateSimpleGraph("graph2", 2));
 
   size_t original_size = graphs.size();
-  EXPECT_EQ(ScheduleGroupGraphPartitioner::ReduceGraphCount(graphs, 5), ge::SUCCESS);
+  EXPECT_EQ(ScheduleGroupGraphPartitioner::ReduceGraphCount(graphs, 5), af::SUCCESS);
 
   EXPECT_EQ(graphs.size(), original_size);
 }
@@ -104,7 +104,7 @@ TEST_F(ScheduleGroupGraphPartitionerTest, ReduceGraphCount_Exactly5_NoChange) {
   }
 
   size_t original_size = graphs.size();
-  EXPECT_EQ(ScheduleGroupGraphPartitioner::ReduceGraphCount(graphs, 5), ge::SUCCESS);
+  EXPECT_EQ(ScheduleGroupGraphPartitioner::ReduceGraphCount(graphs, 5), af::SUCCESS);
 
   EXPECT_EQ(graphs.size(), original_size);
 }
@@ -120,7 +120,7 @@ TEST_F(ScheduleGroupGraphPartitionerTest, ReduceGraphCount_MoreThan5_AllMergeabl
     graphs.push_back(std::move(graph));
   }
 
-  EXPECT_EQ(ScheduleGroupGraphPartitioner::ReduceGraphCount(graphs, 5), ge::SUCCESS);
+  EXPECT_EQ(ScheduleGroupGraphPartitioner::ReduceGraphCount(graphs, 5), af::SUCCESS);
 
   EXPECT_EQ(graphs.size(), 5UL);
 }
@@ -144,7 +144,7 @@ TEST_F(ScheduleGroupGraphPartitionerTest, ReduceGraphCount_MoreThan5_NoneMergeab
   }
 
   size_t original_size = graphs.size();
-  EXPECT_EQ(ScheduleGroupGraphPartitioner::ReduceGraphCount(graphs, 5), ge::SUCCESS);
+  EXPECT_EQ(ScheduleGroupGraphPartitioner::ReduceGraphCount(graphs, 5), af::SUCCESS);
 
   EXPECT_EQ(graphs.size(), original_size);
 }
@@ -165,7 +165,7 @@ TEST_F(ScheduleGroupGraphPartitionerTest, ReduceGraphCount_MoreThan5_SomeMergeab
     graphs.push_back(CreateGraphWithDifferentAxis("diff_axis_" + std::to_string(i), i + 10));
   }
 
-  EXPECT_EQ(ScheduleGroupGraphPartitioner::ReduceGraphCount(graphs, 5), ge::SUCCESS);
+  EXPECT_EQ(ScheduleGroupGraphPartitioner::ReduceGraphCount(graphs, 5), af::SUCCESS);
 
   // Should reduce from 8 to 5 by merging 3 pairs from the same_axis group
   EXPECT_EQ(graphs.size(), 5UL);
@@ -209,7 +209,7 @@ TEST_F(ScheduleGroupGraphPartitionerTest, ReduceGraphCount_Priority_MergeSmalles
   }
 
   // Total: 8 graphs, should reduce to 5
-  EXPECT_EQ(ScheduleGroupGraphPartitioner::ReduceGraphCount(graphs, 5), ge::SUCCESS);
+  EXPECT_EQ(ScheduleGroupGraphPartitioner::ReduceGraphCount(graphs, 5), af::SUCCESS);
 
   EXPECT_EQ(graphs.size(), 5UL);
 }
@@ -229,7 +229,7 @@ TEST_F(ScheduleGroupGraphPartitionerTest, ReduceGraphCount_WithConcat_NotMerged)
   }
 
   // Total: 8 graphs
-  EXPECT_EQ(ScheduleGroupGraphPartitioner::ReduceGraphCount(graphs, 5), ge::SUCCESS);
+  EXPECT_EQ(ScheduleGroupGraphPartitioner::ReduceGraphCount(graphs, 5), af::SUCCESS);
 
   // Should reduce from 8 to 6 by merging 2 simple graphs, then stop
   // (can't merge concat graphs, and only 1 simple graph left)
@@ -248,7 +248,7 @@ TEST_F(ScheduleGroupGraphPartitionerTest, ReduceGraphCount_CustomTarget_Respecte
     graphs.push_back(std::move(graph));
   }
 
-  EXPECT_EQ(ScheduleGroupGraphPartitioner::ReduceGraphCount(graphs, 3), ge::SUCCESS);
+  EXPECT_EQ(ScheduleGroupGraphPartitioner::ReduceGraphCount(graphs, 3), af::SUCCESS);
 
   EXPECT_EQ(graphs.size(), 3UL);
 }
@@ -257,7 +257,7 @@ TEST_F(ScheduleGroupGraphPartitionerTest, ReduceGraphCount_CustomTarget_Respecte
 TEST_F(ScheduleGroupGraphPartitionerTest, ReduceGraphCount_EmptyList_NoCrash) {
   std::vector<af::AscGraph> graphs;
 
-  EXPECT_EQ(ScheduleGroupGraphPartitioner::ReduceGraphCount(graphs, 5), ge::SUCCESS);
+  EXPECT_EQ(ScheduleGroupGraphPartitioner::ReduceGraphCount(graphs, 5), af::SUCCESS);
 
   EXPECT_EQ(graphs.size(), 0UL);
 }
@@ -283,7 +283,7 @@ TEST_F(ScheduleGroupGraphPartitionerTest, ReduceGraphCount_MergedGraph_ContainsA
     graphs.push_back(std::move(graph));
   }
 
-  EXPECT_EQ(ScheduleGroupGraphPartitioner::ReduceGraphCount(graphs, 5), ge::SUCCESS);
+  EXPECT_EQ(ScheduleGroupGraphPartitioner::ReduceGraphCount(graphs, 5), af::SUCCESS);
 
   EXPECT_EQ(graphs.size(), 5UL);
 }
@@ -321,7 +321,7 @@ TEST_F(ScheduleGroupGraphPartitionerTest, ReduceGraphCount_NoSourceReuseAsDestin
   }
 
   // Reduce from 6 to 2 (4 reductions needed)
-  EXPECT_EQ(ScheduleGroupGraphPartitioner::ReduceGraphCount(graphs, 2), ge::SUCCESS);
+  EXPECT_EQ(ScheduleGroupGraphPartitioner::ReduceGraphCount(graphs, 2), af::SUCCESS);
 
   EXPECT_EQ(graphs.size(), 2UL);
 

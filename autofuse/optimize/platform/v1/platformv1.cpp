@@ -27,7 +27,7 @@ PlatformV1::PlatformV1() {
 }
 
 af::Status PlatformV1::PartitionSubFunctions([[maybe_unused]] af::AscGraph &impl_graph) {
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 std::unique_ptr<BaseAlignmentStrategy> PlatformV1::GetAlignmentStrategy() {
@@ -87,7 +87,7 @@ Status PlatformV1::GenerateTasks(ascir::ImplGraph &optimize_graph, const Optimiz
     GE_CHK_STATUS_RET(RecomputeCaseGenerator().GeneratorTask(optimize_graph, tasks, options),
                       "Failed to generate recomputation tasks for graph[%s].", optimize_graph.GetName().c_str());
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 std::set<std::string> PlatformV1::BroadcastTypes() const {

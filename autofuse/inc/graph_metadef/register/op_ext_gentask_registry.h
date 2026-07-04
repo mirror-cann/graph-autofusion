@@ -15,12 +15,12 @@
 #include <vector>
 #include "graph/node.h"
 #include "proto/task.pb.h"
-#include "external/ge_common/ge_api_types.h"
+#include "external/ge_common_af/ge_api_types.h"
 #include "common/opskernel/ops_kernel_info_types.h"
 namespace fe {
-using OpExtGenTaskFunc = ge::Status (*)(const ge::Node &node, ge::RunContext &context,
+using OpExtGenTaskFunc = af::Status (*)(const ge::Node &node, ge::RunContext &context,
                                         std::vector<domi::TaskDef> &tasks);
-using SKExtGenTaskFunc = ge::Status (*)(const ge::Node &node, std::vector<std::vector<domi::TaskDef>> &subTasks,
+using SKExtGenTaskFunc = af::Status (*)(const ge::Node &node, std::vector<std::vector<domi::TaskDef>> &subTasks,
                                         const std::vector<ge::Node *> &sub_nodes, std::vector<domi::TaskDef> &tasks);
 
 enum class ExtTaskType { kFftsPlusTask, kAicoreTask };

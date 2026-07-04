@@ -31,13 +31,13 @@ class ExtraInfoGenerator {
    * @param type_name_to_definition_map tilingdata字段的类型名--tilingdata定义 例如 LoopNumData -- "struct LoopNumData
    * {... }"
    */
-  ge::Status GetExtraTilingDataDef(std::map<std::string, std::string> &type_name_to_definition);
+  af::Status GetExtraTilingDataDef(std::map<std::string, std::string> &type_name_to_definition);
   /**
    * @brief 获取tilingdata字段
    * @param const uint32_t tiling_key 一个modelinfo
    * @param tiling_vars 变量名
    */
-  ge::Status GetExtraTilingVars(const uint32_t tiling_key, std::set<std::string> &tiling_vars);
+  af::Status GetExtraTilingVars(const uint32_t tiling_key, std::set<std::string> &tiling_vars);
 
  private:
   std::string WriteCoreParamData(const ModelInfo &model_info, const TilingDataGenType tiling_data_gen_type,

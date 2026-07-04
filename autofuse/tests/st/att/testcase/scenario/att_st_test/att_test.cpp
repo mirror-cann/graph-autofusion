@@ -57,9 +57,9 @@ TEST_F(TestAtt, test_generator) {
   config.type = TilingImplType::HIGH_PERF;
   config.gen_extra_infos = true;
   config.tiling_data_type_name = "MMTilingData";
-  EXPECT_EQ(ReuseGroupUtils::InitReuseScheduleGroup({0UL, 0UL, 0UL}, modelInfos), ge::SUCCESS);
+  EXPECT_EQ(ReuseGroupUtils::InitReuseScheduleGroup({0UL, 0UL, 0UL}, modelInfos), af::SUCCESS);
   TilingCodeGenerator generator;
-  EXPECT_EQ(generator.GenTilingCode(op_name, modelInfos, config), ge::SUCCESS);
+  EXPECT_EQ(generator.GenTilingCode(op_name, modelInfos, config), af::SUCCESS);
   AddHeaderGuardToFile("autofuse_tiling_func_common.h", "__AUTOFUSE_TILING_FUNC_COMMON_H__");
 
   ret = std::system(std::string("cp ").append(TILING_DATA_DIR).append("/tiling_func_main.cpp ./ -f").c_str());
@@ -86,8 +86,8 @@ TEST_F(TestAtt, test_ceiling_generator) {
   config.gen_extra_infos = true;
   config.tiling_data_type_name = "CeilingTilingData";
   TilingCodeGenerator generator;
-  EXPECT_EQ(ReuseGroupUtils::InitReuseScheduleGroup({0UL, 0UL, 0UL}, modelInfos), ge::SUCCESS);
-  EXPECT_EQ(generator.GenTilingCode(op_name, modelInfos, config), ge::SUCCESS);
+  EXPECT_EQ(ReuseGroupUtils::InitReuseScheduleGroup({0UL, 0UL, 0UL}, modelInfos), af::SUCCESS);
+  EXPECT_EQ(generator.GenTilingCode(op_name, modelInfos, config), af::SUCCESS);
   AddHeaderGuardToFile("autofuse_tiling_func_common.h", "__AUTOFUSE_TILING_FUNC_COMMON_H__");
   ret = std::system(std::string("cp ").append(TILING_DATA_DIR).append("/tiling_func_ceiling.cpp ./ -f").c_str());
   ret = std::system(std::string("cp ").append(ST_DIR).append("/testcase/stub/op_log.h ./ -f").c_str());

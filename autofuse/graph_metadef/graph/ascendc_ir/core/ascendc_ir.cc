@@ -893,7 +893,7 @@ Status AscGraphImpl::AddSubGraph(const ComputeGraphPtr &sub_graph) const {
   auto root_graph = GraphUtils::FindRootGraph(compute_graph_);
   GE_ASSERT_NOTNULL(root_graph);
   root_graph->AddSubGraph(sub_graph);
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status AscGraphImpl::FindSubGraph(const std::string &name, std::shared_ptr<AscGraphImpl> &graph_impl) const {
@@ -906,7 +906,7 @@ Status AscGraphImpl::FindSubGraph(const std::string &name, std::shared_ptr<AscGr
   graph_impl = ComGraphMakeShared<AscGraphImpl>(name.c_str());
   GE_ASSERT_NOTNULL(graph_impl);
   graph_impl->compute_graph_ = sub_graph;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 AscGraph::AscGraph(const char *name) : impl_(ComGraphMakeSharedAndThrow<AscGraphImpl>(name)) {}
@@ -963,7 +963,7 @@ Status AscGraph::GetAllSubGraphs(std::vector<AscGraph> &graphs) const {
     graph.impl_->compute_graph_ = iter;
     graphs.emplace_back(std::move(graph));
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status AscGraph::FindSubGraph(const std::string &name, AscGraph &graph) const {
@@ -1339,7 +1339,7 @@ static Status GetAndCheckDynamicOutput(const std::vector<std::pair<std::string, 
   }
   only_has_one_dynamic_output = has_dynamic_output && (ir_outputs.size() == 1U);
 
-  return (has_dynamic_output && has_com_output) ? ge::FAILED : ge::SUCCESS;
+  return (has_dynamic_output && has_com_output) ? af::FAILED : af::SUCCESS;
 }
 
 graphStatus LinkByIrIndex(const Operator &src_op, uint32_t src_ir_index, Operator &dst_op, uint32_t dst_ir_index,

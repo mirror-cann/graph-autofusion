@@ -13,7 +13,7 @@
 #include "platform/common/base_template_generator.h"
 
 namespace optimize::autoschedule {
-ge::Status TemplateGeneratorHandler::GenerateTemplates(const af::AscGraph &origin_graph,
+af::Status TemplateGeneratorHandler::GenerateTemplates(const af::AscGraph &origin_graph,
                                                        std::vector<AutoScheduleOutput> &tiling_cases) {
   const auto &platform = PlatformFactory::GetInstance().GetPlatform();
   GE_CHECK_NOTNULL(platform, "Platform is not found.");

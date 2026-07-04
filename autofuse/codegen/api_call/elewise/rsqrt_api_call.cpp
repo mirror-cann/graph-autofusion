@@ -45,7 +45,7 @@ Status RsqrtApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::AxisI
      << tpipe.tiler.TensorVectorizedOffset(current_axis, x) << "], local_blk_tensor_of_float_1, " << tpipe.tmp_buf
      << "_" << std::to_string(id) << ", " << x.actual_size << ");" << std::endl;
   result = ss.str();
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 static ApiCallRegister<RsqrtApiCall> register_rsqrt_api_call("RsqrtApiCall");

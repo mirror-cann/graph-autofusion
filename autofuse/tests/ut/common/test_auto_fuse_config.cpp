@@ -26,28 +26,28 @@ class AutoFuseConfigTest : public testing::Test {
 
 TEST_F(AutoFuseConfigTest, SetTilingAlgorithmToAxesReorder) {
   setenv("AUTOFUSE_DFX_FLAGS", "--autofuse_att_algorithm=HighPerf", 1);
-  ASSERT_EQ(att::AutoFuseConfig::Instance().att_strategy_config_.Init(), SUCCESS);
+  ASSERT_EQ(att::AutoFuseConfig::Instance().att_strategy_config_.Init(), af::SUCCESS);
   EXPECT_EQ(att::AutoFuseConfig::Instance().att_strategy_config_.tiling_algorithm, "HighPerf");
   unsetenv("AUTOFUSE_DFX_FLAGS");
 }
 
 TEST_F(AutoFuseConfigTest, SetTilingAlgorithmDefault) {
   setenv("AUTOFUSE_DFX_FLAGS", "--autofuse_att_algorithm=HighPerf1", 1);
-  ASSERT_EQ(att::AutoFuseConfig::Instance().att_strategy_config_.Init(), SUCCESS);
+  ASSERT_EQ(att::AutoFuseConfig::Instance().att_strategy_config_.Init(), af::SUCCESS);
   EXPECT_EQ(att::AutoFuseConfig::Instance().att_strategy_config_.tiling_algorithm, "AxesReorder");
   unsetenv("AUTOFUSE_DFX_FLAGS");
 }
 
 TEST_F(AutoFuseConfigTest, SetSolutionAccuracyLevelValid) {
   setenv("AUTOFUSE_DFX_FLAGS", "--att_accuracy_level=0", 1);
-  ASSERT_EQ(att::AutoFuseConfig::Instance().att_strategy_config_.Init(), SUCCESS);
+  ASSERT_EQ(att::AutoFuseConfig::Instance().att_strategy_config_.Init(), af::SUCCESS);
   EXPECT_EQ(att::AutoFuseConfig::Instance().att_strategy_config_.solution_accuracy_level, 0);
   unsetenv("AUTOFUSE_DFX_FLAGS");
 }
 
 TEST_F(AutoFuseConfigTest, SetSolutionAccuracyLevelInvalidDefault) {
   setenv("AUTOFUSE_DFX_FLAGS", "--att_accuracy_level=-1000", 1);
-  ASSERT_EQ(att::AutoFuseConfig::Instance().att_strategy_config_.Init(), SUCCESS);
+  ASSERT_EQ(att::AutoFuseConfig::Instance().att_strategy_config_.Init(), af::SUCCESS);
   // default is 100
   EXPECT_EQ(att::AutoFuseConfig::Instance().att_strategy_config_.solution_accuracy_level, 1);
   unsetenv("AUTOFUSE_DFX_FLAGS");
@@ -55,7 +55,7 @@ TEST_F(AutoFuseConfigTest, SetSolutionAccuracyLevelInvalidDefault) {
 
 TEST_F(AutoFuseConfigTest, SetUbThresholdValid) {
   setenv("AUTOFUSE_DFX_FLAGS", "--att_ub_threshold=50", 1);
-  ASSERT_EQ(att::AutoFuseConfig::Instance().att_strategy_config_.Init(), SUCCESS);
+  ASSERT_EQ(att::AutoFuseConfig::Instance().att_strategy_config_.Init(), af::SUCCESS);
   constexpr double kExpectUbThreshold = 50;
   EXPECT_EQ(att::AutoFuseConfig::Instance().att_strategy_config_.ub_threshold, kExpectUbThreshold);
   unsetenv("AUTOFUSE_DFX_FLAGS");
@@ -63,14 +63,14 @@ TEST_F(AutoFuseConfigTest, SetUbThresholdValid) {
 
 TEST_F(AutoFuseConfigTest, SetUbThresholdInvalidDefault) {
   setenv("AUTOFUSE_DFX_FLAGS", "--att_ub_threshold=150", 1);
-  ASSERT_EQ(att::AutoFuseConfig::Instance().att_strategy_config_.Init(), SUCCESS);
+  ASSERT_EQ(att::AutoFuseConfig::Instance().att_strategy_config_.Init(), af::SUCCESS);
   // default is 0.2
   EXPECT_EQ(att::AutoFuseConfig::Instance().att_strategy_config_.ub_threshold, 20);
   unsetenv("AUTOFUSE_DFX_FLAGS");
 }
 TEST_F(AutoFuseConfigTest, SetCorenumThresholdValid) {
   setenv("AUTOFUSE_DFX_FLAGS", "--att_corenum_threshold=50", 1);
-  ASSERT_EQ(att::AutoFuseConfig::Instance().att_strategy_config_.Init(), SUCCESS);
+  ASSERT_EQ(att::AutoFuseConfig::Instance().att_strategy_config_.Init(), af::SUCCESS);
   constexpr double kExpectCorenumThreshold = 50;
   EXPECT_EQ(att::AutoFuseConfig::Instance().att_strategy_config_.corenum_threshold, kExpectCorenumThreshold);
   unsetenv("AUTOFUSE_DFX_FLAGS");
@@ -78,7 +78,7 @@ TEST_F(AutoFuseConfigTest, SetCorenumThresholdValid) {
 
 TEST_F(AutoFuseConfigTest, SetCorenumThresholdInvalidDefault) {
   setenv("AUTOFUSE_DFX_FLAGS", "--att_corenum_threshold=150", 1);
-  ASSERT_EQ(att::AutoFuseConfig::Instance().att_strategy_config_.Init(), SUCCESS);
+  ASSERT_EQ(att::AutoFuseConfig::Instance().att_strategy_config_.Init(), af::SUCCESS);
   // default is 0.4
   EXPECT_EQ(att::AutoFuseConfig::Instance().att_strategy_config_.corenum_threshold, 40);
   unsetenv("AUTOFUSE_DFX_FLAGS");
@@ -86,7 +86,7 @@ TEST_F(AutoFuseConfigTest, SetCorenumThresholdInvalidDefault) {
 
 TEST_F(AutoFuseConfigTest, SetCorenumThresholdInvalidCharNumDefault) {
   setenv("AUTOFUSE_DFX_FLAGS", "--att_corenum_threshold=true111", 1);
-  ASSERT_EQ(att::AutoFuseConfig::Instance().att_strategy_config_.Init(), SUCCESS);
+  ASSERT_EQ(att::AutoFuseConfig::Instance().att_strategy_config_.Init(), af::SUCCESS);
   // default is 0.4
   EXPECT_EQ(att::AutoFuseConfig::Instance().att_strategy_config_.corenum_threshold, 40);
   unsetenv("AUTOFUSE_DFX_FLAGS");
@@ -129,8 +129,8 @@ TEST_F(AutoFuseConfigTest, ParseForceTilingCase) {
   for (int32_t id = 0; id < static_cast<int32_t>(test_cases.size()); id++) {
     ge::ForceTilingCaseResult result;
     auto ret = ge::AttStrategyConfigUtils::ParseForceTilingCase(test_cases[id], result);
-    EXPECT_EQ(ret == ge::SUCCESS, expect_results[id].first) << "id: " << id;
-    if (ret == ge::SUCCESS) {
+    EXPECT_EQ(ret == af::SUCCESS, expect_results[id].first) << "id: " << id;
+    if (ret == af::SUCCESS) {
       EXPECT_EQ(result.Debug(), expect_results[id].second.Debug()) << "id: " << id;
     } else {
       EXPECT_EQ(result.Debug(), expect_results[id].second.Debug()) << "id: " << id;
@@ -183,7 +183,7 @@ TEST_F(AutoFuseConfigTest, SetSolutionAccuracyLevelOutOfRangePositive) {
   // int64_t max is 9223372036854775807, this value exceeds it
   setenv("AUTOFUSE_DFX_FLAGS", "--att_accuracy_level=9999999999999999999999999999999999999999999999999999999999999999",
          1);
-  ASSERT_EQ(att::AutoFuseConfig::Instance().att_strategy_config_.Init(), SUCCESS);
+  ASSERT_EQ(att::AutoFuseConfig::Instance().att_strategy_config_.Init(), af::SUCCESS);
   // default is 1
   EXPECT_EQ(att::AutoFuseConfig::Instance().att_strategy_config_.solution_accuracy_level, 1);
   unsetenv("AUTOFUSE_DFX_FLAGS");
@@ -194,7 +194,7 @@ TEST_F(AutoFuseConfigTest, SetSolutionAccuracyLevelOutOfRangeNegative) {
   // int64_t min is -9223372036854775808, this value is below it
   setenv("AUTOFUSE_DFX_FLAGS", "--att_accuracy_level=-9999999999999999999999999999999999999999999999999999999999999999",
          1);
-  ASSERT_EQ(att::AutoFuseConfig::Instance().att_strategy_config_.Init(), SUCCESS);
+  ASSERT_EQ(att::AutoFuseConfig::Instance().att_strategy_config_.Init(), af::SUCCESS);
   // default is 1
   EXPECT_EQ(att::AutoFuseConfig::Instance().att_strategy_config_.solution_accuracy_level, 1);
   unsetenv("AUTOFUSE_DFX_FLAGS");
@@ -204,7 +204,7 @@ TEST_F(AutoFuseConfigTest, SetSolutionAccuracyLevelOutOfRangeNegative) {
 TEST_F(AutoFuseConfigTest, SetUbThresholdOutOfRange) {
   setenv("AUTOFUSE_DFX_FLAGS", "--att_ub_threshold=9999999999999999999999999999999999999999999999999999999999999999",
          1);
-  ASSERT_EQ(att::AutoFuseConfig::Instance().att_strategy_config_.Init(), SUCCESS);
+  ASSERT_EQ(att::AutoFuseConfig::Instance().att_strategy_config_.Init(), af::SUCCESS);
   // default is 20
   EXPECT_EQ(att::AutoFuseConfig::Instance().att_strategy_config_.ub_threshold, 20);
   unsetenv("AUTOFUSE_DFX_FLAGS");
@@ -214,7 +214,7 @@ TEST_F(AutoFuseConfigTest, SetUbThresholdOutOfRange) {
 TEST_F(AutoFuseConfigTest, SetCorenumThresholdOutOfRange) {
   setenv("AUTOFUSE_DFX_FLAGS",
          "--att_corenum_threshold=9999999999999999999999999999999999999999999999999999999999999999", 1);
-  ASSERT_EQ(att::AutoFuseConfig::Instance().att_strategy_config_.Init(), SUCCESS);
+  ASSERT_EQ(att::AutoFuseConfig::Instance().att_strategy_config_.Init(), af::SUCCESS);
   // default is 40
   EXPECT_EQ(att::AutoFuseConfig::Instance().att_strategy_config_.corenum_threshold, 40);
   unsetenv("AUTOFUSE_DFX_FLAGS");

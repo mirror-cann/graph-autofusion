@@ -74,7 +74,7 @@ Status CastV2ApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::Axis
     GELOGD("enable cast mask mode optimize, x_dtype = %s, y_dtype = %s", x_dtype.c_str(), y_dtype.c_str());
     // 获取输入输出中最大的数据类型max_dtype_size
     std::string dtype_size;
-    GE_CHK_BOOL_RET_STATUS(GetMaxDtypeSize(x.dtype, y.dtype, dtype_size) == true, ge::FAILED,
+    GE_CHK_BOOL_RET_STATUS(GetMaxDtypeSize(x.dtype, y.dtype, dtype_size) == true, af::FAILED,
                            "get max data type size failed, x_dtype = %s, y_dtype = %s", x_dtype.c_str(),
                            y_dtype.c_str());
     size_t input_strides_size = param.inputs_strides[0].size();
@@ -105,7 +105,7 @@ Status CastV2ApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::Axis
   }
 
   result = ss.str();
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 static ApiCallRegister<CastV2ApiCall> register_cast_v2_api_call("CastV2ApiCall");
 

@@ -117,7 +117,7 @@ Status BuildTransposeAscendGraph(ge::AscGraph &graph, const std::vector<int64_t>
 ) {
   // 参数校验
   if (perm.size() != 3 || !IsValidPermutation(perm)) {
-    return ge::FAILED;  // 仅支持3D转置
+    return af::FAILED;  // 仅支持3D转置
   }
 
   auto s0 = graph.CreateSizeVar(16);
@@ -189,7 +189,7 @@ Status BuildTransposeAscendGraph(ge::AscGraph &graph, const std::vector<int64_t>
   auto transpose_node = graph.FindNode("transpose");
   GE_ASSERT_NOTNULL(transpose_node);
   transpose_node->attr.api.unit = ComputeUnit::kUnitVector;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status BuildTransposeSplitAscendGraph(ge::AscGraph &graph) {
@@ -255,13 +255,13 @@ Status BuildTransposeSplitAscendGraph(ge::AscGraph &graph) {
   auto transpose_node = graph.FindNode("transpose");
   GE_ASSERT_NOTNULL(transpose_node);
   transpose_node->attr.api.unit = ComputeUnit::kUnitVector;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status Build4DTransposeAscendGraph(ge::AscGraph &graph, const std::vector<int64_t> &perm = {0, 1, 2, 3}) {
   // 参数校验
   if (perm.size() != 4 || !IsValidPermutation(perm)) {
-    return ge::FAILED;  // 仅支持4D转置
+    return af::FAILED;  // 仅支持4D转置
   }
 
   // 创建4D尺寸变量
@@ -324,7 +324,7 @@ Status Build4DTransposeAscendGraph(ge::AscGraph &graph, const std::vector<int64_
   auto transpose_node = graph.FindNode("transpose");
   GE_ASSERT_NOTNULL(transpose_node);
   transpose_node->attr.api.unit = ComputeUnit::kUnitVector;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status BuildFlashSoftmaxAscendGraph(ge::AscGraph &graph) {
@@ -354,7 +354,7 @@ Status BuildFlashSoftmaxAscendGraph(ge::AscGraph &graph) {
   auto softmax = graph.FindNode("softmax");
   GE_ASSERT_NOTNULL(softmax);
   softmax->attr.api.unit = ComputeUnit::kUnitVector;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status BuildWorkSpaceAscendGraph(ge::AscGraph &graph) {
@@ -384,7 +384,7 @@ Status BuildWorkSpaceAscendGraph(ge::AscGraph &graph) {
   auto softmax = graph.FindNode("softmax");
   GE_ASSERT_NOTNULL(softmax);
   softmax->attr.api.unit = ComputeUnit::kUnitVector;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status BuildTilingReduceAscendGraph(ge::AscGraph &graph) {
@@ -420,7 +420,7 @@ Status BuildTilingReduceAscendGraph(ge::AscGraph &graph) {
   auto broadcast1 = graph.FindNode("broadcast");
   GE_ASSERT_NOTNULL(broadcast1);
   broadcast1->attr.api.unit = ComputeUnit::kUnitVector;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status BuildMatMulDemoAscendGraph(ge::AscGraph &graph) {
@@ -445,7 +445,7 @@ Status BuildMatMulDemoAscendGraph(ge::AscGraph &graph) {
   auto mat_mul = graph.FindNode("mat_mul");
   GE_ASSERT_NOTNULL(mat_mul);
   mat_mul->attr.api.unit = ComputeUnit::kUnitVector;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 std::string RemoveAutoFuseTilingHeadGuards(const std::string &input) {
   std::istringstream iss(input);
@@ -546,7 +546,7 @@ void GenerateAndWriteTilingData(const ascir::FusedScheduledResult &fused_result,
   generator_config.tiling_data_type_name = options[kTilingDataTypeName];
   generator_config.gen_tiling_data = true;
   generator_config.gen_extra_infos = true;
-  EXPECT_EQ(generator.GenTilingCode(op_name, all_model_infos, generator_config, tiling_res), ge::SUCCESS);
+  EXPECT_EQ(generator.GenTilingCode(op_name, all_model_infos, generator_config, tiling_res), af::SUCCESS);
   std::ofstream oss(op_name + "_tiling_data.h", std::ios::out);
   oss << tiling_res[graph_name + "TilingData"];
   oss.close();
@@ -601,7 +601,7 @@ void WriteTransposeTilingFiles(const ascir::FusedScheduledResult &fused_result,
   generator_config.tiling_data_type_name = options[kTilingDataTypeName];
   generator_config.gen_tiling_data = true;
   generator_config.gen_extra_infos = true;
-  EXPECT_EQ(generator.GenTilingCode("Transpose", all_model_infos, generator_config, tiling_res), ge::SUCCESS);
+  EXPECT_EQ(generator.GenTilingCode("Transpose", all_model_infos, generator_config, tiling_res), af::SUCCESS);
 }
 
 int32_t CopyAndRunTransposeTest() {
@@ -639,7 +639,7 @@ int32_t CopyAndRunTransposeTest() {
   return ret;
 }
 
-ge::Status PrepareFlashSoftmaxSchedule(ascir::FusedScheduledResult &fused_schedule_result,
+af::Status PrepareFlashSoftmaxSchedule(ascir::FusedScheduledResult &fused_schedule_result,
                                        std::map<std::string, std::string> &options,
                                        std::map<std::string, std::string> &tiling_funcs) {
   ascir::AscGraph graph_normal("graph_normal");
@@ -660,10 +660,10 @@ ge::Status PrepareFlashSoftmaxSchedule(ascir::FusedScheduledResult &fused_schedu
   }
   fused_schedule_result.node_idx_to_scheduled_results.emplace_back(scheduled_results);
   GE_ASSERT_TRUE(GenTilingImplAutoFuseV3("FlashSoftmax", fused_schedule_result, options, tiling_funcs, true));
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status WriteSoftmaxTilingFiles(const ascir::FusedScheduledResult &fused_schedule_result,
+af::Status WriteSoftmaxTilingFiles(const ascir::FusedScheduledResult &fused_schedule_result,
                                    const std::map<std::string, std::string> &options, const std::string &tiling_func) {
   std::ofstream oss;
   oss.open("flash_softmax_tiling_func.cpp", std::ios::out);
@@ -684,10 +684,10 @@ ge::Status WriteSoftmaxTilingFiles(const ascir::FusedScheduledResult &fused_sche
   oss.open("FlashSoftmax_tiling_data.h", std::ios::out);
   oss << tiling_res["graph_normalTilingData"];
   oss.close();
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status BuildSoftmaxMainAndCompile() {
+af::Status BuildSoftmaxMainAndCompile() {
   std::ofstream oss;
   oss.open("tiling_func_main.cpp", std::ios::out);
   oss << R"(
@@ -734,10 +734,10 @@ int main() {
   ret = std::system("./tiling_func_main_softmax > softmax_tiling.log");
   GE_ASSERT_TRUE(ret == 0);
   (void)system("cat softmax_tiling.log");
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status ConstructTilingRCase() {
+af::Status ConstructTilingRCase() {
   ascir::FusedScheduledResult fused_schedule_result;
   std::map<std::string, std::string> options;
   std::map<std::string, std::string> tiling_funcs;
@@ -747,13 +747,13 @@ ge::Status ConstructTilingRCase() {
   GE_ASSERT_TRUE(tiling_func.find("tilingCaseImplPtr = &caseR1101") != std::string::npos);
   GE_ASSERT_SUCCESS(WriteSoftmaxTilingFiles(fused_schedule_result, options, tiling_func));
   GE_ASSERT_SUCCESS(BuildSoftmaxMainAndCompile());
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 }  // namespace
 TEST_F(TestApiTilingGen, gen_transpose021_split_api_tiling_success) {
   ascir::AscGraph graph_normal("graph_normal");
   graph_normal.SetTilingKey(0u);
-  ASSERT_EQ(ge::ascir::cg::BuildTransposeSplitAscendGraph(graph_normal), ge::SUCCESS);
+  ASSERT_EQ(ge::ascir::cg::BuildTransposeSplitAscendGraph(graph_normal), af::SUCCESS);
   ge::DumpAscirGraph::WriteOutToFile("Dump_Graph_Att_Transpose", graph_normal);
   std::vector<ascir::AscGraph> graphs = {graph_normal};
   GraphConstructUtils::UpdateGraphsVectorizedStride(graphs);
@@ -774,7 +774,7 @@ TEST_F(TestApiTilingGen, gen_transpose021_split_api_tiling_dy_success) {
   std::vector<ascir::AscGraph> graphs;
   ascir::AscGraph graph_normal("graph_normal");
   graph_normal.SetTilingKey(0u);
-  ASSERT_EQ(ge::ascir::cg::BuildTransposeSplitAscendGraph(graph_normal), ge::SUCCESS);
+  ASSERT_EQ(ge::ascir::cg::BuildTransposeSplitAscendGraph(graph_normal), af::SUCCESS);
   ge::DumpAscirGraph::WriteOutToFile("Dump_Graph_Att_Transpose", graph_normal);
   graphs.emplace_back(graph_normal);
   GraphConstructUtils::UpdateGraphsVectorizedStride(graphs);
@@ -801,7 +801,7 @@ TEST_F(TestApiTilingGen, gen_transpose021_split_api_tiling_dy_success) {
 TEST_F(TestApiTilingGen, gen_transpose102_api_tiling_success) {
   ascir::AscGraph graph_normal("graph_normal");
   graph_normal.SetTilingKey(0u);
-  ASSERT_EQ(ge::ascir::cg::BuildTransposeAscendGraph(graph_normal, {1, 0, 2}), ge::SUCCESS);
+  ASSERT_EQ(ge::ascir::cg::BuildTransposeAscendGraph(graph_normal, {1, 0, 2}), af::SUCCESS);
   ge::DumpAscirGraph::WriteOutToFile("Dump_Graph_Att_Transpose", graph_normal);
   std::vector<ascir::AscGraph> graphs = {graph_normal};
   GraphConstructUtils::UpdateGraphsVectorizedStride(graphs);
@@ -821,7 +821,7 @@ TEST_F(TestApiTilingGen, gen_transpose102_api_tiling_success) {
 TEST_F(TestApiTilingGen, gen_transpose021_api_tiling_success) {
   ascir::AscGraph graph_normal("graph_normal");
   graph_normal.SetTilingKey(0u);
-  ASSERT_EQ(ge::ascir::cg::BuildTransposeAscendGraph(graph_normal, {0, 2, 1}), ge::SUCCESS);
+  ASSERT_EQ(ge::ascir::cg::BuildTransposeAscendGraph(graph_normal, {0, 2, 1}), af::SUCCESS);
   ge::DumpAscirGraph::WriteOutToFile("Dump_Graph_Att_Transpose", graph_normal);
   std::vector<ascir::AscGraph> graphs = {graph_normal};
   GraphConstructUtils::UpdateGraphsVectorizedStride(graphs);
@@ -841,7 +841,7 @@ TEST_F(TestApiTilingGen, gen_transpose021_api_tiling_success) {
 TEST_F(TestApiTilingGen, gen_transpose210_api_tiling_success) {
   ascir::AscGraph graph_normal("graph_normal");
   graph_normal.SetTilingKey(0u);
-  ASSERT_EQ(ge::ascir::cg::BuildTransposeAscendGraph(graph_normal, {2, 1, 0}), ge::SUCCESS);
+  ASSERT_EQ(ge::ascir::cg::BuildTransposeAscendGraph(graph_normal, {2, 1, 0}), af::SUCCESS);
   ge::DumpAscirGraph::WriteOutToFile("Dump_Graph_Att_Transpose", graph_normal);
   std::vector<ascir::AscGraph> graphs = {graph_normal};
   GraphConstructUtils::UpdateGraphsVectorizedStride(graphs);
@@ -861,7 +861,7 @@ TEST_F(TestApiTilingGen, gen_transpose210_api_tiling_success) {
 TEST_F(TestApiTilingGen, gen_transpose0213_api_tiling_success) {
   ascir::AscGraph graph_normal("graph_normal");
   graph_normal.SetTilingKey(0u);
-  ASSERT_EQ(ge::ascir::cg::Build4DTransposeAscendGraph(graph_normal, {0, 2, 1, 3}), ge::SUCCESS);
+  ASSERT_EQ(ge::ascir::cg::Build4DTransposeAscendGraph(graph_normal, {0, 2, 1, 3}), af::SUCCESS);
   ge::DumpAscirGraph::WriteOutToFile("Dump_Graph_Att_Transpose", graph_normal);
   std::vector<ascir::AscGraph> graphs = {graph_normal};
   GraphConstructUtils::UpdateGraphsVectorizedStride(graphs);
@@ -881,7 +881,7 @@ TEST_F(TestApiTilingGen, gen_transpose0213_api_tiling_success) {
 TEST_F(TestApiTilingGen, gen_transpose2103_api_tiling_success) {
   ascir::AscGraph graph_normal("graph_normal");
   graph_normal.SetTilingKey(0u);
-  ASSERT_EQ(ge::ascir::cg::Build4DTransposeAscendGraph(graph_normal, {2, 1, 0, 3}), ge::SUCCESS);
+  ASSERT_EQ(ge::ascir::cg::Build4DTransposeAscendGraph(graph_normal, {2, 1, 0, 3}), af::SUCCESS);
   ge::DumpAscirGraph::WriteOutToFile("Dump_Graph_Att_Transpose", graph_normal);
   std::vector<ascir::AscGraph> graphs = {graph_normal};
   GraphConstructUtils::UpdateGraphsVectorizedStride(graphs);
@@ -901,7 +901,7 @@ TEST_F(TestApiTilingGen, gen_transpose2103_api_tiling_success) {
 TEST_F(TestApiTilingGen, gen_transpose0321_api_tiling_success) {
   ascir::AscGraph graph_normal("graph_normal");
   graph_normal.SetTilingKey(0u);
-  ASSERT_EQ(ge::ascir::cg::Build4DTransposeAscendGraph(graph_normal, {0, 3, 2, 1}), ge::SUCCESS);
+  ASSERT_EQ(ge::ascir::cg::Build4DTransposeAscendGraph(graph_normal, {0, 3, 2, 1}), af::SUCCESS);
   ge::DumpAscirGraph::WriteOutToFile("Dump_Graph_Att_Transpose", graph_normal);
   std::vector<ascir::AscGraph> graphs = {graph_normal};
   GraphConstructUtils::UpdateGraphsVectorizedStride(graphs);
@@ -922,7 +922,7 @@ TEST_F(TestApiTilingGen, gen_transpose0123_api_tiling_success) {
   std::vector<ascir::AscGraph> graphs;
   ascir::AscGraph graph_normal("graph_normal");
   graph_normal.SetTilingKey(0u);
-  ASSERT_EQ(ge::ascir::cg::Build4DTransposeAscendGraph(graph_normal, {0, 1, 2, 3}), ge::SUCCESS);
+  ASSERT_EQ(ge::ascir::cg::Build4DTransposeAscendGraph(graph_normal, {0, 1, 2, 3}), af::SUCCESS);
   ge::DumpAscirGraph::WriteOutToFile("Dump_Graph_Att_Transpose", graph_normal);
   graphs.emplace_back(graph_normal);
   GraphConstructUtils::UpdateGraphsVectorizedStride(graphs);
@@ -946,7 +946,7 @@ TEST_F(TestApiTilingGen, gen_softmax_api_tiling_success) {
   setenv("AUTOFUSE_DFX_FLAGS", "--att_enable_small_shape_strategy=true", 1);
   ascir::AscGraph graph_normal("graph_normal");
   graph_normal.SetTilingKey(1101u);
-  ASSERT_EQ(ge::ascir::cg::BuildFlashSoftmaxAscendGraph(graph_normal), ge::SUCCESS);
+  ASSERT_EQ(ge::ascir::cg::BuildFlashSoftmaxAscendGraph(graph_normal), af::SUCCESS);
   std::vector<ascir::AscGraph> graphs = {graph_normal};
   GraphConstructUtils::UpdateGraphsVectorizedStride(graphs);
 
@@ -974,7 +974,7 @@ TEST_F(TestApiTilingGen, gen_schedule_group_cache_success) {
   std::vector<ascir::AscGraph> graphs;
   ascir::AscGraph graph_normal("graph_normal");
   graph_normal.SetTilingKey(1101u);
-  ASSERT_EQ(ge::ascir::cg::BuildFlashSoftmaxAscendGraph(graph_normal), ge::SUCCESS);
+  ASSERT_EQ(ge::ascir::cg::BuildFlashSoftmaxAscendGraph(graph_normal), af::SUCCESS);
   graphs.emplace_back(graph_normal);
   GraphConstructUtils::UpdateGraphsVectorizedStride(graphs);
 
@@ -1006,13 +1006,13 @@ TEST_F(TestApiTilingGen, gen_schedule_group_cache_success) {
 }
 
 TEST_F(TestApiTilingGen, gen_schedule_group_reduce_tile_r) {
-  EXPECT_EQ(ConstructTilingRCase(), ge::SUCCESS);
+  EXPECT_EQ(ConstructTilingRCase(), af::SUCCESS);
   EXPECT_EQ(IsFileContainsString("softmax_tiling.log", "get_tiling_key = 0"), true);
 }
 
 TEST_F(TestApiTilingGen, gen_schedule_group_reduce_tile_r_force_r) {
   setenv("AUTOFUSE_DFX_FLAGS", "--force_tiling_case=1101_R", 1);
-  EXPECT_EQ(ConstructTilingRCase(), ge::SUCCESS);
+  EXPECT_EQ(ConstructTilingRCase(), af::SUCCESS);
   // 若优先切R则A为100，R为216，否则切A的话，at为16， rt为1024
   EXPECT_EQ(IsFileContainsString("softmax_tiling.log", "get_at_size = 100"), true);
   EXPECT_EQ(IsFileContainsString("softmax_tiling.log", "get_rt_size = 205"), true);
@@ -1023,8 +1023,8 @@ TEST_F(TestApiTilingGen, gen_schedule_pgo_env) {
   setenv("AUTOFUSE_FLAGS", "--autofuse_enable_pgo=true", 1);
   setenv("AUTOFUSE_DFX_FLAGS", "--autofuse_pgo_algo=pgo_algo_invalid;--autofuse_pgo_step_max=32", 1);
   att::AutoFuseConfig::MutablePgoStrategyConfig().is_first_init = true;
-  EXPECT_EQ(ConstructTilingRCase(), ge::SUCCESS);
-  ASSERT_EQ(att::AutoFuseConfig::MutablePgoStrategyConfig().Init(), ge::SUCCESS);
+  EXPECT_EQ(ConstructTilingRCase(), af::SUCCESS);
+  ASSERT_EQ(att::AutoFuseConfig::MutablePgoStrategyConfig().Init(), af::SUCCESS);
   EXPECT_EQ(att::AutoFuseConfig::GetPgoStrategyConfig().enable_autofuse_pgo, "true");
   EXPECT_EQ(att::AutoFuseConfig::GetPgoStrategyConfig().autofuse_pgo_algo_select, "core_select");
   EXPECT_EQ(att::AutoFuseConfig::GetPgoStrategyConfig().autofuse_pgo_algo_step_max, 32);
@@ -1039,7 +1039,7 @@ TEST_F(TestApiTilingGen, gen_softmax_api_tiling_with_var_relation) {
   att::AutoFuseConfig::MutablePgoStrategyConfig().is_first_init = true;
   ascir::AscGraph graph_normal("graph_normal");
   graph_normal.SetTilingKey(1101u);
-  ASSERT_EQ(ge::ascir::cg::BuildFlashSoftmaxAscendGraph(graph_normal), ge::SUCCESS);
+  ASSERT_EQ(ge::ascir::cg::BuildFlashSoftmaxAscendGraph(graph_normal), af::SUCCESS);
   std::vector<ascir::AscGraph> graphs = {graph_normal};
   GraphConstructUtils::UpdateGraphsVectorizedStride(graphs);
 
@@ -1079,7 +1079,7 @@ TEST_F(TestApiTilingGen, gen_workspace_with_tensor_id) {
   std::vector<ascir::AscGraph> graphs;
   ascir::AscGraph graph_normal("graph_normal");
   graph_normal.SetTilingKey(1101u);
-  ASSERT_EQ(ge::ascir::cg::BuildWorkSpaceAscendGraph(graph_normal), ge::SUCCESS);
+  ASSERT_EQ(ge::ascir::cg::BuildWorkSpaceAscendGraph(graph_normal), af::SUCCESS);
   graphs.emplace_back(graph_normal);
   GraphConstructUtils::UpdateGraphsVectorizedStride(graphs);
 
@@ -1107,7 +1107,7 @@ TEST_F(TestApiTilingGen, gen_workspace_with_tensor_id) {
 TEST_F(TestApiTilingGen, gen_mat_mul_tiling_success) {
   ascir::AscGraph graph_normal("graph_normal");
   graph_normal.SetTilingKey(1101u);
-  ASSERT_EQ(ge::ascir::cg::BuildMatMulDemoAscendGraph(graph_normal), ge::SUCCESS);
+  ASSERT_EQ(ge::ascir::cg::BuildMatMulDemoAscendGraph(graph_normal), af::SUCCESS);
   std::vector<ascir::AscGraph> graphs = {graph_normal};
   GraphConstructUtils::UpdateGraphsVectorizedStride(graphs);
 
@@ -1174,7 +1174,7 @@ TEST_F(TestApiTilingGen, gen_op_level_cache_basic) {
   std::vector<ascir::AscGraph> graphs;
   ascir::AscGraph graph_normal("graph_normal");
   graph_normal.SetTilingKey(1101u);
-  ASSERT_EQ(ge::ascir::cg::BuildFlashSoftmaxAscendGraph(graph_normal), ge::SUCCESS);
+  ASSERT_EQ(ge::ascir::cg::BuildFlashSoftmaxAscendGraph(graph_normal), af::SUCCESS);
   graphs.emplace_back(graph_normal);
   GraphConstructUtils::UpdateGraphsVectorizedStride(graphs);
 
@@ -1249,7 +1249,7 @@ TEST_F(TestApiTilingGen, gen_op_level_cache_disabled) {
   std::vector<ascir::AscGraph> graphs;
   ascir::AscGraph graph_normal("graph_normal");
   graph_normal.SetTilingKey(1101u);
-  ASSERT_EQ(ge::ascir::cg::BuildFlashSoftmaxAscendGraph(graph_normal), ge::SUCCESS);
+  ASSERT_EQ(ge::ascir::cg::BuildFlashSoftmaxAscendGraph(graph_normal), af::SUCCESS);
   graphs.emplace_back(graph_normal);
   GraphConstructUtils::UpdateGraphsVectorizedStride(graphs);
 
@@ -1306,7 +1306,7 @@ TEST_F(TestApiTilingGen, two_level_cache_full_test) {
   std::vector<ascir::AscGraph> graphs;
   ascir::AscGraph graph_normal("graph_normal");
   graph_normal.SetTilingKey(1101u);
-  ASSERT_EQ(ge::ascir::cg::BuildFlashSoftmaxAscendGraph(graph_normal), ge::SUCCESS);
+  ASSERT_EQ(ge::ascir::cg::BuildFlashSoftmaxAscendGraph(graph_normal), af::SUCCESS);
   graphs.emplace_back(graph_normal);
   GraphConstructUtils::UpdateGraphsVectorizedStride(graphs);
 

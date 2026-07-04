@@ -27,7 +27,7 @@ constexpr uint64_t kNddmaMaxLen = 5UL;
 namespace codegen {
 Status NddmaApiCall::ParseAttr(const ascir::NodeView &node) {
   (void)node->attr.ir_attr->GetAttrValue("offset", offset_);
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status NddmaApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
@@ -75,7 +75,7 @@ Status NddmaApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::AxisI
     }
   }
   result = ss.str();
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 static ApiCallRegister<NddmaApiCall> register_nddma_api_call("NddmaApiCall");

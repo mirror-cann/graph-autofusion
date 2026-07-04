@@ -16,13 +16,13 @@ ThreadLocalContext &GetThreadLocalContext() {
   return thread_context;
 }
 
-ge::Status ThreadLocalContext::GetOption(const std::string &key, std::string &option) {
+af::Status ThreadLocalContext::GetOption(const std::string &key, std::string &option) {
   const std::map<std::string, std::string>::const_iterator global_iter = all_options_.find(key);
   if (global_iter != all_options_.end()) {
     option = global_iter->second;
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
-  return ge::FAILED;
+  return af::FAILED;
 }
 
 void ThreadLocalContext::SetOption(const std::map<std::string, std::string> &options_map) {

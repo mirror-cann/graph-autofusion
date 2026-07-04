@@ -21,18 +21,18 @@
 #include "autofuse_config/auto_fuse_config.h"
 
 namespace att {
-ge::Status GenerateModelInfo(const af::AscGraph &graph, ModelInfo &model_info, TuningSpacePtr &tuning_space,
+af::Status GenerateModelInfo(const af::AscGraph &graph, ModelInfo &model_info, TuningSpacePtr &tuning_space,
                              const uint32_t tiling_case_id = 0U);
-ge::Status GenerateModelInfo(const std::vector<af::AscGraph> &graph_list, std::vector<ModelInfo> &model_info_list);
-ge::Status GenerateModelInfo(const std::vector<af::AscGraph> &graph_list, std::vector<ModelInfo> &model_info_list,
+af::Status GenerateModelInfo(const std::vector<af::AscGraph> &graph_list, std::vector<ModelInfo> &model_info_list);
+af::Status GenerateModelInfo(const std::vector<af::AscGraph> &graph_list, std::vector<ModelInfo> &model_info_list,
                              const std::map<std::string, std::string> &options, bool enable_group_parallel = false);
-ge::Status GetModelInfoMap(const ascir::FusedScheduledResult &schedule_results,
+af::Status GetModelInfoMap(const ascir::FusedScheduledResult &schedule_results,
                            const std::map<std::string, std::string> &options,
                            std::map<size_t, std::map<size_t, ParsedScheduleResult>> &out_all_model_infos);
-ge::Status GetAllSubImplGraphs(const ascir::FusedScheduledResult &schedule_results,
+af::Status GetAllSubImplGraphs(const ascir::FusedScheduledResult &schedule_results,
                                std::vector<std::vector<std::vector<std::vector<af::AscGraph>>>> &all_graphs,
                                std::map<std::string, std::string> &all_graph_score_funcs);
-ge::Status MakeJson(std::vector<ModelInfo> &model_info_list, std::string &json_info);
+af::Status MakeJson(std::vector<ModelInfo> &model_info_list, std::string &json_info);
 }  // namespace att
 
 #endif  // GEN_MODEL_INFO_H_

@@ -13,7 +13,7 @@
 
 #include "tiling_cache_code_gen.h"
 #include "base/model_info.h"
-#include "external/ge_common/ge_api_types.h"
+#include "external/ge_common_af/ge_api_types.h"
 
 namespace att {
 namespace cache {
@@ -30,13 +30,13 @@ class OperatorLevelCacheGen : public TilingCacheCodeGen {
   /**
    * @brief 生成FixedSizeHashMap模板类定义
    * @param code_printer 代码打印器
-   * @return ge::Status
+   * @return af::Status
    */
-  ge::Status GenFixedSizeHashMapDef(ge::CodePrinter &code_printer) override;
+  af::Status GenFixedSizeHashMapDef(ge::CodePrinter &code_printer) override;
 
   /**
    * @brief 生成Context类私有Hash函数
-   * @return ge::Status
+   * @return af::Status
    */
   static std::string GenContextHashFunction();
 
@@ -44,40 +44,40 @@ class OperatorLevelCacheGen : public TilingCacheCodeGen {
    * @brief 生成算子级缓存函数定义
    * @param code_printer 代码打印器
    * @param tiling_data_type_name TilingData类型名称
-   * @return ge::Status
+   * @return af::Status
    */
-  static ge::Status GenOperatorCacheFunctions(ge::CodePrinter &code_printer, const std::string &tiling_data_type_name);
+  static af::Status GenOperatorCacheFunctions(ge::CodePrinter &code_printer, const std::string &tiling_data_type_name);
 
   /**
    * @brief 生成TilingCacheContext类定义
    * @param code_printer 代码打印器
    * @param tiling_data_type_name TilingData类型名称
-   * @return ge::Status
+   * @return af::Status
    */
-  static ge::Status GenTilingCacheContext(ge::CodePrinter &code_printer, const std::string &tiling_data_type_name);
+  static af::Status GenTilingCacheContext(ge::CodePrinter &code_printer, const std::string &tiling_data_type_name);
 
   /**
    * @brief 生成TilingCacheContext静态成员定义（必须在cpp文件中）
    * @param code_printer 代码打印器
-   * @return ge::Status
+   * @return af::Status
    */
-  static ge::Status GenTilingCacheContextStaticDefs(ge::CodePrinter &code_printer);
+  static af::Status GenTilingCacheContextStaticDefs(ge::CodePrinter &code_printer);
 
   /**
    * @brief 生成算子级缓存类型定义
    * @param code_printer 代码打印器
    * @param tiling_data_type_name TilingData类型名称
-   * @return ge::Status
+   * @return af::Status
    */
-  static ge::Status GenOperatorCacheTypes(ge::CodePrinter &code_printer, const std::string &tiling_data_type_name);
+  static af::Status GenOperatorCacheTypes(ge::CodePrinter &code_printer, const std::string &tiling_data_type_name);
   /**
    *
    * @param code_printer 代码打印器（函数体）
    * @param tiling_model_info Tiling模型信息
    * @param config 生成器配置
-   * @return ge::Status
+   * @return af::Status
    */
-  static ge::Status GenSaveCacheCalls(ge::CodePrinter &code_printer, const TilingModelInfo &tiling_model_info,
+  static af::Status GenSaveCacheCalls(ge::CodePrinter &code_printer, const TilingModelInfo &tiling_model_info,
                                       const TilingCodeGenConfig &config);
 
   /**
@@ -85,15 +85,15 @@ class OperatorLevelCacheGen : public TilingCacheCodeGen {
    * @param code_printer 代码打印器（函数体）
    * @param tiling_model_info Tiling模型信息
    * @param config 生成器配置
-   * @return ge::Status
+   * @return af::Status
    */
-  static ge::Status GenInitAndQueryCacheCode(ge::CodePrinter &code_printer, const TilingModelInfo &tiling_model_info,
+  static af::Status GenInitAndQueryCacheCode(ge::CodePrinter &code_printer, const TilingModelInfo &tiling_model_info,
                                              const TilingCodeGenConfig &config);
 
   /**
    * @brief 生成Context类代码
    * @param tiling_data_type_name TilingData类型名称
-   * @return ge::Status
+   * @return af::Status
    */
   static std::string GenContextClass(const std::string &tiling_data_type_name);
 
@@ -105,14 +105,14 @@ class OperatorLevelCacheGen : public TilingCacheCodeGen {
 
   /**
    * @brief 生成Context类公共方法
-   * @return ge::Status
+   * @return af::Status
    */
   static std::string GenContextClassPublicMethods();
 
   /**
    * @brief 生成Context类缓存操作方法
    * @param tiling_data_type_name TilingData类型名称
-   * @return ge::Status
+   * @return af::Status
    */
   static std::string GenContextCacheOperations(const std::string &tiling_data_type_name);
 
