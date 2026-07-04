@@ -9,7 +9,7 @@
 # See LICENSE in the root of the software repository for the full text of the License.
 # ----------------------------------------------------------------------------------------------------------
 
-"""Run sk-network-analysis regressions against an existing sample without polluting it."""
+"""Run sk-model-analysis regressions against an existing sample without polluting it."""
 
 from __future__ import annotations
 
@@ -67,9 +67,9 @@ def _assert_outputs(case_name: str, temp_root: Path) -> None:
 def run_case(
     sample_root: Path, case_name: str, command_name: str, relative_input: str
 ) -> None:
-    script_path = Path(__file__).resolve().with_name("network_analysis.py")
+    script_path = Path(__file__).resolve().with_name("model_analysis.py")
     with tempfile.TemporaryDirectory(
-        prefix="sk-network-analysis-regression-"
+        prefix="sk-model-analysis-regression-"
     ) as temp_dir:
         temp_root = Path(temp_dir) / sample_root.name
         shutil.copytree(sample_root, temp_root)
@@ -92,7 +92,7 @@ def run_case(
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Run non-persistent sk-network-analysis regression cases"
+        description="Run non-persistent sk-model-analysis regression cases"
     )
     parser.add_argument(
         "sample_root",

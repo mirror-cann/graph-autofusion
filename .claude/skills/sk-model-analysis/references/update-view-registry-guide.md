@@ -1,7 +1,7 @@
 # Update View 信息库构建指导
 
 ## 当前结论
-这份指导已经按当前 `sk-network-analysis` 实现校正。
+这份指导已经按当前 `sk-model-analysis` 实现校正。
 
 当前 `update view` 不是“3 个平铺 registry”的实现，而是一个**分层组合模型**：
 

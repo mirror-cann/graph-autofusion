@@ -1,9 +1,9 @@
 ---
-name: sk-network-analysis
+name: sk-model-analysis
 description: 面向 SuperKernel 场景的整网诊断 skill，覆盖结果目录资产发现、hang/coredump 定位、性能分析、scope/task 图可视化、节点追踪和 AOT task queue 兼容解析。
 ---
 
-# SK 网络分析
+# SK 模型分析
 
 当任务涉及整网级 SK 诊断时使用这个 skill，典型场景包括：
 
@@ -16,7 +16,7 @@ description: 面向 SuperKernel 场景的整网诊断 skill，覆盖结果目录
 入口：
 
 ```bash
-python3 <skills_root>/sk-network-analysis/scripts/network_analysis.py <subcommand> ...
+python3 <skills_root>/sk-model-analysis/scripts/model_analysis.py <subcommand> ...
 ```
 
 ## 模式
@@ -87,5 +87,5 @@ AI artifacts 只能作为可选建议，不能替代 base artifacts。
 ## 修改后的验证
 
 - 仅文档修改：至少验证 help 和 stale-reference 搜索。
-- parser/report 修改：运行相关 `sk_network_analysis` 单元测试。
+- parser/report 修改：运行相关 `sk_model_analysis` 单元测试。
 - 改动真实样例路径时，优先使用 `regression_runner.py` 做临时工作区回归。

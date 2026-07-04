@@ -1,6 +1,6 @@
 # 脚本索引
 
-- `scripts/network_analysis.py`
+- `scripts/model_analysis.py`
   - 顶层 Python CLI
   - 统一触发 `analyze / diagnose-hang-crash / diagnose-performance / trace-nodes`
   - 透传 `--jobs / --no-parallel / --no-cache / --profile / --with-ai`

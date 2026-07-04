@@ -145,7 +145,7 @@ python3 <skills_root>/sk-operator-sample-gen/scripts/operator_sample_gen.py --he
 - 差分验证所需的 stdout schema 或记录文件。
 - `operator-single-op-verification-contract.json`：单算子非 SK / SK 入口差分验证 contract。
 - `operator-network-sample-contract.json`：整网 whl 验证 contract。
-- `operator-network-fusion-expectation.json`：整网 SK 融合期望，供网络分析阶段消费。
+- `operator-network-fusion-expectation.json`：整网 SK 融合期望，供模型分析阶段消费。
 - `operator-network-sample-runner.py`：整网 runner。
 - `operator-network-target-runtime-command-spec.json`：整网 runner 命令规格。
 

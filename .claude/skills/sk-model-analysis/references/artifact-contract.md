@@ -94,10 +94,10 @@ multi-model 或 multi-model-instance 运行可能在 `reports/<ri>/<model-instan
 首选命令：
 
 ```bash
-python3 <skills_root>/sk-network-analysis/scripts/network_analysis.py analyze <input>
-python3 <skills_root>/sk-network-analysis/scripts/network_analysis.py diagnose-hang-crash <input>
-python3 <skills_root>/sk-network-analysis/scripts/network_analysis.py diagnose-performance <input>
-python3 <skills_root>/sk-network-analysis/scripts/network_analysis.py trace-nodes <input>
+python3 <skills_root>/sk-model-analysis/scripts/model_analysis.py analyze <input>
+python3 <skills_root>/sk-model-analysis/scripts/model_analysis.py diagnose-hang-crash <input>
+python3 <skills_root>/sk-model-analysis/scripts/model_analysis.py diagnose-performance <input>
+python3 <skills_root>/sk-model-analysis/scripts/model_analysis.py trace-nodes <input>
 ```
 
 底层脚本只在需要调试单一阶段时直接使用。
@@ -107,6 +107,6 @@ python3 <skills_root>/sk-network-analysis/scripts/network_analysis.py trace-node
 发布包本身不携带维护侧测试目录。维护脚本或文档时，至少确认 CLI help 可用：
 
 ```bash
-python3 <skills_root>/sk-network-analysis/scripts/network_analysis.py --help
-python3 <skills_root>/sk-network-analysis/scripts/network_analysis.py analyze --help
+python3 <skills_root>/sk-model-analysis/scripts/model_analysis.py --help
+python3 <skills_root>/sk-model-analysis/scripts/model_analysis.py analyze --help
 ```

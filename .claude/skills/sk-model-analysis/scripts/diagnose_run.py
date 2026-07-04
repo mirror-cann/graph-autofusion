@@ -89,7 +89,7 @@ EVENT_FILE_PREFIXES = ("sk_event_dev_device_", "sk_prof_device_")
 EVENT_ASSET_KEY = "sk_event_dev_device_*.json"
 EVENT_ASSET_NAME = "sk_event_dev_device_*.json / sk_prof_device_*.json"
 LOG_FILE_COUNT_LIMIT = 1000
-PARSE_CACHE_VERSION = "sk-network-analysis-parse-cache-v1"
+PARSE_CACHE_VERSION = "sk-model-analysis-parse-cache-v1"
 
 
 def _emit(message: object = "", *, file: Any = None, end: str = "\n") -> None:
@@ -2798,7 +2798,7 @@ def _model_cache_dir(reports_dir: Path, model_dir: Path) -> Path:
     return (
         reports_dir
         / ".cache"
-        / "sk-network-analysis"
+        / "sk-model-analysis"
         / PARSE_CACHE_VERSION
         / _cache_key_for_fingerprint(fingerprint)
     )

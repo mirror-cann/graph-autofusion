@@ -3,7 +3,7 @@
 ## 统一运行合同
 
 - 顶层入口固定为：
-  - `python3 <skills_root>/sk-network-analysis/scripts/network_analysis.py <subcommand> ...`
+  - `python3 <skills_root>/sk-model-analysis/scripts/model_analysis.py <subcommand> ...`
 - 默认先跑 `base mode`
   - 不依赖联网
   - 不依赖大模型

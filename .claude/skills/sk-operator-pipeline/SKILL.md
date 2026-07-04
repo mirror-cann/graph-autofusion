@@ -98,7 +98,7 @@ Stage 06 会区分验证产物和交付产物。standalone 后端比较原始 gl
 | 校验 / validate / 规范 / spec / compat / CANN | `sk-operator-validate` |
 | 样例 / sample / runtime / correctness / oracle | `sk-operator-sample-gen` |
 | 编译 / build / 打包 / wheel / pybind | `sk-operator-build-package` |
-| 融合分析 / 性能 | `sk-network-analysis` |
+| 融合分析 / 性能 | `sk-model-analysis` |
 
 ## 参考
 

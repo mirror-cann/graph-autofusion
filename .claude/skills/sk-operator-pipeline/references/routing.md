@@ -20,7 +20,7 @@
 - SK 算子编译验证、pybind 打包、wheel 构建
   - 去 `sk-operator-build-package`
 - 融合分析、scope、task queue、性能定位
-  - 去 `sk-network-analysis`
+  - 去 `sk-model-analysis`
 - 仓内能力导航、依赖判断、流水线入口定位
   - 当前 skill 自身处理
 

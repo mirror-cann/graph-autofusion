@@ -11,8 +11,8 @@
 !af-test-developer/**
 !af-code-reviewer/
 !af-code-reviewer/**
-!sk-network-analysis/
-!sk-network-analysis/**
+!sk-model-analysis/
+!sk-model-analysis/**
 !sk-operator-asset-adapter/
 !sk-operator-asset-adapter/**
 !sk-operator-build-package/

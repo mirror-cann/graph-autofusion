@@ -13,7 +13,7 @@
 - `sk-operator-validate`
 - `sk-operator-sample-gen`
 - `sk-operator-build-package`
-- `sk-network-analysis`
+- `sk-model-analysis`
 
 ## 算子构建依赖
 

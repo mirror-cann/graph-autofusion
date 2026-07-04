@@ -9,7 +9,7 @@
 # See LICENSE in the root of the software repository for the full text of the License.
 # ----------------------------------------------------------------------------------------------------------
 
-"""Top-level CLI for the sk-network-analysis built-in skill."""
+"""Top-level CLI for the sk-model-analysis built-in skill."""
 
 from __future__ import annotations
 
@@ -112,9 +112,7 @@ def cmd_trace_nodes(args: argparse.Namespace) -> int:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
-        description="Top-level CLI for sk-network-analysis"
-    )
+    parser = argparse.ArgumentParser(description="Top-level CLI for sk-model-analysis")
     subparsers = parser.add_subparsers(dest="subcommand", required=True)
 
     analyze = subparsers.add_parser(

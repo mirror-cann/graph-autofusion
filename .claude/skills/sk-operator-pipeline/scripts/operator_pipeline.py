@@ -29,7 +29,7 @@ DEFAULT_BUILD_CACHE_REL = Path("build") / "sk-operator-build-cache"
 
 ROUTING_RULES = [
     (
-        "sk-network-analysis",
+        "sk-model-analysis",
         [
             "融合",
             "性能",
@@ -810,8 +810,8 @@ def cmd_route(args: argparse.Namespace) -> int:
         )
 
     entry = {
-        "sk-network-analysis": entry(
-            "sk-network-analysis", "network_analysis.py", "diagnose", "<run_dir>"
+        "sk-model-analysis": entry(
+            "sk-model-analysis", "model_analysis.py", "analyze", "<run_dir>"
         ),
         "sk-operator-asset-adapter": entry(
             "sk-operator-asset-adapter",
