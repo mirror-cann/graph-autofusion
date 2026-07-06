@@ -4261,8 +4261,10 @@ def cmd_adapt_sk_from_global(args: argparse.Namespace) -> int:
                 return _codegen_human_finding(
                     "codegen.io-contract-bind-target-mismatch",
                     (
-                        f"operator entry {source_entry_name or public_entry_name!r} matched IO contract, but its "
-                        f"bind_target {entry_bind_target!r} does not match contract bind_target {contract_bind_target!r}."
+                        f"operator entry {source_entry_name or public_entry_name!r} "
+                        "matched IO contract, but its "
+                        f"bind_target {entry_bind_target!r} does not match "
+                        f"contract bind_target {contract_bind_target!r}."
                     ),
                     [
                         f"entry={source_entry_name or public_entry_name}",

@@ -220,7 +220,8 @@ def _template_args_from_bind_target(bind_target: str, entry_name: str) -> list[s
     prefix = f"{entry_name}<"
     if not bind_target.startswith(prefix) or not bind_target.endswith(">"):
         return []
-    return _split_top_level_commas(bind_target[len(prefix) : -1])
+    start = len(prefix)
+    return _split_top_level_commas(bind_target[start:-1])
 
 
 def _specialize_type(
@@ -1392,7 +1393,8 @@ def _discover_modules_by_arch(package_dir: Path) -> dict[str, dict[str, str]]:
             prefix = module_base + "_"
             if not found_module_name.startswith(prefix):
                 continue
-            module_suffix = found_module_name[len(prefix) :]
+            start = len(prefix)
+            module_suffix = found_module_name[start:]
             arch = module_suffix_to_arch(module_suffix)
             discovered.setdefault(arch, {})[entry_name] = found_module_name
             break
