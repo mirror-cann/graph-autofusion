@@ -180,7 +180,7 @@ COMMAND_BUILD_PATTERNS = (
 ASCEND_COMPILE_UNITS_MISSING = "ascend_compile_units_missing"
 ASCEND_ARCH_RE = re.compile(r"^[A-Za-z0-9_.-]+$")
 KERNEL_ENTRY_RE = re.compile(
-    r"(?:extern\s+\"C\"\s+)?(?:(?:__global__|__spk__|__sk__)[\w\s_()*,:&<>]*\s+void\s+)([A-Za-z_]\w*)\s*\(",
+    r"(?:extern\s+\"C\"\s+)?(?:(?:__global__|__sk__)[\w\s_()*,:&<>]*\s+void\s+)([A-Za-z_]\w*)\s*\(",
     re.MULTILINE,
 )
 SK_CONVERSION_BOUNDARY = [
@@ -273,13 +273,6 @@ def _read_pybind_io_contract(path_text: str) -> dict[str, dict[str, Any]]:
                 f"IO contract entry {entry_name!r} field {field_name!r} contains an empty name"
             )
         return names
-
-    def _bool_value(value: object, field_name: str, entry_name: str) -> bool:
-        if isinstance(value, bool):
-            return value
-        raise CliUsageError(
-            f"IO contract entry {entry_name!r} field {field_name!r} must be a boolean"
-        )
 
     def _string_list(value: object, field_name: str, entry_name: str) -> list[str]:
         if value in (None, ""):
@@ -389,22 +382,6 @@ def _read_pybind_io_contract(path_text: str) -> dict[str, dict[str, Any]]:
         options = _string_list(raw_options, "compile.options", entry_name)
         return {"defines": defines, "options": options}
 
-    def _migration_contract(value: object, entry_name: str) -> dict[str, Any]:
-        if value in (None, ""):
-            return {}
-        if not isinstance(value, dict):
-            raise CliUsageError(
-                f"IO contract entry {entry_name!r} field 'migration' must be an object"
-            )
-        normalized: dict[str, Any] = {}
-        if "confirm_legacy_mix_semantics" in value:
-            normalized["confirm_legacy_mix_semantics"] = _bool_value(
-                value["confirm_legacy_mix_semantics"],
-                "migration.confirm_legacy_mix_semantics",
-                entry_name,
-            )
-        return normalized
-
     def _runtime_wrapper_contract(value: object, entry_name: str) -> dict[str, Any]:
         if value in (None, ""):
             return {}
@@ -511,9 +488,6 @@ def _read_pybind_io_contract(path_text: str) -> dict[str, dict[str, Any]]:
             compile_contract = _compile_contract(
                 raw_spec.get("compile"), raw_spec, entry_name
             )
-            migration_contract = _migration_contract(
-                raw_spec.get("migration"), entry_name
-            )
             runtime_wrapper_contract = _runtime_wrapper_contract(
                 raw_spec.get("runtime_wrapper"), entry_name
             )
@@ -548,7 +522,6 @@ def _read_pybind_io_contract(path_text: str) -> dict[str, dict[str, Any]]:
             "compile": compile_contract
             if isinstance(raw_spec, dict)
             else {"defines": [], "options": []},
-            "migration": migration_contract if isinstance(raw_spec, dict) else {},
             "runtime_wrapper": runtime_wrapper_contract
             if isinstance(raw_spec, dict)
             else {},
@@ -756,12 +729,10 @@ def _collect_sk_markers(files: list[Path]) -> dict[str, bool]:
     joined = "\n".join(source_texts)
     return {
         "__sk__": "__sk__" in joined,
-        "__spk__": "__spk__" in joined,
         "SK_BIND": "SK_BIND" in joined,
         "sk_param_struct": "CommArgs" in joined
         or "SkSystemArgs" in joined
         or "__gm__ uint64_t *param" in joined,
-        "ascend_meta_section": ".ascend.meta" in joined,
     }
 
 
@@ -1096,7 +1067,7 @@ def _missing_contracts(
         missing.append("package_contract")
     if not doc_files:
         missing.append("delivery_docs_contract")
-    if not (sk_markers["SK_BIND"] or sk_markers["__sk__"] or sk_markers["__spk__"]):
+    if not (sk_markers["SK_BIND"] or sk_markers["__sk__"]):
         missing.append("sk_binding_contract")
     if not test_files and not doc_files:
         missing.append("operator_semantics_contract")
@@ -1113,7 +1084,7 @@ def _next_actions(missing_contracts: list[str], asset_level: str) -> list[str]:
         "test_contract": "create a minimal eager or C++ correctness test scaffold",
         "package_contract": "plan the Python package or shared-library handoff layout",
         "delivery_docs_contract": "write customer-facing build, run, and limitation notes",
-        "sk_binding_contract": "adapt or request SK binding details for __sk__/__spk__/SK_BIND",
+        "sk_binding_contract": "adapt or request SK binding details for __sk__/SK_BIND",
         "operator_semantics_contract": "collect shape, dtype, tiling, overflow, and boundary semantics",
     }
     for contract in missing_contracts:
@@ -1165,7 +1136,7 @@ def _missing_contract_action(contract: str) -> dict[str, str] | None:
         "sk_binding_contract": (
             "sk_binding",
             "high",
-            "adapt or request SK binding details for __sk__/__spk__/SK_BIND",
+            "adapt or request SK binding details for __sk__/SK_BIND",
         ),
         "operator_semantics_contract": (
             "semantics",
@@ -1955,7 +1926,7 @@ def _sk_marker_evidence(sk_markers: dict[str, bool]) -> list[dict[str, str]]:
 
 
 def _has_sk_binding_marker(sk_markers: dict[str, bool]) -> bool:
-    return bool(sk_markers["SK_BIND"] or sk_markers["__sk__"] or sk_markers["__spk__"])
+    return bool(sk_markers["SK_BIND"] or sk_markers["__sk__"])
 
 
 def _sk_conversion_input(
@@ -2879,7 +2850,7 @@ def _find_kernel_signature_for_entry(
         return None
     text = _source_text(source_path)
     pattern = re.compile(
-        r'(?:extern\s+"C"\s+)?(?P<qualifiers>(?:__global__|__spk__|__sk__)[\w\s_()*,:&<>]*?)\s+void\s+'
+        r'(?:extern\s+"C"\s+)?(?P<qualifiers>(?:__global__|__sk__)[\w\s_()*,:&<>]*?)\s+void\s+'
         r"(?P<name>[A-Za-z_]\w*)\s*\((?P<params>[^()]*)\)\s*\{",
         re.MULTILINE,
     )
@@ -3663,12 +3634,8 @@ def cmd_generate_sk_source_scaffold(args: argparse.Namespace) -> int:
 
 
 _SK_ADAPT_SUFFIXES = {".asc", ".cpp"}
-_SK_FORM_SIGNAL_RE = re.compile(
-    r"__global__\b|__spk__\b|__sk__\b|\bSK_BIND\s*\(|\.ascend\.meta"
-)
-_SK_NON_GLOBAL_FORM_SIGNAL_RE = re.compile(
-    r"__spk__\b|__sk__\b|\bSK_BIND\s*\(|\.ascend\.meta|FunLevel(?:MixCoreType|KType)"
-)
+_SK_FORM_SIGNAL_RE = re.compile(r"__global__\b|__sk__\b|\bSK_BIND\s*\(|\.ascend\.meta")
+_SK_NON_GLOBAL_FORM_SIGNAL_RE = re.compile(r"__sk__\b|\bSK_BIND\s*\(")
 _QUOTED_INCLUDE_RE = re.compile(r'(?m)^\s*#\s*include\s+"([^"]+)"')
 _COPIED_INCLUDE_SUFFIXES = INCLUDE_SUFFIXES | {".inc", ".inl", ".ipp", ".tpp"}
 
@@ -3898,10 +3865,9 @@ def cmd_detect_sk_form(args: argparse.Namespace) -> int:
                 "file": str(rel),
                 "form": analysis.form,
                 "has_global": analysis.has_global,
-                "has_spk_keyword": analysis.has_spk_keyword,
                 "has_sk_keyword": analysis.has_sk_keyword,
                 "has_sk_bind": analysis.has_sk_bind,
-                "has_legacy_meta_struct": analysis.has_legacy_meta_struct,
+                "has_unsupported_sk_signal": analysis.has_unsupported_sk_signal,
                 "notes": analysis.notes,
             }
         )
@@ -3914,8 +3880,8 @@ def cmd_detect_sk_form(args: argparse.Namespace) -> int:
         overall = "none"
     elif forms == {"current-sk-bind"}:
         overall = "current-sk-bind"
-    elif forms == {"legacy-spk"}:
-        overall = "legacy-spk"
+    elif forms == {"partial"}:
+        overall = "partial"
     elif "unknown" in forms and len(forms) == 1:
         overall = "unknown"
     else:
@@ -4058,7 +4024,7 @@ def cmd_adapt_sk_from_global(args: argparse.Namespace) -> int:
         _run_spec_clean_loop_inline,
         adapt_source_text,
         detect_sk_form,
-        migrate_legacy_spk_to_sk_bind,
+        parse_global_entries,
         render_aclgraph_kernel_source,
         render_arch_selector_py,
         render_op_extension_init_py,
@@ -4177,6 +4143,53 @@ def cmd_adapt_sk_from_global(args: argparse.Namespace) -> int:
                 selected[matched_name] = bind_target
         return selected
 
+    def template_bind_target_escalations(
+        entries: list[Any], bind_targets_by_entry: dict[str, str]
+    ) -> list[dict[str, Any]]:
+        findings: list[dict[str, Any]] = []
+        for entry in entries:
+            if not entry.template_params:
+                continue
+            if bind_targets_by_entry.get(entry.name):
+                continue
+            findings.append(
+                _codegen_human_finding(
+                    "codegen.template-bind-target-required",
+                    (
+                        f"operator entry {entry.name!r} is a templated __global__ kernel; provide "
+                        "--io-contract with an explicit bind_target specialization."
+                    ),
+                    [
+                        f"entry={entry.name}",
+                        "reason=templated kernel specialization is an external build/runtime contract",
+                        (
+                            "contract_schema={'schema_version':1,'entries':"
+                            "{'entry_name':{'bind_target':'entry_name<...>'}}}"
+                        ),
+                    ],
+                )
+            )
+        return findings
+
+    def preflight_io_contract_escalations(entries: list[Any]) -> list[dict[str, Any]]:
+        findings: list[dict[str, Any]] = []
+        for parsed_entry in entries:
+            entry = {
+                "entry_name": parsed_entry.name,
+                "parameters": [
+                    {"name": param.name, "c_type": param.c_type}
+                    for param in parsed_entry.params
+                ],
+                "bind_target": parsed_entry.name,
+            }
+            metadata = unit_metadata_by_entry.get(parsed_entry.name, {})
+            entry.update(metadata)
+            apply_name_resolution(entry, metadata.get("source_asset"))
+            io_escalation = apply_io_contract(entry)
+            if io_escalation is not None:
+                findings.append(io_escalation)
+        return findings
+
     def apply_io_contract(entry: dict[str, Any]) -> dict[str, Any] | None:
         source_entry_name = str(
             entry.get("source_entry_name") or entry.get("entry_name") or ""
@@ -4243,18 +4256,20 @@ def cmd_adapt_sk_from_global(args: argparse.Namespace) -> int:
             and entry_bind_target
             and contract_bind_target != entry_bind_target
         ):
-            return _codegen_human_finding(
-                "codegen.io-contract-bind-target-mismatch",
-                (
-                    f"operator entry {source_entry_name or public_entry_name!r} matched IO contract, but its "
-                    f"bind_target {entry_bind_target!r} does not match contract bind_target {contract_bind_target!r}."
-                ),
-                [
-                    f"entry={source_entry_name or public_entry_name}",
-                    f"entry_bind_target={entry_bind_target}",
-                    f"contract_bind_target={contract_bind_target}",
-                ],
-            )
+            default_bind_targets = {source_entry_name, public_entry_name}
+            if entry_bind_target not in default_bind_targets:
+                return _codegen_human_finding(
+                    "codegen.io-contract-bind-target-mismatch",
+                    (
+                        f"operator entry {source_entry_name or public_entry_name!r} matched IO contract, but its "
+                        f"bind_target {entry_bind_target!r} does not match contract bind_target {contract_bind_target!r}."
+                    ),
+                    [
+                        f"entry={source_entry_name or public_entry_name}",
+                        f"entry_bind_target={entry_bind_target}",
+                        f"contract_bind_target={contract_bind_target}",
+                    ],
+                )
         unknown_params = sorted(set(declared_params) - set(param_kinds))
         if unknown_params:
             return _codegen_human_finding(
@@ -4481,7 +4496,6 @@ def cmd_adapt_sk_from_global(args: argparse.Namespace) -> int:
             "parameters": declared_params,
             "launch": io_contract.get("launch", {}),
             "compile": io_contract.get("compile", {}),
-            "migration": io_contract.get("migration", {}),
             "runtime_wrapper": runtime_wrapper,
             "bind_target": contract_bind_target,
             "contract_path": io_contract.get("contract_path", ""),
@@ -4554,11 +4568,36 @@ def cmd_adapt_sk_from_global(args: argparse.Namespace) -> int:
                     }
                 )
                 continue
+            global_entries = parse_global_entries(cleaned_text)
+            global_entry_names = [entry.name for entry in global_entries]
+            bind_targets_by_entry = contract_bind_targets_for_global_entry(
+                global_entry_names
+            )
+            template_escalations = template_bind_target_escalations(
+                global_entries, bind_targets_by_entry
+            )
+            if template_escalations:
+                escalations.extend(template_escalations)
+                escalations.extend(preflight_io_contract_escalations(global_entries))
+                all_escalations.extend(escalations)
+                per_file_results.append(
+                    {
+                        "file": str(rel),
+                        "status": "needs-human",
+                        "form_before": "none",
+                        "form_after": "none",
+                        "entries": [],
+                        "inline_remediations": inline_remediations,
+                        "escalations": escalations,
+                    }
+                )
+                continue
             new_text, metas = adapt_source_text(
                 cleaned_text,
                 mask=int(args.mask),
                 num_splits=int(args.num_splits),
                 sys_args_mode=args.with_sys_args,
+                bind_targets_by_entry=bind_targets_by_entry,
             )
             for meta in metas:
                 metadata = unit_metadata_by_entry.get(meta.get("entry_name"), {})
@@ -4597,81 +4636,6 @@ def cmd_adapt_sk_from_global(args: argparse.Namespace) -> int:
                     "escalations": [],
                 }
             )
-        elif form.form == "legacy-spk":
-            migration_contract: dict[str, Any] = {}
-            possible_contract_names = []
-            for match in KERNEL_ENTRY_RE.finditer(text):
-                possible_contract_names.append(match.group(1))
-            for possible_name in possible_contract_names:
-                _, matched_contract = find_io_contract(possible_name)
-                if matched_contract and matched_contract.get("migration"):
-                    migration_contract.update(matched_contract.get("migration", {}))
-            bind_targets_by_stem = contract_bind_targets_for_global_entry(
-                possible_contract_names
-            )
-            new_text, migration_meta = migrate_legacy_spk_to_sk_bind(
-                text,
-                mask=int(args.mask),
-                sys_args_mode=args.with_sys_args,
-                migration_contract=migration_contract,
-                bind_targets_by_stem=bind_targets_by_stem,
-            )
-            escalations = migration_meta.get("escalations", [])
-            if escalations:
-                all_escalations.extend(escalations)
-                per_file_results.append(
-                    {
-                        "file": str(rel),
-                        "status": "needs-human",
-                        "form_before": "legacy-spk",
-                        "form_after": "legacy-spk",
-                        "entries": [],
-                        "migration_meta": migration_meta,
-                        "inline_remediations": [],
-                        "escalations": escalations,
-                    }
-                )
-                continue
-            entries = migration_meta.get("entries", [])
-            for entry in entries:
-                metadata = unit_metadata_by_entry.get(entry.get("entry_name"), {})
-                entry.update(metadata)
-                apply_name_resolution(entry, metadata.get("source_asset"))
-                io_escalation = apply_io_contract(entry)
-                if io_escalation is not None:
-                    escalations.append(io_escalation)
-            if escalations:
-                all_escalations.extend(escalations)
-                per_file_results.append(
-                    {
-                        "file": str(rel),
-                        "status": "needs-human",
-                        "form_before": "legacy-spk",
-                        "form_after": "legacy-spk",
-                        "entries": entries,
-                        "migration_meta": migration_meta,
-                        "inline_remediations": [],
-                        "escalations": escalations,
-                    }
-                )
-                continue
-            target_path.write_text(new_text, encoding="utf-8")
-            canonical_name = f"{entries[0]['entry_name']}.asc" if entries else rel.name
-            canonical_sources.append((canonical_name, new_text, entries, source_path))
-            canonical_entries.extend(entries)
-            per_file_results.append(
-                {
-                    "file": str(rel),
-                    "status": "adapted",
-                    "form_before": "legacy-spk",
-                    "form_after": "current-sk-bind",
-                    "pybind_layout": "aclgraph-canonical",
-                    "entries": entries,
-                    "migration_meta": migration_meta,
-                    "inline_remediations": [],
-                    "escalations": [],
-                }
-            )
         elif form.form == "current-sk-bind":
             target_path.write_bytes(source_path.read_bytes())
             per_file_results.append(
@@ -4689,7 +4653,7 @@ def cmd_adapt_sk_from_global(args: argparse.Namespace) -> int:
         else:
             escalation = _codegen_human_finding(
                 "codegen.unknown-sk-form",
-                f"source file {rel} has unsupported SK form {form.form!r}; human migration is required.",
+                f"source file {rel} is not a supported global input or current SK bind source.",
                 form.notes,
             )
             all_escalations.append(escalation)
@@ -4870,22 +4834,6 @@ def cmd_adapt_sk_from_global(args: argparse.Namespace) -> int:
         "package_version": package_version,
         "python_package": package_dir_name,
         "canonical_written_files": canonical_written,
-        "legacy_migration_body_sources": [
-            {
-                "entry_name": entry.get("entry_name"),
-                "body_source": entry.get("body_source"),
-            }
-            for entry in canonical_entries
-            if entry.get("body_source")
-        ],
-        "legacy_helper_evidence": [
-            {
-                "entry_name": entry.get("entry_name"),
-                "mode": entry.get("legacy_helper_evidence"),
-            }
-            for entry in canonical_entries
-            if entry.get("legacy_helper_evidence")
-        ],
         "template_specializations": [
             entry["template_specialization"]
             for entry in canonical_entries
@@ -5198,7 +5146,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     detect_form = subparsers.add_parser(
         "detect-sk-form",
-        help="Classify each source file as none / legacy-spk / current-sk-bind / partial / unknown",
+        help="Classify each source file as none / current-sk-bind / partial / unknown",
     )
     detect_form.add_argument("asset", help="Operator asset directory or .asc/.cpp file")
     detect_form.add_argument(

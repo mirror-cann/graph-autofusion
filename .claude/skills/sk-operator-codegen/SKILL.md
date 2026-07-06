@@ -1,12 +1,11 @@
 ---
 name: sk-operator-codegen
-description: SK 内置代码生成 skill，负责识别算子源码形态，生成当前 SK binding（Args struct + __sk__ template + SK_BIND），迁移历史 __spk__，应用可机器修复项，并生成最小非 SK 算子模板。
+description: SK 内置代码生成 skill，负责识别普通 global 算子和当前 SK bind 源码，生成当前 SK binding（Args struct + __sk__ template + SK_BIND），应用可机器修复项，并生成最小非 SK 算子模板。
 ---
 
 # SK 算子代码生成
 
-这个 skill 用于把普通 AscendC `__global__` kernel 适配为 SuperKernel 入口，或者把历史
-`__spk__` 资产迁移到当前 `SK_BIND` 形态。已经是当前 SK bind 的源码会按字节复用；不支持或混合形态会输出明确的人工处理结论。
+这个 skill 用于把普通 AscendC `__global__` kernel 适配为 SuperKernel 入口。已经是当前 SK bind 的源码会按字节复用；混合形态或信息不足的输入会输出明确的人工处理结论。
 
 自动生成逻辑以本 skill 的 `scripts/`、`templates/` 和 `references/` 为稳定契约。
 
@@ -21,7 +20,7 @@ python3 <skills_root>/sk-operator-codegen/scripts/operator_codegen.py <subcomman
 ### 自动生成
 
 - `adapt-sk-from-global <asset> --output-dir DIR`
-  统一处理已分类的输入形态。普通或可修复的非 SK 源码会先走 codegen 拥有的预适配自动修复，再生成当前 SK bind。历史 `__spk__` 通过匹配到的 `__global__` body 迁移到当前 `__sk__` + `SK_BIND`，不会把 legacy helper-forward body 当成最终实现，除非未来有显式用户覆盖。模板化 global 会保留模板参数，并追加 `splitidx`；只有字段类型依赖模板参数时，Args struct 才模板化。
+  统一处理已分类的输入形态。普通或可修复的非 SK 源码会先走 codegen 拥有的预适配自动修复，再生成当前 SK bind。模板化 global 会保留模板参数，并追加 `splitidx`；只有字段类型依赖模板参数时，Args struct 才模板化。
 
   生成包遵循 aclgraph-canonical 布局：`csrc/<op>.asc`、`csrc/pybind11.asc`、`op_extension/`、`setup.py`。ACLGraph wheel 通过 `SK_NPU_ARCHS` 支持多 arch native extension；native module 按 `entry x arch` 拆分，便于 `SK_BISHENG_JOBS` 并行编译。
 
@@ -36,7 +35,7 @@ python3 <skills_root>/sk-operator-codegen/scripts/operator_codegen.py <subcomman
   如果 fixture 声明 device buffers/scalars，会分配独立 baseline/SK buffer、回拷可比输出，并输出 byte/hash 对比结果。没有显式 device plan 时，真实设备运行返回 `skipped-insufficient-runtime-spec`，不能伪造通过。standalone 的 `--npu-arch` 必须显式，或只能由 `--target-chip` 解析到唯一 source-backed arch；否则输出 `needs-target-arch`。
 
 - `detect-sk-form <asset> --output-dir DIR`
-  将源码分类为 `none`、`legacy-spk`、`current-sk-bind`、`partial` 或 `unknown`，输出 `operator-sk-form-analysis.json`。
+  将源码分类为 `none`、`current-sk-bind`、`partial` 或 `unknown`，输出 `operator-sk-form-analysis.json`。
 
 - `apply-remediation <asset_dir> <findings.json>`
   应用自动可修复项，支持 `rename-symbol`、`remove-line-containing`、`add-include`、`replace-pattern`。不可自动修复项会作为人工处理项输出。

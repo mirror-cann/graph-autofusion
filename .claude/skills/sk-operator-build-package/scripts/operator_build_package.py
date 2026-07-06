@@ -172,7 +172,7 @@ TOOLCHAIN_INCLUDE_NAMES = {"kernel_operator.h"}
 TOOLCHAIN_INCLUDE_PREFIXES = ("kernel_tiling/",)
 ASCEND_ARCH_RE = re.compile(r"^[A-Za-z0-9_.-]+$")
 KERNEL_ENTRY_RE = re.compile(
-    r"(?:extern\s+\"C\"\s+)?(?:(?:__global__|__spk__|__sk__)[\w\s_()*,:&<>]*\s+void\s+)([A-Za-z_]\w*)\s*\(",
+    r"(?:extern\s+\"C\"\s+)?(?:(?:__global__|__sk__)[\w\s_()*,:&<>]*\s+void\s+)([A-Za-z_]\w*)\s*\(",
     re.MULTILINE,
 )
 SK_CONVERSION_BOUNDARY = [
@@ -502,12 +502,10 @@ def _collect_sk_markers(files: list[Path]) -> dict[str, bool]:
     joined = "\n".join(source_texts)
     return {
         "__sk__": "__sk__" in joined,
-        "__spk__": "__spk__" in joined,
         "SK_BIND": "SK_BIND" in joined,
         "sk_param_struct": "CommArgs" in joined
         or "SkSystemArgs" in joined
         or "__gm__ uint64_t *param" in joined,
-        "ascend_meta_section": ".ascend.meta" in joined,
     }
 
 
@@ -842,7 +840,7 @@ def _missing_contracts(
         missing.append("package_contract")
     if not doc_files:
         missing.append("delivery_docs_contract")
-    if not (sk_markers["SK_BIND"] or sk_markers["__sk__"] or sk_markers["__spk__"]):
+    if not (sk_markers["SK_BIND"] or sk_markers["__sk__"]):
         missing.append("sk_binding_contract")
     if not test_files and not doc_files:
         missing.append("operator_semantics_contract")
@@ -859,7 +857,7 @@ def _next_actions(missing_contracts: list[str], asset_level: str) -> list[str]:
         "test_contract": "create a minimal eager or C++ correctness test scaffold",
         "package_contract": "plan the Python package or shared-library handoff layout",
         "delivery_docs_contract": "write customer-facing build, run, and limitation notes",
-        "sk_binding_contract": "adapt or request SK binding details for __sk__/__spk__/SK_BIND",
+        "sk_binding_contract": "adapt or request SK binding details for __sk__/SK_BIND",
         "operator_semantics_contract": "collect shape, dtype, tiling, overflow, and boundary semantics",
     }
     for contract in missing_contracts:
@@ -911,7 +909,7 @@ def _missing_contract_action(contract: str) -> dict[str, str] | None:
         "sk_binding_contract": (
             "sk_binding",
             "high",
-            "adapt or request SK binding details for __sk__/__spk__/SK_BIND",
+            "adapt or request SK binding details for __sk__/SK_BIND",
         ),
         "operator_semantics_contract": (
             "semantics",
@@ -1468,7 +1466,7 @@ def _sk_marker_evidence(sk_markers: dict[str, bool]) -> list[dict[str, str]]:
 
 
 def _has_sk_binding_marker(sk_markers: dict[str, bool]) -> bool:
-    return bool(sk_markers["SK_BIND"] or sk_markers["__sk__"] or sk_markers["__spk__"])
+    return bool(sk_markers["SK_BIND"] or sk_markers["__sk__"])
 
 
 def _sk_conversion_input(

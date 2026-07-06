@@ -7,7 +7,7 @@
 
 优先使用本工具完成端到端闭环：
 
-- 批量把普通 `__global__` 或历史 `__spk__` 算子适配为当前 SK bind 形态。
+- 批量把普通 `__global__` 算子适配为当前 SK bind 形态。
 - 对一批算子做规格检查，并按需要显式运行 source-backed 兼容性风险检查。
 - 生成 standalone 或 wheel 构建产物，并在有运行条件时做正确性校验。
 - 在自动修复无法收敛时，保留每轮诊断结果供人工处理。
@@ -79,7 +79,6 @@ run-sk-pipeline --asset-root $OPERATOR_ASSET_ROOT --output-dir build/examples/ou
 | 形态 | 处理方式 |
 | --- | --- |
 | 当前 SK bind | 复用现有结构，继续规格、兼容性、构建验证 |
-| 历史 `__spk__` | 迁移到当前 SK bind 结构 |
 | 普通 `__global__` kernel | 生成 SK bind 封装和聚合产物 |
 | 缺少规格或无法识别 | 标记为 `needs-human` 并保留诊断输出 |
 
@@ -216,7 +215,7 @@ IO 契约示例：
 
 | 阶段 | 说明 | 主要关注文件 |
 | --- | --- | --- |
-| 01-detect-form | 判断输入是当前 SK bind、历史 `__spk__` 还是普通 `__global__` | form report |
+| 01-detect-form | 判断输入是当前 SK bind、普通 `__global__` 还是需要人工处理 | form report |
 | 02-adapt-sk-from-global | 生成 per-op SK bind，并生成 `_aggregate` 聚合目录 | adapted source、manifest |
 | 03-validate-spec | 扫描静态规则，给出问题和修复建议 | findings JSON |
 | 04-validate-compat | 可显式开启的 source-backed 兼容性风险检查 | coverage metadata、findings JSON |

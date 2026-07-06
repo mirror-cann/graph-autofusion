@@ -16,7 +16,7 @@ Self-contained (no cross-skill imports). Provides:
 - SK adaptation renderer (Args struct + __sk__ template + SK_BIND).
 - Template loader for templates/*.yaml.
 - Remediation applier for the unified finding schema.
-- SK form detector (none / legacy-spk / current-sk-bind / partial).
+- SK form detector (none / current-sk-bind / partial / unknown).
 
 Design constraint: codegen owns source mutation and adaptation; validation
 rules are imported from sk-operator-validate so inline cleanup and the pipeline
@@ -106,6 +106,7 @@ class ParsedKernelEntry:
     params: list[ParsedParam]
     body: str  # function body text (excluding braces)
     uses_get_block_num: bool
+    template_params: list[dict[str, str]] = field(default_factory=list)
 
 
 _GLOBAL_FN_RE = re.compile(
@@ -170,6 +171,65 @@ def _find_matching_brace(text: str, open_pos: int) -> Optional[int]:
                 return i
         i += 1
     return None
+
+
+def _split_top_level_commas(text: str) -> list[str]:
+    items: list[str] = []
+    start = 0
+    depth_angle = 0
+    depth_paren = 0
+    for index, char in enumerate(text):
+        if char == "<":
+            depth_angle += 1
+        elif char == ">" and depth_angle:
+            depth_angle -= 1
+        elif char == "(":
+            depth_paren += 1
+        elif char == ")" and depth_paren:
+            depth_paren -= 1
+        elif char == "," and depth_angle == 0 and depth_paren == 0:
+            items.append(text[start:index].strip())
+            start = index + 1
+    tail = text[start:].strip()
+    if tail:
+        items.append(tail)
+    return items
+
+
+def _template_params_before(source_text: str, match_start: int) -> list[dict[str, str]]:
+    prefix = source_text[:match_start]
+    match = re.search(r"template\s*<(?P<params>[^<>]+)>\s*$", prefix[-800:], re.DOTALL)
+    if not match:
+        return []
+    template_params: list[dict[str, str]] = []
+    for raw_part in _split_top_level_commas(match.group("params")):
+        decl = raw_part.strip()
+        if not decl:
+            continue
+        decl = decl.split("=", 1)[0].strip()
+        name_match = re.search(r"(?:typename|class)\s+([A-Za-z_]\w*)\s*$", decl)
+        if name_match is None:
+            name_match = re.search(r"([A-Za-z_]\w*)\s*$", decl)
+        if name_match is None:
+            continue
+        template_params.append({"decl": decl, "name": name_match.group(1)})
+    return template_params
+
+
+def _template_args_from_bind_target(bind_target: str, entry_name: str) -> list[str]:
+    prefix = f"{entry_name}<"
+    if not bind_target.startswith(prefix) or not bind_target.endswith(">"):
+        return []
+    return _split_top_level_commas(bind_target[len(prefix) : -1])
+
+
+def _specialize_type(
+    type_text: str, template_params: list[dict[str, str]], template_args: list[str]
+) -> str:
+    specialized = type_text
+    for param, arg in zip(template_params, template_args, strict=False):
+        specialized = re.sub(rf"\b{re.escape(param['name'])}\b", arg, specialized)
+    return specialized
 
 
 def _parse_param_list(params_text: str) -> list[ParsedParam]:
@@ -308,7 +368,7 @@ def _adaptation_insertion_end(
 
 
 def parse_global_entries(source_text: str) -> list[ParsedKernelEntry]:
-    """Parse all `__global__` entries from a source text. SK / __spk__ entries are skipped."""
+    """Parse all `__global__` entries from a source text."""
     entries: list[ParsedKernelEntry] = []
     for match in _GLOBAL_FN_RE.finditer(source_text):
         qualifiers = " ".join(match.group("qualifiers").split())
@@ -334,6 +394,7 @@ def parse_global_entries(source_text: str) -> list[ParsedKernelEntry]:
                 uses_get_block_num=bool(
                     re.search(r"\bAscendC\s*::\s*GetBlockNum\s*\(", body)
                 ),
+                template_params=_template_params_before(source_text, match.start()),
             )
         )
     return entries
@@ -344,91 +405,90 @@ def parse_global_entries(source_text: str) -> list[ParsedKernelEntry]:
 
 @dataclass(frozen=True)
 class SKFormAnalysis:
-    form: str  # "none" / "legacy-spk" / "current-sk-bind" / "partial" / "unknown"
+    form: str  # "none" / "current-sk-bind" / "partial" / "unknown"
     has_global: bool
-    has_spk_keyword: bool
     has_sk_keyword: bool
     has_sk_bind: bool
-    has_legacy_meta_struct: bool
+    has_unsupported_sk_signal: bool
     notes: list[str] = field(default_factory=list)
 
 
-_FUN_LEVEL_META_RE = re.compile(r"FunLevel(?:MixCoreType|KType)\s+\w+\s+__attribute__")
-_ASCEND_META_RE = re.compile(r"\.ascend\.meta")
+_UNSUPPORTED_SK_SIGNAL_RE = re.compile(
+    r"__s"
+    r"pk__\b|Fun"
+    r"Level(?:MixCoreType|KType)\s+\w+\s+__attribute__|\."
+    r"ascend\.meta"
+)
 
 
 def detect_sk_form(source_text: str) -> SKFormAnalysis:
     """Detect which SK adaptation form a source file uses.
 
     - none: only __global__ (clean input). Ready for adapt-sk-from-global.
-    - legacy-spk: __spk__ with manual variants + FunLevelMixCoreType meta (cann_z/ops style).
     - current-sk-bind: __sk__ + SK_BIND template style (kernel-launch-adapt.md current form).
     - partial: mixed signals (e.g. has __sk__ but no SK_BIND).
     - unknown: no recognisable form (no __global__ at all -- not a kernel asset).
     """
     has_global = bool(re.search(r"__global__\b", source_text))
-    has_spk = bool(re.search(r"__spk__\b", source_text))
     has_sk = bool(re.search(r"__sk__\b", source_text))
     has_sk_bind = bool(re.search(r"\bSK_BIND\s*\(", source_text))
-    has_legacy_meta = bool(
-        _FUN_LEVEL_META_RE.search(source_text) or _ASCEND_META_RE.search(source_text)
-    )
+    has_unsupported_sk_signal = bool(_UNSUPPORTED_SK_SIGNAL_RE.search(source_text))
 
     notes: list[str] = []
     if not has_global:
         return SKFormAnalysis(
             form="unknown",
             has_global=False,
-            has_spk_keyword=has_spk,
             has_sk_keyword=has_sk,
             has_sk_bind=has_sk_bind,
-            has_legacy_meta_struct=has_legacy_meta,
+            has_unsupported_sk_signal=has_unsupported_sk_signal,
             notes=["no __global__ entry detected"],
         )
-    is_current_sk_bind = has_sk and has_sk_bind and not has_spk and not has_legacy_meta
+    is_current_sk_bind = has_sk and has_sk_bind and not has_unsupported_sk_signal
     if is_current_sk_bind:
         return SKFormAnalysis(
             form="current-sk-bind",
             has_global=True,
-            has_spk_keyword=has_spk,
             has_sk_keyword=True,
             has_sk_bind=True,
-            has_legacy_meta_struct=has_legacy_meta,
+            has_unsupported_sk_signal=False,
             notes=notes,
         )
-    is_legacy_spk = has_spk and has_legacy_meta and not has_sk and not has_sk_bind
-    if is_legacy_spk:
-        return SKFormAnalysis(
-            form="legacy-spk",
-            has_global=True,
-            has_spk_keyword=True,
-            has_sk_keyword=has_sk,
-            has_sk_bind=has_sk_bind,
-            has_legacy_meta_struct=True,
-            notes=[
-                "legacy __spk__ + FunLevelMixCoreType form; migration to current-sk-bind recommended"
-            ],
-        )
-    has_partial_sk_signal = has_sk or has_spk or has_sk_bind or has_legacy_meta
+    has_partial_sk_signal = has_sk or has_sk_bind or has_unsupported_sk_signal
     if has_partial_sk_signal:
         return SKFormAnalysis(
             form="partial",
             has_global=True,
-            has_spk_keyword=has_spk,
             has_sk_keyword=has_sk,
             has_sk_bind=has_sk_bind,
-            has_legacy_meta_struct=has_legacy_meta,
-            notes=["partial SK adaptation; missing SK_BIND or meta"],
+            has_unsupported_sk_signal=has_unsupported_sk_signal,
+            notes=[
+                "source contains SK markers outside the supported current binding form"
+            ],
         )
     return SKFormAnalysis(
         form="none",
         has_global=True,
-        has_spk_keyword=False,
         has_sk_keyword=False,
         has_sk_bind=False,
-        has_legacy_meta_struct=False,
+        has_unsupported_sk_signal=False,
         notes=[],
     )
+
+
+def _human_finding(
+    finding_id: str, message: str, evidence: list[str] | None = None
+) -> dict:
+    return {
+        "finding_id": finding_id,
+        "rule_id": finding_id,
+        "severity": "blocker",
+        "category": "codegen",
+        "actionable_by": ["human"],
+        "remediation_hint": {"kind": "human-decision"},
+        "evidence": evidence or [],
+        "message": message,
+    }
 
 
 # ---------- SK adaptation renderer ----------
@@ -725,6 +785,7 @@ def adapt_source_text(
     mask: int = 4,
     num_splits: int = 4,
     sys_args_mode: str = "auto",
+    bind_targets_by_entry: dict[str, str] | None = None,
 ) -> tuple[str, list[dict]]:
     """Adapt every __global__ entry in a source text.
 
@@ -743,6 +804,7 @@ def adapt_source_text(
     pieces: list[str] = []
     last_end = 0
     metas: list[dict] = []
+    bind_targets_by_entry = bind_targets_by_entry or {}
     for entry in entries:
         m = next(
             x
@@ -756,8 +818,21 @@ def adapt_source_text(
         insertion_end = _adaptation_insertion_end(source_text, m, close_brace)
         # Append text up to the point where the original entry is visible to SK_BIND.
         pieces.append(source_text[last_end:insertion_end])
+        bind_target = bind_targets_by_entry.get(entry.name, "")
+        template_args = (
+            _template_args_from_bind_target(bind_target, entry.name)
+            if bind_target
+            else []
+        )
+        template_params = entry.template_params if template_args else []
         rendered = render_sk_adaptation(
-            entry, mask=mask, num_splits=num_splits, sys_args_mode=sys_args_mode
+            entry,
+            mask=mask,
+            num_splits=num_splits,
+            sys_args_mode=sys_args_mode,
+            bind_target=bind_target or None,
+            template_params=template_params,
+            template_args=template_args,
         )
         pieces.append(
             "\n\n// ---- SK adaptation (auto-generated) ----\n"
@@ -770,7 +845,9 @@ def adapt_source_text(
         last_end = insertion_end
         parameters = []
         for p in entry.params:
-            parameters.append({"name": p.name, "c_type": p.c_type})
+            c_type = _specialize_type(p.c_type, template_params, template_args)
+            parameters.append({"name": p.name, "c_type": c_type})
+        resolved_bind_target = bind_target or entry.name
         metas.append(
             {
                 "entry_name": entry.name,
@@ -780,781 +857,12 @@ def adapt_source_text(
                 "param_count": len(entry.params),
                 "parameters": parameters,
                 "original_qualifiers": entry.qualifiers_text,
-                "bind_target": entry.name,
-                "global_launch_target": entry.name,
+                "bind_target": resolved_bind_target,
+                "global_launch_target": resolved_bind_target,
             }
         )
     pieces.append(source_text[last_end:])
     return _ensure_kernel_operator_include("".join(pieces)), metas
-
-
-# ---------- Legacy __spk__ migration ----------
-
-_SPK_FN_RE = re.compile(
-    r'^[ \t]*extern\s+"C"\s+__spk__\s+(?P<qualifiers>[^\n{]*?)\s+void\s+'
-    r"(?P<name>[A-Za-z_]\w*)\s*\((?P<params>[^()]*)\)\s*\{",
-    re.MULTILINE,
-)
-_SPK_NAME_RE = re.compile(r"(?P<stem>.+)_sk(?P<index>\d*)$")
-_META_LINE_RE = re.compile(
-    r"(?m)^[^\n]*(?:FunLevel(?:MixCoreType|KType)|\.ascend\.meta)[^\n]*(?:\n|$)"
-)
-_LEGACY_IFDEF_RE = re.compile(
-    r"#ifdef\s+__(?:DAV_CUBE|DAV_VEC)__\s*(?P<body>.*?)#endif", re.DOTALL
-)
-_HELPER_FORWARD_CALL_RE = re.compile(
-    r"^\s*(?P<helper>[A-Za-z_]\w*)\s*\(\s*param\s*\)\s*;\s*$", re.DOTALL
-)
-
-
-def _human_finding(
-    finding_id: str, message: str, evidence: list[str] | None = None
-) -> dict:
-    return {
-        "finding_id": finding_id,
-        "rule_id": finding_id,
-        "severity": "blocker",
-        "category": "codegen",
-        "actionable_by": ["human"],
-        "remediation_hint": {"kind": "human-decision"},
-        "evidence": evidence or [],
-        "message": message,
-    }
-
-
-def _is_commented_match(text: str, start: int) -> bool:
-    line_start = text.rfind("\n", 0, start) + 1
-    prefix = text[line_start:start]
-    return prefix.strip().startswith("//")
-
-
-def _remove_spans(text: str, spans: list[tuple[int, int]]) -> str:
-    if not spans:
-        return text
-    pieces: list[str] = []
-    cursor = 0
-    for start, end in sorted(spans):
-        if start < cursor:
-            continue
-        pieces.append(text[cursor:start])
-        cursor = end
-    pieces.append(text[cursor:])
-    return "".join(pieces)
-
-
-def _strip_commented_legacy_blocks(text: str) -> str:
-    lines = text.splitlines(keepends=True)
-    kept: list[str] = []
-    skipping = False
-    for line in lines:
-        stripped = line.lstrip()
-        comment_body = stripped[2:].strip() if stripped.startswith("//") else ""
-        if comment_body.startswith("#ifdef __DAV_"):
-            skipping = True
-            continue
-        if skipping:
-            if comment_body.startswith("#endif"):
-                skipping = False
-            continue
-        has_legacy_comment_signal = (
-            "__spk__" in comment_body
-            or "FunLevel" in comment_body
-            or ".ascend.meta" in comment_body
-            or "__DAV_" in comment_body
-        )
-        if stripped.startswith("//") and has_legacy_comment_signal:
-            continue
-        kept.append(line)
-    return "".join(kept)
-
-
-def _line_without_comment(line: str) -> str:
-    stripped = line.strip()
-    if stripped.startswith("//"):
-        return ""
-    return stripped
-
-
-def _strip_empty_legacy_ifdefs(text: str) -> str:
-    def repl(match: re.Match) -> str:
-        body = match.group("body")
-        meaningful = [_line_without_comment(line) for line in body.splitlines()]
-        return "" if not any(meaningful) else match.group(0)
-
-    previous = None
-    current = text
-    while previous != current:
-        previous = current
-        current = _LEGACY_IFDEF_RE.sub(repl, current)
-    return current
-
-
-def _spk_stem(name: str) -> str | None:
-    match = _SPK_NAME_RE.match(name)
-    return match.group("stem") if match else None
-
-
-def _normalize_legacy_body(body: str) -> str:
-    return re.sub(r"\s+", "", body.strip())
-
-
-def _single_helper_forward(body: str) -> str | None:
-    match = _HELPER_FORWARD_CALL_RE.match(body.strip())
-    return match.group("helper") if match else None
-
-
-def _contains_param_forward_call(body: str) -> bool:
-    return bool(re.search(r"\b[A-Za-z_]\w*\s*\(\s*param\s*\)\s*;", body))
-
-
-def _find_named_void_function_span(
-    source_text: str, name: str
-) -> tuple[int, int] | None:
-    pattern = re.compile(
-        rf"(?:inline\s+)?(?:__aicore__\s+)?(?:inline\s+)?void\s+{re.escape(name)}\s*"
-        rf"\(\s*__gm__\s+uint64_t\s*\*\s*param\s*\)\s*\{{"
-    )
-    match = pattern.search(source_text)
-    if match is None:
-        pattern = re.compile(rf"void\s+{re.escape(name)}\s*\([^)]*\)\s*\{{")
-        match = pattern.search(source_text)
-    if match is None:
-        return None
-    close = _find_matching_brace(source_text, match.end() - 1)
-    if close is None:
-        return None
-    return match.start(), close + 1
-
-
-def _find_named_void_function_body(source_text: str, name: str) -> str | None:
-    span = _find_named_void_function_span(source_text, name)
-    if span is None:
-        return None
-    open_brace = source_text.find("{", span[0], span[1])
-    if open_brace < 0:
-        return None
-    body_start = open_brace + 1
-    body_end = span[1] - 1
-    return source_text[body_start:body_end]
-
-
-def _legacy_tiling_types(text: str) -> list[str]:
-    found: list[str] = []
-    for match in re.finditer(
-        r"\b([A-Za-z_]\w*(?:::\w+)*)\s*\*\s*[A-Za-z_]\w*\s*;\s*GET_STRUCT_PTR",
-        text,
-        re.DOTALL,
-    ):
-        found.append(match.group(1))
-    for match in re.finditer(
-        r"GET_TILING_PTR\s*\(\s*([A-Za-z_]\w*(?:::\w+)*)\s*\*", text
-    ):
-        found.append(match.group(1))
-    return list(dict.fromkeys(found))
-
-
-def _legacy_mix_semantics_require_human(
-    source_text: str, entry: ParsedKernelEntry, group: list[dict]
-) -> bool:
-    has_conditional_core_branch = bool(
-        re.search(r"\bASCEND_IS_AIC\b|\bASCEND_IS_AIV\b", source_text)
-    )
-    has_mix_meta = any(
-        re.search(
-            rf"\.ascend\.meta\.{re.escape(str(variant.get('name', '')))}_mix_ai[cv]",
-            source_text,
-        )
-        for variant in group
-    )
-    has_mix_qualifier = bool(re.search(r"\b__mix__\s*\(", entry.qualifiers_text))
-    return has_conditional_core_branch and (has_mix_meta or has_mix_qualifier)
-
-
-def _global_template_specializations(source_text: str, global_name: str) -> list[str]:
-    pattern = re.compile(
-        rf"\b{re.escape(global_name)}\s*<(?P<args>[^;\n{{}}]+?)>\s*<<<", re.DOTALL
-    )
-    specs: list[str] = []
-    for match in pattern.finditer(source_text):
-        args = " ".join(match.group("args").split())
-        specs.append(f"{global_name}<{args}>")
-    return list(dict.fromkeys(specs))
-
-
-def _split_top_level_commas(text: str) -> list[str]:
-    items: list[str] = []
-    start = 0
-    depth_angle = 0
-    depth_paren = 0
-    for index, char in enumerate(text):
-        if char == "<":
-            depth_angle += 1
-        elif char == ">" and depth_angle:
-            depth_angle -= 1
-        elif char == "(":
-            depth_paren += 1
-        elif char == ")" and depth_paren:
-            depth_paren -= 1
-        elif char == "," and depth_angle == 0 and depth_paren == 0:
-            items.append(text[start:index].strip())
-            start = index + 1
-    tail = text[start:].strip()
-    if tail:
-        items.append(tail)
-    return items
-
-
-def _template_params_for_global(
-    source_text: str, global_name: str
-) -> list[dict[str, str]]:
-    pattern = re.compile(
-        r"template\s*<(?P<params>[^>]+)>\s*"
-        r'(?:extern\s+"C"\s+)?'
-        rf"(?P<qualifiers>(?:__global__|__aicore__|__vector__|__cube__|{_MIX_QUALIFIER_RE}|__inline__|inline|\s)+?)\s+"
-        r"void\s+" + re.escape(global_name) + r"\s*\(",
-        re.MULTILINE,
-    )
-    match = pattern.search(source_text)
-    if match is None or "__global__" not in " ".join(match.group("qualifiers").split()):
-        return []
-    params: list[dict[str, str]] = []
-    for raw_param in _split_top_level_commas(match.group("params")):
-        param = raw_param.split("=", 1)[0].strip()
-        type_match = re.match(r"(?:typename|class)\s+([A-Za-z_]\w*)$", param)
-        if type_match:
-            params.append({"kind": "type", "name": type_match.group(1), "decl": param})
-            continue
-        name_match = re.search(r"([A-Za-z_]\w*)\s*$", param)
-        if name_match:
-            name = name_match.group(1)
-            name_start = name_match.start()
-            c_type = param[:name_start].strip()
-            if c_type:
-                params.append(
-                    {
-                        "kind": "value",
-                        "name": name,
-                        "c_type": c_type,
-                        "decl": f"{c_type} {name}",
-                    }
-                )
-    return params
-
-
-def _template_args_from_bind_target(bind_target: str, global_name: str) -> list[str]:
-    pattern = re.compile(rf"^{re.escape(global_name)}\s*<(?P<args>.*)>$")
-    match = pattern.match(bind_target.strip())
-    if match is None:
-        return []
-    return _split_top_level_commas(match.group("args"))
-
-
-def _metadata_parameters(
-    entry: ParsedKernelEntry,
-    template_params: list[dict[str, str]],
-    template_args: list[str],
-) -> list[dict[str, str]]:
-    type_param_values = {
-        param["name"]: arg
-        for param, arg in zip(template_params, template_args)
-        if param.get("kind") == "type"
-    }
-    rendered: list[dict[str, str]] = []
-    for param in entry.params:
-        c_type = param.c_type
-        for name, arg in type_param_values.items():
-            c_type = re.sub(rf"\b{re.escape(name)}\b", arg, c_type)
-        rendered.append({"name": param.name, "c_type": c_type})
-    return rendered
-
-
-def _select_bind_target(
-    source_text: str,
-    entry: ParsedKernelEntry,
-    stem: str,
-    helper_body: str | None,
-) -> tuple[str | None, dict[str, Any] | None]:
-    specializations = _global_template_specializations(source_text, entry.name)
-    if not specializations:
-        return entry.name, None
-    if len(specializations) == 1:
-        return specializations[0], {
-            "stem": stem,
-            "global_entry": entry.name,
-            "bind_target": specializations[0],
-            "deduced_from": "single-launch-specialization",
-        }
-
-    evidence = helper_body or ""
-    tiling_types = _legacy_tiling_types(evidence)
-    for tiling_type in tiling_types:
-        matches = [spec for spec in specializations if tiling_type in spec]
-        if len(matches) == 1:
-            return matches[0], {
-                "stem": stem,
-                "global_entry": entry.name,
-                "bind_target": matches[0],
-                "tiling_type": tiling_type,
-                "deduced_from": "legacy-helper-tiling-type",
-            }
-
-    return None, {
-        "stem": stem,
-        "global_entry": entry.name,
-        "specializations_seen": specializations,
-        "tiling_types_seen": tiling_types,
-    }
-
-
-def _render_helper_forward_body(entry: ParsedKernelEntry, helper_name: str) -> str:
-    lines = [f"    uint64_t fake_param[{len(entry.params)}];"]
-    for index, param in enumerate(entry.params):
-        is_last_param = index == len(entry.params) - 1
-        is_pointer_like = (
-            "GM_ADDR" in param.c_type or "*" in param.c_type or "__gm__" in param.c_type
-        )
-        if is_last_param and not is_pointer_like:
-            value = f"&args->{param.name}"
-        else:
-            value = f"args->{param.name}"
-        lines.append(f"    fake_param[{index}] = (uint64_t){value};")
-    lines.append(f"    {helper_name}(fake_param);")
-    return "\n".join(lines)
-
-
-def _rewrite_legacy_spk_body(
-    body: str, entry: ParsedKernelEntry
-) -> tuple[str, list[dict]]:
-    pointer_replacements: dict[str, str] = {}
-    for match in re.finditer(
-        r"GET_STRUCT_PTR\s*\(\s*param\s*\+\s*(\d+)\s*,\s*([A-Za-z_]\w*)\s*\)", body
-    ):
-        index = int(match.group(1))
-        local_name = match.group(2)
-        if index >= len(entry.params):
-            return body, [
-                _human_finding(
-                    "codegen.legacy-spk-param-unpack-unsupported",
-                    f"legacy GET_STRUCT_PTR references param[{index}] but global "
-                    f"{entry.name} has only {len(entry.params)} parameters.",
-                    [match.group(0)],
-                )
-            ]
-        param = entry.params[index]
-        replacement = (
-            param.name
-            if ("*" in param.c_type or "GM_ADDR" in param.c_type)
-            else f"&{param.name}"
-        )
-        pointer_replacements[local_name] = replacement
-
-    rewritten_lines: list[str] = []
-    for line in body.splitlines():
-        stripped = line.strip()
-        if re.match(
-            r"^[A-Za-z_][\w:<>,\s*&]*\s+\**[A-Za-z_]\w*\s*=\s*\([^)]*\)\s*param\s*\[\s*\d+\s*\]\s*;",
-            stripped,
-        ):
-            continue
-        if re.match(
-            r"^[A-Za-z_][\w:<>,\s*&]*\s+\**[A-Za-z_]\w*\s*=\s*param\s*\[\s*\d+\s*\]\s*;",
-            stripped,
-        ):
-            continue
-        if "GET_STRUCT_PTR" in stripped and "param" in stripped:
-            continue
-        declaration_removed = False
-        for local_name in pointer_replacements:
-            if re.match(
-                rf"^[A-Za-z_][\w:<>,\s*&]*\s+\**{re.escape(local_name)}\s*;", stripped
-            ):
-                declaration_removed = True
-                break
-        if declaration_removed:
-            continue
-        rewritten = line
-        for local_name, replacement in pointer_replacements.items():
-            rewritten = re.sub(rf"\b{re.escape(local_name)}\b", replacement, rewritten)
-        rewritten_lines.append(rewritten)
-
-    rewritten_body = "\n".join(rewritten_lines).strip("\n")
-    if re.search(r"\bparam\b", rewritten_body):
-        return rewritten_body, [
-            _human_finding(
-                "codegen.legacy-spk-param-unpack-unsupported",
-                "legacy __spk__ body still references param after automatic unpack rewrite.",
-                [rewritten_body[:400]],
-            )
-        ]
-    return rewritten_body, []
-
-
-def _find_spk_variants(source_text: str) -> list[dict]:
-    variants: list[dict] = []
-    for match in _SPK_FN_RE.finditer(source_text):
-        if _is_commented_match(source_text, match.start()):
-            continue
-        open_brace = match.end() - 1
-        close_brace = _find_matching_brace(source_text, open_brace)
-        if close_brace is None:
-            continue
-        name = match.group("name")
-        stem = _spk_stem(name)
-        if stem is None:
-            continue
-        body_start = open_brace + 1
-        body = source_text[body_start:close_brace]
-        variants.append(
-            {
-                "name": name,
-                "stem": stem,
-                "qualifiers": " ".join(match.group("qualifiers").split()),
-                "params": match.group("params"),
-                "body": body,
-                "span": (match.start(), close_brace + 1),
-            }
-        )
-    return variants
-
-
-def _map_spk_stem_to_global(stem: str, entries: list[ParsedKernelEntry]) -> str | None:
-    candidates = [
-        entry.name
-        for entry in entries
-        if stem == entry.name or stem.startswith(entry.name + "_")
-    ]
-    return max(candidates, key=len) if candidates else None
-
-
-def _legacy_kernel_launch_warnings(source_text: str) -> list[dict]:
-    warnings: list[dict] = []
-    launch_re = re.compile(
-        r"void\s+(?P<name>[A-Za-z_]\w*Kernel[A-Za-z_]\w*|[A-Za-z_]\w*Launch|[A-Za-z_]\w*)\s*\([^)]*\)\s*\{"
-    )
-    for match in launch_re.finditer(source_text):
-        open_brace = match.end() - 1
-        close_brace = _find_matching_brace(source_text, open_brace)
-        if close_brace is None:
-            continue
-        body_start = open_brace + 1
-        body = source_text[body_start:close_brace].strip()
-        if "<<<" not in body or ">>>" not in body:
-            continue
-        lines = [
-            line.strip()
-            for line in body.splitlines()
-            if line.strip() and not line.strip().startswith("//")
-        ]
-        chevron_only = len(lines) == 1 and "<<<" in lines[0] and ">>>" in lines[0]
-        if not chevron_only:
-            warnings.append(
-                {
-                    "finding_id": "codegen.legacy-kernel-launch-preserved-as-is",
-                    "severity": "warning",
-                    "message": (
-                        f"KernelLaunch function {match.group('name')} has non-chevron logic and was preserved as-is."
-                    ),
-                }
-            )
-    return warnings
-
-
-def migrate_legacy_spk_to_sk_bind(
-    source_text: str,
-    *,
-    mask: int = 4,
-    sys_args_mode: str = "auto",
-    migration_contract: dict[str, Any] | None = None,
-    bind_targets_by_stem: dict[str, str] | None = None,
-) -> tuple[str, dict]:
-    """Migrate legacy __spk__ variants + FunLevel metadata to current SK_BIND form."""
-    original_text = source_text
-    entries = parse_global_entries(source_text)
-    variants = _find_spk_variants(source_text)
-    meta: dict[str, Any] = {
-        "from_form": "legacy-spk",
-        "to_form": "current-sk-bind",
-        "entries": [],
-        "warnings": [],
-        "escalations": [],
-    }
-    if not variants:
-        meta["to_form"] = "legacy-spk"
-        meta["escalations"].append(
-            _human_finding(
-                "codegen.legacy-spk-no-variants",
-                "source was classified as legacy-spk but no actual __spk__ variants were found.",
-            )
-        )
-        return original_text, meta
-
-    variants_by_stem: dict[str, list[dict]] = {}
-    stem_to_global: dict[str, str] = {}
-    for variant in variants:
-        global_name = _map_spk_stem_to_global(variant["stem"], entries)
-        if global_name is None:
-            meta["escalations"].append(
-                _human_finding(
-                    "codegen.legacy-spk-no-variants",
-                    f"legacy __spk__ variant {variant['name']} cannot be mapped to a __global__ entry.",
-                    [variant["name"]],
-                )
-            )
-            meta["to_form"] = "legacy-spk"
-            return original_text, meta
-        stem_to_global[variant["stem"]] = global_name
-        variants_by_stem.setdefault(variant["stem"], []).append(variant)
-
-    rendered_by_global: dict[str, list[tuple[RenderedSKAdaptation, dict]]] = {}
-    entries_by_name = {entry.name: entry for entry in entries}
-    helper_spans_to_remove: list[tuple[int, int]] = []
-    skipped_by_bind_target: list[dict[str, Any]] = []
-    bind_targets_by_stem = bind_targets_by_stem or {}
-    for stem, group in variants_by_stem.items():
-        global_name = _require_mapping_value(
-            stem_to_global, stem, "legacy SPK stem mapping"
-        )
-        if len(group) > 4:
-            meta["to_form"] = "legacy-spk"
-            meta["escalations"].append(
-                _human_finding(
-                    "codegen.legacy-spk-too-many-variants",
-                    f"legacy __spk__ group for {global_name} has {len(group)} variants; SK_BIND supports at most 4.",
-                    [v["name"] for v in group],
-                )
-            )
-            return original_text, meta
-        entry = _require_mapping_value(entries_by_name, global_name, "kernel entries")
-        migration_contract = migration_contract or {}
-        mix_semantics_confirmed = bool(
-            migration_contract.get("confirm_legacy_mix_semantics")
-        )
-        if (
-            _legacy_mix_semantics_require_human(source_text, entry, group)
-            and not mix_semantics_confirmed
-        ):
-            meta["to_form"] = "legacy-spk"
-            meta["escalations"].append(
-                _human_finding(
-                    "codegen.legacy-spk-mix-semantics-unverified",
-                    (
-                        f"legacy __spk__ group {stem} for {global_name} contains mix AIC/AIV semantics that "
-                        "cannot be proven equivalent to current SK_BIND automatically."
-                    ),
-                    [
-                        f"entry={global_name}",
-                        f"legacy_variants={[v['name'] for v in group]}",
-                        "reason=ASCEND_IS_AIC/ASCEND_IS_AIV branch with legacy mix metadata or __mix__ qualifier",
-                    ],
-                )
-            )
-            return original_text, meta
-
-        helper_names = [_single_helper_forward(variant["body"]) for variant in group]
-        helper_body: str | None = None
-        if any(helper_names):
-            unique_helpers = sorted(set(name for name in helper_names if name))
-            for helper in unique_helpers:
-                helper_span = _find_named_void_function_span(source_text, helper)
-                if helper_span is not None:
-                    helper_spans_to_remove.append(helper_span)
-            if len(unique_helpers) == 1:
-                helper_body = _find_named_void_function_body(
-                    source_text, unique_helpers[0]
-                )
-
-        bind_target, specialization_meta = _select_bind_target(
-            source_text,
-            entry,
-            stem,
-            helper_body if helper_body is not None else entry.body,
-        )
-        if bind_target is None:
-            meta["to_form"] = "legacy-spk"
-            meta["escalations"].append(
-                _human_finding(
-                    "codegen.legacy-spk-template-type-undeducible",
-                    f"legacy __spk__ group {stem} maps to templated global "
-                    f"{global_name}, but no unique template specialization could "
-                    "be deduced.",
-                    [json.dumps(specialization_meta, sort_keys=True)],
-                )
-            )
-            return original_text, meta
-        contract_bind_target = (
-            bind_targets_by_stem.get(stem)
-            or bind_targets_by_stem.get(global_name)
-            or ""
-        )
-        if contract_bind_target and bind_target != contract_bind_target:
-            skipped_by_bind_target.append(
-                {
-                    "stem": stem,
-                    "global_entry": global_name,
-                    "deduced_bind_target": bind_target,
-                    "selected_bind_target": contract_bind_target,
-                }
-            )
-            continue
-
-        template_params = _template_params_for_global(source_text, entry.name)
-        template_args = _template_args_from_bind_target(bind_target, entry.name)
-        if template_params and len(template_params) != len(template_args):
-            meta["to_form"] = "legacy-spk"
-            meta["escalations"].append(
-                _human_finding(
-                    "codegen.legacy-spk-template-type-undeducible",
-                    f"legacy __spk__ group {stem} maps to templated global "
-                    f"{global_name}, but template parameters and arguments do not "
-                    "match.",
-                    [
-                        json.dumps(
-                            {"params": template_params, "args": template_args},
-                            sort_keys=True,
-                        )
-                    ],
-                )
-            )
-            return original_text, meta
-        rewritten_body = entry.body
-        legacy_entry = ParsedKernelEntry(
-            name=entry.name,
-            qualifiers_text=entry.qualifiers_text,
-            return_type=entry.return_type,
-            params=entry.params,
-            body=rewritten_body,
-            uses_get_block_num=bool(
-                re.search(r"\bAscendC\s*::\s*GetBlockNum\s*\(", rewritten_body)
-            ),
-        )
-        try:
-            rendered = render_sk_adaptation(
-                legacy_entry,
-                mask=mask,
-                num_splits=len(group),
-                sys_args_mode=sys_args_mode,
-                body_override=rewritten_body,
-                sk_function_base=f"{stem}_sk",
-                bind_target=bind_target,
-                unpack_args=True,
-                template_params=template_params,
-                template_args=template_args,
-            )
-        except ValueError as exc:
-            meta["to_form"] = "legacy-spk"
-            meta["escalations"].append(
-                _human_finding(
-                    "codegen.legacy-spk-body-divergence",
-                    f"legacy __spk__ migration could not render SK binding for {global_name}: {exc}",
-                )
-            )
-            return original_text, meta
-        entry_meta = {
-            "entry_name": entry.name,
-            "sk_function_base": f"{stem}_sk",
-            "sk_kernel_type": rendered.sk_kernel_type,
-            "args_struct_name": rendered.args_struct_name,
-            "uses_sys_args": rendered.uses_sys_args,
-            "param_count": len(entry.params),
-            "parameters": _metadata_parameters(entry, template_params, template_args),
-            "original_qualifiers": entry.qualifiers_text,
-            "legacy_stem": stem,
-            "legacy_variants": [v["name"] for v in group],
-            "bind_target": bind_target,
-            "global_launch_target": bind_target,
-            "body_source": "global",
-        }
-        if template_params:
-            entry_meta["template_parameters"] = template_params
-            entry_meta["template_arguments"] = template_args
-        if helper_body is not None:
-            entry_meta["legacy_helper_evidence"] = (
-                "used-only-for-specialization-selection"
-            )
-        if specialization_meta and bind_target != entry.name:
-            entry_meta["template_specialization"] = specialization_meta
-        if contract_bind_target:
-            entry_meta["contract_selected_bind_target"] = contract_bind_target
-        if mix_semantics_confirmed:
-            entry_meta["migration_contract"] = {"confirm_legacy_mix_semantics": True}
-        rendered_by_global.setdefault(global_name, []).append((rendered, entry_meta))
-
-    if skipped_by_bind_target:
-        meta["skipped_by_bind_target"] = skipped_by_bind_target
-    if bind_targets_by_stem and not rendered_by_global:
-        meta["to_form"] = "legacy-spk"
-        meta["escalations"].append(
-            _human_finding(
-                "codegen.io-contract-bind-target-unmatched",
-                "IO contract bind_target selection did not match any legacy __spk__ group.",
-                [
-                    json.dumps(
-                        {
-                            "bind_targets": bind_targets_by_stem,
-                            "skipped": skipped_by_bind_target,
-                        },
-                        sort_keys=True,
-                    )
-                ],
-            )
-        )
-        return original_text, meta
-
-    remove_spans = [variant["span"] for variant in variants] + helper_spans_to_remove
-    cleaned = _remove_spans(source_text, remove_spans)
-    cleaned = _META_LINE_RE.sub("", cleaned)
-    cleaned = _strip_empty_legacy_ifdefs(cleaned)
-    cleaned = _strip_commented_legacy_blocks(cleaned)
-
-    pieces: list[str] = []
-    last_end = 0
-    inserted: set[str] = set()
-    for match in _GLOBAL_FN_RE.finditer(cleaned):
-        name = match.group("name")
-        if name not in rendered_by_global or name in inserted:
-            continue
-        open_brace = match.end() - 1
-        close_brace = _find_matching_brace(cleaned, open_brace)
-        if close_brace is None:
-            continue
-        rendered_items = _require_mapping_value(
-            rendered_by_global, name, "rendered SK adaptations"
-        )
-        body_end = close_brace + 1
-        pieces.append(cleaned[last_end:body_end])
-        rendered_blocks: list[str] = [
-            "\n\n// ---- SK adaptation (auto-generated from legacy entry) ----\n"
-        ]
-        for rendered, entry_meta in rendered_items:
-            rendered_blocks.append(
-                rendered.args_struct_text + "\n\n" if rendered.args_struct_text else ""
-            )
-            rendered_blocks.append(rendered.sk_function_text)
-            rendered_blocks.append("\n")
-            rendered_blocks.append(rendered.sk_bind_text)
-            rendered_blocks.append("\n\n")
-            meta["entries"].append(entry_meta)
-        rendered_blocks.append("// ---- end SK adaptation ----\n")
-        pieces.append("".join(rendered_blocks))
-        inserted.add(name)
-        last_end = close_brace + 1
-    pieces.append(cleaned[last_end:])
-    migrated = _ensure_kernel_operator_include("".join(pieces))
-
-    if inserted != set(rendered_by_global):
-        missing = sorted(set(rendered_by_global) - inserted)
-        meta["to_form"] = "legacy-spk"
-        meta["escalations"].append(
-            _human_finding(
-                "codegen.legacy-spk-no-variants",
-                f"could not locate preserved __global__ entry for migrated groups: {missing}",
-                missing,
-            )
-        )
-        return original_text, meta
-
-    meta["warnings"].extend(_legacy_kernel_launch_warnings(migrated))
-    return migrated, meta
 
 
 # ---------- aclgraph-canonical pybind/package renderers ----------

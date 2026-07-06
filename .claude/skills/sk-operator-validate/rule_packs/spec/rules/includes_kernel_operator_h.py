@@ -24,7 +24,7 @@ RULE = {
     "description": 'Kernel source defining a kernel entry must #include "kernel_operator.h".',
 }
 
-_ENTRY_RE = re.compile(r"__global__\b|__sk__\b|__spk__\b")
+_ENTRY_RE = re.compile(r"__global__\b|__sk__\b")
 
 
 def check(units):

@@ -50,13 +50,12 @@ operator-sk-adapted/
 
 聚合 `setup.py` 保持 Python import 包名为 `op_extension`，同时用用户指定的 distribution name 和 version 生成 wheel 文件名。
 
-## 五类输入形态
+## 输入形态
 
 | 输入形态 | 适配行为 |
 |---|---|
 | `none` | 生成 Args struct、模板化 `__sk__` 和 `SK_BIND`。 |
 | 可修复 `none` | 在临时副本上执行 codegen 拥有的预适配自动修复，再生成当前 SK binding。 |
-| `legacy-spk` | 移除历史 `__spk__` 变体和 `.ascend.meta` / `FunLevel*` 元数据，再从公共 legacy body 生成当前 SK binding。 |
 | `current-sk-bind` | 按字节复制源码，并标记为 `already_current`。 |
 | `partial` / `unknown` | 不猜测，输出 `codegen.unknown-sk-form` 等人工处理项。 |
 
@@ -76,14 +75,5 @@ operator-sk-adapted/
 `--with-sys-args=auto` 是默认值：只有原始 body 包含 `AscendC::GetBlockNum()` 时才注入。`--with-sys-args=always` / `=never` 可以强制选择。
 
 注入后使用当前 API 名：`sysArgs->skNumBlocks` / `sysArgs->SkGetNumBlocks()`。历史 `skBlockNum` / `SkGetBlockNum` 在当前 CANN 头文件下会编译失败；`sk-operator-validate --rule-pack spec` 会将其标记为 `sk.sys-args-api-current`，并支持自动重命名修复。
-
-## 历史迁移边界
-
-- `legacy-spk` 迁移要求每个 legacy stem 有 1..4 个变体。生成的 SK body 来自匹配到的 `__global__` body，不来自历史 `__spk__` wrapper/helper body。
-- `FunLevelMixCoreType`、`FunLevelKType`、`.ascend.meta.*` 以及仅 legacy 使用的 `__DAV_CUBE__` / `__DAV_VEC__` shell 会从迁移输出中移除。
-- 复杂 KernelLaunch wrapper 保持原样，并记录 warning。
-- `<helper>(param);` 形式的 helper-forward legacy body 默认不作为实现，因为 adapter 不能证明 helper 仍然匹配面向用户的 global entry。它们只能在存在多个 launch target 时作为选择具体模板特化的证据。识别出 legacy-only helper 后，它会和历史 `__spk__` wrapper 一起从生成输出中移除。
-- 带多个 launch specialization 的模板化 `__global__` entry 按 legacy stem 绑定。迁移逻辑会从 launch site，以及必要时 helper body 中的 tiling type，推导具体 `SK_BIND(<op><T>, ...)` target。生成的 SK 函数保留原始 global 模板参数，并追加 `uint32_t splitidx`；`SK_BIND` 对每个 split 显式实例化完整模板参数列表。Args struct 只有在 kernel 参数类型依赖这些模板参数时才模板化。
-- 没有变体、变体过多、或模板特化不可推导时，输出人工处理项，不生成部分结果。
 
 完整规格和边界情况以脚本实现、测试和本手册共同约束。

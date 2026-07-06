@@ -8,7 +8,6 @@ compare 代码生成。端到端场景优先使用 `sk-operator-pipeline run-sk-
 | 输入形态 | 典型特征 | 处理结果 |
 | --- | --- | --- |
 | 当前 SK bind | 已包含当前框架需要的 bind 结构 | 复用并生成 manifest |
-| 历史 `__spk__` | 旧版 SuperKernel 入口或绑定方式 | 迁移到当前 SK bind |
 | 普通 `__global__` kernel | 只有 device kernel 或 host wrapper 不完整 | 生成 SK bind 封装 |
 | 无法识别 | 缺少入口、规格或语义信息 | 生成诊断结果，交由人工处理 |
 
@@ -22,7 +21,7 @@ python3 <skills_root>/sk-operator-codegen/scripts/operator_codegen.py detect-sk-
   --output-dir build/examples/sk-codegen/detect
 ```
 
-把普通 `__global__` 或历史形态适配为 SK bind：
+把普通 `__global__` 算子适配为 SK bind：
 
 ```bash
 python3 <skills_root>/sk-operator-codegen/scripts/operator_codegen.py adapt-sk-from-global \

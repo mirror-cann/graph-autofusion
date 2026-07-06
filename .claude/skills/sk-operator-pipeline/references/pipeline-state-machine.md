@@ -100,7 +100,7 @@ pipeline-state.json
   "selected_stages": ["01", "02", "03", "05", "06"],
   "ops": {
     "clear_ops": {
-      "form": "legacy-spk",
+      "form": "none",
       "stage02": {"outputs": "...", "pybind_layout": "aclgraph-canonical"}
     }
   },

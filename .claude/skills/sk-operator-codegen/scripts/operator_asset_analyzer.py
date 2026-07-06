@@ -66,7 +66,7 @@ GLOBAL_ENTRY_RE = re.compile(
     re.MULTILINE | re.DOTALL,
 )
 ANY_KERNEL_ENTRY_RE = re.compile(
-    r"(?:extern\s+\"C\"\s+)?(?:(?:__global__|__spk__|__sk__)[\w\s_()*,:&<>]*\s+void\s+)([A-Za-z_]\w*)\s*\(",
+    r"(?:extern\s+\"C\"\s+)?(?:(?:__global__|__sk__)[\w\s_()*,:&<>]*\s+void\s+)([A-Za-z_]\w*)\s*\(",
     re.MULTILINE,
 )
 OP_ADD_RE = re.compile(r"\bOP_ADD\s*\(\s*([A-Za-z_]\w*)\s*\)")
