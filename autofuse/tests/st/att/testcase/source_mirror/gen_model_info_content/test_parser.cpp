@@ -38,7 +38,7 @@ TEST_F(TestAscendGraphParser, case_global_container) {
   ascir_tensor_info.mem.hardware == ge::MemHardware::kMemHardwareGM;
   ascir_tensor_info.mem.reuse_id = 0;
   std::string node_type = "WorkspaceWithInput";
-  EXPECT_EQ(ascend_graph_parser.ParseTensorMemInfo(ascir_tensor_info, node_type, tensor), ge::SUCCESS);
+  EXPECT_EQ(ascend_graph_parser.ParseTensorMemInfo(ascir_tensor_info, node_type, tensor), af::SUCCESS);
 }
 
 TEST_F(TestAscendGraphParser, get_need_ub_mc_tradeoff_1_dim) {

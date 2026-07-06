@@ -38,56 +38,56 @@ class PipePerfExpr {
  public:
   explicit PipePerfExpr(const TuningSpacePtr &tuning_space) : tuning_space_(tuning_space) {}
   ~PipePerfExpr() = default;
-  ge::Status GetPerfExpr(std::map<PipeType, Expr> &pipe_costs, std::map<Expr, TernaryOp, ExprCmp> &ternary_ops,
+  af::Status GetPerfExpr(std::map<PipeType, Expr> &pipe_costs, std::map<Expr, TernaryOp, ExprCmp> &ternary_ops,
                          Expr &head_cost);
-  ge::Status GetPerfExpr(std::map<PipeType, Expr> &pipe_costs, std::map<Expr, TernaryOp, ExprCmp> &ternary_ops,
+  af::Status GetPerfExpr(std::map<PipeType, Expr> &pipe_costs, std::map<Expr, TernaryOp, ExprCmp> &ternary_ops,
                          std::vector<PerfBreakdownGroup> &perf_breakdowns, Expr &head_cost);
 
  private:
   // 把tensor信息转换为tensor shape
-  ge::Status GetTensorShapes(const NodeInfo &node, std::vector<TensorShapeInfo> &input_dims,
+  af::Status GetTensorShapes(const NodeInfo &node, std::vector<TensorShapeInfo> &input_dims,
                              std::vector<TensorShapeInfo> &output_dims, std::map<Expr, TernaryOp, ExprCmp> &ternary_ops,
                              bool tail_shape = false) const;
   // 将NodeInfo转换为性能公式使用的NodePerfInfo
-  ge::Status ConvertToPerfInfo(const std::vector<NodeInfo> &node_infos,
+  af::Status ConvertToPerfInfo(const std::vector<NodeInfo> &node_infos,
                                std::vector<NodePerfInfo> &node_perf_infos) const;
-  ge::Status ConvertToPerfInfo(const std::vector<NodeInfo> &node_infos, std::vector<NodePerfInfo> &node_perf_infos,
+  af::Status ConvertToPerfInfo(const std::vector<NodeInfo> &node_infos, std::vector<NodePerfInfo> &node_perf_infos,
                                const std::vector<Expr> &vector_func_dims) const;
-  ge::Status GetVectorFuncDims(const NodeInfo &node, std::vector<Expr> &vector_func_dims) const;
+  af::Status GetVectorFuncDims(const NodeInfo &node, std::vector<Expr> &vector_func_dims) const;
 
   // 获取node 性能计算表达式
-  ge::Status GetNodePerf(const NodeInfo &node, std::map<PipeType, Expr> &node_perf,
+  af::Status GetNodePerf(const NodeInfo &node, std::map<PipeType, Expr> &node_perf,
                          std::map<Expr, TernaryOp, ExprCmp> &ternary_ops,
                          std::vector<PerfBreakdownGroup> &perf_breakdowns, bool tail_shape = false) const;
 
   // 获取node loop times
-  ge::Status GetNodeExeTime(const NodeInfo &node, const ExeTimePassManager &exe_time_mgr,
+  af::Status GetNodeExeTime(const NodeInfo &node, const ExeTimePassManager &exe_time_mgr,
                             TernaryOp &cur_exe_time) const;
 
   // 获取尾块的loop times
-  static ge::Status GetTailExeTime(const NodeInfo &node, const Expr &node_exe_times, Expr &tail_exe_times);
+  static af::Status GetTailExeTime(const NodeInfo &node, const Expr &node_exe_times, Expr &tail_exe_times);
 
-  static ge::Status AddPerf(const Expr &node_exe_times, const std::string &contrib_suffix, PerfAddContext &ctx);
-  ge::Status AddTailPerf(const Expr &tail_exe_time, const Expr &node_exe_times,
+  static af::Status AddPerf(const Expr &node_exe_times, const std::string &contrib_suffix, PerfAddContext &ctx);
+  af::Status AddTailPerf(const Expr &tail_exe_time, const Expr &node_exe_times,
                          const std::map<PipeType, Expr> &node_tail_perf, PerfAddContext &tail_ctx);
 
   // 获取节点性能（内部方法，包含VectorFunc特殊处理）
-  ge::Status GetNodePerfInternal(const NodeInfo &node, std::map<PipeType, Expr> &node_perf,
+  af::Status GetNodePerfInternal(const NodeInfo &node, std::map<PipeType, Expr> &node_perf,
                                  std::map<Expr, TernaryOp, ExprCmp> &ternary_ops,
                                  std::vector<PerfBreakdownGroup> &perf_breakdowns) const;
   // 添加节点性能到pipe_costs
-  ge::Status AddNodePerfToPipeCost(const NodeInfo &node, const Expr &exe_var, const std::map<PipeType, Expr> &node_perf,
+  af::Status AddNodePerfToPipeCost(const NodeInfo &node, const Expr &exe_var, const std::map<PipeType, Expr> &node_perf,
                                    std::map<PipeType, Expr> &pipe_costs,
                                    std::map<Expr, TernaryOp, ExprCmp> &ternary_ops,
                                    std::vector<PerfBreakdownGroup> &perf_breakdowns);
 
   Perf UpdateTilingScheduleConfigTable(const NodeInfo &node, bool tail_shape, PerfOutputInfo &perf_res) const;
-  ge::Status UpdatePipeHead(std::map<PipeType, Expr> &pipe_costs,
+  af::Status UpdatePipeHead(std::map<PipeType, Expr> &pipe_costs,
                             std::map<Expr, TernaryOp, ExprCmp> &ternary_ops) const;
   TuningSpacePtr tuning_space_;
 };
 std::vector<Expr> GetTensorTailRepeat(const TensorPtr &tensor, std::map<Expr, TernaryOp, ExprCmp> &ternary_ops);
-ge::Status GetTensorShapeInfo(const TensorPtr &tensor, TensorShapeInfo &tensor_shape_info,
+af::Status GetTensorShapeInfo(const TensorPtr &tensor, TensorShapeInfo &tensor_shape_info,
                               std::map<Expr, TernaryOp, ExprCmp> &ternary_ops, bool tail_shape = false);
 }  // namespace att
 

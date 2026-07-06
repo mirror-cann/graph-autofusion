@@ -24,7 +24,7 @@ Status ScalarTo1DTensorPass::RunPass(af::AscGraph &graph) {
     }
   }
   if (!need_trans) {
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
 
   auto const_axis = graph.CreateAxis("axis_1d", af::ops::One);
@@ -40,6 +40,6 @@ Status ScalarTo1DTensorPass::RunPass(af::AscGraph &graph) {
       }
     }
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 }  // namespace optimize

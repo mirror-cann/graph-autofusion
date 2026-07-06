@@ -90,7 +90,7 @@ Status EnrichScheduleGroupAscirParams(const ascir::ScheduleGroup &schedule_group
     }
     GE_ASSERT_SUCCESS(ascir_param::EnrichAscirGraphNodeParams(impl_graph), "Enrich ascir node params failed.");
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status EnrichScheduledResultAscirParams(const ascir::FusedScheduledResult &fused_schedule_result) {
@@ -103,12 +103,12 @@ Status EnrichScheduledResultAscirParams(const ascir::FusedScheduledResult &fused
       }
     }
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status CombineTilings(const std::map<std::string, std::string> &tiling_file_name_to_content, std::string &result) {
   GE_CHK_BOOL_RET_STATUS(tiling_file_name_to_content.find(kTilingHeadIdentify) != tiling_file_name_to_content.end(),
-                         ge::FAILED, "tiling_file_name_to_content has no tiling head");
+                         af::FAILED, "tiling_file_name_to_content has no tiling head");
   result += RemoveAutoFuseTilingHeadGuards(
       tiling_file_name_to_content.at(kTilingHeadIdentify));  // 删除头文件的宏保护，cpp文件不需要
 
@@ -137,7 +137,7 @@ Status CombineTilings(const std::map<std::string, std::string> &tiling_file_name
     }
   }
 
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 void AppendSplitBegin(const std::string &key, std::string &result) {
@@ -206,7 +206,7 @@ bool ShouldSkipSplitCppSource(const std::string &key) {
 Status CombineTilingsWithSplitMarkers(const std::map<std::string, std::string> &tiling_file_name_to_content,
                                       std::string &result) {
   GE_CHK_BOOL_RET_STATUS(tiling_file_name_to_content.find(kTilingHeadIdentify) != tiling_file_name_to_content.end(),
-                         ge::FAILED, "tiling_file_name_to_content has no tiling head");
+                         af::FAILED, "tiling_file_name_to_content has no tiling head");
   AppendSplitSource(kTilingHeadIdentify, BuildSplitHeaderContent(tiling_file_name_to_content), result);
   for (const auto &[key, value] : tiling_file_name_to_content) {
     if (ShouldSkipSplitCppSource(key)) {
@@ -214,7 +214,7 @@ Status CombineTilingsWithSplitMarkers(const std::map<std::string, std::string> &
     }
     AppendSplitSource(key, RemoveSplitCppIncludes(value), result);
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 struct ScanResult {
@@ -383,7 +383,7 @@ Status Codegen::GenerateForInductor(const ascir::FusedScheduledResult &fused_sch
   std::map<std::string, std::string> tiling_file_name_to_content;
   GE_CHK_STATUS_RET(GenerateTilingForInductor(fused_schedule_result, tiling_file_name_to_content));
   GE_CHK_STATUS_RET(CombineTilingsWithSplitMarkers(tiling_file_name_to_content, result.tiling));
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status Codegen::Generate(const std::map<std::string, std::string> &shape_info,
@@ -394,7 +394,7 @@ Status Codegen::Generate(const std::map<std::string, std::string> &shape_info,
   GE_CHK_STATUS_RET(GenerateTiling(fused_schedule_result, shape_info, "", "0", tiling_file_name_to_content));
   GE_CHK_STATUS_RET(CombineTilings(tiling_file_name_to_content, result.tiling));
 
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 std::string Codegen::GenerateTilingData(const ascir::FusedScheduledResult &fused_schedule_result,
@@ -408,10 +408,10 @@ Status Codegen::GenerateTilingForInductor(const ascir::FusedScheduledResult &fus
                                           std::map<std::string, std::string> &tiling_file_name_to_content) const {
   tiling_file_name_to_content = this->tiling_lib_.GenerateForInductor(fused_schedule_result);
   for (const auto &pair : tiling_file_name_to_content) {
-    GE_CHK_BOOL_RET_STATUS(pair.second != ascgen_utils::INVALID_TILING, ge::FAILED, "tilings(%s) is invalid",
+    GE_CHK_BOOL_RET_STATUS(pair.second != ascgen_utils::INVALID_TILING, af::FAILED, "tilings(%s) is invalid",
                            pair.second.c_str());
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 std::map<std::string, std::string> Codegen::GenerateTilingForInductor(
@@ -427,10 +427,10 @@ Status Codegen::GenerateTiling(const ascir::FusedScheduledResult &fused_schedule
                                std::map<std::string, std::string> &tiling_file_name_to_content) const {
   tiling_file_name_to_content = this->tiling_lib_.Generate(fused_schedule_result, shape_info, pgo_dir, core_num);
   for (const auto &pair : tiling_file_name_to_content) {
-    GE_CHK_BOOL_RET_STATUS(pair.second != ascgen_utils::INVALID_TILING, ge::FAILED, "tilings(%s) is invalid",
+    GE_CHK_BOOL_RET_STATUS(pair.second != ascgen_utils::INVALID_TILING, af::FAILED, "tilings(%s) is invalid",
                            pair.second.c_str());
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 std::map<std::string, std::string> Codegen::GenerateTiling(const ascir::FusedScheduledResult &fused_schedule_result,
@@ -478,7 +478,7 @@ Status Codegen::GenerateKernel(const ascir::FusedScheduledResult &fused_schedule
     ss << Kernel::GenKernelFuncCallForInductor(fused_schedule_result);
   }
   result = FormatIndentation(ss.str());
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 std::string Codegen::GenGetKernelAndJson(const std::string &kernel_path, const std::string &json_path) const {
@@ -487,12 +487,12 @@ std::string Codegen::GenGetKernelAndJson(const std::string &kernel_path, const s
   std::stringstream ss;
   std::string real_kernel_path;
   if (!ascgen_utils::GetRealPath(kernel_path, real_kernel_path)) {
-    GELOGE(ge::FAILED, "kernel_path::%s realpath failed", kernel_path.c_str());
+    GELOGE(af::FAILED, "kernel_path::%s realpath failed", kernel_path.c_str());
     return "";
   }
   std::ifstream kernel_file(real_kernel_path, std::ios::binary | std::ios::ate);
   if (!kernel_file.is_open()) {
-    GELOGE(ge::FAILED, "kernel_path::%s open failed", kernel_path.c_str());
+    GELOGE(af::FAILED, "kernel_path::%s open failed", kernel_path.c_str());
     return "";
   }
 

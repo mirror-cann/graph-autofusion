@@ -134,7 +134,7 @@ bool IsLoadNeedAlign(const af::AscNodePtr &node_load) {
   return false;
 }
 
-ge::Status BaseAlignmentStrategy::DefaultAlignmentInferFunc(const af::AscNodePtr &node) {
+af::Status BaseAlignmentStrategy::DefaultAlignmentInferFunc(const af::AscNodePtr &node) {
   if (af::ops::IsOps<af::ascir_op::RemovePad>(node)) {
     tensor_to_align_type_[&node->outputs[0].attr] = {AlignmentType::kFixedNotAligned};
     return af::SUCCESS;
@@ -177,27 +177,27 @@ ge::Status BaseAlignmentStrategy::DefaultAlignmentInferFunc(const af::AscNodePtr
   return af::SUCCESS;
 }
 
-ge::Status BaseAlignmentStrategy::BroadcastAlignmentInferFunc(const af::AscNodePtr &node) {
+af::Status BaseAlignmentStrategy::BroadcastAlignmentInferFunc(const af::AscNodePtr &node) {
   return DefaultAlignmentInferFunc(node);
 }
 
-ge::Status BaseAlignmentStrategy::ConcatAlignmentInferFunc(const af::AscNodePtr &node) {
+af::Status BaseAlignmentStrategy::ConcatAlignmentInferFunc(const af::AscNodePtr &node) {
   return DefaultAlignmentInferFunc(node);
 }
 
-ge::Status BaseAlignmentStrategy::EleWiseAlignmentInferFunc(const af::AscNodePtr &node) {
+af::Status BaseAlignmentStrategy::EleWiseAlignmentInferFunc(const af::AscNodePtr &node) {
   return DefaultAlignmentInferFunc(node);
 }
 
-ge::Status BaseAlignmentStrategy::LoadAlignmentInferFunc(const af::AscNodePtr &node) {
+af::Status BaseAlignmentStrategy::LoadAlignmentInferFunc(const af::AscNodePtr &node) {
   return DefaultAlignmentInferFunc(node);
 }
 
-ge::Status BaseAlignmentStrategy::StoreAlignmentInferFunc(const af::AscNodePtr &node) {
+af::Status BaseAlignmentStrategy::StoreAlignmentInferFunc(const af::AscNodePtr &node) {
   return DefaultAlignmentInferFunc(node);
 }
 
-ge::Status BaseAlignmentStrategy::SplitAlignmentInferFunc(const af::AscNodePtr &node) {
+af::Status BaseAlignmentStrategy::SplitAlignmentInferFunc(const af::AscNodePtr &node) {
   return DefaultAlignmentInferFunc(node);
 }
 
@@ -225,7 +225,7 @@ void BaseAlignmentStrategy::InitAlignmentInferFunc() {
   };
 }
 
-ge::Status BaseAlignmentStrategy::ReduceAlignmentInferFunc(const af::AscNodePtr &node) {
+af::Status BaseAlignmentStrategy::ReduceAlignmentInferFunc(const af::AscNodePtr &node) {
   for (const auto &output : node->outputs()) {
     auto &output_attr = output->attr;
     GE_ASSERT_TRUE(!output_attr.vectorized_axis.empty());
@@ -245,7 +245,7 @@ ge::Status BaseAlignmentStrategy::ReduceAlignmentInferFunc(const af::AscNodePtr 
   return af::SUCCESS;
 }
 
-ge::Status BaseAlignmentStrategy::AddRemovePadForTailAxisDiscontinuousLoad(ascir::ImplGraph &impl_graph) {
+af::Status BaseAlignmentStrategy::AddRemovePadForTailAxisDiscontinuousLoad(ascir::ImplGraph &impl_graph) {
   const auto &config = PlatformFactory::GetInstance().GetPlatform()->GetPlatformConfig();
   if (config.is_support_compat_mode) {
     return af::SUCCESS;
@@ -269,7 +269,7 @@ ge::Status BaseAlignmentStrategy::AddRemovePadForTailAxisDiscontinuousLoad(ascir
   return af::SUCCESS;
 }
 
-ge::Status BaseAlignmentStrategy::CheckIsNoNeedPad(const af::AscNodePtr &node, af::AscTensorAttr &out_attr,
+af::Status BaseAlignmentStrategy::CheckIsNoNeedPad(const af::AscNodePtr &node, af::AscTensorAttr &out_attr,
                                                    bool &is_no_need_pad) const {
   size_t valid_axis_num = 0UL;
   bool tail_axis_aligned = false;
@@ -297,7 +297,7 @@ ge::Status BaseAlignmentStrategy::CheckIsNoNeedPad(const af::AscNodePtr &node, a
   return af::SUCCESS;
 }
 
-ge::Status BaseAlignmentStrategy::AddPadForAlignmentConflictNode(ascir::ImplGraph &impl_graph) {
+af::Status BaseAlignmentStrategy::AddPadForAlignmentConflictNode(ascir::ImplGraph &impl_graph) {
   bool inserted = false;
   for (const auto &node : impl_graph.GetAllNodes()) {
     GE_ASSERT_NOTNULL(node);
@@ -356,14 +356,14 @@ ge::Status BaseAlignmentStrategy::AddPadForAlignmentConflictNode(ascir::ImplGrap
   return af::SUCCESS;
 }
 
-ge::Status BaseAlignmentStrategy::SetAlignWidth(const ascir::ImplGraph &impl_graph) {
+af::Status BaseAlignmentStrategy::SetAlignWidth(const ascir::ImplGraph &impl_graph) {
   // 依据数据类型判断对齐到32B还是64B
   align_width_ = 32U;
   GELOGD("[%s]'s align width is [%d].", impl_graph.GetName().c_str(), align_width_);
   return af::SUCCESS;
 }
 
-ge::Status BaseAlignmentStrategy::AlignVectorizedStrides(ascir::ImplGraph &impl_graph) {
+af::Status BaseAlignmentStrategy::AlignVectorizedStrides(ascir::ImplGraph &impl_graph) {
   GE_ASSERT_SUCCESS(SetAlignWidth(impl_graph), "Failed to set align width for [%s].", impl_graph.GetName().c_str());
   if (compute_type_to_infer_func_.empty()) {
     InitAlignmentInferFunc();
@@ -391,7 +391,7 @@ ge::Status BaseAlignmentStrategy::AlignVectorizedStrides(ascir::ImplGraph &impl_
   return af::SUCCESS;
 }
 
-ge::Status BaseAlignmentStrategy::InferAlignmentForOneNode(const af::AscNodePtr &node) {
+af::Status BaseAlignmentStrategy::InferAlignmentForOneNode(const af::AscNodePtr &node) {
   if (ScheduleUtils::IsBuffer(node)) {
     return af::SUCCESS;
   }
@@ -469,7 +469,7 @@ bool BaseAlignmentStrategy::SetAlignInfoForNodeOutputs(AlignmentType aligned_typ
   return alignment_changed;
 }
 
-ge::Status BaseAlignmentStrategy::BackPropagateAlignment(const af::AscNodePtr &node, AlignmentType aligned_type) {
+af::Status BaseAlignmentStrategy::BackPropagateAlignment(const af::AscNodePtr &node, AlignmentType aligned_type) {
   std::set<af::Node *> visited_nodes;
   std::queue<af::Node *> node_queue;
   visited_nodes.emplace(node.get());
@@ -487,7 +487,7 @@ ge::Status BaseAlignmentStrategy::BackPropagateAlignment(const af::AscNodePtr &n
   return af::SUCCESS;
 }
 
-ge::Status BaseAlignmentStrategy::BackPropagateFixUnAlignType(const af::AscNodePtr &node) {
+af::Status BaseAlignmentStrategy::BackPropagateFixUnAlignType(const af::AscNodePtr &node) {
   std::queue<af::Node *> node_queue;
   node_queue.emplace(node.get());
   while (!node_queue.empty()) {
@@ -514,7 +514,7 @@ ge::Status BaseAlignmentStrategy::BackPropagateFixUnAlignType(const af::AscNodeP
   return af::SUCCESS;
 }
 
-ge::Status BaseAlignmentStrategy::SetVectorizedStridesForOneNode(const af::AscNodePtr &node) {
+af::Status BaseAlignmentStrategy::SetVectorizedStridesForOneNode(const af::AscNodePtr &node) {
   if (ScheduleUtils::IsStore(node)) {
     node->outputs[0].attr.vectorized_strides = node->inputs[0].attr.vectorized_strides;
     return af::SUCCESS;
@@ -529,7 +529,7 @@ ge::Status BaseAlignmentStrategy::SetVectorizedStridesForOneNode(const af::AscNo
   return af::SUCCESS;
 }
 
-ge::Status BaseAlignmentStrategy::SetVectorizedStridesForTensor(const af::NodePtr &node, af::AscTensorAttr &output_attr,
+af::Status BaseAlignmentStrategy::SetVectorizedStridesForTensor(const af::NodePtr &node, af::AscTensorAttr &output_attr,
                                                                 const AlignmentType align_type) {
   const auto &output_vec_axis = output_attr.vectorized_axis;
   GE_ASSERT_TRUE(!output_vec_axis.empty(), "Node [%s] output tensor has empty vectorized_axis.", node->GetNamePtr());

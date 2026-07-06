@@ -24,7 +24,7 @@ void AttrGroupSerializerRegistry::RegisterAttrGroupSerialize(const AttrGroupSeri
   std::unique_ptr<AttrGroupsBase> serializer = builder();
   const auto ptr = serializer.get();
   if (ptr == nullptr) {
-    GELOGE(ge::FAILED, "SerializerBuilder is invalid.");
+    GELOGE(af::FAILED, "SerializerBuilder is invalid.");
     return;
   }
   if (serializer_builder_map_.count(obj_type) > 0U) {
@@ -61,7 +61,7 @@ AttrGroupSerializerRegister::AttrGroupSerializerRegister(
     const AttrGroupSerializeBuilder builder, const TypeId obj_type,
     const af::proto::AttrGroupDef::AttrGroupCase proto_type) noexcept {
   if (builder == nullptr) {
-    GELOGE(ge::FAILED, "SerializerBuilder is nullptr.");
+    GELOGE(af::FAILED, "SerializerBuilder is nullptr.");
     return;
   }
   AttrGroupSerializerRegistry::GetInstance().RegisterAttrGroupSerialize(builder, obj_type, proto_type);

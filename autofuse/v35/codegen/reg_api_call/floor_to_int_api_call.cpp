@@ -40,7 +40,7 @@ Status FloorToIntApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::
      << "AscendC::RoundMode::CAST_FLOOR, " << x.actual_size << ");" << std::endl;
 
   result = ss.str();
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 static ApiCallRegister<FloorToIntApiCall> register_floor_to_int_api_call("FloorToIntApiCall");

@@ -103,12 +103,12 @@ bool CheckCastBitWidthGap(const optimize::Cluster &from, const optimize::Cluster
 }
 }  // namespace cast_helpers
 
-ge::Status UnalignNode(const af::AscNodePtr &node) {
+af::Status UnalignNode(const af::AscNodePtr &node) {
   for (const auto &tensor : node->outputs()) {
     GE_ASSERT_SUCCESS(optimize::BaseAlignmentStrategy::SetVectorizedStridesForTensor(
         node, tensor->attr, optimize::AlignmentType::kNotAligned));
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 bool IsScalarBrc(const af::AscNodePtr &node) {
@@ -179,7 +179,7 @@ std::unordered_set<size_t> IdentifyZeroStrideVectorAxisIndices(const ascir::Impl
 Status RemoveAllZeroStrideVectorizedAxis(ascir::ImplGraph &owner_graph) {
   std::unordered_set<size_t> zero_stride_axis_indices = IdentifyZeroStrideVectorAxisIndices(owner_graph);
   if (zero_stride_axis_indices.empty()) {
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
 
   for (const auto &node : owner_graph.GetAllNodes()) {
@@ -204,7 +204,7 @@ Status RemoveAllZeroStrideVectorizedAxis(ascir::ImplGraph &owner_graph) {
     }
   }
 
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 bool IsVectorizedAxisContinuous(const af::AscGraph &graph, const int64_t pre_id, const int64_t post_id) {
@@ -268,7 +268,7 @@ std::vector<std::vector<int64_t>> MergeContinuousPairs(const std::vector<std::pa
   return continuous_ids;
 }
 
-ge::Status ApplyMerge(const af::AscNodePtr &node, const af::AxisPtr &merged_axis,
+af::Status ApplyMerge(const af::AscNodePtr &node, const af::AxisPtr &merged_axis,
                       const std::vector<af::AxisId> &from_ids) {
   // vector axis
   for (const auto output : node->outputs()) {
@@ -280,7 +280,7 @@ ge::Status ApplyMerge(const af::AscNodePtr &node, const af::AxisPtr &merged_axis
     output->attr.vectorized_strides = view.strides;
   }
 
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 void AddAnchorToOrderMap(
@@ -329,15 +329,15 @@ bool IsPeerNodesContainsVF(const af::OutDataAnchorPtr &anchor) {
   return false;
 }
 
-ge::Status ReverseDfsUnAlignNode(af::AscGraph &impl_graph, const af::NodePtr &ge_node,
+af::Status ReverseDfsUnAlignNode(af::AscGraph &impl_graph, const af::NodePtr &ge_node,
                                  std::set<af::NodePtr> &visited_nodes) {
   // 这些节点不需要对齐
   if (optimize::ScheduleUtils::IsIOBuffer(ge_node) || optimize::ScheduleUtils::IsRemovePad(ge_node)) {
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
   const auto &node = std::dynamic_pointer_cast<af::AscNode>(ge_node);
   if (visited_nodes.find(node) != visited_nodes.end()) {
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
   visited_nodes.insert(node);
   // 判断是否需要插入RemovePad，如果需要则插入RemovePad并结束
@@ -351,14 +351,14 @@ ge::Status ReverseDfsUnAlignNode(af::AscGraph &impl_graph, const af::NodePtr &ge
       GE_ASSERT_SUCCESS(UnalignNode(remove_pad_node));
       visited_nodes.insert(remove_pad_node);
     }
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
   // 如果不需要插入RemovePad，则还原不对齐的vector_strides
   GE_ASSERT_SUCCESS(UnalignNode(node));
   for (const auto &in_node : node->GetInDataNodes()) {
     GE_ASSERT_SUCCESS(ReverseDfsUnAlignNode(impl_graph, in_node, visited_nodes));
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 }  // namespace
 namespace optimize {
@@ -368,7 +368,7 @@ const std::string kNamePrefixData = "Data_";
 const std::string kNamePrefixScalar = "Scalar_";
 const std::string kNamePrefixOutput = "Output_";
 
-ge::Status VectorFuncPartitioner::Partition() {
+af::Status VectorFuncPartitioner::Partition() {
   ascir::utils::DumpGraph(impl_graph_, "BeforePartition");
   GE_ASSERT_SUCCESS(ScheduleUtils::TopologicalSorting(impl_graph_), "Failed to do topological sorting for graph[%s].",
                     impl_graph_.GetName().c_str());
@@ -396,10 +396,10 @@ ge::Status VectorFuncPartitioner::Partition() {
 
   GE_ASSERT_SUCCESS(ScheduleUtils::TopologicalSorting(impl_graph_), "Failed to do topological sorting for graph[%s].",
                     impl_graph_.GetName().c_str());
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status VectorFuncPartitioner::InitClusterAttr(const std::unique_ptr<af::ascir::AscIrCodegen> &codegen_impl,
+af::Status VectorFuncPartitioner::InitClusterAttr(const std::unique_ptr<af::ascir::AscIrCodegen> &codegen_impl,
                                                   const af::AscNodePtr &node, ClusterPtr &cluster) {
   // 尾轴stride!=1场景，暂不支持生成vf代码
   for (const auto &output : node->outputs()) {
@@ -411,7 +411,7 @@ ge::Status VectorFuncPartitioner::InitClusterAttr(const std::unique_ptr<af::asci
         (af::SymbolicUtils::StaticCheckNe(*it, af::sym::kSymbolOne) == af::TriBool::kTrue)) {
       GELOGD("The stride of the node[%s]'s tail axis is not 1, which is not supported in vf.", node->GetNamePtr());
       cluster->meta_data_.enable_vf = false;
-      return ge::SUCCESS;
+      return af::SUCCESS;
     }
     if (node->GetType() == af::ascir_op::Broadcast::Type) {
       const auto &axis = output->attr.axis;
@@ -437,7 +437,7 @@ ge::Status VectorFuncPartitioner::InitClusterAttr(const std::unique_ptr<af::asci
     }
   }
 
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 void VectorFuncPartitioner::RefineEnableVFFlag(const af::AscNodePtr &node, bool &enable_vf) const {
@@ -522,7 +522,7 @@ bool VectorFuncPartitioner::IsCompareOp(const af::AscNodePtr &node) {
   return compare_types.count(node->GetType()) > 0UL;
 }
 
-ge::Status VectorFuncPartitioner::InitClusters() {
+af::Status VectorFuncPartitioner::InitClusters() {
   size_t rank = 0UL;
   GELOGI("InitClusters enter, graph_name[%s].", impl_graph_.GetName().c_str());
 
@@ -539,7 +539,7 @@ ge::Status VectorFuncPartitioner::InitClusters() {
   }
 
   FixAllCompareClusterConnections();
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 ClusterPtr VectorFuncPartitioner::CreateAndInitCluster(const af::AscNodePtr &node, size_t &rank) {
@@ -693,7 +693,7 @@ bool VectorFuncPartitioner::CanMergeClusters(const Cluster &from, const Cluster 
   return true;
 }
 
-ge::Status VectorFuncPartitioner::MergeClusters() {
+af::Status VectorFuncPartitioner::MergeClusters() {
   // Merge clusters according to the linking relationship
   auto all_clusters = cluster_dict_.GetAllClusters();
   std::unordered_set<const Cluster *> merged_clusters;  // 记录已合并的 cluster
@@ -727,10 +727,10 @@ ge::Status VectorFuncPartitioner::MergeClusters() {
       GELOGD("Merge cluster from %zu to %zu.", in_cluster->Id(), cluster->Id());
     }
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status VectorFuncPartitioner::SortClustersForBuildSubgraph() {
+af::Status VectorFuncPartitioner::SortClustersForBuildSubgraph() {
   // 收集所有唯一的 cluster, 按照id进行合并
   std::unordered_set<ClusterPtr> unique_clusters;
   for (const auto &node : impl_graph_.GetAllNodes()) {
@@ -743,10 +743,10 @@ ge::Status VectorFuncPartitioner::SortClustersForBuildSubgraph() {
             [](const ClusterPtr &clu_a, const ClusterPtr &clu_b) -> bool { return clu_a->Id() < clu_b->Id(); });
 
   cluster_dict_.SwapClusters(sorted_unique_clusters);
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status VectorFuncPartitioner::AddInputDataAnchors(const af::NodePtr &node,
+af::Status VectorFuncPartitioner::AddInputDataAnchors(const af::NodePtr &node,
                                                       InsertOrderMap &out_data_to_peer_in_anchors) {
   const auto &dst_graph = node->GetOwnerComputeGraph();
   for (const auto &in_anchor : node->GetAllInDataAnchors()) {
@@ -763,10 +763,10 @@ ge::Status VectorFuncPartitioner::AddInputDataAnchors(const af::NodePtr &node,
     }
   }
 
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status VectorFuncPartitioner::AddOutputDataAnchors(const af::NodePtr &node,
+af::Status VectorFuncPartitioner::AddOutputDataAnchors(const af::NodePtr &node,
                                                        InsertOrderMap &out_data_to_peer_in_anchors) {
   const auto &src_graph = node->GetOwnerComputeGraph();
   for (const auto &anchor : node->GetAllOutDataAnchors()) {
@@ -782,10 +782,10 @@ ge::Status VectorFuncPartitioner::AddOutputDataAnchors(const af::NodePtr &node,
       }
     }
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status VectorFuncPartitioner::InsertDataAndLoadNode(af::AscGraph &asc_graph, const af::OutDataAnchorPtr &out_anchor,
+af::Status VectorFuncPartitioner::InsertDataAndLoadNode(af::AscGraph &asc_graph, const af::OutDataAnchorPtr &out_anchor,
                                                         const std::vector<af::InDataAnchorPtr> &in_anchors,
                                                         int64_t parent_in_index) {
   auto pre_node = std::dynamic_pointer_cast<af::AscNode>(out_anchor->GetOwnerNode());
@@ -819,10 +819,10 @@ ge::Status VectorFuncPartitioner::InsertDataAndLoadNode(af::AscGraph &asc_graph,
     GE_ASSERT_SUCCESS(af::GraphUtils::RemoveEdge(out_anchor, in_anchor));
     GE_ASSERT_SUCCESS(af::GraphUtils::AddEdge(load_node->GetOutDataAnchor(0), in_anchor));
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status VectorFuncPartitioner::InsertScalarNode(af::AscGraph &asc_graph, const af::OutDataAnchorPtr &out_anchor,
+af::Status VectorFuncPartitioner::InsertScalarNode(af::AscGraph &asc_graph, const af::OutDataAnchorPtr &out_anchor,
                                                    const std::vector<af::InDataAnchorPtr> &in_anchors,
                                                    int64_t parent_in_index) {
   auto pre_node = std::dynamic_pointer_cast<af::AscNode>(out_anchor->GetOwnerNode());
@@ -843,10 +843,10 @@ ge::Status VectorFuncPartitioner::InsertScalarNode(af::AscGraph &asc_graph, cons
     GE_ASSERT_SUCCESS(af::GraphUtils::RemoveEdge(out_anchor, in_anchor));
     GE_ASSERT_SUCCESS(af::GraphUtils::AddEdge(scalar_node->GetOutDataAnchor(0), in_anchor));
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status VectorFuncPartitioner::InsertStoreAndOutputNode(af::AscGraph &asc_graph, af::AscNode &pre_node,
+af::Status VectorFuncPartitioner::InsertStoreAndOutputNode(af::AscGraph &asc_graph, af::AscNode &pre_node,
                                                            size_t out_anchor_index, int64_t parent_out_index) {
   std::string store_name = kNamePrefixStore + pre_node.GetName() + std::to_string(parent_out_index);
   af::ascir_op::Store store(store_name.c_str());
@@ -875,10 +875,10 @@ ge::Status VectorFuncPartitioner::InsertStoreAndOutputNode(af::AscGraph &asc_gra
   GE_ASSERT_NOTNULL(ir_attr);
   (void)ir_attr->SetIndex(parent_out_index);
 
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status VectorFuncPartitioner::BuildSubgraph(const ClusterPtr &cluster, af::AscGraph &vf_graph,
+af::Status VectorFuncPartitioner::BuildSubgraph(const ClusterPtr &cluster, af::AscGraph &vf_graph,
                                                 af::ascir_op::VectorFunc &vf_op) {
   auto vf_ge_graph = af::AscGraphUtils::GetComputeGraph(vf_graph);
   GE_ASSERT_NOTNULL(vf_ge_graph);
@@ -963,10 +963,10 @@ ge::Status VectorFuncPartitioner::BuildSubgraph(const ClusterPtr &cluster, af::A
     vf_node->attr.sched.exec_condition = af::ExecuteCondition::kNoCache;
   }
 
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status VectorFuncPartitioner::MergeContinuousVectorAxis(af::AscGraph &vf_graph) {
+af::Status VectorFuncPartitioner::MergeContinuousVectorAxis(af::AscGraph &vf_graph) {
   // step 1.生成连续轴组
   std::vector<std::pair<af::AxisId, af::AxisId>> potential_axis_ids;
   for (const auto &node : vf_graph.GetAllNodes()) {
@@ -974,7 +974,7 @@ ge::Status VectorFuncPartitioner::MergeContinuousVectorAxis(af::AscGraph &vf_gra
       GE_ASSERT_TRUE(!node->outputs().empty());
       auto axis_ids = node->outputs[0].attr.vectorized_axis;
       if (axis_ids.size() <= 1UL) {
-        return ge::SUCCESS;
+        return af::SUCCESS;
       }
       potential_axis_ids.reserve(axis_ids.size() - 1);
       for (size_t i = 0UL; i < axis_ids.size() - 1; ++i) {
@@ -1015,10 +1015,10 @@ ge::Status VectorFuncPartitioner::MergeContinuousVectorAxis(af::AscGraph &vf_gra
     }
   }
 
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status VectorFuncPartitioner::SetSubGraphAttrs(af::AscGraph &vf_graph) {
+af::Status VectorFuncPartitioner::SetSubGraphAttrs(af::AscGraph &vf_graph) {
   int64_t tensor_id = 0;
   for (const auto &node : vf_graph.GetAllNodes()) {
     if (ScheduleUtils::IsBuffer(node)) {
@@ -1078,10 +1078,10 @@ ge::Status VectorFuncPartitioner::SetSubGraphAttrs(af::AscGraph &vf_graph) {
     }
   }
 
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status VectorFuncPartitioner::ModifySubgraphAttrs(af::AscGraph &vf_graph) {
+af::Status VectorFuncPartitioner::ModifySubgraphAttrs(af::AscGraph &vf_graph) {
   auto compute_graph = af::AscGraphUtils::GetComputeGraph(vf_graph);
   GE_ASSERT_NOTNULL(compute_graph);
   GE_ASSERT_GRAPH_SUCCESS(compute_graph->TopologicalSorting(), "TopologicalSorting failed, graph:[%s].",
@@ -1101,10 +1101,10 @@ ge::Status VectorFuncPartitioner::ModifySubgraphAttrs(af::AscGraph &vf_graph) {
   // step5 topologic sorting by loop
   GE_ASSERT_SUCCESS(TopologicalSortingForVfGraph(vf_graph), "Failed to do topological sorting for subgraph[%s].",
                     vf_graph.GetName().c_str());
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status VectorFuncPartitioner::BuildSubgraphs() {
+af::Status VectorFuncPartitioner::BuildSubgraphs() {
   for (const auto &cluster : cluster_dict_.GetAllClusters()) {
     // 不包含隐士广播的单节点不融合
     if (!cluster->meta_data_.enable_vf ||
@@ -1136,7 +1136,7 @@ ge::Status VectorFuncPartitioner::BuildSubgraphs() {
   // 暂时关闭，后续打开 // step 4. add RemovePad for brc inline
   // 暂时关闭，后续打开 // GE_ASSERT_SUCCESS(AddRemovePadForBrcInline(impl_graph_), "Failed to add RemovePad for brc
   // 暂时关闭，后续打开 // inline, Graph[%s].", impl_graph_.GetName().c_str());
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 bool VectorFuncPartitioner::HasDetectedCycle(const Cluster *const src, const Cluster *const dst) {
@@ -1173,7 +1173,7 @@ bool VectorFuncPartitioner::HasDetectedCycle(const Cluster *const src, const Clu
   return false;
 }
 
-ge::Status VectorFuncPartitioner::TopologicalSortingForVfGraph(af::AscGraph &graph) {
+af::Status VectorFuncPartitioner::TopologicalSortingForVfGraph(af::AscGraph &graph) {
   std::unordered_set<af::Node *> outer_loop_sequences;
   for (const auto &node : graph.GetAllNodes()) {
     if ((!af::ops::IsOps<af::ascir_op::Output>(node)) && (node->attr.sched.loop_axis == kOutLoopAxisId)) {
@@ -1194,10 +1194,10 @@ ge::Status VectorFuncPartitioner::TopologicalSortingForVfGraph(af::AscGraph &gra
   GE_ASSERT_NOTNULL(compute_graph);
   compute_graph->TopologicalSorting(func);
 
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status VectorFuncPartitioner::ReorderAxesForBrcInline(const af::AscGraph &graph) {
+af::Status VectorFuncPartitioner::ReorderAxesForBrcInline(const af::AscGraph &graph) {
   for (const auto &node : graph.GetAllNodes()) {
     if (node->GetInDataNodes().empty() || node->GetOutDataNodes().empty()) {
       continue;
@@ -1205,10 +1205,10 @@ ge::Status VectorFuncPartitioner::ReorderAxesForBrcInline(const af::AscGraph &gr
     const auto &out_attr = node->outputs[0].attr;
     node->attr.sched.loop_axis = FindLastNonBrcAxis(out_attr.vectorized_axis, out_attr.vectorized_strides);
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status VectorFuncPartitioner::AddRemovePadForBrcInline(af::AscGraph &graph) {
+af::Status VectorFuncPartitioner::AddRemovePadForBrcInline(af::AscGraph &graph) {
   // step1: 收集所有的Store节点，因为Output只有1个输入且必定是Store
   std::vector<af::NodePtr> store_nodes;
   std::set<af::NodePtr> brc_inline_nodes;
@@ -1222,7 +1222,7 @@ ge::Status VectorFuncPartitioner::AddRemovePadForBrcInline(af::AscGraph &graph) 
   }
   if (brc_inline_nodes.empty()) {
     GELOGD("Sub graph[%s] not contains brc inline node.", graph.GetName().c_str());
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
 
   std::set<af::NodePtr> visited_nodes;
@@ -1237,6 +1237,6 @@ ge::Status VectorFuncPartitioner::AddRemovePadForBrcInline(af::AscGraph &graph) 
     GE_ASSERT_SUCCESS(ReverseDfsUnAlignNode(graph, node, visited_nodes));
   }
   visited_nodes.clear();
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 }  // namespace optimize

@@ -16,7 +16,7 @@
 #include <string>
 
 #include "graph/graph.h"
-#include "external/ge_common/ge_api_error_codes.h"
+#include "external/ge_common_af/ge_api_error_codes.h"
 #include "register/register_types.h"
 
 namespace af {

@@ -31,7 +31,7 @@ af::Status AlignmentStrategy::BroadcastAlignmentInferFunc(const af::AscNodePtr &
   // 输入是scalar,可以不需要对齐
   if (iter == tensor_to_align_type_.end()) {
     tensor_to_align_type_[&output_attr] = {AlignmentType::kNotAligned};
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
   GE_ASSERT_TRUE(input_attr.repeats.size() == output_attr.repeats.size());
   GE_ASSERT_TRUE(output_attr.axis.size() == output_attr.repeats.size());
@@ -49,7 +49,7 @@ af::Status AlignmentStrategy::BroadcastAlignmentInferFunc(const af::AscNodePtr &
             iter->second.align_type == AlignmentType::kFixedNotAligned) {
           return BackPropagateAlignment(node);
         }
-        return ge::SUCCESS;
+        return af::SUCCESS;
       }
     } else if (af::SymbolicUtils::StaticCheckEq(input_attr.repeats[distance], af::sym::kSymbolOne) ==
                    af::TriBool::kTrue &&
@@ -62,7 +62,7 @@ af::Status AlignmentStrategy::BroadcastAlignmentInferFunc(const af::AscNodePtr &
     tensor_to_align_type_[&output_attr] = iter->second;
   }
 
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 af::Status AlignmentStrategy::ConcatAlignmentInferFunc(const af::AscNodePtr &node) {
@@ -79,13 +79,13 @@ af::Status AlignmentStrategy::ConcatAlignmentInferFunc(const af::AscNodePtr &nod
   } else {
     GE_ASSERT_SUCCESS(DefaultAlignmentInferFunc(node));
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 af::Status AlignmentStrategy::EleWiseAlignmentInferFunc(const af::AscNodePtr &node) {
   if (af::ops::IsOps<af::ascir_op::RemovePad>(node)) {
     tensor_to_align_type_[&node->outputs[0].attr] = {AlignmentType::kFixedNotAligned};
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
 
   bool has_aligned_input = false;
@@ -123,7 +123,7 @@ af::Status AlignmentStrategy::EleWiseAlignmentInferFunc(const af::AscNodePtr &no
     tensor_to_align_type_[&output->attr] = {out_type};
   }
 
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 af::Status AlignmentStrategy::LoadAlignmentInferFunc(const af::AscNodePtr &node) {
@@ -141,7 +141,7 @@ af::Status AlignmentStrategy::LoadAlignmentInferFunc(const af::AscNodePtr &node)
     // vectorized_axis连续则可以连续搬运
     tensor_to_align_type_[&output_attr] = {AlignmentType::kNotAligned};
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 af::Status AlignmentStrategy::StoreAlignmentInferFunc(const af::AscNodePtr &node) {
@@ -158,7 +158,7 @@ af::Status AlignmentStrategy::StoreAlignmentInferFunc(const af::AscNodePtr &node
     tensor_to_align_type_[&output_attr] = {AlignmentType::kAligned};
     GE_ASSERT_SUCCESS(BackPropagateAlignment(node));
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 af::Status AlignmentStrategy::DefaultAlignmentInferFunc(const af::AscNodePtr &node) {
@@ -186,10 +186,10 @@ af::Status AlignmentStrategy::DefaultAlignmentInferFunc(const af::AscNodePtr &no
     GE_ASSERT_SUCCESS(BackPropagateAlignment(node));
   }
 
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status AlignmentStrategy::SetAlignWidth(const ascir::ImplGraph &impl_graph) {
+af::Status AlignmentStrategy::SetAlignWidth(const ascir::ImplGraph &impl_graph) {
   // 依据数据类型判断对齐到32B还是64B
   align_width_ = 32U;
   for (const auto &node : impl_graph.GetAllNodes()) {

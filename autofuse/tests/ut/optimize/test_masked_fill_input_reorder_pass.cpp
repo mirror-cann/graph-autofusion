@@ -73,7 +73,7 @@ TEST_F(TestMaskedFillInputReorderPass, MaskedFillInputReorderPass_ShouldReorderI
 
   // Run the pass
   optimize::MaskedFillInputReorderPass pass;
-  ASSERT_EQ(pass.RunPass(graph), ge::SUCCESS);
+  ASSERT_EQ(pass.RunPass(graph), af::SUCCESS);
 
   // After pass: inputs should be reordered to (load_mask, load_value, load_x)
   // Swap(0,1): (x, mask, value) -> (mask, x, value)
@@ -93,7 +93,7 @@ TEST_F(TestMaskedFillInputReorderPass, MaskedFillInputReorderPass_ShouldNotAffec
 
   // Run the pass
   optimize::MaskedFillInputReorderPass pass;
-  ASSERT_EQ(pass.RunPass(graph), ge::SUCCESS);
+  ASSERT_EQ(pass.RunPass(graph), af::SUCCESS);
 
   // Verify Store node still has correct input
   EXPECT_EQ(GetInputNodeName(graph, "store", 0), "masked_fill");
@@ -133,7 +133,7 @@ TEST_F(TestMaskedFillInputReorderPass, MaskedFillInputReorderPass_ShouldHandleMu
 
   // Run the pass
   optimize::MaskedFillInputReorderPass pass;
-  ASSERT_EQ(pass.RunPass(graph), ge::SUCCESS);
+  ASSERT_EQ(pass.RunPass(graph), af::SUCCESS);
 
   // Verify both MaskedFill nodes are reordered
   EXPECT_EQ(GetInputNodeName(graph, "masked_fill1", 0), "load_mask1");
@@ -166,7 +166,7 @@ TEST_F(TestMaskedFillInputReorderPass, MaskedFillInputReorderPass_ShouldUpdateDt
 
   // Run the pass
   optimize::MaskedFillInputReorderPass pass;
-  ASSERT_EQ(pass.RunPass(graph), ge::SUCCESS);
+  ASSERT_EQ(pass.RunPass(graph), af::SUCCESS);
 
   // After pass: dtype schema should match Select(mask, value, x).
   auto op_desc = masked_fill_node->GetOpDescBarePtr();

@@ -138,7 +138,7 @@ TEST_F(TestCastOptimizationPass, NoConcatInGraph_NoChange) {
                    .Output("output0", "store0")
                    .Build();
 
-  ASSERT_EQ(af::optimize::CastOptimizationPass::Run(graph), SUCCESS);
+  ASSERT_EQ(af::optimize::CastOptimizationPass::Run(graph), af::SUCCESS);
   EXPECT_EQ(CountNodesByType(graph, ascir_op::Cast::Type), 0U);
 }
 
@@ -154,7 +154,7 @@ TEST_F(TestCastOptimizationPass, ConcatWithoutCastOutput_NoOptimize) {
                    .Output("output0", "store0")
                    .Build();
 
-  ASSERT_EQ(af::optimize::CastOptimizationPass::Run(graph), SUCCESS);
+  ASSERT_EQ(af::optimize::CastOptimizationPass::Run(graph), af::SUCCESS);
   EXPECT_EQ(CountNodesByType(graph, ascir_op::Cast::Type), 0U);
   EXPECT_EQ(GetNodeOutputDtype(graph, "concat0"), DT_FLOAT);
 }
@@ -173,7 +173,7 @@ TEST_F(TestCastOptimizationPass, ConcatWithMultipleOutputs_NoOptimize) {
                    .Output("output1", "store1", 1)
                    .Build();
 
-  ASSERT_EQ(af::optimize::CastOptimizationPass::Run(graph), SUCCESS);
+  ASSERT_EQ(af::optimize::CastOptimizationPass::Run(graph), af::SUCCESS);
   EXPECT_EQ(CountNodesByType(graph, ascir_op::Cast::Type), 1U);
   AssertNodesExist(graph, {"cast0"}, true);
 }
@@ -189,7 +189,7 @@ TEST_F(TestCastOptimizationPass, ConcatWithNonCastOutput_NoOptimize) {
                    .Output("output0", "store0")
                    .Build();
 
-  ASSERT_EQ(af::optimize::CastOptimizationPass::Run(graph), SUCCESS);
+  ASSERT_EQ(af::optimize::CastOptimizationPass::Run(graph), af::SUCCESS);
   EXPECT_EQ(CountNodesByType(graph, ascir_op::Cast::Type), 0U);
 }
 
@@ -207,7 +207,7 @@ TEST_F(TestCastOptimizationPass, Downcast_PullUpCastBeforeInputs) {
                    .Build();
 
   ASSERT_EQ(CountNodesByType(graph, ascir_op::Cast::Type), 1U);
-  ASSERT_EQ(af::optimize::CastOptimizationPass::Run(graph), SUCCESS);
+  ASSERT_EQ(af::optimize::CastOptimizationPass::Run(graph), af::SUCCESS);
   AssertNodesExist(graph, {"cast_out0"}, false);
   EXPECT_EQ(GetNodeOutputDtype(graph, "concat0"), DT_FLOAT16);
   EXPECT_EQ(CountNodesByType(graph, ascir_op::Cast::Type), 2U);
@@ -228,7 +228,7 @@ TEST_F(TestCastOptimizationPass, Downcast_ReverseInputCastRemoved) {
                    .Build();
 
   ASSERT_EQ(CountNodesByType(graph, ascir_op::Cast::Type), 2U);
-  ASSERT_EQ(af::optimize::CastOptimizationPass::Run(graph), SUCCESS);
+  ASSERT_EQ(af::optimize::CastOptimizationPass::Run(graph), af::SUCCESS);
   AssertNodesExist(graph, {"cast_out0", "cast_input0"}, false);
   EXPECT_EQ(GetNodeOutputDtype(graph, "concat0"), DT_FLOAT16);
   EXPECT_EQ(CountNodesByType(graph, ascir_op::Cast::Type), 1U);
@@ -238,7 +238,7 @@ TEST_F(TestCastOptimizationPass, Downcast_AllReverseInputCastsEliminated) {
   auto graph = BuildTwoInputCastConcatGraph("test_downcast_all_reverse", DT_FLOAT16, DT_FLOAT, DT_FLOAT16);
 
   ASSERT_EQ(CountNodesByType(graph, ascir_op::Cast::Type), 3U);
-  ASSERT_EQ(af::optimize::CastOptimizationPass::Run(graph), SUCCESS);
+  ASSERT_EQ(af::optimize::CastOptimizationPass::Run(graph), af::SUCCESS);
   AssertNodesExist(graph, {"cast_out0", "cast_input0", "cast_input1"}, false);
   EXPECT_EQ(GetNodeOutputDtype(graph, "concat0"), DT_FLOAT16);
   EXPECT_EQ(CountNodesByType(graph, ascir_op::Cast::Type), 0U);
@@ -257,7 +257,7 @@ TEST_F(TestCastOptimizationPass, Upcast_NoReverseInputCast_NotOptimized) {
                    .Output("output0", "store0", 0)
                    .Build();
 
-  ASSERT_EQ(af::optimize::CastOptimizationPass::Run(graph), SUCCESS);
+  ASSERT_EQ(af::optimize::CastOptimizationPass::Run(graph), af::SUCCESS);
   EXPECT_EQ(CountNodesByType(graph, ascir_op::Cast::Type), 1U);
   AssertNodesExist(graph, {"cast_out0"}, true);
 }
@@ -265,7 +265,7 @@ TEST_F(TestCastOptimizationPass, Upcast_NoReverseInputCast_NotOptimized) {
 TEST_F(TestCastOptimizationPass, Upcast_TransposeAlg_NoOptimize) {
   auto graph = BuildTwoInputCastConcatGraph("test_upcast_transpose", DT_FLOAT, DT_FLOAT16, DT_FLOAT);
 
-  ASSERT_EQ(af::optimize::CastOptimizationPass::Run(graph, 0), SUCCESS);
+  ASSERT_EQ(af::optimize::CastOptimizationPass::Run(graph, 0), af::SUCCESS);
   AssertNodesExist(graph, {"cast_out0"}, true);
   EXPECT_EQ(GetNodeOutputDtype(graph, "concat0"), DT_FLOAT16);
 }
@@ -288,7 +288,7 @@ TEST_F(TestCastOptimizationPass, MixedReverseAndNonReverseInputCast) {
                    .Build();
 
   ASSERT_EQ(CountNodesByType(graph, ascir_op::Cast::Type), 3U);
-  ASSERT_EQ(af::optimize::CastOptimizationPass::Run(graph), SUCCESS);
+  ASSERT_EQ(af::optimize::CastOptimizationPass::Run(graph), af::SUCCESS);
   AssertNodesExist(graph, {"cast_out0", "cast_input0", "cast_input1"}, false);
   EXPECT_EQ(GetNodeOutputDtype(graph, "concat0"), DT_FLOAT16);
   EXPECT_EQ(CountNodesByType(graph, ascir_op::Cast::Type), 1U);
@@ -297,7 +297,7 @@ TEST_F(TestCastOptimizationPass, MixedReverseAndNonReverseInputCast) {
 TEST_F(TestCastOptimizationPass, Downcast_TransposeAlg_IgnoreAlignment_Optimize) {
   auto graph = BuildSymbolicAxisConcatCastGraph("test_transpose_ignore_alignment", 3, 5);
 
-  ASSERT_EQ(af::optimize::CastOptimizationPass::Run(graph, 0), SUCCESS);
+  ASSERT_EQ(af::optimize::CastOptimizationPass::Run(graph, 0), af::SUCCESS);
   AssertNodesExist(graph, {"cast_out0"}, false);
   EXPECT_EQ(GetNodeOutputDtype(graph, "concat0"), DT_FLOAT16);
 }
@@ -305,7 +305,7 @@ TEST_F(TestCastOptimizationPass, Downcast_TransposeAlg_IgnoreAlignment_Optimize)
 TEST_F(TestCastOptimizationPass, Downcast_GatherAlg_AlignmentDegradation_NoOptimize) {
   auto graph = BuildSymbolicAxisConcatCastGraph("test_gather_alignment_degradation", 3, 5);
 
-  ASSERT_EQ(af::optimize::CastOptimizationPass::Run(graph, 1), SUCCESS);
+  ASSERT_EQ(af::optimize::CastOptimizationPass::Run(graph, 1), af::SUCCESS);
   AssertNodesExist(graph, {"cast_out0"}, true);
   EXPECT_EQ(GetNodeOutputDtype(graph, "concat0"), DT_FLOAT);
 }
@@ -313,7 +313,7 @@ TEST_F(TestCastOptimizationPass, Downcast_GatherAlg_AlignmentDegradation_NoOptim
 TEST_F(TestCastOptimizationPass, Downcast_GatherAlg_NoAlignmentDegradation_Optimize) {
   auto graph = BuildSymbolicAxisConcatCastGraph("test_no_degradation", 4, 8);
 
-  ASSERT_EQ(af::optimize::CastOptimizationPass::Run(graph, 1), SUCCESS);
+  ASSERT_EQ(af::optimize::CastOptimizationPass::Run(graph, 1), af::SUCCESS);
   AssertNodesExist(graph, {"cast_out0"}, false);
   EXPECT_EQ(GetNodeOutputDtype(graph, "concat0"), DT_FLOAT16);
   EXPECT_EQ(CountNodesByType(graph, ascir_op::Cast::Type), 2U);
@@ -332,7 +332,7 @@ TEST_F(TestCastOptimizationPass, Downcast_SharedNonCastInput_OnlyOneCastInserted
                    .Build();
 
   ASSERT_EQ(CountNodesByType(graph, ascir_op::Cast::Type), 1U);
-  ASSERT_EQ(af::optimize::CastOptimizationPass::Run(graph), SUCCESS);
+  ASSERT_EQ(af::optimize::CastOptimizationPass::Run(graph), af::SUCCESS);
   AssertNodesExist(graph, {"cast_out0"}, false);
   EXPECT_EQ(GetNodeOutputDtype(graph, "concat0"), DT_FLOAT16);
   EXPECT_EQ(CountNodesByType(graph, ascir_op::Cast::Type), 1U);
@@ -340,14 +340,14 @@ TEST_F(TestCastOptimizationPass, Downcast_SharedNonCastInput_OnlyOneCastInserted
 
 TEST_F(TestCastOptimizationPass, Downcast_GatherAlg_MultipleDiscontinuitiesViaMultiInputNode_Optimize) {
   auto graph = BuildDowncastDiscontinuityTestGraph("test_multi_input_discontinuity", true);
-  ASSERT_EQ(af::optimize::CastOptimizationPass::Run(graph, 1), SUCCESS);
+  ASSERT_EQ(af::optimize::CastOptimizationPass::Run(graph, 1), af::SUCCESS);
   AssertNodesExist(graph, {"cast_out0"}, false);
   EXPECT_EQ(GetNodeOutputDtype(graph, "concat0"), DT_FLOAT16);
 }
 
 TEST_F(TestCastOptimizationPass, Downcast_GatherAlg_NoDiscontinuity_Optimize) {
   auto graph = BuildDowncastDiscontinuityTestGraph("test_no_discontinuity", false);
-  ASSERT_EQ(af::optimize::CastOptimizationPass::Run(graph, 1), SUCCESS);
+  ASSERT_EQ(af::optimize::CastOptimizationPass::Run(graph, 1), af::SUCCESS);
   AssertNodesExist(graph, {"cast_out0"}, false);
   EXPECT_EQ(GetNodeOutputDtype(graph, "concat0"), DT_FLOAT16);
 }
@@ -370,7 +370,7 @@ TEST_F(TestCastOptimizationPass, Downcast_ReverseCastWithMultipleConsumers_Bypas
                    .Build();
 
   ASSERT_EQ(CountNodesByType(graph, ascir_op::Cast::Type), 2U);
-  ASSERT_EQ(af::optimize::CastOptimizationPass::Run(graph), SUCCESS);
+  ASSERT_EQ(af::optimize::CastOptimizationPass::Run(graph), af::SUCCESS);
   AssertNodesExist(graph, {"cast_out0"}, false);
   AssertNodesExist(graph, {"cast_input0"}, true);
   EXPECT_EQ(GetNodeOutputDtype(graph, "concat0"), DT_FLOAT16);
@@ -396,7 +396,7 @@ TEST_F(TestCastOptimizationPass, Downcast_SharedSourceReverseCastsWithMultipleCo
                    .Build();
 
   ASSERT_EQ(CountNodesByType(graph, ascir_op::Cast::Type), 3U);
-  ASSERT_EQ(af::optimize::CastOptimizationPass::Run(graph), SUCCESS);
+  ASSERT_EQ(af::optimize::CastOptimizationPass::Run(graph), af::SUCCESS);
   AssertNodesExist(graph, {"cast_out0", "cast_input1"}, false);
   AssertNodesExist(graph, {"cast_input0"}, true);
   EXPECT_EQ(GetNodeOutputDtype(graph, "concat0"), DT_FLOAT16);

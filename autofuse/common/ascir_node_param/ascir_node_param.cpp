@@ -28,7 +28,7 @@ bool StaticCheckExprNe(const ge::Expression &lhs, const ge::Expression &rhs) {
   return af::SymbolicUtils::StaticCheckEq(lhs, rhs) == af::TriBool::kFalse;
 }
 
-ge::Status ValidateParamExprProduct(const ParamExprProduct &expr, const ge::Expression &canonical_expr,
+af::Status ValidateParamExprProduct(const ParamExprProduct &expr, const ge::Expression &canonical_expr,
                                     const char *param_name) {
   GE_ASSERT_TRUE(expr.valid, "Reduce %s expr is invalid.", param_name);
   GE_ASSERT_TRUE(!expr.factors.empty(), "Reduce %s expr is empty.", param_name);
@@ -36,13 +36,13 @@ ge::Status ValidateParamExprProduct(const ParamExprProduct &expr, const ge::Expr
     GE_ASSERT_TRUE(factor.expr.IsValid(), "Reduce %s expr factor is invalid.", param_name);
   }
   if (!HasOnlySemanticRole(expr)) {
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
   const auto resolved_expr = ResolveForAtt(expr);
   GE_ASSERT_TRUE(!StaticCheckExprNe(resolved_expr, canonical_expr),
                  "Reduce %s expr does not match canonical params, expr[%s], canonical[%s].", param_name,
                  resolved_expr.Str().get(), canonical_expr.Str().get());
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 }  // namespace
 
@@ -72,12 +72,12 @@ ge::Expression ResolveForAtt(const ParamExprProduct &expr) {
   return value;
 }
 
-ge::Status ValidateReduceNodeParams(const ReduceNodeParams &params) {
+af::Status ValidateReduceNodeParams(const ReduceNodeParams &params) {
   GE_ASSERT_TRUE(params.canonical_params.valid, "Reduce canonical params is invalid.");
   GE_ASSERT_SUCCESS(
       ValidateParamExprProduct(params.exprs.merge_size, params.canonical_params.merge_size, "merge size"));
   GE_ASSERT_SUCCESS(
       ValidateParamExprProduct(params.exprs.merge_times, params.canonical_params.merge_times, "merge times"));
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 }  // namespace ascir_param

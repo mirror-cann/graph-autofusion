@@ -144,7 +144,7 @@ Status CompareV2ApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::A
   }
 
   result = ss.str();
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 static ApiCallRegister<CompareV2ApiCall> register_compare_v2_api_call("CompareV2ApiCall");

@@ -38,7 +38,7 @@ Status UnaryApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::AxisI
   ss << this->api_name_ << "(" << y << "[" << tpipe.tiler.TensorVectorizedOffset(current_axis, y) << "], " << x << "["
      << tpipe.tiler.TensorVectorizedOffset(current_axis, x) << "], " << x.actual_size << ");" << std::endl;
   result = ss.str();
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 static ApiCallRegister<UnaryApiCall> register_unary_api_call("UnaryApiCall");

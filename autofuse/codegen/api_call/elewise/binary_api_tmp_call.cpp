@@ -66,7 +66,7 @@ Status BinaryApiTmpCall::Generate(const TPipe &tpipe, const std::vector<ascir::A
   }
 
   result = ss.str();
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 static ApiCallRegister<BinaryApiTmpCall> register_binary_api_tmp_call("BinaryApiTmpCall");

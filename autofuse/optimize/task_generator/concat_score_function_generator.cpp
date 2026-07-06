@@ -44,7 +44,7 @@ Status ConcatScoreFunctionGenerator::Generate(std::string &score_func) {
   return ASCCOMMON_SUC;
 }
 
-ge::Status ConcatScoreFunctionGenerator::ParseStride() {
+af::Status ConcatScoreFunctionGenerator::ParseStride() {
   num_inputs_ = concat_node_->inputs.Size();
   GE_ASSERT_TRUE(num_inputs_ > 0U);
   const auto &input_attr = concat_node_->inputs[0].attr;
@@ -63,7 +63,7 @@ ge::Status ConcatScoreFunctionGenerator::ParseStride() {
   }
   GE_ASSERT_TRUE(const_part_stride.GetConstValue(const_part_stride_), "Failed to get int value, expr = %s",
                  const_part_stride.Str().get());
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 void ConcatScoreFunctionGenerator::GenerateReturnValue(int32_t score) {
@@ -75,7 +75,7 @@ Status ConcatScoreFunctionGenerator::TryGetScoreByConstExpr(int32_t &score) {
   auto &output_concat_dim = concat_node_->outputs[0].attr.repeats[concat_dim_];
   if (!output_concat_dim.IsConstExpr()) {
     GELOGI("output concat dim is non-const, cannot resolve score at compile time");
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
   int64_t concat_dim_size = -1;
   GE_ASSERT_TRUE(output_concat_dim.GetConstValue(concat_dim_size), "Failed to get int value, expr = %s",

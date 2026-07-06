@@ -8,7 +8,7 @@
  * See LICENSE in the root of the software repository for the full text of the License.
  */
 #include "l0_solver_gen.h"
-#include "ge_common/ge_api_error_codes.h"
+#include "ge_common_af/ge_api_error_codes.h"
 #include "ge_common/debug/log.h"
 
 namespace att {

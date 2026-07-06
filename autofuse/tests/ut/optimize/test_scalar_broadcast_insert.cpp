@@ -100,7 +100,7 @@ TEST_F(TestScalarBroadcastInsert, ScalarDirectToCompute_InsertsBroadcast) {
   ASSERT_EQ(brc_before, 0U);
 
   auto ret = InsertBroadcastAfterScalarForAscGraph(graph);
-  ASSERT_EQ(ret, ge::SUCCESS);
+  ASSERT_EQ(ret, af::SUCCESS);
 
   size_t brc_after = CountNodesByType(graph, ascir_op::Broadcast::Type);
   EXPECT_GT(brc_after, 0U);
@@ -126,7 +126,7 @@ TEST_F(TestScalarBroadcastInsert, ScalarAlreadyHasBroadcast_NoInsert) {
   size_t brc_before = CountNodesByType(graph, ascir_op::Broadcast::Type);
 
   auto ret = InsertBroadcastAfterScalarForAscGraph(graph);
-  ASSERT_EQ(ret, ge::SUCCESS);
+  ASSERT_EQ(ret, af::SUCCESS);
 
   size_t brc_after = CountNodesByType(graph, ascir_op::Broadcast::Type);
   EXPECT_EQ(brc_after, brc_before);
@@ -145,7 +145,7 @@ TEST_F(TestScalarBroadcastInsert, ScalarDirectToStore_InsertsBroadcast) {
   optimize::AscGraphInfoComplete::CompleteApiInfo(graph);
 
   auto ret = InsertBroadcastAfterScalarForAscGraph(graph);
-  ASSERT_EQ(ret, ge::SUCCESS);
+  ASSERT_EQ(ret, af::SUCCESS);
 
   size_t brc_after = CountNodesByType(graph, ascir_op::Broadcast::Type);
   EXPECT_GT(brc_after, 0U);
@@ -167,7 +167,7 @@ TEST_F(TestScalarBroadcastInsert, ScalarNoDownstream_NoInsert) {
   optimize::AscGraphInfoComplete::CompleteApiInfo(graph);
 
   auto ret = InsertBroadcastAfterScalarForAscGraph(graph);
-  ASSERT_EQ(ret, ge::SUCCESS);
+  ASSERT_EQ(ret, af::SUCCESS);
 
   size_t brc_after = CountNodesByType(graph, ascir_op::Broadcast::Type);
   EXPECT_EQ(brc_after, 0U);
@@ -194,7 +194,7 @@ TEST_F(TestScalarBroadcastInsert, ScalarMultipleDownstreams_InsertsOneSharedBroa
   optimize::AscGraphInfoComplete::CompleteApiInfo(graph);
 
   auto ret = InsertBroadcastAfterScalarForAscGraph(graph);
-  ASSERT_EQ(ret, ge::SUCCESS);
+  ASSERT_EQ(ret, af::SUCCESS);
 
   // 应只插入一个 broadcast（scalar0 的所有下游共享）
   size_t brc_after = CountNodesByType(graph, ascir_op::Broadcast::Type);
@@ -224,7 +224,7 @@ TEST_F(TestScalarBroadcastInsert, ScalarDirectToOutput_NoInsert) {
   optimize::AscGraphInfoComplete::CompleteApiInfo(graph);
 
   auto ret = InsertBroadcastAfterScalarForAscGraph(graph);
-  ASSERT_EQ(ret, ge::SUCCESS);
+  ASSERT_EQ(ret, af::SUCCESS);
 
   size_t brc_after = CountNodesByType(graph, ascir_op::Broadcast::Type);
   EXPECT_EQ(brc_after, 0U);
@@ -245,7 +245,7 @@ TEST_F(TestScalarBroadcastInsert, NoScalarInGraph_NoChange) {
   optimize::AscGraphInfoComplete::CompleteApiInfo(graph);
 
   auto ret = InsertBroadcastAfterScalarForAscGraph(graph);
-  ASSERT_EQ(ret, ge::SUCCESS);
+  ASSERT_EQ(ret, af::SUCCESS);
 
   size_t brc_after = CountNodesByType(graph, ascir_op::Broadcast::Type);
   EXPECT_EQ(brc_after, 0U);
@@ -278,7 +278,7 @@ TEST_F(TestScalarBroadcastInsert, MixedScalarOnlyInsertsForDirectOnes) {
   ASSERT_EQ(brc_before, 1U);  // 只有 brc0
 
   auto ret = InsertBroadcastAfterScalarForAscGraph(graph);
-  ASSERT_EQ(ret, ge::SUCCESS);
+  ASSERT_EQ(ret, af::SUCCESS);
 
   size_t brc_after = CountNodesByType(graph, ascir_op::Broadcast::Type);
   EXPECT_EQ(brc_after, 2U);  // brc0 + 新插入的 1 个
@@ -303,7 +303,7 @@ TEST_F(TestScalarBroadcastInsert, BroadcastDtypeMatchesScalar) {
   optimize::AscGraphInfoComplete::CompleteApiInfo(graph);
 
   auto ret = InsertBroadcastAfterScalarForAscGraph(graph);
-  ASSERT_EQ(ret, ge::SUCCESS);
+  ASSERT_EQ(ret, af::SUCCESS);
 
   // 找到插入的 broadcast 节点，检查 dtype
   for (const auto &node : AscGraphUtils::GetComputeGraph(graph)->GetAllNodes()) {
@@ -338,7 +338,7 @@ TEST_F(TestScalarBroadcastInsert, MultipleScalarsAllGetBroadcast) {
   optimize::AscGraphInfoComplete::CompleteApiInfo(graph);
 
   auto ret = InsertBroadcastAfterScalarForAscGraph(graph);
-  ASSERT_EQ(ret, ge::SUCCESS);
+  ASSERT_EQ(ret, af::SUCCESS);
 
   // 两个 scalar 各插一个 broadcast
   size_t brc_after = CountNodesByType(graph, ascir_op::Broadcast::Type);
@@ -361,7 +361,7 @@ TEST_F(TestScalarBroadcastInsert, ScalarDirectToData_NoInsert) {
   optimize::AscGraphInfoComplete::CompleteApiInfo(graph);
 
   auto ret = InsertBroadcastAfterScalarForAscGraph(graph);
-  ASSERT_EQ(ret, ge::SUCCESS);
+  ASSERT_EQ(ret, af::SUCCESS);
 
   size_t brc_after = CountNodesByType(graph, ascir_op::Broadcast::Type);
   EXPECT_EQ(brc_after, 0U);
@@ -382,7 +382,7 @@ TEST_F(TestScalarBroadcastInsert, ScalarToBothComputeAndOutput_OnlyInterceptsCom
   optimize::AscGraphInfoComplete::CompleteApiInfo(graph);
 
   auto ret = InsertBroadcastAfterScalarForAscGraph(graph);
-  ASSERT_EQ(ret, ge::SUCCESS);
+  ASSERT_EQ(ret, af::SUCCESS);
 
   // 插入 1 个 broadcast
   EXPECT_EQ(CountNodesByType(graph, ascir_op::Broadcast::Type), 1U);
@@ -414,7 +414,7 @@ TEST_F(TestScalarBroadcastInsert, BroadcastReorderBasic) {
 
   std::vector<AutoScheduleOutput> results;
   AutoSchedule schedule(graph, results);
-  EXPECT_EQ(schedule.DoAutoSchedule(), ge::SUCCESS);
+  EXPECT_EQ(schedule.DoAutoSchedule(), af::SUCCESS);
 
   // broadcast axis (z0, stride=0) moved to inner: expected [z1, z0]
   std::vector<int64_t> expected_order = {original_axis[1], original_axis[0]};
@@ -445,7 +445,7 @@ TEST_F(TestScalarBroadcastInsert, BroadcastReorderSkipBrcTooLarge) {
 
   std::vector<AutoScheduleOutput> results;
   AutoSchedule schedule(graph, results);
-  EXPECT_EQ(schedule.DoAutoSchedule(), ge::SUCCESS);
+  EXPECT_EQ(schedule.DoAutoSchedule(), af::SUCCESS);
 
   // brc_size=32 > 16, reorder skipped
   EXPECT_EQ(load_node->attr.sched.axis, original_axis);
@@ -471,7 +471,7 @@ TEST_F(TestScalarBroadcastInsert, BroadcastReorderSkipDataTooSmall) {
 
   std::vector<AutoScheduleOutput> results;
   AutoSchedule schedule(graph, results);
-  EXPECT_EQ(schedule.DoAutoSchedule(), ge::SUCCESS);
+  EXPECT_EQ(schedule.DoAutoSchedule(), af::SUCCESS);
 
   // non_brc_size=8 < 256*1024, reorder skipped
   EXPECT_EQ(load_node->attr.sched.axis, original_axis);

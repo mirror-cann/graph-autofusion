@@ -39,7 +39,7 @@ Status MicroDivApiCall::Generate(const codegen::TensorManager &tensor_mng, [[may
   }
   ss << param.p_reg << ");" << std::endl;
   result = ss.str();
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 static MicroApiCallRegister<MicroDivApiCall> register_micro_leaky_relu_api_call("MicroDivApiCall");

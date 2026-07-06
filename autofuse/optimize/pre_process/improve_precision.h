@@ -16,7 +16,7 @@
 namespace af {
 namespace pre_process {
 
-ge::Status ImprovePrecisionForAscGraph(af::AscGraph &asc_graph);
+af::Status ImprovePrecisionForAscGraph(af::AscGraph &asc_graph);
 
 }  // namespace pre_process
 }  // namespace af

@@ -91,7 +91,7 @@ Status GetPeerOutNode(const NodePtr &node, NodePtr &peer_out_node, int32_t idx) 
   GE_ASSERT_NOTNULL(peer_out_anchor);
   peer_out_node = peer_out_anchor->GetOwnerNode();
   GE_ASSERT_NOTNULL(peer_out_node);
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status GetPeerOutNodes(const NodePtr &node, std::vector<NodePtr> &peer_out_nodes) {
@@ -107,7 +107,7 @@ Status GetPeerOutNodes(const NodePtr &node, std::vector<NodePtr> &peer_out_nodes
     GE_ASSERT_NOTNULL(peer_out_node);
     peer_out_nodes.push_back(peer_out_node);
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status GetPeerInNodes(const NodePtr &node, std::vector<NodePtr> &peer_in_nodes, int32_t out_data_idx) {
@@ -119,7 +119,7 @@ Status GetPeerInNodes(const NodePtr &node, std::vector<NodePtr> &peer_in_nodes, 
     GE_ASSERT_NOTNULL(peer_in_node);
     peer_in_nodes.push_back(peer_in_node);
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status GetOutputTensorDesc(const NodePtr &node, GeTensorDescPtr &output_tensor_desc) {
@@ -127,7 +127,7 @@ Status GetOutputTensorDesc(const NodePtr &node, GeTensorDescPtr &output_tensor_d
   GE_ASSERT_NOTNULL(op_desc);
   output_tensor_desc = op_desc->MutableOutputDesc(0);
   GE_ASSERT_NOTNULL(output_tensor_desc);
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status DelNode(AscGraph &asc_graph, const NodePtr &node) {
@@ -147,7 +147,7 @@ Status DelNode(AscGraph &asc_graph, const NodePtr &node) {
          asc_graph.GetName().c_str());
   GE_ASSERT_GRAPH_SUCCESS(GraphUtils::RemoveJustNode(AscGraphUtils::GetComputeGraph(asc_graph), node));
   NodeUtils::UnlinkAll(*node);
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status UpdateTopoId(AscGraph &asc_graph, const NodePtr &node, int64_t topo_id_increment) {
@@ -163,7 +163,7 @@ Status UpdateTopoId(AscGraph &asc_graph, const NodePtr &node, int64_t topo_id_in
       n_desc->SetId(n_desc->GetId() + topo_id_increment);
     }
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status FromDtypeToOtherDtype(const NodePtr &node, DataType s_dtype, DataType d_dtype) {
@@ -177,7 +177,7 @@ Status FromDtypeToOtherDtype(const NodePtr &node, DataType s_dtype, DataType d_d
       output_tensor_desc->SetDataType(d_dtype);
     }
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 void TopologicalSorting(const ComputeGraphPtr &graph) {
@@ -189,7 +189,7 @@ bool CheckCastDtype(DataType input_dtype, DataType output_dtype) {
   std::vector<DataType> input_dtypes = {input_dtype};
   std::vector<DataType> expect_output_dtypes = {output_dtype};
   return optimize::ScheduleUtils::CallAscirInferDataType<af::ascir_op::Cast>(input_dtypes, expect_output_dtypes) ==
-         ge::SUCCESS;
+         af::SUCCESS;
 }
 
 std::atomic<int64_t> g_unique_number{0};
@@ -238,15 +238,15 @@ Status CheckNodeDtype(const NodePtr &node) {
   std::vector<DataType> expect_output_dtypes = {output_tensor_desc->GetDataType()};
   std::string npu_arch;
   GE_ASSERT_SUCCESS(ge::PlatformContext::GetInstance().GetCurrentPlatformString(npu_arch));
-  if (af::ascir::CommonInferDtype(node->GetType(), input_dtypes, expect_output_dtypes, npu_arch) != ge::SUCCESS) {
-    GELOGE(ge::FAILED,
+  if (af::ascir::CommonInferDtype(node->GetType(), input_dtypes, expect_output_dtypes, npu_arch) != af::SUCCESS) {
+    GELOGE(af::FAILED,
            "Node %s(%s) with dtype(%s) is not supported. "
            "Do not configure it in autofuse_enhance_precision_blacklist",
            node->GetName().c_str(), node->GetType().c_str(),
            TypeUtils::DataTypeToSerialString(output_tensor_desc->GetDataType()).c_str());
-    return ge::FAILED;
+    return af::FAILED;
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 const std::unordered_map<std::string, std::string> kTypeToGroup = {
@@ -307,7 +307,7 @@ Status WireCastBeforeInput(AscGraph &asc_graph, const NodePtr &target, NodePtr &
   GE_ASSERT_SUCCESS(cast_node->SetOwnerComputeGraph(AscGraphUtils::GetComputeGraph(asc_graph)));
   GE_ASSERT_GRAPH_SUCCESS(GraphUtils::ReplaceNodeDataAnchors(cast_node, target, {input_idx}, {}));
   GE_ASSERT_GRAPH_SUCCESS(GraphUtils::AddEdge(cast_node->GetOutDataAnchor(0), target->GetInDataAnchor(input_idx)));
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status TransferNodeAttrs(const NodePtr &src_node, const NodePtr &dst_node) {
@@ -320,7 +320,7 @@ Status TransferNodeAttrs(const NodePtr &src_node, const NodePtr &dst_node) {
   dst_attr->sched.axis = src_attr->sched.axis;
   dst_node->GetOpDesc()->SetId(src_node->GetOpDesc()->GetId());
   src_node->GetOpDesc()->SetId(src_node->GetOpDesc()->GetId() + 1);
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status ConfigureCastTensor(const GeTensorDescPtr &src_tensor_desc, const NodePtr &cast_node, const NodePtr &next_node,
@@ -348,7 +348,7 @@ Status ConfigureCastTensor(const GeTensorDescPtr &src_tensor_desc, const NodePtr
   c_o_attr->axis = src_attr->axis;
   c_o_attr->repeats = src_attr->repeats;
   c_o_attr->strides = src_attr->strides;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 // ====================== Per-type processing ======================
@@ -366,7 +366,7 @@ Status CastNodeProc(AscGraph &asc_graph, const NodePtr &node) {
   const auto output_dtype = output_tensor_desc->GetDataType();
   if (ShouldDeleteCastNode(peer_output_dtype, output_dtype)) {
     GE_ASSERT_SUCCESS(DelNode(asc_graph, node));
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
 
   if (IsFloatToUltraLowNeedInsertCast(peer_out_node, peer_output_dtype, output_dtype)) {
@@ -379,15 +379,15 @@ Status CastNodeProc(AscGraph &asc_graph, const NodePtr &node) {
     GE_ASSERT_SUCCESS(GetOutputTensorDesc(peer_out_of_cast, peer_tensor_desc));
     GE_ASSERT_SUCCESS(ConfigureCastTensor(peer_tensor_desc, c_node, node, false));
     GE_ASSERT_SUCCESS(TransferNodeAttrs(node, c_node));
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
 
   if (ShouldChangeDataType(node, peer_in_nodes, peer_output_dtype, output_dtype)) {
     output_tensor_desc->SetDataType(DT_FLOAT);
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
 
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status IsNeedInsertCastAfterLoad(const NodePtr &node, bool &is_need_insert_cast) {
@@ -400,15 +400,15 @@ Status IsNeedInsertCastAfterLoad(const NodePtr &node, bool &is_need_insert_cast)
   if (IsNodeTypeInPeerInNodes(af::ascir_op::Cast::Type, peer_in_nodes) ||
       IsNodeTypeInPeerInNodes(af::ascir_op::Store::Type, peer_in_nodes) ||
       !(output_tensor_desc->GetDataType() == DT_FLOAT16 || output_tensor_desc->GetDataType() == DT_BF16)) {
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
   is_need_insert_cast = true;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status InsertCastToIncreasePrecision(AscGraph &asc_graph, const NodePtr &load_node, bool is_need_insert_cast) {
   if (!is_need_insert_cast) {
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
   GE_ASSERT_SUCCESS(UpdateTopoId(asc_graph, load_node, 1));
   auto c_node = BuildCastNode(asc_graph, load_node);
@@ -437,7 +437,7 @@ Status InsertCastToIncreasePrecision(AscGraph &asc_graph, const NodePtr &load_no
   GE_ASSERT_NOTNULL(load_node_attr);
   c_node_attr->sched.axis = load_node_attr->sched.axis;
   c_opdesc->SetId(load_opdesc->GetId() + 1);
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status IsNeedInsertCastBeforeOther(const NodePtr &other_node, bool &need_insert, std::vector<int32_t> &input_idxs) {
@@ -455,13 +455,13 @@ Status IsNeedInsertCastBeforeOther(const NodePtr &other_node, bool &need_insert,
       }
     }
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status InsertCastBeforeNode(AscGraph &asc_graph, const NodePtr &other_node, bool is_need_insert_cast,
                             bool is_increase_precision, const std::vector<int32_t> &input_idxs) {
   if (!is_need_insert_cast) {
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
   for (auto input_idx : input_idxs) {
     GE_ASSERT_SUCCESS(UpdateTopoId(asc_graph, other_node, 1));
@@ -474,7 +474,7 @@ Status InsertCastBeforeNode(AscGraph &asc_graph, const NodePtr &other_node, bool
     GE_ASSERT_SUCCESS(ConfigureCastTensor(peer_tensor_desc, c_node, other_node, is_increase_precision));
     GE_ASSERT_SUCCESS(TransferNodeAttrs(other_node, c_node));
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status IsNeedInsertCastBeforeStore(const NodePtr &store_node, bool &need_insert, bool &is_increase_precision) {
@@ -487,10 +487,10 @@ Status IsNeedInsertCastBeforeStore(const NodePtr &store_node, bool &need_insert,
   is_increase_precision = IsHighPrecisionDataType(store_output_tensor_desc->GetDataType());
   if (peer_output_tensor_desc->GetDataType() == store_output_tensor_desc->GetDataType()) {
     need_insert = false;
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
   need_insert = true;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 using TypeToNodesMap = std::unordered_map<std::string, std::vector<NodePtr>>;
 
@@ -512,9 +512,9 @@ Status IsAllNodesInBlacklist(const AscGraph &asc_graph, bool &result) {
       continue;
     }
     if (has_all) {
-      if (CheckNodeDtype(node) != ge::SUCCESS) {
+      if (CheckNodeDtype(node) != af::SUCCESS) {
         result = false;
-        return ge::SUCCESS;
+        return af::SUCCESS;
       }
     } else if (IsInBlackList1(node)) {
       continue;
@@ -522,11 +522,11 @@ Status IsAllNodesInBlacklist(const AscGraph &asc_graph, bool &result) {
       GE_ASSERT_SUCCESS(CheckNodeDtype(node));
     } else {
       result = false;
-      return ge::SUCCESS;
+      return af::SUCCESS;
     }
   }
   GELOGI("All nodes in graph %s are in the blacklist, skip precision improvement.", asc_graph.GetName().c_str());
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 TypeToNodesMap GroupNodesByType(const AscGraph &asc_graph) {
@@ -548,7 +548,7 @@ Status ProcessLoadGatherNodes(AscGraph &asc_graph, const std::vector<NodePtr> &n
     GE_ASSERT_SUCCESS(IsNeedInsertCastAfterLoad(node, is_need));
     GE_ASSERT_SUCCESS(InsertCastToIncreasePrecision(asc_graph, node, is_need));
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status ProcessOtherComputeNodes(AscGraph &asc_graph, const std::vector<NodePtr> &nodes) {
@@ -560,7 +560,7 @@ Status ProcessOtherComputeNodes(AscGraph &asc_graph, const std::vector<NodePtr> 
     GE_ASSERT_SUCCESS(FromDtypeToOtherDtype(node, DT_BF16, DT_FLOAT));
     GE_ASSERT_SUCCESS(FromDtypeToOtherDtype(node, DT_FLOAT16, DT_FLOAT));
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status ProcessStoreNodes(AscGraph &asc_graph, const std::vector<NodePtr> &nodes) {
@@ -570,7 +570,7 @@ Status ProcessStoreNodes(AscGraph &asc_graph, const std::vector<NodePtr> &nodes)
     GE_ASSERT_SUCCESS(IsNeedInsertCastBeforeStore(node, is_need, is_increase));
     GE_ASSERT_SUCCESS(InsertCastBeforeNode(asc_graph, node, is_need, is_increase, {0}));
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status ProcessNodeGroups(AscGraph &asc_graph, TypeToNodesMap &type_to_nodes) {
@@ -585,24 +585,24 @@ Status ProcessNodeGroups(AscGraph &asc_graph, TypeToNodesMap &type_to_nodes) {
   }
   GE_ASSERT_SUCCESS(ProcessOtherComputeNodes(asc_graph, type_to_nodes["Other"]));
   GE_ASSERT_SUCCESS(ProcessStoreNodes(asc_graph, type_to_nodes[af::ascir_op::Store::Type]));
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 }  // namespace
 
-ge::Status ImprovePrecisionForAscGraph(AscGraph &asc_graph) {
+af::Status ImprovePrecisionForAscGraph(AscGraph &asc_graph) {
   ResetUniqueNumber();
   optimize::GraphPropertiesCache cache(asc_graph);
   if (ShouldSkipGraph(cache, asc_graph)) {
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
   bool all_in_blacklist = false;
   GE_ASSERT_SUCCESS(IsAllNodesInBlacklist(asc_graph, all_in_blacklist));
   if (all_in_blacklist) {
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
   auto type_to_nodes = GroupNodesByType(asc_graph);
   GE_ASSERT_SUCCESS(ProcessNodeGroups(asc_graph, type_to_nodes));
   TopologicalSorting(AscGraphUtils::GetComputeGraph(asc_graph));
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 }  // namespace af::pre_process

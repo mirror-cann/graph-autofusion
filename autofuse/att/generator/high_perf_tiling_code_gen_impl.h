@@ -24,12 +24,12 @@ class HighPerfTilingCodeGenImpl : public TilingCodeGenImpl {
   ~HighPerfTilingCodeGenImpl() override = default;
 
  protected:
-  ge::Status GenExternFuncDef() override;
-  ge::Status GenTilingImplPublicFunc() override;
-  ge::Status GenToolFuncs() override;
-  ge::Status GenSolverBaseClass() override;
-  ge::Status GenSolverTiling(const ModelInfo &model_info) override;
-  ge::Status GenDoTiling(const ModelInfo &model_info) override;
+  af::Status GenExternFuncDef() override;
+  af::Status GenTilingImplPublicFunc() override;
+  af::Status GenToolFuncs() override;
+  af::Status GenSolverBaseClass() override;
+  af::Status GenSolverTiling(const ModelInfo &model_info) override;
+  af::Status GenDoTiling(const ModelInfo &model_info) override;
 };
 }  // namespace att
 #endif

@@ -40,7 +40,7 @@ af::Status GetLoadCase(const NodeDetail &node_info, Expr &data_size, int32_t &us
   }
   GELOGD("Data type is [%s], dim_product[%s], data_size[%s], use_case[%d].", node_info.input_dtype[0].c_str(),
          dim_product.Str().get(), data_size.Str().get(), use_case);
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 af::Status GetStoreCase(const NodeDetail &node_info, Expr &case1, Expr &case2, Expr &case3, int32_t &use_case) {
@@ -73,7 +73,7 @@ af::Status GetStoreCase(const NodeDetail &node_info, Expr &case1, Expr &case2, E
   }
   GELOGD("input dtype is %s, dim_size[%zu], blocklen[%s], blkelem[%s], use_case[%d]", node_info.input_dtype[0].c_str(),
          dim_size, blocklen.Str().get(), blkelem.Str().get(), use_case);
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 af::Status GetStorePerf(const NodeDetail &node_info, Expr &res_normal, Expr &res_large_blk, Expr &res_middle_blk,
@@ -98,7 +98,7 @@ af::Status GetStorePerf(const NodeDetail &node_info, Expr &res_normal, Expr &res
   res_normal = res_continuous + res_stride;
   GELOGD("continuous[%s], stride[%s], normal[%s]", res_continuous.Str().get(), res_stride.Str().get(),
          res_normal.Str().get());
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 }  // namespace
 
@@ -157,7 +157,7 @@ af::Status LoadPerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
     perf.ternary_ops[res] = ternary_op;
     perf.pipe_res[PipeType::AIV_MTE2] = res;
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 /*
@@ -217,7 +217,7 @@ af::Status StorePerf(const NodeDetail &node_info, PerfOutputInfo &perf) {
     perf.ternary_ops[res] = ternary_op;
     perf.pipe_res[PipeType::AIV_MTE3] = res;
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 REGISTER_ASCENDC_EVAL_FUNC(kLoad, LoadPerf);
 REGISTER_ASCENDC_EVAL_FUNC(kStore, StorePerf);

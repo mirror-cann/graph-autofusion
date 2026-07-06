@@ -35,7 +35,7 @@ Status MicroBinaryScalarApiCall::Generate(const codegen::TensorManager &tensor_m
   }
   ss << param.p_reg << ");" << std::endl;
   result = ss.str();
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status MicroBinaryScalarApiCall::Init(const ascir::NodeView &node) {
@@ -44,7 +44,7 @@ Status MicroBinaryScalarApiCall::Init(const ascir::NodeView &node) {
     this->second_input_scalar_ = true;
   }
   GELOGI("name:%s, second input scalar:%d", node->GetNamePtr(), this->second_input_scalar_);
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 static MicroApiCallRegister<MicroBinaryScalarApiCall> register_micro_binary_scalar_api_call("MicroBinaryScalarApiCall");

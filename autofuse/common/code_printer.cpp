@@ -63,13 +63,13 @@ void CodePrinter::Reset() {
   output_.swap(new_output);
 }
 
-ge::Status CodePrinter::SaveToFile(const std::string &output_file_path) {
+af::Status CodePrinter::SaveToFile(const std::string &output_file_path) {
   char realpath_file[PATH_MAX] = {0x00};
   [[maybe_unused]] auto ret = realpath(output_file_path.c_str(), realpath_file);
   std::ofstream out_file(realpath_file);
   GE_ASSERT_TRUE(out_file.is_open(), "Open [%s] failed.", output_file_path.c_str());
   out_file << output_.str();
   out_file.close();
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 }  // namespace ge

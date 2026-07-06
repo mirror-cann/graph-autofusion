@@ -41,21 +41,21 @@ class VectorizedAlignmentUT : public testing::Test {
       AlignmentStrategy::InitAlignmentInferFunc();
     }
 
-    ge::Status AccessSetAlignWidth(const ImplGraph &impl_graph) {
+    af::Status AccessSetAlignWidth(const ImplGraph &impl_graph) {
       return SetAlignWidth(impl_graph);
     }
 
-    ge::Status AccessAddRemovePadForTailAxisDiscontinuousLoad(ImplGraph &impl_graph) {
+    af::Status AccessAddRemovePadForTailAxisDiscontinuousLoad(ImplGraph &impl_graph) {
       return AddRemovePadForTailAxisDiscontinuousLoad(impl_graph);
     }
-    ge::Status AccessAddPadForAlignmentConflictNode(ImplGraph &impl_graph) {
+    af::Status AccessAddPadForAlignmentConflictNode(ImplGraph &impl_graph) {
       return AddPadForAlignmentConflictNode(impl_graph);
     }
-    ge::Status AccessInferAlignmentForOneNode(const af::AscNodePtr &node) {
+    af::Status AccessInferAlignmentForOneNode(const af::AscNodePtr &node) {
       return InferAlignmentForOneNode(node);
     }
     // 当前tensor的对齐行为只会出现在尾轴,如果没有新的对齐行为或者类型,该函数不应该修改
-    ge::Status AccessSetVectorizedStridesForOneNode(const af::AscNodePtr &node) {
+    af::Status AccessSetVectorizedStridesForOneNode(const af::AscNodePtr &node) {
       return SetVectorizedStridesForOneNode(node);
     }
   };
@@ -115,7 +115,7 @@ TEST_F(VectorizedAlignmentUT, concat_with_small_tail_axis) {
   *store.y.vectorized_axis = {z0.id, z1.id};
 
   AlignmentHandler handler;
-  ASSERT_EQ(handler.AlignVectorizedStrides(graph), ge::SUCCESS);
+  ASSERT_EQ(handler.AlignVectorizedStrides(graph), af::SUCCESS);
 
   auto load0_node = graph.FindNode("load0");
   ASSERT_NE(load0_node, nullptr);
@@ -196,7 +196,7 @@ TEST_F(VectorizedAlignmentUT, brc_align_input_not_need_align) {
   *store.y.vectorized_axis = {z0.id, z1.id};
 
   AlignmentHandler handler;
-  ASSERT_EQ(handler.AlignVectorizedStrides(graph), ge::SUCCESS);
+  ASSERT_EQ(handler.AlignVectorizedStrides(graph), af::SUCCESS);
 
   auto load0_node = graph.FindNode("load0");
   ASSERT_NE(load0_node, nullptr);
@@ -250,7 +250,7 @@ TEST_F(VectorizedAlignmentUT, brc_align_input_need_align) {
   *brc.y.vectorized_axis = {z0.id, z1.id, z2.id};
 
   AlignmentHandler handler;
-  ASSERT_EQ(handler.AlignVectorizedStrides(graph), ge::SUCCESS);
+  ASSERT_EQ(handler.AlignVectorizedStrides(graph), af::SUCCESS);
 
   auto load0_node = graph.FindNode("load0");
   ASSERT_NE(load0_node, nullptr);
@@ -299,7 +299,7 @@ TEST_F(VectorizedAlignmentUT, brc_1b1_to_abc_need_align) {
   *brc.y.vectorized_axis = {z0.id, z1.id, z2.id};
 
   AlignmentHandler handler;
-  ASSERT_EQ(handler.AlignVectorizedStrides(graph), ge::SUCCESS);
+  ASSERT_EQ(handler.AlignVectorizedStrides(graph), af::SUCCESS);
 
   auto load0_node = graph.FindNode("load0");
   ASSERT_NE(load0_node, nullptr);
@@ -348,7 +348,7 @@ TEST_F(VectorizedAlignmentUT, brc_111_to_abc_no_need_align) {
   *brc.y.vectorized_axis = {z0.id, z1.id, z2.id};
 
   AlignmentHandler handler;
-  ASSERT_EQ(handler.AlignVectorizedStrides(graph), ge::SUCCESS);
+  ASSERT_EQ(handler.AlignVectorizedStrides(graph), af::SUCCESS);
 
   auto load0_node = graph.FindNode("load0");
   ASSERT_NE(load0_node, nullptr);
@@ -406,7 +406,7 @@ TEST_F(VectorizedAlignmentUT, last_axis_slice_discontinuous) {
   *add.y.vectorized_axis = {z0.id, z1.id};
 
   AlignmentHandler handler;
-  ASSERT_EQ(handler.AlignVectorizedStrides(graph), ge::SUCCESS);
+  ASSERT_EQ(handler.AlignVectorizedStrides(graph), af::SUCCESS);
 
   auto load0_node = graph.FindNode("load0");
   ASSERT_NE(load0_node, nullptr);
@@ -486,7 +486,7 @@ TEST_F(VectorizedAlignmentUT, nouse_brc_need_input_align) {
   *add.y.vectorized_axis = {z0.id, z1.id};
 
   AlignmentHandler handler;
-  ASSERT_EQ(handler.AlignVectorizedStrides(graph), ge::SUCCESS);
+  ASSERT_EQ(handler.AlignVectorizedStrides(graph), af::SUCCESS);
 
   auto load0_node = graph.FindNode("load0");
   ASSERT_NE(load0_node, nullptr);
@@ -536,7 +536,7 @@ TEST_F(VectorizedAlignmentUT, discontinuous_write_need_align) {
   *store.y.vectorized_axis = {z0.id, z1.id};
 
   AlignmentHandler handler;
-  ASSERT_EQ(handler.AlignVectorizedStrides(graph), ge::SUCCESS);
+  ASSERT_EQ(handler.AlignVectorizedStrides(graph), af::SUCCESS);
 
   auto load0_node = graph.FindNode("load0");
   ASSERT_NE(load0_node, nullptr);
@@ -591,7 +591,7 @@ TEST_F(VectorizedAlignmentUT, transpose_fp32_need_64b_align) {
   *store.y.vectorized_axis = {z0.id, z1.id};
 
   AlignmentHandler handler;
-  ASSERT_EQ(handler.AlignVectorizedStrides(graph), ge::SUCCESS);
+  ASSERT_EQ(handler.AlignVectorizedStrides(graph), af::SUCCESS);
 
   auto load0_node = graph.FindNode("load0");
   ASSERT_NE(load0_node, nullptr);
@@ -704,18 +704,18 @@ TEST_F(VectorizedAlignmentUT, removepad_and_add_pad) {
   }
   // codegen pad算子暂未支持,先在ut/st中模拟整个流程
   AlignmentStrategyShadow handler;
-  EXPECT_EQ(handler.AccessSetAlignWidth(graph), SUCCESS);
-  EXPECT_EQ(handler.AccessAddRemovePadForTailAxisDiscontinuousLoad(graph), SUCCESS);
+  EXPECT_EQ(handler.AccessSetAlignWidth(graph), af::SUCCESS);
+  EXPECT_EQ(handler.AccessAddRemovePadForTailAxisDiscontinuousLoad(graph), af::SUCCESS);
   for (const auto &node : graph.GetAllNodes()) {
-    EXPECT_EQ(handler.AccessInferAlignmentForOneNode(node), ge::SUCCESS);
+    EXPECT_EQ(handler.AccessInferAlignmentForOneNode(node), af::SUCCESS);
   }
-  EXPECT_EQ(handler.AccessAddPadForAlignmentConflictNode(graph), SUCCESS);
+  EXPECT_EQ(handler.AccessAddPadForAlignmentConflictNode(graph), af::SUCCESS);
 
   for (const auto &node : graph.GetAllNodes()) {
     if (ScheduleUtils::IsBuffer(node)) {
       continue;
     }
-    EXPECT_EQ(handler.AccessSetVectorizedStridesForOneNode(node), SUCCESS);
+    EXPECT_EQ(handler.AccessSetVectorizedStridesForOneNode(node), af::SUCCESS);
   }
 
   std::vector<af::Expression> golden1 = {af::Symbol(160), af::Symbol(16)};
@@ -781,7 +781,7 @@ TEST_F(VectorizedAlignmentUT, reduce_alignment) {
   store.attr.api.compute_type = af::ComputeType::kComputeStore;
   *store.y.vectorized_axis = {z1.id, z2.id, z3.id};
 
-  EXPECT_EQ(AlignmentHandler::AlignVectorizedStrides(graph), SUCCESS);
+  EXPECT_EQ(AlignmentHandler::AlignVectorizedStrides(graph), af::SUCCESS);
 
   auto s16 = af::Symbol(16);
   std::vector<af::Expression> load_golden_stride = {s2 * s16, s16, One};

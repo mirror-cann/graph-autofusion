@@ -22,7 +22,7 @@
 #include <vector>
 
 #include "framework/common/debug/ge_log.h"
-#include "external/ge_common/ge_api_error_codes.h"
+#include "external/ge_common_af/ge_api_error_codes.h"
 #include "common/util/mem_utils.h"
 
 namespace af {
@@ -39,14 +39,14 @@ class GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY GraphThreadPool {
     using retType = decltype(func(args...));
     std::future<retType> fail_future;
     if (is_stoped_.load()) {
-      GELOGE(ge::FAILED, "thread pool has been stopped.");
+      GELOGE(af::FAILED, "thread pool has been stopped.");
       return fail_future;
     }
 
     const auto bindFunc = std::bind(std::forward<Func>(func), std::forward<Args>(args)...);
     const auto task = MakeShared<std::packaged_task<retType()>>(bindFunc);
     if (task == nullptr) {
-      GELOGE(ge::FAILED, "Make shared failed.");
+      GELOGE(af::FAILED, "Make shared failed.");
       return fail_future;
     }
     std::future<retType> future = task->get_future();

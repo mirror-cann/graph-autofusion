@@ -13,7 +13,7 @@
 #define INC_COMMON_GE_INNER_ERROR_CODES_H_
 
 #include <string>
-#include "external/ge_common/ge_api_error_codes.h"
+#include "external/ge_common_af/ge_api_error_codes.h"
 #include "common/ge_common/error_codes_define.h"
 
 namespace af {
@@ -22,7 +22,7 @@ GE_ERRORNO_COMMON(MEMALLOC_FAILED, 0, "Failed to allocate memory!");  // 1343225
 GE_ERRORNO_COMMON(CCE_FAILED, 2, "Failed to call CCE API!");          // 1343225858
 GE_ERRORNO_COMMON(CSEC_ERROR, 5, "Failed to call libc_sec API!");     // 1343225861
 GE_ERRORNO_COMMON(TEE_ERROR, 6, "Failed to call tee API!");           // 1343225862
-GE_ERRORNO_EXTERNAL(END_OF_SEQUENCE, "End of sequence!");             // 1343225863
+AF_GE_ERRORNO_EXTERNAL(END_OF_SEQUENCE, "End of sequence!");          // 1343225863
 GE_ERRORNO_COMMON(PATH_INVALID, 8, "Path is invalid!");               // 1343225864
 
 // Error code for plugin manager

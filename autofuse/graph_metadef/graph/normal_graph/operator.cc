@@ -283,10 +283,10 @@
       auto msg = CreateErrorMsg(__VA_ARGS__);                            \
       if (msg.empty()) {                                                 \
         REPORT_INNER_ERR_MSG("E19999", "Assert %s not null failed", #v); \
-        GELOGE(ge::FAILED, "Assert %s not null failed", #v);             \
+        GELOGE(af::FAILED, "Assert %s not null failed", #v);             \
       } else {                                                           \
         REPORT_INNER_ERR_MSG("E19999", "%s", msg.data());                \
-        GELOGE(ge::FAILED, "%s", msg.data());                            \
+        GELOGE(af::FAILED, "%s", msg.data());                            \
       }                                                                  \
       return;                                                            \
     }                                                                    \
@@ -404,7 +404,7 @@ GE_FUNC_DEV_VISIBILITY GE_FUNC_HOST_VISIBILITY graphStatus OpDescUtils::CopyOper
         dst_op_desc->SetName(scr_op_impl_ptr->op_desc_->GetName());
         dst_node = NodeUtils::CreatNodeWithoutGraph(dst_op_desc);
         GE_CHECK_NOTNULL(dst_node);
-        // to do link egdes
+        // to do link edges
       }
       dst_op = CreateOperatorFromNode(dst_node);
       (void)(all_node_info.emplace(dst_op.GetOperatorImplPtr(), dst_node));
@@ -647,13 +647,13 @@ Operator &Operator::SetInput(uint32_t dst_index, const Operator &src_oprt, uint3
   if ((operator_impl_ == nullptr) || (operator_impl_->GetOpDescImpl() == nullptr)) {
     const char_t *invalid_obj_name = ((operator_impl_ == nullptr) ? "operator" : "op desc");
     REPORT_INNER_ERR_MSG("E18888", "%s impl is nullptr, check invalid.", invalid_obj_name);
-    GELOGE(ge::FAILED, "[Check][Param] %s impl is nullptr.", invalid_obj_name);
+    GELOGE(af::FAILED, "[Check][Param] %s impl is nullptr.", invalid_obj_name);
     return *this;
   }
   std::string dst_name = operator_impl_->GetOpDescImpl()->GetInputNameByIndex(dst_index);
   if (dst_name.empty()) {
     REPORT_INNER_ERR_MSG("E18888", "Set by dst_index:%u failed, dst_index is invalid.", dst_index);
-    GELOGE(ge::FAILED, "[GetInputNameByIndex] by index:%u failed, dst_index is invalid.", dst_index);
+    GELOGE(af::FAILED, "[GetInputNameByIndex] by index:%u failed, dst_index is invalid.", dst_index);
     return *this;
   }
   return SetInput(dst_name.c_str(), src_oprt, src_index);
@@ -1325,7 +1325,7 @@ void Operator::RequiredAttrWithTypeRegister(const char_t *name, const char_t *ty
   if (iter != kIrAttrTypesMap.end()) {
     ir_attr_type = iter->second;
   } else {
-    GELOGW("[Check][Param] unsupport attr type %s from ir.", type);
+    GELOGW("[Check][Param] unsupported attr type %s from ir.", type);
   }
   (void)(operator_impl_->GetOpDescImpl()->AddRequiredAttrWithType(name, ir_attr_type));
   GELOGD("Save required attr name %s with type %s to op %s %s", name, ir_attr_type.c_str(),

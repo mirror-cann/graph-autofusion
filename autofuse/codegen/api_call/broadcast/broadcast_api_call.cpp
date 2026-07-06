@@ -40,9 +40,9 @@ using namespace ascgen_utils;
 Status DimensionCollapse(const Tensor &input, const Tensor &output,
                          std::vector<std::pair<bool, std::vector<uint32_t>>> &result, uint32_t &broadcast_num) {
   if (input.vectorized_axis.size() != output.vectorized_axis.size()) {
-    GELOGE(ge::FAILED, "Codegen broadcast input vec axis size[%zu] not equal output vec axis size[%zu]",
+    GELOGE(af::FAILED, "Codegen broadcast input vec axis size[%zu] not equal output vec axis size[%zu]",
            input.vectorized_axis.size(), output.vectorized_axis.size());
-    return ge::FAILED;
+    return af::FAILED;
   }
 
   std::vector<uint32_t> tmp;
@@ -63,7 +63,7 @@ Status DimensionCollapse(const Tensor &input, const Tensor &output,
   }
 
   if (pos >= input.vectorized_axis.size()) {
-    return ge::FAILED;
+    return af::FAILED;
   }
 
   tmp.push_back(pos);
@@ -90,7 +90,7 @@ Status DimensionCollapse(const Tensor &input, const Tensor &output,
   }
   broadcast_num = prev_status ? broadcast_num + 1 : broadcast_num;
   result.push_back({prev_status, tmp});
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 // 对每个分组进行合并
@@ -292,47 +292,47 @@ Status BroadcastApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::A
   if (IsBroadcastConstantTensor(x)) {
     GE_ASSERT_TRUE(id != -1L, "BroadcastApiCall cannot find tmp buffer id to use.");
     BroadcastScalar(tpipe, current_axis, x, y, id, result);
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
 
   std::vector<std::pair<bool, std::vector<uint32_t>>> merge_groups;
   uint32_t broadcast_num = 0;
   Status status = DimensionCollapse(x, y, merge_groups, broadcast_num);
-  if (status != ge::SUCCESS) {
-    GELOGE(ge::FAILED, "BroadcastApiCall do dimension collapse failed.");
-    return ge::FAILED;
+  if (status != af::SUCCESS) {
+    GELOGE(af::FAILED, "BroadcastApiCall do dimension collapse failed.");
+    return af::FAILED;
   }
 
   // ub内没有broadcast轴，这种场景下，Schedule会删除无效的broadcast节点
   // 为了防止异常场景，依然保留这种特殊处理逻辑
   if (broadcast_num == static_cast<uint32_t>(0)) {
     BroadcastAllCommonAxis(tpipe, current_axis, x, y, result);
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
 
   if (broadcast_num == static_cast<uint32_t>(1)) {
     GE_ASSERT_TRUE(id != -1L, "BroadcastApiCall cannot find tmp buffer id to use.");
     BroadcastOneAxis(tpipe, current_axis, x, y, id, merge_groups, result);
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
 
   if (broadcast_num == kDoubleAxisSize &&
       (merge_groups.size() == kAxisSizeThree || merge_groups.size() == kAxisSizeFour)) {
     GE_ASSERT_TRUE(id != -1L, "BroadcastApiCall cannot find tmp buffer id to use.");
     BroadcastTwoAxis(tpipe, current_axis, x, y, id, merge_groups, result);
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
 
-  GELOGE(ge::FAILED, "BroadcastApiCall don't support multi discontinuous broadcast axis.");
-  GELOGE(ge::FAILED, "x_t_name:%s, axis_id:%s, size:%s, strides:%s, v_axis_id:%s, v_axis_pos:%s, v_strides:%s",
+  GELOGE(af::FAILED, "BroadcastApiCall don't support multi discontinuous broadcast axis.");
+  GELOGE(af::FAILED, "x_t_name:%s, axis_id:%s, size:%s, strides:%s, v_axis_id:%s, v_axis_pos:%s, v_strides:%s",
          x.name.c_str(), VectorToStr(x.axis).c_str(), VectorToStr(x.axis_size).c_str(),
          VectorToStr(x.axis_strides).c_str(), VectorToStr(x.vectorized_axis).c_str(),
          VectorToStr(x.vectorized_axis_pos).c_str(), VectorToStr(x.vectorized_strides).c_str());
-  GELOGE(ge::FAILED, "y_t_name:%s, axis_id:%s, size:%s, strides:%s, v_axis_id:%s, v_axis_pos:%s, v_strides:%s",
+  GELOGE(af::FAILED, "y_t_name:%s, axis_id:%s, size:%s, strides:%s, v_axis_id:%s, v_axis_pos:%s, v_strides:%s",
          y.name.c_str(), VectorToStr(y.axis).c_str(), VectorToStr(y.axis_size).c_str(),
          VectorToStr(y.axis_strides).c_str(), VectorToStr(y.vectorized_axis).c_str(),
          VectorToStr(y.vectorized_axis_pos).c_str(), VectorToStr(y.vectorized_strides).c_str());
-  return ge::FAILED;
+  return af::FAILED;
 }
 static ApiCallRegister<BroadcastApiCall> register_broadcast_api_call("BroadcastApiCall");
 }  // namespace codegen

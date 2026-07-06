@@ -50,7 +50,7 @@ Status TernaryApiTmpV2Call::Generate(const TPipe &tpipe, const std::vector<ascir
      << tpipe.tiler.TensorVectorizedOffset(current_axis, x3) << "], " << tpipe.tmp_buf << "_" << std::to_string(id)
      << ", " << x1.actual_size << ");" << std::endl;
   result = ss.str();
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 static ApiCallRegister<TernaryApiTmpV2Call> register_ternary_api_tmp_v2_api_call("TernaryApiTmpV2Call");

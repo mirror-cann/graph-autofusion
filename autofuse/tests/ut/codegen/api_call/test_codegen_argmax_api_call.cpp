@@ -21,8 +21,8 @@ using namespace testing;
 
 namespace {
 void CheckReduceTailBoolParam(const std::string &result) {
-  const bool has_argmax_call = (result.find("ArgMaxExtend") != std::string::npos) ||
-                               (result.find("ArgMaxWithValueExtend") != std::string::npos);
+  const bool has_argmax_call =
+      (result.find("ArgMaxExtend") != std::string::npos) || (result.find("ArgMaxWithValueExtend") != std::string::npos);
   const std::string expected_tail = has_argmax_call ? "tmp_reduce_shape, false);" : "tmp_reduce_shape, true);";
   const std::string forbidden_tail = has_argmax_call ? "tmp_reduce_shape, true);" : "tmp_reduce_shape, false);";
   EXPECT_NE(result.find(expected_tail), std::string::npos);
@@ -65,7 +65,7 @@ TEST_F(ArgMaxApicallTest, ReduceApi_Test_ArgMax) {
   af::ascir_op::Data x("x", graph);
   af::ascir_op::Data y("y", graph);
   af::ascir_op::Max reduce("reduce");  // 创建Reduce类型的节点
-  graph.AddNode(reduce);  // 将Reduce节点添加到图中
+  graph.AddNode(reduce);               // 将Reduce节点添加到图中
 
   auto nodex = graph.FindNode("x");
   af::AscTensor tensorx = nodex->outputs[0];
@@ -139,7 +139,7 @@ TEST_F(ArgMaxApicallTest, ReduceApi_Test_ArgMax) {
   call.tmp_buf_id[0] = 1;
   Status status = call.Generate(tpipe, current_axis, result);
   // Check the result
-  EXPECT_EQ(status, ge::SUCCESS);
+  EXPECT_EQ(status, af::SUCCESS);
   CheckReduceTailBoolParam(result);
 }
 
@@ -172,7 +172,7 @@ TEST_F(ArgMaxApicallTest, ReduceApi_Test_ArgMaxMultiRPhase1) {
   af::ascir_op::Data x("x", graph);
   af::ascir_op::Data y("y", graph);
   af::ascir_op::Max reduce("reduce");  // 创建Reduce类型的节点
-  graph.AddNode(reduce);  // 将Reduce节点添加到图中
+  graph.AddNode(reduce);               // 将Reduce节点添加到图中
 
   auto nodex = graph.FindNode("x");
   af::AscTensor tensorx = nodex->outputs[0];
@@ -273,7 +273,7 @@ TEST_F(ArgMaxApicallTest, ReduceApi_Test_ArgMaxMultiRPhase1) {
   call.tmp_buf_id[0] = 1;
   Status status = call.Generate(tpipe, current_axis, result);
   // Check the result
-  EXPECT_EQ(status, ge::SUCCESS);
+  EXPECT_EQ(status, af::SUCCESS);
   CheckReduceTailBoolParam(result);
 }
 
@@ -306,7 +306,7 @@ TEST_F(ArgMaxApicallTest, ReduceApi_Test_ArgMaxMultiRPhase2) {
   af::ascir_op::Data x("x", graph);
   af::ascir_op::Data y("y", graph);
   af::ascir_op::Max reduce("reduce");  // 创建Reduce类型的节点
-  graph.AddNode(reduce);  // 将Reduce节点添加到图中
+  graph.AddNode(reduce);               // 将Reduce节点添加到图中
 
   auto nodex = graph.FindNode("x");
   af::AscTensor tensorx = nodex->outputs[0];
@@ -406,7 +406,7 @@ TEST_F(ArgMaxApicallTest, ReduceApi_Test_ArgMaxMultiRPhase2) {
   call.tmp_buf_id[0] = 1;
   Status status = call.Generate(tpipe, current_axis, result);
   // Check the result
-  EXPECT_EQ(status, ge::SUCCESS);
+  EXPECT_EQ(status, af::SUCCESS);
   CheckReduceTailBoolParam(result);
 }
 
@@ -439,7 +439,7 @@ TEST_F(ArgMaxApicallTest, ReduceApicallTest_ArgMax_NoNeed_MultiReduce_Int32) {
   af::ascir_op::Data x("x", graph);
   af::ascir_op::Data y("y", graph);
   af::ascir_op::Max reduce("reduce");  // 创建Reduce类型的节点
-  graph.AddNode(reduce);  // 将Reduce节点添加到图中
+  graph.AddNode(reduce);               // 将Reduce节点添加到图中
 
   auto nodex = graph.FindNode("x");
   af::AscTensor tensorx = nodex->outputs[0];
@@ -512,7 +512,7 @@ TEST_F(ArgMaxApicallTest, ReduceApicallTest_ArgMax_NoNeed_MultiReduce_Int32) {
   call.tmp_buf_id[0] = 1;
   Status status = call.Generate(tpipe, current_axis, result);
   // Check the result
-  EXPECT_EQ(status, ge::SUCCESS);
+  EXPECT_EQ(status, af::SUCCESS);
   CheckReduceTailBoolParam(result);
 }
 
@@ -545,7 +545,7 @@ TEST_F(ArgMaxApicallTest, ReduceApicallTest_ArgMaxMultiRPhase1_NoNeed_MultiReduc
   af::ascir_op::Data x("x", graph);
   af::ascir_op::Data y("y", graph);
   af::ascir_op::Max reduce("reduce");  // 创建Reduce类型的节点
-  graph.AddNode(reduce);  // 将Reduce节点添加到图中
+  graph.AddNode(reduce);               // 将Reduce节点添加到图中
 
   auto nodex = graph.FindNode("x");
   af::AscTensor tensorx = nodex->outputs[0];
@@ -645,7 +645,7 @@ TEST_F(ArgMaxApicallTest, ReduceApicallTest_ArgMaxMultiRPhase1_NoNeed_MultiReduc
   call.tmp_buf_id[0] = 1;
   Status status = call.Generate(tpipe, current_axis, result);
   // Check the result
-  EXPECT_EQ(status, ge::SUCCESS);
+  EXPECT_EQ(status, af::SUCCESS);
   CheckReduceTailBoolParam(result);
 }
 
@@ -678,7 +678,7 @@ TEST_F(ArgMaxApicallTest, ReduceApicallTest_ArgMaxMultiRPhase2_NoNeed_MultiReduc
   af::ascir_op::Data x("x", graph);
   af::ascir_op::Data y("y", graph);
   af::ascir_op::Max reduce("reduce");  // 创建Reduce类型的节点
-  graph.AddNode(reduce);  // 将Reduce节点添加到图中
+  graph.AddNode(reduce);               // 将Reduce节点添加到图中
 
   auto nodex = graph.FindNode("x");
   af::AscTensor tensorx = nodex->outputs[0];
@@ -777,6 +777,6 @@ TEST_F(ArgMaxApicallTest, ReduceApicallTest_ArgMaxMultiRPhase2_NoNeed_MultiReduc
   call.tmp_buf_id[0] = 1;
   Status status = call.Generate(tpipe, current_axis, result);
   // Check the result
-  EXPECT_EQ(status, ge::SUCCESS);
+  EXPECT_EQ(status, af::SUCCESS);
   CheckReduceTailBoolParam(result);
 }

@@ -153,7 +153,7 @@ TEST_F(FusedGraphModifierTest, test_workspace_reuse) {
   asc_backend_to_ascgraph.emplace(ascbc1.get(), *g1);
   asc_backend_to_ascgraph.emplace(ascbc2.get(), *g2);
   asc_backend_to_ascgraph.emplace(ascbc3.get(), *g3);
-  EXPECT_EQ(modifier.SubgraphConnectionsToWorkspace(fused_graph, asc_backend_to_ascgraph), ge::SUCCESS);
+  EXPECT_EQ(modifier.SubgraphConnectionsToWorkspace(fused_graph, asc_backend_to_ascgraph), af::SUCCESS);
 
   auto ws0_g0 = g0->FindNode("fused_workspace0");
   EXPECT_NE(ws0_g0, nullptr);

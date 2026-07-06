@@ -145,7 +145,7 @@ std::string StrAlign(const std::string &var, const std::string &align) {
   return aligned_expr.str();
 }
 
-ge::Status GetOneParentAxesTilingDataSize(const AttAxis *parent_size, std::string &result) {
+af::Status GetOneParentAxesTilingDataSize(const AttAxis *parent_size, std::string &result) {
   std::unordered_set<std::string> parent_contain_vars;
   GELOGD("Parent size expr: %s", parent_size->size->symbol_expr.Str().get());
   for (const auto &primary_arg : parent_size->size->symbol_expr.FreeSymbols()) {
@@ -160,7 +160,7 @@ ge::Status GetOneParentAxesTilingDataSize(const AttAxis *parent_size, std::strin
         std::make_pair(CreateExpr(var.c_str()), CreateExpr((kTilingDataPrefix + var + kTilingDataSuffix).c_str())));
   }
   result += Str(parent_size->size->symbol_expr.Replace(var_replacement));
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 std::string EnsurePrecedence(const std::string &expr) {
@@ -210,7 +210,7 @@ void SetTilingData(const TilingDataType tiling_data_type, const std::string &til
 }
 }  // namespace
 
-ge::Status AxesTilingDataGen::AddAxesAlignedSize() {
+af::Status AxesTilingDataGen::AddAxesAlignedSize() {
   for (const auto &axis : model_info_.arg_list) {
     // note: all axis aligned is set by user, get_{axis} must be valid
     const auto &axis_size_var = std::dynamic_pointer_cast<SymVarInfo>(axis->size);
@@ -227,10 +227,10 @@ ge::Status AxesTilingDataGen::AddAxesAlignedSize() {
                         "Set aligned size of axis[%s] failed.", axis->name.c_str());
     }
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status AxesTilingDataGen::AddAxesTailSizeAndLoopNum() {
+af::Status AxesTilingDataGen::AddAxesTailSizeAndLoopNum() {
   // axis_name->axis_base_size
   std::map<std::string, uint32_t> axes_names_to_base_sizes;
   for (const auto &axis : model_info_.arg_list) {
@@ -259,10 +259,10 @@ ge::Status AxesTilingDataGen::AddAxesTailSizeAndLoopNum() {
            axis->name.c_str(), axis_tail_size.c_str(), axis_loop_num.c_str(), parent_base_size.c_str(),
            axis_base_size.Str().get());
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status AxesTilingDataGen::AddSplitOuterAxisTailArgs() {
+af::Status AxesTilingDataGen::AddSplitOuterAxisTailArgs() {
   for (const auto &axis : model_info_.arg_list) {
     if (axis->axis_pos != AxisPosition::INNER) {
       continue;
@@ -308,7 +308,7 @@ ge::Status AxesTilingDataGen::AddSplitOuterAxisTailArgs() {
       }
     }
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 std::vector<AxisTilingData> AxesTilingDataGen::GetAxisTilingData(const std::string &axis_name) const {
@@ -323,12 +323,12 @@ std::vector<AxisTilingData> AxesTilingDataGen::GetAxisTilingData(const std::stri
   return axis_tiling_data_res;
 }
 
-ge::Status AxesTilingDataGen::SetAxisArgExpr(const std::string &axis_name, const AxisTilingData &axis_tiling_data) {
+af::Status AxesTilingDataGen::SetAxisArgExpr(const std::string &axis_name, const AxisTilingData &axis_tiling_data) {
   axes_tiling_data_map_[axis_name].emplace_back(axis_tiling_data);
   GELOGD("Add tiling data axis[%s], type:%d, name:%s, expr:%s", axis_name.c_str(),
          static_cast<int32_t>(axis_tiling_data.arg_type), axis_tiling_data.arg_name.c_str(),
          axis_tiling_data.arg_expr.c_str());
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 std::pair<std::string, std::string> AxesTilingDataGen::GetAxisTilingData(const std::string &axis_name,
@@ -411,7 +411,7 @@ void AxesTilingDataGen::MakeSureParentAxesFirst() {
   GELOGD("Gen ordered(parent first order) axes[%s]", ss.str().c_str());
 }
 
-ge::Status AxesTilingDataGen::Init() {
+af::Status AxesTilingDataGen::Init() {
   // 添加轴size对齐表达式
   GE_ASSERT_SUCCESS(AddAxesAlignedSize(), "Add aligned sizes expr failed.");
   // 添加轴的tail_size和loop_num表达式
@@ -421,7 +421,7 @@ ge::Status AxesTilingDataGen::Init() {
   // make sure parent axes code is before child axes
   MakeSureParentAxesFirst();
   is_initialized_ = true;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 std::string AxesTilingDataGen::GetTilingFuncInvoke() const {
@@ -440,12 +440,12 @@ Expr AxesTilingDataGen::GetArgExpr(const std::string &axis_name) const {
   return res;
 }
 
-ge::Status BlockDimTilingDataGen::Init() {
+af::Status BlockDimTilingDataGen::Init() {
   GE_ASSERT_SUCCESS(AddUsedCoreNum());
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status BlockDimTilingDataGen::AddUsedCoreNum() {
+af::Status BlockDimTilingDataGen::AddUsedCoreNum() {
   std::string used_core_num_str;
   constexpr char KNonBlockSplitCoreNum[] = "1";
   for (const auto &axis : model_info_.arg_list) {
@@ -464,7 +464,7 @@ ge::Status BlockDimTilingDataGen::AddUsedCoreNum() {
     used_core_num_str = KNonBlockSplitCoreNum;
   }
   SetTilingData(TilingDataType::USED_BLOCK_DIM, kBlockDim, used_core_num_str, tiling_data_map_);
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 std::vector<std::string> BlockDimTilingDataGen::GetTilingFuncImpl(const std::string &tiling_type) const {
@@ -530,7 +530,7 @@ std::string MemoryTilingDataGen::GenFuncInvoke(const std::string &var_name) cons
   return std::string("    Set") + var_name + "(tiling_data);\n";
 }
 
-ge::Status MemoryTilingDataGen::Init() {
+af::Status MemoryTilingDataGen::Init() {
   // OptionParam
   for (const auto &container : model_info_.container_exprs) {
     SetTilingData(TilingDataType::BUFFER_SIZE, container.first, Str(container.second), tiling_data_map_);
@@ -539,7 +539,7 @@ ge::Status MemoryTilingDataGen::Init() {
   for (const auto &tensor : model_info_.tensor_exprs) {
     SetTilingData(TilingDataType::TENSOR_SIZE, tensor.first, Str(tensor.second), tiling_data_map_);
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 std::vector<std::string> MemoryTilingDataGen::GetTilingFuncImpl(const std::string &tiling_type) const {
@@ -592,21 +592,21 @@ std::string TilingDataGenerator::GetTilingFuncInvoke(const uint32_t tiling_key,
   return invoke_code;
 }
 
-ge::Status TilingDataGenerator::Init() {
+af::Status TilingDataGenerator::Init() {
   // generate axes tiling data, such as loop num, tail size, tail block args.
   if (inited_) {
     GELOGI("Tiling data has been inited.");
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
   for (const auto &model_info : model_info_list_) {
     GE_ASSERT_SUCCESS(GenTilingData(model_info), "Generate tiling data failed, tiling_key[%u].",
                       model_info.tiling_case_id);
   }
   inited_ = true;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status TilingDataGenerator::GenTilingData(const ModelInfo &model_info) {
+af::Status TilingDataGenerator::GenTilingData(const ModelInfo &model_info) {
   const auto tiling_key = model_info.tiling_case_id;
   // Init tiling data gen for axes
   auto axes_tiling_data_gen = af::MakeShared<AxesTilingDataGen>(model_info);
@@ -625,7 +625,7 @@ ge::Status TilingDataGenerator::GenTilingData(const ModelInfo &model_info) {
   GE_ASSERT_NOTNULL(memory_tiling_data_gen, "Init BlockTilingDataGen failed, tiling_key[%u].", tiling_key);
   GE_ASSERT_SUCCESS(memory_tiling_data_gen->Init());
   graphs_tiling_data_gens_[tiling_key].emplace_back(memory_tiling_data_gen);
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 std::vector<std::pair<std::string, std::string>> TilingDataGenerator::GetTilingDataWithAnnotation(

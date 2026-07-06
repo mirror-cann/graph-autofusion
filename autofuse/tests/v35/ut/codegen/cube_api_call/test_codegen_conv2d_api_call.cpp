@@ -38,7 +38,7 @@ TEST_F(Conv2DApiCallTest, Conv2DApiCall_GenerateMacro_Success) {
   Conv2DApiCall conv2d_api_call("conv2d_api");
   std::string result;
 
-  EXPECT_EQ(conv2d_api_call.GenerateMacro(result), ge::SUCCESS);
+  EXPECT_EQ(conv2d_api_call.GenerateMacro(result), af::SUCCESS);
 }
 
 TEST_F(Conv2DApiCallTest, Conv2DApiCall_PreProcess_Success) {
@@ -49,7 +49,7 @@ TEST_F(Conv2DApiCallTest, Conv2DApiCall_PreProcess_Success) {
   std::vector<std::reference_wrapper<const Tensor>> outputs;
   std::string result;
 
-  EXPECT_EQ(conv2d_api_call.PreProcess(tpipe, current_axis, outputs, result), ge::SUCCESS);
+  EXPECT_EQ(conv2d_api_call.PreProcess(tpipe, current_axis, outputs, result), af::SUCCESS);
 }
 
 TEST_F(Conv2DApiCallTest, Conv2DApiCall_PostProcess_Success) {
@@ -60,7 +60,7 @@ TEST_F(Conv2DApiCallTest, Conv2DApiCall_PostProcess_Success) {
   std::vector<std::reference_wrapper<const Tensor>> outputs;
   std::string result;
 
-  EXPECT_EQ(conv2d_api_call.PostProcess(tpipe, current_axis, outputs, result), ge::SUCCESS);
+  EXPECT_EQ(conv2d_api_call.PostProcess(tpipe, current_axis, outputs, result), af::SUCCESS);
 }
 
 TEST_F(Conv2DApiCallTest, Conv2DApiCall_Generate_Success) {
@@ -70,7 +70,7 @@ TEST_F(Conv2DApiCallTest, Conv2DApiCall_Generate_Success) {
   std::vector<ascir::AxisId> current_axis;
   std::string result;
 
-  EXPECT_EQ(conv2d_api_call.Generate(tpipe, current_axis, result), ge::SUCCESS);
+  EXPECT_EQ(conv2d_api_call.Generate(tpipe, current_axis, result), af::SUCCESS);
 }
 
 TEST_F(Conv2DApiCallTest, Conv2DApiCall_GenerateFuncDefinition_Success) {
@@ -79,5 +79,5 @@ TEST_F(Conv2DApiCallTest, Conv2DApiCall_GenerateFuncDefinition_Success) {
   TPipe tpipe("tpipe", tiler);
   std::stringstream ss;
 
-  EXPECT_EQ(conv2d_api_call.GenerateFuncDefinition(tpipe, tiler, ss), ge::SUCCESS);
+  EXPECT_EQ(conv2d_api_call.GenerateFuncDefinition(tpipe, tiler, ss), af::SUCCESS);
 }

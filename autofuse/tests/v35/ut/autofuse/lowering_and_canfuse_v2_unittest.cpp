@@ -196,13 +196,13 @@ TEST_F(UTestLoweringAndCanfuseV2, A5TransposeAndElementwiseCanFuse) {
   ASSERT_EQ(lowerer.Lowering(cg), GRAPH_SUCCESS);
   ASSERT_EQ(asc_adapt::GeFallback(cg), GRAPH_SUCCESS);
   FusionStrategySolver fusion_strategy_solver;
-  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), SUCCESS);
+  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), af::SUCCESS);
   ASSERT_EQ(lowerer.Lifting(cg), GRAPH_SUCCESS);
 
   AscBackendPostProcessor post_processor;
   auto shape_env_attr = cg->GetOrCreateAttrsGroup<ShapeEnvAttr>();
   ASSERT_NE(shape_env_attr, nullptr);
-  EXPECT_EQ(post_processor.Do(cg), SUCCESS);
+  EXPECT_EQ(post_processor.Do(cg), af::SUCCESS);
 
   // 验证融合后的计算图
   size_t asc_backend_node_count = 0;
@@ -248,13 +248,13 @@ TEST_F(UTestLoweringAndCanfuseV2, A5TransposeAndTransposeLoweringCanfuse) {
   ASSERT_EQ(lowerer.Lowering(cg), GRAPH_SUCCESS);
   ASSERT_EQ(asc_adapt::GeFallback(cg), GRAPH_SUCCESS);
   FusionStrategySolver fusion_strategy_solver;
-  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), SUCCESS);
+  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), af::SUCCESS);
   ASSERT_EQ(lowerer.Lifting(cg), GRAPH_SUCCESS);
 
   AscBackendPostProcessor post_processor;
   auto shape_env_attr = cg->GetOrCreateAttrsGroup<ShapeEnvAttr>();
   ASSERT_NE(shape_env_attr, nullptr);
-  EXPECT_EQ(post_processor.Do(cg), SUCCESS);
+  EXPECT_EQ(post_processor.Do(cg), af::SUCCESS);
   // 验证融合后的计算图
   size_t asc_backend_node_count = 0;
   size_t non_asc_backend_node_count = 0;
@@ -302,13 +302,13 @@ TEST_F(UTestLoweringAndCanfuseV2, A5ElementwiseAndTransposeCanFuse) {
   ASSERT_EQ(asc_adapt::GeFallback(cg), GRAPH_SUCCESS);
   FusionStrategySolver fusion_strategy_solver;
   FusionDeciderRegistry::Instance().Register(std::unique_ptr<FusionDecider>(new AscBackendFusionDecider()));
-  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), SUCCESS);
+  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), af::SUCCESS);
   ASSERT_EQ(lowerer.Lifting(cg), GRAPH_SUCCESS);
 
   AscBackendPostProcessor post_processor;
   auto shape_env_attr = cg->GetOrCreateAttrsGroup<ShapeEnvAttr>();
   ASSERT_NE(shape_env_attr, nullptr);
-  EXPECT_EQ(post_processor.Do(cg), SUCCESS);
+  EXPECT_EQ(post_processor.Do(cg), af::SUCCESS);
 
   // 验证融合后的计算图
   size_t asc_backend_node_count = 0;
@@ -355,10 +355,10 @@ TEST_F(UTestLoweringAndCanfuseV2, A5BroadCastAndTransposeLoweringCanfuse2) {
   ASSERT_EQ(asc_adapt::GeFallback(cg), GRAPH_SUCCESS);
   FusionStrategySolver fusion_strategy_solver;
   FusionDeciderRegistry::Instance().Register(std::unique_ptr<FusionDecider>(new AscBackendFusionDecider()));
-  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), SUCCESS);
+  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), af::SUCCESS);
   ASSERT_EQ(lowerer.Lifting(cg), GRAPH_SUCCESS);
   AscBackendPostProcessor post_processor;
-  EXPECT_EQ(post_processor.Do(cg), SUCCESS);
+  EXPECT_EQ(post_processor.Do(cg), af::SUCCESS);
   std::vector<NodePtr> asc_backend_nodes;
   // 添加判断AscBackend节点对应的子图是否有transpose和broadcast节点的逻辑
   size_t asc_node_count = 0;
@@ -401,10 +401,10 @@ TEST_F(UTestLoweringAndCanfuseV2, A5BroadCastAndTransposeLoweringCanfuse3) {
   ASSERT_EQ(asc_adapt::GeFallback(cg), GRAPH_SUCCESS);
   FusionStrategySolver fusion_strategy_solver;
   FusionDeciderRegistry::Instance().Register(std::unique_ptr<FusionDecider>(new AscBackendFusionDecider()));
-  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), SUCCESS);
+  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), af::SUCCESS);
   ASSERT_EQ(lowerer.Lifting(cg), GRAPH_SUCCESS);
   AscBackendPostProcessor post_processor;
-  EXPECT_EQ(post_processor.Do(cg), SUCCESS);
+  EXPECT_EQ(post_processor.Do(cg), af::SUCCESS);
   std::vector<NodePtr> asc_backend_nodes;
   // 添加判断AscBackend节点对应的子图是否有transpose和broadcast节点的逻辑
   size_t asc_node_count = 0;
@@ -451,10 +451,10 @@ TEST_F(UTestLoweringAndCanfuseV2, A5BroadCastAndTransposeLoweringCanfuse4) {
   ASSERT_EQ(asc_adapt::GeFallback(cg), GRAPH_SUCCESS);
   FusionStrategySolver fusion_strategy_solver;
   FusionDeciderRegistry::Instance().Register(std::unique_ptr<FusionDecider>(new AscBackendFusionDecider()));
-  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), SUCCESS);
+  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), af::SUCCESS);
   ASSERT_EQ(lowerer.Lifting(cg), GRAPH_SUCCESS);
   AscBackendPostProcessor post_processor;
-  EXPECT_EQ(post_processor.Do(cg), SUCCESS);
+  EXPECT_EQ(post_processor.Do(cg), af::SUCCESS);
   std::vector<NodePtr> asc_backend_nodes;
   // 添加判断AscBackend节点对应的子图是否有transpose和broadcast节点的逻辑
   size_t asc_node_count = 0;
@@ -501,11 +501,11 @@ TEST_F(UTestLoweringAndCanfuseV2, A5MutiRefEleAndTransposeNotFuse) {
   ASSERT_EQ(asc_adapt::GeFallback(cg), GRAPH_SUCCESS);
   FusionStrategySolver fusion_strategy_solver;
   FusionDeciderRegistry::Instance().Register(std::unique_ptr<FusionDecider>(new AscBackendFusionDecider()));
-  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), SUCCESS);
+  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), af::SUCCESS);
   ASSERT_EQ(lowerer.Lifting(cg), GRAPH_SUCCESS);
 
   AscBackendPostProcessor post_processor;
-  EXPECT_EQ(post_processor.Do(cg), SUCCESS);
+  EXPECT_EQ(post_processor.Do(cg), af::SUCCESS);
   // 添加判断AscBackend节点对应的子图是否有transpose节点的逻辑
   size_t asc_node_count = 0;
   for (const auto &node : cg->GetDirectNode()) {
@@ -553,11 +553,11 @@ TEST_F(UTestLoweringAndCanfuseV2, CubeAndMulLoweringCanfuseV2) {
   ASSERT_EQ(asc_adapt::GeFallback(cg), GRAPH_SUCCESS);
   FusionStrategySolver fusion_strategy_solver;
   FusionDeciderRegistry::Instance().Register(std::unique_ptr<FusionDecider>(new AscBackendFusionDecider()));
-  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), SUCCESS);
+  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), af::SUCCESS);
   ASSERT_EQ(lowerer.Lifting(cg), GRAPH_SUCCESS);
 
   AscBackendPostProcessor post_processor;
-  EXPECT_EQ(post_processor.Do(cg), SUCCESS);
+  EXPECT_EQ(post_processor.Do(cg), af::SUCCESS);
   SetCurShapeEnvContext(nullptr);
   RuntimeStub::Reset();
 }
@@ -599,11 +599,11 @@ TEST_F(UTestLoweringAndCanfuseV2, CubeAndReshapeLoweringCanfuseV2) {
   ASSERT_EQ(asc_adapt::GeFallback(cg), GRAPH_SUCCESS);
   FusionStrategySolver fusion_strategy_solver;
   FusionDeciderRegistry::Instance().Register(std::unique_ptr<FusionDecider>(new AscBackendFusionDecider()));
-  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), SUCCESS);
+  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), af::SUCCESS);
   ASSERT_EQ(lowerer.Lifting(cg), GRAPH_SUCCESS);
 
   AscBackendPostProcessor post_processor;
-  EXPECT_EQ(post_processor.Do(cg), SUCCESS);
+  EXPECT_EQ(post_processor.Do(cg), af::SUCCESS);
 
   for (auto &node : cg->GetDirectNode()) {
     std::cout << "node name is " << node->GetNamePtr() << std::endl;
@@ -649,11 +649,11 @@ TEST_F(UTestLoweringAndCanfuseV2, CubeAndAddLoweringCanfuseV2) {
   ASSERT_EQ(asc_adapt::GeFallback(cg), GRAPH_SUCCESS);
   FusionStrategySolver fusion_strategy_solver;
   FusionDeciderRegistry::Instance().Register(std::unique_ptr<FusionDecider>(new AscBackendFusionDecider()));
-  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), SUCCESS);
+  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), af::SUCCESS);
   ASSERT_EQ(lowerer.Lifting(cg), GRAPH_SUCCESS);
 
   AscBackendPostProcessor post_processor;
-  EXPECT_EQ(post_processor.Do(cg), SUCCESS);
+  EXPECT_EQ(post_processor.Do(cg), af::SUCCESS);
   SetCurShapeEnvContext(nullptr);
   RuntimeStub::Reset();
 }
@@ -697,13 +697,13 @@ TEST_F(UTestLoweringAndCanfuseV2, AbsAndCubeLoweringCanfuseV2CanNotFuseForward) 
   ASSERT_EQ(asc_adapt::GeFallback(cg), GRAPH_SUCCESS);
   FusionStrategySolver fusion_strategy_solver;
   FusionDeciderRegistry::Instance().Register(std::unique_ptr<FusionDecider>(new AscBackendFusionDecider()));
-  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), SUCCESS);
+  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), af::SUCCESS);
   ASSERT_EQ(lowerer.Lifting(cg), GRAPH_SUCCESS);
 
   AscBackendPostProcessor post_processor;
-  EXPECT_EQ(post_processor.Do(cg), SUCCESS);
+  EXPECT_EQ(post_processor.Do(cg), af::SUCCESS);
   CubeFixpipPass cube_fixpip_pass;
-  EXPECT_EQ(cube_fixpip_pass.Run(cg), SUCCESS);
+  EXPECT_EQ(cube_fixpip_pass.Run(cg), af::SUCCESS);
   SetCurShapeEnvContext(nullptr);
 
   for (auto &node : cg->GetDirectNode()) {
@@ -758,13 +758,13 @@ TEST_F(UTestLoweringAndCanfuseV2, CubeAndBroadcastLoweringCanfuseV2CanFuseBroadc
   ASSERT_EQ(asc_adapt::GeFallback(cg), GRAPH_SUCCESS);
   FusionStrategySolver fusion_strategy_solver;
   FusionDeciderRegistry::Instance().Register(std::unique_ptr<FusionDecider>(new AscBackendFusionDecider()));
-  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), SUCCESS);
+  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), af::SUCCESS);
   ASSERT_EQ(lowerer.Lifting(cg), GRAPH_SUCCESS);
 
   AscBackendPostProcessor post_processor;
-  EXPECT_EQ(post_processor.Do(cg), SUCCESS);
+  EXPECT_EQ(post_processor.Do(cg), af::SUCCESS);
   CubeFixpipPass cube_fixpip_pass;
-  EXPECT_EQ(cube_fixpip_pass.Run(cg), SUCCESS);
+  EXPECT_EQ(cube_fixpip_pass.Run(cg), af::SUCCESS);
 
   for (auto &node : cg->GetDirectNode()) {
     std::cout << "node name is " << node->GetNamePtr() << std::endl;
@@ -820,13 +820,13 @@ TEST_F(UTestLoweringAndCanfuseV2, CubeAndBroadcastLoweringCanfuseV2CanNotFuseBat
   ASSERT_EQ(asc_adapt::GeFallback(cg), GRAPH_SUCCESS);
   FusionStrategySolver fusion_strategy_solver;
   FusionDeciderRegistry::Instance().Register(std::unique_ptr<FusionDecider>(new AscBackendFusionDecider()));
-  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), SUCCESS);
+  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), af::SUCCESS);
   ASSERT_EQ(lowerer.Lifting(cg), GRAPH_SUCCESS);
 
   AscBackendPostProcessor post_processor;
-  EXPECT_EQ(post_processor.Do(cg), SUCCESS);
+  EXPECT_EQ(post_processor.Do(cg), af::SUCCESS);
   CubeFixpipPass cube_fixpip_pass;
-  EXPECT_EQ(cube_fixpip_pass.Run(cg), SUCCESS);
+  EXPECT_EQ(cube_fixpip_pass.Run(cg), af::SUCCESS);
 
   for (auto &node : cg->GetDirectNode()) {
     std::cout << "node name is " << node->GetNamePtr() << std::endl;
@@ -883,13 +883,13 @@ TEST_F(UTestLoweringAndCanfuseV2, CubeAndBroadcastLoweringCanfuseV2CanFuseBatchB
   ASSERT_EQ(asc_adapt::GeFallback(cg), GRAPH_SUCCESS);
   FusionStrategySolver fusion_strategy_solver;
   FusionDeciderRegistry::Instance().Register(std::unique_ptr<FusionDecider>(new AscBackendFusionDecider()));
-  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), SUCCESS);
+  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), af::SUCCESS);
   ASSERT_EQ(lowerer.Lifting(cg), GRAPH_SUCCESS);
 
   AscBackendPostProcessor post_processor;
-  EXPECT_EQ(post_processor.Do(cg), SUCCESS);
+  EXPECT_EQ(post_processor.Do(cg), af::SUCCESS);
   CubeFixpipPass cube_fixpip_pass;
-  EXPECT_EQ(cube_fixpip_pass.Run(cg), SUCCESS);
+  EXPECT_EQ(cube_fixpip_pass.Run(cg), af::SUCCESS);
 
   auto Broadcast_1 = cg->FindNode("Broadcast_1");
   ASSERT_EQ(Broadcast_1, nullptr);
@@ -938,13 +938,13 @@ TEST_F(UTestLoweringAndCanfuseV2, CubeAndBroadcastLoweringCanfuseV2CanNotFuseDir
   ASSERT_EQ(asc_adapt::GeFallback(cg), GRAPH_SUCCESS);
   FusionStrategySolver fusion_strategy_solver;
   FusionDeciderRegistry::Instance().Register(std::unique_ptr<FusionDecider>(new AscBackendFusionDecider()));
-  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), SUCCESS);
+  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), af::SUCCESS);
   ASSERT_EQ(lowerer.Lifting(cg), GRAPH_SUCCESS);
 
   AscBackendPostProcessor post_processor;
-  EXPECT_EQ(post_processor.Do(cg), SUCCESS);
+  EXPECT_EQ(post_processor.Do(cg), af::SUCCESS);
   CubeFixpipPass cube_fixpip_pass;
-  EXPECT_EQ(cube_fixpip_pass.Run(cg), SUCCESS);
+  EXPECT_EQ(cube_fixpip_pass.Run(cg), af::SUCCESS);
 
   for (auto &node : cg->GetDirectNode()) {
     std::cout << "node name is " << node->GetNamePtr() << std::endl;
@@ -1000,11 +1000,11 @@ TEST_F(UTestLoweringAndCanfuseV2, CubeAndScalarLoweringCanfuseV2CanFuseScalar) {
   ASSERT_EQ(asc_adapt::GeFallback(cg), GRAPH_SUCCESS);
   FusionStrategySolver fusion_strategy_solver;
   FusionDeciderRegistry::Instance().Register(std::unique_ptr<FusionDecider>(new AscBackendFusionDecider()));
-  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), SUCCESS);
+  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), af::SUCCESS);
   ASSERT_EQ(lowerer.Lifting(cg), GRAPH_SUCCESS);
 
   AscBackendPostProcessor post_processor;
-  EXPECT_EQ(post_processor.Do(cg), SUCCESS);
+  EXPECT_EQ(post_processor.Do(cg), af::SUCCESS);
 
   for (auto &node : cg->GetDirectNode()) {
     std::cout << "node name is " << node->GetNamePtr() << std::endl;
@@ -1061,11 +1061,11 @@ TEST_F(UTestLoweringAndCanfuseV2, CubeAndReduceLoweringCanfuseV2CanNotFuseReduce
   ASSERT_EQ(asc_adapt::GeFallback(cg), GRAPH_SUCCESS);
   FusionStrategySolver fusion_strategy_solver;
   FusionDeciderRegistry::Instance().Register(std::unique_ptr<FusionDecider>(new AscBackendFusionDecider()));
-  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), SUCCESS);
+  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), af::SUCCESS);
   ASSERT_EQ(lowerer.Lifting(cg), GRAPH_SUCCESS);
 
   AscBackendPostProcessor post_processor;
-  EXPECT_EQ(post_processor.Do(cg), SUCCESS);
+  EXPECT_EQ(post_processor.Do(cg), af::SUCCESS);
 
   for (auto &node : cg->GetDirectNode()) {
     std::cout << "node name is " << node->GetNamePtr() << std::endl;
@@ -1117,11 +1117,11 @@ TEST_F(UTestLoweringAndCanfuseV2, CubeAndElementwiseLoweringCanfuseV2CanNotFuseV
   ASSERT_EQ(asc_adapt::GeFallback(cg), GRAPH_SUCCESS);
   FusionStrategySolver fusion_strategy_solver;
   FusionDeciderRegistry::Instance().Register(std::unique_ptr<FusionDecider>(new AscBackendFusionDecider()));
-  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), SUCCESS);
+  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), af::SUCCESS);
   ASSERT_EQ(lowerer.Lifting(cg), GRAPH_SUCCESS);
 
   AscBackendPostProcessor post_processor;
-  EXPECT_EQ(post_processor.Do(cg), SUCCESS);
+  EXPECT_EQ(post_processor.Do(cg), af::SUCCESS);
 
   for (auto &node : cg->GetDirectNode()) {
     std::cout << "node name is " << node->GetNamePtr() << std::endl;
@@ -1172,11 +1172,11 @@ TEST_F(UTestLoweringAndCanfuseV2, CubeAndReduceLoweringCanfuseReluAbs) {
   ASSERT_EQ(asc_adapt::GeFallback(cg), GRAPH_SUCCESS);
   FusionStrategySolver fusion_strategy_solver;
   FusionDeciderRegistry::Instance().Register(std::unique_ptr<FusionDecider>(new AscBackendFusionDecider()));
-  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), SUCCESS);
+  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), af::SUCCESS);
   ASSERT_EQ(lowerer.Lifting(cg), GRAPH_SUCCESS);
 
   AscBackendPostProcessor post_processor;
-  EXPECT_EQ(post_processor.Do(cg), SUCCESS);
+  EXPECT_EQ(post_processor.Do(cg), af::SUCCESS);
 
   for (auto &node : cg->GetDirectNode()) {
     std::cout << "node name is " << node->GetNamePtr() << std::endl;
@@ -1223,11 +1223,11 @@ TEST_F(UTestLoweringAndCanfuseV2, CubeAndReduceLoweringCanfuseOnlyRelu) {
   ASSERT_EQ(asc_adapt::GeFallback(cg), GRAPH_SUCCESS);
   FusionStrategySolver fusion_strategy_solver;
   FusionDeciderRegistry::Instance().Register(std::unique_ptr<FusionDecider>(new AscBackendFusionDecider()));
-  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), SUCCESS);
+  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), af::SUCCESS);
   ASSERT_EQ(lowerer.Lifting(cg), GRAPH_SUCCESS);
 
   AscBackendPostProcessor post_processor;
-  EXPECT_EQ(post_processor.Do(cg), SUCCESS);
+  EXPECT_EQ(post_processor.Do(cg), af::SUCCESS);
 
   for (auto &node : cg->GetDirectNode()) {
     std::cout << "node name is " << node->GetNamePtr() << std::endl;
@@ -1268,11 +1268,11 @@ TEST_F(UTestLoweringAndCanfuseV2, EleAndSplitLoweringCanfuse) {
   ASSERT_EQ(asc_adapt::GeFallback(cg), GRAPH_SUCCESS);
   FusionStrategySolver fusion_strategy_solver;
   FusionDeciderRegistry::Instance().Register(std::unique_ptr<FusionDecider>(new AscBackendFusionDecider()));
-  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), SUCCESS);
+  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), af::SUCCESS);
   ASSERT_EQ(lowerer.Lifting(cg), GRAPH_SUCCESS);
 
   AscBackendPostProcessor post_processor;
-  EXPECT_EQ(post_processor.Do(cg), SUCCESS);
+  EXPECT_EQ(post_processor.Do(cg), af::SUCCESS);
   SetCurShapeEnvContext(nullptr);
   RuntimeStub::Reset();
 }
@@ -1313,11 +1313,11 @@ TEST_F(UTestLoweringAndCanfuseV2, SplitAndSplitLoweringCanfuse) {
   ASSERT_EQ(asc_adapt::GeFallback(cg), GRAPH_SUCCESS);
   FusionStrategySolver fusion_strategy_solver;
   FusionDeciderRegistry::Instance().Register(std::unique_ptr<FusionDecider>(new AscBackendFusionDecider()));
-  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), SUCCESS);
+  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), af::SUCCESS);
   ASSERT_EQ(lowerer.Lifting(cg), GRAPH_SUCCESS);
 
   AscBackendPostProcessor post_processor;
-  EXPECT_EQ(post_processor.Do(cg), SUCCESS);
+  EXPECT_EQ(post_processor.Do(cg), af::SUCCESS);
   SetCurShapeEnvContext(nullptr);
   RuntimeStub::Reset();
 }
@@ -1351,10 +1351,10 @@ TEST_F(UTestLoweringAndCanfuseV2, EleAndSplitLoweringCanfuseStatic) {
   ASSERT_EQ(asc_adapt::GeFallback(cg), GRAPH_SUCCESS);
   FusionStrategySolver fusion_strategy_solver;
   FusionDeciderRegistry::Instance().Register(std::unique_ptr<FusionDecider>(new AscBackendFusionDecider()));
-  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), SUCCESS);
+  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), af::SUCCESS);
   ASSERT_EQ(lowerer.Lifting(cg), GRAPH_SUCCESS);
   AscBackendPostProcessor post_processor;
-  EXPECT_EQ(post_processor.Do(cg), SUCCESS);
+  EXPECT_EQ(post_processor.Do(cg), af::SUCCESS);
   SetCurShapeEnvContext(nullptr);
   RuntimeStub::Reset();
 }
@@ -1391,11 +1391,11 @@ TEST_F(UTestLoweringAndCanfuseV2, ReluAndSplitHorizontalLoweringCanfuseStatic) {
   dlog_setlevel(0, 4, 1);
   FusionStrategySolver fusion_strategy_solver;
   FusionDeciderRegistry::Instance().Register(std::unique_ptr<FusionDecider>(new AscBackendFusionDecider()));
-  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), SUCCESS);
+  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), af::SUCCESS);
   dlog_setlevel(0, 0, 1);
   ASSERT_EQ(lowerer.Lifting(cg), GRAPH_SUCCESS);
   AscBackendPostProcessor post_processor;
-  EXPECT_EQ(post_processor.Do(cg), SUCCESS);
+  EXPECT_EQ(post_processor.Do(cg), af::SUCCESS);
   SetCurShapeEnvContext(nullptr);
   RuntimeStub::Reset();
 }
@@ -1434,10 +1434,10 @@ TEST_F(UTestLoweringAndCanfuseV2, SplitAndEleLoweringCanfuseStaticNoLifting) {
   ASSERT_EQ(asc_adapt::GeFallback(cg), GRAPH_SUCCESS);
   FusionStrategySolver fusion_strategy_solver;
   FusionDeciderRegistry::Instance().Register(std::unique_ptr<FusionDecider>(new AscBackendFusionDecider()));
-  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), SUCCESS);
+  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), af::SUCCESS);
   ASSERT_EQ(lowerer.Lifting(cg), GRAPH_SUCCESS);
   AscBackendPostProcessor post_processor;
-  EXPECT_EQ(post_processor.Do(cg), SUCCESS);
+  EXPECT_EQ(post_processor.Do(cg), af::SUCCESS);
   SetCurShapeEnvContext(nullptr);
   RuntimeStub::Reset();
 }
@@ -1478,10 +1478,10 @@ TEST_F(UTestLoweringAndCanfuseV2, SingleSplitLoweringCanfuseLifting) {
   ASSERT_EQ(asc_adapt::GeFallback(cg), GRAPH_SUCCESS);
   FusionStrategySolver fusion_strategy_solver;
   FusionDeciderRegistry::Instance().Register(std::unique_ptr<FusionDecider>(new AscBackendFusionDecider()));
-  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), SUCCESS);
+  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), af::SUCCESS);
   ASSERT_EQ(lowerer.Lifting(cg), GRAPH_SUCCESS);
   AscBackendPostProcessor post_processor;
-  EXPECT_EQ(post_processor.Do(cg), SUCCESS);
+  EXPECT_EQ(post_processor.Do(cg), af::SUCCESS);
   SetCurShapeEnvContext(nullptr);
   RuntimeStub::Reset();
 }
@@ -1515,11 +1515,11 @@ TEST_F(UTestLoweringAndCanfuseV2, SingleGiantSplitLoweringCanfuseLifting) {
   dlog_setlevel(0, 4, 1);
   FusionStrategySolver fusion_strategy_solver;
   FusionDeciderRegistry::Instance().Register(std::unique_ptr<FusionDecider>(new AscBackendFusionDecider()));
-  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), SUCCESS);
+  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), af::SUCCESS);
   dlog_setlevel(0, 0, 1);
   ASSERT_EQ(lowerer.Lifting(cg), GRAPH_SUCCESS);
   AscBackendPostProcessor post_processor;
-  EXPECT_EQ(post_processor.Do(cg), SUCCESS);
+  EXPECT_EQ(post_processor.Do(cg), af::SUCCESS);
   SetCurShapeEnvContext(nullptr);
   RuntimeStub::Reset();
 }
@@ -1557,11 +1557,11 @@ TEST_F(UTestLoweringAndCanfuseV2, SplitSingleOutputDoubleQuotesLoweringCanfuseLi
   dlog_setlevel(0, 4, 1);
   FusionStrategySolver fusion_strategy_solver;
   FusionDeciderRegistry::Instance().Register(std::unique_ptr<FusionDecider>(new AscBackendFusionDecider()));
-  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), SUCCESS);
+  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), af::SUCCESS);
   dlog_setlevel(0, 0, 1);
   ASSERT_EQ(lowerer.Lifting(cg), GRAPH_SUCCESS);
   AscBackendPostProcessor post_processor;
-  EXPECT_EQ(post_processor.Do(cg), SUCCESS);
+  EXPECT_EQ(post_processor.Do(cg), af::SUCCESS);
   SetCurShapeEnvContext(nullptr);
   RuntimeStub::Reset();
 }
@@ -1600,11 +1600,11 @@ TEST_F(UTestLoweringAndCanfuseV2, SplitSingleOutputDoubleQuotesLoweringCanfuseLi
   dlog_setlevel(0, 4, 1);
   FusionStrategySolver fusion_strategy_solver;
   FusionDeciderRegistry::Instance().Register(std::unique_ptr<FusionDecider>(new AscBackendFusionDecider()));
-  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), SUCCESS);
+  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), af::SUCCESS);
   dlog_setlevel(0, 0, 1);
   ASSERT_EQ(lowerer.Lifting(cg), GRAPH_SUCCESS);
   AscBackendPostProcessor post_processor;
-  EXPECT_EQ(post_processor.Do(cg), SUCCESS);
+  EXPECT_EQ(post_processor.Do(cg), af::SUCCESS);
   SetCurShapeEnvContext(nullptr);
   RuntimeStub::Reset();
 }
@@ -1653,11 +1653,11 @@ REG_OP(SplitV)
   dlog_setlevel(0, 4, 1);
   FusionStrategySolver fusion_strategy_solver;
   FusionDeciderRegistry::Instance().Register(std::unique_ptr<FusionDecider>(new AscBackendFusionDecider()));
-  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), SUCCESS);
+  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), af::SUCCESS);
   dlog_setlevel(0, 0, 1);
   ASSERT_EQ(lowerer.Lifting(cg), GRAPH_SUCCESS);
   AscBackendPostProcessor post_processor;
-  EXPECT_EQ(post_processor.Do(cg), SUCCESS);
+  EXPECT_EQ(post_processor.Do(cg), af::SUCCESS);
   SetCurShapeEnvContext(nullptr);
   RuntimeStub::Reset();
 }
@@ -1697,11 +1697,11 @@ TEST_F(UTestLoweringAndCanfuseV2, SplitVLiftingErrorStatic) {
   dlog_setlevel(0, 4, 1);
   FusionStrategySolver fusion_strategy_solver;
   FusionDeciderRegistry::Instance().Register(std::unique_ptr<FusionDecider>(new AscBackendFusionDecider()));
-  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), SUCCESS);
+  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), af::SUCCESS);
   dlog_setlevel(0, 0, 1);
   ASSERT_EQ(lowerer.Lifting(cg), GRAPH_SUCCESS);
   AscBackendPostProcessor post_processor;
-  EXPECT_EQ(post_processor.Do(cg), SUCCESS);
+  EXPECT_EQ(post_processor.Do(cg), af::SUCCESS);
   SetCurShapeEnvContext(nullptr);
   RuntimeStub::Reset();
 }
@@ -1742,10 +1742,10 @@ TEST_F(UTestLoweringAndCanfuseV2, SingleSplitVLiftingErrorStatic) {
   ASSERT_EQ(asc_adapt::GeFallback(cg), GRAPH_SUCCESS);
   FusionStrategySolver fusion_strategy_solver;
   FusionDeciderRegistry::Instance().Register(std::unique_ptr<FusionDecider>(new AscBackendFusionDecider()));
-  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), SUCCESS);
+  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), af::SUCCESS);
   ASSERT_EQ(lowerer.Lifting(cg), GRAPH_SUCCESS);
   AscBackendPostProcessor post_processor;
-  EXPECT_EQ(post_processor.Do(cg), SUCCESS);
+  EXPECT_EQ(post_processor.Do(cg), af::SUCCESS);
   SetCurShapeEnvContext(nullptr);
   RuntimeStub::Reset();
 }
@@ -1787,10 +1787,10 @@ TEST_F(UTestLoweringAndCanfuseV2, FlattenSplitLoweringCanfuseLifting) {
   ASSERT_EQ(asc_adapt::GeFallback(cg), GRAPH_SUCCESS);
   FusionStrategySolver fusion_strategy_solver;
   FusionDeciderRegistry::Instance().Register(std::unique_ptr<FusionDecider>(new AscBackendFusionDecider()));
-  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), SUCCESS);
+  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), af::SUCCESS);
   ASSERT_EQ(lowerer.Lifting(cg), GRAPH_SUCCESS);
   AscBackendPostProcessor post_processor;
-  EXPECT_EQ(post_processor.Do(cg), SUCCESS);
+  EXPECT_EQ(post_processor.Do(cg), af::SUCCESS);
   SetCurShapeEnvContext(nullptr);
   RuntimeStub::Reset();
 }
@@ -1833,10 +1833,10 @@ TEST_F(UTestLoweringAndCanfuseV2, FlattenSplitVLoweringCanfuseLifting) {
   ASSERT_EQ(asc_adapt::GeFallback(cg), GRAPH_SUCCESS);
   FusionStrategySolver fusion_strategy_solver;
   FusionDeciderRegistry::Instance().Register(std::unique_ptr<FusionDecider>(new AscBackendFusionDecider()));
-  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), SUCCESS);
+  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), af::SUCCESS);
   ASSERT_EQ(lowerer.Lifting(cg), GRAPH_SUCCESS);
   AscBackendPostProcessor post_processor;
-  EXPECT_EQ(post_processor.Do(cg), SUCCESS);
+  EXPECT_EQ(post_processor.Do(cg), af::SUCCESS);
   SetCurShapeEnvContext(nullptr);
   RuntimeStub::Reset();
 }
@@ -1879,11 +1879,11 @@ TEST_F(UTestLoweringAndCanfuseV2, FlattenSplitDLoweringCanfuseLifting) {
   dlog_setlevel(0, 4, 1);
   FusionStrategySolver fusion_strategy_solver;
   FusionDeciderRegistry::Instance().Register(std::unique_ptr<FusionDecider>(new AscBackendFusionDecider()));
-  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), SUCCESS);
+  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), af::SUCCESS);
   dlog_setlevel(0, 0, 1);
   ASSERT_EQ(lowerer.Lifting(cg), GRAPH_SUCCESS);
   AscBackendPostProcessor post_processor;
-  EXPECT_EQ(post_processor.Do(cg), SUCCESS);
+  EXPECT_EQ(post_processor.Do(cg), af::SUCCESS);
   SetCurShapeEnvContext(nullptr);
   RuntimeStub::Reset();
 }
@@ -1926,10 +1926,10 @@ TEST_F(UTestLoweringAndCanfuseV2, HierarchicalFlattenSplitLoweringCanfuseLifting
   ASSERT_EQ(asc_adapt::GeFallback(cg), GRAPH_SUCCESS);
   FusionStrategySolver fusion_strategy_solver;
   FusionDeciderRegistry::Instance().Register(std::unique_ptr<FusionDecider>(new AscBackendFusionDecider()));
-  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), SUCCESS);
+  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), af::SUCCESS);
   ASSERT_EQ(lowerer.Lifting(cg), GRAPH_SUCCESS);
   AscBackendPostProcessor post_processor;
-  EXPECT_EQ(post_processor.Do(cg), SUCCESS);
+  EXPECT_EQ(post_processor.Do(cg), af::SUCCESS);
   SetCurShapeEnvContext(nullptr);
   RuntimeStub::Reset();
 }
@@ -1962,10 +1962,10 @@ TEST_F(UTestLoweringAndCanfuseV2, GiantSplitLoweringCanfuseLifting) {
   ASSERT_EQ(asc_adapt::GeFallback(cg), GRAPH_SUCCESS);
   FusionStrategySolver fusion_strategy_solver;
   FusionDeciderRegistry::Instance().Register(std::unique_ptr<FusionDecider>(new AscBackendFusionDecider()));
-  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), SUCCESS);
+  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), af::SUCCESS);
   ASSERT_EQ(lowerer.Lifting(cg), GRAPH_SUCCESS);
   AscBackendPostProcessor post_processor;
-  EXPECT_EQ(post_processor.Do(cg), SUCCESS);
+  EXPECT_EQ(post_processor.Do(cg), af::SUCCESS);
   SetCurShapeEnvContext(nullptr);
   RuntimeStub::Reset();
 }
@@ -2006,10 +2006,10 @@ TEST_F(UTestLoweringAndCanfuseV2, GiantSplitLoweringCanfuseNoLifting) {
   ASSERT_EQ(asc_adapt::GeFallback(cg), GRAPH_SUCCESS);
   FusionStrategySolver fusion_strategy_solver;
   FusionDeciderRegistry::Instance().Register(std::unique_ptr<FusionDecider>(new AscBackendFusionDecider()));
-  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), SUCCESS);
+  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), af::SUCCESS);
   ASSERT_EQ(lowerer.Lifting(cg), GRAPH_SUCCESS);
   AscBackendPostProcessor post_processor;
-  EXPECT_EQ(post_processor.Do(cg), SUCCESS);
+  EXPECT_EQ(post_processor.Do(cg), af::SUCCESS);
   SetCurShapeEnvContext(nullptr);
   RuntimeStub::Reset();
 }
@@ -2051,10 +2051,10 @@ TEST_F(UTestLoweringAndCanfuseV2, GiantSplitLoweringCanfuseNoLowering) {
   ASSERT_EQ(asc_adapt::GeFallback(cg), GRAPH_SUCCESS);
   FusionStrategySolver fusion_strategy_solver;
   FusionDeciderRegistry::Instance().Register(std::unique_ptr<FusionDecider>(new AscBackendFusionDecider()));
-  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), SUCCESS);
+  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), af::SUCCESS);
   ASSERT_EQ(lowerer.Lifting(cg), GRAPH_SUCCESS);
   AscBackendPostProcessor post_processor;
-  EXPECT_EQ(post_processor.Do(cg), SUCCESS);
+  EXPECT_EQ(post_processor.Do(cg), af::SUCCESS);
   SetCurShapeEnvContext(nullptr);
   RuntimeStub::Reset();
 }
@@ -2081,10 +2081,10 @@ TEST_F(UTestLoweringAndCanfuseV2, SplitAndAddNoBroadcast) {
   ASSERT_EQ(asc_adapt::GeFallback(cg), GRAPH_SUCCESS);
   FusionStrategySolver fusion_strategy_solver;
   FusionDeciderRegistry::Instance().Register(std::unique_ptr<FusionDecider>(new AscBackendFusionDecider()));
-  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), SUCCESS);
+  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), af::SUCCESS);
   ASSERT_EQ(lowerer.Lifting(cg), GRAPH_SUCCESS);
   AscBackendPostProcessor post_processor;
-  EXPECT_EQ(post_processor.Do(cg), SUCCESS);
+  EXPECT_EQ(post_processor.Do(cg), af::SUCCESS);
   SetCurShapeEnvContext(nullptr);
   RuntimeStub::Reset();
 }
@@ -2123,11 +2123,11 @@ TEST_F(UTestLoweringAndCanfuseV2, SplitAndConcatAndAbsSplitPartialFuse) {
   ASSERT_EQ(asc_adapt::GeFallback(cg), GRAPH_SUCCESS);
   FusionStrategySolver fusion_strategy_solver;
   FusionDeciderRegistry::Instance().Register(std::unique_ptr<FusionDecider>(new AscBackendFusionDecider()));
-  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), SUCCESS);
+  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), af::SUCCESS);
   ASSERT_EQ(lowerer.Lifting(cg), GRAPH_SUCCESS);
   auto post_node_num = cg->GetDirectNode().size();
   AscBackendPostProcessor post_processor;
-  EXPECT_EQ(post_processor.Do(cg), SUCCESS);
+  EXPECT_EQ(post_processor.Do(cg), af::SUCCESS);
   EXPECT_EQ(prev_node_num - 1, post_node_num);
   SetCurShapeEnvContext(nullptr);
   RuntimeStub::Reset();
@@ -2165,11 +2165,11 @@ TEST_F(UTestLoweringAndCanfuseV2, SplitAndReduceAndAbsSplitLowFuseRatio) {
   ASSERT_EQ(asc_adapt::GeFallback(cg), GRAPH_SUCCESS);
   FusionStrategySolver fusion_strategy_solver;
   FusionDeciderRegistry::Instance().Register(std::unique_ptr<FusionDecider>(new AscBackendFusionDecider()));
-  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), SUCCESS);
+  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), af::SUCCESS);
   ASSERT_EQ(lowerer.Lifting(cg), GRAPH_SUCCESS);
   auto post_node_num = cg->GetDirectNode().size();
   AscBackendPostProcessor post_processor;
-  EXPECT_EQ(post_processor.Do(cg), SUCCESS);
+  EXPECT_EQ(post_processor.Do(cg), af::SUCCESS);
   EXPECT_EQ(prev_node_num, post_node_num);
   SetCurShapeEnvContext(nullptr);
   RuntimeStub::Reset();
@@ -2210,10 +2210,10 @@ TEST_F(UTestLoweringAndCanfuseV2, GatherAddBroadcastFuse) {
   ASSERT_EQ(asc_adapt::GeFallback(cg), GRAPH_SUCCESS);
   FusionStrategySolver fusion_strategy_solver;
   FusionDeciderRegistry::Instance().Register(std::unique_ptr<FusionDecider>(new AscBackendFusionDecider()));
-  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), SUCCESS);
+  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), af::SUCCESS);
   ASSERT_EQ(lowerer.Lifting(cg), GRAPH_SUCCESS);
   AscBackendPostProcessor post_processor;
-  EXPECT_EQ(post_processor.Do(cg), SUCCESS);
+  EXPECT_EQ(post_processor.Do(cg), af::SUCCESS);
 
   size_t asc_node_count = 0;
   for (const auto &node : cg->GetDirectNode()) {
@@ -2265,7 +2265,7 @@ TEST_F(UTestLoweringAndCanfuseV2, GatherAddBroadcastFuseInvalid) {
   ASSERT_EQ(asc_adapt::GeFallback(cg), GRAPH_SUCCESS);
   FusionStrategySolver fusion_strategy_solver;
   FusionDeciderRegistry::Instance().Register(std::unique_ptr<FusionDecider>(new AscBackendFusionDecider()));
-  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), SUCCESS);
+  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), af::SUCCESS);
 
   size_t asc_node_count = 0;
   for (const auto &node : cg->GetDirectNode()) {
@@ -2277,7 +2277,7 @@ TEST_F(UTestLoweringAndCanfuseV2, GatherAddBroadcastFuseInvalid) {
 
   ASSERT_EQ(lowerer.Lifting(cg), GRAPH_SUCCESS);
   AscBackendPostProcessor post_processor;
-  EXPECT_EQ(post_processor.Do(cg), SUCCESS);
+  EXPECT_EQ(post_processor.Do(cg), af::SUCCESS);
 
   asc_node_count = 0;
   for (const auto &node : cg->GetDirectNode()) {
@@ -2330,10 +2330,10 @@ TEST_F(UTestLoweringAndCanfuseV2, GatherReduceBroadcastFuse) {
   ASSERT_EQ(asc_adapt::GeFallback(cg), GRAPH_SUCCESS);
   FusionStrategySolver fusion_strategy_solver;
   FusionDeciderRegistry::Instance().Register(std::unique_ptr<FusionDecider>(new AscBackendFusionDecider()));
-  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), SUCCESS);
+  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), af::SUCCESS);
   ASSERT_EQ(lowerer.Lifting(cg), GRAPH_SUCCESS);
   AscBackendPostProcessor post_processor;
-  EXPECT_EQ(post_processor.Do(cg), SUCCESS);
+  EXPECT_EQ(post_processor.Do(cg), af::SUCCESS);
 
   size_t asc_node_count = 0;
   for (const auto &node : cg->GetDirectNode()) {
@@ -2388,10 +2388,10 @@ TEST_F(UTestLoweringAndCanfuseV2, GatherReduceBroadcastFuseInvalid) {
   ASSERT_EQ(asc_adapt::GeFallback(cg), GRAPH_SUCCESS);
   FusionStrategySolver fusion_strategy_solver;
   FusionDeciderRegistry::Instance().Register(std::unique_ptr<FusionDecider>(new AscBackendFusionDecider()));
-  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), SUCCESS);
+  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), af::SUCCESS);
   ASSERT_EQ(lowerer.Lifting(cg), GRAPH_SUCCESS);
   AscBackendPostProcessor post_processor;
-  EXPECT_EQ(post_processor.Do(cg), SUCCESS);
+  EXPECT_EQ(post_processor.Do(cg), af::SUCCESS);
 
   size_t asc_node_count = 0;
   for (const auto &node : cg->GetDirectNode()) {
@@ -2445,10 +2445,10 @@ TEST_F(UTestLoweringAndCanfuseV2, GatherAddSqueezeFuse) {
   ASSERT_EQ(asc_adapt::GeFallback(cg), GRAPH_SUCCESS);
   FusionStrategySolver fusion_strategy_solver;
   FusionDeciderRegistry::Instance().Register(std::unique_ptr<FusionDecider>(new AscBackendFusionDecider()));
-  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), SUCCESS);
+  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), af::SUCCESS);
   ASSERT_EQ(lowerer.Lifting(cg), GRAPH_SUCCESS);
   AscBackendPostProcessor post_processor;
-  EXPECT_EQ(post_processor.Do(cg), SUCCESS);
+  EXPECT_EQ(post_processor.Do(cg), af::SUCCESS);
 
   size_t asc_node_count = 0;
   for (const auto &node : cg->GetDirectNode()) {
@@ -2504,10 +2504,10 @@ TEST_F(UTestLoweringAndCanfuseV2, GatherBrocConcatFuse) {
   ASSERT_EQ(asc_adapt::GeFallback(cg), GRAPH_SUCCESS);
   FusionStrategySolver fusion_strategy_solver;
   FusionDeciderRegistry::Instance().Register(std::unique_ptr<FusionDecider>(new AscBackendFusionDecider()));
-  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), SUCCESS);
+  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), af::SUCCESS);
   ASSERT_EQ(lowerer.Lifting(cg), GRAPH_SUCCESS);
   AscBackendPostProcessor post_processor;
-  EXPECT_EQ(post_processor.Do(cg), SUCCESS);
+  EXPECT_EQ(post_processor.Do(cg), af::SUCCESS);
   gather_nodeptr = cg->FindNode("GatherV2_2");
   ASSERT_NE(gather_nodeptr, nullptr);
   size_t asc_node_count = 0;
@@ -2564,10 +2564,10 @@ TEST_F(UTestLoweringAndCanfuseV2, GatherBrocConcatFuse2) {
   ASSERT_EQ(asc_adapt::GeFallback(cg), GRAPH_SUCCESS);
   FusionStrategySolver fusion_strategy_solver;
   FusionDeciderRegistry::Instance().Register(std::unique_ptr<FusionDecider>(new AscBackendFusionDecider()));
-  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), SUCCESS);
+  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), af::SUCCESS);
   ASSERT_EQ(lowerer.Lifting(cg), GRAPH_SUCCESS);
   AscBackendPostProcessor post_processor;
-  EXPECT_EQ(post_processor.Do(cg), SUCCESS);
+  EXPECT_EQ(post_processor.Do(cg), af::SUCCESS);
 
   gather_nodeptr = cg->FindNode("GatherV2_2");
   ASSERT_EQ(gather_nodeptr, nullptr);
@@ -2653,7 +2653,7 @@ TEST_F(UTestLoweringAndCanfuseV2, GatherGatherConcatFuse) {
   tmp_desc->SetOriginDataType(DT_INT64);
 
   // 执行完整的 lowering/fusion/lifting/post-process 流程
-  EXPECT_EQ(ProcessGraphWithFullPipeline(cg), SUCCESS);
+  EXPECT_EQ(ProcessGraphWithFullPipeline(cg), af::SUCCESS);
 
   // 验证融合结果
   VerifyGatherGatherConcatFuseResult(cg);
@@ -2732,7 +2732,7 @@ TEST_F(UTestLoweringAndCanfuseV2, SplitReshapeSqueezeShouldFuseWhenNextNodeCanFu
 
   FusionStrategySolver fusion_strategy_solver;
   FusionDeciderRegistry::Instance().Register(std::unique_ptr<FusionDecider>(new AscBackendFusionDecider()));
-  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), SUCCESS);
+  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), af::SUCCESS);
 
   // 记录融合后AscBackend节点数，验证融合效果
   size_t asc_backend_count_after = 0;
@@ -2753,7 +2753,7 @@ TEST_F(UTestLoweringAndCanfuseV2, SplitReshapeSqueezeShouldFuseWhenNextNodeCanFu
 
   ASSERT_EQ(lowerer.Lifting(cg), GRAPH_SUCCESS);
   AscBackendPostProcessor post_processor;
-  EXPECT_EQ(post_processor.Do(cg), SUCCESS);
+  EXPECT_EQ(post_processor.Do(cg), af::SUCCESS);
   SetCurShapeEnvContext(nullptr);
   ge::PlatformContext::GetInstance().Reset();
   RuntimeStub::Reset();
@@ -2813,7 +2813,7 @@ TEST_F(UTestLoweringAndCanfuseV2, SplitReshapeSqueezeShouldNotFuseWhenNextIsNetO
 
   FusionStrategySolver fusion_strategy_solver;
   FusionDeciderRegistry::Instance().Register(std::unique_ptr<FusionDecider>(new AscBackendFusionDecider()));
-  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), SUCCESS);
+  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), af::SUCCESS);
 
   // 记录融合后AscBackend节点数，验证融合效果
   size_t asc_backend_count_after = 0;
@@ -2832,7 +2832,7 @@ TEST_F(UTestLoweringAndCanfuseV2, SplitReshapeSqueezeShouldNotFuseWhenNextIsNetO
 
   ASSERT_EQ(lowerer.Lifting(cg), GRAPH_SUCCESS);
   AscBackendPostProcessor post_processor;
-  EXPECT_EQ(post_processor.Do(cg), SUCCESS);
+  EXPECT_EQ(post_processor.Do(cg), af::SUCCESS);
   SetCurShapeEnvContext(nullptr);
   ge::PlatformContext::GetInstance().Reset();
   RuntimeStub::Reset();
@@ -2893,7 +2893,7 @@ TEST_F(UTestLoweringAndCanfuseV2, SplitReshapeNotSqueezeShouldFuse) {
 
   FusionStrategySolver fusion_strategy_solver;
   FusionDeciderRegistry::Instance().Register(std::unique_ptr<FusionDecider>(new AscBackendFusionDecider()));
-  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), SUCCESS);
+  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), af::SUCCESS);
 
   // 记录融合后AscBackend节点数，验证融合效果
   size_t asc_backend_count_after = 0;
@@ -2912,7 +2912,7 @@ TEST_F(UTestLoweringAndCanfuseV2, SplitReshapeNotSqueezeShouldFuse) {
 
   ASSERT_EQ(lowerer.Lifting(cg), GRAPH_SUCCESS);
   AscBackendPostProcessor post_processor;
-  EXPECT_EQ(post_processor.Do(cg), SUCCESS);
+  EXPECT_EQ(post_processor.Do(cg), af::SUCCESS);
   SetCurShapeEnvContext(nullptr);
   ge::PlatformContext::GetInstance().Reset();
   RuntimeStub::Reset();

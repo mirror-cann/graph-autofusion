@@ -20,7 +20,7 @@ namespace att {
 extern uint32_t kg_duration_level;
 inline bool IsProfilingEnabled() {
   bool env_status = false;
-  if (AutoFuseConfig::MutableAttStrategyConfig().Init() == ge::SUCCESS &&
+  if (AutoFuseConfig::MutableAttStrategyConfig().Init() == af::SUCCESS &&
       AutoFuseConfig::GetAttStrategyConfig().set_env_att_profiling) {
     env_status = AutoFuseConfig::GetAttStrategyConfig().att_profiling == "true";
   }

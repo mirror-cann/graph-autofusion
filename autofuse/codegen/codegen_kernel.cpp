@@ -2943,7 +2943,7 @@ int64_t Kernel::GetMaxGroupPerCompileUnit(bool enable_parallel_compile) {
   return max_group_per_compile_unit;
 }
 
-ge::Status Kernel::GenCubeCommonTiling(std::stringstream &ss, const bool is_batch, bool is_conv2d, bool is_dynamic,
+af::Status Kernel::GenCubeCommonTiling(std::stringstream &ss, const bool is_batch, bool is_conv2d, bool is_dynamic,
                                        bool is_db) const {
   if (is_conv2d) {
     // conv2d

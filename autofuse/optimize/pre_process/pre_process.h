@@ -18,7 +18,7 @@ namespace pre_process {
 
 class PreProcess {
  public:
-  static ge::Status Run(af::AscGraph &asc_graph);
+  static af::Status Run(af::AscGraph &asc_graph);
 };
 
 }  // namespace pre_process

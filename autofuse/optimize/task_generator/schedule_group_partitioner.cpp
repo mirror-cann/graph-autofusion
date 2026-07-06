@@ -102,25 +102,25 @@ Status ScheduleGroupGraphPartitioner::PartitionByConnectivity(const ::ascir::Imp
   if (visited.size() != num_nodes) {
     for (const auto &node : optimize_graph.GetAllNodes()) {
       if (visited.find(node) == visited.cend()) {
-        GELOGE(ge::FAILED, "node: %s[%s] not visited", node->GetName().c_str(), node->GetType().c_str());
+        GELOGE(af::FAILED, "node: %s[%s] not visited", node->GetName().c_str(), node->GetType().c_str());
       }
     }
-    GELOGE(ge::FAILED, "number of visited nodes = %zu, num_nodes = %zu", visited.size(), num_nodes);
-    return ge::FAILED;
+    GELOGE(af::FAILED, "number of visited nodes = %zu, num_nodes = %zu", visited.size(), num_nodes);
+    return af::FAILED;
   }
 
   GELOGI("Partition success, subgraph number = %zu", sub_optimize_graphs.size());
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status ScheduleGroupGraphPartitioner::NeedRefreshAxisSize(const ::ascir::ImplGraph &optimize_graph,
                                                           bool &need_refresh) {
   const auto concat_node = ScheduleUtils::FindFirstNodeOfType<af::ascir_op::Concat>(optimize_graph);
   const auto split_node = ScheduleUtils::FindFirstNodeOfType<af::ascir_op::Split>(optimize_graph);
-  GE_CHK_BOOL_RET_SPECIAL_STATUS(concat_node == nullptr && split_node == nullptr, ge::SUCCESS,
- 	                             "neither Concat nor Split Node was found");
+  GE_CHK_BOOL_RET_SPECIAL_STATUS(concat_node == nullptr && split_node == nullptr, af::SUCCESS,
+                                 "neither Concat nor Split Node was found");
   need_refresh = true;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status ScheduleGroupGraphPartitioner::CollectConnectedNodes(const af::AscNodePtr &root_node,
@@ -147,7 +147,7 @@ Status ScheduleGroupGraphPartitioner::CollectConnectedNodes(const af::AscNodePtr
       }
     }
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status ScheduleGroupGraphPartitioner::AddConnectedNodes(const af::AscNodePtr &root_node, ::ascir::ImplGraph &sub_graph,
@@ -173,7 +173,7 @@ Status ScheduleGroupGraphPartitioner::AddConnectedNodes(const af::AscNodePtr &ro
     GE_CHK_STATUS_RET(af::GraphUtils::RelinkGraphEdges(src_node, "", all_new_nodes), "RelinkGraphEdges failed");
   }
   all_visited.insert(visited.cbegin(), visited.cend());
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 bool ScheduleGroupGraphPartitioner::CompareByNodeId(const AscNodePtr &lhs, const AscNodePtr &rhs) {
@@ -320,7 +320,7 @@ Status ScheduleGroupGraphPartitioner::MergeGraphs(::ascir::ImplGraph &dst,
   }
 
   GE_CHK_STATUS_RET(ScheduleUtils::TopologicalSorting(dst), "Failed to sort merged graph");
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 MergePlan ScheduleGroupGraphPartitioner::ResolveMergePlan(const std::vector<MergeableGraphs> &mergeable_groups,
@@ -385,7 +385,7 @@ MergePlan ScheduleGroupGraphPartitioner::ResolveMergePlan(const std::vector<Merg
 Status ScheduleGroupGraphPartitioner::ReduceGraphCount(std::vector<::ascir::ImplGraph> &grouped_graphs,
                                                        size_t target_count) {
   if (grouped_graphs.size() <= target_count) {
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
 
   GELOGI("ReduceGraphCount: reducing from %zu to %zu graphs", grouped_graphs.size(), target_count);
@@ -393,13 +393,13 @@ Status ScheduleGroupGraphPartitioner::ReduceGraphCount(std::vector<::ascir::Impl
   const auto mergeable_groups = FindMergeableGraphs(grouped_graphs);
   if (mergeable_groups.empty()) {
     GELOGI("No mergeable graphs found, cannot reduce");
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
 
   const auto plan = ResolveMergePlan(mergeable_groups, grouped_graphs.size() - target_count);
   if (plan.merge_groups.empty()) {
     GELOGI("No merge plan generated, cannot reduce");
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
 
   GELOGD("ReduceGraphCount: merge plan has %zu groups", plan.merge_groups.size());
@@ -438,6 +438,6 @@ Status ScheduleGroupGraphPartitioner::ReduceGraphCount(std::vector<::ascir::Impl
   }
 
   GELOGI("ReduceGraphCount: final count is %zu graphs", grouped_graphs.size());
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 }  // namespace optimize

@@ -18,7 +18,7 @@ class AtracingReporter {
  public:
   AtracingReporter(const TraHandle handle, const TracingRecord *tracing_record)
       : tracing_record_(tracing_record), handle_(handle) {}
-  Status Report() const;
+  af::Status Report() const;
 
  private:
   std::string ToAtracingProfilingData() const;

@@ -15,10 +15,10 @@
 #include <functional>
 #include <vector>
 #include "graph/node.h"
-#include "external/ge_common/ge_api_types.h"
+#include "external/ge_common_af/ge_api_types.h"
 
 namespace fe {
-using OpExtCalcParamFunc = ge::Status (*)(const ge::Node &node);
+using OpExtCalcParamFunc = af::Status (*)(const ge::Node &node);
 class OpExtCalcParamRegistry {
  public:
   OpExtCalcParamRegistry() {};

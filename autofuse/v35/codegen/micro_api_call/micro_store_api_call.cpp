@@ -151,7 +151,7 @@ Status MicroStoreApiCall::Generate(const codegen::TensorManager &tensor_mng, con
      << ", " << reg_for_store << ", " << p_reg_for_store << ");" << std::endl;
 
   result = ss.str();
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status MicroStoreApiCall::Init(const ascir::NodeView &node) {
@@ -172,7 +172,7 @@ Status MicroStoreApiCall::Init(const ascir::NodeView &node) {
       this->dist_ = "DIST_FIRST_ELEMENT_B32";
     }
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 static MicroApiCallRegister<MicroStoreApiCall> register_micro_store_api_call("MicroStoreApiCall");
 }  // namespace codegen

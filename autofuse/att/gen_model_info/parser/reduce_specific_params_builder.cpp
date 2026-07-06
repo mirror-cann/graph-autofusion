@@ -17,16 +17,16 @@ namespace att {
 af::Status FillReduceSpecificParams(const af::AscNodePtr &ge_node, NodeInfo &node_info) {
   const auto params = ascir_param::GetAscirNodeParams(ge_node);
   if (params == nullptr) {
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
   if (params->status == ascir_param::ParamBuildStatus::kSkipped) {
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
   GE_ASSERT_TRUE(params->status == ascir_param::ParamBuildStatus::kBuilt, "Build ascir node params failed, node[%s].",
                  node_info.name.c_str());
   const auto *reduce = ascir_param::GetSpecificParams<ascir_param::ReduceNodeParams>(*params);
   GE_ASSERT_NOTNULL(reduce, "Reduce specific params is null, node[%s].", node_info.name.c_str());
   node_info.reduce_specific_params = *reduce;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 }  // namespace att

@@ -346,7 +346,7 @@ graphStatus OpDescImpl::AddInputDescMiddle(const std::string &name, const uint32
     GE_CHK_BOOL_EXEC(
         (input_name_idx_.find(input_name) == input_name_idx_.end()),
         REPORT_INNER_ERR_MSG("E18888", "Add input tensor_desc is existed. name[%s]", input_name.c_str());
-        GELOGE(ge::FAILED, "[Check][Param] Add input tensor_desc is existed. name[%s]", input_name.c_str());
+        GELOGE(af::FAILED, "[Check][Param] Add input tensor_desc is existed. name[%s]", input_name.c_str());
         return GRAPH_FAILED);
 
     const std::shared_ptr<GeTensorDesc> in_desc = ComGraphMakeShared<GeTensorDesc>(GeTensorDesc());

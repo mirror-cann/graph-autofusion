@@ -70,7 +70,7 @@ TEST_F(TransposeScheduleCaseGeneratorTest, MultiTranspose_TwoBranchAdd) {
   optimize::TransposeFusionCaseGenerator generator;
   std::vector<af::AscGraph> graphs;
   std::vector<std::string> score_functions;
-  EXPECT_EQ(generator.Generate(graph, graphs, score_functions), ge::SUCCESS);
+  EXPECT_EQ(generator.Generate(graph, graphs, score_functions), af::SUCCESS);
   ASSERT_EQ(graphs.size(), 1UL);
   EXPECT_TRUE(score_functions.empty());
 }
@@ -96,7 +96,7 @@ TEST_F(TransposeScheduleCaseGeneratorTest, MultiTranspose_TwoBranchAdd_TaskStruc
 
   optimize::TransposeFusionCaseGenerator generator;
   std::vector<ScheduleTask> tasks;
-  EXPECT_EQ(generator.GeneratorTask(graph, tasks, {}), ge::SUCCESS);
+  EXPECT_EQ(generator.GeneratorTask(graph, tasks, {}), af::SUCCESS);
   ASSERT_EQ(tasks.size(), 1UL);
 }
 
@@ -119,7 +119,7 @@ TEST_F(TransposeScheduleCaseGeneratorTest, SingleTransposeWithReduce_EliminateIn
   optimize::TransposeFusionCaseGenerator generator;
   std::vector<af::AscGraph> graphs;
   std::vector<std::string> score_functions;
-  EXPECT_EQ(generator.Generate(graph, graphs, score_functions), ge::SUCCESS);
+  EXPECT_EQ(generator.Generate(graph, graphs, score_functions), af::SUCCESS);
   EXPECT_TRUE(graphs.empty());
   EXPECT_TRUE(score_functions.empty());
 

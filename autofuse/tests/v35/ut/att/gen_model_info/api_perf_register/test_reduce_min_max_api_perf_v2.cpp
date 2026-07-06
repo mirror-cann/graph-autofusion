@@ -194,8 +194,8 @@ TEST_F(UTestReduceMinMaxApiPerfV2, FillReduceSpecificParamsRegistersSkippedForUn
   node_info.name = "add";
   node_info.node_type = "Add";
   node_info.node_ptr = node;
-  EXPECT_EQ(ascir_param::EnrichAscirGraphNodeParams(graph), ge::SUCCESS);
-  EXPECT_EQ(FillReduceSpecificParams(node, node_info), ge::SUCCESS);
+  EXPECT_EQ(ascir_param::EnrichAscirGraphNodeParams(graph), af::SUCCESS);
+  EXPECT_EQ(FillReduceSpecificParams(node, node_info), af::SUCCESS);
   const auto params = ascir_param::GetAscirNodeParams(node);
   ASSERT_NE(params, nullptr);
   EXPECT_EQ(params->status, ascir_param::ParamBuildStatus::kSkipped);
@@ -210,7 +210,7 @@ TEST_F(UTestReduceMinMaxApiPerfV2, FillReduceSpecificParamsKeepsInvalidWhenParam
   node_info.node_type = "Max";
   node_info.node_ptr = env.node;
 
-  EXPECT_EQ(FillReduceSpecificParams(env.node, node_info), ge::SUCCESS);
+  EXPECT_EQ(FillReduceSpecificParams(env.node, node_info), af::SUCCESS);
   EXPECT_EQ(ascir_param::GetAscirNodeParams(env.node), nullptr);
   EXPECT_FALSE(node_info.reduce_specific_params.canonical_params.valid);
 }
@@ -222,8 +222,8 @@ TEST_F(UTestReduceMinMaxApiPerfV2, RegBaseReduceMinMaxUseVfTable) {
   PerfOutputInfo max_perf;
   NodeDetail node_detail = MakeNodeDetail(kFloat16, {CreateExpr(128)});
 
-  EXPECT_EQ(ascendcperf_v2::ReduceMinPerf(node_detail, min_perf), ge::SUCCESS);
-  EXPECT_EQ(ascendcperf_v2::ReduceMaxPerf(node_detail, max_perf), ge::SUCCESS);
+  EXPECT_EQ(ascendcperf_v2::ReduceMinPerf(node_detail, min_perf), af::SUCCESS);
+  EXPECT_EQ(ascendcperf_v2::ReduceMaxPerf(node_detail, max_perf), af::SUCCESS);
   EXPECT_FALSE(PipeString(min_perf, PipeType::AIV_VEC).empty());
   EXPECT_FALSE(PipeString(max_perf, PipeType::AIV_VEC).empty());
 }
@@ -234,8 +234,8 @@ TEST_F(UTestReduceMinMaxApiPerfV2, RegBaseReduceMinMaxCoverIntegerDtypes) {
     PerfOutputInfo min_perf;
     PerfOutputInfo max_perf;
     NodeDetail node_detail = MakeNodeDetail(dtype, {CreateExpr(128)});
-    EXPECT_EQ(ascendcperf_v2::ReduceMinPerf(node_detail, min_perf), ge::SUCCESS) << dtype;
-    EXPECT_EQ(ascendcperf_v2::ReduceMaxPerf(node_detail, max_perf), ge::SUCCESS) << dtype;
+    EXPECT_EQ(ascendcperf_v2::ReduceMinPerf(node_detail, min_perf), af::SUCCESS) << dtype;
+    EXPECT_EQ(ascendcperf_v2::ReduceMaxPerf(node_detail, max_perf), af::SUCCESS) << dtype;
   }
 }
 
@@ -273,10 +273,10 @@ TEST_F(UTestReduceMinMaxApiPerfV2, AscendCApiReduceMinMaxArRaBranches) {
   PerfOutputInfo ra_min_perf;
   PerfOutputInfo ra_max_perf;
 
-  EXPECT_EQ(ascendcapi_v2::ReduceMinPerf(ar_context, ar_min_perf), ge::SUCCESS);
-  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(ar_context, ar_max_perf), ge::SUCCESS);
-  EXPECT_EQ(ascendcapi_v2::ReduceMinPerf(ra_context, ra_min_perf), ge::SUCCESS);
-  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(ra_context, ra_max_perf), ge::SUCCESS);
+  EXPECT_EQ(ascendcapi_v2::ReduceMinPerf(ar_context, ar_min_perf), af::SUCCESS);
+  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(ar_context, ar_max_perf), af::SUCCESS);
+  EXPECT_EQ(ascendcapi_v2::ReduceMinPerf(ra_context, ra_min_perf), af::SUCCESS);
+  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(ra_context, ra_max_perf), af::SUCCESS);
 
   EXPECT_FALSE(PipeString(ar_min_perf, PipeType::AIV_VEC).empty());
   EXPECT_FALSE(PipeString(ar_max_perf, PipeType::AIV_VEC).empty());
@@ -297,10 +297,10 @@ TEST_F(UTestReduceMinMaxApiPerfV2, AscendCApiReduceSumProdMeanUseReduceBranches)
   PerfOutputInfo ra_sum_perf;
   PerfOutputInfo prod_perf;
   PerfOutputInfo mean_perf;
-  EXPECT_EQ(ascendcapi_v2::ReduceSumPerf(ar_context, ar_sum_perf), ge::SUCCESS);
-  EXPECT_EQ(ascendcapi_v2::ReduceSumPerf(ra_context, ra_sum_perf), ge::SUCCESS);
-  EXPECT_EQ(ascendcapi_v2::ReduceProdPerf(ra_context, prod_perf), ge::SUCCESS);
-  EXPECT_EQ(ascendcapi_v2::ReduceMeanPerf(ra_context, mean_perf), ge::SUCCESS);
+  EXPECT_EQ(ascendcapi_v2::ReduceSumPerf(ar_context, ar_sum_perf), af::SUCCESS);
+  EXPECT_EQ(ascendcapi_v2::ReduceSumPerf(ra_context, ra_sum_perf), af::SUCCESS);
+  EXPECT_EQ(ascendcapi_v2::ReduceProdPerf(ra_context, prod_perf), af::SUCCESS);
+  EXPECT_EQ(ascendcapi_v2::ReduceMeanPerf(ra_context, mean_perf), af::SUCCESS);
 
   EXPECT_FALSE(PipeString(ar_sum_perf, PipeType::AIV_VEC).empty());
   EXPECT_FALSE(PipeString(ra_sum_perf, PipeType::AIV_VEC).empty());
@@ -312,7 +312,7 @@ TEST_F(UTestReduceMinMaxApiPerfV2, AscendCApiReduceSumProdMeanUseReduceBranches)
   Expr mean_delta = ResolvedPipeExpr(mean_perf, PipeType::AIV_VEC) - ResolvedPipeExpr(ra_sum_perf, PipeType::AIV_VEC);
   mean_delta.Simplify();
   PerfOutputInfo muls_perf;
-  EXPECT_EQ(ascendcperf_v2::MeanPerf(MakeNodeDetail(kFloat32, {CreateExpr(64)}), muls_perf), ge::SUCCESS);
+  EXPECT_EQ(ascendcperf_v2::MeanPerf(MakeNodeDetail(kFloat32, {CreateExpr(64)}), muls_perf), af::SUCCESS);
   EXPECT_EQ(Str(mean_delta), Str(ResolvedPipeExpr(muls_perf, PipeType::AIV_VEC)));
 }
 
@@ -327,11 +327,11 @@ TEST_F(UTestReduceMinMaxApiPerfV2, AscendCApiReduceSumMeanProdRejectUnsupportedD
   PerfOutputInfo prod_perf;
   PerfOutputInfo bfloat16_mean_perf;
   PerfOutputInfo uint64_prod_perf;
-  EXPECT_NE(ascendcapi_v2::ReduceSumPerf(float16_context, sum_perf), ge::SUCCESS);
-  EXPECT_NE(ascendcapi_v2::ReduceMeanPerf(uint64_context, mean_perf), ge::SUCCESS);
-  EXPECT_NE(ascendcapi_v2::ReduceProdPerf(int16_context, prod_perf), ge::SUCCESS);
-  EXPECT_NE(ascendcapi_v2::ReduceMeanPerf(bfloat16_context, bfloat16_mean_perf), ge::SUCCESS);
-  EXPECT_NE(ascendcapi_v2::ReduceProdPerf(uint64_context, uint64_prod_perf), ge::SUCCESS);
+  EXPECT_NE(ascendcapi_v2::ReduceSumPerf(float16_context, sum_perf), af::SUCCESS);
+  EXPECT_NE(ascendcapi_v2::ReduceMeanPerf(uint64_context, mean_perf), af::SUCCESS);
+  EXPECT_NE(ascendcapi_v2::ReduceProdPerf(int16_context, prod_perf), af::SUCCESS);
+  EXPECT_NE(ascendcapi_v2::ReduceMeanPerf(bfloat16_context, bfloat16_mean_perf), af::SUCCESS);
+  EXPECT_NE(ascendcapi_v2::ReduceProdPerf(uint64_context, uint64_prod_perf), af::SUCCESS);
 }
 
 TEST_F(UTestReduceMinMaxApiPerfV2, AscendCApiReduceSumSupportsAscendC3510Dtypes) {
@@ -342,75 +342,69 @@ TEST_F(UTestReduceMinMaxApiPerfV2, AscendCApiReduceSumSupportsAscendC3510Dtypes)
     auto ra_context = MakeRaContext(dtype, {CreateExpr(8), CreateExpr(64)}, true);
     PerfOutputInfo ar_perf;
     PerfOutputInfo ra_perf;
-    EXPECT_EQ(ascendcapi_v2::ReduceSumPerf(ar_context, ar_perf), ge::SUCCESS) << dtype;
-    EXPECT_EQ(ascendcapi_v2::ReduceSumPerf(ra_context, ra_perf), ge::SUCCESS) << dtype;
+    EXPECT_EQ(ascendcapi_v2::ReduceSumPerf(ar_context, ar_perf), af::SUCCESS) << dtype;
+    EXPECT_EQ(ascendcapi_v2::ReduceSumPerf(ra_context, ra_perf), af::SUCCESS) << dtype;
     EXPECT_FALSE(PipeString(ar_perf, PipeType::AIV_VEC).empty()) << dtype;
     EXPECT_FALSE(PipeString(ra_perf, PipeType::AIV_VEC).empty()) << dtype;
   }
 }
 
-TEST_F(UTestReduceMinMaxApiPerfV2, ReduceSumRaUnalignedTailRDoesNotRepeatVfHead)
-{
+TEST_F(UTestReduceMinMaxApiPerfV2, ReduceSumRaUnalignedTailRDoesNotRepeatVfHead) {
   auto context = MakeRaContext(kFloat32, {CreateExpr(1917), CreateExpr(10)}, true);
   PerfOutputInfo perf;
-  ASSERT_EQ(ascendcapi_v2::ReduceSumPerf(context, perf), ge::SUCCESS);
+  ASSERT_EQ(ascendcapi_v2::ReduceSumPerf(context, perf), af::SUCCESS);
 
   const std::string vec_perf = PipeString(perf, PipeType::AIV_VEC);
   EXPECT_EQ(vec_perf, "TernaryOp(IsEqual(8, 0), 1310, 11892)");
 }
 
-TEST_F(UTestReduceMinMaxApiPerfV2, ReduceSumRaAlignedTailRDoesNotRepeatVfHead)
-{
+TEST_F(UTestReduceMinMaxApiPerfV2, ReduceSumRaAlignedTailRDoesNotRepeatVfHead) {
   auto context = MakeRaContext(kFloat32, {CreateExpr(1917), CreateExpr(80)}, true);
   PerfOutputInfo perf;
-  ASSERT_EQ(ascendcapi_v2::ReduceSumPerf(context, perf), ge::SUCCESS);
+  ASSERT_EQ(ascendcapi_v2::ReduceSumPerf(context, perf), af::SUCCESS);
 
   const std::string vec_perf = PipeString(perf, PipeType::AIV_VEC);
   EXPECT_EQ(vec_perf, "TernaryOp(IsEqual(0, 0), 13808, 15732)");
 }
 
-TEST_F(UTestReduceMinMaxApiPerfV2, ReduceSumRaSymbolicAlignedTailDoesNotRepeatVfHead)
-{
+TEST_F(UTestReduceMinMaxApiPerfV2, ReduceSumRaSymbolicAlignedTailDoesNotRepeatVfHead) {
   const Expr a2t_size = CreateExpr("a2t_size");
-  auto context = MakeRaContext(kFloat32, {CreateExpr(1917), CreateExpr(8) * af::sym::Ceiling(a2t_size / CreateExpr(8))},
-                               true);
+  auto context =
+      MakeRaContext(kFloat32, {CreateExpr(1917), CreateExpr(8) * af::sym::Ceiling(a2t_size / CreateExpr(8))}, true);
   PerfOutputInfo perf;
-  ASSERT_EQ(ascendcapi_v2::ReduceSumPerf(context, perf), ge::SUCCESS);
+  ASSERT_EQ(ascendcapi_v2::ReduceSumPerf(context, perf), af::SUCCESS);
 
   const std::string aligned_formula = TernaryChoiceString(perf, true);
   EXPECT_NE(aligned_formula.find("+ 4) * 893"), std::string::npos) << aligned_formula;
   EXPECT_EQ(aligned_formula.find("+ 64) * 893"), std::string::npos) << aligned_formula;
 }
 
-TEST_F(UTestReduceMinMaxApiPerfV2, ReduceRaB64TailRDoesNotRepeatVfHead)
-{
+TEST_F(UTestReduceMinMaxApiPerfV2, ReduceRaB64TailRDoesNotRepeatVfHead) {
   auto context = MakeRaContext(kInt64, {CreateExpr(1224), CreateExpr(12)}, true);
   PerfOutputInfo perf;
-  ASSERT_EQ(ascendcapi_v2::ReduceSumPerf(context, perf), ge::SUCCESS);
+  ASSERT_EQ(ascendcapi_v2::ReduceSumPerf(context, perf), af::SUCCESS);
 
   const std::string vec_perf = PipeString(perf, PipeType::AIV_VEC);
   EXPECT_EQ(vec_perf, "TernaryOp(IsEqual(0, 0), 57326, 57526)");
 }
 
-TEST_F(UTestReduceMinMaxApiPerfV2, ReduceArTailRDoesNotRepeatVfHead)
-{
+TEST_F(UTestReduceMinMaxApiPerfV2, ReduceArTailRDoesNotRepeatVfHead) {
   auto context = MakeArContext(kFloat32, {CreateExpr(16), CreateExpr(1917)}, true);
   PerfOutputInfo perf;
-  ASSERT_EQ(ascendcapi_v2::ReduceSumPerf(context, perf), ge::SUCCESS);
+  ASSERT_EQ(ascendcapi_v2::ReduceSumPerf(context, perf), af::SUCCESS);
 
   const std::string vec_perf = PipeString(perf, PipeType::AIV_VEC);
   EXPECT_EQ(vec_perf, "TernaryOp(IsEqual(38320, 0), 944, 1168)");
 }
 
-TEST_F(UTestReduceMinMaxApiPerfV2, ReduceSumB64UsesSpecializedAscendC3510Cost)
-{
+TEST_F(UTestReduceMinMaxApiPerfV2, ReduceSumB64UsesSpecializedAscendC3510Cost) {
   auto int64_context = MakeRaContext(kInt64, {CreateExpr(8), CreateExpr(64)}, true);
   auto uint64_context = MakeArContext(kUInt64, {CreateExpr(8), CreateExpr(64)}, true);
 
   PerfOutputInfo int64_perf;
   PerfOutputInfo uint64_perf;
-  EXPECT_EQ(ascendcapi_v2::ReduceSumPerf(int64_context, int64_perf), ge::SUCCESS);
-  EXPECT_EQ(ascendcapi_v2::ReduceSumPerf(uint64_context, uint64_perf), ge::SUCCESS);
+  EXPECT_EQ(ascendcapi_v2::ReduceSumPerf(int64_context, int64_perf), af::SUCCESS);
+  EXPECT_EQ(ascendcapi_v2::ReduceSumPerf(uint64_context, uint64_perf), af::SUCCESS);
   EXPECT_FALSE(PipeString(int64_perf, PipeType::AIV_VEC).empty());
   EXPECT_FALSE(PipeString(uint64_perf, PipeType::AIV_VEC).empty());
 }
@@ -422,7 +416,7 @@ TEST_F(UTestReduceMinMaxApiPerfV2, ReducePerfProvidesReadableBreakdownItems) {
   context.merge_times = CreateExpr(2);
 
   PerfOutputInfo perf;
-  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(context, perf), ge::SUCCESS);
+  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(context, perf), af::SUCCESS);
 
   const auto *body_item = FindBreakdownItem(perf, "reduce_body_perf");
   const auto *merge_item = FindBreakdownItem(perf, "reduce_merge_perf");
@@ -450,7 +444,7 @@ TEST_F(UTestReduceMinMaxApiPerfV2, AscendCApiReduceMaxB64AndMergeBranches) {
   b64_context.merge_mode = ReduceMergeMode::kNone;
 
   PerfOutputInfo b64_perf;
-  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(b64_context, b64_perf), ge::SUCCESS);
+  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(b64_context, b64_perf), af::SUCCESS);
   EXPECT_FALSE(PipeString(b64_perf, PipeType::AIV_VEC).empty());
   EXPECT_FALSE(b64_perf.ternary_ops.empty());
 
@@ -461,12 +455,12 @@ TEST_F(UTestReduceMinMaxApiPerfV2, AscendCApiReduceMaxB64AndMergeBranches) {
 
   PerfOutputInfo copy_perf;
   context.merge_mode = ReduceMergeMode::kCopy;
-  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(context, copy_perf), ge::SUCCESS);
+  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(context, copy_perf), af::SUCCESS);
   EXPECT_FALSE(PipeString(copy_perf, PipeType::AIV_VEC).empty());
 
   PerfOutputInfo merge_perf;
   context.merge_mode = ReduceMergeMode::kMergeByElementwise;
-  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(context, merge_perf), ge::SUCCESS);
+  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(context, merge_perf), af::SUCCESS);
   EXPECT_FALSE(PipeString(merge_perf, PipeType::AIV_VEC).empty());
   EXPECT_NE(PipeString(copy_perf, PipeType::AIV_VEC), PipeString(merge_perf, PipeType::AIV_VEC));
 }
@@ -477,8 +471,8 @@ TEST_F(UTestReduceMinMaxApiPerfV2, AscendCApiReduceReuseSourceChangesFormula) {
 
   PerfOutputInfo reuse_perf;
   PerfOutputInfo non_reuse_perf;
-  EXPECT_EQ(ascendcapi_v2::ReduceMinPerf(reuse_context, reuse_perf), ge::SUCCESS);
-  EXPECT_EQ(ascendcapi_v2::ReduceMinPerf(non_reuse_context, non_reuse_perf), ge::SUCCESS);
+  EXPECT_EQ(ascendcapi_v2::ReduceMinPerf(reuse_context, reuse_perf), af::SUCCESS);
+  EXPECT_EQ(ascendcapi_v2::ReduceMinPerf(non_reuse_context, non_reuse_perf), af::SUCCESS);
   EXPECT_NE(PipeString(reuse_perf, PipeType::AIV_VEC), PipeString(non_reuse_perf, PipeType::AIV_VEC));
 }
 
@@ -488,8 +482,8 @@ TEST_F(UTestReduceMinMaxApiPerfV2, AscendCApiReduceArAlignedNonReuseGreaterThanR
 
   PerfOutputInfo reuse_perf;
   PerfOutputInfo non_reuse_perf;
-  EXPECT_EQ(ascendcapi_v2::ReduceMinPerf(reuse_context, reuse_perf), ge::SUCCESS);
-  EXPECT_EQ(ascendcapi_v2::ReduceMinPerf(non_reuse_context, non_reuse_perf), ge::SUCCESS);
+  EXPECT_EQ(ascendcapi_v2::ReduceMinPerf(reuse_context, reuse_perf), af::SUCCESS);
+  EXPECT_EQ(ascendcapi_v2::ReduceMinPerf(non_reuse_context, non_reuse_perf), af::SUCCESS);
 
   Expr reuse_cost = ResolvedPipeExpr(reuse_perf, PipeType::AIV_VEC);
   Expr non_reuse_cost = ResolvedPipeExpr(non_reuse_perf, PipeType::AIV_VEC);
@@ -514,8 +508,8 @@ TEST_F(UTestReduceMinMaxApiPerfV2, AscendCApiReduceNonReuseCopyFallsBackForB64Dt
 
   PerfOutputInfo reuse_perf;
   PerfOutputInfo non_reuse_perf;
-  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(reuse_context, reuse_perf), ge::SUCCESS);
-  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(non_reuse_context, non_reuse_perf), ge::SUCCESS);
+  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(reuse_context, reuse_perf), af::SUCCESS);
+  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(non_reuse_context, non_reuse_perf), af::SUCCESS);
   EXPECT_NE(PipeString(reuse_perf, PipeType::AIV_VEC), PipeString(non_reuse_perf, PipeType::AIV_VEC));
 }
 
@@ -532,7 +526,7 @@ TEST_F(UTestReduceMinMaxApiPerfV2, AscendCApiReduceMaxB64AlignedRaBranch) {
   aligned_b64_context.merge_mode = ReduceMergeMode::kNone;
 
   PerfOutputInfo aligned_b64_perf;
-  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(aligned_b64_context, aligned_b64_perf), ge::SUCCESS);
+  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(aligned_b64_context, aligned_b64_perf), af::SUCCESS);
   EXPECT_FALSE(PipeString(aligned_b64_perf, PipeType::AIV_VEC).empty());
   // aligned branch: ternary_ops should NOT contain align case for b64 (last*8 % 32 == 0)
   EXPECT_FALSE(aligned_b64_perf.ternary_ops.empty());
@@ -545,7 +539,7 @@ TEST_F(UTestReduceMinMaxApiPerfV2, AscendCApiReduceMaxB64AlignedRaBranch) {
   unaligned_b64_context.merge_mode = ReduceMergeMode::kNone;
 
   PerfOutputInfo unaligned_b64_perf;
-  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(unaligned_b64_context, unaligned_b64_perf), ge::SUCCESS);
+  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(unaligned_b64_context, unaligned_b64_perf), af::SUCCESS);
   EXPECT_NE(PipeString(aligned_b64_perf, PipeType::AIV_VEC), PipeString(unaligned_b64_perf, PipeType::AIV_VEC));
 }
 
@@ -564,7 +558,7 @@ TEST_F(UTestReduceMinMaxApiPerfV2, RaB64UnalignedTreeReduction) {
   context.merge_mode = ReduceMergeMode::kNone;
 
   PerfOutputInfo perf;
-  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(context, perf), ge::SUCCESS);
+  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(context, perf), af::SUCCESS);
   EXPECT_FALSE(PipeString(perf, PipeType::AIV_VEC).empty());
   EXPECT_FALSE(perf.ternary_ops.empty());
 
@@ -576,7 +570,7 @@ TEST_F(UTestReduceMinMaxApiPerfV2, RaB64UnalignedTreeReduction) {
   small_context.merge_mode = ReduceMergeMode::kNone;
 
   PerfOutputInfo small_perf;
-  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(small_context, small_perf), ge::SUCCESS);
+  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(small_context, small_perf), af::SUCCESS);
   EXPECT_NE(PipeString(perf, PipeType::AIV_VEC), PipeString(small_perf, PipeType::AIV_VEC));
 }
 
@@ -593,7 +587,7 @@ TEST_F(UTestReduceMinMaxApiPerfV2, RaNormalAlignedTreeReduction) {
   context.merge_mode = ReduceMergeMode::kNone;
 
   PerfOutputInfo perf;
-  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(context, perf), ge::SUCCESS);
+  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(context, perf), af::SUCCESS);
   EXPECT_FALSE(PipeString(perf, PipeType::AIV_VEC).empty());
   EXPECT_FALSE(perf.ternary_ops.empty());
 }
@@ -611,7 +605,7 @@ TEST_F(UTestReduceMinMaxApiPerfV2, RaNormalUnalignedTreeReduction) {
   context.merge_mode = ReduceMergeMode::kNone;
 
   PerfOutputInfo perf;
-  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(context, perf), ge::SUCCESS);
+  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(context, perf), af::SUCCESS);
   EXPECT_FALSE(PipeString(perf, PipeType::AIV_VEC).empty());
   EXPECT_FALSE(perf.ternary_ops.empty());
 }
@@ -629,7 +623,7 @@ TEST_F(UTestReduceMinMaxApiPerfV2, RaNormalLargeFirstMultiRound) {
   context.merge_mode = ReduceMergeMode::kNone;
 
   PerfOutputInfo perf;
-  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(context, perf), ge::SUCCESS);
+  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(context, perf), af::SUCCESS);
   EXPECT_FALSE(PipeString(perf, PipeType::AIV_VEC).empty());
   EXPECT_FALSE(perf.ternary_ops.empty());
 
@@ -641,7 +635,7 @@ TEST_F(UTestReduceMinMaxApiPerfV2, RaNormalLargeFirstMultiRound) {
   small_context.merge_mode = ReduceMergeMode::kNone;
 
   PerfOutputInfo small_perf;
-  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(small_context, small_perf), ge::SUCCESS);
+  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(small_context, small_perf), af::SUCCESS);
   // Multi-round should produce a different formula than single-round
   EXPECT_NE(PipeString(perf, PipeType::AIV_VEC), PipeString(small_perf, PipeType::AIV_VEC));
 }
@@ -659,7 +653,7 @@ TEST_F(UTestReduceMinMaxApiPerfV2, RaB64AlignedTreeReduction) {
   context.merge_mode = ReduceMergeMode::kNone;
 
   PerfOutputInfo perf;
-  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(context, perf), ge::SUCCESS);
+  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(context, perf), af::SUCCESS);
   EXPECT_FALSE(PipeString(perf, PipeType::AIV_VEC).empty());
   EXPECT_FALSE(perf.ternary_ops.empty());
 }
@@ -669,7 +663,7 @@ TEST_F(UTestReduceMinMaxApiPerfV2, RaB64SymbolicDimRIncludesTreeReduceCost) {
   auto context = MakeRaContext(kInt64, {CreateExpr(136) * z0t_size, CreateExpr(12)});
 
   PerfOutputInfo perf;
-  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(context, perf), ge::SUCCESS);
+  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(context, perf), af::SUCCESS);
 
   const std::string perf_expr = PipeString(perf, PipeType::AIV_VEC);
   EXPECT_NE(perf_expr.find("z0t_size"), std::string::npos);
@@ -684,9 +678,9 @@ TEST_F(UTestReduceMinMaxApiPerfV2, RaNormalSymbolicDimRIncludesTreeReduceCost) {
   PerfOutputInfo concat_perf;
   PerfOutputInfo over_vl_perf;
   PerfOutputInfo unaligned_perf;
-  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(concat_context, concat_perf), ge::SUCCESS);
-  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(over_vl_context, over_vl_perf), ge::SUCCESS);
-  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(unaligned_context, unaligned_perf), ge::SUCCESS);
+  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(concat_context, concat_perf), af::SUCCESS);
+  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(over_vl_context, over_vl_perf), af::SUCCESS);
+  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(unaligned_context, unaligned_perf), af::SUCCESS);
 
   EXPECT_NE(TernaryChoiceString(concat_perf, true).find("z0t_size"), std::string::npos);
   EXPECT_NE(TernaryChoiceString(over_vl_perf, true).find("z0t_size"), std::string::npos);
@@ -700,8 +694,8 @@ TEST_F(UTestReduceMinMaxApiPerfV2, SymbolicDimRUsesFiniteTreeCases) {
 
   PerfOutputInfo ra_perf;
   PerfOutputInfo ar_perf;
-  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(ra_context, ra_perf), ge::SUCCESS);
-  EXPECT_EQ(ascendcapi_v2::ReduceMinPerf(ar_context, ar_perf), ge::SUCCESS);
+  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(ra_context, ra_perf), af::SUCCESS);
+  EXPECT_EQ(ascendcapi_v2::ReduceMinPerf(ar_context, ar_perf), af::SUCCESS);
 
   const std::string ra_formula = PipeString(ra_perf, PipeType::AIV_VEC);
   const std::string ar_formula = PipeString(ar_perf, PipeType::AIV_VEC);
@@ -722,10 +716,10 @@ TEST_F(UTestReduceMinMaxApiPerfV2, SymbolicDimRNonReuseExactPowerUsesSplitBranch
   PerfOutputInfo non_reuse_ra_perf;
   PerfOutputInfo reuse_ar_perf;
   PerfOutputInfo non_reuse_ar_perf;
-  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(reuse_ra_context, reuse_ra_perf), ge::SUCCESS);
-  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(non_reuse_ra_context, non_reuse_ra_perf), ge::SUCCESS);
-  EXPECT_EQ(ascendcapi_v2::ReduceMinPerf(reuse_ar_context, reuse_ar_perf), ge::SUCCESS);
-  EXPECT_EQ(ascendcapi_v2::ReduceMinPerf(non_reuse_ar_context, non_reuse_ar_perf), ge::SUCCESS);
+  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(reuse_ra_context, reuse_ra_perf), af::SUCCESS);
+  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(non_reuse_ra_context, non_reuse_ra_perf), af::SUCCESS);
+  EXPECT_EQ(ascendcapi_v2::ReduceMinPerf(reuse_ar_context, reuse_ar_perf), af::SUCCESS);
+  EXPECT_EQ(ascendcapi_v2::ReduceMinPerf(non_reuse_ar_context, non_reuse_ar_perf), af::SUCCESS);
 
   const std::string reuse_ra_formula = PipeString(reuse_ra_perf, PipeType::AIV_VEC);
   const std::string non_reuse_ra_formula = PipeString(non_reuse_ra_perf, PipeType::AIV_VEC);
@@ -742,7 +736,7 @@ TEST_F(UTestReduceMinMaxApiPerfV2, Bfloat16NormalReduceUsesHalfVectorRepeat) {
   auto context = MakeRaContext(kBfloat16, {CreateExpr(136), z1t_size});
 
   PerfOutputInfo perf;
-  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(context, perf), ge::SUCCESS);
+  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(context, perf), af::SUCCESS);
 
   const std::string aligned_formula = TernaryChoiceString(perf, true);
   EXPECT_NE(aligned_formula.find("Rational(1 , 128)"), std::string::npos) << aligned_formula;
@@ -763,12 +757,12 @@ TEST_F(UTestReduceMinMaxApiPerfV2, RaB64SmallLastUsesOneVectorBlock) {
   PerfOutputInfo unaligned_small_perf;
   PerfOutputInfo unaligned_one_block_perf;
   PerfOutputInfo unaligned_two_blocks_perf;
-  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(aligned_small_context, aligned_small_perf), ge::SUCCESS);
-  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(aligned_one_block_context, aligned_one_block_perf), ge::SUCCESS);
-  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(aligned_two_blocks_context, aligned_two_blocks_perf), ge::SUCCESS);
-  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(unaligned_small_context, unaligned_small_perf), ge::SUCCESS);
-  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(unaligned_one_block_context, unaligned_one_block_perf), ge::SUCCESS);
-  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(unaligned_two_blocks_context, unaligned_two_blocks_perf), ge::SUCCESS);
+  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(aligned_small_context, aligned_small_perf), af::SUCCESS);
+  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(aligned_one_block_context, aligned_one_block_perf), af::SUCCESS);
+  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(aligned_two_blocks_context, aligned_two_blocks_perf), af::SUCCESS);
+  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(unaligned_small_context, unaligned_small_perf), af::SUCCESS);
+  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(unaligned_one_block_context, unaligned_one_block_perf), af::SUCCESS);
+  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(unaligned_two_blocks_context, unaligned_two_blocks_perf), af::SUCCESS);
 
   EXPECT_EQ(TernaryChoiceString(aligned_small_perf, true), TernaryChoiceString(aligned_one_block_perf, true));
   EXPECT_NE(TernaryChoiceString(aligned_small_perf, true), TernaryChoiceString(aligned_two_blocks_perf, true));
@@ -780,7 +774,7 @@ TEST_F(UTestReduceMinMaxApiPerfV2, RaB64ExpandsInt64BinaryFuncCost) {
   auto aligned_context = MakeRaContext(kInt64, {CreateExpr(2176), CreateExpr(64)});
 
   PerfOutputInfo perf;
-  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(aligned_context, perf), ge::SUCCESS);
+  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(aligned_context, perf), af::SUCCESS);
 
   EXPECT_EQ(TernaryChoiceString(perf, true), "92295");
 }
@@ -793,9 +787,9 @@ TEST_F(UTestReduceMinMaxApiPerfV2, ArB64UnalignedSmallLastUsesOneVectorBlock) {
   PerfOutputInfo small_perf;
   PerfOutputInfo one_block_perf;
   PerfOutputInfo two_blocks_perf;
-  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(small_context, small_perf), ge::SUCCESS);
-  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(one_block_context, one_block_perf), ge::SUCCESS);
-  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(two_blocks_context, two_blocks_perf), ge::SUCCESS);
+  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(small_context, small_perf), af::SUCCESS);
+  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(one_block_context, one_block_perf), af::SUCCESS);
+  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(two_blocks_context, two_blocks_perf), af::SUCCESS);
 
   EXPECT_EQ(TernaryChoiceString(small_perf, false), TernaryChoiceString(one_block_perf, false));
   EXPECT_NE(TernaryChoiceString(small_perf, false), TernaryChoiceString(two_blocks_perf, false));
@@ -809,9 +803,9 @@ TEST_F(UTestReduceMinMaxApiPerfV2, ArNormalUnalignedSmallLastUsesOneVectorBlock)
   PerfOutputInfo small_perf;
   PerfOutputInfo one_block_perf;
   PerfOutputInfo two_blocks_perf;
-  EXPECT_EQ(ascendcapi_v2::ReduceMinPerf(small_context, small_perf), ge::SUCCESS);
-  EXPECT_EQ(ascendcapi_v2::ReduceMinPerf(one_block_context, one_block_perf), ge::SUCCESS);
-  EXPECT_EQ(ascendcapi_v2::ReduceMinPerf(two_blocks_context, two_blocks_perf), ge::SUCCESS);
+  EXPECT_EQ(ascendcapi_v2::ReduceMinPerf(small_context, small_perf), af::SUCCESS);
+  EXPECT_EQ(ascendcapi_v2::ReduceMinPerf(one_block_context, one_block_perf), af::SUCCESS);
+  EXPECT_EQ(ascendcapi_v2::ReduceMinPerf(two_blocks_context, two_blocks_perf), af::SUCCESS);
 
   EXPECT_EQ(TernaryChoiceString(small_perf, false), TernaryChoiceString(one_block_perf, false));
   EXPECT_NE(TernaryChoiceString(small_perf, false), TernaryChoiceString(two_blocks_perf, false));
@@ -823,8 +817,8 @@ TEST_F(UTestReduceMinMaxApiPerfV2, ArUnalignedNonReuseDoesNotAddCopyCost) {
 
   PerfOutputInfo reuse_perf;
   PerfOutputInfo non_reuse_perf;
-  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(reuse_context, reuse_perf), ge::SUCCESS);
-  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(non_reuse_context, non_reuse_perf), ge::SUCCESS);
+  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(reuse_context, reuse_perf), af::SUCCESS);
+  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(non_reuse_context, non_reuse_perf), af::SUCCESS);
 
   EXPECT_EQ(TernaryChoiceString(reuse_perf, false), TernaryChoiceString(non_reuse_perf, false));
 }
@@ -835,8 +829,8 @@ TEST_F(UTestReduceMinMaxApiPerfV2, ArUnalignedDoesNotUseGlobalPenalty) {
 
   PerfOutputInfo b64_perf;
   PerfOutputInfo normal_perf;
-  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(b64_context, b64_perf), ge::SUCCESS);
-  EXPECT_EQ(ascendcapi_v2::ReduceMinPerf(normal_context, normal_perf), ge::SUCCESS);
+  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(b64_context, b64_perf), af::SUCCESS);
+  EXPECT_EQ(ascendcapi_v2::ReduceMinPerf(normal_context, normal_perf), af::SUCCESS);
 
   const std::string b64_unaligned = TernaryChoiceString(b64_perf, false);
   const std::string normal_unaligned = TernaryChoiceString(normal_perf, false);
@@ -851,7 +845,7 @@ TEST_F(UTestReduceMinMaxApiPerfV2, RaB64SymbolicAlignedLastUsesVectorBlockCeil) 
   auto context = MakeRaContext(kInt64, {CreateExpr(136) * z0t_size, aligned_last});
 
   PerfOutputInfo perf;
-  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(context, perf), ge::SUCCESS);
+  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(context, perf), af::SUCCESS);
   const std::string aligned_formula = TernaryChoiceString(perf, true);
   EXPECT_NE(aligned_formula.find("z5t_size"), std::string::npos);
   EXPECT_NE(aligned_formula.find("Rational(1 , 16)"), std::string::npos);
@@ -873,8 +867,8 @@ TEST_F(UTestReduceMinMaxApiPerfV2, RaB64UnalignedNonReuseMatchesReuseSource) {
   non_reuse_context.is_reuse_source = false;
 
   PerfOutputInfo reuse_perf, non_reuse_perf;
-  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(reuse_context, reuse_perf), ge::SUCCESS);
-  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(non_reuse_context, non_reuse_perf), ge::SUCCESS);
+  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(reuse_context, reuse_perf), af::SUCCESS);
+  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(non_reuse_context, non_reuse_perf), af::SUCCESS);
   EXPECT_FALSE(PipeString(reuse_perf, PipeType::AIV_VEC).empty());
   EXPECT_FALSE(PipeString(non_reuse_perf, PipeType::AIV_VEC).empty());
 
@@ -900,8 +894,8 @@ TEST_F(UTestReduceMinMaxApiPerfV2, RaTreeReductionCostIncreasesWithFirst) {
   small_context.merge_mode = ReduceMergeMode::kNone;
 
   PerfOutputInfo big_perf, small_perf;
-  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(big_context, big_perf), ge::SUCCESS);
-  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(small_context, small_perf), ge::SUCCESS);
+  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(big_context, big_perf), af::SUCCESS);
+  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(small_context, small_perf), af::SUCCESS);
 
   // Different first dimensions should produce different formulas
   EXPECT_NE(PipeString(big_perf, PipeType::AIV_VEC), PipeString(small_perf, PipeType::AIV_VEC));
@@ -916,9 +910,9 @@ TEST_F(UTestReduceMinMaxApiPerfV2, RaPipeBarrierVPerfIsZeroInFirstPhase) {
   PerfOutputInfo base_perf;
   PerfOutputInfo merge_perf;
   PerfOutputInfo elementwise_perf;
-  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(base_context, base_perf), ge::SUCCESS);
-  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(merge_context, merge_perf), ge::SUCCESS);
-  EXPECT_EQ(ascendcperf_v2::MaxPerf(MakeNodeDetail(kFloat16, {CreateExpr(128)}), elementwise_perf), ge::SUCCESS);
+  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(base_context, base_perf), af::SUCCESS);
+  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(merge_context, merge_perf), af::SUCCESS);
+  EXPECT_EQ(ascendcperf_v2::MaxPerf(MakeNodeDetail(kFloat16, {CreateExpr(128)}), elementwise_perf), af::SUCCESS);
 
   Expr merge_delta = ResolvedPipeExpr(merge_perf, PipeType::AIV_VEC) - ResolvedPipeExpr(base_perf, PipeType::AIV_VEC);
   merge_delta.Simplify();
@@ -934,14 +928,14 @@ TEST_F(UTestReduceMinMaxApiPerfV2, MultiReduceCopyMergeUsesAlignedTempSizeAndEle
 
   PerfOutputInfo base_perf;
   PerfOutputInfo merge_perf;
-  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(base_context, base_perf), ge::SUCCESS);
-  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(merge_context, merge_perf), ge::SUCCESS);
+  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(base_context, base_perf), af::SUCCESS);
+  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(merge_context, merge_perf), af::SUCCESS);
 
   Expr ub_copy_res = CreateExpr(0);
-  EXPECT_EQ(GetPerf({kUb2ub, kInt64, kInt64, {CreateExpr(32)}, CreateExpr(0)}, ub_copy_res), ge::SUCCESS);
+  EXPECT_EQ(GetPerf({kUb2ub, kInt64, kInt64, {CreateExpr(32)}, CreateExpr(0)}, ub_copy_res), af::SUCCESS);
 
   PerfOutputInfo elementwise_perf;
-  EXPECT_EQ(ascendcperf_v2::MaxPerf(MakeNodeDetail(kInt64, {CreateExpr(32)}), elementwise_perf), ge::SUCCESS);
+  EXPECT_EQ(ascendcperf_v2::MaxPerf(MakeNodeDetail(kInt64, {CreateExpr(32)}), elementwise_perf), af::SUCCESS);
 
   Expr merge_delta = ResolvedPipeExpr(merge_perf, PipeType::AIV_VEC) - ResolvedPipeExpr(base_perf, PipeType::AIV_VEC);
   merge_delta.Simplify();
@@ -960,8 +954,8 @@ TEST_F(UTestReduceMinMaxApiPerfV2, MultiReduceCopyMergeSymbolicTailUsesVectorBlo
 
   PerfOutputInfo base_perf;
   PerfOutputInfo merge_perf;
-  EXPECT_EQ(ascendcapi_v2::ReduceMinPerf(base_context, base_perf), ge::SUCCESS);
-  EXPECT_EQ(ascendcapi_v2::ReduceMinPerf(merge_context, merge_perf), ge::SUCCESS);
+  EXPECT_EQ(ascendcapi_v2::ReduceMinPerf(base_context, base_perf), af::SUCCESS);
+  EXPECT_EQ(ascendcapi_v2::ReduceMinPerf(merge_context, merge_perf), af::SUCCESS);
 
   Expr merge_delta = ResolvedPipeExpr(merge_perf, PipeType::AIV_VEC) - ResolvedPipeExpr(base_perf, PipeType::AIV_VEC);
   merge_delta.Simplify();
@@ -976,8 +970,8 @@ TEST_F(UTestReduceMinMaxApiPerfV2, RaB64UnalignedNonReuseDoesNotAddCopyCost) {
 
   PerfOutputInfo reuse_perf;
   PerfOutputInfo non_reuse_perf;
-  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(reuse_context, reuse_perf), ge::SUCCESS);
-  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(non_reuse_context, non_reuse_perf), ge::SUCCESS);
+  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(reuse_context, reuse_perf), af::SUCCESS);
+  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(non_reuse_context, non_reuse_perf), af::SUCCESS);
 
   EXPECT_EQ(TernaryChoiceString(reuse_perf, false), TernaryChoiceString(non_reuse_perf, false));
 }
@@ -988,8 +982,8 @@ TEST_F(UTestReduceMinMaxApiPerfV2, RaNormalUnalignedNonReuseDoesNotAddCopyCost) 
 
   PerfOutputInfo reuse_perf;
   PerfOutputInfo non_reuse_perf;
-  EXPECT_EQ(ascendcapi_v2::ReduceMinPerf(reuse_context, reuse_perf), ge::SUCCESS);
-  EXPECT_EQ(ascendcapi_v2::ReduceMinPerf(non_reuse_context, non_reuse_perf), ge::SUCCESS);
+  EXPECT_EQ(ascendcapi_v2::ReduceMinPerf(reuse_context, reuse_perf), af::SUCCESS);
+  EXPECT_EQ(ascendcapi_v2::ReduceMinPerf(non_reuse_context, non_reuse_perf), af::SUCCESS);
 
   EXPECT_EQ(TernaryChoiceString(reuse_perf, false), TernaryChoiceString(non_reuse_perf, false));
 }
@@ -1002,9 +996,9 @@ TEST_F(UTestReduceMinMaxApiPerfV2, RaNormalAlignedSubpathsProduceDistinctFormula
   PerfOutputInfo concat_perf;
   PerfOutputInfo less_than_vl_perf;
   PerfOutputInfo over_vl_perf;
-  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(concat_context, concat_perf), ge::SUCCESS);
-  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(less_than_vl_context, less_than_vl_perf), ge::SUCCESS);
-  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(over_vl_context, over_vl_perf), ge::SUCCESS);
+  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(concat_context, concat_perf), af::SUCCESS);
+  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(less_than_vl_context, less_than_vl_perf), af::SUCCESS);
+  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(over_vl_context, over_vl_perf), af::SUCCESS);
 
   EXPECT_NE(TernaryChoiceString(concat_perf, true), TernaryChoiceString(less_than_vl_perf, true));
   EXPECT_NE(TernaryChoiceString(less_than_vl_perf, true), TernaryChoiceString(over_vl_perf, true));
@@ -1016,8 +1010,8 @@ TEST_F(UTestReduceMinMaxApiPerfV2, RaB64LargeUnalignedDoesNotCollapseToSmallFirs
 
   PerfOutputInfo large_perf;
   PerfOutputInfo small_perf;
-  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(large_context, large_perf), ge::SUCCESS);
-  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(small_context, small_perf), ge::SUCCESS);
+  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(large_context, large_perf), af::SUCCESS);
+  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(small_context, small_perf), af::SUCCESS);
 
   EXPECT_NE(TernaryChoiceString(large_perf, false), TernaryChoiceString(small_perf, false));
 }
@@ -1028,8 +1022,8 @@ TEST_F(UTestReduceMinMaxApiPerfV2, RaAlignedNonReuseChangesTreeStructure) {
 
   PerfOutputInfo reuse_perf;
   PerfOutputInfo non_reuse_perf;
-  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(reuse_context, reuse_perf), ge::SUCCESS);
-  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(non_reuse_context, non_reuse_perf), ge::SUCCESS);
+  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(reuse_context, reuse_perf), af::SUCCESS);
+  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(non_reuse_context, non_reuse_perf), af::SUCCESS);
 
   EXPECT_NE(TernaryChoiceString(reuse_perf, true), TernaryChoiceString(non_reuse_perf, true));
 }
@@ -1056,7 +1050,7 @@ TEST_F(UTestReduceMinMaxApiPerfV2, AscirRaReduceUsesCodegenMergedShapeForMultiAA
   PerfOutputInfo perf;
   auto max_v2 = ApiPerfFactory::Instance().Create(kMax + "V2");
   ASSERT_NE(max_v2, nullptr);
-  EXPECT_EQ(max_v2->GetPerfFunc()(inputs, outputs, reduce_node, perf), ge::SUCCESS);
+  EXPECT_EQ(max_v2->GetPerfFunc()(inputs, outputs, reduce_node, perf), af::SUCCESS);
 
   const std::string formula = PipeString(perf, PipeType::AIV_VEC);
   EXPECT_EQ(formula.find("272 * z1t_size * z2t_size"), std::string::npos) << formula;
@@ -1080,11 +1074,11 @@ TEST_F(UTestReduceMinMaxApiPerfV2, AscirReduceRebuildsMergedDimsFromCurrentShape
   PerfOutputInfo perf;
   auto max_v2 = ApiPerfFactory::Instance().Create(kMax + "V2");
   ASSERT_NE(max_v2, nullptr);
-  EXPECT_EQ(max_v2->GetPerfFunc()(tail_inputs, tail_outputs, reduce_node, perf), ge::SUCCESS);
+  EXPECT_EQ(max_v2->GetPerfFunc()(tail_inputs, tail_outputs, reduce_node, perf), af::SUCCESS);
 
   auto expected_context = MakeRaContext(kFloat16, {CreateExpr(4), CreateExpr(16)}, true);
   PerfOutputInfo expected_perf;
-  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(expected_context, expected_perf), ge::SUCCESS);
+  EXPECT_EQ(ascendcapi_v2::ReduceMaxPerf(expected_context, expected_perf), af::SUCCESS);
   EXPECT_EQ(PipeString(perf, PipeType::AIV_VEC), PipeString(expected_perf, PipeType::AIV_VEC));
 }
 
@@ -1107,7 +1101,7 @@ TEST_F(UTestReduceMinMaxApiPerfV2, AscirReduceUsesSemanticMergeParamsForPerf) {
   PerfOutputInfo perf;
   auto max_v2 = ApiPerfFactory::Instance().Create(kMax + "V2");
   ASSERT_NE(max_v2, nullptr);
-  EXPECT_EQ(max_v2->GetPerfFunc()(inputs, outputs, reduce_node, perf), ge::SUCCESS);
+  EXPECT_EQ(max_v2->GetPerfFunc()(inputs, outputs, reduce_node, perf), af::SUCCESS);
 
   const std::string formula = PipeString(perf, PipeType::AIV_VEC);
   EXPECT_NE(formula.find("out_keep"), std::string::npos) << formula;
@@ -1133,8 +1127,8 @@ TEST_F(UTestReduceMinMaxApiPerfV2, AscirRegistersReduceMinMaxOpsAndAliases) {
   auto reduce_max_v2 = ApiPerfFactory::Instance().Create(kReduceMax + "V2");
   ASSERT_NE(reduce_min_v2, nullptr);
   ASSERT_NE(reduce_max_v2, nullptr);
-  EXPECT_EQ(reduce_min_v2->GetPerfFunc()(reduce_inputs, reduce_outputs, reduce_node, reduce_min_perf), ge::SUCCESS);
-  EXPECT_EQ(reduce_max_v2->GetPerfFunc()(reduce_inputs, reduce_outputs, reduce_node, reduce_max_perf), ge::SUCCESS);
+  EXPECT_EQ(reduce_min_v2->GetPerfFunc()(reduce_inputs, reduce_outputs, reduce_node, reduce_min_perf), af::SUCCESS);
+  EXPECT_EQ(reduce_max_v2->GetPerfFunc()(reduce_inputs, reduce_outputs, reduce_node, reduce_max_perf), af::SUCCESS);
   EXPECT_FALSE(PipeString(reduce_min_perf, PipeType::AIV_VEC).empty());
   EXPECT_FALSE(PipeString(reduce_max_perf, PipeType::AIV_VEC).empty());
 
@@ -1144,8 +1138,8 @@ TEST_F(UTestReduceMinMaxApiPerfV2, AscirRegistersReduceMinMaxOpsAndAliases) {
   auto max_v2 = ApiPerfFactory::Instance().Create(kMax + "V2");
   ASSERT_NE(min_v2, nullptr);
   ASSERT_NE(max_v2, nullptr);
-  EXPECT_EQ(min_v2->GetPerfFunc()(reduce_inputs, reduce_outputs, reduce_node, min_reduce_alias_perf), ge::SUCCESS);
-  EXPECT_EQ(max_v2->GetPerfFunc()(reduce_inputs, reduce_outputs, reduce_node, max_reduce_alias_perf), ge::SUCCESS);
+  EXPECT_EQ(min_v2->GetPerfFunc()(reduce_inputs, reduce_outputs, reduce_node, min_reduce_alias_perf), af::SUCCESS);
+  EXPECT_EQ(max_v2->GetPerfFunc()(reduce_inputs, reduce_outputs, reduce_node, max_reduce_alias_perf), af::SUCCESS);
   EXPECT_EQ(PipeString(reduce_min_perf, PipeType::AIV_VEC), PipeString(min_reduce_alias_perf, PipeType::AIV_VEC));
   EXPECT_EQ(PipeString(reduce_max_perf, PipeType::AIV_VEC), PipeString(max_reduce_alias_perf, PipeType::AIV_VEC));
 }
@@ -1166,9 +1160,9 @@ TEST_F(UTestReduceMinMaxApiPerfV2, AscirRegistersReduceAnyAllOps) {
   ASSERT_NE(all_v2, nullptr);
   ASSERT_NE(any_v2, nullptr);
   EXPECT_EQ(all_v2->GetPerfFunc()(logical_reduce_inputs, logical_reduce_outputs, reduce_node, reduce_all_perf),
-            ge::SUCCESS);
+            af::SUCCESS);
   EXPECT_EQ(any_v2->GetPerfFunc()(logical_reduce_inputs, logical_reduce_outputs, reduce_node, reduce_any_perf),
-            ge::SUCCESS);
+            af::SUCCESS);
   EXPECT_FALSE(PipeString(reduce_all_perf, PipeType::AIV_VEC).empty());
   EXPECT_FALSE(PipeString(reduce_any_perf, PipeType::AIV_VEC).empty());
   EXPECT_EQ(PipeString(reduce_all_perf, PipeType::AIV_VEC).find("reduce_ar_normal_align_case"), std::string::npos);
@@ -1204,12 +1198,12 @@ TEST_F(UTestReduceMinMaxApiPerfV2, AscirRegistersReduceSumMeanProdOpsAndAliases)
   PerfOutputInfo sum_alias_perf;
   PerfOutputInfo mean_alias_perf;
   PerfOutputInfo prod_alias_perf;
-  EXPECT_EQ(reduce_sum_v2->GetPerfFunc()(reduce_inputs, reduce_outputs, reduce_node, reduce_sum_perf), ge::SUCCESS);
-  EXPECT_EQ(reduce_mean_v2->GetPerfFunc()(reduce_inputs, reduce_outputs, reduce_node, reduce_mean_perf), ge::SUCCESS);
-  EXPECT_EQ(reduce_prod_v2->GetPerfFunc()(reduce_inputs, reduce_outputs, reduce_node, reduce_prod_perf), ge::SUCCESS);
-  EXPECT_EQ(sum_v2->GetPerfFunc()(reduce_inputs, reduce_outputs, reduce_node, sum_alias_perf), ge::SUCCESS);
-  EXPECT_EQ(mean_v2->GetPerfFunc()(reduce_inputs, reduce_outputs, reduce_node, mean_alias_perf), ge::SUCCESS);
-  EXPECT_EQ(prod_v2->GetPerfFunc()(reduce_inputs, reduce_outputs, reduce_node, prod_alias_perf), ge::SUCCESS);
+  EXPECT_EQ(reduce_sum_v2->GetPerfFunc()(reduce_inputs, reduce_outputs, reduce_node, reduce_sum_perf), af::SUCCESS);
+  EXPECT_EQ(reduce_mean_v2->GetPerfFunc()(reduce_inputs, reduce_outputs, reduce_node, reduce_mean_perf), af::SUCCESS);
+  EXPECT_EQ(reduce_prod_v2->GetPerfFunc()(reduce_inputs, reduce_outputs, reduce_node, reduce_prod_perf), af::SUCCESS);
+  EXPECT_EQ(sum_v2->GetPerfFunc()(reduce_inputs, reduce_outputs, reduce_node, sum_alias_perf), af::SUCCESS);
+  EXPECT_EQ(mean_v2->GetPerfFunc()(reduce_inputs, reduce_outputs, reduce_node, mean_alias_perf), af::SUCCESS);
+  EXPECT_EQ(prod_v2->GetPerfFunc()(reduce_inputs, reduce_outputs, reduce_node, prod_alias_perf), af::SUCCESS);
 
   EXPECT_FALSE(PipeString(reduce_sum_perf, PipeType::AIV_VEC).empty());
   EXPECT_FALSE(PipeString(reduce_mean_perf, PipeType::AIV_VEC).empty());
@@ -1248,10 +1242,10 @@ TEST_F(UTestReduceMinMaxApiPerfV2, AscirReduceSumMeanProdSkipUnsupportedDtypes) 
   PerfOutputInfo sum_perf;
   PerfOutputInfo mean_perf;
   PerfOutputInfo prod_perf;
-  EXPECT_EQ(reduce_sum_v2->GetPerfFunc()(int64_inputs, int64_outputs, reduce_node, sum_perf), ge::SUCCESS);
+  EXPECT_EQ(reduce_sum_v2->GetPerfFunc()(int64_inputs, int64_outputs, reduce_node, sum_perf), af::SUCCESS);
   EXPECT_EQ(reduce_mean_v2->GetPerfFunc()(uint64_mean_inputs, uint64_mean_outputs, reduce_node, mean_perf),
-            ge::SUCCESS);
-  EXPECT_EQ(reduce_prod_v2->GetPerfFunc()(uint64_inputs, uint64_outputs, reduce_node, prod_perf), ge::SUCCESS);
+            af::SUCCESS);
+  EXPECT_EQ(reduce_prod_v2->GetPerfFunc()(uint64_inputs, uint64_outputs, reduce_node, prod_perf), af::SUCCESS);
   EXPECT_FALSE(PipeString(sum_perf, PipeType::AIV_VEC).empty());
   EXPECT_TRUE(PipeString(mean_perf, PipeType::AIV_VEC).empty());
   EXPECT_TRUE(PipeString(prod_perf, PipeType::AIV_VEC).empty());
@@ -1271,8 +1265,8 @@ TEST_F(UTestReduceMinMaxApiPerfV2, AscirRegistersElementwiseMinMaxOps) {
   auto maximum_v2 = ApiPerfFactory::Instance().Create(kMaximum + "V2");
   ASSERT_NE(minimum_v2, nullptr);
   ASSERT_NE(maximum_v2, nullptr);
-  EXPECT_EQ(minimum_v2->GetPerfFunc()(elementwise_inputs, elementwise_outputs, node, minimum_perf), ge::SUCCESS);
-  EXPECT_EQ(maximum_v2->GetPerfFunc()(elementwise_inputs, elementwise_outputs, node, maximum_perf), ge::SUCCESS);
+  EXPECT_EQ(minimum_v2->GetPerfFunc()(elementwise_inputs, elementwise_outputs, node, minimum_perf), af::SUCCESS);
+  EXPECT_EQ(maximum_v2->GetPerfFunc()(elementwise_inputs, elementwise_outputs, node, maximum_perf), af::SUCCESS);
   EXPECT_FALSE(PipeString(minimum_perf, PipeType::AIV_VEC).empty());
   EXPECT_FALSE(PipeString(maximum_perf, PipeType::AIV_VEC).empty());
 }
@@ -1283,8 +1277,8 @@ TEST_F(UTestReduceMinMaxApiPerfV2, ReduceAnyAllUseLogicalReduceEntrypoints) {
 
   PerfOutputInfo any_perf;
   PerfOutputInfo all_perf;
-  EXPECT_EQ(ascendcapi_v2::ReduceAnyPerf(any_context, any_perf), ge::SUCCESS);
-  EXPECT_EQ(ascendcapi_v2::ReduceAllPerf(all_context, all_perf), ge::SUCCESS);
+  EXPECT_EQ(ascendcapi_v2::ReduceAnyPerf(any_context, any_perf), af::SUCCESS);
+  EXPECT_EQ(ascendcapi_v2::ReduceAllPerf(all_context, all_perf), af::SUCCESS);
 
   EXPECT_FALSE(PipeString(any_perf, PipeType::AIV_VEC).empty());
   EXPECT_FALSE(PipeString(all_perf, PipeType::AIV_VEC).empty());
@@ -1293,7 +1287,7 @@ TEST_F(UTestReduceMinMaxApiPerfV2, ReduceAnyAllUseLogicalReduceEntrypoints) {
 
   auto unsupported_context = MakeArContext(kInt64, {CreateExpr(8), CreateExpr(64)});
   PerfOutputInfo unsupported_perf;
-  EXPECT_NE(ascendcapi_v2::ReduceAnyPerf(unsupported_context, unsupported_perf), ge::SUCCESS);
+  EXPECT_NE(ascendcapi_v2::ReduceAnyPerf(unsupported_context, unsupported_perf), af::SUCCESS);
 }
 
 TEST_F(UTestReduceMinMaxApiPerfV2, AscirMaxMinAnyAllFallbackToElementwiseWhenReduceInfoUnknown) {
@@ -1307,7 +1301,7 @@ TEST_F(UTestReduceMinMaxApiPerfV2, AscirMaxMinAnyAllFallbackToElementwiseWhenRed
     PerfOutputInfo perf;
     auto api_perf = ApiPerfFactory::Instance().Create(tag + "V2");
     ASSERT_NE(api_perf, nullptr) << tag;
-    EXPECT_EQ(api_perf->GetPerfFunc()(inputs, outputs, node, perf), ge::SUCCESS) << tag;
+    EXPECT_EQ(api_perf->GetPerfFunc()(inputs, outputs, node, perf), af::SUCCESS) << tag;
     EXPECT_EQ(PipeString(perf, PipeType::AIV_VEC), "26") << tag;
   }
 }
@@ -1322,7 +1316,7 @@ TEST_F(UTestReduceMinMaxApiPerfV2, AscirReduceFailsWhenCodegenModeUnknown) {
   PerfOutputInfo reduce_min_perf;
   auto min_v2 = ApiPerfFactory::Instance().Create(kReduceMin + "V2");
   ASSERT_NE(min_v2, nullptr);
-  EXPECT_NE(min_v2->GetPerfFunc()(reduce_inputs, reduce_outputs, node, reduce_min_perf), ge::SUCCESS);
+  EXPECT_NE(min_v2->GetPerfFunc()(reduce_inputs, reduce_outputs, node, reduce_min_perf), af::SUCCESS);
 }
 
 // --- dtype registration tests ---

@@ -106,12 +106,12 @@ Status TransposeApiCall::CodeGenGetTransposeType(const Tensor &inputs, const Ten
       if (i != 0) oss << ", ";
       oss << output_vectorized_axis[i];
     }
-    GELOGE(ge::FAILED, "Transpose convert permute to transposetype failed, sizes = %d, %d_%d_%d_%d\n",
+    GELOGE(af::FAILED, "Transpose convert permute to transposetype failed, sizes = %d, %d_%d_%d_%d\n",
            output_vectorized_axis.size(), output_vectorized_axis[Axis_0], output_vectorized_axis[Axis_1],
            output_vectorized_axis[Axis_2], output_vectorized_axis[Axis_3]);
-    return ge::FAILED;
+    return af::FAILED;
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status TransposeApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
@@ -159,7 +159,7 @@ Status TransposeApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::A
   ss << "AscendC::PipeBarrier<PIPE_ALL>();" << std::endl;
 
   result = ss.str();
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 Status TransposeApiCall::ParseAttr(const ascir::NodeView &node) {
   GE_ASSERT_SUCCESS(GetApiTilingTypeName(node, this->device_api_tiling_data_type));
@@ -170,7 +170,7 @@ Status TransposeApiCall::ParseAttr(const ascir::NodeView &node) {
   GELOGD("TilingData parse success, device_type:%s, host_type:%s,  name:%s\n",
          this->device_api_tiling_data_type.c_str(), this->host_api_tiling_data_type.c_str(),
          this->api_tiling_data_field.c_str());
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 static ApiCallRegister<TransposeApiCall> register_transpose_api_call("TransposeApiCall");

@@ -43,7 +43,7 @@ Status ReduceApiCall::BuildApiParam(const TPipe &tpipe, const std::vector<ascir:
                                     const std::vector<std::reference_wrapper<const Tensor>> &inputs,
                                     const std::vector<std::reference_wrapper<const Tensor>> &outputs) const {
   auto iter = reduce_type_map.find(this->api_name_);
-  GE_CHK_BOOL_RET_STATUS(iter != reduce_type_map.end(), ge::FAILED, "Codegen unsupported reduce api::%s",
+  GE_CHK_BOOL_RET_STATUS(iter != reduce_type_map.end(), af::FAILED, "Codegen unsupported reduce api::%s",
                          this->api_name_.c_str());
   auto &[type_value, instr_type] = iter->second;
 
@@ -125,23 +125,23 @@ Status ReduceApiCall::BuildApiParam(const TPipe &tpipe, const std::vector<ascir:
 
       // 索引：生命周期0的 tmp_argmax_index (desc2)
       api_param->api_pre_process.emplace_back("LocalTensor<int64_t> tmp_argmax_index;\n");
-      api_param->api_pre_process.emplace_back(
-          "tmp_argmax_index = " + tpipe.tmp_buf.name + "_" + std::to_string(tmp_lifetime_0_id)
-          + ".template ReinterpretCast<int64_t>();\n");
+      api_param->api_pre_process.emplace_back("tmp_argmax_index = " + tpipe.tmp_buf.name + "_" +
+                                              std::to_string(tmp_lifetime_0_id) +
+                                              ".template ReinterpretCast<int64_t>();\n");
 
       // 当前计算的value：生命周期1的 tmp_argmax_value (desc3)
       int64_t tmp_lifetime_1_id = GetTmpBufIdByLifeTime(1L, "ArgMax");
       api_param->api_pre_process.emplace_back("LocalTensor<" + dtype_name + "> tmp_argmax_value;\n");
-      api_param->api_pre_process.emplace_back(
-          "tmp_argmax_value = " + tpipe.tmp_buf.name + "_" + std::to_string(tmp_lifetime_1_id)
-          + ".template ReinterpretCast<" + dtype_name + ">();\n");
+      api_param->api_pre_process.emplace_back("tmp_argmax_value = " + tpipe.tmp_buf.name + "_" +
+                                              std::to_string(tmp_lifetime_1_id) + ".template ReinterpretCast<" +
+                                              dtype_name + ">();\n");
 
       // 历史最大value：生命周期2的 tmp_argmax_value_saved (desc4)
       int64_t tmp_lifetime_2_id = GetTmpBufIdByLifeTime(2L, "ArgMax");
       api_param->api_pre_process.emplace_back("LocalTensor<" + dtype_name + "> tmp_argmax_value_saved;\n");
-      api_param->api_pre_process.emplace_back(
-          "tmp_argmax_value_saved = " + tpipe.tmp_buf.name + "_" + std::to_string(tmp_lifetime_2_id)
-          + ".template ReinterpretCast<" + dtype_name + ">();\n");
+      api_param->api_pre_process.emplace_back("tmp_argmax_value_saved = " + tpipe.tmp_buf.name + "_" +
+                                              std::to_string(tmp_lifetime_2_id) + ".template ReinterpretCast<" +
+                                              dtype_name + ">();\n");
 
       // ArgMaxWithValueExtend 核心 API 参数
       api_param->api_name = "ArgMaxWithValueExtend";
@@ -163,7 +163,8 @@ Status ReduceApiCall::BuildApiParam(const TPipe &tpipe, const std::vector<ascir:
       api_param->api_post_process.emplace_back("uint32_t temp_size_value = " + KernelUtils::SizeAlign() + "(" +
                                                y.actual_size.Str() + ", 32/sizeof(" + dtype_name + "));\n");
       api_param->api_post_process.emplace_back("if (" + tpipe.tiler.GetAxis(current_axis.back()).Str() + " == 0) {\n");
-      api_param->api_post_process.emplace_back("DataCopyExtend(" + y.Str() + "[0], tmp_argmax_index[0], temp_size_index);\n");
+      api_param->api_post_process.emplace_back("DataCopyExtend(" + y.Str() +
+                                               "[0], tmp_argmax_index[0], temp_size_index);\n");
       api_param->api_post_process.emplace_back(
           "DataCopyExtend(tmp_argmax_value_saved[0], tmp_argmax_value[0], temp_size_value);\n");
       api_param->api_post_process.emplace_back("} else {\n");
@@ -194,16 +195,16 @@ Status ReduceApiCall::BuildApiParam(const TPipe &tpipe, const std::vector<ascir:
 
       // 索引：生命周期0的 tmp_argmax1_index (desc2)
       api_param->api_pre_process.emplace_back("LocalTensor<int64_t> tmp_argmax1_index;\n");
-      api_param->api_pre_process.emplace_back(
-          "tmp_argmax1_index = " + tpipe.tmp_buf.name + "_" + std::to_string(tmp_lifetime_0_id)
-          + ".template ReinterpretCast<int64_t>();\n");
+      api_param->api_pre_process.emplace_back("tmp_argmax1_index = " + tpipe.tmp_buf.name + "_" +
+                                              std::to_string(tmp_lifetime_0_id) +
+                                              ".template ReinterpretCast<int64_t>();\n");
 
       // 当前value：生命周期1的 tmp_argmax1_value (desc3)
       int64_t tmp_lifetime_1_id = GetTmpBufIdByLifeTime(1L, "ArgMaxMultiRPhase1");
       api_param->api_pre_process.emplace_back("LocalTensor<" + dtype_name + "> tmp_argmax1_value;\n");
-      api_param->api_pre_process.emplace_back(
-          "tmp_argmax1_value = " + tpipe.tmp_buf.name + "_" + std::to_string(tmp_lifetime_1_id)
-          + ".template ReinterpretCast<" + dtype_name + ">();\n");
+      api_param->api_pre_process.emplace_back("tmp_argmax1_value = " + tpipe.tmp_buf.name + "_" +
+                                              std::to_string(tmp_lifetime_1_id) + ".template ReinterpretCast<" +
+                                              dtype_name + ">();\n");
 
       // ArgMaxWithValueExtend 核心 API 参数
       api_param->api_name = "ArgMaxWithValueExtend";
@@ -224,27 +225,24 @@ Status ReduceApiCall::BuildApiParam(const TPipe &tpipe, const std::vector<ascir:
       auto y_index = outputs[1].get();
 
       api_param->api_post_process.emplace_back("AscendC::PipeBarrier<PIPE_V>();\n");
-      api_param->api_post_process.emplace_back(
-          "uint32_t temp_size_index = " + KernelUtils::SizeAlign() + "(" + y_index.actual_size.Str() + ", 4);\n");
-      api_param->api_post_process.emplace_back(
-          "uint32_t temp_size_value = " + KernelUtils::SizeAlign() + "(" + y_value.actual_size.Str()
-          + ", 32/sizeof(" + dtype_name + "));\n");
-      api_param->api_post_process.emplace_back(
-          "if (" + tpipe.tiler.GetAxis(current_axis.back()).Str() + " == 0) {\n");
+      api_param->api_post_process.emplace_back("uint32_t temp_size_index = " + KernelUtils::SizeAlign() + "(" +
+                                               y_index.actual_size.Str() + ", 4);\n");
+      api_param->api_post_process.emplace_back("uint32_t temp_size_value = " + KernelUtils::SizeAlign() + "(" +
+                                               y_value.actual_size.Str() + ", 32/sizeof(" + dtype_name + "));\n");
+      api_param->api_post_process.emplace_back("if (" + tpipe.tiler.GetAxis(current_axis.back()).Str() + " == 0) {\n");
       // 第一次迭代：直接复制到输出
-      api_param->api_post_process.emplace_back(
-          "DataCopyExtend(" + y_value.Str() + "[0], tmp_argmax1_value[0], temp_size_value);\n");
-      api_param->api_post_process.emplace_back(
-          "DataCopyExtend(" + y_index.Str() + "[0], tmp_argmax1_index[0], temp_size_index);\n");
+      api_param->api_post_process.emplace_back("DataCopyExtend(" + y_value.Str() +
+                                               "[0], tmp_argmax1_value[0], temp_size_value);\n");
+      api_param->api_post_process.emplace_back("DataCopyExtend(" + y_index.Str() +
+                                               "[0], tmp_argmax1_index[0], temp_size_index);\n");
       api_param->api_post_process.emplace_back("} else {\n");
       // 后续迭代：使用UpdateMaxIndexAndValue更新全局最大值和索引
       // 注意：这里需要offset，offset = 当前核id * R轴每块大小 + 累加的offset
       // 暂时传入accumulated_offset，需要在循环外初始化
       api_param->api_post_process.emplace_back(
-          "UpdateMaxIndexAndValue<" + dtype_name + ">(tmp_argmax1_index[0], tmp_argmax1_value[0], "
-          + y_index.Str() + "[0], " + y_value.Str() + "[0], "
-          + "accumulated_offset + block_dim * r_axis_block_size, "
-          + tpipe.tmp_buf.name + "_" + std::to_string(id) + ", temp_size_value);\n");
+          "UpdateMaxIndexAndValue<" + dtype_name + ">(tmp_argmax1_index[0], tmp_argmax1_value[0], " + y_index.Str() +
+          "[0], " + y_value.Str() + "[0], " + "accumulated_offset + block_dim * r_axis_block_size, " +
+          tpipe.tmp_buf.name + "_" + std::to_string(id) + ", temp_size_value);\n");
       api_param->api_post_process.emplace_back("}\n");
 
       // 累加 offset：accumulated_offset += 本次处理的 R 轴 actual_size
@@ -273,23 +271,23 @@ Status ReduceApiCall::BuildApiParam(const TPipe &tpipe, const std::vector<ascir:
 
       // 索引：生命周期0的第一个 tmp_argmax2_index
       api_param->api_pre_process.emplace_back("LocalTensor<int64_t> tmp_argmax2_index;\n");
-      api_param->api_pre_process.emplace_back(
-          "tmp_argmax2_index = " + tpipe.tmp_buf.name + "_" + std::to_string(tmp_lifetime_0_id)
-          + ".template ReinterpretCast<int64_t>();\n");
+      api_param->api_pre_process.emplace_back("tmp_argmax2_index = " + tpipe.tmp_buf.name + "_" +
+                                              std::to_string(tmp_lifetime_0_id) +
+                                              ".template ReinterpretCast<int64_t>();\n");
 
       // 当前计算的value：生命周期1的 tmp_argmax2_value (desc3)
       int64_t tmp_lifetime_1_id = GetTmpBufIdByLifeTime(1L, "ArgMaxMultiRPhase2");
       api_param->api_pre_process.emplace_back("LocalTensor<" + dtype_name + "> tmp_argmax2_value;\n");
-      api_param->api_pre_process.emplace_back(
-          "tmp_argmax2_value = " + tpipe.tmp_buf.name + "_" + std::to_string(tmp_lifetime_1_id)
-          + ".template ReinterpretCast<" + dtype_name + ">();\n");
+      api_param->api_pre_process.emplace_back("tmp_argmax2_value = " + tpipe.tmp_buf.name + "_" +
+                                              std::to_string(tmp_lifetime_1_id) + ".template ReinterpretCast<" +
+                                              dtype_name + ">();\n");
 
       // 历史最大value：生命周期2的 tmp_argmax2_value_saved (desc4)
       int64_t tmp_lifetime_2_id = GetTmpBufIdByLifeTime(2L, "ArgMaxMultiRPhase2");
       api_param->api_pre_process.emplace_back("LocalTensor<" + dtype_name + "> tmp_argmax2_value_saved;\n");
-      api_param->api_pre_process.emplace_back(
-          "tmp_argmax2_value_saved = " + tpipe.tmp_buf.name + "_" + std::to_string(tmp_lifetime_2_id)
-          + ".template ReinterpretCast<" + dtype_name + ">();\n");
+      api_param->api_pre_process.emplace_back("tmp_argmax2_value_saved = " + tpipe.tmp_buf.name + "_" +
+                                              std::to_string(tmp_lifetime_2_id) + ".template ReinterpretCast<" +
+                                              dtype_name + ">();\n");
 
       // 调用 ArgMaxWithValueExtend 获取本次迭代的局部索引和最大值
       api_param->api_name = "ArgMaxWithValueExtend";
@@ -299,37 +297,36 @@ Status ReduceApiCall::BuildApiParam(const TPipe &tpipe, const std::vector<ascir:
       api_param->output_params.emplace_back("tmp_argmax2_index", true, CombinedExprFactory::Constant(0));
       api_param->output_params.emplace_back("tmp_argmax2_value", true, CombinedExprFactory::Constant(0));
       api_param->input_params.emplace_back(
-          x_value.Str(), true, CombinedExprFactory::SymbolVar(tpipe.tiler.TensorVectorizedOffset(current_axis, x_value)));
+          x_value.Str(), true,
+          CombinedExprFactory::SymbolVar(tpipe.tiler.TensorVectorizedOffset(current_axis, x_value)));
       api_param->tmp_buf_name = tpipe.tmp_buf.name + "_" + std::to_string(id);
       api_param->cal_count = CombinedExprFactory::SymbolVar("tmp_reduce_shape");
 
       // 后处理段：ArgMaxMultiRPhase2
       api_param->api_post_process.emplace_back("AscendC::PipeBarrier<PIPE_V>();\n");
       // 如果是第一次迭代，直接赋值；否则使用UpdateMaxIndexAndValue更新全局最大值和索引
-      api_param->api_post_process.emplace_back(
-          "uint32_t temp_size_index = " + KernelUtils::SizeAlign() + "(" + y.actual_size.Str() + ", 4);\n");
-      api_param->api_post_process.emplace_back(
-          "uint32_t temp_size_value = " + KernelUtils::SizeAlign() + "(" + y.actual_size.Str()
-          + ", 32/sizeof(" + dtype_name + "));\n");
-      api_param->api_post_process.emplace_back(
-          "if (" + tpipe.tiler.GetAxis(current_axis.back()).Str() + " == 0) {\n");
-      api_param->api_post_process.emplace_back(
-          "DataCopyExtend(" + y.Str() + "[0], tmp_argmax2_index[0], temp_size_index);\n");
+      api_param->api_post_process.emplace_back("uint32_t temp_size_index = " + KernelUtils::SizeAlign() + "(" +
+                                               y.actual_size.Str() + ", 4);\n");
+      api_param->api_post_process.emplace_back("uint32_t temp_size_value = " + KernelUtils::SizeAlign() + "(" +
+                                               y.actual_size.Str() + ", 32/sizeof(" + dtype_name + "));\n");
+      api_param->api_post_process.emplace_back("if (" + tpipe.tiler.GetAxis(current_axis.back()).Str() + " == 0) {\n");
+      api_param->api_post_process.emplace_back("DataCopyExtend(" + y.Str() +
+                                               "[0], tmp_argmax2_index[0], temp_size_index);\n");
       api_param->api_post_process.emplace_back(
           "DataCopyExtend(tmp_argmax2_value_saved[0], tmp_argmax2_value[0], temp_size_value);\n");
       api_param->api_post_process.emplace_back("} else {\n");
       // 使用UpdateMaxIndexAndValue更新，注意这里offset传入0（因为Phase1已经处理了offset）
-      api_param->api_post_process.emplace_back(
-          "UpdateMaxIndexAndValue<" + dtype_name + ">(tmp_argmax2_index[0], tmp_argmax2_value[0], "
-          + y.Str() + "[0], tmp_argmax2_value_saved[0], "
-          + "0, " + tpipe.tmp_buf.name + "_" + std::to_string(id) + ", temp_size_value);\n");
+      api_param->api_post_process.emplace_back("UpdateMaxIndexAndValue<" + dtype_name +
+                                               ">(tmp_argmax2_index[0], tmp_argmax2_value[0], " + y.Str() +
+                                               "[0], tmp_argmax2_value_saved[0], " + "0, " + tpipe.tmp_buf.name + "_" +
+                                               std::to_string(id) + ", temp_size_value);\n");
       api_param->api_post_process.emplace_back("}\n");
     } else {
       // 普通Reduce multi_reduce（包括Mean在内）：声明 tmp_reduce 变量
       api_param->api_pre_process.emplace_back("LocalTensor<" + dtype_name + "> tmp_reduce;\n");
-      api_param->api_pre_process.emplace_back(
-          "tmp_reduce = " + tpipe.tmp_buf.name + "_" + std::to_string(tmp_lifetime_0_id)
-          + ".template ReinterpretCast<" + dtype_name + ">();\n");
+      api_param->api_pre_process.emplace_back("tmp_reduce = " + tpipe.tmp_buf.name + "_" +
+                                              std::to_string(tmp_lifetime_0_id) + ".template ReinterpretCast<" +
+                                              dtype_name + ">();\n");
 
       // 核心 API 参数
       api_param->api_name = new_api_name;
@@ -344,16 +341,13 @@ Status ReduceApiCall::BuildApiParam(const TPipe &tpipe, const std::vector<ascir:
 
       // 后处理段：普通Reduce multi_reduce
       api_param->api_post_process.emplace_back("AscendC::PipeBarrier<PIPE_V>();\n");
-      api_param->api_post_process.emplace_back(
-          "uint32_t temp_size = " + KernelUtils::SizeAlign() + "(" + y.actual_size.Str()
-          + ", 32/sizeof(" + dtype_name + "));\n");
-      api_param->api_post_process.emplace_back(
-          "if (" + tpipe.tiler.GetAxis(current_axis.back()).Str() + " == 0) {\n");
-      api_param->api_post_process.emplace_back(
-          "DataCopyExtend(" + y.Str() + "[0], tmp_reduce[0], temp_size);\n");
+      api_param->api_post_process.emplace_back("uint32_t temp_size = " + KernelUtils::SizeAlign() + "(" +
+                                               y.actual_size.Str() + ", 32/sizeof(" + dtype_name + "));\n");
+      api_param->api_post_process.emplace_back("if (" + tpipe.tiler.GetAxis(current_axis.back()).Str() + " == 0) {\n");
+      api_param->api_post_process.emplace_back("DataCopyExtend(" + y.Str() + "[0], tmp_reduce[0], temp_size);\n");
       api_param->api_post_process.emplace_back("} else {\n");
-      api_param->api_post_process.emplace_back(
-          "AscendC::" + instr_type + "(" + y.Str() + "[0], tmp_reduce[0], " + y.Str() + "[0], temp_size);\n");
+      api_param->api_post_process.emplace_back("AscendC::" + instr_type + "(" + y.Str() + "[0], tmp_reduce[0], " +
+                                               y.Str() + "[0], temp_size);\n");
       api_param->api_post_process.emplace_back("}\n");
     }
   }
@@ -361,12 +355,13 @@ Status ReduceApiCall::BuildApiParam(const TPipe &tpipe, const std::vector<ascir:
   // 结束代码块（与ReduceMergedSizeCodeGen生成的 { 对应）
   api_param->api_post_process.emplace_back("}\n");
 
-  GE_CHK_STATUS_RET(CodegenApiParam::Register(this->node, api_param),
-                    "CodegenApiParam Register failed for node %s", this->node_name.c_str());
+  GE_CHK_STATUS_RET(CodegenApiParam::Register(this->node, api_param), "CodegenApiParam Register failed for node %s",
+                    this->node_name.c_str());
   return af::SUCCESS;
 }
 
-Status ReduceApiCall::GenDimensionParam(const CodegenApiParam &api_param, const Tiler &tiler, std::stringstream &ss) const {
+Status ReduceApiCall::GenDimensionParam(const CodegenApiParam &api_param, const Tiler &tiler,
+                                        std::stringstream &ss) const {
   // ArgMax 系列（ArgMaxExtend / ArgMaxWithValueExtend）最后一个布尔参数为 false（src_inner_pad 未使用），
   // 普通 Reduce 为 true，与重构前 Generate 内直接拼接的语义保持一致
   const bool is_argmax = (api_param.api_name == "ArgMaxExtend") || (api_param.api_name == "ArgMaxWithValueExtend");

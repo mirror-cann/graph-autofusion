@@ -26,7 +26,7 @@ class AutofuseApiTilingGenerator {
                              uint32_t tiling_case_id)
       : tiling_case_id_(tiling_case_id), graph_(graph), node_(node), tiling_data_type_(std::move(tiling_data_type)) {}
   ~AutofuseApiTilingGenerator() = default;
-  ge::Status Generate();
+  af::Status Generate();
   std::string GetFuncImpl() const {
     return function_impl_;
   }

@@ -15,46 +15,46 @@
 
 namespace att {
 namespace ascir_reduce_v2 {
-ge::Status ElementwiseMaxApi(const std::vector<TensorShapeInfo> &input_shapes,
+af::Status ElementwiseMaxApi(const std::vector<TensorShapeInfo> &input_shapes,
                              const std::vector<TensorShapeInfo> &output_shapes, const NodeInfo &node,
                              PerfOutputInfo &perf_res);
-ge::Status ElementwiseMinApi(const std::vector<TensorShapeInfo> &input_shapes,
+af::Status ElementwiseMinApi(const std::vector<TensorShapeInfo> &input_shapes,
                              const std::vector<TensorShapeInfo> &output_shapes, const NodeInfo &node,
                              PerfOutputInfo &perf_res);
-ge::Status ReduceMaxApi(const std::vector<TensorShapeInfo> &input_shapes,
+af::Status ReduceMaxApi(const std::vector<TensorShapeInfo> &input_shapes,
                         const std::vector<TensorShapeInfo> &output_shapes, const NodeInfo &node,
                         PerfOutputInfo &perf_res);
-ge::Status ReduceMinApi(const std::vector<TensorShapeInfo> &input_shapes,
+af::Status ReduceMinApi(const std::vector<TensorShapeInfo> &input_shapes,
                         const std::vector<TensorShapeInfo> &output_shapes, const NodeInfo &node,
                         PerfOutputInfo &perf_res);
-ge::Status ReduceAnyApi(const std::vector<TensorShapeInfo> &input_shapes,
+af::Status ReduceAnyApi(const std::vector<TensorShapeInfo> &input_shapes,
                         const std::vector<TensorShapeInfo> &output_shapes, const NodeInfo &node,
                         PerfOutputInfo &perf_res);
-ge::Status ReduceAllApi(const std::vector<TensorShapeInfo> &input_shapes,
+af::Status ReduceAllApi(const std::vector<TensorShapeInfo> &input_shapes,
                         const std::vector<TensorShapeInfo> &output_shapes, const NodeInfo &node,
                         PerfOutputInfo &perf_res);
-ge::Status ReduceSumApi(const std::vector<TensorShapeInfo> &input_shapes,
+af::Status ReduceSumApi(const std::vector<TensorShapeInfo> &input_shapes,
                         const std::vector<TensorShapeInfo> &output_shapes, const NodeInfo &node,
                         PerfOutputInfo &perf_res);
-ge::Status ReduceMeanApi(const std::vector<TensorShapeInfo> &input_shapes,
+af::Status ReduceMeanApi(const std::vector<TensorShapeInfo> &input_shapes,
                          const std::vector<TensorShapeInfo> &output_shapes, const NodeInfo &node,
                          PerfOutputInfo &perf_res);
-ge::Status ReduceProdApi(const std::vector<TensorShapeInfo> &input_shapes,
+af::Status ReduceProdApi(const std::vector<TensorShapeInfo> &input_shapes,
                          const std::vector<TensorShapeInfo> &output_shapes, const NodeInfo &node,
                          PerfOutputInfo &perf_res);
-ge::Status MaxApi(const std::vector<TensorShapeInfo> &input_shapes, const std::vector<TensorShapeInfo> &output_shapes,
+af::Status MaxApi(const std::vector<TensorShapeInfo> &input_shapes, const std::vector<TensorShapeInfo> &output_shapes,
                   const NodeInfo &node, PerfOutputInfo &perf_res);
-ge::Status MinApi(const std::vector<TensorShapeInfo> &input_shapes, const std::vector<TensorShapeInfo> &output_shapes,
+af::Status MinApi(const std::vector<TensorShapeInfo> &input_shapes, const std::vector<TensorShapeInfo> &output_shapes,
                   const NodeInfo &node, PerfOutputInfo &perf_res);
-ge::Status AnyApi(const std::vector<TensorShapeInfo> &input_shapes, const std::vector<TensorShapeInfo> &output_shapes,
+af::Status AnyApi(const std::vector<TensorShapeInfo> &input_shapes, const std::vector<TensorShapeInfo> &output_shapes,
                   const NodeInfo &node, PerfOutputInfo &perf_res);
-ge::Status AllApi(const std::vector<TensorShapeInfo> &input_shapes, const std::vector<TensorShapeInfo> &output_shapes,
+af::Status AllApi(const std::vector<TensorShapeInfo> &input_shapes, const std::vector<TensorShapeInfo> &output_shapes,
                   const NodeInfo &node, PerfOutputInfo &perf_res);
-ge::Status SumApi(const std::vector<TensorShapeInfo> &input_shapes, const std::vector<TensorShapeInfo> &output_shapes,
+af::Status SumApi(const std::vector<TensorShapeInfo> &input_shapes, const std::vector<TensorShapeInfo> &output_shapes,
                   const NodeInfo &node, PerfOutputInfo &perf_res);
-ge::Status MeanApi(const std::vector<TensorShapeInfo> &input_shapes, const std::vector<TensorShapeInfo> &output_shapes,
+af::Status MeanApi(const std::vector<TensorShapeInfo> &input_shapes, const std::vector<TensorShapeInfo> &output_shapes,
                    const NodeInfo &node, PerfOutputInfo &perf_res);
-ge::Status ProdApi(const std::vector<TensorShapeInfo> &input_shapes, const std::vector<TensorShapeInfo> &output_shapes,
+af::Status ProdApi(const std::vector<TensorShapeInfo> &input_shapes, const std::vector<TensorShapeInfo> &output_shapes,
                    const NodeInfo &node, PerfOutputInfo &perf_res);
 }  // namespace ascir_reduce_v2
 }  // namespace att

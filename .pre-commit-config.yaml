@@ -58,7 +58,7 @@ repos:
       - id: codespell
         args: [
             "-L",
-            "CANN,cann,NNAL,nnal,ASCEND,ascend,EnQue,CopyIn,ArchType,AND,ND,tbe,copyin,alog",
+            "CANN,cann,NNAL,nnal,ASCEND,ascend,EnQue,CopyIn,ArchType,AND,ND,tbe,copyin,alog,Vistor",
             "--skip",
             "*.py,*.cpp,*.hpp,*.c,*.h",
           ]
@@ -70,7 +70,7 @@ repos:
         name: OAT Compliance Check
         entry: bash scripts/oat_check.sh
         language: system
-        pass_filenames: true
+        pass_filenames: false
         types: [file]
         stages: [pre-commit]
         verbose: true

@@ -448,7 +448,7 @@ TEST_F(TilingGroupUT, transpose_axis_group1) {
   // (0,1,2,3) => (0,3,1,2) 分组 ((3),(0,1,2))
   auto transpose_node = graph.FindNode("transpose");
   AxisGroup res;
-  EXPECT_EQ(TilingGroup::GenTransposeTilingGroup(*transpose_node, res), ge::SUCCESS);
+  EXPECT_EQ(TilingGroup::GenTransposeTilingGroup(*transpose_node, res), af::SUCCESS);
   std::vector<int64_t> golden_x{3};
   EXPECT_EQ(res.x_group, golden_x);
   std::vector<int64_t> golden_y{0, 1, 2};
@@ -507,7 +507,7 @@ TEST_F(TilingGroupUT, transpose_axis_group2) {
   // (0,1,2,3) => (3,2,1,0) 分组 ((2,3),(1,0))
   auto transpose_node = graph.FindNode("transpose");
   AxisGroup res;
-  EXPECT_EQ(TilingGroup::GenTransposeTilingGroup(*transpose_node, res), ge::SUCCESS);
+  EXPECT_EQ(TilingGroup::GenTransposeTilingGroup(*transpose_node, res), af::SUCCESS);
   std::vector<int64_t> golden_x{2, 3};
   EXPECT_EQ(res.x_group, golden_x);
   std::vector<int64_t> golden_y{1, 0};
@@ -568,7 +568,7 @@ TEST_F(TilingGroupUT, transpose_axis_group3) {
   // (0,1,2) => (1,0,2) 分组 ((1),(0),(),(2))
   auto transpose_node = graph.FindNode("transpose");
   AxisGroup res;
-  EXPECT_EQ(TilingGroup::GenTransposeTilingGroup(*transpose_node, res), ge::SUCCESS);
+  EXPECT_EQ(TilingGroup::GenTransposeTilingGroup(*transpose_node, res), af::SUCCESS);
   std::vector<int64_t> golden_x{1};
   EXPECT_EQ(res.x_group, golden_x);
   std::vector<int64_t> golden_y{0};
@@ -629,7 +629,7 @@ TEST_F(TilingGroupUT, transpose_axis_group5) {
   // (0,1,2) => (0,2,1) 分组 ((2),(1),(),(0))
   auto transpose_node = graph.FindNode("transpose");
   AxisGroup res;
-  EXPECT_EQ(TilingGroup::GenTransposeTilingGroup(*transpose_node, res), ge::SUCCESS);
+  EXPECT_EQ(TilingGroup::GenTransposeTilingGroup(*transpose_node, res), af::SUCCESS);
   std::vector<int64_t> golden_x{2};
   EXPECT_EQ(res.x_group, golden_x);
   std::vector<int64_t> golden_y{0, 1};
@@ -1142,7 +1142,7 @@ TEST_F(TilingGroupUT, get_loop_strides_0dim) {
 
   std::vector<af::Expression> res_strides;
   auto node = graph.FindNode("add");
-  ASSERT_EQ(ScheduleUtils::GetReduceInputStrides(*node, res_strides), ge::SUCCESS);
+  ASSERT_EQ(ScheduleUtils::GetReduceInputStrides(*node, res_strides), af::SUCCESS);
   ASSERT_TRUE(res_strides.empty());
 }
 
@@ -1170,7 +1170,7 @@ TEST_F(TilingGroupUT, get_loop_strides_1dim_not1) {
   std::vector<af::Expression> res_strides;
   std::vector<af::Expression> exp_strides{af::Symbol(1)};
   auto node = graph.FindNode("add");
-  ASSERT_EQ(ScheduleUtils::GetReduceInputStrides(*node, res_strides), ge::SUCCESS);
+  ASSERT_EQ(ScheduleUtils::GetReduceInputStrides(*node, res_strides), af::SUCCESS);
   for (size_t i = 0; i < res_strides.size(); i++) {
     ASSERT_EQ(res_strides[i], exp_strides[i]);
   }
@@ -1200,7 +1200,7 @@ TEST_F(TilingGroupUT, get_loop_strides_1dim_is1) {
   std::vector<af::Expression> res_strides;
   std::vector<af::Expression> exp_strides{af::Symbol(0)};
   auto node = graph.FindNode("add");
-  ASSERT_EQ(ScheduleUtils::GetReduceInputStrides(*node, res_strides), ge::SUCCESS);
+  ASSERT_EQ(ScheduleUtils::GetReduceInputStrides(*node, res_strides), af::SUCCESS);
   for (size_t i = 0; i < res_strides.size(); i++) {
     ASSERT_EQ(res_strides[i], exp_strides[i]);
   }
@@ -1232,7 +1232,7 @@ TEST_F(TilingGroupUT, get_loop_strides_2dim_no1) {
   std::vector<af::Expression> res_strides;
   std::vector<af::Expression> exp_strides{s1, af::Symbol(1)};
   auto node = graph.FindNode("add");
-  ASSERT_EQ(ScheduleUtils::GetReduceInputStrides(*node, res_strides), ge::SUCCESS);
+  ASSERT_EQ(ScheduleUtils::GetReduceInputStrides(*node, res_strides), af::SUCCESS);
   for (size_t i = 0; i < res_strides.size(); i++) {
     ASSERT_EQ(res_strides[i], exp_strides[i]);
   }
@@ -1264,7 +1264,7 @@ TEST_F(TilingGroupUT, get_loop_strides_2dim_last1) {
   std::vector<af::Expression> res_strides;
   std::vector<af::Expression> exp_strides{s1, af::Symbol(0)};
   auto node = graph.FindNode("add");
-  ASSERT_EQ(ScheduleUtils::GetReduceInputStrides(*node, res_strides), ge::SUCCESS);
+  ASSERT_EQ(ScheduleUtils::GetReduceInputStrides(*node, res_strides), af::SUCCESS);
   for (size_t i = 0; i < res_strides.size(); i++) {
     ASSERT_EQ(res_strides[i], exp_strides[i]);
   }
@@ -1296,7 +1296,7 @@ TEST_F(TilingGroupUT, get_loop_strides_2dim_first1) {
   std::vector<af::Expression> res_strides;
   std::vector<af::Expression> exp_strides{af::Symbol(0), af::Symbol(1)};
   auto node = graph.FindNode("add");
-  ASSERT_EQ(ScheduleUtils::GetReduceInputStrides(*node, res_strides), ge::SUCCESS);
+  ASSERT_EQ(ScheduleUtils::GetReduceInputStrides(*node, res_strides), af::SUCCESS);
   for (size_t i = 0; i < res_strides.size(); i++) {
     ASSERT_EQ(res_strides[i], exp_strides[i]);
   }
@@ -1328,7 +1328,7 @@ TEST_F(TilingGroupUT, get_loop_strides_2dim_both1) {
   std::vector<af::Expression> res_strides;
   std::vector<af::Expression> exp_strides{af::Symbol(0), af::Symbol(0)};
   auto node = graph.FindNode("add");
-  ASSERT_EQ(ScheduleUtils::GetReduceInputStrides(*node, res_strides), ge::SUCCESS);
+  ASSERT_EQ(ScheduleUtils::GetReduceInputStrides(*node, res_strides), af::SUCCESS);
   for (size_t i = 0; i < res_strides.size(); i++) {
     ASSERT_EQ(res_strides[i], exp_strides[i]);
   }
@@ -1364,7 +1364,7 @@ TEST_F(TilingGroupUT, get_loop_strides_case1) {
   std::vector<af::Expression> res_strides;
   std::vector<af::Expression> exp_strides{s2, af::Symbol(0), af::Symbol(1), af::Symbol(0)};
   auto node = graph.FindNode("add");
-  ASSERT_EQ(ScheduleUtils::GetReduceInputStrides(*node, res_strides), ge::SUCCESS);
+  ASSERT_EQ(ScheduleUtils::GetReduceInputStrides(*node, res_strides), af::SUCCESS);
   for (size_t i = 0; i < res_strides.size(); i++) {
     ASSERT_EQ(res_strides[i], exp_strides[i]);
   }
@@ -1407,7 +1407,7 @@ TEST_F(TilingGroupUT, get_loop_strides_case2) {
   std::vector<af::Expression> exp_strides{s1 * s4,       s4,           af::Symbol(0), af::Symbol(0), af::Symbol(1),
                                           af::Symbol(0), af::Symbol(0)};
   auto node = graph.FindNode("add");
-  ASSERT_EQ(ScheduleUtils::GetReduceInputStrides(*node, res_strides), ge::SUCCESS);
+  ASSERT_EQ(ScheduleUtils::GetReduceInputStrides(*node, res_strides), af::SUCCESS);
   for (size_t i = 0; i < res_strides.size(); i++) {
     ASSERT_EQ(res_strides[i], exp_strides[i]);
   }
@@ -1450,7 +1450,7 @@ TEST_F(TilingGroupUT, get_loop_strides_case3) {
   std::vector<af::Expression> exp_strides{af::Symbol(0), s2 * s6,       s6,           af::Symbol(0),
                                           af::Symbol(0), af::Symbol(0), af::Symbol(1)};
   auto node = graph.FindNode("add");
-  ASSERT_EQ(ScheduleUtils::GetReduceInputStrides(*node, res_strides), ge::SUCCESS);
+  ASSERT_EQ(ScheduleUtils::GetReduceInputStrides(*node, res_strides), af::SUCCESS);
   for (size_t i = 0; i < res_strides.size(); i++) {
     ASSERT_EQ(res_strides[i], exp_strides[i]);
   }

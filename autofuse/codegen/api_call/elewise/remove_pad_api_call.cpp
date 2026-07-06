@@ -90,7 +90,7 @@ Status RemovePadApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::A
      << ", " << non_last_axis_size << ");" << std::endl;
 
   result = ss.str();
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 static ApiCallRegister<RemovePadApiCall> register_remove_pad_api_call("RemovePadApiCall");

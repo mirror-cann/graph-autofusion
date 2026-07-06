@@ -23,7 +23,6 @@
 #include "graph/debug/ge_attr_define.h"
 
 namespace af {
-using ge::Status;
 constexpr size_t kMaxDimNum = 25UL;
 constexpr size_t kMaxWorkspaceNum = 16UL;
 constexpr int32_t kDecimalCarry = 10;
@@ -228,7 +227,7 @@ static graphStatus InputInstanceParser(const OpDescPtr &op_desc, const std::stri
     GE_ASSERT(static_cast<size_t>(ir_idx) < valid_input_size, "ir index [%d] is invalid.", ir_idx);
     arg_descs.push_back({type, ir_idx, false, {0}});
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 static graphStatus InputInstanceCalcSize(const OpDescPtr &op_desc, const ArgDesc &arg_desc, size_t &size) {
@@ -272,7 +271,7 @@ static graphStatus OutputInstanceParser(const OpDescPtr &op_desc, const std::str
     GE_ASSERT(static_cast<size_t>(ir_idx) < valid_output_size, "ir index [%d] is invalid.", ir_idx);
     arg_descs.push_back({type, ir_idx, false, {0}});
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 static graphStatus InputParser(const OpDescPtr &op_desc, const std::string &pattern_str, const AddrType type,
@@ -457,7 +456,7 @@ static graphStatus IODescParser(const OpDescPtr &op_desc, const std::string &pat
       has_idx = true;
     }
   }
-  GE_ASSERT(has_idx, "Dynamic intput/output should have a concrete ir idx.");
+  GE_ASSERT(has_idx, "Dynamic input/output should have a concrete ir idx.");
   arg_descs.push_back({type, ir_idx, folded, {0}});
   return ge::GRAPH_SUCCESS;
 }

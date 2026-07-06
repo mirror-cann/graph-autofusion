@@ -48,7 +48,7 @@ class TestProfiler : public ::testing::Test {
     config.type = TilingImplType::HIGH_PERF;
     config.gen_extra_infos = true;
     config.tiling_data_type_name = "MMTilingData";
-    EXPECT_EQ(ReuseGroupUtils::InitReuseScheduleGroup({0UL, 0UL, 0UL}, modelInfos), ge::SUCCESS);
+    EXPECT_EQ(ReuseGroupUtils::InitReuseScheduleGroup({0UL, 0UL, 0UL}, modelInfos), af::SUCCESS);
     generator.GenTilingCode(op_name, modelInfos, config);
     AddHeaderGuardToFile("autofuse_tiling_func_common.h", "__AUTOFUSE_TILING_FUNC_COMMON_H__");
     std::system(std::string("cp ").append(TILING_DATA_DIR).append("/tiling_func_attlog_main.cpp ./ -f").c_str());

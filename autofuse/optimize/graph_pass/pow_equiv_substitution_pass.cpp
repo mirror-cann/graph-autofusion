@@ -108,7 +108,7 @@ Status PowEquivSubstitutionPass::RunPass(af::AscGraph &graph) {
   std::vector<af::AscNodePtr> pow_nodes = FilterPowNodes(graph);
   if (pow_nodes.empty()) {
     GELOGD("No Pow nodes found in graph, skip substitution");
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
 
   bool changed = false;
@@ -148,7 +148,7 @@ Status PowEquivSubstitutionPass::RunPass(af::AscGraph &graph) {
     GE_ASSERT_SUCCESS(PassUtils::PruneGraph(graph));
     GE_ASSERT_GRAPH_SUCCESS(ScheduleUtils::TopologicalSorting(graph));
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 std::vector<af::AscNodePtr> PowEquivSubstitutionPass::FilterPowNodes(af::AscGraph &graph) {
@@ -208,7 +208,7 @@ af::Status PowEquivSubstitutionPass::EnsureInputWithBrcIfNeeded(af::AscGraph &gr
     GELOGD("Inserted Brc node [%s] between Scalar [%s] and Pow [%s]", brc_node->GetNamePtr(), owner_node->GetNamePtr(),
            pow_node->GetNamePtr());
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 // 重连Pow输入到目标节点
@@ -232,7 +232,7 @@ Status PowEquivSubstitutionPass::ReplaceWithScalarBrc(af::AscGraph &graph, const
   GE_ASSERT_NOTNULL(brc_node);
   GE_ASSERT_SUCCESS(RelinkPowOutputToNode(pow_node, brc_node), "Failed to replace pow [%s] with brc [%s].",
                     pow_node->GetNamePtr(), brc_node->GetNamePtr());
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status PowEquivSubstitutionPass::ReplaceWithSqrt(af::AscGraph &graph, const af::AscNodePtr &pow_node) {
@@ -250,7 +250,7 @@ Status PowEquivSubstitutionPass::ReplaceWithSqrt(af::AscGraph &graph, const af::
   // 重连输出
   GE_ASSERT_SUCCESS(RelinkPowOutputToNode(pow_node, sqrt_node),
                     "Failed to relink output for Pow node [%s] to Sqrt node", pow_node->GetNamePtr());
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status PowEquivSubstitutionPass::ReplaceWithInverseSqrt(af::AscGraph &graph, const af::AscNodePtr &pow_node) {
@@ -280,7 +280,7 @@ Status PowEquivSubstitutionPass::ReplaceWithInverseSqrt(af::AscGraph &graph, con
   // 重连Div输出
   GE_ASSERT_SUCCESS(RelinkPowOutputToNode(pow_node, div_node), "Failed to relink output for Pow node [%s] to Div node",
                     pow_node->GetNamePtr());
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status PowEquivSubstitutionPass::RemoveUseLessPow([[maybe_unused]] af::AscGraph &graph,
@@ -290,7 +290,7 @@ Status PowEquivSubstitutionPass::RemoveUseLessPow([[maybe_unused]] af::AscGraph 
   auto new_src = pow_in_anchor->GetPeerOutAnchor();
   auto old_src = pow_node->GetOutDataAnchor(0);
   GE_ASSERT_SUCCESS(PassUtils::RelinkAllOutNodeToSrc(old_src, new_src));
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status PowEquivSubstitutionPass::ReplaceWithInverseInput(af::AscGraph &graph, const af::AscNodePtr &pow_node) {
@@ -311,7 +311,7 @@ Status PowEquivSubstitutionPass::ReplaceWithInverseInput(af::AscGraph &graph, co
   // 重连Div输出
   GE_CHK_STATUS_RET(RelinkPowOutputToNode(pow_node, div_node), "Failed to relink output for Pow node [%s] to Div node",
                     pow_node->GetNamePtr());
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status PowEquivSubstitutionPass::ReplaceWithMul(af::AscGraph &graph, const af::AscNodePtr &pow_node) {
@@ -327,7 +327,7 @@ Status PowEquivSubstitutionPass::ReplaceWithMul(af::AscGraph &graph, const af::A
   // 重连Mul输出
   GE_CHK_STATUS_RET(RelinkPowOutputToNode(pow_node, mul_node), "Failed to relink output for Pow node [%s] to Mul node",
                     pow_node->GetNamePtr());
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status PowEquivSubstitutionPass::ReplaceWithInverseMul(af::AscGraph &graph, const af::AscNodePtr &pow_node) {
@@ -358,7 +358,7 @@ Status PowEquivSubstitutionPass::ReplaceWithInverseMul(af::AscGraph &graph, cons
   // 重连Div输出
   GE_CHK_STATUS_RET(RelinkPowOutputToNode(pow_node, div_node), "Failed to relink output for Pow node [%s] to Div node",
                     pow_node->GetNamePtr());
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status PowEquivSubstitutionPass::ReplaceWithCube(af::AscGraph &graph, const af::AscNodePtr &pow_node) {
@@ -379,7 +379,7 @@ Status PowEquivSubstitutionPass::ReplaceWithCube(af::AscGraph &graph, const af::
   // 重连Mul2输出
   GE_CHK_STATUS_RET(RelinkPowOutputToNode(pow_node, mul2_node), "Failed to relink output for Pow node [%s] to Mul node",
                     pow_node->GetNamePtr());
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status PowEquivSubstitutionPass::ReplaceWithFourthPower(af::AscGraph &graph, const af::AscNodePtr &pow_node) {
@@ -400,6 +400,6 @@ Status PowEquivSubstitutionPass::ReplaceWithFourthPower(af::AscGraph &graph, con
   // 重连Mul2输出
   GE_CHK_STATUS_RET(RelinkPowOutputToNode(pow_node, mul2_node), "Failed to relink output for Pow node [%s] to Mul node",
                     pow_node->GetNamePtr());
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 }  // namespace optimize

@@ -37,7 +37,7 @@ TilingImplType GetTilingAlgorithm(const std::string &algorithm_name) {
 
 void PgoEnvConfigInit(TilingCodeGenConfig &generator_config) {
   const auto res_pgo = AutoFuseConfig::MutablePgoStrategyConfig().Init();
-  if (res_pgo == ge::SUCCESS) {
+  if (res_pgo == af::SUCCESS) {
     if (AutoFuseConfig::GetPgoStrategyConfig().set_env_enable_autofuse_pgo) {
       generator_config.enable_autofuse_pgo = (AutoFuseConfig::GetPgoStrategyConfig().enable_autofuse_pgo == "true");
     }
@@ -47,10 +47,10 @@ void PgoEnvConfigInit(TilingCodeGenConfig &generator_config) {
   }
 }
 
-ge::Status InitializeConfigByEnvOrIni(TilingCodeGenConfig &generator_config) {
+af::Status InitializeConfigByEnvOrIni(TilingCodeGenConfig &generator_config) {
   // ATT的配置初始化，当前前端不支持传入配置文件的目录，所以这里直接使用默认的配置文件路径
   const auto res = AutoFuseConfig::MutableAttStrategyConfig().Init();
-  if (res == ge::SUCCESS) {
+  if (res == af::SUCCESS) {
     if (AutoFuseConfig::GetAttStrategyConfig().set_env_tiling_algorithm) {
       generator_config.type = GetTilingAlgorithm(AutoFuseConfig::GetAttStrategyConfig().tiling_algorithm);
     }
@@ -85,7 +85,7 @@ ge::Status InitializeConfigByEnvOrIni(TilingCodeGenConfig &generator_config) {
     }
   }
   PgoEnvConfigInit(generator_config);
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 uint32_t GetDurationLevel(const std::map<std::string, std::string> &options) {
@@ -149,7 +149,7 @@ bool GenTilingImpl(const std::string &op_name, const std::vector<af::AscGraph> &
     GE_ASSERT_SUCCESS(generator.GenTilingCode(op_name, model_info_list, generator_config), "Get tiling func failed.");
     return true;
   } catch (const af::AscIRException &e) {
-    GELOGE(ge::FAILED, "Gen tiling failed, exception:%d", static_cast<int32_t>(e.GetInfo().error_code));
+    GELOGE(af::FAILED, "Gen tiling failed, exception:%d", static_cast<int32_t>(e.GetInfo().error_code));
     return false;
   }
 }

@@ -254,7 +254,7 @@ TEST_F(TestOptimizer, ReOrderMergeAxisGraph_scheduler) {
   optimize::Optimizer optimizer(optimize::OptimizerOptions{});
   ::ascir::FusedScheduledResult fused_scheduled_result;
   Status res = optimizer.Optimize(graph, fused_scheduled_result);
-  EXPECT_EQ(res, ge::SUCCESS);
+  EXPECT_EQ(res, af::SUCCESS);
   ASSERT_EQ(fused_scheduled_result.node_idx_to_scheduled_results[0].size(), 1UL);
   ASSERT_EQ(fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups.size(), 1UL);
   ASSERT_EQ(fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs.size(), 1UL);
@@ -352,7 +352,7 @@ TEST_F(TestOptimizer, BufQueAlloc_TempBuffer) {
   load_op2.x = y_op.y;
 
   Status status = optimizer.BufQueAlloc(graph, graph);
-  ASSERT_EQ(status, ge::SUCCESS);
+  ASSERT_EQ(status, af::SUCCESS);
   auto brc = graph.FindNode("brc");
   ASSERT_NE(brc, nullptr);
   ASSERT_EQ(brc->attr.tmp_buffers.size(), 1);
@@ -389,7 +389,7 @@ TEST_F(TestOptimizer, ConstantToStoreNeedBroadCast) {
   optimize::Optimizer optimizer(optimize::OptimizerOptions{});
   ::ascir::FusedScheduledResult fused_scheduled_result;
   Status res = optimizer.Optimize(graph, fused_scheduled_result);
-  EXPECT_EQ(res, ge::SUCCESS);
+  EXPECT_EQ(res, af::SUCCESS);
   ASSERT_EQ(fused_scheduled_result.node_idx_to_scheduled_results[0].size(), 1UL);
   ASSERT_EQ(fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups.size(), 1UL);
   ASSERT_EQ(fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs.size(), 1UL);
@@ -424,7 +424,7 @@ TEST_F(TestOptimizer, ScalarConstantToStore) {
   output_op.ir_attr.SetIndex(0);
   output_op.attr.api.compute_type = af::ComputeType::kComputeInvalid;
   optimize::Optimizer optimizer(optimize::OptimizerOptions{});
-  ASSERT_EQ(optimizer.GraphPass(graph), ge::SUCCESS);
+  ASSERT_EQ(optimizer.GraphPass(graph), af::SUCCESS);
   auto cg = af::AscGraphUtils::GetComputeGraph(graph);
   auto found_broadcast = cg->FindFirstNodeMatchType(af::ascir_op::Broadcast::Type);
   ASSERT_NE(found_broadcast, nullptr);
@@ -1838,7 +1838,7 @@ TEST_F(TestOptimizer, REDUCE_MUL_CONSUMER) {
   optimize::Optimizer optimizer(optimize::OptimizerOptions{});
   ::ascir::FusedScheduledResult fused_scheduled_result;
   Status res = optimizer.Optimize(graph, fused_scheduled_result);
-  EXPECT_EQ(res, ge::SUCCESS);
+  EXPECT_EQ(res, af::SUCCESS);
   ASSERT_EQ(fused_scheduled_result.node_idx_to_scheduled_results[0].size(), 3UL);
   ASSERT_EQ(fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups.size(), 2UL);
   ASSERT_EQ(fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs.size(), 1UL);
@@ -1930,7 +1930,7 @@ TEST_F(TestOptimizer, ReduceTaskGenerate) {
   std::vector<optimize::ScheduleTask> schedule_tasks;
   optimize::OptimizerOptions options{optimize::GraphType::kAscGraph};
   Status res = optimize::ScheduleTaskGenerator::GenerateTasks(graph, schedule_tasks, options);
-  ASSERT_EQ(res, ge::SUCCESS);
+  ASSERT_EQ(res, af::SUCCESS);
   ASSERT_EQ(schedule_tasks.size(), 3UL);
   int64_t ir_idx = -1;
   for (auto &task : schedule_tasks) {
@@ -2040,7 +2040,7 @@ TEST_F(TestOptimizer, TailAxisSliceDoNotMerge) {
   *abs.y.repeats = {s0, s1, s2, s3};
   *abs.y.strides = {s1 * s2 * s3 * stride, s2 * s3 * stride, s3 * stride, stride};
 
-  ASSERT_EQ(optimizer.MergeContinuousAxis(graph), ge::SUCCESS);
+  ASSERT_EQ(optimizer.MergeContinuousAxis(graph), af::SUCCESS);
 
   auto new_axis = graph.GetAllAxis();
   ASSERT_EQ(new_axis.size(), 2UL);
@@ -2512,7 +2512,7 @@ TEST_F(TestOptimizer, ScalarBroadcastOptimization_Size_Not_Equal_Failed) {
   output_op.y.dtype = ge::DT_FLOAT;
 
   Status res = optimizer.GraphPass(graph);
-  EXPECT_EQ(res, ge::SUCCESS);
+  EXPECT_EQ(res, af::SUCCESS);
   auto compute_graph = af::AscGraphUtils::GetComputeGraph(graph);
   EXPECT_EQ(compute_graph->GetAllNodesSize(), 11);
   EXPECT_NE(compute_graph->FindNode("brc1"), nullptr);
@@ -2605,7 +2605,7 @@ TEST_F(TestOptimizer, ScalarBroadcastOptimization_Single) {
   output_op.y.dtype = ge::DT_FLOAT;
 
   Status res = optimizer.GraphPass(graph);
-  EXPECT_EQ(res, ge::SUCCESS);
+  EXPECT_EQ(res, af::SUCCESS);
   auto compute_graph = af::AscGraphUtils::GetComputeGraph(graph);
   EXPECT_EQ(compute_graph->GetAllNodesSize(), 7);
   EXPECT_EQ(compute_graph->FindNode("brc1"), nullptr);
@@ -2720,7 +2720,7 @@ TEST_F(TestOptimizer, ScalarBroadcastOptimization_Multi_Out_Success) {
   output_op.y.dtype = ge::DT_FLOAT;
 
   Status res = optimizer.GraphPass(graph);
-  EXPECT_EQ(res, ge::SUCCESS);
+  EXPECT_EQ(res, af::SUCCESS);
   auto compute_graph = af::AscGraphUtils::GetComputeGraph(graph);
   EXPECT_EQ(compute_graph->GetAllNodesSize(), 8);
   EXPECT_EQ(compute_graph->FindNode("brc1"), nullptr);
@@ -2842,7 +2842,7 @@ TEST_F(TestOptimizer, ScalarBroadcastOptimization_Multi_Out_Failed) {
   output_op.y.dtype = ge::DT_FLOAT;
 
   Status res = optimizer.GraphPass(graph);
-  EXPECT_EQ(res, ge::SUCCESS);
+  EXPECT_EQ(res, af::SUCCESS);
   auto compute_graph = af::AscGraphUtils::GetComputeGraph(graph);
   EXPECT_EQ(compute_graph->GetAllNodesSize(), 11);
   EXPECT_NE(compute_graph->FindNode("brc1"), nullptr);
@@ -2935,7 +2935,7 @@ TEST_F(TestOptimizer, ScalarBroadcastOptimization_Api_Not_Support_Scalar) {
   output_op.y.dtype = ge::DT_FLOAT;
 
   Status res = optimizer.GraphPass(graph);
-  EXPECT_EQ(res, ge::SUCCESS);
+  EXPECT_EQ(res, af::SUCCESS);
   auto compute_graph = af::AscGraphUtils::GetComputeGraph(graph);
   EXPECT_EQ(compute_graph->GetAllNodesSize(), 7);
   EXPECT_EQ(compute_graph->FindNode("brc1"), nullptr);
@@ -3036,7 +3036,7 @@ TEST_F(TestOptimizer, ScalarBroadcastOptimization_Not_Load) {
   output_op.y.dtype = ge::DT_FLOAT;
 
   Status res = optimizer.GraphPass(graph);
-  EXPECT_EQ(res, ge::SUCCESS);
+  EXPECT_EQ(res, af::SUCCESS);
   auto compute_graph = af::AscGraphUtils::GetComputeGraph(graph);
   EXPECT_EQ(compute_graph->GetAllNodesSize(), 8);
   EXPECT_EQ(compute_graph->FindNode("brc1"), nullptr);
@@ -3156,7 +3156,7 @@ TEST_F(TestOptimizer, ScalarBroadcastOptimization_Two_Scalar) {
   output_op.y.dtype = ge::DT_FLOAT;
 
   Status res = optimizer.GraphPass(graph);
-  EXPECT_EQ(res, ge::SUCCESS);
+  EXPECT_EQ(res, af::SUCCESS);
   auto compute_graph = af::AscGraphUtils::GetComputeGraph(graph);
   EXPECT_EQ(compute_graph->GetAllNodesSize(), 10);
   EXPECT_EQ(compute_graph->FindNode("brc1"), nullptr);
@@ -3240,7 +3240,7 @@ TEST_F(TestOptimizer, ScalarBroadcastOptimization_Same_Input) {
   output_op.y.dtype = ge::DT_FLOAT;
 
   Status res = optimizer.GraphPass(graph);
-  EXPECT_EQ(res, ge::SUCCESS);
+  EXPECT_EQ(res, af::SUCCESS);
   auto compute_graph = af::AscGraphUtils::GetComputeGraph(graph);
   EXPECT_EQ(compute_graph->GetAllNodesSize(), 8);
   EXPECT_NE(compute_graph->FindNode("brc1"), nullptr);
@@ -3333,7 +3333,7 @@ TEST_F(TestOptimizer, ScalarBroadcastOptimization_Compare_2nd_Scalar) {
   output_op.y.dtype = ge::DT_FLOAT;
 
   Status res = optimizer.GraphPass(graph);
-  EXPECT_EQ(res, ge::SUCCESS);
+  EXPECT_EQ(res, af::SUCCESS);
   auto compute_graph = af::AscGraphUtils::GetComputeGraph(graph);
   EXPECT_EQ(compute_graph->GetAllNodesSize(), 7);
   EXPECT_EQ(compute_graph->FindNode("brc1"), nullptr);
@@ -3439,7 +3439,7 @@ TEST_F(TestOptimizer, ScalarBroadcastOptimization_Compare_1nd_Scalar) {
   output_op.y.dtype = ge::DT_FLOAT;
 
   Status res = optimizer.GraphPass(graph);
-  EXPECT_EQ(res, ge::SUCCESS);
+  EXPECT_EQ(res, af::SUCCESS);
   auto compute_graph = af::AscGraphUtils::GetComputeGraph(graph);
   EXPECT_EQ(compute_graph->GetAllNodesSize(), 10);
   EXPECT_NE(compute_graph->FindNode("brc1"), nullptr);
@@ -3541,7 +3541,7 @@ TEST_F(TestOptimizer, ScalarBroadcastOptimization_Add_Eq_Common_Scalar_Success) 
   output_op.y.dtype = ge::DT_FLOAT;
 
   Status res = optimizer.GraphPass(graph);
-  EXPECT_EQ(res, ge::SUCCESS);
+  EXPECT_EQ(res, af::SUCCESS);
   auto compute_graph = af::AscGraphUtils::GetComputeGraph(graph);
   EXPECT_EQ(compute_graph->GetAllNodesSize(), 8);
   EXPECT_EQ(compute_graph->FindNode("brc1"), nullptr);
@@ -3664,7 +3664,7 @@ TEST_F(TestOptimizer, ScalarBroadcastOptimization_Add_Lt_Common_Scalar_Failed) {
   output_op.y.dtype = ge::DT_FLOAT;
 
   Status res = optimizer.GraphPass(graph);
-  EXPECT_EQ(res, ge::SUCCESS);
+  EXPECT_EQ(res, af::SUCCESS);
   auto compute_graph = af::AscGraphUtils::GetComputeGraph(graph);
   EXPECT_EQ(compute_graph->GetAllNodesSize(), 11);
   EXPECT_NE(compute_graph->FindNode("brc1"), nullptr);
@@ -3807,7 +3807,7 @@ TEST_F(TestOptimizer, ScalarBroadcastOptimization_Sub_Eq_Success) {
   output_op.y.dtype = ge::DT_FLOAT;
 
   Status res = optimizer.GraphPass(graph);
-  EXPECT_EQ(res, ge::SUCCESS);
+  EXPECT_EQ(res, af::SUCCESS);
   auto compute_graph = af::AscGraphUtils::GetComputeGraph(graph);
   EXPECT_EQ(compute_graph->GetAllNodesSize(), 10);
   EXPECT_EQ(compute_graph->FindNode("brc1"), nullptr);
@@ -3912,7 +3912,7 @@ TEST_F(TestOptimizer, ScalarBroadcastOptimization_Min_Ne_Success) {
   output_op.y.dtype = ge::DT_FLOAT;
 
   Status res = optimizer.GraphPass(graph);
-  EXPECT_EQ(res, ge::SUCCESS);
+  EXPECT_EQ(res, af::SUCCESS);
   auto compute_graph = af::AscGraphUtils::GetComputeGraph(graph);
   EXPECT_EQ(compute_graph->GetAllNodesSize(), 8);
   EXPECT_EQ(compute_graph->FindNode("brc1"), nullptr);
@@ -4088,7 +4088,7 @@ TEST_F(TestOptimizer, ScalarBroadcastOptimization_Where_3S_Success) {
   output_op.y.dtype = ge::DT_FLOAT;
 
   Status res = optimizer.GraphPass(graph);
-  EXPECT_EQ(res, ge::SUCCESS);
+  EXPECT_EQ(res, af::SUCCESS);
   auto compute_graph = af::AscGraphUtils::GetComputeGraph(graph);
   EXPECT_EQ(compute_graph->GetAllNodesSize(), 10);
   EXPECT_EQ(compute_graph->FindNode("brc1"), nullptr);
@@ -4268,7 +4268,7 @@ TEST_F(TestOptimizer, ScalarBroadcastOptimization_Select_2S_Success) {
   output_op.y.dtype = ge::DT_FLOAT;
 
   Status res = optimizer.GraphPass(graph);
-  EXPECT_EQ(res, ge::SUCCESS);
+  EXPECT_EQ(res, af::SUCCESS);
   auto compute_graph = af::AscGraphUtils::GetComputeGraph(graph);
   EXPECT_EQ(compute_graph->GetAllNodesSize(), 10);
   EXPECT_EQ(compute_graph->FindNode("brc1"), nullptr);
@@ -4487,7 +4487,7 @@ TEST_F(TestOptimizer, ScalarBroadcastOptimization_Select_2S_3S_Success) {
   output_op.y.dtype = ge::DT_FLOAT;
 
   Status res = optimizer.GraphPass(graph);
-  EXPECT_EQ(res, ge::SUCCESS);
+  EXPECT_EQ(res, af::SUCCESS);
   auto compute_graph = af::AscGraphUtils::GetComputeGraph(graph);
   EXPECT_EQ(compute_graph->GetAllNodesSize(), 12);
   EXPECT_EQ(compute_graph->FindNode("brc1"), nullptr);
@@ -4598,7 +4598,7 @@ TEST_F(TestOptimizer, ScalarBroadcastOptimization_Scalar) {
 
   ::ascir::FusedScheduledResult fused_scheduled_result;
   Status res = optimizer.Optimize(graph, fused_scheduled_result);
-  EXPECT_EQ(res, ge::SUCCESS);
+  EXPECT_EQ(res, af::SUCCESS);
   ASSERT_TRUE(!fused_scheduled_result.node_idx_to_scheduled_results.empty());
   auto &schedule_results = fused_scheduled_result.node_idx_to_scheduled_results[0];
   EXPECT_EQ(schedule_results.size(), 1UL);
@@ -4662,7 +4662,7 @@ TEST_F(TestOptimizer, ScalarBroadcastOptimization_Not_Output) {
 
   ::ascir::FusedScheduledResult fused_scheduled_result;
   Status res = optimizer.Optimize(graph, fused_scheduled_result);
-  EXPECT_EQ(res, ge::SUCCESS);
+  EXPECT_EQ(res, af::SUCCESS);
 }
 
 TEST_F(TestOptimizer, NodeCacheMarkerConcat) {
@@ -4775,7 +4775,7 @@ TEST_F(TestOptimizer, NodeCacheMarkerConcat) {
 
   ::ascir::FusedScheduledResult fused_scheduled_result;
   Status res = optimizer.Optimize(graph, fused_scheduled_result);
-  EXPECT_EQ(res, ge::SUCCESS);
+  EXPECT_EQ(res, af::SUCCESS);
   ASSERT_TRUE(!fused_scheduled_result.node_idx_to_scheduled_results.empty());
   auto &schedule_results = fused_scheduled_result.node_idx_to_scheduled_results[0];
   EXPECT_EQ(schedule_results.size(), 2UL);
@@ -5180,7 +5180,7 @@ TEST_F(TestOptimizer, NodeCacheMarkerBroadcast) {
 
   ::ascir::FusedScheduledResult fused_scheduled_result;
   Status res = optimizer.Optimize(graph, fused_scheduled_result);
-  EXPECT_EQ(res, ge::SUCCESS);
+  EXPECT_EQ(res, af::SUCCESS);
   ASSERT_TRUE(!fused_scheduled_result.node_idx_to_scheduled_results.empty());
   auto &schedule_results = fused_scheduled_result.node_idx_to_scheduled_results[0];
 
@@ -5569,7 +5569,7 @@ TEST_F(TestOptimizer, PowEqiv) {
 
   ::ascir::utils::DumpGraph(graph, "BEFORE");
   Status res = optimize::autoschedule::PassRunnerHandler().RunPasses(graph);
-  EXPECT_EQ(res, ge::SUCCESS);
+  EXPECT_EQ(res, af::SUCCESS);
   ::ascir::utils::DumpGraph(graph, "AFTER");
   auto pow0_node = graph.FindNode("pow0");
   EXPECT_EQ(pow0_node, nullptr);
@@ -5603,7 +5603,7 @@ TEST_F(TestOptimizer, PowEqivCase2) {
 
   ::ascir::utils::DumpGraph(graph, "BEFORE");
   Status res = optimize::autoschedule::PassRunnerHandler().RunPasses(graph);
-  EXPECT_EQ(res, ge::SUCCESS);
+  EXPECT_EQ(res, af::SUCCESS);
   ::ascir::utils::DumpGraph(graph, "AFTER");
   auto pow0_node = graph.FindNode("pow0");
   EXPECT_NE(pow0_node, nullptr);
@@ -5625,7 +5625,7 @@ TEST_F(TestOptimizer, SkipPruneGraph) {
   optimize::AscGraphInfoComplete::CompleteApiInfo(graph);
   ::ascir::utils::DumpGraph(graph, "BEFORE");
   Status res = optimize::PassUtils::PruneGraph(graph);
-  EXPECT_EQ(res, ge::SUCCESS);
+  EXPECT_EQ(res, af::SUCCESS);
   ::ascir::utils::DumpGraph(graph, "After");
   auto cg = af::AscGraphUtils::GetComputeGraph(graph);
   EXPECT_EQ(cg->GetAllNodesSize(), 3UL);
@@ -5653,7 +5653,7 @@ TEST_F(TestOptimizer, OptimizeRemoveDanglingNodes) {
 
   ::ascir::FusedScheduledResult fused_scheduled_result;
   Status res = optimizer.Optimize(graph, fused_scheduled_result);
-  EXPECT_EQ(res, ge::SUCCESS);
+  EXPECT_EQ(res, af::SUCCESS);
 
   auto data1_node = graph.FindNode("data1");
   auto load1_node = graph.FindNode("load1");
@@ -5688,7 +5688,7 @@ TEST_F(TestOptimizer, OptimizeRemoveDanglingNodesWithWorkspaceOutput) {
 
   ::ascir::FusedScheduledResult fused_scheduled_result;
   Status res = optimizer.Optimize(graph, fused_scheduled_result);
-  EXPECT_EQ(res, ge::SUCCESS);
+  EXPECT_EQ(res, af::SUCCESS);
 
   workspace_node = graph.FindNode("workspace");
   scalar_data_node = graph.FindNode("scalar_data");
@@ -6057,7 +6057,7 @@ TEST_F(TestOptimizer, BufQueAllocator_RemovePad_MemUnique) {
 
   ::ascir::FusedScheduledResult fused_scheduled_result;
   Status res = optimizer.Optimize(graph, fused_scheduled_result);
-  EXPECT_EQ(res, ge::SUCCESS);
+  EXPECT_EQ(res, af::SUCCESS);
   EXPECT_EQ(fused_scheduled_result.node_idx_to_scheduled_results[0].size(), 1UL);
   EXPECT_EQ(fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups.size(), 1UL);
   EXPECT_EQ(fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs.size(), 3UL);
@@ -6132,7 +6132,7 @@ TEST_F(TestOptimizer, GatherLastAxisTest) {
   y.y.dtype = ge::DT_FLOAT;
   *y.y.axis = {z1.id, z2.id};
 
-  ASSERT_EQ(optimize::Optimizer::RemoveAllZeroStrideLoopAxis(graph), SUCCESS);
+  ASSERT_EQ(optimize::Optimizer::RemoveAllZeroStrideLoopAxis(graph), af::SUCCESS);
   auto gather_node = graph.FindNode("gather");
   ASSERT_NE(gather_node, nullptr);
   EXPECT_EQ(gather_node->attr.sched.axis.size(), 2UL);
@@ -7209,7 +7209,7 @@ TEST_F(TestOptimizer, platform_reg_test) {
   auto platform_v1_new = optimize::PlatformFactory::GetInstance().GetPlatform();
   EXPECT_EQ(platform_v1, platform_v1_new);
 
-  EXPECT_EQ(platform_v1->PartitionSubFunctions(graph), ge::SUCCESS);
+  EXPECT_EQ(platform_v1->PartitionSubFunctions(graph), af::SUCCESS);
 
   ge::PlatformContext::GetInstance().SetPlatform("fake");
   auto platform_fake = optimize::PlatformFactory::GetInstance().GetPlatform();
@@ -7372,7 +7372,7 @@ TEST_F(TestOptimizer, BrcCacheReuseOtherMem) {
   y.x = store.y;
 
   ::ascir::FusedScheduledResult fused_scheduled_result;
-  EXPECT_EQ(optimizer.Optimize(graph, fused_scheduled_result), ge::SUCCESS);
+  EXPECT_EQ(optimizer.Optimize(graph, fused_scheduled_result), af::SUCCESS);
   EXPECT_EQ(fused_scheduled_result.node_idx_to_scheduled_results.size(), 1);
   EXPECT_EQ(fused_scheduled_result.node_idx_to_scheduled_results[0].size(), 1);
   EXPECT_EQ(fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups.size(), 1);
@@ -7453,7 +7453,7 @@ TEST_F(TestOptimizer, SliceSliceConcatD) {
   output_op.ir_attr.SetIndex(0);
 
   ::ascir::FusedScheduledResult fused_scheduled_result;
-  EXPECT_EQ(optimizer.Optimize(graph, fused_scheduled_result), ge::SUCCESS);
+  EXPECT_EQ(optimizer.Optimize(graph, fused_scheduled_result), af::SUCCESS);
   EXPECT_EQ(fused_scheduled_result.node_idx_to_scheduled_results.size(), 1UL);
   EXPECT_EQ(fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups.size(), 1UL);
   EXPECT_EQ(fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs.size(), 2UL);

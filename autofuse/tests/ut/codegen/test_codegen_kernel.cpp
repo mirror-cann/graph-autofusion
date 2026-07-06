@@ -57,11 +57,11 @@ void ExpectScalarDataBlkTensorInit(BuildDownstream build_downstream) {
   codegen::Kernel kernel(graph.GetName());
   EXPECT_EQ(kernel.tpipe.AddTensor(ascgen_utils::GenValidName(scalar_node->GetName()), scalar_node->outputs[0],
                                    "scalar_data_y"),
-            ge::SUCCESS);
-  EXPECT_EQ(kernel.ParseOptimizeInfo(scalar_node, scalar_node->outputs[0]), ge::SUCCESS);
+            af::SUCCESS);
+  EXPECT_EQ(kernel.ParseOptimizeInfo(scalar_node, scalar_node->outputs[0]), af::SUCCESS);
 
   std::string result;
-  EXPECT_EQ(kernel.tpipe.BlkTensorAllocAndInit(result), ge::SUCCESS);
+  EXPECT_EQ(kernel.tpipe.BlkTensorAllocAndInit(result), af::SUCCESS);
   EXPECT_NE(result.find("LocalTensor<float> local_blk_tensor_of_scalar_data"), std::string::npos);
   EXPECT_NE(result.find("Duplicate(local_blk_tensor_of_scalar_data[0], static_cast<float>(scalar_data)"),
             std::string::npos);
@@ -180,7 +180,7 @@ TEST(CodegenKernel, Tiler_TensorVectorizedSize) {
   std::string dtype_name;
   codegen::Tensor::DtypeName(tensor.attr.dtype, dtype_name);
   codegen::Tensor t(tensor, dtype_name, "t");
-  EXPECT_EQ(t.Init(), ge::SUCCESS);
+  EXPECT_EQ(t.Init(), af::SUCCESS);
   EXPECT_EQ(tiler.TensorVectorizedSize(t),
             std::string{"KernelUtils::BlkAlign<half>((t->s1 - 1) * t->s2 + (t->s2 - 1) + 1)"});
 }
@@ -223,7 +223,7 @@ TEST(CodegenKernel, Tiler_ShapeOneTensorVectorizedSize) {
   std::string dtype_name;
   codegen::Tensor::DtypeName(tensor.attr.dtype, dtype_name);
   codegen::Tensor t(tensor, dtype_name, "t");
-  EXPECT_EQ(t.Init(), ge::SUCCESS);
+  EXPECT_EQ(t.Init(), af::SUCCESS);
   EXPECT_EQ(tiler.TensorVectorizedSize(t), std::string{"KernelUtils::BlkAlign<float>((1 - 1) * 8 + (1 - 1) + 1)"});
 }
 
@@ -1317,7 +1317,7 @@ TEST(CodegenKernel, TPipe_LocalTBufAlloc_2) {
 
   std::string result;
   tpipe.SetUsingAttCalcQBTSizeConfig(false);
-  EXPECT_EQ(tpipe.LocalTBufAllocLoopTwice(result), ge::SUCCESS);
+  EXPECT_EQ(tpipe.LocalTBufAllocLoopTwice(result), af::SUCCESS);
 }
 
 TEST(CodegenKernel, TPipe_LocalTBufAlloc_MergeScopes_ERROR) {
@@ -1370,7 +1370,7 @@ TEST(CodegenKernel, TPipe_LocalTBufAlloc_MergeScopes_ERROR) {
 
   std::string result;
   tpipe.SetUsingAttCalcQBTSizeConfig(false);
-  EXPECT_EQ(tpipe.LocalTBufAllocLoopTwice(result), ge::FAILED);
+  EXPECT_EQ(tpipe.LocalTBufAllocLoopTwice(result), af::FAILED);
 }
 
 TEST(CodegenKernel, TPipe_LocalTBufAlloc_NotMergeTensors_ERROR) {
@@ -1423,7 +1423,7 @@ TEST(CodegenKernel, TPipe_LocalTBufAlloc_NotMergeTensors_ERROR) {
 
   std::string result;
   tpipe.SetUsingAttCalcQBTSizeConfig(false);
-  EXPECT_EQ(tpipe.LocalTBufAllocLoopTwice(result), ge::FAILED);
+  EXPECT_EQ(tpipe.LocalTBufAllocLoopTwice(result), af::FAILED);
 }
 
 TEST(CodegenKernel, TPipe_LocalTQueAlloc) {
@@ -1497,7 +1497,7 @@ TEST(CodegenKernel, ApiCall_Generate) {
   codegen::Tiler tiler;
   codegen::TPipe tpipe("tpipe", tiler);
   std::string result;
-  EXPECT_EQ(call.Generate(tpipe, {}, {}, {}, result), SUCCESS);
+  EXPECT_EQ(call.Generate(tpipe, {}, {}, {}, result), af::SUCCESS);
 }
 
 TEST(CodegenKernel, Stage_AddCall_WillCollectInputOutputQues) {
@@ -1523,7 +1523,7 @@ class MockApiCall : public virtual codegen::ApiCall {
 
   virtual Status GenerateFuncDefinition(const TPipe &tpipe, const Tiler &tiler, std::stringstream &ss) const {
     ss << "func_test_Definition:" << api_name_ << std::endl;
-    return ge::SUCCESS;
+    return af::SUCCESS;
   };
 };
 
@@ -3191,7 +3191,7 @@ TEST(CodegenKernel, CompareApiCallNotThrowingForWithX2IsUbScalar) {
   codegen::Kernel kernel("test");
   kernel.tpipe.CollectQues(graph);
   EXPECT_EQ(kernel.tpipe.AddTensor(t), 0);
-  EXPECT_EQ(kernel.ParseOptimizeInfo(load2, load->outputs[0]), ge::FAILED);
+  EXPECT_EQ(kernel.ParseOptimizeInfo(load2, load->outputs[0]), af::FAILED);
 }
 
 // 测试isnan api不外抛for循环的场景
@@ -3854,7 +3854,7 @@ TEST(CodegenKernel, Looper_GenerateLoop_WhenNestedLoop) {
 
   codegen::TPipe tpipe("t", tiler);
   std::string result;
-  EXPECT_EQ(loop1.Generate(tiler, tpipe, result), ge::SUCCESS);
+  EXPECT_EQ(loop1.Generate(tiler, tpipe, result), af::SUCCESS);
   EXPECT_EQ(result, std::string{"for (int z0 = 0; z0 < z0_loop_size; z0++) {\n"
                                 "for (int z1 = 0; z1 < z1_loop_size; z1++) {\n"
                                 "}\n"
@@ -3880,7 +3880,7 @@ TEST(CodegenKernel, Looper_GenerateLoop_WhenTwoLoop) {
 
   codegen::TPipe tpipe("t", tiler);
   std::string result;
-  EXPECT_EQ(root_loop.Generate(tiler, tpipe, result), ge::SUCCESS);
+  EXPECT_EQ(root_loop.Generate(tiler, tpipe, result), af::SUCCESS);
   EXPECT_EQ(result, std::string{"for (int z0 = 0; z0 < z0_loop_size; z0++) {\n"
                                 "}\n"
                                 "for (int z1 = 0; z1 < z1_loop_size; z1++) {\n"
@@ -4952,7 +4952,7 @@ TEST(CodegenKernel, PackingFunctionCalls) {
   std::string result;
   auto ret = codegen::Kernel::GenKernelFuncByTilingKey(fused_schedule_result, ss, true);
   result = ss.str();
-  EXPECT_EQ(ret, SUCCESS);
+  EXPECT_EQ(ret, af::SUCCESS);
   std::cout << result;
   EXPECT_TRUE(result.find("packed_functions_820000000(input_tensor_desc, output_tensor_desc, workspace, t)") !=
               std::string::npos);
@@ -4972,7 +4972,7 @@ TEST(CodegenKernel, PackingFunctionCalls) {
 
   ss.clear();
   ret = codegen::Kernel::GenKernelFuncByTilingKey(fused_schedule_result, ss, false);
-  EXPECT_EQ(ret, SUCCESS);
+  EXPECT_EQ(ret, af::SUCCESS);
   result = ss.str();
   EXPECT_TRUE(result.find("packed_functions_820000000(x, y, workspace, t);") != std::string::npos);
   EXPECT_TRUE(result.find("packed_functions_820000001(x, y, workspace, t);") != std::string::npos);
@@ -5229,7 +5229,7 @@ TEST(CodegenKernel, DichotomyReduceApiTest_RAPatternReduceMean) {
   Status status = codegen::Kernel::GenKernelFuncByTilingKey(fused_schedule_result, ss);
   string = ss.str();
 
-  EXPECT_EQ(status, ge::SUCCESS);
+  EXPECT_EQ(status, af::SUCCESS);
 }
 
 TEST(CodegenKernel, DichotomyReduceApiTest_MultiMerge_RAPatternReduceMean) {
@@ -5436,7 +5436,7 @@ TEST(CodegenKernel, DichotomyReduceApiTest_MultiMerge_RAPatternReduceMean) {
   Status status = codegen::Kernel::GenKernelFuncByTilingKey(fused_schedule_result, ss);
   string = ss.str();
 
-  EXPECT_EQ(status, ge::SUCCESS);
+  EXPECT_EQ(status, af::SUCCESS);
 }
 
 TEST(CodegenKernel, GenerateTQueBind) {
@@ -5799,7 +5799,7 @@ TEST(CodegenKernel, EmptyTensorKernel) {
   std::string result;
   auto ret = codegen::Kernel::GenKernelFuncByTilingKey({fused_schedule_result}, ss, true);
   result = ss.str();
-  EXPECT_EQ(ret, ge::SUCCESS);
+  EXPECT_EQ(ret, af::SUCCESS);
 
   EXPECT_TRUE(result.find("test_graph") == result.rfind("test_graph"));
 
@@ -5812,7 +5812,7 @@ TEST(CodegenKernel, EmptyTensorKernel) {
   std::string result1;
   ret = codegen::Kernel::GenKernelFuncByTilingKey(fused_schedule_result, ss1, true);
   result1 = ss1.str();
-  EXPECT_EQ(ret, ge::SUCCESS);
+  EXPECT_EQ(ret, af::SUCCESS);
 
   EXPECT_TRUE(result.find("test_graph") == result.rfind("test_graph"));
 }
@@ -5833,7 +5833,7 @@ TEST(CodegenKernel, Kernel_GenerateSubGraphFuncDefTest) {
 
   std::stringstream ss;
   auto ret = kernel.GenerateSubGraphFuncDef(&(kernel.root_loop), ss);
-  EXPECT_EQ(ret, ge::SUCCESS);
+  EXPECT_EQ(ret, af::SUCCESS);
 
   EXPECT_EQ(ss.str(), std::string{"func_test_Definition:call1\n"
                                   "func_test_Definition:call2\n"
@@ -5876,7 +5876,7 @@ TEST(CodegenKernel, BroadcastInlineWithExecCondition) {
   loop2.AddCall(call2);
   codegen::TPipe tpipe("t", tiler);
   std::string result;
-  EXPECT_EQ(loop1.Generate(tiler, tpipe, result), ge::SUCCESS);
+  EXPECT_EQ(loop1.Generate(tiler, tpipe, result), af::SUCCESS);
   EXPECT_EQ(result,
             std::string{"for (int z0 = 0; z0 < z0_loop_size; z0++) {\n"
                         "for (int z1 = 0; z1 < z1_loop_size; z1++) {\n"
@@ -5995,7 +5995,7 @@ TEST_F(CodegenKernelV2Test, RequireContinuousTQueBuf_AllFromQue) {
   ::ascir::FusedScheduledResult fused_schedule_result;
   fused_schedule_result.input_nodes = {graph.FindNode("x")};
   codegen::Kernel kernel("test_input_all_from_que");
-  EXPECT_EQ(codegen::Kernel::ParseGraph(graph, fused_schedule_result, kernel), ge::SUCCESS);
+  EXPECT_EQ(codegen::Kernel::ParseGraph(graph, fused_schedule_result, kernel), af::SUCCESS);
   for (const auto &body : kernel.root_loop.bodys) {
     if (body.call->inputs.size() > 1) {
       for (int32_t i = 0; i < static_cast<int32_t>(body.call->inputs.size()); ++i) {
@@ -6059,7 +6059,7 @@ TEST_F(CodegenKernelV2Test, RequireContinuousTQueBuf_AllFromBuf) {
 
   fused_schedule_result.input_nodes = {data};
   codegen::Kernel kernel("test_input_all_from_que");
-  EXPECT_EQ(codegen::Kernel::ParseGraph(graph, fused_schedule_result, kernel), ge::SUCCESS);
+  EXPECT_EQ(codegen::Kernel::ParseGraph(graph, fused_schedule_result, kernel), af::SUCCESS);
   EXPECT_EQ(kernel.tpipe.contiguous_buf_ids, (std::vector<::ascir::BufId>{2, 1}));
 }
 
@@ -6238,7 +6238,7 @@ TEST_F(CodegenKernelConv2DTest, GenCubeCommonTiling_ShouldGenerateConv2DAPI_When
   codegen::Kernel kernel("conv2d_kernel");
 
   std::stringstream ss;
-  EXPECT_EQ(kernel.GenCubeCommonTiling(ss, false, true), ge::SUCCESS);
+  EXPECT_EQ(kernel.GenCubeCommonTiling(ss, false, true), af::SUCCESS);
 
   std::string result = ss.str();
   EXPECT_NE(result.find("AscendC::TPipe pipe"), std::string::npos);
@@ -6258,7 +6258,7 @@ TEST_F(CodegenKernelConv2DTest, GenCubeCommonTiling_ShouldGenerateMatMulAPI_When
   codegen::Kernel kernel("matmul_kernel");
 
   std::stringstream ss;
-  EXPECT_EQ(kernel.GenCubeCommonTiling(ss, false, false), ge::SUCCESS);
+  EXPECT_EQ(kernel.GenCubeCommonTiling(ss, false, false), af::SUCCESS);
 
   std::string result = ss.str();
   EXPECT_NE(result.find("mat_mul_v3"), std::string::npos);
@@ -6277,7 +6277,7 @@ TEST_F(CodegenKernelConv2DTest, GenCubeCommonTiling_ShouldGenerateBatchMatMulAPI
   codegen::Kernel kernel("batch_matmul_kernel");
 
   std::stringstream ss;
-  EXPECT_EQ(kernel.GenCubeCommonTiling(ss, true, false), ge::SUCCESS);
+  EXPECT_EQ(kernel.GenCubeCommonTiling(ss, true, false), af::SUCCESS);
 
   std::string result = ss.str();
   EXPECT_NE(result.find("batch_mat_mul_v3"), std::string::npos);

@@ -25,7 +25,7 @@ using namespace ascgen_utils;
 
 Status MatmulApiCall::ParseAttr(const ascir::NodeView &node) {
   GE_ASSERT_SUCCESS(ascgen_utils::ParseMatmulAttr(node, mm_attr_data_));
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 bool MatmulApiCall::HasRelu() const {
@@ -39,14 +39,14 @@ Status MatmulApiCall::PreProcess(const TPipe &tpipe, const std::vector<ascir::Ax
   (void)current_axis;
   (void)outputs;
   (void)result;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status MatmulApiCall::GenerateFuncDefinition(const TPipe &tpipe, const Tiler &tiler, std::stringstream &ss) const {
   (void)tpipe;
   (void)tiler;
   (void)ss;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status MatmulApiCall::PostProcess(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
@@ -56,7 +56,7 @@ Status MatmulApiCall::PostProcess(const TPipe &tpipe, const std::vector<ascir::A
   (void)current_axis;
   (void)outputs;
   (void)result;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status MatmulApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
@@ -64,7 +64,7 @@ Status MatmulApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::Axis
   (void)tpipe;
   (void)current_axis;
   (void)result;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status MatmulApiCall::GenerateMacro(std::string &result) const {
@@ -77,7 +77,7 @@ Status MatmulApiCall::GenerateMacro(std::string &result) const {
   GE_ASSERT_SUCCESS(GenerateFuncDefinition(t_pipe, tiler, ss));
   GE_ASSERT_SUCCESS(Generate(t_pipe, {}, result));
   GE_ASSERT_SUCCESS(PostProcess(t_pipe, {}, {}, result));
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 static ApiCallRegister<MatmulApiCall> register_matmul_api_call("MatmulApiCall");

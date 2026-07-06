@@ -145,7 +145,7 @@ const std::vector<ViewPolicy> &AscIrDef::GetViewPolicy() const {
 
 void AscIrDef::SetApiTilingDataName(const std::string &tiling_data_name) const {
   if (!impl_->tiling_data_name.empty()) {
-    GELOGE(ge::FAILED, "%s has registered tiling data: %s", impl_->type.c_str(), impl_->tiling_data_name.c_str());
+    GELOGE(af::FAILED, "%s has registered tiling data: %s", impl_->type.c_str(), impl_->tiling_data_name.c_str());
     return;
   }
   impl_->tiling_data_name = tiling_data_name;
@@ -157,7 +157,7 @@ const string &AscIrDef::GetApiTilingDataName() const {
 
 void AscIrDef::SetCalcTmpBufSizeFunc(const std::string &calc_tmp_buf_size_func, CalcTmpBufSizeFuncType type) const {
   if (!impl_->calc_tmp_buf_size_func.func_name.empty()) {
-    GELOGE(ge::FAILED, "has registered calc_tmp_buf_size_func: %s", impl_->calc_tmp_buf_size_func.func_name.c_str());
+    GELOGE(af::FAILED, "has registered calc_tmp_buf_size_func: %s", impl_->calc_tmp_buf_size_func.func_name.c_str());
     return;
   }
   impl_->calc_tmp_buf_size_func = CalcTmpBufSizeFunc{calc_tmp_buf_size_func, type};

@@ -29,7 +29,7 @@ bool IsInputAllDigit(const std::string &input) {
                        [](const char c) -> bool { return !std::isdigit(static_cast<uint8_t>(c)); }));
 }
 
-ge::Status ParseForceTilingCaseForSingleMode(const std::string &input, ForceTilingCaseResult &force_tiling_case,
+af::Status ParseForceTilingCaseForSingleMode(const std::string &input, ForceTilingCaseResult &force_tiling_case,
                                              bool &has_parsed) {
   // 检查是否包含下划线
   size_t underscore_pos = input.find('_');
@@ -44,10 +44,10 @@ ge::Status ParseForceTilingCaseForSingleMode(const std::string &input, ForceTili
     GE_ASSERT_TRUE(IsForceTagValid(sub_tag), "sub_tag is invalid, sub_tag=%s", sub_tag.c_str());
     GELOGD("Parse force tiling case success, force_tiling_case=%s", force_tiling_case.Debug().c_str());
     has_parsed = true;
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
   has_parsed = false;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 }  // namespace
 void ForceTilingCaseResult::Clear() {
@@ -95,7 +95,7 @@ std::string ForceTilingCaseResult::GetTag(size_t group_id) const {
   return "";
 }
 
-ge::Status AttStrategyConfigUtils::ParseForceTilingCase(const std::string &input,
+af::Status AttStrategyConfigUtils::ParseForceTilingCase(const std::string &input,
                                                         ForceTilingCaseResult &force_tiling_case) {
   // 检查空输入
   GE_ASSERT_TRUE(!input.empty(), "input is empty");
@@ -105,7 +105,7 @@ ge::Status AttStrategyConfigUtils::ParseForceTilingCase(const std::string &input
     GE_ASSERT_SUCCESS(ParseForceTilingCaseForSingleMode(input, force_tiling_case, has_parsed));
   }
   if (has_parsed) {
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
   // 解析逗号分隔的"gX_Y[_subtag]"模式
   std::map<size_t, std::pair<int32_t, std::string>> result_map;
@@ -155,6 +155,6 @@ ge::Status AttStrategyConfigUtils::ParseForceTilingCase(const std::string &input
   // 返回分组选择模式结果
   force_tiling_case = {false, -1, "", result_map};
   GELOGD("Got input string: %s, force_tiling_case: %s", input.c_str(), force_tiling_case.Debug().c_str());
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 }  // namespace ge

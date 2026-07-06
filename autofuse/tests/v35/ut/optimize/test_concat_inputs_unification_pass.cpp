@@ -107,7 +107,7 @@ TEST_F(ConcatInputUnificationPassTest, AllInputsIsLoad) {
 TEST_F(ConcatInputUnificationPassTest, InputShared) {
   const auto graph = BuildGraphShareInput();
   std::vector<::ascir::ImplGraph> graphs{graph};
-  EXPECT_EQ(ConcatInputUnificationPass::Run(graphs), ge::SUCCESS);
+  EXPECT_EQ(ConcatInputUnificationPass::Run(graphs), af::SUCCESS);
   EXPECT_TRUE(graphs[0].FindNode("load0_ub_cpy_input_0") != nullptr);
   EXPECT_TRUE(graphs[0].FindNode("load0_ub_cpy_input_2") != nullptr);
   EXPECT_TRUE(graphs[0].FindNode("abs0_ub_cpy_input_3") != nullptr);

@@ -161,7 +161,7 @@ codegen::ReducePattern GetCodegenReducePattern(const Tensor &output) {
                                                                   : codegen::ReducePattern::kRA;
 }
 
-ge::Status FillReduceReuseSource(const af::AscNodePtr &node, codegen::ReduceReuseInfo &reuse) {
+af::Status FillReduceReuseSource(const af::AscNodePtr &node, codegen::ReduceReuseInfo &reuse) {
   GE_ASSERT_NOTNULL(node);
   auto node_in_anchor = node->GetInDataAnchor(0);
   GE_ASSERT_NOTNULL(node_in_anchor);
@@ -171,10 +171,10 @@ ge::Status FillReduceReuseSource(const af::AscNodePtr &node, codegen::ReduceReus
   GE_ASSERT_NOTNULL(in_node);
   reuse.valid = true;
   reuse.is_reuse_source = in_node->GetOutAllNodes().size() == 1UL;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status BuildReduceInput(const ReduceShadowBuildContext &ctx, codegen::ReduceSpecificParamBuildInput &input) {
+af::Status BuildReduceInput(const ReduceShadowBuildContext &ctx, codegen::ReduceSpecificParamBuildInput &input) {
   GE_ASSERT_NOTNULL(ctx.tpipe);
   GE_ASSERT_NOTNULL(ctx.input);
   GE_ASSERT_NOTNULL(ctx.output);
@@ -193,7 +193,7 @@ ge::Status BuildReduceInput(const ReduceShadowBuildContext &ctx, codegen::Reduce
   if (ctx.node != nullptr) {
     GE_ASSERT_SUCCESS(FillReduceReuseSource(ctx.node, input.reuse));
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 std::string JoinMismatchFields(const std::vector<std::string> &fields) {
@@ -218,12 +218,12 @@ std::string JoinMismatchDetails(const std::vector<std::string> &details) {
   return ss.str();
 }
 
-ge::Status BuildCodegenShadowReduceSpecificParams(const ReduceShadowBuildContext &ctx,
+af::Status BuildCodegenShadowReduceSpecificParams(const ReduceShadowBuildContext &ctx,
                                                   codegen::ReduceSpecificParams &params) {
   codegen::ReduceSpecificParamBuildInput input;
   GE_ASSERT_SUCCESS(BuildReduceInput(ctx, input));
   GE_ASSERT_SUCCESS(codegen::BuildReduceSpecificParams(input, params));
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 ReduceShadowCheckContext BuildReduceShadowCheckContext(const ReduceCodegenShadowCheckInput &input) {
@@ -319,8 +319,7 @@ static void ReplaceSS(std::string &str, const std::string &oldSubStr, const std:
 
 static void ReplaceSSWithSwappingFirstAndLast(const std::string &first, const std::string &first_actual,
                                               const std::string &last, const std::string &last_actual,
-                                              const bool &isAllAxisReduce, std::vector<std::string> &lines)
-{
+                                              const bool &isAllAxisReduce, std::vector<std::string> &lines) {
   std::string f = first;
   std::string fa = first_actual;
   std::string l = last;
@@ -339,8 +338,7 @@ static void ReplaceSSWithSwappingFirstAndLast(const std::string &first, const st
   return;
 }
 
-size_t GetAxesNumExceptZeroTail(const Tensor &src, const Tensor &dst)
-{
+size_t GetAxesNumExceptZeroTail(const Tensor &src, const Tensor &dst) {
   size_t num_axes = src.vectorized_axis.size();
   for (; num_axes > 0; num_axes--) {
     if (src.vectorized_strides[num_axes - 1] != 0 || dst.vectorized_strides[num_axes - 1] != 0) {
@@ -412,7 +410,8 @@ void ReduceMergedSizeCodeGen(const TPipe &tpipe, std::vector<std::string> &lines
   }
   // 先添加代码块开始符号
   lines.emplace_back("{\n");
-  ReplaceSSWithSwappingFirstAndLast(first.str(), first_actual.str(), last.str(), last_actual.str(), isAllAxisReduce, lines);
+  ReplaceSSWithSwappingFirstAndLast(first.str(), first_actual.str(), last.str(), last_actual.str(), isAllAxisReduce,
+                                    lines);
 }
 
 bool IsNeedMultiReduce(const Tiler &tiler, const Tensor &input, const Tensor &output, ascir::AxisId axis_id) {
@@ -426,7 +425,9 @@ bool IsNeedMultiReduce(const Tiler &tiler, const Tensor &input, const Tensor &ou
       size_t diff = pos - output.axis.begin();
       total_count++;
       valid_count =
-          output.axis_strides[diff] == Zero && (input.axis_strides[diff] != Zero || input.axis_size[diff] != One) ? valid_count + 1 : valid_count;
+          output.axis_strides[diff] == Zero && (input.axis_strides[diff] != Zero || input.axis_size[diff] != One)
+              ? valid_count + 1
+              : valid_count;
       return;
     }
     for (size_t i = 0; i < axis.from.size(); i++) {
@@ -437,7 +438,9 @@ bool IsNeedMultiReduce(const Tiler &tiler, const Tensor &input, const Tensor &ou
         size_t diff = pos - output.axis.begin();
         total_count++;
         valid_count =
-            output.axis_strides[diff] == Zero && (input.axis_strides[diff] != Zero || input.axis_size[diff] != One) ? valid_count + 1 : valid_count;
+            output.axis_strides[diff] == Zero && (input.axis_strides[diff] != Zero || input.axis_size[diff] != One)
+                ? valid_count + 1
+                : valid_count;
         return;
       }
       if (need_recursive) {
@@ -484,8 +487,8 @@ void ReduceMeanCodeGen(std::string &dtype_name, const TPipe &tpipe, const Tensor
   }
   dimr_recip_line += ");\n";
   lines.emplace_back(dimr_recip_line);
-  lines.emplace_back("Muls(" + dst.Str() + ", " + dst.Str() + ", dimr_recip, " + KernelUtils::SizeAlign()
-                     + "(reduce_dim_a, 32 / sizeof(" + dtype_name + ")));\n");
+  lines.emplace_back("Muls(" + dst.Str() + ", " + dst.Str() + ", dimr_recip, " + KernelUtils::SizeAlign() +
+                     "(reduce_dim_a, 32 / sizeof(" + dtype_name + ")));\n");
   return;
 }
 
@@ -515,7 +518,7 @@ void CheckReduceSpecificParamsForCodegen(const ReduceCodegenShadowCheckInput &in
   }
   codegen::ReduceSpecificParams shadow_params;
   const auto shadow_status = BuildCodegenShadowReduceSpecificParams(ctx.build, shadow_params);
-  if (shadow_status != ge::SUCCESS) {
+  if (shadow_status != af::SUCCESS) {
     GELOGW("[ASCIR_PARAM] Build codegen reduce shadow params failed, api[%s].", ctx.api_name.c_str());
     return;
   }
@@ -539,9 +542,8 @@ bool IsTilerLastReduceAxis(const Tensor &tensor) {
   return count == 1;
 }
 
-void ReduceInitCodeGen(const Tensor &x, const Tensor &y, const int &type_value,
-                       std::vector<std::string> &lines, const TPipe &tpipe, const std::string &dtype_name)
-{
+void ReduceInitCodeGen(const Tensor &x, const Tensor &y, const int &type_value, std::vector<std::string> &lines,
+                       const TPipe &tpipe, const std::string &dtype_name) {
   if (x.isAr) {
     std::string is_last_axis_str = IsTilerLastReduceAxis(y) ? "true" : "false";
     std::stringstream ss;
@@ -554,8 +556,7 @@ void ReduceInitCodeGen(const Tensor &x, const Tensor &y, const int &type_value,
   return;
 }
 
-void ReduceDimACodeGen(const Tensor &x, const std::string &apiName, std::vector<std::string> &lines)
-{
+void ReduceDimACodeGen(const Tensor &x, const std::string &apiName, std::vector<std::string> &lines) {
   if (apiName == "ReduceMean") {
     if (x.isAr) {
       lines.emplace_back("reduce_dim_a = first_actual;\n");
@@ -566,8 +567,8 @@ void ReduceDimACodeGen(const Tensor &x, const std::string &apiName, std::vector<
   return;
 }
 
-void GenLastTwoRAxisSizeProductCode(const Tensor &x, const Tensor &y,
-                                    const TPipe &tpipe, std::vector<std::string> &lines) {
+void GenLastTwoRAxisSizeProductCode(const Tensor &x, const Tensor &y, const TPipe &tpipe,
+                                    std::vector<std::string> &lines) {
   // 收集所有R轴
   std::vector<std::pair<ascir::AxisId, size_t>> r_axes;
 
@@ -612,7 +613,7 @@ Status GetDtypeNameForReduce(const std::string &api_name, const Tensor &x, const
     GE_CHK_STATUS_RET(Tensor::DtypeName(y.dtype, dtype_name), "Codegen get data type:%d failed",
                       static_cast<int32_t>(y.dtype));
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 void GenAccumulatedOffsetDeclForArgMax(const std::string &api_name, const Tensor &x, const Tensor &y,

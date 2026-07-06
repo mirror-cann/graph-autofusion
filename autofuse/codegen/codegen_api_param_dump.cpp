@@ -158,7 +158,7 @@ std::string ApiParamToTxtString(const CodegenApiParam &p, const Tiler &tiler) {
 }
 }  // namespace
 
-ge::Status CodegenApiParam::DumpGraphApiParams(const ascir::ImplGraph &graph, const Tiler &tiler,
+af::Status CodegenApiParam::DumpGraphApiParams(const ascir::ImplGraph &graph, const Tiler &tiler,
                                                const std::string &prefix) {
   std::ostringstream name_ss;
   name_ss << "api_param_" << std::setw(kDumpIndexWidth) << std::setfill('0') << g_api_param_dump_index << "_"
@@ -167,8 +167,8 @@ ge::Status CodegenApiParam::DumpGraphApiParams(const ascir::ImplGraph &graph, co
   ++g_api_param_dump_index;
   std::ofstream ofs(file_path);
   if (!ofs.is_open()) {
-    GELOGE(ge::FAILED, "[DumpCodegenApiParam] open file failed: %s", file_path.c_str());
-    return ge::FAILED;
+    GELOGE(af::FAILED, "[DumpCodegenApiParam] open file failed: %s", file_path.c_str());
+    return af::FAILED;
   }
 
   ofs << "================================================================================" << std::endl;
@@ -201,5 +201,5 @@ ge::Status CodegenApiParam::DumpGraphApiParams(const ascir::ImplGraph &graph, co
 
   ofs.close();
   GELOGI("[DumpCodegenApiParam] dumped %zu nodes of graph %s to %s", idx, graph.GetName().c_str(), file_path.c_str());
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }

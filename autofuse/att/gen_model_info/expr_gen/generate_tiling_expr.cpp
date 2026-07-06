@@ -25,7 +25,7 @@ constexpr uint32_t kDefaultCacheLineSize = 128;  // 默认CacheLine大小（字�
 const uint32_t kUBAlignValue = 32u;
 const uint32_t kConcatOuterDimAlign = 16u;
 template <typename T>
-ge::Status UpdateLastTileAxisPromptAlign(const SubAxis *sub_axis, const AttAxis &arg_info, T &size) {
+af::Status UpdateLastTileAxisPromptAlign(const SubAxis *sub_axis, const AttAxis &arg_info, T &size) {
   GELOGD("[DFX] UpdateLastTileAxisPromptAlign sub_axis=[%s], is_node_innerest_dim=%d, bind_multicore=%d, axis_pos=%d",
          sub_axis->ToString().c_str(), arg_info.is_node_innerest_dim, arg_info.bind_multicore,
          static_cast<int>(arg_info.axis_pos));
@@ -36,10 +36,10 @@ ge::Status UpdateLastTileAxisPromptAlign(const SubAxis *sub_axis, const AttAxis 
     GELOGD("[DFX] Set axis[%s] prompt_align to %u (kUBAlignValue=%u / block_len=%u), data_type_size=%u",
            arg_info.name.c_str(), size.prompt_align, kUBAlignValue, block_len, sub_axis->data_type_size);
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 }  // namespace
-ge::Status GenerateTilingExpr::GetBufConstraint(std::map<HardwareDef, Expr> &hardware_cons,
+af::Status GenerateTilingExpr::GetBufConstraint(std::map<HardwareDef, Expr> &hardware_cons,
                                                 std::map<std::string, Expr> &container_exprs) {
   std::unordered_map<HardwareDef, Expr> buffer_occupy;
   BufOccupEvaluatorExprPtr buf_evaluator = af::MakeShared<BufOccupyExpr>(tuning_space_);
@@ -50,31 +50,31 @@ ge::Status GenerateTilingExpr::GetBufConstraint(std::map<HardwareDef, Expr> &har
     hardware_cons[buff.first] = buff.second;
     GELOGD("[DFX]Add buf constraint: %d = %s", buff.first, buff.second.Serialize().get());
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status GenerateTilingExpr::GetReservedUbSize(Expr &reserved_ub_size) {
+af::Status GenerateTilingExpr::GetReservedUbSize(Expr &reserved_ub_size) {
   for (const auto &reserved_ub : tuning_space_->reserve_ub) {
     reserved_ub_size = reserved_ub_size + CreateExpr(reserved_ub.second);
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status GenerateTilingExpr::GetWorkSpaceSize(std::map<int64_t, Expr> &workspace_size_map) {
+af::Status GenerateTilingExpr::GetWorkSpaceSize(std::map<int64_t, Expr> &workspace_size_map) {
   workspace_size_map = tuning_space_->workspace_size_map;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status GenerateTilingExpr::GetPipePerformance(std::map<PipeType, Expr> &pipe_perf_object,
+af::Status GenerateTilingExpr::GetPipePerformance(std::map<PipeType, Expr> &pipe_perf_object,
                                                   std::map<Expr, TernaryOp, ExprCmp> &ternary_ops,
                                                   std::vector<PerfBreakdownGroup> &perf_breakdowns, Expr &head_cost) {
   PipePerfExpr pipe_perf(tuning_space_);
   GE_ASSERT_SUCCESS(pipe_perf.GetPerfExpr(pipe_perf_object, ternary_ops, perf_breakdowns, head_cost),
                     "Get tiling performance failed.");
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status GenerateTilingExpr::GetCoreConstraint(std::map<HardwareDef, Expr> &hardware_cons) {
+af::Status GenerateTilingExpr::GetCoreConstraint(std::map<HardwareDef, Expr> &hardware_cons) {
   Expr block_dim_max_expr = CreateExpr(0U);
   // 所有block dim取最大值
   for (auto &core_info : tuning_space_->block_dims) {
@@ -91,10 +91,10 @@ ge::Status GenerateTilingExpr::GetCoreConstraint(std::map<HardwareDef, Expr> &ha
   }
   hardware_cons[HardwareDef::CORENUM] = block_dim_max_expr;
   GELOGD("[DFX]Add core constraint: %d = %s", HardwareDef::CORENUM, block_dim_max_expr.Serialize().get());
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status GenerateTilingExpr::MakeArg(const SubAxis *sub_axis,
+af::Status GenerateTilingExpr::MakeArg(const SubAxis *sub_axis,
                                        std::map<const SubAxis *, std::set<HardwareDef>> related_scopes,
                                        AttAxisPtr &arg_info) const {
   InitArgInfo(sub_axis, arg_info);
@@ -103,7 +103,7 @@ ge::Status GenerateTilingExpr::MakeArg(const SubAxis *sub_axis,
   } else {
     GE_ASSERT_GRAPH_SUCCESS(MakeVarArg(sub_axis, related_scopes, arg_info));
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 void GenerateTilingExpr::InitArgInfo(const SubAxis *sub_axis, AttAxisPtr &arg_info) const {
@@ -118,7 +118,7 @@ void GenerateTilingExpr::InitArgInfo(const SubAxis *sub_axis, AttAxisPtr &arg_in
   arg_info->is_broadcast_split_axis = sub_axis->is_broadcast_split_axis;
 }
 
-ge::Status GenerateTilingExpr::MakeConstArg(const SubAxis *sub_axis, AttAxisPtr &arg_info) const {
+af::Status GenerateTilingExpr::MakeConstArg(const SubAxis *sub_axis, AttAxisPtr &arg_info) const {
   auto size = af::MakeShared<SymConstInfo>(sub_axis->repeat);
   GE_ASSERT_NOTNULL(size, "Create sym const info failed.");
   std::vector<std::pair<Expr, Expr>> vars_value;
@@ -137,10 +137,10 @@ ge::Status GenerateTilingExpr::MakeConstArg(const SubAxis *sub_axis, AttAxisPtr 
     size->prompt_align = kUBAlignValue / sub_axis->data_type_size;
   }
   arg_info->size = size;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status GenerateTilingExpr::MakeVarArg(const SubAxis *sub_axis,
+af::Status GenerateTilingExpr::MakeVarArg(const SubAxis *sub_axis,
                                           std::map<const SubAxis *, std::set<HardwareDef>> &related_scopes,
                                           AttAxisPtr &arg_info) const {
   Expr expr = ArgListManager::GetInstance().GetArgExpr(sub_axis->name);
@@ -167,10 +167,10 @@ ge::Status GenerateTilingExpr::MakeVarArg(const SubAxis *sub_axis,
     }
   }
   arg_info->size = size;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status GenerateTilingExpr::GetSubAxisArgs(std::vector<AttAxisPtr> &arg_lists) {
+af::Status GenerateTilingExpr::GetSubAxisArgs(std::vector<AttAxisPtr> &arg_lists) {
   std::map<SubAxis *, AttAxisPtr> relation;
   for (const auto &sub_axis : tuning_space_->sub_axes) {
     auto arg_info = af::MakeShared<AttAxis>();
@@ -195,10 +195,10 @@ ge::Status GenerateTilingExpr::GetSubAxisArgs(std::vector<AttAxisPtr> &arg_lists
     }
   }
 
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status GenerateTilingExpr::GetAxisConstraints(std::map<std::string, std::vector<std::pair<Expr, Expr>>> &eq_exprs,
+af::Status GenerateTilingExpr::GetAxisConstraints(std::map<std::string, std::vector<std::pair<Expr, Expr>>> &eq_exprs,
                                                   std::map<std::string, std::vector<Expr>> &leq_exprs) {
   for (const auto &cur_axis : tuning_space_->sub_axes) {
     GE_ASSERT_NOTNULL(cur_axis, "Get cur_axis failed.");
@@ -218,7 +218,7 @@ ge::Status GenerateTilingExpr::GetAxisConstraints(std::map<std::string, std::vec
       }
     }
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 void GenerateTilingExpr::GetOutputSize(uint32_t &output_size) {
@@ -231,7 +231,7 @@ void GenerateTilingExpr::GetOutputSize(uint32_t &output_size) {
   output_size = tmp_output_size;
 }
 
-ge::Status GenerateTilingExpr::GetTensorExpr(std::map<std::string, Expr> &tensor_exprs) {
+af::Status GenerateTilingExpr::GetTensorExpr(std::map<std::string, Expr> &tensor_exprs) {
   for (const auto &node : tuning_space_->node_infos) {
     for (const auto &input : node.inputs) {
       GE_ASSERT_NOTNULL(input, "Get input failed.");
@@ -248,7 +248,7 @@ ge::Status GenerateTilingExpr::GetTensorExpr(std::map<std::string, Expr> &tensor
       }
     }
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 bool NeedUBMCTradeoff(TensorPtr tensor) {
@@ -592,7 +592,7 @@ void GenerateTilingExpr::ApplyPenaltyConfigToModelInfo(ModelInfo &model_info) {
   GELOGD("[DFX] No Reduce split axis found, model_name=%s", model_info.graph_name.c_str());
 }
 
-ge::Status GenerateTilingExpr::Generate(ModelInfo &model_info) {
+af::Status GenerateTilingExpr::Generate(ModelInfo &model_info) {
   GE_ASSERT_SUCCESS(ArgListManager::GetInstance().LoadArgList(tuning_space_), "Get tuning args failed.");
   model_info.variable_expr_map = ArgListManager::GetInstance().GetVariableExprMap();
   model_info.variable_name_map = ArgListManager::GetInstance().GetVariableNameMap();
@@ -628,7 +628,7 @@ ge::Status GenerateTilingExpr::Generate(ModelInfo &model_info) {
   // 检测并应用惩罚配置（根据是否存在Reduce分核场景，后续补齐Broadcast分核场景）
   ApplyPenaltyConfigToModelInfo(model_info);
 
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 }  // namespace att

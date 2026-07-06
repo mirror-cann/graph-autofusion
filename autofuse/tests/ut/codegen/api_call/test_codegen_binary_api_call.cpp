@@ -838,7 +838,7 @@ TEST(CodegenKernel, GtWithSecondInputIsScalar) {
   call.inputs.push_back(&x2);
 
   codegen::Kernel kernel("test");
-  EXPECT_EQ(kernel.ParseScalarNeedGenBlkTensors(constant_node, 1), ge::SUCCESS);
+  EXPECT_EQ(kernel.ParseScalarNeedGenBlkTensors(constant_node, 1), af::SUCCESS);
 }
 
 TEST(CodegenKernel, MulsApicallWithSecondInputIsUbScalar) {

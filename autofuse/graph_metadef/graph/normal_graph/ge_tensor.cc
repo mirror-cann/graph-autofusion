@@ -155,7 +155,7 @@ void GeTensorSerializeUtils::GeTensorDescAsProto(const GeTensorDescImpl &desc, p
 
     if (!desc.attrs_.GetAttrsGroupPtr().empty()) {
       // serialize Attr Group
-      if (AttrGroupSerialize::SerializeAllAttr(*(proto->mutable_attr_groups()), desc.attrs_) != ge::SUCCESS) {
+      if (AttrGroupSerialize::SerializeAllAttr(*(proto->mutable_attr_groups()), desc.attrs_) != af::SUCCESS) {
         GELOGE(GRAPH_FAILED, "GeTensorDesc attr serialize failed.");
         return;
       }
@@ -778,7 +778,7 @@ GeTensorDesc::GeTensorDesc(proto::TensorDescriptor *const proto_msg)
     if (!ModelSerializeImp::DeserializeAllAttrsToAttrHolder(proto_msg->attr(), this)) {
       GELOGW("GeTensorDesc attr deserialize failed.");
     }
-    if (AttrGroupSerialize::DeserializeAllAttr(proto_msg->attr_groups(), this) != ge::SUCCESS) {
+    if (AttrGroupSerialize::DeserializeAllAttr(proto_msg->attr_groups(), this) != af::SUCCESS) {
       GELOGW("GeTensorDesc attr group deserialize failed.");
     }
   }
@@ -849,7 +849,7 @@ graphStatus GeTensorDesc::GetValueRange(std::vector<std::pair<int64_t, int64_t>>
   (void)AttrUtils::GetListListInt(this, TENSOR_UTILS_VALUE_RANGE, value_range);
 
   for (const auto &ele : value_range) {
-    // here must be only two elemenet because pair
+    // here must be only two elements because pair
     if (ele.size() != PAIR_ELEMENT_SIZE) {
       REPORT_INNER_ERR_MSG("E18888", "value_range must contain only 2 value but really is %zu", ele.size());
       GELOGE(GRAPH_FAILED, "[Check][Param] value_range must contain only 2 value but really is %zu", ele.size());
@@ -884,7 +884,7 @@ graphStatus GeTensorDesc::GetShapeRange(std::vector<std::pair<int64_t, int64_t>>
   (void)AttrUtils::GetListListInt(this, TENSOR_UTILS_SHAPE_RANGE, shape_range);
 
   for (const auto &ele : shape_range) {
-    // here must be only two elemenet because pair
+    // here must be only two elements because pair
     if (ele.size() != PAIR_ELEMENT_SIZE) {
       REPORT_INNER_ERR_MSG("E18888", "shape_range must contain only 2 value but really is %zu", ele.size());
       GELOGE(GRAPH_FAILED, "[Check][Param] shape_range must contain only 2 value but really is %zu", ele.size());
@@ -902,7 +902,7 @@ graphStatus GeTensorDesc::GetOriginShapeRange(std::vector<std::pair<int64_t, int
   (void)AttrUtils::GetListListInt(this, TENSOR_UTILS_ORIGIN_SHAPE_RANGE, origin_shape_range);
 
   for (const auto &ele : origin_shape_range) {
-    // here must be only two elemenet because pair
+    // here must be only two elements because pair
     if (ele.size() != PAIR_ELEMENT_SIZE) {
       REPORT_INNER_ERR_MSG("E18888", "origin_shape_range must contain only 2 value but really is %zu", ele.size());
       GELOGE(GRAPH_FAILED, "[Check][Param] origin_shape_range must contain only 2 value but really is %zu", ele.size());

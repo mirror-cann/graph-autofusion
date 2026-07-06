@@ -29,7 +29,7 @@ void BufOccupyExpr::SummaryBufferOccup(std::unordered_map<HardwareDef, Expr> &cu
   }
 }
 
-ge::Status BufOccupyExpr::GetCoTensorSizeExpr(const std::vector<std::vector<TensorPtr>> &co_tensors, Expr &expr,
+af::Status BufOccupyExpr::GetCoTensorSizeExpr(const std::vector<std::vector<TensorPtr>> &co_tensors, Expr &expr,
                                               const Expr &align) const {
   for (const auto &tensors : co_tensors) {
     Expr total_size;
@@ -52,10 +52,10 @@ ge::Status BufOccupyExpr::GetCoTensorSizeExpr(const std::vector<std::vector<Tens
       expr = af::sym::Max(expr, total_size);
     }
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status BufOccupyExpr::GetOccupInContainer(ContainerPtr &container, Expr &occup_per_tensor,
+af::Status BufOccupyExpr::GetOccupInContainer(ContainerPtr &container, Expr &occup_per_tensor,
                                               Expr &occup_total) const {
   std::set<TensorPtr> co_tensors;  // 收集所用有同存节点的tensor
   for (const auto &tensors : container->GetCoTensors()) {
@@ -104,10 +104,10 @@ ge::Status BufOccupyExpr::GetOccupInContainer(ContainerPtr &container, Expr &occ
   }
   GELOGD("[DFX]Get container [%s] occupy : occup_per_tensor[%s], occup_total[%s]", container->name.c_str(),
          occup_per_tensor.Str().get(), occup_total.Str().get());
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status BufOccupyExpr::GetBufferOccupInContainer(std::unordered_map<HardwareDef, Expr> &buffer_occup,
+af::Status BufOccupyExpr::GetBufferOccupInContainer(std::unordered_map<HardwareDef, Expr> &buffer_occup,
                                                     std::map<std::string, Expr> &container_exprs) {
   for (auto &container : tuning_space_->containers) {
     Expr container_occup_expr;
@@ -138,10 +138,10 @@ ge::Status BufOccupyExpr::GetBufferOccupInContainer(std::unordered_map<HardwareD
   SummaryBufferOccup(buffer_occup, HardwareDef::UB, kernel_init_buf_size);
   GELOGD("Add temp buffer %s [%s] and init buf %s occupy for UB", kArgsNameBuiltInTmpBuffer,
          builtin_tmp_buffer.Str().get(), kernel_init_buf_size.Str().get());
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status BufOccupyExpr::GetTotalGlobalOccup(Expr &global_occup_expr) {
+af::Status BufOccupyExpr::GetTotalGlobalOccup(Expr &global_occup_expr) {
   Expr container_occup_expr;
   Expr occup_per_tensor;
   for (auto &container : tuning_space_->global_containers) {
@@ -154,10 +154,10 @@ ge::Status BufOccupyExpr::GetTotalGlobalOccup(Expr &global_occup_expr) {
       global_occup_expr = container_occup_expr;
     }
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status BufOccupyExpr::GetTotalBufferOccup(std::unordered_map<HardwareDef, Expr> &buffer_occup,
+af::Status BufOccupyExpr::GetTotalBufferOccup(std::unordered_map<HardwareDef, Expr> &buffer_occup,
                                               std::map<std::string, Expr> &container_exprs) {
   // 获取queue的buffer占用
   GetBufferOccupInContainer(buffer_occup, container_exprs);
@@ -168,7 +168,7 @@ ge::Status BufOccupyExpr::GetTotalBufferOccup(std::unordered_map<HardwareDef, Ex
     }
     ArgListManager::GetInstance().SetArgExpr(scope_iter->second, buffer_occup_item.second);
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 }  // namespace att

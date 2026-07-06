@@ -11,16 +11,16 @@
 #include "atrace_pub.h"
 #include "graph/def_types.h"
 namespace ge {
-Status AtracingReporter::Report() const {
+af::Status AtracingReporter::Report() const {
   if ((tracing_record_ == nullptr) || (handle_ < 0)) {
     GELOGW("Report failed as handle or record is invalid");
-    return FAILED;
+    return af::FAILED;
   }
   const auto msg = ToAtracingProfilingData();
   size_t buf_size = msg.size() > kMaxAtracingProfilingMsgSize ? kMaxAtracingProfilingMsgSize : msg.size();
   TraStatus trace_status = AtraceSubmit(handle_, PtrToPtr<char_t, void>(msg.c_str()), buf_size);
   GELOGD("Record atracing msg: %s success", msg.c_str());
-  return (trace_status == TRACE_SUCCESS) ? SUCCESS : FAILED;
+  return (trace_status == TRACE_SUCCESS) ? af::SUCCESS : af::FAILED;
 }
 
 std::string AtracingReporter::ToAtracingProfilingData() const {

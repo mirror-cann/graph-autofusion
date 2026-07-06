@@ -1,11 +1,12 @@
-/* Copyright (c) 2026 Huawei Technologies Co., Ltd.
- * This file is a part of the CANN Open Software.
- * Licensed under CANN Open Software License Agreement Version 1.0 (the "License").
+/**
+ * Copyright (c) 2026 Huawei Technologies Co., Ltd.
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
+ * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OR ANY KIND, EITHER EXPRESS OR IMPLIED,
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
- * ===================================================================================================================*/
+ */
 
 #include "gtest/gtest.h"
 
@@ -92,8 +93,8 @@ TEST_F(TestDtypeConsistency, InsertCastForInputMismatch) {
   mock_requirements.push_back({graph.FindNode("mul"), {ge::DT_FLOAT, ge::DT_FLOAT}, {ge::DT_FLOAT}});
   mock_requirements.push_back({graph.FindNode("store"), {DT_FLOAT16}, {ge::DT_FLOAT16}});
 
-  EXPECT_EQ(optimize::DtypeConsistency::ApplyDtypeConversions(graph, mock_requirements), ge::SUCCESS);
-  EXPECT_EQ(optimize::DtypeConsistency::CancelRedundantCast(graph), ge::SUCCESS);
+  EXPECT_EQ(optimize::DtypeConsistency::ApplyDtypeConversions(graph, mock_requirements), af::SUCCESS);
+  EXPECT_EQ(optimize::DtypeConsistency::CancelRedundantCast(graph), af::SUCCESS);
   // 验证结果: load(FP16) -> cast(FP16->FP32) -> mul(FP32) -> cast(FP32->FP16) -> store(FP16)
   auto all_nodes = graph.GetAllNodes();
   size_t cast_count = 0;
@@ -142,8 +143,8 @@ TEST_F(TestDtypeConsistency, NoCastWhenDtypesMatch) {
   mock_requirements.push_back({graph.FindNode("mul"), {ge::DT_FLOAT, ge::DT_FLOAT}, {ge::DT_FLOAT}});
   mock_requirements.push_back({graph.FindNode("store"), {ge::DT_FLOAT}, {ge::DT_FLOAT}});
 
-  EXPECT_EQ(optimize::DtypeConsistency::ApplyDtypeConversions(graph, mock_requirements), ge::SUCCESS);
-  EXPECT_EQ(optimize::DtypeConsistency::CancelRedundantCast(graph), ge::SUCCESS);
+  EXPECT_EQ(optimize::DtypeConsistency::ApplyDtypeConversions(graph, mock_requirements), af::SUCCESS);
+  EXPECT_EQ(optimize::DtypeConsistency::CancelRedundantCast(graph), af::SUCCESS);
 
   // 验证结果：不需要插入 cast
   auto all_nodes = graph.GetAllNodes();
@@ -191,8 +192,8 @@ TEST_F(TestDtypeConsistency, CancelIdentityCast) {
   mock_requirements.push_back({graph.FindNode("mul"), {ge::DT_FLOAT, ge::DT_FLOAT}, {ge::DT_FLOAT}});
   mock_requirements.push_back({graph.FindNode("store"), {ge::DT_FLOAT}, {ge::DT_FLOAT}});
 
-  EXPECT_EQ(optimize::DtypeConsistency::ApplyDtypeConversions(graph, mock_requirements), ge::SUCCESS);
-  EXPECT_EQ(optimize::DtypeConsistency::CancelRedundantCast(graph), ge::SUCCESS);
+  EXPECT_EQ(optimize::DtypeConsistency::ApplyDtypeConversions(graph, mock_requirements), af::SUCCESS);
+  EXPECT_EQ(optimize::DtypeConsistency::CancelRedundantCast(graph), af::SUCCESS);
 
   // 验证结果：恒等 cast 应被删除
   // 注意：只统计真正有输入和输出连接的cast节点（已删除的节点边会为空）
@@ -266,8 +267,8 @@ TEST_F(TestDtypeConsistency, DoCastCSE) {
   mock_requirements.push_back({graph.FindNode("store1"), {ge::DT_FLOAT}, {ge::DT_FLOAT}});
   mock_requirements.push_back({graph.FindNode("store2"), {ge::DT_FLOAT}, {ge::DT_FLOAT}});
 
-  EXPECT_EQ(optimize::DtypeConsistency::ApplyDtypeConversions(graph, mock_requirements), ge::SUCCESS);
-  EXPECT_EQ(optimize::DtypeConsistency::CancelRedundantCast(graph), ge::SUCCESS);
+  EXPECT_EQ(optimize::DtypeConsistency::ApplyDtypeConversions(graph, mock_requirements), af::SUCCESS);
+  EXPECT_EQ(optimize::DtypeConsistency::CancelRedundantCast(graph), af::SUCCESS);
 
   // 验证结果：两个相同的 cast 应该合并成一个
   // 注意：只统计真正有输入和输出连接的cast节点（已删除的节点边会为空）
@@ -329,8 +330,8 @@ TEST_F(TestDtypeConsistency, AddWithMixedInputDtypes) {
   mock_requirements.push_back({graph.FindNode("add"), {ge::DT_FLOAT, ge::DT_FLOAT}, {ge::DT_FLOAT}});
   mock_requirements.push_back({graph.FindNode("store"), {ge::DT_FLOAT16}, {ge::DT_FLOAT16}});
 
-  EXPECT_EQ(optimize::DtypeConsistency::ApplyDtypeConversions(graph, mock_requirements), ge::SUCCESS);
-  EXPECT_EQ(optimize::DtypeConsistency::CancelRedundantCast(graph), ge::SUCCESS);
+  EXPECT_EQ(optimize::DtypeConsistency::ApplyDtypeConversions(graph, mock_requirements), af::SUCCESS);
+  EXPECT_EQ(optimize::DtypeConsistency::CancelRedundantCast(graph), af::SUCCESS);
 
   // 验证结果: load1(FP16) -> cast(FP16->FP32) --\
   //                                             > add(FP32) -> cast(FP32->FP16) -> store(FP16)
@@ -389,8 +390,8 @@ TEST_F(TestDtypeConsistency, ChainOfOperations) {
   mock_requirements.push_back({graph.FindNode("mul2"), {ge::DT_FLOAT, ge::DT_FLOAT}, {ge::DT_FLOAT}});
   mock_requirements.push_back({graph.FindNode("store"), {ge::DT_FLOAT16}, {ge::DT_FLOAT16}});
 
-  EXPECT_EQ(optimize::DtypeConsistency::ApplyDtypeConversions(graph, mock_requirements), ge::SUCCESS);
-  EXPECT_EQ(optimize::DtypeConsistency::CancelRedundantCast(graph), ge::SUCCESS);
+  EXPECT_EQ(optimize::DtypeConsistency::ApplyDtypeConversions(graph, mock_requirements), af::SUCCESS);
+  EXPECT_EQ(optimize::DtypeConsistency::CancelRedundantCast(graph), af::SUCCESS);
 
   // 验证结果: load(FP16) -> cast(FP16->FP32) -> mul1(FP32) -> mul2(FP32) -> cast(FP32->FP16) -> store(FP16)
   auto all_nodes = graph.GetAllNodes();
@@ -415,8 +416,8 @@ TEST_F(TestDtypeConsistency, EmptyGraph) {
   af::AscGraph graph("empty_graph");
 
   std::vector<optimize::NodeDtypeRequirement> mock_requirements;
-  EXPECT_EQ(optimize::DtypeConsistency::ApplyDtypeConversions(graph, mock_requirements), ge::SUCCESS);
-  EXPECT_EQ(optimize::DtypeConsistency::CancelRedundantCast(graph), ge::SUCCESS);
+  EXPECT_EQ(optimize::DtypeConsistency::ApplyDtypeConversions(graph, mock_requirements), af::SUCCESS);
+  EXPECT_EQ(optimize::DtypeConsistency::CancelRedundantCast(graph), af::SUCCESS);
 }
 
 // Test 8: Only cast nodes (non-identity)
@@ -452,8 +453,8 @@ TEST_F(TestDtypeConsistency, OnlyCastNodes) {
   mock_requirements.push_back({graph.FindNode("load0"), {ge::DT_FLOAT16}, {ge::DT_FLOAT16}});
   mock_requirements.push_back({graph.FindNode("store"), {ge::DT_FLOAT16}, {ge::DT_FLOAT16}});
 
-  EXPECT_EQ(optimize::DtypeConsistency::ApplyDtypeConversions(graph, mock_requirements), ge::SUCCESS);
-  EXPECT_EQ(optimize::DtypeConsistency::CancelRedundantCast(graph), ge::SUCCESS);
+  EXPECT_EQ(optimize::DtypeConsistency::ApplyDtypeConversions(graph, mock_requirements), af::SUCCESS);
+  EXPECT_EQ(optimize::DtypeConsistency::CancelRedundantCast(graph), af::SUCCESS);
 
   // 验证结果：Cast 节点应该保留（不是恒等转换）
   auto all_nodes = graph.GetAllNodes();
@@ -505,8 +506,8 @@ TEST_F(TestDtypeConsistency, ChainOfIdentityCasts) {
   mock_requirements.push_back({graph.FindNode("mul"), {ge::DT_FLOAT, ge::DT_FLOAT}, {ge::DT_FLOAT}});
   mock_requirements.push_back({graph.FindNode("store"), {ge::DT_FLOAT}, {ge::DT_FLOAT}});
 
-  EXPECT_EQ(optimize::DtypeConsistency::ApplyDtypeConversions(graph, mock_requirements), ge::SUCCESS);
-  EXPECT_EQ(optimize::DtypeConsistency::CancelRedundantCast(graph), ge::SUCCESS);
+  EXPECT_EQ(optimize::DtypeConsistency::ApplyDtypeConversions(graph, mock_requirements), af::SUCCESS);
+  EXPECT_EQ(optimize::DtypeConsistency::CancelRedundantCast(graph), af::SUCCESS);
 
   // 验证结果：所有恒等 cast 都应被删除
   // 注意：只统计真正有输入和输出连接的cast节点（已删除的节点边会为空）
@@ -599,8 +600,8 @@ TEST_F(TestDtypeConsistency, DoCastCSE_MultipleCasts) {
   mock_requirements.push_back({graph.FindNode("store2"), {ge::DT_FLOAT}, {ge::DT_FLOAT}});
   mock_requirements.push_back({graph.FindNode("store3"), {ge::DT_FLOAT}, {ge::DT_FLOAT}});
 
-  EXPECT_EQ(optimize::DtypeConsistency::ApplyDtypeConversions(graph, mock_requirements), ge::SUCCESS);
-  EXPECT_EQ(optimize::DtypeConsistency::CancelRedundantCast(graph), ge::SUCCESS);
+  EXPECT_EQ(optimize::DtypeConsistency::ApplyDtypeConversions(graph, mock_requirements), af::SUCCESS);
+  EXPECT_EQ(optimize::DtypeConsistency::CancelRedundantCast(graph), af::SUCCESS);
 
   // 验证结果：三个相同的 cast 应该合并成一个
   // 注意：只统计真正有输入和输出连接的cast节点（已删除的节点边会为空）
@@ -663,8 +664,8 @@ TEST_F(TestDtypeConsistency, MixedIdentityAndNonIdentityCasts) {
   mock_requirements.push_back({graph.FindNode("mul"), {ge::DT_FLOAT16, ge::DT_FLOAT16}, {ge::DT_FLOAT16}});
   mock_requirements.push_back({graph.FindNode("store"), {ge::DT_FLOAT16}, {ge::DT_FLOAT16}});
 
-  EXPECT_EQ(optimize::DtypeConsistency::ApplyDtypeConversions(graph, mock_requirements), ge::SUCCESS);
-  EXPECT_EQ(optimize::DtypeConsistency::CancelRedundantCast(graph), ge::SUCCESS);
+  EXPECT_EQ(optimize::DtypeConsistency::ApplyDtypeConversions(graph, mock_requirements), af::SUCCESS);
+  EXPECT_EQ(optimize::DtypeConsistency::CancelRedundantCast(graph), af::SUCCESS);
 
   // 验证结果：恒等 cast 被删除，非恒等 cast 保留
   // 注意：只统计真正有输入和输出连接的cast节点（已删除的节点边会为空）
@@ -719,8 +720,8 @@ TEST_F(TestDtypeConsistency, NoCastNodes) {
   mock_requirements.push_back({graph.FindNode("mul"), {ge::DT_FLOAT, ge::DT_FLOAT}, {ge::DT_FLOAT}});
   mock_requirements.push_back({graph.FindNode("store"), {ge::DT_FLOAT}, {ge::DT_FLOAT}});
 
-  EXPECT_EQ(optimize::DtypeConsistency::ApplyDtypeConversions(graph, mock_requirements), ge::SUCCESS);
-  EXPECT_EQ(optimize::DtypeConsistency::CancelRedundantCast(graph), ge::SUCCESS);
+  EXPECT_EQ(optimize::DtypeConsistency::ApplyDtypeConversions(graph, mock_requirements), af::SUCCESS);
+  EXPECT_EQ(optimize::DtypeConsistency::CancelRedundantCast(graph), af::SUCCESS);
 
   // 验证结果：没有 cast 节点
   auto all_nodes = graph.GetAllNodes();
@@ -764,8 +765,8 @@ TEST_F(TestDtypeConsistency, OutputDtypeDirectlyModified) {
   mock_requirements.push_back({graph.FindNode("mul"), {ge::DT_FLOAT16, ge::DT_FLOAT16}, {ge::DT_FLOAT}});
   mock_requirements.push_back({graph.FindNode("store"), {ge::DT_FLOAT16}, {ge::DT_FLOAT16}});
 
-  EXPECT_EQ(optimize::DtypeConsistency::ApplyDtypeConversions(graph, mock_requirements), ge::SUCCESS);
-  EXPECT_EQ(optimize::DtypeConsistency::CancelRedundantCast(graph), ge::SUCCESS);
+  EXPECT_EQ(optimize::DtypeConsistency::ApplyDtypeConversions(graph, mock_requirements), af::SUCCESS);
+  EXPECT_EQ(optimize::DtypeConsistency::CancelRedundantCast(graph), af::SUCCESS);
 
   // 验证结果：Mul 的输出 dtype 被直接修改为 FP32，然后在 Store 前插入 cast(FP32->FP16)
   auto all_nodes = graph.GetAllNodes();
@@ -831,8 +832,8 @@ TEST_F(TestDtypeConsistency, MultipleOutputsWithDifferentDtypes) {
   mock_requirements.push_back({graph.FindNode("store1"), {ge::DT_FLOAT16}, {ge::DT_FLOAT16}});
   mock_requirements.push_back({graph.FindNode("store2"), {ge::DT_FLOAT}, {ge::DT_FLOAT}});
 
-  EXPECT_EQ(optimize::DtypeConsistency::ApplyDtypeConversions(graph, mock_requirements), ge::SUCCESS);
-  EXPECT_EQ(optimize::DtypeConsistency::CancelRedundantCast(graph), ge::SUCCESS);
+  EXPECT_EQ(optimize::DtypeConsistency::ApplyDtypeConversions(graph, mock_requirements), af::SUCCESS);
+  EXPECT_EQ(optimize::DtypeConsistency::CancelRedundantCast(graph), af::SUCCESS);
 
   // 验证结果：Mul 输出 FP32，两个 Store 前各有一个 cast
   auto all_nodes = graph.GetAllNodes();
@@ -882,8 +883,8 @@ TEST_F(TestDtypeConsistency, AllDtypesMatch_NoConversion) {
   mock_requirements.push_back({graph.FindNode("mul"), {ge::DT_FLOAT, ge::DT_FLOAT}, {ge::DT_FLOAT}});
   mock_requirements.push_back({graph.FindNode("store"), {ge::DT_FLOAT}, {ge::DT_FLOAT}});
 
-  EXPECT_EQ(optimize::DtypeConsistency::ApplyDtypeConversions(graph, mock_requirements), ge::SUCCESS);
-  EXPECT_EQ(optimize::DtypeConsistency::CancelRedundantCast(graph), ge::SUCCESS);
+  EXPECT_EQ(optimize::DtypeConsistency::ApplyDtypeConversions(graph, mock_requirements), af::SUCCESS);
+  EXPECT_EQ(optimize::DtypeConsistency::CancelRedundantCast(graph), af::SUCCESS);
 
   // 验证结果：没有插入任何 cast
   auto all_nodes = graph.GetAllNodes();
@@ -927,8 +928,8 @@ TEST_F(TestDtypeConsistency, SingleInputDtypeMismatch) {
   mock_requirements.push_back({graph.FindNode("mul"), {ge::DT_FLOAT, ge::DT_FLOAT16}, {ge::DT_FLOAT16}});
   mock_requirements.push_back({graph.FindNode("store"), {ge::DT_FLOAT16}, {ge::DT_FLOAT16}});
 
-  EXPECT_EQ(optimize::DtypeConsistency::ApplyDtypeConversions(graph, mock_requirements), ge::SUCCESS);
-  EXPECT_EQ(optimize::DtypeConsistency::CancelRedundantCast(graph), ge::SUCCESS);
+  EXPECT_EQ(optimize::DtypeConsistency::ApplyDtypeConversions(graph, mock_requirements), af::SUCCESS);
+  EXPECT_EQ(optimize::DtypeConsistency::CancelRedundantCast(graph), af::SUCCESS);
 
   // 验证结果：只有第一个输入前插入 cast
   auto all_nodes = graph.GetAllNodes();
@@ -978,8 +979,8 @@ TEST_F(TestDtypeConsistency, MergeUpstreamCast_SingleConsumer) {
   mock_requirements.push_back({graph.FindNode("store"), {ge::DT_FLOAT16}, {ge::DT_FLOAT16}});
 
   ::ascir::utils::DumpGraph(graph, "Before");
-  EXPECT_EQ(optimize::DtypeConsistency::ApplyDtypeConversions(graph, mock_requirements), ge::SUCCESS);
-  EXPECT_EQ(optimize::DtypeConsistency::CancelRedundantCast(graph), ge::SUCCESS);
+  EXPECT_EQ(optimize::DtypeConsistency::ApplyDtypeConversions(graph, mock_requirements), af::SUCCESS);
+  EXPECT_EQ(optimize::DtypeConsistency::CancelRedundantCast(graph), af::SUCCESS);
   ::ascir::utils::DumpGraph(graph, "After");
 
   // 验证结果：cast1 被合并为 FP16->FP16，然后被删除
@@ -1037,8 +1038,8 @@ TEST_F(TestDtypeConsistency, MergeUpstreamCast_MultipleConsumers) {
   mock_requirements.push_back({graph.FindNode("store1"), {ge::DT_FLOAT}, {ge::DT_FLOAT}});
   mock_requirements.push_back({graph.FindNode("store2"), {ge::DT_FLOAT16}, {ge::DT_FLOAT16}});
 
-  EXPECT_EQ(optimize::DtypeConsistency::ApplyDtypeConversions(graph, mock_requirements), ge::SUCCESS);
-  EXPECT_EQ(optimize::DtypeConsistency::CancelRedundantCast(graph), ge::SUCCESS);
+  EXPECT_EQ(optimize::DtypeConsistency::ApplyDtypeConversions(graph, mock_requirements), af::SUCCESS);
+  EXPECT_EQ(optimize::DtypeConsistency::CancelRedundantCast(graph), af::SUCCESS);
 
   // 验证结果：创建了新的 merged cast (FP16->FP16)
   auto all_nodes = graph.GetAllNodes();
@@ -1087,7 +1088,7 @@ TEST_F(TestDtypeConsistency, UnsupportedCastConversion) {
   mock_requirements.push_back({graph.FindNode("store"), {ge::DT_INT64}, {ge::DT_INT64}});
 
   // 因为 dtype 匹配，不应该插入 cast
-  EXPECT_EQ(optimize::DtypeConsistency::ApplyDtypeConversions(graph, mock_requirements), ge::SUCCESS);
+  EXPECT_EQ(optimize::DtypeConsistency::ApplyDtypeConversions(graph, mock_requirements), af::SUCCESS);
 }
 
 // ============================================================================
@@ -1131,8 +1132,8 @@ TEST_F(TestDtypeConsistency, SafeIntWidening_NoMergeNeeded) {
   mock_requirements.push_back({graph.FindNode("mul"), {ge::DT_INT16, ge::DT_INT16}, {ge::DT_INT16}});
   mock_requirements.push_back({graph.FindNode("store"), {ge::DT_INT16}, {ge::DT_INT16}});
 
-  EXPECT_EQ(optimize::DtypeConsistency::ApplyDtypeConversions(graph, mock_requirements), ge::SUCCESS);
-  EXPECT_EQ(optimize::DtypeConsistency::CancelRedundantCast(graph), ge::SUCCESS);
+  EXPECT_EQ(optimize::DtypeConsistency::ApplyDtypeConversions(graph, mock_requirements), af::SUCCESS);
+  EXPECT_EQ(optimize::DtypeConsistency::CancelRedundantCast(graph), af::SUCCESS);
 
   // cast1(int8->int16) 应该保留
   auto all_nodes = graph.GetAllNodes();
@@ -1189,8 +1190,8 @@ TEST_F(TestDtypeConsistency, CrossCategoryCast_ShouldInsertNewCast) {
   mock_requirements.push_back({graph.FindNode("mul"), {ge::DT_INT16, ge::DT_INT16}, {ge::DT_INT16}});
   mock_requirements.push_back({graph.FindNode("store"), {ge::DT_INT16}, {ge::DT_INT16}});
 
-  EXPECT_EQ(optimize::DtypeConsistency::ApplyDtypeConversions(graph, mock_requirements), ge::SUCCESS);
-  EXPECT_EQ(optimize::DtypeConsistency::CancelRedundantCast(graph), ge::SUCCESS);
+  EXPECT_EQ(optimize::DtypeConsistency::ApplyDtypeConversions(graph, mock_requirements), af::SUCCESS);
+  EXPECT_EQ(optimize::DtypeConsistency::CancelRedundantCast(graph), af::SUCCESS);
 
   // 由于 int8->uint8 不保持值，不应该合并为 int8->int16
   // 应该保留 cast1(int8->uint8) 并插入新的 cast(uint8->int16)
@@ -1253,8 +1254,8 @@ TEST_F(TestDtypeConsistency, SafeIntWidening_CastPreserved) {
   mock_requirements.push_back({graph.FindNode("mul"), {ge::DT_INT32, ge::DT_INT32}, {ge::DT_INT32}});
   mock_requirements.push_back({graph.FindNode("store"), {ge::DT_INT32}, {ge::DT_INT32}});
 
-  EXPECT_EQ(optimize::DtypeConsistency::ApplyDtypeConversions(graph, mock_requirements), ge::SUCCESS);
-  EXPECT_EQ(optimize::DtypeConsistency::CancelRedundantCast(graph), ge::SUCCESS);
+  EXPECT_EQ(optimize::DtypeConsistency::ApplyDtypeConversions(graph, mock_requirements), af::SUCCESS);
+  EXPECT_EQ(optimize::DtypeConsistency::CancelRedundantCast(graph), af::SUCCESS);
 
   // cast1(int16->int32) 应该保留
   auto all_nodes = graph.GetAllNodes();
@@ -1311,8 +1312,8 @@ TEST_F(TestDtypeConsistency, SafeFloatWidening_F64_CastPreserved) {
   mock_requirements.push_back({graph.FindNode("mul"), {ge::DT_DOUBLE, ge::DT_DOUBLE}, {ge::DT_DOUBLE}});
   mock_requirements.push_back({graph.FindNode("store"), {ge::DT_DOUBLE}, {ge::DT_DOUBLE}});
 
-  EXPECT_EQ(optimize::DtypeConsistency::ApplyDtypeConversions(graph, mock_requirements), ge::SUCCESS);
-  EXPECT_EQ(optimize::DtypeConsistency::CancelRedundantCast(graph), ge::SUCCESS);
+  EXPECT_EQ(optimize::DtypeConsistency::ApplyDtypeConversions(graph, mock_requirements), af::SUCCESS);
+  EXPECT_EQ(optimize::DtypeConsistency::CancelRedundantCast(graph), af::SUCCESS);
 
   // cast1(fp32->fp64) 应该保留
   auto all_nodes = graph.GetAllNodes();
@@ -1366,8 +1367,8 @@ TEST_F(TestDtypeConsistency, SafeFloatWidening_NoMergeNeeded) {
   mock_requirements.push_back({graph.FindNode("mul"), {ge::DT_FLOAT, ge::DT_FLOAT}, {ge::DT_FLOAT}});
   mock_requirements.push_back({graph.FindNode("store"), {ge::DT_FLOAT}, {ge::DT_FLOAT}});
 
-  EXPECT_EQ(optimize::DtypeConsistency::ApplyDtypeConversions(graph, mock_requirements), ge::SUCCESS);
-  EXPECT_EQ(optimize::DtypeConsistency::CancelRedundantCast(graph), ge::SUCCESS);
+  EXPECT_EQ(optimize::DtypeConsistency::ApplyDtypeConversions(graph, mock_requirements), af::SUCCESS);
+  EXPECT_EQ(optimize::DtypeConsistency::CancelRedundantCast(graph), af::SUCCESS);
 
   // cast1(fp16->fp32) 应该保留
   auto all_nodes = graph.GetAllNodes();
@@ -1421,8 +1422,8 @@ TEST_F(TestDtypeConsistency, SafeUnsignedWidening_NoMergeNeeded) {
   mock_requirements.push_back({graph.FindNode("mul"), {ge::DT_UINT16, ge::DT_UINT16}, {ge::DT_UINT16}});
   mock_requirements.push_back({graph.FindNode("store"), {ge::DT_UINT16}, {ge::DT_UINT16}});
 
-  EXPECT_EQ(optimize::DtypeConsistency::ApplyDtypeConversions(graph, mock_requirements), ge::SUCCESS);
-  EXPECT_EQ(optimize::DtypeConsistency::CancelRedundantCast(graph), ge::SUCCESS);
+  EXPECT_EQ(optimize::DtypeConsistency::ApplyDtypeConversions(graph, mock_requirements), af::SUCCESS);
+  EXPECT_EQ(optimize::DtypeConsistency::CancelRedundantCast(graph), af::SUCCESS);
 
   // cast1(uint8->uint16) 应该保留
   auto all_nodes = graph.GetAllNodes();
@@ -1476,8 +1477,8 @@ TEST_F(TestDtypeConsistency, BF16Widening_NoMergeNeeded) {
   mock_requirements.push_back({graph.FindNode("mul"), {ge::DT_FLOAT, ge::DT_FLOAT}, {ge::DT_FLOAT}});
   mock_requirements.push_back({graph.FindNode("store"), {ge::DT_FLOAT}, {ge::DT_FLOAT}});
 
-  EXPECT_EQ(optimize::DtypeConsistency::ApplyDtypeConversions(graph, mock_requirements), ge::SUCCESS);
-  EXPECT_EQ(optimize::DtypeConsistency::CancelRedundantCast(graph), ge::SUCCESS);
+  EXPECT_EQ(optimize::DtypeConsistency::ApplyDtypeConversions(graph, mock_requirements), af::SUCCESS);
+  EXPECT_EQ(optimize::DtypeConsistency::CancelRedundantCast(graph), af::SUCCESS);
 
   // cast1(bf16->fp32) 应该保留
   auto all_nodes = graph.GetAllNodes();
@@ -1533,8 +1534,8 @@ TEST_F(TestDtypeConsistency, SafeInt8ToInt16_CastPreserved) {
   mock_requirements.push_back({graph.FindNode("mul"), {ge::DT_INT16, ge::DT_INT16}, {ge::DT_INT16}});
   mock_requirements.push_back({graph.FindNode("store"), {ge::DT_INT16}, {ge::DT_INT16}});
 
-  EXPECT_EQ(optimize::DtypeConsistency::ApplyDtypeConversions(graph, mock_requirements), ge::SUCCESS);
-  EXPECT_EQ(optimize::DtypeConsistency::CancelRedundantCast(graph), ge::SUCCESS);
+  EXPECT_EQ(optimize::DtypeConsistency::ApplyDtypeConversions(graph, mock_requirements), af::SUCCESS);
+  EXPECT_EQ(optimize::DtypeConsistency::CancelRedundantCast(graph), af::SUCCESS);
 
   // cast1(int8->int16) 应该保留
   auto all_nodes = graph.GetAllNodes();
@@ -1590,8 +1591,8 @@ TEST_F(TestDtypeConsistency, CrossCategoryCast_NotMergeToInt8) {
   mock_requirements.push_back({graph.FindNode("mul"), {ge::DT_UINT8, ge::DT_UINT8}, {ge::DT_UINT8}});
   mock_requirements.push_back({graph.FindNode("store"), {ge::DT_UINT8}, {ge::DT_UINT8}});
 
-  EXPECT_EQ(optimize::DtypeConsistency::ApplyDtypeConversions(graph, mock_requirements), ge::SUCCESS);
-  EXPECT_EQ(optimize::DtypeConsistency::CancelRedundantCast(graph), ge::SUCCESS);
+  EXPECT_EQ(optimize::DtypeConsistency::ApplyDtypeConversions(graph, mock_requirements), af::SUCCESS);
+  EXPECT_EQ(optimize::DtypeConsistency::CancelRedundantCast(graph), af::SUCCESS);
 
   // cast1(int8->uint8) 应该保留
   auto all_nodes = graph.GetAllNodes();
@@ -1677,9 +1678,9 @@ TEST_F(TestDtypeConsistency, FloorDivChainWithExistingCast) {
   mock_requirements.push_back({graph.FindNode("floordiv1"), {ge::DT_FLOAT, ge::DT_FLOAT}, {ge::DT_FLOAT}});
   mock_requirements.push_back({graph.FindNode("store"), {ge::DT_FLOAT}, {ge::DT_FLOAT}});
 
-  EXPECT_EQ(optimize::DtypeConsistency::ApplyDtypeConversions(graph, mock_requirements), ge::SUCCESS);
-  EXPECT_EQ(optimize::DtypeConsistency::CancelRedundantCast(graph), ge::SUCCESS);
-  EXPECT_EQ(optimize::ScheduleUtils::TopologicalSorting(graph), ge::SUCCESS);
+  EXPECT_EQ(optimize::DtypeConsistency::ApplyDtypeConversions(graph, mock_requirements), af::SUCCESS);
+  EXPECT_EQ(optimize::DtypeConsistency::CancelRedundantCast(graph), af::SUCCESS);
+  EXPECT_EQ(optimize::ScheduleUtils::TopologicalSorting(graph), af::SUCCESS);
 
   // Verify:
   // - FloorDiv_0 should have Cast before it (FP16->FP32) and after it (FP32->FP16 for cast0 input)

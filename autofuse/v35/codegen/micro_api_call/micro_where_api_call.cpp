@@ -48,7 +48,7 @@ Status MicroWhereApiCall::Generate(const codegen::TensorManager &tensor_mng, [[m
   // mask 输入排在最后
   ss << mask_name << ");" << std::endl;
   result = ss.str();
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 static MicroApiCallRegister<MicroWhereApiCall> register_micro_where_api_call("MicroWhereApiCall");

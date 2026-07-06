@@ -20,7 +20,7 @@
 #include <memory>
 #include <mutex>
 #include <shared_mutex>
-#include "ge_common/ge_api_types.h"
+#include "ge_common_af/ge_api_types.h"
 #include "ascir.h"
 #include "expression_struct.h"
 
@@ -174,14 +174,14 @@ ReduceMergedAxisPlan BuildReduceMergedAxisPlan(const std::vector<bool> &src_stri
 ReduceMergedShape BuildReduceMergedShape(const std::vector<ge::Expression> &src_repeats,
                                          const std::vector<ge::Expression> &src_strides,
                                          const std::vector<ge::Expression> &dst_strides, uint32_t dtype_size);
-ge::Status BuildReduceSpecificParams(const ReduceSpecificParamBuildInput &input, ReduceSpecificParams &param);
+af::Status BuildReduceSpecificParams(const ReduceSpecificParamBuildInput &input, ReduceSpecificParams &param);
 
 struct CodegenApiParam;
 using CodegenApiParamPtr = std::shared_ptr<CodegenApiParam>;
 struct CodegenApiParam {
-  static ge::Status Register(af::AscNodePtr node, CodegenApiParamPtr api_param);
+  static af::Status Register(af::AscNodePtr node, CodegenApiParamPtr api_param);
   static CodegenApiParamPtr GetNodeApiParam(af::AscNodePtr node);
-  static ge::Status DumpGraphApiParams(const ascir::ImplGraph &graph, const Tiler &tiler, const std::string &prefix);
+  static af::Status DumpGraphApiParams(const ascir::ImplGraph &graph, const Tiler &tiler, const std::string &prefix);
   std::string api_name;
   std::vector<std::string> template_params;
 

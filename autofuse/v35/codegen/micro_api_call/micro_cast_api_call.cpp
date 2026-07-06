@@ -61,7 +61,7 @@ Status MicroCastApiCall::Generate(const TensorManager &tensor_mng, [[maybe_unuse
   ss << "(" << *(tensor_mng.GetTensor(output_tensor_id)) << ", " << *(tensor_mng.GetTensor(input_tensor_id)) << ", "
      << param.p_reg << ");" << std::endl;
   result = ss.str();
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status MicroCastApiCall::Init(const ascir::NodeView &node) {
@@ -72,7 +72,7 @@ Status MicroCastApiCall::Init(const ascir::NodeView &node) {
   } else {
     cast_trait_ = "cast_trait_none";
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 static MicroApiCallRegister<MicroCastApiCall> register_micro_cast_api_call("MicroCastApiCall");

@@ -13,14 +13,14 @@
 
 namespace att {
 namespace cache {
-ge::Status GroupLevelCacheGen::GenFixedSizeHashMapDef(ge::CodePrinter &code_printer) {
+af::Status GroupLevelCacheGen::GenFixedSizeHashMapDef(ge::CodePrinter &code_printer) {
   // 生成FixedSizeHashMap模板类定义
   std::string hashmap_code = GenHashMapTemplate();
   code_printer.AddLine(hashmap_code);
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status GroupLevelCacheGen::GenGroupCacheTypes(ge::CodePrinter &code_printer, size_t cache_capacity) {
+af::Status GroupLevelCacheGen::GenGroupCacheTypes(ge::CodePrinter &code_printer, size_t cache_capacity) {
   // 注意：常量定义(kInputShapeSize等)已在GenCacheHashMapDef中统一生成
   // 这里只生成GroupLevelCache类型定义
 
@@ -29,10 +29,10 @@ ge::Status GroupLevelCacheGen::GenGroupCacheTypes(ge::CodePrinter &code_printer,
                        ", TilingDataCopy>;");
   code_printer.AddLine("");
 
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status GroupLevelCacheGen::GenGroupCacheFunctions(ge::CodePrinter &code_printer,
+af::Status GroupLevelCacheGen::GenGroupCacheFunctions(ge::CodePrinter &code_printer,
                                                       const std::string &tiling_data_type_name) {
   // 生成Group级缓存查找和保存函数
   // 改为参数传递方式，不使用全局静态变量
@@ -84,7 +84,7 @@ static inline bool SaveGroupCache(const std::array<uint32_t, kInputShapeSize>& k
 )";
   code_printer.AddLine(cache_decl);
 
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 }  // namespace cache
 }  // namespace att

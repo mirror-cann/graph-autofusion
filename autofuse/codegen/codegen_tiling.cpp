@@ -48,7 +48,7 @@ namespace {
 bool CheckTilingHeadersValid(const std::map<std::string, std::string> &tiling_file_name_to_content) {
   for (const auto &pair : tiling_file_name_to_content) {
     if (pair.second == INVALID_TILING) {
-      GELOGE(ge::FAILED, "tilings(%s) is invalid", pair.first.c_str());
+      GELOGE(af::FAILED, "tilings(%s) is invalid", pair.first.c_str());
       return false;
     }
   }
@@ -214,7 +214,7 @@ TilingLib::TilingLib(const std::string &lib_path, const std::string &codegen_sym
       enable_autofuse_pgo_ = (att::AutoFuseConfig::GetPgoStrategyConfig().enable_autofuse_pgo == "true");
     }
   } else {
-    GELOGE(ge::FAILED, "TilingLib function ENV init failed");
+    GELOGE(af::FAILED, "TilingLib function ENV init failed");
     return;
   }
   GELOGI("TilingLib lib_path:%s, symbol_name:%s", lib_path.c_str(), codegen_symbol_name.c_str());
@@ -227,7 +227,7 @@ TilingLib::TilingLib(const std::string &lib_path, const std::string &codegen_sym
   this->codegen_func_ = nullptr;
   std::string real_lib_path;
   if (!ascgen_utils::GetRealPath(lib_path, real_lib_path)) {
-    GELOGE(ge::FAILED, "lib_path::%s realpath failed", lib_path.c_str());
+    GELOGE(af::FAILED, "lib_path::%s realpath failed", lib_path.c_str());
     return;
   }
   auto handle = dlopen(real_lib_path.c_str(), RTLD_LAZY);
@@ -235,7 +235,7 @@ TilingLib::TilingLib(const std::string &lib_path, const std::string &codegen_sym
 
   auto func = dlsym(handle, codegen_symbol_name.c_str());
   if (func == nullptr) {
-    GELOGE(ge::FAILED, "TilingLib function dlsym fail symbol_name:%s", codegen_symbol_name.c_str());
+    GELOGE(af::FAILED, "TilingLib function dlsym fail symbol_name:%s", codegen_symbol_name.c_str());
     dlclose(handle);
     return;
   }
@@ -1416,10 +1416,10 @@ Status TilingLib::ExtractMatMulCubeInfoFromImplGraph(const af::AscGraph &impl_gr
     GE_CHK_STATUS_RET(ascgen_utils::GetCubeInputNum(node, cube_info.input_num), "GetMutmulInputNum failed for node[%s]",
                       node->GetName().c_str());
 
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
 
-  return ge::FAILED;
+  return af::FAILED;
 }
 
 Status TilingLib::ExtractMatMulCubeInfoFromFusedResult(const ascir::FusedScheduledResult &fused_schedule_result,
@@ -1427,7 +1427,7 @@ Status TilingLib::ExtractMatMulCubeInfoFromFusedResult(const ascir::FusedSchedul
   auto extract_from_impl_graphs = [this, &cube_info](const auto &schedule_groups) {
     for (const auto &schedule_group : schedule_groups) {
       for (const auto &impl_graph : schedule_group.impl_graphs) {
-        if (ExtractMatMulCubeInfoFromImplGraph(impl_graph, cube_info) == ge::SUCCESS) {
+        if (ExtractMatMulCubeInfoFromImplGraph(impl_graph, cube_info) == af::SUCCESS) {
           return true;
         }
       }
@@ -1448,11 +1448,11 @@ Status TilingLib::ExtractMatMulCubeInfoFromFusedResult(const ascir::FusedSchedul
 
   for (const auto &scheduled_results : fused_schedule_result.node_idx_to_scheduled_results) {
     if (process_scheduled_results(scheduled_results)) {
-      return ge::SUCCESS;
+      return af::SUCCESS;
     }
   }
 
-  return ge::FAILED;
+  return af::FAILED;
 }
 
 Status TilingLib::GetInputTensorInfoFromLoadNode(const ge::NodePtr &load_node, TensorInfo &tensor_info) const {
@@ -1476,7 +1476,7 @@ Status TilingLib::GetInputTensorInfoFromLoadNode(const ge::NodePtr &load_node, T
   tensor_info.ori_shape = tensor_info.shape;
   tensor_info.param_name = tensor_info.name;
 
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status TilingLib::ExtractInputsFromMatMulNode(const ge::AscNodePtr &matmul_node,
@@ -1499,7 +1499,7 @@ Status TilingLib::ExtractInputsFromMatMulNode(const ge::AscNodePtr &matmul_node,
     inputs.push_back(tensor_info);
   }
 
-  return inputs.empty() ? ge::FAILED : ge::SUCCESS;
+  return inputs.empty() ? af::FAILED : af::SUCCESS;
 }
 
 Status TilingLib::ExtractOutputsFromMatMulNode(const ge::AscNodePtr &matmul_node,
@@ -1524,7 +1524,7 @@ Status TilingLib::ExtractOutputsFromMatMulNode(const ge::AscNodePtr &matmul_node
   output_info.param_name = output_info.name;
   outputs.push_back(output_info);
 
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 std::string TilingLib::GenerateTensorInfoCode(const TensorInfo &tensor, const std::string &var_name) const {
@@ -2000,7 +2000,7 @@ std::map<std::string, std::string> TilingLib::GetTilingHeaders(const ascir::Fuse
     GE_CHK_BOOL_EXEC(
         this->codegen_func_(fused_schedule_result.fused_graph_name.GetString(), fused_schedule_result, options,
                             tiling_file_name_to_content, is_inductor_scene),
-        GELOGE(ge::FAILED, "Codegen Gen tiling func failed, graph:%s", graph_name.c_str());
+        GELOGE(af::FAILED, "Codegen Gen tiling func failed, graph:%s", graph_name.c_str());
         tiling_file_name_to_content[kTilingHeadIdentify] += "#endif // __AUTOFUSE_TILING_FUNC_COMMON_H__\n";
         tiling_file_name_to_content[kTilingDefAndConstIdentify] = INVALID_TILING; return tiling_file_name_to_content);
   } else {
@@ -3736,8 +3736,8 @@ void TilingLib::GenReprApiTilingFields(std::stringstream &ss, const ascir::Sched
     for (const auto &node : sg.impl_graphs[gi].GetAllNodes()) {
       std::string device_type_name;
       std::string api_field_name;
-      if (ge::SUCCESS == GetApiTilingTypeName(node, device_type_name) &&
-          ge::SUCCESS == GetApiTilingFieldName(node, api_field_name)) {
+      if (af::SUCCESS == GetApiTilingTypeName(node, device_type_name) &&
+          af::SUCCESS == GetApiTilingFieldName(node, api_field_name)) {
         api_field_name = api_field_name + "_" + std::to_string(gi);
         ss << indent << "{" << std::endl;
         ss << indent << "  if (!" << first_flag << ") { repr << \",\"; }" << std::endl;

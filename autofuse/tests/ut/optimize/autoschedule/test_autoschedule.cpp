@@ -2407,7 +2407,7 @@ TEST_F(AutoSchedulerUT, align_vectorized_strides) {
   }
 
   AlignmentHandler handler;
-  EXPECT_EQ(handler.AlignVectorizedStrides(graph), SUCCESS);
+  EXPECT_EQ(handler.AlignVectorizedStrides(graph), af::SUCCESS);
   auto abs_node = graph.FindNode("abs");
 
   EXPECT_EQ(std::string(abs_node->outputs[0].attr.vectorized_strides[0].Str().get()), "s1");
@@ -2441,7 +2441,7 @@ TEST_F(AutoSchedulerUT, align_vectorized_strides_last_zero) {
   *load.y.vectorized_axis = {z1.id, z2.id, z3.id};
 
   AlignmentHandler handler;
-  EXPECT_EQ(handler.AlignVectorizedStrides(graph), SUCCESS);
+  EXPECT_EQ(handler.AlignVectorizedStrides(graph), af::SUCCESS);
 
   auto load_node = graph.FindNode("load_i");
   std::vector<af::Expression> golden_stride = {af::Symbol(20), One, Zero};
@@ -2488,7 +2488,7 @@ TEST_F(AutoSchedulerUT, align_vectorized_strides_store_same_with_input) {
   *store.y.vectorized_axis = {z1.id, z2.id, z3.id};
 
   AlignmentHandler handler;
-  EXPECT_EQ(handler.AlignVectorizedStrides(graph), SUCCESS);
+  EXPECT_EQ(handler.AlignVectorizedStrides(graph), af::SUCCESS);
 
   auto s16 = af::Symbol(16);
   std::vector<af::Expression> golden_stride = {s2 * s16, s16, One};
@@ -2565,7 +2565,7 @@ TEST_F(AutoSchedulerUT, align_vectorized_strides_by_repeat) {
   }
 
   AlignmentHandler handler;
-  EXPECT_EQ(handler.AlignVectorizedStrides(graph), SUCCESS);
+  EXPECT_EQ(handler.AlignVectorizedStrides(graph), af::SUCCESS);
 
   auto load1_node = graph.FindNode("load1");
   EXPECT_EQ(std::string(load1_node->outputs[0].attr.vectorized_strides[0].Str().get()), "1");
@@ -2625,7 +2625,7 @@ TEST_F(AutoSchedulerUT, merge_axis_load_broadcast) {
   y.x = store.y;
   y.attr.sched.axis = {z0.id, z1.id, z2.id, z3.id, z4.id};
 
-  EXPECT_EQ(Optimizer::MergeContinuousAxis(graph), ge::SUCCESS);
+  EXPECT_EQ(Optimizer::MergeContinuousAxis(graph), af::SUCCESS);
 
   std::vector<autoschedule::AutoScheduleOutput> results;
   AutoSchedule schedule(graph, results);
@@ -2924,7 +2924,7 @@ TEST_F(AutoSchedulerUT, AutoSchedulerUT_reorder_vectorized_axes_ok) {
 
   ASSERT_EQ(tiling_cases.size(), 1UL);
   Scheduler scheduler(graph, auto_schedule.axes_group_, tiling_cases[0UL]);
-  EXPECT_EQ(scheduler.DoScheduler(), ge::SUCCESS);
+  EXPECT_EQ(scheduler.DoScheduler(), af::SUCCESS);
 
   auto all_axis = graph.GetAllAxis();
   int64_t z0t_id = std::numeric_limits<int64_t>::max();
@@ -3362,7 +3362,7 @@ TEST_F(AutoSchedulerUT, Autoschedule_autoschedule_remove_continues_broadcast_par
 TEST_F(AutoSchedulerUT, Autoschedule_autoschedule_remove_continues_broadcast_multi_out) {
   af::AscGraph graph("Autoschedule_autoschedule_remove_continues_broadcast_multi_out");
   Construct_ContinuesBroadcastMultiOutFusion(graph);
-  EXPECT_EQ(Optimizer::MergeContinuousAxis(graph), ge::SUCCESS);
+  EXPECT_EQ(Optimizer::MergeContinuousAxis(graph), af::SUCCESS);
 
   std::vector<autoschedule::AutoScheduleOutput> impl_graphs;
   AutoSchedule autoschedule(graph, impl_graphs);
@@ -3410,7 +3410,7 @@ TEST_F(AutoSchedulerUT, Autoschedule_autoschedule_remove_continues_broadcast_wit
 TEST_F(AutoSchedulerUT, Autoschedule_autoschedule_remove_redundant_broadcast) {
   af::AscGraph graph("RemoveRedundantBroadcast");
   Construct_RedundantBroadcastFusion(graph);
-  EXPECT_EQ(Optimizer::MergeContinuousAxis(graph), ge::SUCCESS);
+  EXPECT_EQ(Optimizer::MergeContinuousAxis(graph), af::SUCCESS);
 
   std::vector<autoschedule::AutoScheduleOutput> impl_graphs;
   AutoSchedule autoschedule(graph, impl_graphs);
@@ -3451,7 +3451,7 @@ TEST_F(AutoSchedulerUT, Autoschedule_keep_broadcast_expand_non_vectorized_axis) 
   af::AscGraph graph("KeepBroadcastExpandNonVectorizedAxis");
   Construct_BroadcastExpandNonVectorizedAxis(graph);
 
-  EXPECT_EQ(Scheduler::RemoveRedundantBroadcastNode(graph), ge::SUCCESS);
+  EXPECT_EQ(Scheduler::RemoveRedundantBroadcastNode(graph), af::SUCCESS);
 
   auto brc0 = graph.FindNode("brc0");
   ASSERT_NE(brc0, nullptr);
@@ -3464,7 +3464,7 @@ TEST_F(AutoSchedulerUT, Autoschedule_remove_broadcast_expand_non_vectorized_axis
   af::AscGraph graph("RemoveBroadcastExpandNonVectorizedAxisReduceDifferentAxis");
   Construct_BroadcastExpandNonVectorizedAxisReduceDifferentAxis(graph);
 
-  EXPECT_EQ(Scheduler::RemoveRedundantBroadcastNode(graph), ge::SUCCESS);
+  EXPECT_EQ(Scheduler::RemoveRedundantBroadcastNode(graph), af::SUCCESS);
 
   EXPECT_EQ(graph.FindNode("brc0"), nullptr);
   auto reduce_sum = graph.FindNode("reduce_sum");
@@ -3476,7 +3476,7 @@ TEST_F(AutoSchedulerUT, Autoschedule_remove_broadcast_add_non_vectorized_axis) {
   af::AscGraph graph("RemoveBroadcastAddNonVectorizedAxis");
   Construct_BroadcastAddNonVectorizedAxis(graph);
 
-  EXPECT_EQ(Scheduler::RemoveRedundantBroadcastNode(graph), ge::SUCCESS);
+  EXPECT_EQ(Scheduler::RemoveRedundantBroadcastNode(graph), af::SUCCESS);
 
   EXPECT_EQ(graph.FindNode("brc_missing_axis"), nullptr);
   auto reduce_missing_axis = graph.FindNode("reduce_missing_axis");
@@ -3568,7 +3568,7 @@ TEST_F(AutoSchedulerUT, Autoschedule_scheduler_gather_param_is_1_axis) {
   std::vector<autoschedule::AutoScheduleOutput> results;
   AutoSchedule schedule(graph, results);
   auto status = schedule.DoAutoSchedule();
-  ASSERT_EQ(status, ge::SUCCESS);
+  ASSERT_EQ(status, af::SUCCESS);
   ASSERT_EQ(results.size(), 1UL);
 }
 
@@ -3717,7 +3717,7 @@ TEST_F(AutoSchedulerUT, Autoschedule_autoschedule_removepad_support_broadcast) {
   *y1.y.repeats = {s0, s1, s2};
   *y1.y.strides = {s1 * s2, s2, One};
 
-  EXPECT_EQ(Optimizer::MergeContinuousAxis(graph), ge::SUCCESS);
+  EXPECT_EQ(Optimizer::MergeContinuousAxis(graph), af::SUCCESS);
   std::vector<autoschedule::AutoScheduleOutput> impl_graphs;
   AutoSchedule autoschedule(graph, impl_graphs);
   autoschedule.DoAutoSchedule();
@@ -3873,7 +3873,7 @@ TEST_F(AutoSchedulerUT, Autoschedule_autoschedule_removepad_not_support_dtype) {
   *y0.y.axis = {z0.id, z1.id, z2.id};
   *y0.y.repeats = {s0, s1, s2};
   *y0.y.strides = {s1 * s2, s2, One};
-  EXPECT_EQ(Optimizer::MergeContinuousAxis(graph), ge::SUCCESS);
+  EXPECT_EQ(Optimizer::MergeContinuousAxis(graph), af::SUCCESS);
   std::vector<autoschedule::AutoScheduleOutput> impl_graphs;
   AutoSchedule autoschedule(graph, impl_graphs);
   autoschedule.DoAutoSchedule();
@@ -3939,7 +3939,7 @@ TEST_F(AutoSchedulerUT, Autoschedule_autoschedule_removepad_support_load_slice) 
   *y0.y.axis = {z0.id, z1.id, z2.id};
   *y0.y.repeats = {s0, s1, s2};
   *y0.y.strides = {s1 * s2, s2, One};
-  EXPECT_EQ(Optimizer::MergeContinuousAxis(graph), ge::SUCCESS);
+  EXPECT_EQ(Optimizer::MergeContinuousAxis(graph), af::SUCCESS);
   std::vector<autoschedule::AutoScheduleOutput> results;
   AutoSchedule autoschedule(graph, results);
   autoschedule.DoAutoSchedule();
@@ -4009,7 +4009,7 @@ TEST_F(AutoSchedulerUT, Autoschedule_autoschedule_removepad_support_load_slice_i
   *y0.y.axis = {z0.id, z1.id, z2.id};
   *y0.y.repeats = {s0, s1, s2};
   *y0.y.strides = {s1 * s2, s2, One};
-  EXPECT_EQ(Optimizer::MergeContinuousAxis(graph), ge::SUCCESS);
+  EXPECT_EQ(Optimizer::MergeContinuousAxis(graph), af::SUCCESS);
 
   std::vector<autoschedule::AutoScheduleOutput> results;
   AutoSchedule autoschedule(graph, results);

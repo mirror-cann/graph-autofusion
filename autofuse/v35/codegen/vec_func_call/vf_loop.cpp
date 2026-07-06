@@ -131,17 +131,17 @@ Status VFLoop::ConstructFromNodes(ascir::NodeViewVisitorConst nodes, const ascir
 
       auto in_call = tensor_calls.find(in->attr.mem.tensor_id);
       GE_CHK_BOOL_RET_STATUS(
-          in_call != tensor_calls.end(), ge::FAILED,
+          in_call != tensor_calls.end(), af::FAILED,
           "Codegen node[%s] no API call found for input tensor id[%ld], it may be a topological order error",
           node->GetNamePtr(), in->attr.mem.tensor_id);
       // Load和Store api需要使用UB
       // tensor信息，所以这里需要保存vf_node上的tensor_id，在LoadApiCall中通过Tpipe获取对应Tensor.
       auto data_node = std::dynamic_pointer_cast<af::AscNode>(in->anchor.GetOwnerNode());
-      GE_CHK_BOOL_RET_STATUS(data_node != nullptr, ge::FAILED, "Codegen node[%s] data_node is nullptr",
+      GE_CHK_BOOL_RET_STATUS(data_node != nullptr, af::FAILED, "Codegen node[%s] data_node is nullptr",
                              node->GetNamePtr());
       if (IsOps<Data>(data_node) || IsOps<Scalar>(data_node)) {
         int64_t index = 0;
-        GE_CHK_BOOL_RET_STATUS(data_node->attr.ir_attr != nullptr, ge::FAILED,
+        GE_CHK_BOOL_RET_STATUS(data_node->attr.ir_attr != nullptr, af::FAILED,
                                "Codegen node[%s] data_node->attr.ir_attr is nullptr", node->GetNamePtr());
         GE_CHK_GRAPH_STATUS_RET(data_node->attr.ir_attr->GetAttrValue("index", index),
                                 "Get Data index failed, node:%s, index:%ld", data_node->GetNamePtr(), index);
@@ -158,15 +158,15 @@ Status VFLoop::ConstructFromNodes(ascir::NodeViewVisitorConst nodes, const ascir
     for (auto out : node->outputs()) {
       tensor_calls.insert({out->attr.mem.tensor_id, call});
       auto peer_anchors = out->anchor.GetPeerInDataAnchors();
-      GE_CHK_BOOL_RET_STATUS(!peer_anchors.empty(), ge::FAILED, "Codegen node[%s] output has no peer input anchor",
+      GE_CHK_BOOL_RET_STATUS(!peer_anchors.empty(), af::FAILED, "Codegen node[%s] output has no peer input anchor",
                              node->GetNamePtr());
       auto peer_input = peer_anchors.at(0);
       auto output_node = std::dynamic_pointer_cast<af::AscNode>(peer_input->GetOwnerNode());
-      GE_CHK_BOOL_RET_STATUS(output_node != nullptr, ge::FAILED, "Codegen node[%s] output_node is nullptr",
+      GE_CHK_BOOL_RET_STATUS(output_node != nullptr, af::FAILED, "Codegen node[%s] output_node is nullptr",
                              node->GetNamePtr());
       if (IsOps<Output>(output_node)) {
         int64_t index;
-        GE_CHK_BOOL_RET_STATUS(output_node->attr.ir_attr != nullptr, ge::FAILED,
+        GE_CHK_BOOL_RET_STATUS(output_node->attr.ir_attr != nullptr, af::FAILED,
                                "Codegen node[%s] output_node->attr.ir_attr is nullptr", node->GetNamePtr());
         GE_CHK_GRAPH_STATUS_RET(output_node->attr.ir_attr->GetAttrValue("index", index),
                                 "Get Output index failed, node:%s, index:%ld", output_node->GetNamePtr(), index);
@@ -175,7 +175,7 @@ Status VFLoop::ConstructFromNodes(ascir::NodeViewVisitorConst nodes, const ascir
       call->AddOutput(out->attr.mem.tensor_id);  // 默认为REG_TENSOR
     }
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 void VFLoop::SetMaxDtypeSize(std::string dtype) {
@@ -205,7 +205,7 @@ Status VFLoop::Generate(const TPipe &tpipe, const TensorManager &tensor_mgr, int
       "Generate loop failed");
   result = ss.str();
   loop_size_result = loop_size_ss.str();
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status VFLoop::GenerateLoop(const TPipe &tpipe, const TensorManager &tensor_mgr, int32_t depth,
@@ -216,7 +216,7 @@ Status VFLoop::GenerateLoop(const TPipe &tpipe, const TensorManager &tensor_mgr,
     GE_CHK_STATUS_RET(this->GenerateBody(tpipe, tensor_mgr, depth, current_axis, ss, loop_size_ss, only_loop_max_depth,
                                          loop_size_vec),
                       "Codegen generate body failed when axis id is none");
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
 
   const auto &axis = tpipe.tiler.GetAxis(this->axis_id_);
@@ -244,7 +244,7 @@ Status VFLoop::GenerateLoop(const TPipe &tpipe, const TensorManager &tensor_mgr,
   ss << "}" << std::endl;
 
   current_axis.pop_back();
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status VFLoop::GenerateBody(const TPipe &tpipe, const TensorManager &tensor_mgr, int32_t depth,
@@ -285,7 +285,7 @@ Status VFLoop::GenerateBody(const TPipe &tpipe, const TensorManager &tensor_mgr,
   if (has_loop && !has_call) {
     only_loop_max_depth = std::max(only_loop_max_depth, static_cast<int32_t>(current_axis.size()));
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 void VFLoop::CollectMaskRegTempTensors(const TPipe &tpipe, const TensorManager &tensor_mgr,

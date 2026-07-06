@@ -30,7 +30,7 @@ GenerationMode BrcInlineTemplateV2::GetGenerationMode() {
   return GenerationMode::kAppendCase;
 }
 
-ge::Status BrcInlineTemplateV2::AlignTensor(const af::NodePtr &node, const af::AscTensor *tensor) {
+af::Status BrcInlineTemplateV2::AlignTensor(const af::NodePtr &node, const af::AscTensor *tensor) {
   return BaseAlignmentStrategy::SetVectorizedStridesForTensor(node, tensor->attr, AlignmentType::kAligned);
 }
 
@@ -51,8 +51,8 @@ bool BrcInlineTemplateV2::IsNodeSupportBrcInline(const af::NodePtr &node) {
     }
     std::unique_ptr<af::AscTensor> input0;
     std::unique_ptr<af::AscTensor> input1;
-    GE_WARN_ASSERT(ScheduleUtils::GetNonBrcInputTensor(out_node, 0UL, input0) == ge::SUCCESS);
-    GE_WARN_ASSERT(ScheduleUtils::GetNonBrcInputTensor(out_node, 1UL, input1) == ge::SUCCESS);
+    GE_WARN_ASSERT(ScheduleUtils::GetNonBrcInputTensor(out_node, 0UL, input0) == af::SUCCESS);
+    GE_WARN_ASSERT(ScheduleUtils::GetNonBrcInputTensor(out_node, 1UL, input1) == af::SUCCESS);
     ascgen_utils::MergeBrcAxisParams in0(input0->attr.repeats, input0->attr.strides);
     ascgen_utils::MergeBrcAxisParams in1(input1->attr.repeats, input1->attr.strides);
     ascgen_utils::MergeBrcAxisRepeats(in0, in1);
@@ -75,7 +75,7 @@ bool BrcInlineTemplateV2::IsNodeSupportBrcInline(const af::NodePtr &node) {
  * （2）否则，若Broadcast的输入是RemovePad，则说明Load->...->RemovePad之前，已经对齐了，只需要把RemovePad节点删掉即可；
  * （3）需要做对齐，则调用 BaseAlignmentStrategy::SetVectorizedStridesForTensor 对齐
  */
-ge::Status BrcInlineTemplateV2::AlignAssociateNodes(const af::AscGraph &graph, const af::AscNodePtr &brc_node) {
+af::Status BrcInlineTemplateV2::AlignAssociateNodes(const af::AscGraph &graph, const af::AscNodePtr &brc_node) {
   // 把所有 inline 节点加入队列开始，自下而上递归对齐
   std::queue<af::AscNodePtr> need_aligned_nodes_queue;
   need_aligned_nodes_queue.push(brc_node);
@@ -87,7 +87,7 @@ ge::Status BrcInlineTemplateV2::AlignAssociateNodes(const af::AscGraph &graph, c
       }
       need_aligned_nodes_queue.push(std::dynamic_pointer_cast<af::AscNode>(node));
     }
-    return ge::SUCCESS;
+    return af::SUCCESS;
   };
 
   while (!need_aligned_nodes_queue.empty()) {
@@ -129,7 +129,7 @@ ge::Status BrcInlineTemplateV2::AlignAssociateNodes(const af::AscGraph &graph, c
     GE_ASSERT_SUCCESS(add_nodes_to_queue(cur_node->GetInDataNodes()));
     GE_ASSERT_SUCCESS(add_nodes_to_queue(cur_node->GetOutDataNodes()));
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 /**
@@ -138,7 +138,7 @@ ge::Status BrcInlineTemplateV2::AlignAssociateNodes(const af::AscGraph &graph, c
  * 2. 若满足brc inline，则将本brc节点删掉，计数+1。继续查找其他brc节点
  * 3. 最后，若计数>0，返回成功；否则返回失败。
  */
-ge::Status BrcInlineTemplateV2::Generate([[maybe_unused]] const af::AscGraph &origin_graph,
+af::Status BrcInlineTemplateV2::Generate([[maybe_unused]] const af::AscGraph &origin_graph,
                                          [[maybe_unused]] const af::AscGraph &based_case, af::AscGraph &new_case) {
   int32_t brc_inlined_count = 0;
   for (const auto &node : new_case.GetAllNodes()) {
@@ -160,7 +160,7 @@ ge::Status BrcInlineTemplateV2::Generate([[maybe_unused]] const af::AscGraph &or
     GE_ASSERT_SUCCESS(ScheduleUtils::RemoveNode(new_case, node, in_data_anchor->GetPeerOutAnchor()));
     brc_inlined_count++;
   }
-  return brc_inlined_count == 0 ? ge::FAILED : ge::SUCCESS;
+  return brc_inlined_count == 0 ? af::FAILED : af::SUCCESS;
 }
 
 bool BrcInlineTemplateV2::NeedDropBasedCase([[maybe_unused]] const af::AscGraph &origin_graph,

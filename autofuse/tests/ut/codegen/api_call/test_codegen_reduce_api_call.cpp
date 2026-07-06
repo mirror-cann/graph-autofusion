@@ -62,7 +62,7 @@ ReduceCodegenShadowCheckInput MakeNonFatalShadowInput(af::AscNodePtr node) {
 void AddAllAxesToTiler(const af::AscGraph &graph, codegen::Tiler &tiler) {
   for (const auto &axis : graph.GetAllAxis()) {
     if (axis != nullptr) {
-      EXPECT_EQ(tiler.AddAxis(*axis), ge::SUCCESS);
+      EXPECT_EQ(tiler.AddAxis(*axis), af::SUCCESS);
     }
   }
 }
@@ -189,7 +189,7 @@ const af::AscTensor &GetPeerOutputTensor(const af::AscNodePtr &node, size_t inpu
 }
 
 void ExpectReduceShadowParamsMatch(const af::AscGraph &graph, const af::AscNodePtr &node, const std::string &api_name) {
-  ASSERT_EQ(ascir_param::EnrichAscirGraphNodeParams(graph), ge::SUCCESS);
+  ASSERT_EQ(ascir_param::EnrichAscirGraphNodeParams(graph), af::SUCCESS);
   const auto params = ascir_param::GetAscirNodeParams(node);
   ASSERT_NE(params, nullptr);
   const auto *parser_params = ascir_param::GetSpecificParams<ascir_param::ReduceNodeParams>(*params);
@@ -201,13 +201,13 @@ void ExpectReduceShadowParamsMatch(const af::AscGraph &graph, const af::AscNodeP
   codegen::TPipe tpipe("pipe", tiler);
   std::string input_dtype;
   const auto &input_tensor = GetPeerOutputTensor(node, 0U);
-  ASSERT_EQ(codegen::Tensor::DtypeName(input_tensor.attr.dtype, input_dtype), ge::SUCCESS);
+  ASSERT_EQ(codegen::Tensor::DtypeName(input_tensor.attr.dtype, input_dtype), af::SUCCESS);
   std::string output_dtype;
-  ASSERT_EQ(codegen::Tensor::DtypeName(node->outputs[0].attr.dtype, output_dtype), ge::SUCCESS);
+  ASSERT_EQ(codegen::Tensor::DtypeName(node->outputs[0].attr.dtype, output_dtype), af::SUCCESS);
   codegen::Tensor x(input_tensor, input_dtype);
   codegen::Tensor y(node->outputs[0], output_dtype);
-  ASSERT_EQ(x.Init(), ge::SUCCESS);
-  ASSERT_EQ(y.Init(), ge::SUCCESS);
+  ASSERT_EQ(x.Init(), af::SUCCESS);
+  ASSERT_EQ(y.Init(), af::SUCCESS);
 
   EXPECT_TRUE(parser_params->canonical_params.valid);
   CheckReduceSpecificParamsForCodegen({node, api_name, &tpipe, &x, &y, node->attr.sched.loop_axis});
@@ -323,7 +323,7 @@ TEST_F(ReduceApicallTest, ReduceApi_Test_001) {
   call.tmp_buf_id[0] = 1;
   Status status = call.Generate(tpipe, current_axis, result);
   // Check the result
-  EXPECT_EQ(status, ge::SUCCESS);
+  EXPECT_EQ(status, af::SUCCESS);
 }
 
 TEST_F(ReduceApicallTest, ReduceApi_Test_002) {
@@ -426,7 +426,7 @@ TEST_F(ReduceApicallTest, ReduceApi_Test_002) {
   call.tmp_buf_id[0] = 1;
   Status status = call.Generate(tpipe, current_axis, result);
   // Check the result
-  EXPECT_EQ(status, ge::SUCCESS);
+  EXPECT_EQ(status, af::SUCCESS);
 }
 
 TEST_F(ReduceApicallTest, ReduceApi_Test_003) {
@@ -534,7 +534,7 @@ TEST_F(ReduceApicallTest, ReduceApi_Test_003) {
   call.tmp_buf_id[0] = 1;
   Status status = call.Generate(tpipe, current_axis, result);
   // Check the result
-  EXPECT_EQ(status, ge::SUCCESS);
+  EXPECT_EQ(status, af::SUCCESS);
 }
 
 TEST_F(ReduceApicallTest, ReduceApi_Test_004) {
@@ -638,7 +638,7 @@ TEST_F(ReduceApicallTest, ReduceApi_Test_004) {
   call.tmp_buf_id[0] = 1;
   Status status = call.Generate(tpipe, current_axis, result);
   // Check the result
-  EXPECT_EQ(status, ge::SUCCESS);
+  EXPECT_EQ(status, af::SUCCESS);
 }
 
 TEST_F(ReduceApicallTest, ReduceApi_Test_All_Reduce) {
@@ -751,7 +751,7 @@ TEST_F(ReduceApicallTest, ReduceApi_Test_All_Reduce) {
                 "last};\nReduceMax<float, AscendC::Pattern::Reduce::AR, false>(local_3[0], local_1[0], tmp_buf_0, "
                 "tmp_reduce_shape, true);\n}\n"});
   // Check the result
-  EXPECT_EQ(status, ge::SUCCESS);
+  EXPECT_EQ(status, af::SUCCESS);
 }
 
 TEST_F(ReduceApicallTest, ReduceApicallTest_Int32_Inner) {
@@ -857,7 +857,7 @@ TEST_F(ReduceApicallTest, ReduceApicallTest_Int32_Inner) {
   call.tmp_buf_id[0] = 1;
   Status status = call.Generate(tpipe, current_axis, result);
   // Check the result
-  EXPECT_EQ(status, ge::SUCCESS);
+  EXPECT_EQ(status, af::SUCCESS);
 }
 
 TEST_F(ReduceApicallTest, ReduceApicallTest_Int32_Outer) {
@@ -963,7 +963,7 @@ TEST_F(ReduceApicallTest, ReduceApicallTest_Int32_Outer) {
   call.tmp_buf_id[0] = 1;
   Status status = call.Generate(tpipe, current_axis, result);
   // Check the result
-  EXPECT_EQ(status, ge::SUCCESS);
+  EXPECT_EQ(status, af::SUCCESS);
 }
 
 TEST_F(ReduceApicallTest, ReduceApicallTest_ReduceMean_NoNeed_MultiReduce_Int32) {
@@ -1069,7 +1069,7 @@ TEST_F(ReduceApicallTest, ReduceApicallTest_ReduceMean_NoNeed_MultiReduce_Int32)
   call.tmp_buf_id[0] = 1;
   Status status = call.Generate(tpipe, current_axis, result);
   // Check the result
-  EXPECT_EQ(status, ge::SUCCESS);
+  EXPECT_EQ(status, af::SUCCESS);
 }
 
 TEST_F(ReduceApicallTest, ReduceApicallTest_ReduceMean_NoNeed_MultiReduce_Float) {
@@ -1175,7 +1175,7 @@ TEST_F(ReduceApicallTest, ReduceApicallTest_ReduceMean_NoNeed_MultiReduce_Float)
   call.tmp_buf_id[0] = 1;
   Status status = call.Generate(tpipe, current_axis, result);
   // Check the result
-  EXPECT_EQ(status, ge::SUCCESS);
+  EXPECT_EQ(status, af::SUCCESS);
 }
 
 TEST_F(ReduceApicallTest, ReduceShadowCheck_DoesNotFailWhenNodeParamsMissing) {

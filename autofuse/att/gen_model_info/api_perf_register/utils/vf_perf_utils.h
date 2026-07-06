@@ -19,14 +19,14 @@ class VfPerfUtils {
   // 根据MicroApiType和DataType获取MicroApi级别的性能
   // 场景1，没有直接可以映射的指令，需要基于原有指令进行拼接，可以使用该接口拼接
   // 场景2，有直接可以映射的指令，可以直接调用该接口获取
-  static ge::Status GetVfInstructPerf(const std::string &micro_api_type, const std::string &data_type, Expr &latency,
+  static af::Status GetVfInstructPerf(const std::string &micro_api_type, const std::string &data_type, Expr &latency,
                                       Expr &throughput);
-  static ge::Status AddVfInstructPerf(const std::string &vf_instruct_type, const std::string &data_type, Expr &latency,
+  static af::Status AddVfInstructPerf(const std::string &vf_instruct_type, const std::string &data_type, Expr &latency,
                                       Expr &throughput, Expr repeat_time);
   // 获取vf头开销
   static Expr GetVFHeadCost();
   // 根据vf function子图解析的结果获取vf function的性能
-  static ge::Status GetVectorFunctionPerf(const std::vector<NodePerfInfo> &node_perf_infos, Expr &res);
+  static af::Status GetVectorFunctionPerf(const std::vector<NodePerfInfo> &node_perf_infos, Expr &res);
 };
 }  // namespace att
 

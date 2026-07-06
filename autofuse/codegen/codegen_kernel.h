@@ -418,7 +418,7 @@ class Kernel {
   std::string GenCubeTilingFuncCall(const ascir::ImplGraph &impl_graph, bool is_dynamic = false) const;
   std::string GenCubeTilingSingleFuncCall(const bool is_batch, const bool is_cv_fuse, bool is_bias, bool is_offset_w,
                                           bool is_conv2d, bool is_dynamic = false, bool is_db = false) const;
-  ge::Status GenCubeCommonTiling(std::stringstream &ss, const bool is_batch, bool is_conv2d = false,
+  af::Status GenCubeCommonTiling(std::stringstream &ss, const bool is_batch, bool is_conv2d = false,
                                  bool is_dynamic = false, bool is_db = false) const;
   std::string GenCubeCommonTilingSingleFuncCall(const ascir::ImplGraph &impl_graph) const;
   static std::string KernelFuncDeclare(const std::string &graph_name,

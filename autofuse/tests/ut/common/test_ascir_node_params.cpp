@@ -40,7 +40,7 @@ const codegen::ReduceSpecificParams *GetReduceCodegenParams(const af::AscNodePtr
 }
 
 void ExpectEnrichSuccess(const af::AscGraph &graph) {
-  EXPECT_EQ(ascir_param::EnrichAscirGraphNodeParams(graph), ge::SUCCESS);
+  EXPECT_EQ(ascir_param::EnrichAscirGraphNodeParams(graph), af::SUCCESS);
 }
 
 ascir_reduce_test_helpers::ReduceTestEnv MakeArReduceEnv(const char *api_name) {
@@ -148,7 +148,7 @@ TEST(AscirNodeParamsTest, ValidateReduceNodeParamsRejectsMismatchedSemanticExpr)
   params.exprs.merge_size = {true, {{Expr(4), ascir_param::ParamExprRole::kSemantic}}};
   params.exprs.merge_times = {true, {{Expr(2), ascir_param::ParamExprRole::kSemantic}}};
 
-  EXPECT_NE(ascir_param::ValidateReduceNodeParams(params), ge::SUCCESS);
+  EXPECT_NE(ascir_param::ValidateReduceNodeParams(params), af::SUCCESS);
 }
 
 TEST(AscirNodeParamsTest, EnrichReduceParamsUsesFullAxisForMultiReduceCheck) {
@@ -234,6 +234,6 @@ TEST(AscirNodeParamsTest, EnrichReduceParamsRejectsMissingVectorizedStrides) {
   env.node->outputs[0].attr.vectorized_axis = {env.z0.id, env.z1.id};
   env.node->outputs[0].attr.vectorized_strides.clear();
 
-  EXPECT_NE(ascir_param::EnrichAscirGraphNodeParams(env.graph), ge::SUCCESS);
+  EXPECT_NE(ascir_param::EnrichAscirGraphNodeParams(env.graph), af::SUCCESS);
 }
 }  // namespace

@@ -30,7 +30,7 @@ constexpr size_t kFourAxisNum = 4U;
 namespace codegen {
 Status LoadRegApiCall::ParseAttr(const ascir::NodeView &node) {
   (void)node->attr.ir_attr->GetAttrValue("offset", offset_);
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status LoadRegApiCall::BuildApiParam(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,

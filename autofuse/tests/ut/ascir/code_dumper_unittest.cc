@@ -141,7 +141,7 @@ TEST_F(AscendGraphCodeDumperUT, test_python_gen) {
   AscGraph graph("test");
   ConstructAscGraph(graph);
   af::ascir::PythonCodeDumper dumper;
-  EXPECT_EQ(dumper.Dump(graph, "./asc_graph_python.py"), SUCCESS);
+  EXPECT_EQ(dumper.Dump(graph, "./asc_graph_python.py"), af::SUCCESS);
   const std::string expected_graph_code = R"(# Python code to construct AscGraph
 from autofuse.pyautofuse import ascir
 from autofuse.pyautofuse import Autofuser, AutofuserOptions
@@ -265,7 +265,7 @@ TEST_F(AscendGraphCodeDumperUT, test_wrong_python_gen) {
   AscGraph graph("wrong_graph");
   ConstructWrongAscGraph(graph);
   af::ascir::PythonCodeDumper dumper;
-  EXPECT_EQ(dumper.Dump(graph, "./asc_wrong_graph_python.py"), SUCCESS);
+  EXPECT_EQ(dumper.Dump(graph, "./asc_wrong_graph_python.py"), af::SUCCESS);
   const std::string expected_graph_code = R"(# Python code to construct AscGraph
 from autofuse.pyautofuse import ascir
 from autofuse.pyautofuse import Autofuser, AutofuserOptions
@@ -704,7 +704,7 @@ ComputeGraphPtr BuildFusedAscbc2(const std::string node_type = "") {
 TEST_F(AscendGraphCodeDumperUT, test_compute_graph1) {
   auto fused_graph = BuildFusedAscbc2();
   af::ascir::PythonCodeDumperFused dumper;
-  EXPECT_EQ(dumper.Dump(*fused_graph, "./asc_wrong_graph_python.py"), SUCCESS);
+  EXPECT_EQ(dumper.Dump(*fused_graph, "./asc_wrong_graph_python.py"), af::SUCCESS);
 
   const std::string expected_graph_code = R"(# Python code to construct ComputeGraph
 from autofuse.pyautofuse import ascir
@@ -926,7 +926,7 @@ tiling_def, host_impl, device_impl = fuser.codegen(schedule_results)
 TEST_F(AscendGraphCodeDumperUT, test_compute_graph2) {
   auto fused_graph = BuildFusedAscbc1();
   af::ascir::PythonCodeDumperFused dumper;
-  EXPECT_EQ(dumper.Dump(*fused_graph, "./asc_wrong_graph_python.py"), SUCCESS);
+  EXPECT_EQ(dumper.Dump(*fused_graph, "./asc_wrong_graph_python.py"), af::SUCCESS);
 
   const std::string expected_graph_code = R"(# Python code to construct ComputeGraph
 from autofuse.pyautofuse import ascir

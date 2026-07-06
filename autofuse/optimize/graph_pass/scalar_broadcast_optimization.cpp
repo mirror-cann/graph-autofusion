@@ -71,14 +71,14 @@ Status ScalarBroadcastOptimizationPass::GetNodeScalarInputList(const af::NodePtr
   for (size_t i = 0UL; i < is_scalar_list.size(); ++i) {
     is_scalar_list[i] = ascgen_utils::IsScalarInput(asc_node->inputs[i].attr.repeats);
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status ScalarBroadcastOptimizationPass::IsNextNodeSupportScalarInput(const NodeView &brc_node, bool &is_supported,
                                                                      const af::AscNodePtr &first_brc_node) {
   is_supported = false;
   if (!IsOps<Broadcast>(brc_node)) {
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
 
   for (const auto &out_anchor : brc_node->GetAllOutDataAnchors()) {
@@ -89,7 +89,7 @@ Status ScalarBroadcastOptimizationPass::IsNextNodeSupportScalarInput(const NodeV
       GE_CHECK_NOTNULL(next_node);
       // step1: 判断节点是否支持VF，如果支持VF，则需要判断节点的VF接口是否支持scalar
       if (IsVfNodeScalarUnsupported(next_node, first_brc_node)) {
-        return ge::SUCCESS;
+        return af::SUCCESS;
       }
       // step2: 若当前节点支持全部是Scalar，则继续校验其他节点
       if (ascgen_utils::IsNodeSupportsAllScalar(next_node)) {
@@ -110,12 +110,12 @@ Status ScalarBroadcastOptimizationPass::IsNextNodeSupportScalarInput(const NodeV
 
       // 因为1个输入和超过2个输入场景比较简单，不需要调换输入，直接结束
       if (is_scalar_list.size() != static_cast<size_t>(kSupportScalarInputNum)) {
-        return ge::SUCCESS;  // 直接返回， is_supported 为 false
+        return af::SUCCESS;  // 直接返回， is_supported 为 false
       }
 
       // step4: 判断调换输入是否可以支持，若不支持，则结束
       if (!ascgen_utils::IsNodeSupportsScalarIfExchangeInputs(next_node, is_scalar_list)) {
-        return ge::SUCCESS;  // 直接返回， is_supported 为 false
+        return af::SUCCESS;  // 直接返回， is_supported 为 false
       }
 
       // step5: 若调换的输入已经是scalar，则不支持，结束
@@ -123,13 +123,13 @@ Status ScalarBroadcastOptimizationPass::IsNextNodeSupportScalarInput(const NodeV
       if (ascgen_utils::IsScalarInput(next_node->inputs[swap_input_index].attr.repeats)) {
         GELOGD("The input index 1 of %s[%s] is already scalar, not support swap with %d.", next_node->GetTypePtr(),
                next_node->GetNamePtr(), idx);
-        return ge::SUCCESS;  // 直接返回， is_supported 为 false
+        return af::SUCCESS;  // 直接返回， is_supported 为 false
       }
 
       // step6: 可以交换顺序，但又不支持全部是Scalar，则不允许输入是相同节点（即输入都是Scalar），结束。
       if (ScheduleUtils::HasSameInput(next_node)) {
         GELOGD("Node %s(%s) has same input, not support.", next_node->GetTypePtr(), next_node->GetNamePtr());
-        return ge::SUCCESS;
+        return af::SUCCESS;
       }
 
       // step7: 交换两个输入
@@ -138,7 +138,7 @@ Status ScalarBroadcastOptimizationPass::IsNextNodeSupportScalarInput(const NodeV
   }
   // 所有节点都支持scalar输入，才算支持
   is_supported = true;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status ScalarBroadcastOptimizationPass::RunPass(af::AscGraph &graph) {
@@ -191,6 +191,6 @@ Status ScalarBroadcastOptimizationPass::RunPass(af::AscGraph &graph) {
       af::GraphUtils::RemoveNodeWithoutRelink(continues_brc_node->GetOwnerComputeGraph(), continues_brc_node);
     }
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 }  // namespace optimize

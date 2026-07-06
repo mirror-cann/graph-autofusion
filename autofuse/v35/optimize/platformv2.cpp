@@ -31,11 +31,11 @@ PlatformV2::PlatformV2() {
   config_.is_support_compat_mode = true;
 }
 
-ge::Status PlatformV2::PartitionSubFunctions(af::AscGraph &impl_graph) {
+af::Status PlatformV2::PartitionSubFunctions(af::AscGraph &impl_graph) {
   VectorFuncPartitioner partitioner(impl_graph);
   GE_ASSERT_SUCCESS(partitioner.Partition(), "Failed to partition sub funcs for graph [%s].",
                     impl_graph.GetName().c_str());
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 std::unique_ptr<BaseAlignmentStrategy> PlatformV2::GetAlignmentStrategy() {
@@ -97,7 +97,7 @@ Status PlatformV2::GenerateTasks(ascir::ImplGraph &optimize_graph, const Optimiz
     GE_ASSERT_SUCCESS(RecomputeCaseGenerator().GeneratorTask(optimize_graph, tasks, options),
                       "Failed to generate recomputation tasks for graph[%s].", optimize_graph.GetName().c_str());
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 const PlatformConfig &PlatformV2::GetPlatformConfig() const {

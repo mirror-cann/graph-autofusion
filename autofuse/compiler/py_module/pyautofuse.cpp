@@ -239,11 +239,11 @@ PyObject *Autofuser::Codegen(PyObject *self, PyObject *args, PyObject *kwds) {
 
   auto fused_schedule_result = ge::PtrToPtr<PyObject, pyascir::FusedScheduledResult::Object>(list_result_result);
   codegen::CodegenResult result;
-  ge::Status ret = ge::FAILED;
+  af::Status ret = af::FAILED;
   try {
     ret = self_->codegen->GenerateForInductor(fused_schedule_result->fused_schedule_result, result);
   } catch (const std::runtime_error &e) {
-    GELOGE(ge::FAILED, "Caught a runtime_error: %s", e.what());
+    GELOGE(af::FAILED, "Caught a runtime_error: %s", e.what());
   }
   PY_ASSERT_SUCCESS(ret, "Codegen generate kernel failed or abort");
   DumpGraphGuard::ReInit();
@@ -284,11 +284,11 @@ PyObject *Autofuser::AutofuseBackend(PyObject *self, PyObject *args, PyObject *k
 
   codegen::CodegenResult result;
   try {
-    if (self_->codegen->GenerateForInductor(fused_schedule_result, result) != ge::SUCCESS) {
-      GELOGE(ge::FAILED, "Codegen generate kernel failed");
+    if (self_->codegen->GenerateForInductor(fused_schedule_result, result) != af::SUCCESS) {
+      GELOGE(af::FAILED, "Codegen generate kernel failed");
     }
   } catch (const std::runtime_error &e) {
-    GELOGE(ge::FAILED, "Caught a runtime_error: %s", e.what());
+    GELOGE(af::FAILED, "Caught a runtime_error: %s", e.what());
   }
 
   return Py_BuildValue("sss", result.tiling_data.c_str(), result.tiling.c_str(), result.kernel.c_str());
@@ -363,7 +363,7 @@ PyObject *Schedule::ScheduleV1(PyObject *self_pyobject, PyObject *args, PyObject
   auto fused_schedule_result = reinterpret_cast<pyascir::FusedScheduledResult::Object *>(fused_schedule_result_obj);
   PY_ASSERT_NOTNULL(hint_graph->graph);
   AssignDefaultIoIndex(*hint_graph->graph);
-  if (self->optimizer->Optimize(*hint_graph->graph, fused_schedule_result->fused_schedule_result) != ge::SUCCESS) {
+  if (self->optimizer->Optimize(*hint_graph->graph, fused_schedule_result->fused_schedule_result) != af::SUCCESS) {
     ascir::AscGraphDumperContext::GetThreadLocalCtx().DumpWatchedGraphs();
   }
   return Py_BuildValue("O", fused_schedule_result_obj);
@@ -417,18 +417,18 @@ class CodeGen {
   static PyObject *get_kernel_and_json_generator(PyObject *self_pyobject, PyObject *args, const PyObject *kwds);
   static PyObject *pgo_code_generator(PyObject *self_pyobject, PyObject *args, const PyObject *kwds);
 
-  static ge::Status HandleDeviceCodeGenForCVFusion(CodeGen::Object *self,
+  static af::Status HandleDeviceCodeGenForCVFusion(CodeGen::Object *self,
                                                    const ascir::FusedScheduledResult &fused_schedule_result,
                                                    PyObject *tiling_dict, PyObject *kernel_dict);
-  static ge::Status HandleDeviceCodeGenForNonCVFusion(CodeGen::Object *self,
+  static af::Status HandleDeviceCodeGenForNonCVFusion(CodeGen::Object *self,
                                                       const ascir::FusedScheduledResult &fused_schedule_result,
                                                       PyObject *tiling_dict, PyObject *kernel_dict);
-  static ge::Status HandleHostCodeGenForCVFusion(CodeGen::Object *self,
+  static af::Status HandleHostCodeGenForCVFusion(CodeGen::Object *self,
                                                  const ascir::FusedScheduledResult &fused_schedule_result,
                                                  const std::map<std::string, std::string> &symbol_source_info,
                                                  const char *pgo_dir, const char *vector_core_num,
                                                  PyObject *py_tilings);
-  static ge::Status HandleHostCodeGenForNonCVFusion(CodeGen::Object *self,
+  static af::Status HandleHostCodeGenForNonCVFusion(CodeGen::Object *self,
                                                     const ascir::FusedScheduledResult &fused_schedule_result,
                                                     const std::map<std::string, std::string> &symbol_source_info,
                                                     const char *pgo_dir, const char *vector_core_num,
@@ -500,7 +500,7 @@ int CodeGen::Init(PyObject *self_pyobject, PyObject *args, PyObject *kwds) {
   return 0;
 }
 
-ge::Status CodeGen::HandleDeviceCodeGenForCVFusion(CodeGen::Object *self,
+af::Status CodeGen::HandleDeviceCodeGenForCVFusion(CodeGen::Object *self,
                                                    const ascir::FusedScheduledResult &fused_schedule_result,
                                                    PyObject *tiling_dict, PyObject *kernel_dict) {
   ascir::FusedScheduledResult ub_schedule_result = fused_schedule_result;
@@ -514,7 +514,7 @@ ge::Status CodeGen::HandleDeviceCodeGenForCVFusion(CodeGen::Object *self,
   std::string ub_kernel;
   if (ascgen_utils::HasCubeUBFusedScheduled(ub_schedule_result)) {
     ub_tiling_data = self->codegen->GenerateTilingData(ub_schedule_result);
-    ge::Status ret = self->codegen->GenerateKernel(ub_schedule_result, ub_kernel, false);
+    af::Status ret = self->codegen->GenerateKernel(ub_schedule_result, ub_kernel, false);
     GE_CHK_STATUS_RET(ret, "codegen generate ub kernel fail");
   } else {
     GELOGI("Has no cube ub fused shcedule result, no need to generate ub tiling data and kernel");
@@ -524,7 +524,7 @@ ge::Status CodeGen::HandleDeviceCodeGenForCVFusion(CodeGen::Object *self,
   GE_ASSERT_TRUE(ascgen_utils::HasCubeCommonFusedScheduled(common_schedule_result));
   std::string common_tiling_data = self->codegen->GenerateTilingData(common_schedule_result);
   std::string common_kernel;
-  ge::Status ret = self->codegen->GenerateKernel(common_schedule_result, common_kernel, false);
+  af::Status ret = self->codegen->GenerateKernel(common_schedule_result, common_kernel, false);
   GE_CHK_STATUS_RET(ret, "codegen generate common kernel fail");
 
   // 将结果添加到字典中
@@ -537,19 +537,19 @@ ge::Status CodeGen::HandleDeviceCodeGenForCVFusion(CodeGen::Object *self,
       PyDict_SetItemString(tiling_dict, "common", g_common_tiling.get()) != 0 ||
       PyDict_SetItemString(kernel_dict, "ub", g_ub_kernel.get()) != 0 ||
       PyDict_SetItemString(kernel_dict, "common", g_common_kernel.get()) != 0) {
-    return ge::FAILED;
+    return af::FAILED;
   }
 
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status CodeGen::HandleDeviceCodeGenForNonCVFusion(CodeGen::Object *self,
+af::Status CodeGen::HandleDeviceCodeGenForNonCVFusion(CodeGen::Object *self,
                                                       const ascir::FusedScheduledResult &fused_schedule_result,
                                                       PyObject *tiling_dict, PyObject *kernel_dict) {
   // 非CV融合场景，生成一种结果，使用"default"
   std::string tiling_data = self->codegen->GenerateTilingData(fused_schedule_result);
   std::string kernel;
-  ge::Status ret = self->codegen->GenerateKernel(fused_schedule_result, kernel, false);
+  af::Status ret = self->codegen->GenerateKernel(fused_schedule_result, kernel, false);
   GE_CHK_STATUS_RET(ret, "codegen generate kernel fail");
 
   // 将结果添加到字典中，使用"default"键值
@@ -558,13 +558,13 @@ ge::Status CodeGen::HandleDeviceCodeGenForNonCVFusion(CodeGen::Object *self,
   if (g_tiling.get() == nullptr || g_kernel.get() == nullptr ||
       PyDict_SetItemString(tiling_dict, "default", g_tiling.get()) != 0 ||
       PyDict_SetItemString(kernel_dict, "default", g_kernel.get()) != 0) {
-    return ge::FAILED;
+    return af::FAILED;
   }
 
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status CodeGen::HandleHostCodeGenForCVFusion(CodeGen::Object *self,
+af::Status CodeGen::HandleHostCodeGenForCVFusion(CodeGen::Object *self,
                                                  const ascir::FusedScheduledResult &fused_schedule_result,
                                                  const std::map<std::string, std::string> &symbol_source_info,
                                                  const char *pgo_dir, const char *vector_core_num,
@@ -595,13 +595,13 @@ ge::Status CodeGen::HandleHostCodeGenForCVFusion(CodeGen::Object *self,
   // 创建UB模板、兜底模板的内层字典
   PyObject *ub_dict = PyDict_New();
   if (ub_dict == nullptr) {
-    return ge::FAILED;
+    return af::FAILED;
   }
   GE_DISMISSABLE_GUARD(ub_dict_guard, [ub_dict]() { Py_DECREF(ub_dict); });
 
   PyObject *common_dict = PyDict_New();
   if (common_dict == nullptr) {
-    return ge::FAILED;
+    return af::FAILED;
   }
   GE_DISMISSABLE_GUARD(common_dict_guard, [common_dict]() { Py_DECREF(common_dict); });
 
@@ -625,10 +625,10 @@ ge::Status CodeGen::HandleHostCodeGenForCVFusion(CodeGen::Object *self,
   GE_DISMISS_GUARD(ub_dict_guard);
   GE_DISMISS_GUARD(common_dict_guard);
 
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status CodeGen::HandleHostCodeGenForNonCVFusion(CodeGen::Object *self,
+af::Status CodeGen::HandleHostCodeGenForNonCVFusion(CodeGen::Object *self,
                                                     const ascir::FusedScheduledResult &fused_schedule_result,
                                                     const std::map<std::string, std::string> &symbol_source_info,
                                                     const char *pgo_dir, const char *vector_core_num,
@@ -641,7 +641,7 @@ ge::Status CodeGen::HandleHostCodeGenForNonCVFusion(CodeGen::Object *self,
 
   PyObject *default_dict = PyDict_New();
   if (default_dict == nullptr) {
-    return ge::FAILED;
+    return af::FAILED;
   }
   GE_DISMISSABLE_GUARD(default_dict_guard, [default_dict]() { Py_DECREF(default_dict); });
 
@@ -655,7 +655,7 @@ ge::Status CodeGen::HandleHostCodeGenForNonCVFusion(CodeGen::Object *self,
   // 释放内层字典的所有权，因为外层字典已经持有引用
   GE_DISMISS_GUARD(default_dict_guard);
 
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 PyObject *CodeGen::device_code_generator(PyObject *self_pyobject, PyObject *args, PyObject *kwds) {
@@ -687,7 +687,7 @@ PyObject *CodeGen::device_code_generator(PyObject *self_pyobject, PyObject *args
   }
   GE_DISMISSABLE_GUARD(kernel_dict_guard, [kernel_dict]() { Py_DECREF(kernel_dict); });
 
-  ge::Status ret = ge::FAILED;
+  af::Status ret = af::FAILED;
 
   try {
     // 如果是cv融合，需要过滤ub、兜底融合结果分别生成代码
@@ -698,10 +698,10 @@ PyObject *CodeGen::device_code_generator(PyObject *self_pyobject, PyObject *args
       ret = HandleDeviceCodeGenForNonCVFusion(self, fused_schedule_result->fused_schedule_result, tiling_dict,
                                               kernel_dict);
     }
-    GE_CHK_BOOL_RET_SPECIAL_STATUS(ret != ge::SUCCESS, PyErr_Format(PyExc_ValueError, "codegen generate kernel fail"),
+    GE_CHK_BOOL_RET_SPECIAL_STATUS(ret != af::SUCCESS, PyErr_Format(PyExc_ValueError, "codegen generate kernel fail"),
                                    "codegen generate kernel fail");
   } catch (const std::runtime_error &e) {
-    GELOGE(ge::FAILED, "Caught a runtime_error: %s", e.what());
+    GELOGE(af::FAILED, "Caught a runtime_error: %s", e.what());
     return PyErr_Format(PyExc_ValueError, "codegen generate kernel fail: %s", e.what());
   }
 
@@ -718,7 +718,7 @@ PyObject *CodeGen::GenerateHostCodeResult(CodeGen::Object *self,
                                           PyObject *shape_info_obj,
                                           const std::vector<std::vector<std::string>> &output_shape,
                                           const char *pgo_dir, const char *vector_core_num) {
-  ge::Status ret = ge::FAILED;
+  af::Status ret = af::FAILED;
   std::string infer_shape;
 
   // 创建嵌套字典用于存储不同模板的结果
@@ -748,7 +748,7 @@ PyObject *CodeGen::GenerateHostCodeResult(CodeGen::Object *self,
       ret = HandleHostCodeGenForNonCVFusion(self, fused_schedule_result->fused_schedule_result, symbol_source_info,
                                             pgo_dir, vector_core_num, py_tilings);
     }
-    GE_CHK_BOOL_RET_SPECIAL_STATUS(ret != ge::SUCCESS, PyErr_Format(PyExc_ValueError, "codegen generate host fail"),
+    GE_CHK_BOOL_RET_SPECIAL_STATUS(ret != af::SUCCESS, PyErr_Format(PyExc_ValueError, "codegen generate host fail"),
                                    "codegen generate host fail");
 
     infer_shape = self->codegen->GenerateInferShape(output_shape, symbol_source_info);
@@ -756,7 +756,7 @@ PyObject *CodeGen::GenerateHostCodeResult(CodeGen::Object *self,
     GE_DISMISS_GUARD(py_tilings_guard);
     return Py_BuildValue("(NO)", py_tilings, PyUnicode_FromString(infer_shape.c_str()));
   } catch (const std::runtime_error &e) {
-    GELOGE(ge::FAILED, "Caught a runtime_error: %s", e.what());
+    GELOGE(af::FAILED, "Caught a runtime_error: %s", e.what());
     return PyErr_Format(PyExc_ValueError, "codegen generate host fail: %s", e.what());
   }
 }
@@ -806,12 +806,12 @@ PyObject *CodeGen::get_kernel_and_json_generator(PyObject *self_pyobject, PyObje
     return PyErr_Format(PyExc_ValueError, "codegen param parse failed");
   }
 
-  ge::Status ret = ge::SUCCESS;
+  af::Status ret = af::SUCCESS;
   get_kernel = self->codegen->GenGetKernelAndJson(kernel_path, json_path);
   if (get_kernel == "") {
-    ret = ge::FAILED;
+    ret = af::FAILED;
   }
-  GE_CHK_BOOL_RET_SPECIAL_STATUS(ret != ge::SUCCESS, PyErr_Format(PyExc_ValueError, "codegen generate get_kernel fail"),
+  GE_CHK_BOOL_RET_SPECIAL_STATUS(ret != af::SUCCESS, PyErr_Format(PyExc_ValueError, "codegen generate get_kernel fail"),
                                  "codegen generate get_kernel fail");
 
   return Py_BuildValue("s", get_kernel.c_str());
@@ -834,12 +834,12 @@ PyObject *CodeGen::pgo_code_generator(PyObject *self_pyobject, PyObject *args, c
   }
   auto fused_schedule_result = reinterpret_cast<pyascir::FusedScheduledResult::Object *>(list_result_result);
 
-  ge::Status ret = ge::SUCCESS;
+  af::Status ret = af::SUCCESS;
   pgo_src = self->codegen->GeneratorPgo(fused_schedule_result->fused_schedule_result, pgo_dir);
   if (pgo_src == "") {
-    ret = ge::FAILED;
+    ret = af::FAILED;
   }
-  GE_CHK_BOOL_RET_SPECIAL_STATUS(ret != ge::SUCCESS, PyErr_Format(PyExc_ValueError, "codegen generate pgo fail"),
+  GE_CHK_BOOL_RET_SPECIAL_STATUS(ret != af::SUCCESS, PyErr_Format(PyExc_ValueError, "codegen generate pgo fail"),
                                  "codegen generate pgo fail");
 
   return Py_BuildValue("s", pgo_src.c_str());

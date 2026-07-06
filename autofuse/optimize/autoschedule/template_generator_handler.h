@@ -17,7 +17,7 @@
 namespace optimize::autoschedule {
 class TemplateGeneratorHandler {
  public:
-  static ge::Status GenerateTemplates(const af::AscGraph &origin_graph, std::vector<AutoScheduleOutput> &tiling_cases);
+  static af::Status GenerateTemplates(const af::AscGraph &origin_graph, std::vector<AutoScheduleOutput> &tiling_cases);
 };
 }  // namespace optimize::autoschedule
 

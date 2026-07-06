@@ -37,7 +37,7 @@ std::string ExtraInfoGenerator::WriteCoreParamData(const ModelInfo &model_info,
   return printer.GetOutputStr();
 }
 
-ge::Status ExtraInfoGenerator::GetExtraTilingDataDef(std::map<std::string, std::string> &type_name_to_definition) {
+af::Status ExtraInfoGenerator::GetExtraTilingDataDef(std::map<std::string, std::string> &type_name_to_definition) {
   std::set<std::string> tiling_data_vars;
   for (const auto &model_info : model_info_list_) {
     if (!model_info.sub_case_tag.empty()) {
@@ -47,15 +47,15 @@ ge::Status ExtraInfoGenerator::GetExtraTilingDataDef(std::map<std::string, std::
     type_name_to_definition["CoreParams"] +=
         WriteCoreParamData(model_info, TilingDataGenType::AXES_TILING_DATA_GEN, tiling_data_vars);
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status ExtraInfoGenerator::GetExtraTilingVars(const uint32_t tiling_key, std::set<std::string> &tiling_vars) {
+af::Status ExtraInfoGenerator::GetExtraTilingVars(const uint32_t tiling_key, std::set<std::string> &tiling_vars) {
   const auto model_info = GetModelInfo(tiling_key);
   GE_ASSERT_NOTNULL(model_info);
   // 轴对应的TilingData相关参数
   WriteCoreParamData(*model_info, TilingDataGenType::AXES_TILING_DATA_GEN, tiling_vars);
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 const ModelInfo *ExtraInfoGenerator::GetModelInfo(const uint32_t tiling_key) const {

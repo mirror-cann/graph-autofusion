@@ -91,7 +91,7 @@ TEST_F(RemovePadApiCallTest, RemovePadApiCall_01) {
   codegen::RemovePadApiCall call(binaryname);
   Status status = call.Generate(tpipe, current_axis, inputs, outputs, result);
   ;
-  EXPECT_EQ(status, ge::SUCCESS);
+  EXPECT_EQ(status, af::SUCCESS);
 }
 
 TEST_F(RemovePadApiCallTest, RemovePadApiCall_02) {
@@ -158,5 +158,5 @@ TEST_F(RemovePadApiCallTest, RemovePadApiCall_02) {
   codegen::RemovePadApiCall call(binaryname);
   Status status = call.Generate(tpipe, current_axis, inputs, outputs, result);
   ;
-  EXPECT_EQ(status, ge::SUCCESS);
+  EXPECT_EQ(status, af::SUCCESS);
 }

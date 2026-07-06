@@ -15,7 +15,7 @@
 #include "graph/types.h"
 #include "framework/common/debug/ge_log.h"
 #include "utils/extern_math_util.h"
-#include "external/ge_common/ge_api_types.h"
+#include "external/ge_common_af/ge_api_types.h"
 
 namespace af {
 namespace {
@@ -24,10 +24,10 @@ const char_t *kHostExecPlacement = "HOST";
 const char_t *kEnabled = "1";
 
 template <class T>
-ge::Status GetOptionValue(const std::string &option_name, T &var) {
+af::Status GetOptionValue(const std::string &option_name, T &var) {
   std::string option;
   if (af::GetContext().GetOption(option_name, option) != GRAPH_SUCCESS) {
-    return ge::FAILED;
+    return af::FAILED;
   }
 
   int64_t value = 0;
@@ -36,19 +36,19 @@ ge::Status GetOptionValue(const std::string &option_name, T &var) {
   } catch (std::invalid_argument &) {
     GELOGW("[Init] Transform option %s %s to int failed, as catching invalid_argument exception", option_name.c_str(),
            option.c_str());
-    return ge::FAILED;
+    return af::FAILED;
   } catch (std::out_of_range &) {
     GELOGW("[Init] Transform option %s %s to int failed, as catching out_of_range exception", option_name.c_str(),
            option.c_str());
-    return ge::FAILED;
+    return af::FAILED;
   }
   if (!ge::IntegerChecker<T>::Compat(value)) {
     GELOGW("[Init] Transform option %s %s to int failed, value is invalid_argument", option_name.c_str(),
            option.c_str());
-    return ge::FAILED;
+    return af::FAILED;
   }
   var = value;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 }  // namespace
 
@@ -161,7 +161,7 @@ uint32_t GEContext::DeviceId() const {
   uint32_t device_id = 0U;
   // session device id has priority
   auto status = GetOptionValue("ge.session_device_id", device_id);
-  return (status == ge::SUCCESS) ? device_id : device_id_;
+  return (status == af::SUCCESS) ? device_id : device_id_;
 }
 
 int32_t GEContext::StreamSyncTimeout() const {

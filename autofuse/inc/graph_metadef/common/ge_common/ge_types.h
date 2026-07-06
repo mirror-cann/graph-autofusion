@@ -16,8 +16,8 @@
 #include <vector>
 
 #include "common/ge_common/fmk_error_codes.h"
-#include "external/ge_common/ge_api_error_codes.h"
-#include "external/ge_common/ge_api_types.h"
+#include "external/ge_common_af/ge_api_error_codes.h"
+#include "external/ge_common_af/ge_api_types.h"
 #include "graph/types.h"
 
 namespace af {
@@ -414,7 +414,7 @@ class GE_FUNC_VISIBILITY ModelListener {
   };
 
   virtual Status ResetResult() {
-    return ge::SUCCESS;
+    return af::SUCCESS;
   };
 };
 

@@ -870,7 +870,7 @@ TEST(CodegenKernel, LoadGatherApiCall_ShouldReturnSuccess_WhenParamHasOnlyOneAxi
 
   std::string result;
   auto status = call.Generate(tpipe, current_axis, result);
-  EXPECT_EQ(status, ge::SUCCESS);
+  EXPECT_EQ(status, af::SUCCESS);
   EXPECT_EQ(result,
             std::string{"GatherExtend(local_2, global_0, global_1[(int64_t)z1TB * (int64_t)(z1Tb_size * z1t_size) + "
                         "(int64_t)z1Tb * (int64_t)z1t_size], (s0)/(1), local_2_actual_size, tmp_buf_0);\n"});
@@ -902,7 +902,7 @@ TEST(CodegenKernel, LoadGatherApiCall_WhenAttrAxisIsNotLastAxisAndOneVecAxis) {
 
   std::string result;
   auto status = call.Generate(tpipe, current_axis, result);
-  EXPECT_EQ(status, ge::SUCCESS);
+  EXPECT_EQ(status, af::SUCCESS);
 }
 
 TEST(CodegenKernel, LoadGatherApiCall_WhenAttrAxisIsNotLastAxisAndTwoVecAxis) {
@@ -931,7 +931,7 @@ TEST(CodegenKernel, LoadGatherApiCall_WhenAttrAxisIsNotLastAxisAndTwoVecAxis) {
 
   std::string result;
   auto status = call.Generate(tpipe, current_axis, result);
-  EXPECT_EQ(status, ge::SUCCESS);
+  EXPECT_EQ(status, af::SUCCESS);
 }
 
 TEST(CodegenKernel, LoadGatherApiCall_WhenAxisIsBiggerThanParamSize) {
@@ -960,7 +960,7 @@ TEST(CodegenKernel, LoadGatherApiCall_WhenAxisIsBiggerThanParamSize) {
 
   std::string result;
   auto status = call.Generate(tpipe, current_axis, result);
-  EXPECT_EQ(status, ge::FAILED);
+  EXPECT_EQ(status, af::FAILED);
 }
 
 TEST(CodegenKernel, LoadGatherApiCall_WhenAixsIsLastAxisAndParamHasMoreThanOneAxis) {
@@ -990,7 +990,7 @@ TEST(CodegenKernel, LoadGatherApiCall_WhenAixsIsLastAxisAndParamHasMoreThanOneAx
 
   std::string result;
   auto status = call.Generate(tpipe, current_axis, result);
-  EXPECT_EQ(status, ge::SUCCESS);
+  EXPECT_EQ(status, af::SUCCESS);
   EXPECT_EQ(result, std::string{"GatherExtend(local_2, global_0[z0z1z2z3 * (s4)/(1)], global_1[(int64_t)z5z6T * "
                                 "(int64_t)z5z6t_size], (s4)/(1), local_2_actual_size, tmp_buf_0);\n"});
 }

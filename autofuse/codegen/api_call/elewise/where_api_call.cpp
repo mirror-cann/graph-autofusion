@@ -42,7 +42,7 @@ Status WhereApiCall::PrepareInputsAndOutputs(const std::vector<std::reference_wr
          static_cast<int32_t>(x3->is_constant), static_cast<int32_t>(x3->is_ub_scalar),
          static_cast<int32_t>(x3->need_gen_get_value_of_ub_scalar));
 
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status WhereApiCall::GetTempBufferId(int64_t &id) const {
@@ -50,7 +50,7 @@ Status WhereApiCall::GetTempBufferId(int64_t &id) const {
   auto it = this->tmp_buf_id.find(life_time_axis_id);
   GE_ASSERT_TRUE(it != this->tmp_buf_id.end(), "WhereApiCall cannot find tmp buffer id to use.");
   id = it->second;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status WhereApiCall::GenerateLoopParams(const Tensor &x1, const Tensor &x2, const Tensor &x3, const Tensor &y,
@@ -72,7 +72,7 @@ Status WhereApiCall::GenerateLoopParams(const Tensor &x1, const Tensor &x2, cons
   GE_ASSERT_TRUE(status, "GenerateVectorizedAxisMergeStatus failed");
   SaveApiLoopAxisParams(merge_info, param);
 
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status WhereApiCall::GenerateNoLoopCase(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
@@ -99,7 +99,7 @@ Status WhereApiCall::GenerateNoLoopCase(const TPipe &tpipe, const std::vector<as
 
   ss << x1.actual_size << ", " << tpipe.tmp_buf << "_" << std::to_string(id) << ");" << std::endl;
 
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status WhereApiCall::GenerateBothScalarCase(const TPipe &tpipe, const ApiLoopParams &param, const Tensor &x1,
@@ -134,7 +134,7 @@ Status WhereApiCall::GenerateBothScalarCase(const TPipe &tpipe, const ApiLoopPar
     CreateComputeNodeOuterFor(param.outer_repeats, ss1, ss, 0);
   }
 
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status WhereApiCall::GenerateX2ScalarCase(const TPipe &tpipe, const ApiLoopParams &param, const Tensor &x1,
@@ -174,7 +174,7 @@ Status WhereApiCall::GenerateX2ScalarCase(const TPipe &tpipe, const ApiLoopParam
     CreateComputeNodeOuterFor(param.outer_repeats, ss1, ss, 0);
   }
 
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status WhereApiCall::GenerateX3ScalarCase(const TPipe &tpipe, const ApiLoopParams &param, const Tensor &x1,
@@ -215,7 +215,7 @@ Status WhereApiCall::GenerateX3ScalarCase(const TPipe &tpipe, const ApiLoopParam
     CreateComputeNodeOuterFor(param.outer_repeats, ss1, ss, 0);
   }
 
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status WhereApiCall::GenerateNormalCase(const TPipe &tpipe, const ApiLoopParams &param, const Tensor &x1,
@@ -261,7 +261,7 @@ Status WhereApiCall::GenerateNormalCase(const TPipe &tpipe, const ApiLoopParams 
     CreateComputeNodeOuterFor(param.outer_repeats, ss1, ss, 0);
   }
 
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status WhereApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
@@ -320,7 +320,7 @@ Status WhereApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::AxisI
   }
 
   result = ss.str();
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 static ApiCallRegister<WhereApiCall> register_where_api_call("WhereApiCall");

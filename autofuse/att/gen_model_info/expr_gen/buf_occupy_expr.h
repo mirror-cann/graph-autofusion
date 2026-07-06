@@ -21,10 +21,10 @@ class BufOccupyExpr {
   explicit BufOccupyExpr(const TuningSpacePtr &tuning_space) : tuning_space_(tuning_space) {}
   ~BufOccupyExpr() = default;
   // 按照hardware类型获取需要内存值总和，MAX(tensor_size) * buff_num
-  ge::Status GetTotalBufferOccup(std::unordered_map<HardwareDef, Expr> &buffer_occup,
+  af::Status GetTotalBufferOccup(std::unordered_map<HardwareDef, Expr> &buffer_occup,
                                  std::map<std::string, Expr> &container_exprs);
   // GetTotalGlobalOccup具体实现
-  ge::Status GetTotalGlobalOccup(Expr &global_occup_expr);
+  af::Status GetTotalGlobalOccup(Expr &global_occup_expr);
 
  private:
   // 按照scope汇聚buffer size
@@ -32,14 +32,14 @@ class BufOccupyExpr {
                           Expr &new_occup) const;
 
   // 共存tensor的size
-  ge::Status GetCoTensorSizeExpr(const std::vector<std::vector<TensorPtr>> &co_tensors, Expr &expr,
+  af::Status GetCoTensorSizeExpr(const std::vector<std::vector<TensorPtr>> &co_tensors, Expr &expr,
                                  const Expr &align) const;
 
   // 获取container的占用size信息
-  ge::Status GetOccupInContainer(ContainerPtr &container, Expr &occup_per_tensor, Expr &occup_total) const;
+  af::Status GetOccupInContainer(ContainerPtr &container, Expr &occup_per_tensor, Expr &occup_total) const;
 
   // GetTotalBufferOccup具体实现
-  ge::Status GetBufferOccupInContainer(std::unordered_map<HardwareDef, Expr> &buffer_occup,
+  af::Status GetBufferOccupInContainer(std::unordered_map<HardwareDef, Expr> &buffer_occup,
                                        std::map<std::string, Expr> &container_exprs);
 
   TuningSpacePtr tuning_space_;

@@ -102,7 +102,7 @@ Status ClipByValueApiCall::Generate(const TPipe &tpipe, const std::vector<ascir:
     ss << ");" << std::endl;
   }
   result = ss.str();
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 static ApiCallRegister<ClipByValueApiCall> register_clip_by_value_api_call("ClipByValueApiCall");

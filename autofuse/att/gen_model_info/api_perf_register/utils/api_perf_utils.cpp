@@ -76,7 +76,7 @@ std::string GetDefaultDataType(const std::string dtype) {
   return "float16";
 }
 
-ge::Status StringToJson(const std::string &json_str, Json &json) {
+af::Status StringToJson(const std::string &json_str, Json &json) {
   std::stringstream ss;
   ss << json_str;
   try {
@@ -85,10 +85,10 @@ ge::Status StringToJson(const std::string &json_str, Json &json) {
     GELOGE(ge::PARAM_INVALID, "Failed to init json object, err = %s, json_str = %s", e.what(), json_str.c_str());
     return ge::PARAM_INVALID;
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status LinearFunc(const std::map<std::string, float> &param_map, const std::vector<Expr> &dims, const Expr &stride,
+af::Status LinearFunc(const std::map<std::string, float> &param_map, const std::vector<Expr> &dims, const Expr &stride,
                       Expr &res) {
   (void)stride;
   GE_ASSERT_TRUE(!dims.empty(), "Dims is empty.");
@@ -98,10 +98,10 @@ ge::Status LinearFunc(const std::map<std::string, float> &param_map, const std::
   Expr b = CreateExpr(param_map.at("b"));
   Expr dim_product = accumulate(dims.begin(), dims.end(), CreateExpr(1), [](Expr a, Expr b) { return a * b; });
   res = k * dim_product + b;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status LoadStoreStrideFunc(const std::map<std::string, float> &param_map, const std::vector<Expr> &dims,
+af::Status LoadStoreStrideFunc(const std::map<std::string, float> &param_map, const std::vector<Expr> &dims,
                                const Expr &stride, Expr &res) {
   GE_ASSERT_TRUE(!dims.empty(), "Dims is empty.");
   GE_ASSERT_TRUE(param_map.find("k") != param_map.end(), "Param k not found in param_map.");
@@ -112,7 +112,7 @@ ge::Status LoadStoreStrideFunc(const std::map<std::string, float> &param_map, co
   res = af::sym::Mul(op1, op2);
   GELOGD("stride[%s], k[%s], block_count[%s], perf_res[%s]", Str(stride).c_str(), Str(k).c_str(),
          Str(block_count).c_str(), Str(res).c_str());
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 // 检查节点是否有输出（空输出跳过重排）
@@ -228,7 +228,7 @@ std::map<std::string, float> EnrichParamMapForModel(const std::map<std::string, 
   return param_map;
 }
 
-ge::Status LoadStoreStrideV2Func(const std::map<std::string, float> &param_map, const std::vector<Expr> &dims,
+af::Status LoadStoreStrideV2Func(const std::map<std::string, float> &param_map, const std::vector<Expr> &dims,
                                  const Expr &stride, Expr &res) {
   GE_ASSERT_TRUE(!dims.empty(), "Dims is empty.");
   const auto k_iter = param_map.find("k");
@@ -249,10 +249,10 @@ ge::Status LoadStoreStrideV2Func(const std::map<std::string, float> &param_map, 
       GetVecString(dims).c_str(), Str(k).c_str(), Str(block_count).c_str(), block_count_idx, Str(stride_used).c_str(),
       Str(GetDataTypeSizeExpr(param_map)).c_str(), Str(res).c_str());
 
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status LoadStoreStrideV2WithPenaltyFunc(const std::map<std::string, float> &param_map,
+af::Status LoadStoreStrideV2WithPenaltyFunc(const std::map<std::string, float> &param_map,
                                             const std::vector<Expr> &dims, const Expr &stride, Expr &res) {
   GE_ASSERT_TRUE(!dims.empty(), "Dims is empty.");
   const auto k_iter = param_map.find("k");
@@ -263,8 +263,8 @@ ge::Status LoadStoreStrideV2WithPenaltyFunc(const std::map<std::string, float> &
   int32_t block_count_idx = static_cast<int32_t>(ParseOptionalFloatParam(param_map, "block_count_idx", 0.0f));
   float penalty_coeff = ParseOptionalFloatParam(param_map, "penalty_coeff", 0.0f);
 
-  ge::Status status = LoadStoreStrideV2Func(param_map, dims, stride, res);
-  GE_ASSERT_TRUE(status == ge::SUCCESS, "LoadStoreStrideV2Func failed.");
+  af::Status status = LoadStoreStrideV2Func(param_map, dims, stride, res);
+  GE_ASSERT_TRUE(status == af::SUCCESS, "LoadStoreStrideV2Func failed.");
 
   Expr stride_used = LimitedStrideUpperBound(stride * GetDataTypeSizeExpr(param_map), CreateExpr(u_iter->second));
   Expr penalty = CalculateStridePenalty(block_count_idx, stride_used, penalty_coeff);
@@ -273,10 +273,10 @@ ge::Status LoadStoreStrideV2WithPenaltyFunc(const std::map<std::string, float> &
   GELOGD("LoadStoreStrideV2WithPenalty: penalty_coeff=%f, penalty=%s, final_res=%s", penalty_coeff,
          Str(penalty).c_str(), Str(res).c_str());
 
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status LoadStoreFunc(const std::map<std::string, float> &param_map, const std::vector<Expr> &dims,
+af::Status LoadStoreFunc(const std::map<std::string, float> &param_map, const std::vector<Expr> &dims,
                          const Expr &stride, Expr &res, bool expand_data) {
   (void)stride;
   GE_ASSERT_TRUE(!dims.empty(), "Dims is empty.");
@@ -304,20 +304,20 @@ ge::Status LoadStoreFunc(const std::map<std::string, float> &param_map, const st
   // penalty = (512 / 2 - (h + 512 / t)) * hl
   Expr penalty = hl * (CreateExpr(256) - (h + af::sym::Div(CreateExpr(512), t)));
   res = af::sym::Add(af::sym::Add(cycles, h), penalty);
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status LoadStoreFunc(const std::map<std::string, float> &param_map, const std::vector<Expr> &dims,
+af::Status LoadStoreFunc(const std::map<std::string, float> &param_map, const std::vector<Expr> &dims,
                          const Expr &stride, Expr &res) {
   return LoadStoreFunc(param_map, dims, stride, res, false);
 }
 
-ge::Status LoadUbStride(const std::map<std::string, float> &param_map, const std::vector<Expr> &dims,
+af::Status LoadUbStride(const std::map<std::string, float> &param_map, const std::vector<Expr> &dims,
                         const Expr &stride, Expr &res) {
   return LoadStoreFunc(param_map, dims, stride, res, true);
 }
 
-ge::Status StoreFunc(const std::map<std::string, float> &param_map, const std::vector<Expr> &dims, const Expr &stride,
+af::Status StoreFunc(const std::map<std::string, float> &param_map, const std::vector<Expr> &dims, const Expr &stride,
                      Expr &res) {
   (void)stride;
   GE_ASSERT_TRUE(!dims.empty(), "Dims is empty.");
@@ -341,7 +341,7 @@ ge::Status StoreFunc(const std::map<std::string, float> &param_map, const std::v
   Expr a = ak * blockdim + ab;
   Expr b = bk * blockdim + bb;
   res = (a * blocklen + b) * blockcount + h;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 const std::map<std::string, AscendCApiPerfFunc> kModelMap = {
     {"SimpleLinear", LinearFunc},
@@ -375,7 +375,7 @@ void UpdateContinuousIdx(size_t idx, const std::vector<Expr> &strides, const std
   }
 }
 
-ge::Status UpdateIsContinous(const std::vector<Expr> &repeats, const std::vector<Expr> &strides,
+af::Status UpdateIsContinous(const std::vector<Expr> &repeats, const std::vector<Expr> &strides,
                              std::vector<bool> &is_continuous, const char *prefix_name) {
   GELOGD("tensor repeats is {%s}, %s strides is {%s}.", GetVecString(repeats).c_str(), prefix_name,
          GetVecString(strides).c_str());
@@ -389,7 +389,7 @@ ge::Status UpdateIsContinous(const std::vector<Expr> &repeats, const std::vector
     }
     UpdateContinuousIdx(i, strides, repeats, is_continuous);
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 void UpdateTensorDim(af::AscNode *node, const std::vector<bool> &is_continuous, const std::vector<Expr> &org_dims,
@@ -419,7 +419,7 @@ void UpdateTensorDim(af::AscNode *node, const std::vector<bool> &is_continuous, 
   }
 }
 
-ge::Status GetDMAActualPerf(const NodeDetail &node_info, const Expr &swap_outer_repeat, const std::vector<Expr> &dims,
+af::Status GetDMAActualPerf(const NodeDetail &node_info, const Expr &swap_outer_repeat, const std::vector<Expr> &dims,
                             PerfOutputInfo &perf) {
   NodeDetail cur_node;
   cur_node.name = node_info.name;
@@ -442,10 +442,10 @@ ge::Status GetDMAActualPerf(const NodeDetail &node_info, const Expr &swap_outer_
   } else {
     perf.pipe_res[PipeType::AIV_MTE2] = swap_outer_repeat * GetPipeCost(perf, PipeType::AIV_MTE2);
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status UpdateSwapPerf(const NodeDetail &node_info, const int32_t supported_max_dma_len, PerfOutputInfo &swap_perf,
+af::Status UpdateSwapPerf(const NodeDetail &node_info, const int32_t supported_max_dma_len, PerfOutputInfo &swap_perf,
                           PerfOutputInfo &non_swap_perf, PerfOutputInfo &perf_res) {
   size_t dim_size = node_info.input_dims.size();
   if (node_info.input_dims[dim_size - supported_max_dma_len].IsConstExpr() &&
@@ -469,7 +469,7 @@ ge::Status UpdateSwapPerf(const NodeDetail &node_info, const int32_t supported_m
     perf_res.ternary_ops[res].SetVariable(res);
     perf_res.pipe_res[pipe_type] = res;
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 // 获取dma参数，获取外派循环轴/使用的轴，支持根据内轴大小比较进行交换
@@ -478,7 +478,7 @@ ge::Status UpdateSwapPerf(const NodeDetail &node_info, const int32_t supported_m
 //   used_dims = [倒数第(kMaxDmaLen+1)维, 倒数第(kMaxDmaLen-1)维, ..., 倒数第1维]
 //   例：dims=[A,B,C], kMaxDmaLen=2, swap=true
 //     used_dims=[A, C]（跳过B，外抛B），outer_repeat *= B
-ge::Status GetDmaParams(const vector<Expr> &dims, Expr &outer_repeat, vector<Expr> &used_dims,
+af::Status GetDmaParams(const vector<Expr> &dims, Expr &outer_repeat, vector<Expr> &used_dims,
                         const int32_t supported_max_dma_len, bool need_swap) {
   used_dims.clear();
   GE_ASSERT_TRUE(!dims.empty());
@@ -514,7 +514,7 @@ ge::Status GetDmaParams(const vector<Expr> &dims, Expr &outer_repeat, vector<Exp
         need_swap, dim_size, supported_max_dma_len, first_dim_index, GetVecString(used_dims).c_str(),
         outer_repeat.Str().get());
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 PipeHeadPerfFunc GetPipeHeadPerfFunc(PipeType pipe_type) {
@@ -523,18 +523,18 @@ PipeHeadPerfFunc GetPipeHeadPerfFunc(PipeType pipe_type) {
   return param_table->GetPipeHeadPerfFunc(pipe_type);
 }
 
-ge::Status GetApiRegisterVerName(std::string &registered_key_name) {
+af::Status GetApiRegisterVerName(std::string &registered_key_name) {
   const auto param_table = GetParamPerfTable();
   GE_ASSERT_NOTNULL(param_table);
   registered_key_name = param_table->GetApiRegisterVerName();
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status GetOpHeadCost(Expr &head_cost) {
+af::Status GetOpHeadCost(Expr &head_cost) {
   const auto param_table = GetParamPerfTable();
   GE_ASSERT_NOTNULL(param_table);
   head_cost = param_table->GetOpHeadCost();
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 std::unique_ptr<ApiPerf> GetApiPerf(const std::string &node_type) {
@@ -549,7 +549,7 @@ std::unique_ptr<ApiPerf> GetApiPerf(const std::string &node_type) {
   return ApiPerfFactory::Instance().Create(node_type);
 }
 
-ge::Status GetPerf(const NodePerfInfo &node_perf_info, Expr &res) {
+af::Status GetPerf(const NodePerfInfo &node_perf_info, Expr &res) {
   std::string optype = node_perf_info.optype;
   std::string input_dtype = node_perf_info.input_dtype;
   std::string output_dtype = node_perf_info.output_dtype;
@@ -590,7 +590,7 @@ ge::Status GetPerf(const NodePerfInfo &node_perf_info, Expr &res) {
 
   GE_ASSERT_SUCCESS(perf_func->second(param_map, node_perf_info.dims, node_perf_info.gm_stride, res),
                     "Get Perf Func failed! json: %s", params_data.dump().c_str());
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 inline void FilterStridesAndRepeats(const std::vector<Expr> &strides, const std::vector<Expr> &repeats,
@@ -674,7 +674,7 @@ StrideResult CalculateStride(const TensorShapeInfo &shape_info, const bool is_ub
   return StrideResult(expr, block_count_idx);
 }
 
-ge::Status SetStride(const TensorShapeInfo &shape_info, NodeDetail &node_info, const int32_t supported_max_dma_len,
+af::Status SetStride(const TensorShapeInfo &shape_info, NodeDetail &node_info, const int32_t supported_max_dma_len,
                      bool need_swap) {
   auto gm_stride_result = CalculateStride(shape_info, false, node_info, supported_max_dma_len, need_swap);
   auto ub_stride_result = CalculateStride(shape_info, true, node_info, supported_max_dma_len, need_swap);
@@ -692,10 +692,10 @@ ge::Status SetStride(const TensorShapeInfo &shape_info, NodeDetail &node_info, c
   GELOGD("%s: repeats=%s origin_repeats=%s need_swap=%d block_count_idx=%d", node_info.ToString().c_str(),
          GetVecString(shape_info.repeats).c_str(), GetVecString(shape_info.origin_repeats).c_str(), need_swap,
          node_info.block_count_idx);
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status SetNodeDetail(const std::vector<TensorShapeInfo> &input_shapes,
+af::Status SetNodeDetail(const std::vector<TensorShapeInfo> &input_shapes,
                          const std::vector<TensorShapeInfo> &output_shapes, NodeDetail &node_info) {
   GE_ASSERT_TRUE(!input_shapes.empty() && !output_shapes.empty());
   for (const auto &input_shape : input_shapes) {
@@ -705,26 +705,26 @@ ge::Status SetNodeDetail(const std::vector<TensorShapeInfo> &input_shapes,
     node_info.output_dtype.emplace_back(output_shape.data_type);
   }
   GE_ASSERT_SUCCESS(SetDims(input_shapes[0].dims, output_shapes[0].dims, node_info));
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status SetDims(const TensorShapeInfo &tensor_shape_info, NodeDetail &node_info) {
+af::Status SetDims(const TensorShapeInfo &tensor_shape_info, NodeDetail &node_info) {
   GE_ASSERT_SUCCESS(SetDims(tensor_shape_info.dims, node_info));
   node_info.repeats = tensor_shape_info.repeats;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status SetDims(const std::vector<Expr> &dims, NodeDetail &node_info) {
+af::Status SetDims(const std::vector<Expr> &dims, NodeDetail &node_info) {
   node_info.input_dims.clear();
   node_info.output_dims.clear();
   for (const auto &dim : dims) {
     node_info.input_dims.emplace_back(dim);
     node_info.output_dims.emplace_back(dim);
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status SetDims(const std::vector<Expr> &input_dims, const std::vector<Expr> &output_dims, NodeDetail &node_info) {
+af::Status SetDims(const std::vector<Expr> &input_dims, const std::vector<Expr> &output_dims, NodeDetail &node_info) {
   node_info.input_dims.clear();
   node_info.output_dims.clear();
   for (const auto &dim : input_dims) {
@@ -733,7 +733,7 @@ ge::Status SetDims(const std::vector<Expr> &input_dims, const std::vector<Expr> 
   for (const auto &dim : output_dims) {
     node_info.output_dims.emplace_back(dim);
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 NodeDetail GenNodeDetail(const std::string &input_dtype, const std::string &output_dtype,
@@ -785,13 +785,13 @@ bool HasSmallBlockLenWithUbStride(const NodeDetail &node_info) {
  *
  * @param node 节点指针，用于访问 input tensor 属性
  * @param tensor 包含 gm_strides 的张量信息
- * @return ge::SUCCESS 成功，其他值表示失败
+ * @return af::SUCCESS 成功，其他值表示失败
  */
-ge::Status ReorderGmStrideByTranspose(const af::AscNodePtr &node, TensorShapeInfo &tensor) {
+af::Status ReorderGmStrideByTranspose(const af::AscNodePtr &node, TensorShapeInfo &tensor) {
   GE_ASSERT_NOTNULL(node);
   // 检查是否为空
   if (ShouldSkipReorderForEmptyOutputs(node)) {
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
   // 访问 tensor 属性
   const auto &attr = node->outputs[0].attr;
@@ -800,12 +800,12 @@ ge::Status ReorderGmStrideByTranspose(const af::AscNodePtr &node, TensorShapeInf
   std::vector<Expr> repeats = attr.repeats;
   // 检查相关数据是否为空
   if (ShouldSkipReorderForEmptyData(node, tensor, vectorized_axis, axis)) {
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
   // 检查是否需要重排
   if (!NeedsReordering(vectorized_axis, axis)) {
     GELOGD("No transpose detected, skipping repeats reordering, repeats[%s]", GetVecString(tensor.repeats).c_str());
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
   // 找出需要删除的轴下标
   // 例如：vectorized_axis={0,1,3}, axis={4,3,2,1,0}
@@ -831,7 +831,7 @@ ge::Status ReorderGmStrideByTranspose(const af::AscNodePtr &node, TensorShapeInf
          node->GetNamePtr(), node->GetType().c_str(), GetVecString(tensor.repeats).c_str(),
          GetVecString(repeats).c_str(), DebugString(vectorized_axis).c_str(), DebugString(axis).c_str());
   tensor.repeats.swap(repeats);
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 /** 举例:
@@ -848,7 +848,7 @@ ge::Status ReorderGmStrideByTranspose(const af::AscNodePtr &node, TensorShapeInf
                                         z0t_size与z1合轴  z1与z2合轴
   reduce场景:reduce轴会断掉连续轴的合并
  **/
-ge::Status MergeTensorContinuousDims(const af::AscNodePtr &node, const std::string &tensor_name,
+af::Status MergeTensorContinuousDims(const af::AscNodePtr &node, const std::string &tensor_name,
                                      TensorShapeInfo &tensor) {
   Expr axis_size;
   std::vector<Expr> org_dims;  // 原始的dim
@@ -879,10 +879,10 @@ ge::Status MergeTensorContinuousDims(const af::AscNodePtr &node, const std::stri
   }
   GELOGD("Tensor[%s] shape info: merge dims:%s org dims:%s continuous:%s", tensor_name.c_str(),
          tensor.GetDimExpr().c_str(), GetVecString(org_dims).c_str(), af::ToString(is_continuous).c_str());
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status GetOuterParams(const vector<Expr> &dims, Expr &outer_repeat, vector<Expr> &used_dims,
+af::Status GetOuterParams(const vector<Expr> &dims, Expr &outer_repeat, vector<Expr> &used_dims,
                           const uint32_t dma_max_len) {
   // 若dma_max_len为2:
   // (2, 2, 2)
@@ -901,10 +901,10 @@ ge::Status GetOuterParams(const vector<Expr> &dims, Expr &outer_repeat, vector<E
                               [](Expr a, Expr b) { return af::sym::Mul(a, b); });
     GELOGD("Got outer loop %s, used dims %s", outer_repeat.Serialize().get(), GetVecString(used_dims).c_str());
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status UpdateTenary(PerfOutputInfo &perf_res, PerfOutputInfo &output_res) {
+af::Status UpdateTenary(PerfOutputInfo &perf_res, PerfOutputInfo &output_res) {
   Expr cur_var;
   std::vector<std::pair<Expr, Expr>> replace_vars;
   for (const auto &pair : perf_res.ternary_ops) {
@@ -918,10 +918,10 @@ ge::Status UpdateTenary(PerfOutputInfo &perf_res, PerfOutputInfo &output_res) {
     output_res.pipe_res[pair.first] = pair.second.Replace(replace_vars);
   }
   perf_res.pipe_res = output_res.pipe_res;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status GetDmaPerf(const TensorShapeInfo &tensor_info, NodeDetail &node_info, PerfOutputInfo &perf_res,
+af::Status GetDmaPerf(const TensorShapeInfo &tensor_info, NodeDetail &node_info, PerfOutputInfo &perf_res,
                       int32_t supported_max_dma_len, bool need_swap) {
   PerfOutputInfo non_swap_perf;
   vector<Expr> used_dims;
@@ -968,7 +968,7 @@ ge::Status GetDmaPerf(const TensorShapeInfo &tensor_info, NodeDetail &node_info,
   for (const auto &ternary_op : node_info.ternary_ops) {
     perf_res.ternary_ops[ternary_op.first] = ternary_op.second;
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 }  // namespace att

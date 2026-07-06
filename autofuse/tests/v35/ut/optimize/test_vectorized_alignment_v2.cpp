@@ -239,7 +239,7 @@ TEST_F(VectorizedAlignmentUTV2, align_vectorized_strides) {
     n->outputs[0].attr.vectorized_axis = {z0.id, z1.id, z2.id};
   }
 
-  EXPECT_EQ(AlignmentHandler::AlignVectorizedStrides(graph), SUCCESS);
+  EXPECT_EQ(AlignmentHandler::AlignVectorizedStrides(graph), af::SUCCESS);
   auto abs_node = graph.FindNode("abs");
 
   EXPECT_EQ(std::string(abs_node->outputs[0].attr.vectorized_strides[0].Str().get()), "s1");
@@ -272,7 +272,7 @@ TEST_F(VectorizedAlignmentUTV2, align_vectorized_strides_last_zero) {
   load.attr.api.compute_type = af::ComputeType::kComputeLoad;
   *load.y.vectorized_axis = {z1.id, z2.id, z3.id};
 
-  EXPECT_EQ(AlignmentHandler::AlignVectorizedStrides(graph), SUCCESS);
+  EXPECT_EQ(AlignmentHandler::AlignVectorizedStrides(graph), af::SUCCESS);
 
   auto load_node = graph.FindNode("load_i");
   std::vector<af::Expression> golden_stride = {af::Symbol(20), One, Zero};
@@ -326,7 +326,7 @@ TEST_F(VectorizedAlignmentUTV2, reduce_alignment) {
   store.attr.api.compute_type = af::ComputeType::kComputeStore;
   *store.y.vectorized_axis = {z1.id, z2.id, z3.id};
 
-  EXPECT_EQ(AlignmentHandler::AlignVectorizedStrides(graph), SUCCESS);
+  EXPECT_EQ(AlignmentHandler::AlignVectorizedStrides(graph), af::SUCCESS);
 
   auto s16 = af::Symbol(16);
   std::vector<af::Expression> load_golden_stride = {s2 * s16, s16, One};
@@ -407,7 +407,7 @@ TEST_F(VectorizedAlignmentUTV2, align_vectorized_strides_by_repeat) {
   }
 
   AlignmentHandler handler;
-  EXPECT_EQ(handler.AlignVectorizedStrides(graph), SUCCESS);
+  EXPECT_EQ(handler.AlignVectorizedStrides(graph), af::SUCCESS);
   ::ascir::utils::DumpImplGraphs({graph}, "xxx");
 
   auto load1_node = graph.FindNode("load1");
@@ -506,7 +506,7 @@ TEST_F(VectorizedAlignmentUTV2, tail_brc_tail_reduce_alignment) {
   store.attr.api.compute_type = af::ComputeType::kComputeStore;
   *store.y.vectorized_axis = {z1.id, z2.id, z3.id};
 
-  EXPECT_EQ(AlignmentHandler::AlignVectorizedStrides(graph), SUCCESS);
+  EXPECT_EQ(AlignmentHandler::AlignVectorizedStrides(graph), af::SUCCESS);
 
   auto s16 = af::Symbol(16);
   std::vector<af::Expression> load_golden_stride = {s2, One, Zero};
@@ -572,7 +572,7 @@ TEST_F(VectorizedAlignmentUTV2, scalar_brc_tail_reduce_alignment) {
   store.attr.api.compute_type = af::ComputeType::kComputeStore;
   *store.y.vectorized_axis = {z1.id, z2.id, z3.id};
 
-  EXPECT_EQ(AlignmentHandler::AlignVectorizedStrides(graph), SUCCESS);
+  EXPECT_EQ(AlignmentHandler::AlignVectorizedStrides(graph), af::SUCCESS);
 
   auto s16 = af::Symbol(16);
   std::vector<af::Expression> load_golden_stride = {s2, One, Zero};

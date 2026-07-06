@@ -62,6 +62,6 @@ af::Status TensorLayoutUtils::AnalyzeLoadDiscontinuity(const af::AscTensorAttr &
     info.has_multiple_discontinuities = true;
   }
 
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 }  // namespace optimize

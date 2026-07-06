@@ -1,11 +1,12 @@
-/* Copyright (c) 2026 Huawei Technologies Co., Ltd.
- * This file is a part of the CANN Open Software.
- * Licensed under CANN Open Software License Agreement Version 1.0 (the "License").
+/**
+ * Copyright (c) 2026 Huawei Technologies Co., Ltd.
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
+ * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
  * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
- * ===================================================================================================================*/
+ */
 
 #include "dtype_consistency.h"
 #include "ascir_ops.h"
@@ -91,7 +92,7 @@ Status RemoveDuplicateCast(const af::AscNodePtr &keep_cast, const af::AscNodePtr
   auto owner_graph = remove_cast->GetOwnerComputeGraph();
   GE_ASSERT_SUCCESS(owner_graph->RemoveNode(remove_cast));
 
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 }  // namespace
 
@@ -104,7 +105,7 @@ Status DtypeConsistency::EnsureDtypeConsistency(af::AscGraph &graph) {
 
   GE_ASSERT_SUCCESS(CancelRedundantCast(graph), "Failed to cancel redundant cast");
   GE_ASSERT_GRAPH_SUCCESS(ScheduleUtils::TopologicalSorting(graph));
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status DtypeConsistency::CollectDtypeRequirements(af::AscGraph &graph,
@@ -120,7 +121,7 @@ Status DtypeConsistency::CollectDtypeRequirements(af::AscGraph &graph,
     auto [input_dtypes, output_dtypes] = codegen_impl->GetConversionDtype(*node);
     requirements.push_back({node, input_dtypes, output_dtypes});
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status DtypeConsistency::ApplyDtypeConversions(af::AscGraph &graph,
@@ -130,7 +131,7 @@ Status DtypeConsistency::ApplyDtypeConversions(af::AscGraph &graph,
     GE_CHK_STATUS_RET(ProcessInputDtype(graph, req), "Failed to process input dtype for node %s.",
                       req.node->GetNamePtr());
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status DtypeConsistency::ProcessOutputDtype(const NodeDtypeRequirement &req) {
@@ -144,7 +145,7 @@ Status DtypeConsistency::ProcessOutputDtype(const NodeDtypeRequirement &req) {
       req.node->outputs[i].attr.dtype = req.output_dtypes[i];
     }
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status DtypeConsistency::ProcessInputDtype(af::AscGraph &graph, const NodeDtypeRequirement &req) {
@@ -180,7 +181,7 @@ Status DtypeConsistency::ProcessInputDtype(af::AscGraph &graph, const NodeDtypeR
     // Insert a new cast node
     GE_CHK_STATUS_RET(InsertCastNode(graph, src_node, req.node, i, dst_dtype), "Insert cast node failed");
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status DtypeConsistency::CheckCastSupported(af::DataType src_dtype, af::DataType dst_dtype, const af::AscNodePtr &node,
@@ -188,13 +189,13 @@ Status DtypeConsistency::CheckCastSupported(af::DataType src_dtype, af::DataType
   std::vector<af::DataType> cast_input_dtypes = {src_dtype};
   std::vector<af::DataType> cast_output_dtypes = {dst_dtype};
   auto infer_ret = ScheduleUtils::CallAscirInferDataType<af::ascir_op::Cast>(cast_input_dtypes, cast_output_dtypes);
-  if (infer_ret != ge::SUCCESS) {
-    GELOGE(ge::FAILED, "Failed to insert cast for node [%s] input [%zu]: cast from [%s] to [%s] is not supported.",
+  if (infer_ret != af::SUCCESS) {
+    GELOGE(af::FAILED, "Failed to insert cast for node [%s] input [%zu]: cast from [%s] to [%s] is not supported.",
            node->GetNamePtr(), input_idx, ge::TypeUtils::DataTypeToSerialString(src_dtype).c_str(),
            ge::TypeUtils::DataTypeToSerialString(dst_dtype).c_str());
-    return ge::FAILED;
+    return af::FAILED;
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 bool DtypeConsistency::TryMergeWithUpstreamCast(af::AscGraph &graph, const af::AscNodePtr &upstream_cast,
@@ -216,7 +217,7 @@ bool DtypeConsistency::TryMergeWithUpstreamCast(af::AscGraph &graph, const af::A
   std::vector<af::DataType> merge_input_dtypes = {orig_src_dtype};
   std::vector<af::DataType> merge_output_dtypes = {target_dtype};
   if ((orig_src_dtype != target_dtype) && ScheduleUtils::CallAscirInferDataType<af::ascir_op::Cast>(
-                                              merge_input_dtypes, merge_output_dtypes) != ge::SUCCESS) {
+                                              merge_input_dtypes, merge_output_dtypes) != af::SUCCESS) {
     return false;
   }
 
@@ -295,7 +296,7 @@ Status DtypeConsistency::InsertCastNode(af::AscGraph &graph, const af::AscNodePt
   GE_ASSERT_SUCCESS(af::GraphUtils::AddEdge(src_out_anchor, cast_node_ptr->GetInDataAnchor(0)));
   GE_ASSERT_SUCCESS(af::GraphUtils::AddEdge(cast_node_ptr->GetOutDataAnchor(0), in_anchor));
 
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status DtypeConsistency::CancelRedundantCast(af::AscGraph &graph) {
@@ -303,7 +304,7 @@ Status DtypeConsistency::CancelRedundantCast(af::AscGraph &graph) {
   GE_ASSERT_SUCCESS(DoCastCSE(graph), "Failed to do cast CSE");
   // 2. Remove redundant Cast(A->A)
   GE_ASSERT_SUCCESS(CancelIdentityCast(graph), "Failed to cancel identity cast");
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status DtypeConsistency::DoCastCSE(af::AscGraph &graph) {
@@ -342,7 +343,7 @@ Status DtypeConsistency::DoCastCSE(af::AscGraph &graph) {
     }
   }
 
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status DtypeConsistency::CancelIdentityCast(af::AscGraph &graph) {
@@ -369,6 +370,6 @@ Status DtypeConsistency::CancelIdentityCast(af::AscGraph &graph) {
     auto owner_graph = node->GetOwnerComputeGraph();
     GE_ASSERT_SUCCESS(owner_graph->RemoveNode(node));
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 }  // namespace optimize

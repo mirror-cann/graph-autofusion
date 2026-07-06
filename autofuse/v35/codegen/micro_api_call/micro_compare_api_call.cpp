@@ -52,7 +52,7 @@ Status MicroCompareApiCall::Generate(const codegen::TensorManager &tensor_mng, [
        << output_name << ");" << std::endl;
   }
   result = ss.str();
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status MicroCompareApiCall::Init(const ascir::NodeView &node) {
@@ -61,7 +61,7 @@ Status MicroCompareApiCall::Init(const ascir::NodeView &node) {
     this->second_input_scalar_ = true;
   }
   GELOGI("name:%s, second input scalar:%d", node->GetNamePtr(), this->second_input_scalar_);
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 static MicroApiCallRegister<MicroCompareApiCall> register_micro_compare_api_call("MicroCompareApiCall");

@@ -38,13 +38,13 @@ struct ReduceApiPerfContext {
   Expr merge_times{CreateExpr(1)};
 };
 
-ge::Status ReduceMinPerf(const ReduceApiPerfContext &context, PerfOutputInfo &perf);
-ge::Status ReduceMaxPerf(const ReduceApiPerfContext &context, PerfOutputInfo &perf);
-ge::Status ReduceAnyPerf(const ReduceApiPerfContext &context, PerfOutputInfo &perf);
-ge::Status ReduceAllPerf(const ReduceApiPerfContext &context, PerfOutputInfo &perf);
-ge::Status ReduceSumPerf(const ReduceApiPerfContext &context, PerfOutputInfo &perf);
-ge::Status ReduceProdPerf(const ReduceApiPerfContext &context, PerfOutputInfo &perf);
-ge::Status ReduceMeanPerf(const ReduceApiPerfContext &context, PerfOutputInfo &perf);
+af::Status ReduceMinPerf(const ReduceApiPerfContext &context, PerfOutputInfo &perf);
+af::Status ReduceMaxPerf(const ReduceApiPerfContext &context, PerfOutputInfo &perf);
+af::Status ReduceAnyPerf(const ReduceApiPerfContext &context, PerfOutputInfo &perf);
+af::Status ReduceAllPerf(const ReduceApiPerfContext &context, PerfOutputInfo &perf);
+af::Status ReduceSumPerf(const ReduceApiPerfContext &context, PerfOutputInfo &perf);
+af::Status ReduceProdPerf(const ReduceApiPerfContext &context, PerfOutputInfo &perf);
+af::Status ReduceMeanPerf(const ReduceApiPerfContext &context, PerfOutputInfo &perf);
 
 }  // namespace ascendcapi_v2
 }  // namespace att

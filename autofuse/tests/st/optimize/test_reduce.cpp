@@ -540,7 +540,7 @@ TEST_F(OptimizerReduceSt, TestReduce_Elewise_Store_MulReduce) {
   auto graph = ConstructNormStruct4MulReduce("reduce_four_elewise_store");
   ::ascir::FusedScheduledResult fused_scheduled_result;
   optimize::Optimizer optimizer(optimize::OptimizerOptions{});
-  EXPECT_EQ(optimizer.Optimize(graph, fused_scheduled_result), SUCCESS);
+  EXPECT_EQ(optimizer.Optimize(graph, fused_scheduled_result), af::SUCCESS);
   ASSERT_EQ(fused_scheduled_result.node_idx_to_scheduled_results.size(), 1UL);
   ASSERT_EQ(fused_scheduled_result.node_idx_to_scheduled_results[0UL].size(), 1UL);
 }

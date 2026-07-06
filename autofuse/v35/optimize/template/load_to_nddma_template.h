@@ -21,7 +21,7 @@ class LoadToNddmaTemplate : public BaseTemplate {
   explicit LoadToNddmaTemplate() = default;
 
   std::string GenName(const std::string &general_case_name) override;
-  ge::Status Generate(const af::AscGraph &origin_graph, const af::AscGraph &based_case,
+  af::Status Generate(const af::AscGraph &origin_graph, const af::AscGraph &based_case,
                       af::AscGraph &new_case) override;
   bool NeedDropBasedCase(const af::AscGraph &origin_graph, const af::AscGraph &based_case,
                          const af::AscGraph &new_case) override;

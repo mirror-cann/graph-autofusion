@@ -391,7 +391,7 @@ TEST_F(AutoSchedulerReduceUT, reduceSorting) {
   out2.attr.api.type = af::ApiType::kAPITypeBuffer;
   out2.y.dtype = ge::DT_FLOAT;
 
-  ASSERT_EQ(ScheduleUtils::TopologicalSorting(graph), SUCCESS);
+  ASSERT_EQ(ScheduleUtils::TopologicalSorting(graph), af::SUCCESS);
 
   auto max_node = graph.FindNode("max");
   auto max2_node = graph.FindNode("max2");

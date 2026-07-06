@@ -135,7 +135,7 @@ TEST(CodegenKernel, Kernel_DynamicInputDtypeCheck) {
   fused_schedule_result.output_nodes.push_back(y);
   codegen::Kernel kernel(graph.GetName());
   auto ret = IsDataTypeSupported(graph);
-  EXPECT_EQ(ret, ge::SUCCESS);
+  EXPECT_EQ(ret, af::SUCCESS);
 }
 
 TEST(CodegenKernel, Kernel_DataTypeRepeatsNodeUnsupportCheck) {
@@ -187,11 +187,11 @@ TEST(CodegenKernel, Kernel_DataTypeRepeatsNodeUnsupportCheck) {
   fused_schedule_result.output_nodes.push_back(y);
   codegen::Kernel kernel(graph.GetName());
   auto ret = IsDataTypeSupported(graph);
-  EXPECT_NE(ret, ge::SUCCESS);
+  EXPECT_NE(ret, af::SUCCESS);
   ret = IsRepeatStrideValid(graph);
-  EXPECT_NE(ret, ge::SUCCESS);
+  EXPECT_NE(ret, af::SUCCESS);
   ret = IsGraphNodeValid(graph);
-  EXPECT_NE(ret, ge::SUCCESS);
+  EXPECT_NE(ret, af::SUCCESS);
 }
 
 TEST(CodegenKernel, Kernel_ShapeConsistencyInValidCheck) {
@@ -296,7 +296,7 @@ TEST(CodegenKernel, Kernel_ShapeConsistencyInValidCheck) {
   fused_schedule_result.output_nodes.push_back(y);
   codegen::Kernel kernel(graph.GetName());
   auto ret = CheckGraphValidity(graph);
-  EXPECT_NE(ret, ge::SUCCESS);
+  EXPECT_NE(ret, af::SUCCESS);
 }
 
 TEST(CodegenKernel, Kernel_DynamicShapeConsistencyCheckValid) {
@@ -401,7 +401,7 @@ TEST(CodegenKernel, Kernel_DynamicShapeConsistencyCheckValid) {
   fused_schedule_result.output_nodes.push_back(y);
   codegen::Kernel kernel(graph.GetName());
   auto ret = CheckGraphValidity(graph);
-  EXPECT_EQ(ret, ge::SUCCESS);
+  EXPECT_EQ(ret, af::SUCCESS);
 }
 
 TEST(CodegenKernel, Kernel_StaticShapeVecAxisConsistencyInValidCheck) {
@@ -506,7 +506,7 @@ TEST(CodegenKernel, Kernel_StaticShapeVecAxisConsistencyInValidCheck) {
   fused_schedule_result.output_nodes.push_back(y);
   codegen::Kernel kernel(graph.GetName());
   auto ret = CheckGraphValidity(graph);
-  EXPECT_NE(ret, ge::SUCCESS);
+  EXPECT_NE(ret, af::SUCCESS);
 }
 
 TEST(CodegenKernel, Kernel_DynamicShapeVecAxisConsistencyInValidCheck) {
@@ -611,5 +611,5 @@ TEST(CodegenKernel, Kernel_DynamicShapeVecAxisConsistencyInValidCheck) {
   fused_schedule_result.output_nodes.push_back(y);
   codegen::Kernel kernel(graph.GetName());
   auto ret = CheckGraphValidity(graph);
-  EXPECT_EQ(ret, ge::SUCCESS);
+  EXPECT_EQ(ret, af::SUCCESS);
 }

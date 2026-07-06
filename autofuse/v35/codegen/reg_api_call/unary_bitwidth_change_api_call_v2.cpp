@@ -59,7 +59,7 @@ Status UnaryBitWidthChangeApiCallV2::Generate(const TPipe &tpipe, const std::vec
   }
 
   result = ss.str();
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 static ApiCallRegister<UnaryBitWidthChangeApiCallV2> register_unary_api_call("UnaryBitWidthChangeApiCallV2");

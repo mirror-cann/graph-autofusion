@@ -27,7 +27,7 @@ class ThreadLocalContextUnitTest : public testing::Test {
 TEST_F(ThreadLocalContextUnitTest, SetAndGetOptionSuccess) {
   constexpr char current_dir[] = "./";
   std::string got_option;
-  EXPECT_TRUE(GetThreadLocalContext().GetOption(kDumpDebugInfo, got_option) == ge::FAILED);
+  EXPECT_TRUE(GetThreadLocalContext().GetOption(kDumpDebugInfo, got_option) == af::FAILED);
   ASSERT_TRUE(got_option.empty());
   GetThreadLocalContext().SetOption({{kDumpDebugInfo, current_dir}});
   EXPECT_TRUE(GetThreadLocalContext().GetOption(kDumpDebugInfo, got_option) == af::SUCCESS);

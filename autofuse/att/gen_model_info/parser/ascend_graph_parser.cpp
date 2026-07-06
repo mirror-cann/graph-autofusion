@@ -48,7 +48,7 @@ AxisPosition ConvertAxisType(const af::Axis::Type &type) {
       {af::Axis::kAxisTypeTileInner, AxisPosition::INNER},  {af::Axis::kAxisTypeMerged, AxisPosition::MERGED},
   };
   if (kAxisTypeMap.find(type) == kAxisTypeMap.end()) {
-    GELOGE(ge::FAILED, "Convert ascir axis type[%d] failed.", type);
+    GELOGE(af::FAILED, "Convert ascir axis type[%d] failed.", type);
     return AxisPosition::POSERR;
   }
   return kAxisTypeMap.at(type);
@@ -64,7 +64,7 @@ af::Status GetPhyType(const af::Position pos, af::MemHardware &phy_type) {
   const auto iter = kDefPosToPhy.find(pos);
   GE_ASSERT_TRUE(iter != kDefPosToPhy.cend(), "[Get][PhyType] failed, pos=%d", static_cast<int32_t>(pos));
   phy_type = iter->second;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 af::Status SetAscGraphPhyType(const af::AscGraph &graph) {
@@ -73,7 +73,7 @@ af::Status SetAscGraphPhyType(const af::AscGraph &graph) {
       GE_ASSERT_SUCCESS(GetPhyType(node->outputs[i].attr.mem.position, node->outputs[i].attr.mem.hardware));
     }
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 // 获取所有轴对应的原始轴id
@@ -107,19 +107,19 @@ af::Status AscendGraphParser::ParserOriginAxis(const af::AscGraph &graph) {
       }
     }
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 af::Status AscendGraphParser::CheckAxisIdValid(const int64_t axis_id) {
   GE_ASSERT_TRUE(axes_info_.find(axis_id) != axes_info_.end(), "Invalid axid id [%ld].", axis_id);
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 af::Status AscendGraphParser::CheckAxisIdValid(std::vector<int64_t> &axis_ids) {
   for (auto &axis_id : axis_ids) {
     GE_ASSERT_TRUE(axes_info_.find(axis_id) != axes_info_.end(), "Invalid axid id [%ld].", axis_id);
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 void AscendGraphParser::SaveTmpBufferInfos(const std::string &node_name, std::map<int64_t, Expr> &max_tmp_buffers_map,
@@ -186,7 +186,7 @@ af::Status AscendGraphParser::ParserSchedInfo(const af::AscGraph &graph) {
   }
   tuning_space_->tmp_buffer = max_tmp_buffers_map;
   tuning_space_->builtin_tmp_buffer = ascgen_utils::CalcExtraTmpBufForAscGraph(graph);
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 af::Status AscendGraphParser::AddSubAxisInfo(af::AxisPtr &axis_info) {
@@ -205,7 +205,7 @@ af::Status AscendGraphParser::AddSubAxisInfo(af::AxisPtr &axis_info) {
   }
   sub_axis_ptr->orig_axis_name = orig_name;
   sub_axes_info_[axis_info->id] = std::move(sub_axis_ptr);
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 af::Status AscendGraphParser::CreateSubAxisInfo(const af::AscGraph &graph) {
@@ -231,7 +231,7 @@ af::Status AscendGraphParser::CreateSubAxisInfo(const af::AscGraph &graph) {
     }
   }
   MakeSubAxisRelation();
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 void AscendGraphParser::ParserSubAxis(const af::AxisPtr &axis, SubAxisPtr &sub_axis_ptr) const {
@@ -290,7 +290,7 @@ af::Status AscendGraphParser::ConstructQueueContainer(const af::AscTensorAttr &a
     }
     queue_containers_[ascir_tensor_info.que.id] = queue_ptr;
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 af::Status AscendGraphParser::ConstructBufferContainer(const af::AscTensorAttr &ascir_tensor_info) {
@@ -308,7 +308,7 @@ af::Status AscendGraphParser::ConstructBufferContainer(const af::AscTensorAttr &
     }
     buf_containers_[ascir_tensor_info.buf.id] = buf_ptr;
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 af::Status AscendGraphParser::ConstructGlobalContainer(const af::AscTensorAttr &ascir_tensor_info) {
@@ -323,7 +323,7 @@ af::Status AscendGraphParser::ConstructGlobalContainer(const af::AscTensorAttr &
     container_ptr->buf_location.emplace_back(location);
     global_containers_[location] = container_ptr;
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 af::Status AscendGraphParser::ParseTensorMemInfo(const af::AscTensorAttr &ascir_tensor_info, std::string &node_type,
@@ -373,7 +373,7 @@ af::Status AscendGraphParser::ParseTensorMemInfo(const af::AscTensorAttr &ascir_
     GELOGD("Get tensor [%s] container [%s][%d] success.", tensor->name.c_str(), container->name.c_str(),
            container->container_id);
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 void AscendGraphParser::ParseTensorOrigIdx(TensorPtr &tensor) const {
@@ -466,18 +466,18 @@ af::Status AscendGraphParser::ParseTensorDims(TensorPtr &tensor, af::AscTensorAt
   GELOGD("[DFX]parse tensor %s(%s): repeats [%s], gm_stride [%s], stride [%s]", tensor->name.c_str(),
          tensor->node_type.c_str(), GetVecString(tensor->repeat).c_str(), GetVecString(tensor->gm_stride).c_str(),
          GetVecString(tensor->stride).c_str());
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 af::Status AscendGraphParser::GetTensorAxes(TensorPtr &tensor, af::AscTensorAttr &tensor_attr) {
   // 获取vectorized轴之外包含stride==0的repeat信息
   if (tensor_attr.vectorized_axis.empty()) {
     GELOGW("Get tensor [%s] vectorized axis num==0.", tensor->name.c_str());
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
   GE_ASSERT_SUCCESS(ParseTensorDims(tensor, tensor_attr), "Parse tensor dims failed.");
   ParseTensorOrigIdx(tensor);
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 af::Status AscendGraphParser::GetTensorAttrs(const af::AscNodePtr &node, const TensorPtr &tensor, size_t id,
@@ -492,7 +492,7 @@ af::Status AscendGraphParser::GetTensorAttrs(const af::AscNodePtr &node, const T
     auto &ascir_tensor_info = node->outputs[id].attr;
     GE_ASSERT_SUCCESS(ParseTensorMemInfo(ascir_tensor_info, node_type, tensor), "Parse tensor info failed.");
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 af::Status AscendGraphParser::SetAxisPriority(const af::AscGraph &graph) {
@@ -538,7 +538,7 @@ af::Status AscendGraphParser::SetAxisPriority(const af::AscGraph &graph) {
       }
     }
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 // 通过输出获取当前节点单次执行涉及到的轴的范围
@@ -585,7 +585,7 @@ af::Status AscendGraphParser::ParseWorkspaceNode(const af::AscNodePtr &ge_node) 
       max_workspace_sizes[tensor_id] = af::sym::Max(max_workspace_sizes[tensor_id], ws_size);
     }
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 af::Status AscendGraphParser::ParserNodeOutputInfos(const af::AscNodePtr &ge_node, const af::AscGraph &graph,
@@ -630,7 +630,7 @@ af::Status AscendGraphParser::ParserNodeOutputInfos(const af::AscNodePtr &ge_nod
     node_info.outputs.emplace_back(tensor);
     tensor_info_.emplace(tensor->name, tensor);
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 void AscendGraphParser::UpdateTensorLocType(const af::AscNodePtr &ge_node, size_t &in_id, TensorPtr &tensor) const {
@@ -660,7 +660,7 @@ af::Status AscendGraphParser::ParseInputTensor(const af::AscNodePtr &ge_node, co
       tensor->node_type = peer_out->GetOwnerNodeBarePtr()->GetType();
     }
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 af::Status AscendGraphParser::ParserNodeInputInfos(const af::AscNodePtr &ge_node, const af::AscGraph &graph,
@@ -694,7 +694,7 @@ af::Status AscendGraphParser::ParserNodeInputInfos(const af::AscNodePtr &ge_node
     node_info.depth = depth;
     node_info.inputs.emplace_back(tensor);
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 void AscendGraphParser::UpdateContainer(ContainerPtr &container, const int32_t new_id) {
@@ -722,7 +722,7 @@ af::Status AscendGraphParser::GetNodeFromData(const af::AscNodePtr &ge_node, Nod
   if (node_info.node_type == kData) {
     node_info.from_data.insert(node_info.name);
     GELOGD("[%s] is Data node.", node_info.name.c_str());
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
   for (const auto &input_node : ge_node->GetInNodes()) {
     for (const auto &node : tuning_space_->node_infos) {
@@ -739,7 +739,7 @@ af::Status AscendGraphParser::GetNodeFromData(const af::AscNodePtr &ge_node, Nod
     log += node_name + ", ";
   }
   GELOGD("[%s] from Data node {%s}.", node_info.name.c_str(), log.c_str());
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 af::Status AscendGraphParser::ConvertNodeInfos(const af::AscNodePtr &ge_node, const ScheduleAttr &attrs,
@@ -793,7 +793,7 @@ af::Status AscendGraphParser::ConvertNodeInfos(const af::AscNodePtr &ge_node, co
   // 解析ge_node, 设置到node_info中的sub_nodes_infos
   tuning_space_->node_infos.push_back(node_info);
   GELOGD("[DFX]Parse %s, use_cache_flag %d", node_info.DebugString().c_str(), use_cache_flag);
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 void AscendGraphParser::AssembleTensorInfos() {
@@ -844,7 +844,7 @@ af::Status AscendGraphParser::ParserBlockDimInfo() {
     }
     tuning_space_->block_dims.emplace_back(sub_axes);
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 void AscendGraphParser::ParserOptionalInfos(const af::AscGraph &graph) const {
@@ -863,7 +863,7 @@ af::Status AscendGraphParser::CalculateReservedUbSize(const af::AscGraph &graph)
   for (const auto &reserve_ub : tuning_space_->reserve_ub) {
     GELOGD("Got calculate reserved ub size[%s:%u]", reserve_ub.first.c_str(), reserve_ub.second);
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 af::Status AscendGraphParser::ConvertToTuningSpace(const af::AscGraph &graph) {
@@ -889,7 +889,7 @@ af::Status AscendGraphParser::ConvertToTuningSpace(const af::AscGraph &graph) {
     tuning_space_->sub_axes.emplace_back(std::move(pair.second));
   }
   tuning_space_->asc_graph = &graph;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 // 检测Reduce/Broadcast分核Store冲突场景
@@ -927,7 +927,7 @@ af::Status AscendGraphParser::CheckReduceBroadcastSplitStoreConflict() {
     }
   }
 
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 // 检查并标记轴是否为 Reduce 分核轴
@@ -967,8 +967,8 @@ af::Status AscendGraphParser::GraphParser(const af::AscGraph &graph) {
   GE_ASSERT_SUCCESS(CheckReduceBroadcastSplitStoreConflict());
 
   std::string dump_debug_info;
-  if (GetThreadLocalContext().GetOption(kDumpDebugInfo, dump_debug_info) != ge::SUCCESS) {
-    return ge::SUCCESS;
+  if (GetThreadLocalContext().GetOption(kDumpDebugInfo, dump_debug_info) != af::SUCCESS) {
+    return af::SUCCESS;
   }
   ge::char_t realpath_file[PATH_MAX] = {0x00};
   std::string json_path;
@@ -980,14 +980,14 @@ af::Status AscendGraphParser::GraphParser(const af::AscGraph &graph) {
   auto ret = realpath(json_path.c_str(), realpath_file);
   if (ret == nullptr) {
     GELOGD("Json path [%s] unfound.", json_path.c_str());
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
   std::ofstream tuning_space_file(realpath_file, std::ios::trunc);
   if (tuning_space_file.is_open()) {
     tuning_space_file << TuningSpacePrint();
     tuning_space_file.close();
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 std::string AscendGraphParser::TuningSpacePrint(const NodeInfo &node_info) const {

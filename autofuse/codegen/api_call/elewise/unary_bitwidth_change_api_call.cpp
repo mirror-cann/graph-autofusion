@@ -72,7 +72,7 @@ Status UnaryBitWidthChangeApiCall::Generate(const TPipe &tpipe, const std::vecto
   }
 
   result = ss.str();
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 static ApiCallRegister<UnaryBitWidthChangeApiCall> register_unary_bitwidth_change_api_call(

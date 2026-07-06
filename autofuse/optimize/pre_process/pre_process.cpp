@@ -16,7 +16,7 @@
 namespace af {
 namespace pre_process {
 
-ge::Status PreProcess::Run(af::AscGraph &asc_graph) {
+af::Status PreProcess::Run(af::AscGraph &asc_graph) {
   // 对用户构图存在一些后端支持不了的场景做一些适配
   GELOGD("PreProcess::Run start, graph: %s.", asc_graph.GetName().c_str());
 
@@ -26,7 +26,7 @@ ge::Status PreProcess::Run(af::AscGraph &asc_graph) {
   // 后续预处理步骤在此追加
 
   GELOGD("PreProcess::Run end, graph: %s.", asc_graph.GetName().c_str());
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 }  // namespace pre_process

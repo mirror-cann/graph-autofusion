@@ -308,7 +308,7 @@ TEST(GeneratorUT, GenVariableAnnotationShowsReduceBreakdownAndContribSemantics) 
   MockHighPerfTilingCodeGenImpl impl("test", config, tiling_model_info, score_funcs, true);
   ArgsManager args_manager(model_info);
   ASSERT_TRUE(args_manager.Process(false));
-  EXPECT_EQ(impl.GenVariableAnnotation(args_manager), ge::SUCCESS);
+  EXPECT_EQ(impl.GenVariableAnnotation(args_manager), af::SUCCESS);
 
   const std::string tiling_func_output = impl.tiling_func_.GetOutputStr();
   EXPECT_NE(tiling_func_output.find("Reduce perf breakdown used for tiling case 0"), std::string::npos);
@@ -443,26 +443,26 @@ TEST(GeneratorUT, RootGetTilingFailuresUseWarningLogOnlyForPGOPath) {
   namespace_map[0][0] = {};
 
   genImpl.tiling_func_.Reset();
-  EXPECT_EQ(genImpl.GenFusedScheduleResultsGetTilingDefine(namespace_map), ge::SUCCESS);
+  EXPECT_EQ(genImpl.GenFusedScheduleResultsGetTilingDefine(namespace_map), af::SUCCESS);
   std::string tiling_func_output = genImpl.tiling_func_.GetOutputStr();
   EXPECT_NE(tiling_func_output.find("OP_LOGE(OP_NAME, \"Failed to get tiling of AscGraph0.\");"), std::string::npos);
   EXPECT_EQ(tiling_func_output.find("OP_LOGW(OP_NAME, \"Failed to get tiling of AscGraph0.\");"), std::string::npos);
 
   genImpl.config_.is_inductor_scene = true;
   genImpl.tiling_func_.Reset();
-  EXPECT_EQ(genImpl.GenFusedScheduleResultsGetTilingDefine(namespace_map), ge::SUCCESS);
+  EXPECT_EQ(genImpl.GenFusedScheduleResultsGetTilingDefine(namespace_map), af::SUCCESS);
   tiling_func_output = genImpl.tiling_func_.GetOutputStr();
   EXPECT_NE(tiling_func_output.find("OP_LOGW(OP_NAME, \"Failed to get tiling of AscGraph0.\");"), std::string::npos);
   EXPECT_EQ(tiling_func_output.find("OP_LOGE(OP_NAME, \"Failed to get tiling of AscGraph0.\");"), std::string::npos);
 
   genImpl.tiling_func_.Reset();
-  EXPECT_EQ(genImpl.GenPGOByCoreNumFusedScheduleResultsGetTilingDefine(namespace_map), ge::SUCCESS);
+  EXPECT_EQ(genImpl.GenPGOByCoreNumFusedScheduleResultsGetTilingDefine(namespace_map), af::SUCCESS);
   tiling_func_output = genImpl.tiling_func_.GetOutputStr();
   EXPECT_NE(tiling_func_output.find("OP_LOGW(OP_NAME, \"Failed to get tiling of AscGraph0.\");"), std::string::npos);
   EXPECT_EQ(tiling_func_output.find("OP_LOGE(OP_NAME, \"Failed to get tiling of AscGraph0.\");"), std::string::npos);
 
   genImpl.tiling_func_.Reset();
-  EXPECT_EQ(genImpl.GenPGOFusedScheduleResultsGetTilingDefine(namespace_map), ge::SUCCESS);
+  EXPECT_EQ(genImpl.GenPGOFusedScheduleResultsGetTilingDefine(namespace_map), af::SUCCESS);
   tiling_func_output = genImpl.tiling_func_.GetOutputStr();
   EXPECT_NE(tiling_func_output.find("OP_LOGW(OP_NAME, \"Failed to get tiling of AscGraph0.\");"), std::string::npos);
   EXPECT_EQ(tiling_func_output.find("OP_LOGE(OP_NAME, \"Failed to get tiling of AscGraph0.\");"), std::string::npos);
@@ -480,7 +480,7 @@ TEST(GeneratorUT, PGOGetTilingKeyFailureUsesWarningLog) {
   genImpl.config_.enable_autofuse_pgo = true;
   genImpl.config_.is_inductor_scene = true;
   genImpl.config_.cache_enabled_at_compile_time = false;
-  EXPECT_EQ(genImpl.GenGetTilingKeyCall(""), ge::SUCCESS);
+  EXPECT_EQ(genImpl.GenGetTilingKeyCall(""), af::SUCCESS);
 
   const std::string tiling_func_output = genImpl.tiling_func_.GetOutputStr();
   EXPECT_NE(tiling_func_output.find("OP_LOGW(OP_NAME, \"GetTiling Failed.\");"), std::string::npos);
@@ -495,14 +495,14 @@ TEST(GeneratorUT, GetResultSummaryFailureUsesWarningLogForPGOPath) {
   ScoreFuncs score_funcs;
   MockHighPerfTilingCodeGenImpl genImpl("test", config, tiling_model_info, score_funcs, true);
 
-  EXPECT_EQ(genImpl.GenGetResultSummary(0), ge::SUCCESS);
+  EXPECT_EQ(genImpl.GenGetResultSummary(0), af::SUCCESS);
   std::string tiling_func_output = genImpl.tiling_func_.GetOutputStr();
   EXPECT_NE(tiling_func_output.find("OP_LOGE(OP_NAME, \"GetTiling Failed.\");"), std::string::npos);
   EXPECT_EQ(tiling_func_output.find("OP_LOGW(OP_NAME, \"GetTiling Failed.\");"), std::string::npos);
 
   genImpl.config_.enable_autofuse_pgo = true;
   genImpl.tiling_func_.Reset();
-  EXPECT_EQ(genImpl.GenGetResultSummary(0), ge::SUCCESS);
+  EXPECT_EQ(genImpl.GenGetResultSummary(0), af::SUCCESS);
   tiling_func_output = genImpl.tiling_func_.GetOutputStr();
   EXPECT_NE(tiling_func_output.find("OP_LOGW(OP_NAME, \"GetTiling Failed.\");"), std::string::npos);
   EXPECT_EQ(tiling_func_output.find("OP_LOGE(OP_NAME, \"GetTiling Failed.\");"), std::string::npos);
@@ -510,7 +510,7 @@ TEST(GeneratorUT, GetResultSummaryFailureUsesWarningLogForPGOPath) {
   genImpl.config_.enable_autofuse_pgo = false;
   genImpl.config_.is_inductor_scene = true;
   genImpl.tiling_func_.Reset();
-  EXPECT_EQ(genImpl.GenGetResultSummary(0), ge::SUCCESS);
+  EXPECT_EQ(genImpl.GenGetResultSummary(0), af::SUCCESS);
   tiling_func_output = genImpl.tiling_func_.GetOutputStr();
   EXPECT_NE(tiling_func_output.find("OP_LOGW(OP_NAME, \"GetTiling Failed.\");"), std::string::npos);
   EXPECT_EQ(tiling_func_output.find("OP_LOGE(OP_NAME, \"GetTiling Failed.\");"), std::string::npos);
@@ -821,7 +821,7 @@ TEST(GeneratorUT, InductorSceneTriggersPGOSkeletonAndSearchTilingKey) {
   MockHighPerfTilingCodeGenImpl genImpl("test", config, tiling_model_info, score_funcs, true);
   genImpl.config_.is_inductor_scene = true;
   genImpl.config_.gen_tiling_data = false;
-  EXPECT_EQ(genImpl.GenTiling(tiling_res, {}, 0, enable_group_parallels), ge::SUCCESS);
+  EXPECT_EQ(genImpl.GenTiling(tiling_res, {}, 0, enable_group_parallels), af::SUCCESS);
 
   std::string tiling_func_output = genImpl.tiling_func_.GetOutputStr();
   EXPECT_FALSE(tiling_func_output.empty());
@@ -857,7 +857,7 @@ TEST(GeneratorUT, GroupParallelCacheLine_AllConflict_UseSumAggregation) {
   schedule_result.groups_tiling_model_info[1] = {info1};
 
   for (auto &[group_id, infos] : schedule_result.groups_tiling_model_info) {
-    ASSERT_EQ(ReuseGroupUtils::InitReuseScheduleGroup({0UL, 0UL, group_id}, infos), ge::SUCCESS);
+    ASSERT_EQ(ReuseGroupUtils::InitReuseScheduleGroup({0UL, 0UL, group_id}, infos), af::SUCCESS);
   }
 
   TilingCodeGenConfig config;
@@ -868,7 +868,7 @@ TEST(GeneratorUT, GroupParallelCacheLine_AllConflict_UseSumAggregation) {
   config.gen_extra_infos = false;
   std::map<std::string, std::string> tiling_res;
   TilingCodeGenerator generator;
-  ASSERT_EQ(generator.GenTilingCode(op_name, fused_schedule_result, config, tiling_res), ge::SUCCESS);
+  ASSERT_EQ(generator.GenTilingCode(op_name, fused_schedule_result, config, tiling_res), af::SUCCESS);
 
   std::string all_code;
   for (const auto &[key, value] : tiling_res) {
@@ -898,7 +898,7 @@ TEST(GeneratorUT, GroupParallelCacheLine_BoundaryEqualCacheLine_StaysNormal) {
   schedule_result.groups_tiling_model_info[1] = {info1};
 
   for (auto &[group_id, infos] : schedule_result.groups_tiling_model_info) {
-    ASSERT_EQ(ReuseGroupUtils::InitReuseScheduleGroup({0UL, 0UL, group_id}, infos), ge::SUCCESS);
+    ASSERT_EQ(ReuseGroupUtils::InitReuseScheduleGroup({0UL, 0UL, group_id}, infos), af::SUCCESS);
   }
 
   TilingCodeGenConfig config;
@@ -909,7 +909,7 @@ TEST(GeneratorUT, GroupParallelCacheLine_BoundaryEqualCacheLine_StaysNormal) {
   config.gen_extra_infos = false;
   std::map<std::string, std::string> tiling_res;
   TilingCodeGenerator generator;
-  ASSERT_EQ(generator.GenTilingCode(op_name, fused_schedule_result, config, tiling_res), ge::SUCCESS);
+  ASSERT_EQ(generator.GenTilingCode(op_name, fused_schedule_result, config, tiling_res), af::SUCCESS);
 
   std::string all_code;
   for (const auto &[key, value] : tiling_res) {
@@ -937,7 +937,7 @@ TEST(GeneratorUT, GroupParallelCacheLine_FirstConflictSecondNormal_InitFromFirst
   schedule_result.groups_tiling_model_info[1] = {info1};
 
   for (auto &[group_id, infos] : schedule_result.groups_tiling_model_info) {
-    ASSERT_EQ(ReuseGroupUtils::InitReuseScheduleGroup({0UL, 0UL, group_id}, infos), ge::SUCCESS);
+    ASSERT_EQ(ReuseGroupUtils::InitReuseScheduleGroup({0UL, 0UL, group_id}, infos), af::SUCCESS);
   }
 
   TilingCodeGenConfig config;
@@ -948,7 +948,7 @@ TEST(GeneratorUT, GroupParallelCacheLine_FirstConflictSecondNormal_InitFromFirst
   config.gen_extra_infos = false;
   std::map<std::string, std::string> tiling_res;
   TilingCodeGenerator generator;
-  ASSERT_EQ(generator.GenTilingCode(op_name, fused_schedule_result, config, tiling_res), ge::SUCCESS);
+  ASSERT_EQ(generator.GenTilingCode(op_name, fused_schedule_result, config, tiling_res), af::SUCCESS);
 
   std::string all_code;
   for (const auto &[key, value] : tiling_res) {
@@ -981,7 +981,7 @@ TEST(GeneratorUT, GroupParallelCacheLine_FinalTilingKeyDispatch_UsesFinalCaseHel
   schedule_result.groups_tiling_model_info[1] = {info1_case2};
 
   for (auto &[group_id, infos] : schedule_result.groups_tiling_model_info) {
-    ASSERT_EQ(ReuseGroupUtils::InitReuseScheduleGroup({0UL, 0UL, group_id}, infos), ge::SUCCESS);
+    ASSERT_EQ(ReuseGroupUtils::InitReuseScheduleGroup({0UL, 0UL, group_id}, infos), af::SUCCESS);
   }
 
   TilingCodeGenConfig config;
@@ -992,7 +992,7 @@ TEST(GeneratorUT, GroupParallelCacheLine_FinalTilingKeyDispatch_UsesFinalCaseHel
   config.gen_extra_infos = false;
   std::map<std::string, std::string> tiling_res;
   TilingCodeGenerator generator;
-  ASSERT_EQ(generator.GenTilingCode(op_name, fused_schedule_result, config, tiling_res), ge::SUCCESS);
+  ASSERT_EQ(generator.GenTilingCode(op_name, fused_schedule_result, config, tiling_res), af::SUCCESS);
 
   std::string all_code;
   for (const auto &[key, value] : tiling_res) {
@@ -1021,7 +1021,7 @@ TEST(GeneratorUT, GroupParallelCacheLine_ByteExprDoesNotMultiplyDtypeAgain) {
   schedule_result.groups_tiling_model_info[1] = {info1};
 
   for (auto &[group_id, infos] : schedule_result.groups_tiling_model_info) {
-    ASSERT_EQ(ReuseGroupUtils::InitReuseScheduleGroup({0UL, 0UL, group_id}, infos), ge::SUCCESS);
+    ASSERT_EQ(ReuseGroupUtils::InitReuseScheduleGroup({0UL, 0UL, group_id}, infos), af::SUCCESS);
   }
 
   TilingCodeGenConfig config;
@@ -1032,7 +1032,7 @@ TEST(GeneratorUT, GroupParallelCacheLine_ByteExprDoesNotMultiplyDtypeAgain) {
   config.gen_extra_infos = false;
   std::map<std::string, std::string> tiling_res;
   TilingCodeGenerator generator;
-  ASSERT_EQ(generator.GenTilingCode(op_name, fused_schedule_result, config, tiling_res), ge::SUCCESS);
+  ASSERT_EQ(generator.GenTilingCode(op_name, fused_schedule_result, config, tiling_res), af::SUCCESS);
 
   std::string all_code;
   for (const auto &[key, value] : tiling_res) {
@@ -1074,7 +1074,7 @@ TEST(GeneratorUT, GroupParallelCacheLine_MissingScheduleTable_FallbackToNormalWi
   schedule_result.groups_tiling_model_info[1] = {info1};
 
   for (auto &[group_id, infos] : schedule_result.groups_tiling_model_info) {
-    ASSERT_EQ(ReuseGroupUtils::InitReuseScheduleGroup({0UL, 0UL, group_id}, infos), ge::SUCCESS);
+    ASSERT_EQ(ReuseGroupUtils::InitReuseScheduleGroup({0UL, 0UL, group_id}, infos), af::SUCCESS);
   }
 
   TilingCodeGenConfig config;
@@ -1085,7 +1085,7 @@ TEST(GeneratorUT, GroupParallelCacheLine_MissingScheduleTable_FallbackToNormalWi
   config.gen_extra_infos = false;
   std::map<std::string, std::string> tiling_res;
   TilingCodeGenerator generator;
-  ASSERT_EQ(generator.GenTilingCode(op_name, fused_schedule_result, config, tiling_res), ge::SUCCESS);
+  ASSERT_EQ(generator.GenTilingCode(op_name, fused_schedule_result, config, tiling_res), af::SUCCESS);
 
   std::string all_code;
   for (const auto &[key, value] : tiling_res) {
@@ -1112,7 +1112,7 @@ TEST(GeneratorUT, GroupParallelCacheLine_GmToUbConflict_UseSumAggregation) {
   schedule_result.groups_tiling_model_info[1] = {info1};
 
   for (auto &[group_id, infos] : schedule_result.groups_tiling_model_info) {
-    ASSERT_EQ(ReuseGroupUtils::InitReuseScheduleGroup({0UL, 0UL, group_id}, infos), ge::SUCCESS);
+    ASSERT_EQ(ReuseGroupUtils::InitReuseScheduleGroup({0UL, 0UL, group_id}, infos), af::SUCCESS);
   }
 
   TilingCodeGenConfig config;
@@ -1123,7 +1123,7 @@ TEST(GeneratorUT, GroupParallelCacheLine_GmToUbConflict_UseSumAggregation) {
   config.gen_extra_infos = false;
   std::map<std::string, std::string> tiling_res;
   TilingCodeGenerator generator;
-  ASSERT_EQ(generator.GenTilingCode(op_name, fused_schedule_result, config, tiling_res), ge::SUCCESS);
+  ASSERT_EQ(generator.GenTilingCode(op_name, fused_schedule_result, config, tiling_res), af::SUCCESS);
 
   std::string all_code;
   for (const auto &[key, value] : tiling_res) {
@@ -1158,7 +1158,7 @@ TEST(GeneratorUT, GroupParallelCacheLine_DuplicateFinalKey_FallbackToNormalWithL
   schedule_result.groups_tiling_model_info[1] = {info1};
 
   for (auto &[group_id, infos] : schedule_result.groups_tiling_model_info) {
-    ASSERT_EQ(ReuseGroupUtils::InitReuseScheduleGroup({0UL, 0UL, group_id}, infos), ge::SUCCESS);
+    ASSERT_EQ(ReuseGroupUtils::InitReuseScheduleGroup({0UL, 0UL, group_id}, infos), af::SUCCESS);
   }
 
   TilingCodeGenConfig config;
@@ -1169,7 +1169,7 @@ TEST(GeneratorUT, GroupParallelCacheLine_DuplicateFinalKey_FallbackToNormalWithL
   config.gen_extra_infos = false;
   std::map<std::string, std::string> tiling_res;
   TilingCodeGenerator generator;
-  ASSERT_EQ(generator.GenTilingCode(op_name, fused_schedule_result, config, tiling_res), ge::SUCCESS);
+  ASSERT_EQ(generator.GenTilingCode(op_name, fused_schedule_result, config, tiling_res), af::SUCCESS);
 
   std::string all_code;
   for (const auto &[key, value] : tiling_res) {
@@ -1197,7 +1197,7 @@ TEST(GeneratorUT, GroupParallelCacheLine_DynamicInputSizeSymbols_GenerateContext
   schedule_result.groups_tiling_model_info[1] = {info1};
 
   for (auto &[group_id, infos] : schedule_result.groups_tiling_model_info) {
-    ASSERT_EQ(ReuseGroupUtils::InitReuseScheduleGroup({0UL, 0UL, group_id}, infos), ge::SUCCESS);
+    ASSERT_EQ(ReuseGroupUtils::InitReuseScheduleGroup({0UL, 0UL, group_id}, infos), af::SUCCESS);
   }
 
   TilingCodeGenConfig config;
@@ -1208,7 +1208,7 @@ TEST(GeneratorUT, GroupParallelCacheLine_DynamicInputSizeSymbols_GenerateContext
   config.gen_extra_infos = false;
   std::map<std::string, std::string> tiling_res;
   TilingCodeGenerator generator;
-  ASSERT_EQ(generator.GenTilingCode(op_name, fused_schedule_result, config, tiling_res), ge::SUCCESS);
+  ASSERT_EQ(generator.GenTilingCode(op_name, fused_schedule_result, config, tiling_res), af::SUCCESS);
 
   std::string all_code;
   for (const auto &[key, value] : tiling_res) {
@@ -1234,7 +1234,7 @@ TEST(GeneratorUT, GroupParallelCacheLine_UnknownDirection_FallbackToNormal) {
   schedule_result.groups_tiling_model_info[0] = {info0};
   schedule_result.groups_tiling_model_info[1] = {info1};
   for (auto &[group_id, infos] : schedule_result.groups_tiling_model_info) {
-    ASSERT_EQ(ReuseGroupUtils::InitReuseScheduleGroup({0UL, 0UL, group_id}, infos), ge::SUCCESS);
+    ASSERT_EQ(ReuseGroupUtils::InitReuseScheduleGroup({0UL, 0UL, group_id}, infos), af::SUCCESS);
   }
 
   TilingCodeGenConfig config;
@@ -1245,7 +1245,7 @@ TEST(GeneratorUT, GroupParallelCacheLine_UnknownDirection_FallbackToNormal) {
   config.gen_extra_infos = false;
   std::map<std::string, std::string> tiling_res;
   TilingCodeGenerator generator;
-  ASSERT_EQ(generator.GenTilingCode(op_name, fused_schedule_result, config, tiling_res), ge::SUCCESS);
+  ASSERT_EQ(generator.GenTilingCode(op_name, fused_schedule_result, config, tiling_res), af::SUCCESS);
 
   std::string all_code;
   for (const auto &[key, value] : tiling_res) {
@@ -1274,7 +1274,7 @@ TEST(GeneratorUT, GroupParallelCacheLine_MultiWriteExprs_DeduplicateContext) {
   schedule_result.groups_tiling_model_info[0] = {info0};
   schedule_result.groups_tiling_model_info[1] = {info1};
   for (auto &[group_id, infos] : schedule_result.groups_tiling_model_info) {
-    ASSERT_EQ(ReuseGroupUtils::InitReuseScheduleGroup({0UL, 0UL, group_id}, infos), ge::SUCCESS);
+    ASSERT_EQ(ReuseGroupUtils::InitReuseScheduleGroup({0UL, 0UL, group_id}, infos), af::SUCCESS);
   }
 
   TilingCodeGenConfig config;
@@ -1285,7 +1285,7 @@ TEST(GeneratorUT, GroupParallelCacheLine_MultiWriteExprs_DeduplicateContext) {
   config.gen_extra_infos = false;
   std::map<std::string, std::string> tiling_res;
   TilingCodeGenerator generator;
-  ASSERT_EQ(generator.GenTilingCode(op_name, fused_schedule_result, config, tiling_res), ge::SUCCESS);
+  ASSERT_EQ(generator.GenTilingCode(op_name, fused_schedule_result, config, tiling_res), af::SUCCESS);
 
   std::string all_code;
   for (const auto &[key, value] : tiling_res) {

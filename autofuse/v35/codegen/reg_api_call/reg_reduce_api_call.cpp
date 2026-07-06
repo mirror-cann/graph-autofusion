@@ -39,7 +39,7 @@ Status RegReduceApiCall::ParseAttr(const ascir::NodeView &node) {
   if (in_node->GetOutAllNodes().size() == 1UL) {
     is_reuse_source_ = "true";
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status RegReduceApiCall::BuildApiParam(const TPipe &tpipe, const std::vector<ascir::AxisId> &current_axis,
@@ -56,7 +56,7 @@ Status RegReduceApiCall::BuildApiParam(const TPipe &tpipe, const std::vector<asc
   }
 
   auto iter = reduce_type_map.find(this->api_name_);
-  GE_CHK_BOOL_RET_STATUS(iter != reduce_type_map.end(), ge::FAILED, "Codegen unsupported reg reduce api::%s",
+  GE_CHK_BOOL_RET_STATUS(iter != reduce_type_map.end(), af::FAILED, "Codegen unsupported reg reduce api::%s",
                          this->api_name_.c_str());
   auto &[type_value, instr_type] = iter->second;
 
@@ -75,7 +75,7 @@ Status RegReduceApiCall::BuildApiParam(const TPipe &tpipe, const std::vector<asc
 
   auto api_param = af::ComGraphMakeShared<CodegenApiParam>();
   GE_ASSERT_NOTNULL(api_param);
-  
+
   ReduceMergedSizeCodeGen(tpipe, api_param->api_pre_process, x, y);
 
   ReduceDimACodeGen(x, this->api_name_, api_param->api_pre_process);
@@ -94,12 +94,12 @@ Status RegReduceApiCall::BuildApiParam(const TPipe &tpipe, const std::vector<asc
     life_time_axis_id = 0L;
     int64_t tmp_reduce_id = -1L;
     auto it_tmp = this->tmp_buf_id.find(life_time_axis_id);
-    GE_ASSERT_TRUE(it_tmp != this->tmp_buf_id.end(), "RegReduceApiCall(tmp_reduce_id) cannot find tmp buffer id to use.");
+    GE_ASSERT_TRUE(it_tmp != this->tmp_buf_id.end(),
+                   "RegReduceApiCall(tmp_reduce_id) cannot find tmp buffer id to use.");
     tmp_reduce_id = it_tmp->second;
     api_param->api_pre_process.emplace_back("LocalTensor<" + dtype_name + "> tmp_reduce;\n");
-    api_param->api_pre_process.emplace_back(
-        "tmp_reduce = " + tpipe.tmp_buf.name + "_" + std::to_string(tmp_reduce_id) +
-        ".template ReinterpretCast<" + dtype_name + ">();\n");
+    api_param->api_pre_process.emplace_back("tmp_reduce = " + tpipe.tmp_buf.name + "_" + std::to_string(tmp_reduce_id) +
+                                            ".template ReinterpretCast<" + dtype_name + ">();\n");
   }
 
   if (need_multi_reduce) {
@@ -128,27 +128,25 @@ Status RegReduceApiCall::BuildApiParam(const TPipe &tpipe, const std::vector<asc
 
   if (need_multi_reduce) {
     api_param->api_post_process.emplace_back("AscendC::PipeBarrier<PIPE_V>();\n");
-    api_param->api_post_process.emplace_back(
-        "uint32_t temp_size = " + KernelUtils::SizeAlign() + "(" + y.actual_size.Str() +
-        ", 32/sizeof(" + dtype_name + "));\n");
-    api_param->api_post_process.emplace_back(
-        "if (" + tpipe.tiler.GetAxis(current_axis.back()).Str() + " == 0) {\n");
-    api_param->api_post_process.emplace_back(
-        "DataCopyExtend(" + y.Str() + "[0], tmp_reduce[0], temp_size);\n");
+    api_param->api_post_process.emplace_back("uint32_t temp_size = " + KernelUtils::SizeAlign() + "(" +
+                                             y.actual_size.Str() + ", 32/sizeof(" + dtype_name + "));\n");
+    api_param->api_post_process.emplace_back("if (" + tpipe.tiler.GetAxis(current_axis.back()).Str() + " == 0) {\n");
+    api_param->api_post_process.emplace_back("DataCopyExtend(" + y.Str() + "[0], tmp_reduce[0], temp_size);\n");
     api_param->api_post_process.emplace_back("} else {\n");
-    api_param->api_post_process.emplace_back(
-        "AscendC::" + instr_type + "(" + y.Str() + "[0], tmp_reduce[0], " + y.Str() + "[0], temp_size);\n");
+    api_param->api_post_process.emplace_back("AscendC::" + instr_type + "(" + y.Str() + "[0], tmp_reduce[0], " +
+                                             y.Str() + "[0], temp_size);\n");
     api_param->api_post_process.emplace_back("}\n");
   }
   // 结束代码块（与ReduceMergedSizeCodeGen生成的 { 对应）
   api_param->api_post_process.emplace_back("}\n");
 
-  GE_CHK_STATUS_RET(CodegenApiParam::Register(this->node, api_param),
-                    "CodegenApiParam Register failed for node %s", this->node_name.c_str());
+  GE_CHK_STATUS_RET(CodegenApiParam::Register(this->node, api_param), "CodegenApiParam Register failed for node %s",
+                    this->node_name.c_str());
   return af::SUCCESS;
 }
 
-Status RegReduceApiCall::GenDimensionParam(const CodegenApiParam &api_param, const Tiler &tiler, std::stringstream &ss) const {
+Status RegReduceApiCall::GenDimensionParam(const CodegenApiParam &api_param, const Tiler &tiler,
+                                           std::stringstream &ss) const {
   ss << api_param.cal_count.ToStr(tiler) << ", true);" << std::endl;
   return af::SUCCESS;
 }

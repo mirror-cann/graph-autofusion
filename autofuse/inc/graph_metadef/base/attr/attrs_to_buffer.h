@@ -226,7 +226,7 @@ inline bool AppendAttr(const ge::AnyValue &attr, std::vector<std::vector<uint8_t
     case ge::AnyValue::VT_LIST_LIST_INT:
       return AppendVectorVectorAttr<int64_t>(attr, attrs);
     default:
-      GELOGE(ge::FAILED, "Does not support the attr type now, attr type %d", attr.GetValueType());
+      GELOGE(af::FAILED, "Does not support the attr type now, attr type %d", attr.GetValueType());
       return false;
   }
 }
@@ -235,16 +235,16 @@ inline std::unique_ptr<uint8_t[]> CreateAttrBuffer(const std::vector<std::vector
   total_size = sizeof(RuntimeAttrsDef);
   size_t offset_size = 0U;
   if (ge::MulOverflow(sizeof(size_t), attrs.size(), offset_size)) {
-    GELOGE(ge::FAILED, "Failed to create attr buffer, total size overflow, attrs size may invalid %zu", attrs.size());
+    GELOGE(af::FAILED, "Failed to create attr buffer, total size overflow, attrs size may invalid %zu", attrs.size());
     return nullptr;
   }
   if (ge::AddOverflow(total_size, offset_size, total_size)) {
-    GELOGE(ge::FAILED, "Failed to create attr buffer, total size overflow, attrs offset may invalid %zu", offset_size);
+    GELOGE(af::FAILED, "Failed to create attr buffer, total size overflow, attrs offset may invalid %zu", offset_size);
     return nullptr;
   }
   for (const auto &attr : attrs) {
     if (ge::AddOverflow(total_size, attr.size(), total_size)) {
-      GELOGE(ge::FAILED,
+      GELOGE(af::FAILED,
              "Failed to create attr buffer, total size overflow, attr size may invalid %zu, current total size %zu",
              attr.size(), total_size);
       return nullptr;
@@ -261,7 +261,7 @@ inline std::unique_ptr<uint8_t[]> CreateAttrBuffer(const std::vector<std::vector
     attr_def->offset[i] = current_offset;
     const auto ret = ge::GeMemcpy(ge::PtrAdd(attr_pos, std::numeric_limits<size_t>::max(), current_offset),
                                   total_size - current_offset, attrs[i].data(), attrs[i].size());
-    GE_ASSERT_TRUE((ret == ge::SUCCESS), "memcpy_s failed, copy size is %zu, dst size is %zu", attrs[i].size(),
+    GE_ASSERT_TRUE((ret == af::SUCCESS), "memcpy_s failed, copy size is %zu, dst size is %zu", attrs[i].size(),
                    total_size - current_offset);
     current_offset += attrs[i].size();
   }

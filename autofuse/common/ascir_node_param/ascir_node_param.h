@@ -86,7 +86,7 @@ using AscirNodeParamsPtr = std::shared_ptr<AscirNodeParams>;
 AscirNodeParamsPtr GetAscirNodeParams(af::AscNodePtr node);
 const codegen::ReduceSpecificParams &GetCanonicalReduceParams(const ReduceNodeParams &params);
 ge::Expression ResolveForAtt(const ParamExprProduct &expr);
-ge::Status ValidateReduceNodeParams(const ReduceNodeParams &params);
+af::Status ValidateReduceNodeParams(const ReduceNodeParams &params);
 
 template <typename T>
 const T *GetSpecificParams(const AscirNodeParams &params) {

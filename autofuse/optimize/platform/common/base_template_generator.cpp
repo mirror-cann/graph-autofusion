@@ -38,7 +38,7 @@ af::Status BaseTemplateGenerator::Generate(BaseTemplate &strategy, const af::Asc
     GE_ASSERT_TRUE(generated_output.scheduled_graph.CopyFrom(based_case.scheduled_graph));
     generated_output.var_relations_ = based_case.var_relations_;
 
-    if (strategy.Generate(origin_graph, based_case.scheduled_graph, generated_output.scheduled_graph) != ge::SUCCESS) {
+    if (strategy.Generate(origin_graph, based_case.scheduled_graph, generated_output.scheduled_graph) != af::SUCCESS) {
       GELOGD("Generate template failed, %s.", generated_output.scheduled_graph.GetName().c_str());
       continue;
     }
@@ -58,14 +58,14 @@ af::Status BaseTemplateGenerator::Generate(BaseTemplate &strategy, const af::Asc
       drop_case_names.emplace(based_case.scheduled_graph.GetName());
     }
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 af::Status BaseTemplateGenerator::GenerateTemplates(const af::AscGraph &origin_graph,
                                                     std::vector<autoschedule::AutoScheduleOutput> &tiling_cases) {
   if (strategies_.empty()) {
     GELOGD("No template strategies found.");
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
   std::vector<autoschedule::AutoScheduleOutput> generated_cases;
   std::unordered_set<std::string> drop_case_names;
@@ -77,7 +77,7 @@ af::Status BaseTemplateGenerator::GenerateTemplates(const af::AscGraph &origin_g
   }
 
   if (generated_cases.empty() && drop_case_names.empty()) {
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
 
   // 拼接生成的新模板
@@ -94,7 +94,7 @@ af::Status BaseTemplateGenerator::GenerateTemplates(const af::AscGraph &origin_g
     }
     tiling_cases.swap(reserved_cases);
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 }  // namespace optimize

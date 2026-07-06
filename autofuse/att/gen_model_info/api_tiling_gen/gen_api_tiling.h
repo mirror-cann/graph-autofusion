@@ -23,7 +23,7 @@ struct ApiTilingParams {
   std::string tiling_data_type;
 };
 
-ge::Status GetApiTilingInfo(const uint32_t tiling_case_id, const ApiTilingParams &params,
+af::Status GetApiTilingInfo(const uint32_t tiling_case_id, const ApiTilingParams &params,
                             std::map<std::string, NodeApiTilingCode> &node_name_to_api_code);
 }  // namespace att
 #endif  // GEN_API_TILING_H_

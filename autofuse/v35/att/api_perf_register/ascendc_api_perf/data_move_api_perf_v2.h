@@ -16,9 +16,9 @@
 namespace att {
 namespace ascendcapi_v2 {
 
-ge::Status LoadPerf(const NodeDetail &node_info, PerfOutputInfo &perf);
-ge::Status StorePerf(const NodeDetail &node_info, PerfOutputInfo &perf);
-ge::Status NddmaPerf(const NodeDetail &node_info, PerfOutputInfo &perf);
+af::Status LoadPerf(const NodeDetail &node_info, PerfOutputInfo &perf);
+af::Status StorePerf(const NodeDetail &node_info, PerfOutputInfo &perf);
+af::Status NddmaPerf(const NodeDetail &node_info, PerfOutputInfo &perf);
 
 }  // namespace ascendcapi_v2
 }  // namespace att

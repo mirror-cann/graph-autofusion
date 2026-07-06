@@ -60,7 +60,7 @@ int32_t GenAscGraphAxisGroup(const af::AscGraph &graph, AxisGroup &axes_group) {
   GE_CHK_STATUS_RET(TilingGroup::GenTilingGroup(graph, axes_group), "Gen axis map failed, graph[%s] may be invalid.",
                     graph.GetName().c_str());
   GELOGD("Finish [GenAscGraphAxisGroup], graph name: %s", graph.GetName().c_str());
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 bool CanMergeAxisGroup(const AxisGroup &lhs, const AxisGroup &rhs, AxisGroup &merged_group, bool is_ge_call) {
@@ -501,7 +501,7 @@ Status TilingGroup::GenTilingGroup(const ascir::ImplGraph &impl_graph, AxisGroup
                    iter.second.ToString().c_str(), tiling_group.ToString().c_str(), impl_graph.GetName().c_str());
   }
 
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status TilingGroup::GenElewiseTilingGroup(af::AscNode &node, AxisGroup &axes_group) {
@@ -510,7 +510,7 @@ Status TilingGroup::GenElewiseTilingGroup(af::AscNode &node, AxisGroup &axes_gro
   for (size_t i = 0UL; i < axes_group.y_group.size(); ++i) {
     axes_group.axes_order.push_back(i);
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 std::vector<af::AxisId> CalcReduceAxes(const std::vector<af::Expression> &src_strides,
@@ -549,7 +549,7 @@ Status TilingGroup::GenReduceTilingGroup(af::AscNode &node, AxisGroup &axes_grou
       axes_group.axes_order[r_order_index++] = i;
     }
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status TilingGroup::GenReduceTilingGroupFullLoad(af::AscNode &node, AxisGroup &axes_group) {
@@ -569,7 +569,7 @@ Status TilingGroup::GenReduceTilingGroupFullLoad(af::AscNode &node, AxisGroup &a
       axes_group.axes_order[r_order_index++] = i;
     }
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 void PlaceRemainingAxis(const int64_t index, std::set<int64_t> &remaining_axis, AxisGroup &axes_group,
@@ -635,7 +635,7 @@ Status TilingGroup::GenTransposeTilingGroup(af::AscNode &node, AxisGroup &axes_g
   }
 
   GELOGD("GenTransposeTilingGroup TilingGroup %s", axes_group.ToString().c_str());
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status TilingGroup::GenConcatTilingGroup(af::AscNode &node, AxisGroup &axes_group) {
@@ -673,7 +673,7 @@ Status TilingGroup::GenConcatTilingGroup(af::AscNode &node, AxisGroup &axes_grou
       axes_group.n_group.push_back(input_view->attr.axis[concat_dim]);
     }
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status TilingGroup::GenSplitTilingGroup(af::AscNode &node, AxisGroup &axes_group) {
@@ -704,7 +704,7 @@ Status TilingGroup::GenSplitTilingGroup(af::AscNode &node, AxisGroup &axes_group
     for (size_t i = 0UL; i < axes_group.y_group.size(); ++i) {
       axes_group.axes_order.push_back(i);
     }
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
 
   axes_group.axes_order.reserve(axes.size());
@@ -723,7 +723,7 @@ Status TilingGroup::GenSplitTilingGroup(af::AscNode &node, AxisGroup &axes_group
       axes_group.n_group.push_back(input_view->attr.axis[split_dim]);
     }
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 void TilingGroup::NormGroup(AxisGroup &group) {
@@ -753,7 +753,7 @@ Status TilingGroup::GenAxisGroupForSingleNode(af::AscNode &node, AxisGroup &axes
   if (node.attr.api.compute_type == af::ComputeType::kComputeReduce && is_reduce_ar_fullLoad) {
     GE_CHK_STATUS_RET(GenReduceTilingGroupFullLoad(node, axes_group), "Gen tiling case failed, compute type [%u].",
                       static_cast<uint32_t>(node.attr.api.compute_type));
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
 
   auto iter = compute_type_to_group_gen_func.find(node.attr.api.compute_type);
@@ -761,7 +761,7 @@ Status TilingGroup::GenAxisGroupForSingleNode(af::AscNode &node, AxisGroup &axes
                  node.attr.api.compute_type);
   GE_CHK_STATUS_RET(iter->second(node, axes_group), "Gen tiling case failed, compute type [%u].",
                     static_cast<uint32_t>(node.attr.api.compute_type));
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 }  // namespace optimize::autoschedule

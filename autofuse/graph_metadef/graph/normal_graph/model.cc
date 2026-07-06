@@ -278,7 +278,7 @@ ConstProtoAttrMap &Model::GetAttrMap() const {
 extern "C" {
 #endif
 
-ge::Status GeApiWrapper_ModelSaveToString(const af::Graph &graph, const std::string &node_name,
+af::Status GeApiWrapper_ModelSaveToString(const af::Graph &graph, const std::string &node_name,
                                           std::string &model_str) {
   std::string model_name = "onnx_compute_model_" + node_name;
   af::Buffer model_buf;
@@ -287,7 +287,7 @@ ge::Status GeApiWrapper_ModelSaveToString(const af::Graph &graph, const std::str
   GE_ASSERT_SUCCESS(onnx_model.Save(model_buf, false), "[GEOP] node:%s Onnx Model Serialized Failed.",
                     node_name.c_str());
   model_str = std::string(reinterpret_cast<const char *>(model_buf.GetData()), model_buf.GetSize());
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 #ifdef __cplusplus

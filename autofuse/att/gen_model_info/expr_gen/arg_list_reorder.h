@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -60,7 +60,7 @@ class ArgPriorityGraph {
   bool AddEdge(size_t from, size_t to) {
     // 参数检查
     if (from == 0u || from > vertex_count_ || to == 0u || to > vertex_count_) {
-      GELOGE(ge::FAILED, "node id invalid");
+      GELOGE(af::FAILED, "node id invalid");
       return false;
     }
 
@@ -116,7 +116,7 @@ class ArgPriorityGraph {
 
     // 环检测
     if (result.size() != vertex_count_) {
-      GELOGE(ge::FAILED, "has cycle, failed to toposort");
+      GELOGE(af::FAILED, "has cycle, failed to toposort");
       return {};
     }
     return result;
@@ -130,7 +130,7 @@ class ArgPriorityGraph {
 
     for (size_t i = 1; i <= vertex_count_; ++i) {
       if (!visited[i] && HasCycleDfs(i, visited, recursion_stack_, result)) {
-        GELOGE(ge::FAILED, "has cycle, failed to toposort");
+        GELOGE(af::FAILED, "has cycle, failed to toposort");
         return {};
       }
     }
@@ -172,7 +172,7 @@ class ArgListReorder {
   explicit ArgListReorder(const TuningSpacePtr &tuning_space) : tuning_space_(tuning_space) {}
   ~ArgListReorder() = default;
   // 排序ArgList入口函数
-  ge::Status SortArgList(vector<AttAxisPtr> &arg_list, vector<AttAxisPtr> &tiling_R_arg_list,
+  af::Status SortArgList(vector<AttAxisPtr> &arg_list, vector<AttAxisPtr> &tiling_R_arg_list,
                          std::vector<RuntimeReorderRule> *runtime_reorder_rules = nullptr);
 
  private:
@@ -190,8 +190,8 @@ class ArgListReorder {
   };
 
   // 核心函数保持原名
-  ge::Status BuildArgListPriorityGraph(const vector<AttAxisPtr> &arg_list, bool tiling_R = false);
-  ge::Status InitArgListPriorityGraph(const vector<AttAxisPtr> &arg_list);
+  af::Status BuildArgListPriorityGraph(const vector<AttAxisPtr> &arg_list, bool tiling_R = false);
+  af::Status InitArgListPriorityGraph(const vector<AttAxisPtr> &arg_list);
 
   // 变量名改为下划线
   std::map<std::string, size_t> axis_name_2_id_map_;
@@ -214,15 +214,15 @@ class ArgListReorder {
   bool CheckAxisProperty(const SubAxis *dim, const Expr &repeat, const Expr &stride,
                          const std::vector<TensorPtr> &output_tensors, AxisProperty property);
   void FindSpecialArgs();
-  ge::Status AddEdgeGroups(const std::vector<std::string> &from_axes_group, const std::vector<std::string> &to_axes_group);
+  af::Status AddEdgeGroups(const std::vector<std::string> &from_axes_group,
+                           const std::vector<std::string> &to_axes_group);
   bool IsReduceAxisBlockSplit(const std::vector<SubAxisPtr> &all_axes,
                               const std::set<std::string> &reduce_axis_ori_axes_set) const;
   bool IsReduceAxisTileSplit(const std::set<std::string> &reduce_axis_ori_axes_set) const;
   uint32_t GetCacheLineSize() const;
   uint32_t GetVectorLenSize() const;
   bool GetReduceAxisDataTypeSize(const NodeInfo &node, const SubAxis *axis,
-                                 const std::set<std::string> &reduce_axis_ori_axes_set,
-                                 uint32_t &data_type_size) const;
+                                 const std::set<std::string> &reduce_axis_ori_axes_set, uint32_t &data_type_size) const;
   bool TryBuildReduceTileRuntimeReorderRule(const NodeInfo &node, const std::set<std::string> &reduce_axis_ori_axes_set,
                                             RuntimeReorderRule &rule) const;
   bool HasSmallTailLargeReduceTile(const NodeInfo &node, const std::set<std::string> &reduce_axis_ori_axes_set,
@@ -230,7 +230,7 @@ class ArgListReorder {
   void RecordReduceTileTemplateSelection(const NodeInfo &node, const std::set<std::string> &reduce_axis_ori_axes_set);
   void SaveReduceAxisOrig(const SubAxis *reduce_axis, std::set<std::string> &reduce_axis_ori_axes_set) const;
   AxisCategories CategorizeAxesByProperty(const vector<AttAxisPtr> &arg_list);
-  ge::Status ApplyPriorityRules(bool tiling_R, const AxisCategories &categories);
+  af::Status ApplyPriorityRules(bool tiling_R, const AxisCategories &categories);
   std::vector<AttAxisPtr> GetNewArgList(const std::vector<size_t> &topo_order,
                                         const std::vector<AttAxisPtr> &arg_list) const;
   void MakeSureLoadStoreInnerestSameOrder(const std::vector<AttAxisPtr> &arg_list) const;

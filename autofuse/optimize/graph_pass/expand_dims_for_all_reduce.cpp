@@ -39,8 +39,8 @@ bool IsAllReduce(af::AscNode &node) {
 Status ExpandDimsAtFirst(ascir::ImplGraph &owner_graph, const std::string &name, const af::Expression &size) {
   const auto graph_attr = af::AscGraphUtils::GetComputeGraph(owner_graph)->GetOrCreateAttrsGroup<af::AscGraphAttr>();
   if (graph_attr == nullptr) {
-    GELOGE(ge::FAILED, "Get or create graph attr failed for graph: %s", owner_graph.GetName().c_str());
-    return ge::FAILED;
+    GELOGE(af::FAILED, "Get or create graph attr failed for graph: %s", owner_graph.GetName().c_str());
+    return af::FAILED;
   }
   GELOGD("before: axes = %s", ScheduleUtils::AxesToString(graph_attr->axis).c_str());
   const auto src_axes = graph_attr->axis;  // copy
@@ -63,7 +63,7 @@ Status ExpandDimsAtFirst(ascir::ImplGraph &owner_graph, const std::string &name,
   }
   graph_attr->axis = std::move(new_axes);
   GELOGD("after: axes = %s", ScheduleUtils::AxesToString(graph_attr->axis).c_str());
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status ExpandDimsForAllReducePass::RunPass(af::AscGraph &graph) {
@@ -82,7 +82,7 @@ Status ExpandDimsForAllReducePass::RunPass(af::AscGraph &graph) {
     }
   }
   if (new_axis_ids.empty()) {
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
   GELOGD("Expand dims for all reduce graph:%s", graph.GetName().c_str());
   for (const auto &node : graph.GetAllNodes()) {
@@ -111,6 +111,6 @@ Status ExpandDimsForAllReducePass::RunPass(af::AscGraph &graph) {
       output_attr->attr.repeats.insert(output_attr->attr.repeats.begin(), af::ops::One);
     }
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 }  // namespace optimize

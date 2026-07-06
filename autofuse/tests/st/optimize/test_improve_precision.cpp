@@ -89,7 +89,7 @@ TEST_F(TestImprovePrecisionST, ComplexFp16Chain_AllPromotedToFp32) {
                    .Output("output0", "store0", 0, ge::DT_FLOAT16)
                    .Build();
 
-  ASSERT_EQ(ImprovePrecisionForAscGraph(graph), ge::SUCCESS);
+  ASSERT_EQ(ImprovePrecisionForAscGraph(graph), af::SUCCESS);
 
   // 所有计算节点应变为 fp32
   EXPECT_TRUE(CheckNodeOutputDtype(graph, "abs0", ge::DT_FLOAT));
@@ -114,7 +114,7 @@ TEST_F(TestImprovePrecisionST, TwoInputsBothFp16_BothPromoted) {
                    .Output("output0", "store0", 0, ge::DT_FLOAT16)
                    .Build();
 
-  ASSERT_EQ(ImprovePrecisionForAscGraph(graph), ge::SUCCESS);
+  ASSERT_EQ(ImprovePrecisionForAscGraph(graph), af::SUCCESS);
 
   EXPECT_TRUE(CheckNodeOutputDtype(graph, "add0", ge::DT_FLOAT));
 
@@ -135,7 +135,7 @@ TEST_F(TestImprovePrecisionST, MixedFp16Bf16Inputs_BothPromotedToFp32) {
                    .Output("output0", "store0", 0, ge::DT_FLOAT16)
                    .Build();
 
-  ASSERT_EQ(ImprovePrecisionForAscGraph(graph), ge::SUCCESS);
+  ASSERT_EQ(ImprovePrecisionForAscGraph(graph), af::SUCCESS);
 
   EXPECT_TRUE(CheckNodeOutputDtype(graph, "add0", ge::DT_FLOAT));
   EXPECT_GE(CountNodesByType(graph, Cast::Type), 2U);
@@ -152,7 +152,7 @@ TEST_F(TestImprovePrecisionST, IdentityFp16Cast_RemovedAndPromoted) {
                    .Output("output0", "store0", 0, ge::DT_FLOAT16)
                    .Build();
 
-  ASSERT_EQ(ImprovePrecisionForAscGraph(graph), ge::SUCCESS);
+  ASSERT_EQ(ImprovePrecisionForAscGraph(graph), af::SUCCESS);
 
   EXPECT_TRUE(CheckNodeOutputDtype(graph, "abs0", ge::DT_FLOAT));
 }
@@ -168,7 +168,7 @@ TEST_F(TestImprovePrecisionST, Fp32ToFp16CastBeforeStore_RemovedAndAbsPromoted) 
                    .Output("output0", "store0", 0, ge::DT_FLOAT16)
                    .Build();
 
-  ASSERT_EQ(ImprovePrecisionForAscGraph(graph), ge::SUCCESS);
+  ASSERT_EQ(ImprovePrecisionForAscGraph(graph), af::SUCCESS);
 
   // Cast(fp16→fp16 float间) 应被删除, Abs 变为 fp32
   EXPECT_TRUE(CheckNodeOutputDtype(graph, "abs0", ge::DT_FLOAT));
@@ -186,7 +186,7 @@ TEST_F(TestImprovePrecisionST, ScalarFp16Promoted_DownstreamAllFp32) {
                    .Output("output0", "store0", 0, ge::DT_FLOAT16)
                    .Build();
 
-  ASSERT_EQ(ImprovePrecisionForAscGraph(graph), ge::SUCCESS);
+  ASSERT_EQ(ImprovePrecisionForAscGraph(graph), af::SUCCESS);
 
   EXPECT_TRUE(CheckNodeOutputDtype(graph, "scalar0", ge::DT_FLOAT));
   EXPECT_TRUE(CheckNodeOutputDtype(graph, "mul0", ge::DT_FLOAT));
@@ -204,7 +204,7 @@ TEST_F(TestImprovePrecisionST, AllFp32Graph_NoModification) {
                    .Output("output0", "store0", 0, ge::DT_FLOAT)
                    .Build();
 
-  ASSERT_EQ(ImprovePrecisionForAscGraph(graph), ge::SUCCESS);
+  ASSERT_EQ(ImprovePrecisionForAscGraph(graph), af::SUCCESS);
 
   EXPECT_EQ(CountNodesByType(graph, Cast::Type), 0U);
   EXPECT_TRUE(CheckNodeOutputDtype(graph, "abs0", ge::DT_FLOAT));
@@ -224,7 +224,7 @@ TEST_F(TestImprovePrecisionST, DeepOtherChain_AllPromotedToFp32) {
                    .Output("output0", "store0", 0, ge::DT_FLOAT16)
                    .Build();
 
-  ASSERT_EQ(ImprovePrecisionForAscGraph(graph), ge::SUCCESS);
+  ASSERT_EQ(ImprovePrecisionForAscGraph(graph), af::SUCCESS);
 
   EXPECT_TRUE(CheckNodeOutputDtype(graph, "abs0", ge::DT_FLOAT));
   EXPECT_TRUE(CheckNodeOutputDtype(graph, "neg0", ge::DT_FLOAT));
@@ -244,7 +244,7 @@ TEST_F(TestImprovePrecisionST, Bf16FullPipeline_AllPromotedToFp32) {
                    .Output("output0", "store0", 0, ge::DT_BF16)
                    .Build();
 
-  ASSERT_EQ(ImprovePrecisionForAscGraph(graph), ge::SUCCESS);
+  ASSERT_EQ(ImprovePrecisionForAscGraph(graph), af::SUCCESS);
 
   EXPECT_TRUE(CheckNodeOutputDtype(graph, "abs0", ge::DT_FLOAT));
   EXPECT_TRUE(CheckNodeOutputDtype(graph, "mul0", ge::DT_FLOAT));
@@ -264,7 +264,7 @@ TEST_F(TestImprovePrecisionST, AllBlacklist_AllNodesSupportFp16_Skip) {
                    .Output("output0", "store0", 0, ge::DT_FLOAT16)
                    .Build();
 
-  ASSERT_EQ(ImprovePrecisionForAscGraph(graph), ge::SUCCESS);
+  ASSERT_EQ(ImprovePrecisionForAscGraph(graph), af::SUCCESS);
 
   EXPECT_EQ(CountNodesByType(graph, Cast::Type), 0U);
 }
@@ -283,7 +283,7 @@ TEST_F(TestImprovePrecisionST, PartialBlacklist_SpecificOpSkipped) {
                    .Output("output0", "store0", 0, ge::DT_FLOAT16)
                    .Build();
 
-  ASSERT_EQ(ImprovePrecisionForAscGraph(graph), ge::SUCCESS);
+  ASSERT_EQ(ImprovePrecisionForAscGraph(graph), af::SUCCESS);
 
   // Mul 不在黑名单中，仍应升精度
   EXPECT_TRUE(CheckNodeOutputDtype(graph, "mul0", ge::DT_FLOAT));
@@ -298,7 +298,7 @@ TEST_F(TestImprovePrecisionST, LoadDirectToStore_NoImprovement) {
                    .Output("output0", "store0", 0, ge::DT_FLOAT16)
                    .Build();
 
-  ASSERT_EQ(ImprovePrecisionForAscGraph(graph), ge::SUCCESS);
+  ASSERT_EQ(ImprovePrecisionForAscGraph(graph), af::SUCCESS);
 
   // Load 直连 Store，不升精度
   EXPECT_EQ(CountNodesByType(graph, Cast::Type), 0U);
@@ -315,7 +315,7 @@ TEST_F(TestImprovePrecisionST, LoadWithExistingCastPeer_NoDuplicateCast) {
                    .Output("output0", "store0", 0, ge::DT_FLOAT16)
                    .Build();
 
-  ASSERT_EQ(ImprovePrecisionForAscGraph(graph), ge::SUCCESS);
+  ASSERT_EQ(ImprovePrecisionForAscGraph(graph), af::SUCCESS);
 
   // Cast(fp16→fp16) 被删除, Abs 变 fp32
   EXPECT_TRUE(CheckNodeOutputDtype(graph, "abs0", ge::DT_FLOAT));
@@ -331,7 +331,7 @@ TEST_F(TestImprovePrecisionST, PreProcessEntryPoint_Succeeds) {
                    .Output("output0", "store0", 0, ge::DT_FLOAT16)
                    .Build();
 
-  ASSERT_EQ(PreProcess::Run(graph), ge::SUCCESS);
+  ASSERT_EQ(PreProcess::Run(graph), af::SUCCESS);
 
   EXPECT_TRUE(CheckNodeOutputDtype(graph, "abs0", ge::DT_FLOAT));
 }
@@ -364,7 +364,7 @@ TEST_F(TestImprovePrecisionST, StoreDtypeMismatch_CastInsertedBeforeStore) {
                    .Output("output0", "store0", 0, ge::DT_FLOAT16)
                    .Build();
 
-  ASSERT_EQ(ImprovePrecisionForAscGraph(graph), ge::SUCCESS);
+  ASSERT_EQ(ImprovePrecisionForAscGraph(graph), af::SUCCESS);
 
   // Abs 变 fp32, Store 输出 fp16, dtype 不匹配应插入降精度 Cast
   EXPECT_TRUE(CheckNodeOutputDtype(graph, "abs0", ge::DT_FLOAT));
@@ -380,7 +380,7 @@ TEST_F(TestImprovePrecisionST, CastBeforeStorePeer_DtypeNotChanged) {
                    .Output("output0", "store0", 0, ge::DT_FLOAT16)
                    .Build();
 
-  ASSERT_EQ(ImprovePrecisionForAscGraph(graph), ge::SUCCESS);
+  ASSERT_EQ(ImprovePrecisionForAscGraph(graph), af::SUCCESS);
 
   // Load 直连 Cast(fp16→fp16 float间), Cast 被删除, Load→Store 全在 BlackList1, 不升精度
   EXPECT_EQ(CountNodesByType(graph, Cast::Type), 0U);
@@ -395,7 +395,7 @@ TEST_F(TestImprovePrecisionST, ScalarBf16PromotedToFp32) {
                    .Output("output0", "store0", 0, ge::DT_BF16)
                    .Build();
 
-  ASSERT_EQ(ImprovePrecisionForAscGraph(graph), ge::SUCCESS);
+  ASSERT_EQ(ImprovePrecisionForAscGraph(graph), af::SUCCESS);
 
   EXPECT_TRUE(CheckNodeOutputDtype(graph, "scalar0", ge::DT_FLOAT));
   EXPECT_TRUE(CheckNodeOutputDtype(graph, "mul0", ge::DT_FLOAT));
@@ -413,7 +413,7 @@ TEST_F(TestImprovePrecisionST, MultiOutputLoad_CastOnOneBranch) {
                    .Output("output0", "store0", 0, ge::DT_FLOAT16)
                    .Build();
 
-  ASSERT_EQ(ImprovePrecisionForAscGraph(graph), ge::SUCCESS);
+  ASSERT_EQ(ImprovePrecisionForAscGraph(graph), af::SUCCESS);
 
   // abs0 和 mul0 都应升精度
   EXPECT_TRUE(CheckNodeOutputDtype(graph, "abs0", ge::DT_FLOAT));
@@ -429,7 +429,7 @@ TEST_F(TestImprovePrecisionST, OnlyLoadAndStore_NoChange) {
                    .Output("output0", "store0", 0, ge::DT_FLOAT16)
                    .Build();
 
-  ASSERT_EQ(ImprovePrecisionForAscGraph(graph), ge::SUCCESS);
+  ASSERT_EQ(ImprovePrecisionForAscGraph(graph), af::SUCCESS);
 
   // Load 和 Store 都在 BlackList1, 不升精度
   EXPECT_EQ(CountNodesByType(graph, Cast::Type), 0U);
@@ -445,7 +445,7 @@ TEST_F(TestImprovePrecisionST, SingleOtherNode_CastInsertedBeforeOther) {
                    .Output("output0", "store0", 0, ge::DT_FLOAT16)
                    .Build();
 
-  ASSERT_EQ(ImprovePrecisionForAscGraph(graph), ge::SUCCESS);
+  ASSERT_EQ(ImprovePrecisionForAscGraph(graph), af::SUCCESS);
 
   // Relu 应变为 fp32
   EXPECT_TRUE(CheckNodeOutputDtype(graph, "relu0", ge::DT_FLOAT));

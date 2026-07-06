@@ -13,7 +13,7 @@
 
 #include <string>
 #include <mutex>
-#include "ge_common/ge_api_error_codes.h"
+#include "ge_common_af/ge_api_error_codes.h"
 
 namespace ge {
 struct PlatformInfo {
@@ -37,7 +37,7 @@ class PlatformContext {
   void SetPlatformInfo(const PlatformInfo &platform_info);
 
   // 获取当前 platform 字符串
-  ge::Status GetCurrentPlatformString(std::string &platform_name);
+  af::Status GetCurrentPlatformString(std::string &platform_name);
 
   void Reset() {
     initialized_ = false;
@@ -46,11 +46,11 @@ class PlatformContext {
     platform_info_.ub_size = 0;
   }
 
-  ge::Status GetPlatformInfo(PlatformInfo &platform_info);
+  af::Status GetPlatformInfo(PlatformInfo &platform_info);
 
  private:
-  ge::Status Initialize();
-  ge::Status InitPlatformInfo();
+  af::Status Initialize();
+  af::Status InitPlatformInfo();
   PlatformContext() = default;
   PlatformInfo platform_info_;
   bool initialized_ = false;

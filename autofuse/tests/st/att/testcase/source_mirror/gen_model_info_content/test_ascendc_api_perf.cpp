@@ -34,7 +34,7 @@ void CheckComparePerfContains(const std::string &op_type, const std::vector<att:
   PerfOutputInfo perf_res;
   auto perf = GetPerfFunc(op_type);
   auto result = perf(input_shapes, output_shapes, node, perf_res);
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_TRUE(std::string(perf_res.pipe_res[PipeType::AIV_VEC].Serialize().get()).find("compare_node") !=
               std::string::npos);
 }
@@ -45,7 +45,7 @@ void CheckComparePerfValue(const std::string &op_type, const std::vector<att::Te
   PerfOutputInfo perf_res;
   auto perf = GetPerfFunc(op_type);
   auto result = perf(input_shapes, output_shapes, node, perf_res);
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(perf_res.pipe_res[PipeType::AIV_VEC]), expected);
 }
 
@@ -106,7 +106,7 @@ TEST_F(TestAscendcApiPerf, case0) {
   auto perf = GetPerfFunc(op_type);
   NodeInfo node;
   node.node_ptr = node_ptr;
-  EXPECT_EQ(perf(input_shapes, output_shapes, node, perf_res), ge::SUCCESS);
+  EXPECT_EQ(perf(input_shapes, output_shapes, node, perf_res), af::SUCCESS);
   Expr res = perf_res.pipe_res[PipeType::AIC_FIXPIPE];
   std::cout << Str(res) << std::endl;
   EXPECT_EQ(Str(res), "Rational(51200 , 387)");
@@ -142,7 +142,7 @@ TEST_F(TestAscendcApiPerf, case1) {
   auto perf = GetPerfFunc(op_type);
   NodeInfo node;
   node.node_ptr = node_ptr;
-  EXPECT_EQ(perf(input_shapes, output_shapes, node, perf_res), ge::SUCCESS);
+  EXPECT_EQ(perf(input_shapes, output_shapes, node, perf_res), af::SUCCESS);
   Expr res = perf_res.pipe_res[PipeType::AICORE_MTE2];
   std::cout << Str(res) << std::endl;
   EXPECT_EQ(Str(res), "Rational(56960 , 9)");
@@ -178,7 +178,7 @@ TEST_F(TestAscendcApiPerf, case2) {
   auto perf = GetPerfFunc(op_type);
   NodeInfo node;
   node.node_ptr = node_ptr;
-  EXPECT_EQ(perf(input_shapes, output_shapes, node, perf_res), ge::SUCCESS);
+  EXPECT_EQ(perf(input_shapes, output_shapes, node, perf_res), af::SUCCESS);
   Expr res = perf_res.pipe_res[PipeType::AICORE_MTE1];
   std::cout << Str(res) << std::endl;
   EXPECT_EQ(Str(res), "Rational(8656 , 99)");
@@ -224,7 +224,7 @@ TEST_F(TestAscendcApiPerf, case3) {
   auto perf = GetPerfFunc(op_type);
   NodeInfo node;
   node.node_ptr = node_ptr;
-  EXPECT_EQ(perf(input_shapes, output_shapes, node, perf_res), ge::SUCCESS);
+  EXPECT_EQ(perf(input_shapes, output_shapes, node, perf_res), af::SUCCESS);
   Expr res = perf_res.pipe_res[PipeType::AICORE_CUBE];
   std::cout << Str(res) << std::endl;
   EXPECT_EQ(Str(res), "Rational(232875 , 4096)");
@@ -260,7 +260,7 @@ TEST_F(TestAscendcApiPerf, case4) {
   auto perf = GetPerfFunc(op_type);
   NodeInfo node;
   node.node_ptr = node_ptr;
-  EXPECT_EQ(perf(input_shapes, output_shapes, node, perf_res), ge::SUCCESS);
+  EXPECT_EQ(perf(input_shapes, output_shapes, node, perf_res), af::SUCCESS);
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
   std::cout << Str(res) << std::endl;
   EXPECT_EQ(Str(res), "Rational(4132 , 33)");
@@ -292,7 +292,7 @@ TEST_F(TestAscendcApiPerf, case5) {
   auto perf = GetPerfFunc(op_type);
   NodeInfo node;
   node.node_ptr = node_ptr;
-  EXPECT_EQ(perf(input_shapes, output_shapes, node, perf_res), ge::SUCCESS);
+  EXPECT_EQ(perf(input_shapes, output_shapes, node, perf_res), af::SUCCESS);
   Expr res = perf_res.pipe_res[PipeType::AICORE_MTE2];
   std::cout << Str(res) << std::endl;
   EXPECT_EQ(Str(res), "Rational(51200 , 1089)");
@@ -329,7 +329,7 @@ TEST_F(TestAscendcApiPerf, Abs) {
   auto perf = GetPerfFunc(op_type);
   NodeInfo node;
   node.node_ptr = node_ptr;
-  EXPECT_EQ(perf(input_shapes, output_shapes, node, perf_res), ge::SUCCESS);
+  EXPECT_EQ(perf(input_shapes, output_shapes, node, perf_res), af::SUCCESS);
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
   std::cout << Str(res) << std::endl;
   EXPECT_EQ(Str(res), "43.1153006255627");
@@ -366,7 +366,7 @@ TEST_F(TestAscendcApiPerf, Adds) {
   auto perf = GetPerfFunc(op_type);
   NodeInfo node;
   node.node_ptr = node_ptr;
-  EXPECT_EQ(perf(input_shapes, output_shapes, node, perf_res), ge::SUCCESS);
+  EXPECT_EQ(perf(input_shapes, output_shapes, node, perf_res), af::SUCCESS);
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
   std::cout << Str(res) << std::endl;
   EXPECT_EQ(Str(res), "43.3937997296453");
@@ -403,7 +403,7 @@ TEST_F(TestAscendcApiPerf, And) {
   auto perf = GetPerfFunc(op_type);
   NodeInfo node;
   node.node_ptr = node_ptr;
-  EXPECT_EQ(perf(input_shapes, output_shapes, node, perf_res), ge::SUCCESS);
+  EXPECT_EQ(perf(input_shapes, output_shapes, node, perf_res), af::SUCCESS);
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
   std::cout << Str(res) << std::endl;
   EXPECT_EQ(Str(res), "49.2393007427454");
@@ -443,13 +443,13 @@ TEST_F(TestAscendcApiPerf, Broadcast) {
   NodeInfo node;
   node.node_ptr = GraphConstructUtils::ConstructSingleOp("Broadcast", 1, 1);
   auto perf = GetPerfFunc("Broadcast");
-  EXPECT_EQ(perf(input_shapes, output_shapes, node, perf_res), ge::SUCCESS);
+  EXPECT_EQ(perf(input_shapes, output_shapes, node, perf_res), af::SUCCESS);
   EXPECT_EQ(Str(perf_res.pipe_res[PipeType::AIV_VEC]), "31.4819874202504");
 
-  EXPECT_EQ(perf(input_shapes2, output_shapes, node, perf_res), ge::SUCCESS);
+  EXPECT_EQ(perf(input_shapes2, output_shapes, node, perf_res), af::SUCCESS);
   EXPECT_EQ(Str(perf_res.pipe_res[PipeType::AIV_VEC]), "36.576176448704");
 
-  EXPECT_EQ(perf(input_shapes3, output_shapes, node, perf_res), ge::SUCCESS);
+  EXPECT_EQ(perf(input_shapes3, output_shapes, node, perf_res), af::SUCCESS);
   EXPECT_EQ(Str(perf_res.pipe_res[PipeType::AIV_VEC]), "40.3992993682623");
 }
 
@@ -488,12 +488,12 @@ TEST_F(TestAscendcApiPerf, BroadcastFourDim) {
   auto perf = GetPerfFunc(op_type);
   NodeInfo node;
   node.node_ptr = node_ptr;
-  EXPECT_EQ(perf(input_shapes, output_shapes, node, perf_res), ge::SUCCESS);
+  EXPECT_EQ(perf(input_shapes, output_shapes, node, perf_res), af::SUCCESS);
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
   std::cout << Str(res) << std::endl;
   EXPECT_EQ(Str(res), "41511.3727959352");
 
-  EXPECT_EQ(perf(input_shapes2, output_shapes, node, perf_res), ge::SUCCESS);
+  EXPECT_EQ(perf(input_shapes2, output_shapes, node, perf_res), af::SUCCESS);
   res = perf_res.pipe_res[PipeType::AIV_VEC];
   std::cout << Str(res) << std::endl;
   EXPECT_EQ(Str(res), "894553.699330963");
@@ -547,7 +547,7 @@ TEST_F(TestAscendcApiPerf, TestCastFloat16ToFloat32) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), Str(expected_value));
 }
 
@@ -585,7 +585,7 @@ TEST_F(TestAscendcApiPerf, TestCastFloat32ToFloat16) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), Str(expected_value));
 }
 
@@ -623,7 +623,7 @@ TEST_F(TestAscendcApiPerf, TestCastFloat16ToUint8) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), Str(expected_value));
 }
 
@@ -644,7 +644,7 @@ TEST_F(TestAscendcApiPerf, TestCastEmptyInputShapes) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 // 测试输出形状为空的边界情况
@@ -664,7 +664,7 @@ TEST_F(TestAscendcApiPerf, TestCastEmptyOutputShapes) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 // 测试不支持的数类型转换情况
@@ -692,7 +692,7 @@ TEST_F(TestAscendcApiPerf, TestCastUnsupportedDataType) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
 }
 
 // 测试输出形状维度为空的边界情况
@@ -712,7 +712,7 @@ TEST_F(TestAscendcApiPerf, TestCastEmptyDims) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 // 测试 CompareScalarEQ API
@@ -752,7 +752,7 @@ TEST_F(TestAscendcApiPerf, TestCompareScalarEQ) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), Str(expected_value));
 }
 
@@ -793,7 +793,7 @@ TEST_F(TestAscendcApiPerf, TestCompareScalarGE) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), Str(expected_value));
 }
 
@@ -834,7 +834,7 @@ TEST_F(TestAscendcApiPerf, TestCompareScalarGT) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), Str(expected_value));
 }
 
@@ -875,7 +875,7 @@ TEST_F(TestAscendcApiPerf, TestCompareScalarLE) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), Str(expected_value));
 }
 
@@ -909,7 +909,7 @@ TEST_F(TestAscendcApiPerf, TestCompareScalarLT) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), "297.189291000366");
 }
 
@@ -944,7 +944,7 @@ TEST_F(TestAscendcApiPerf, TestCompareScalarNE) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), "297.162590026855");
 }
 
@@ -979,7 +979,7 @@ TEST_F(TestAscendcApiPerf, TestPowerTensorTensor) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), "24297.4187011719");
 }
 
@@ -1013,7 +1013,7 @@ TEST_F(TestAscendcApiPerf, TestPowerTensorScalar) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), "23804.9104003906");
 }
 
@@ -1087,7 +1087,7 @@ TEST_F(TestAscendcApiPerf, TestCompareScalarEmptyInput) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 // 测试边界情况 - 空输出
@@ -1107,7 +1107,7 @@ TEST_F(TestAscendcApiPerf, TestCompareScalarEmptyOutput) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 // 测试不支持的数据类型
@@ -1131,7 +1131,7 @@ TEST_F(TestAscendcApiPerf, TestCompareScalarUnsupportedDataType) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
 }
 
 // 测试 Div API
@@ -1167,7 +1167,7 @@ TEST_F(TestAscendcApiPerf, TestDiv) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), Str(expected_value));
 }
 
@@ -1188,7 +1188,7 @@ TEST_F(TestAscendcApiPerf, TestEmptyInput) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 // 测试不支持的数据类型
@@ -1212,7 +1212,7 @@ TEST_F(TestAscendcApiPerf, TestUnsupportedDataType) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
 }
 
 // 测试 Exp API
@@ -1248,7 +1248,7 @@ TEST_F(TestAscendcApiPerf, TestExp) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), Str(expected_value));
 }
 
@@ -1279,7 +1279,7 @@ TEST_F(TestAscendcApiPerf, TestLogicalAnd) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), "58.3298370838165");
 }
 
@@ -1311,7 +1311,7 @@ TEST_F(TestAscendcApiPerf, TestLogicalOr) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), "88.1791579127312");
 }
 
@@ -1349,7 +1349,7 @@ TEST_F(TestAscendcApiPerf, TestMoveGmToUbSmallblk) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
 
   // 验证结果
   auto blockdim = CreateExpr("block_dim");
@@ -1395,7 +1395,7 @@ TEST_F(TestAscendcApiPerf, TestMoveGmToUb) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
 
   // 验证结果
   auto blockdim = CreateExpr("block_dim");
@@ -1423,7 +1423,7 @@ TEST_F(TestAscendcApiPerf, TestMoveEmptyInput) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 // 测试边界情况 - 空输出
@@ -1442,7 +1442,7 @@ TEST_F(TestAscendcApiPerf, TestMoveEmptyOutput) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 // 测试不支持的数据类型
@@ -1469,7 +1469,7 @@ TEST_F(TestAscendcApiPerf, TestMoveUnsupportedDataType) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
 }
 
 // 测试 Maximum API
@@ -1505,7 +1505,7 @@ TEST_F(TestAscendcApiPerf, TestMaximum) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), Str(expected_value));
 }
 
@@ -1542,7 +1542,7 @@ TEST_F(TestAscendcApiPerf, TestMaxs) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), Str(expected_value));
 }
 
@@ -1579,7 +1579,7 @@ TEST_F(TestAscendcApiPerf, TestMax) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), Str(expected_value));
 }
 
@@ -1616,7 +1616,7 @@ TEST_F(TestAscendcApiPerf, TestMinimum) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), Str(expected_value));
 }
 
@@ -1653,7 +1653,7 @@ TEST_F(TestAscendcApiPerf, TestMins) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), Str(expected_value));
 }
 
@@ -1690,7 +1690,7 @@ TEST_F(TestAscendcApiPerf, TestMin) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), Str(expected_value));
 }
 
@@ -1727,7 +1727,7 @@ TEST_F(TestAscendcApiPerf, TestMul) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), Str(expected_value));
 }
 
@@ -1764,7 +1764,7 @@ TEST_F(TestAscendcApiPerf, TestMuls) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), Str(expected_value));
 }
 
@@ -1801,7 +1801,7 @@ TEST_F(TestAscendcApiPerf, TestNeg) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), Str(expected_value));
 }
 
@@ -1838,7 +1838,7 @@ TEST_F(TestAscendcApiPerf, TestReciprocal) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), Str(expected_value));
 }
 
@@ -1875,7 +1875,7 @@ TEST_F(TestAscendcApiPerf, TestRelu) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), Str(expected_value));
 }
 
@@ -1912,7 +1912,7 @@ TEST_F(TestAscendcApiPerf, TestRsqrt) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), Str(expected_value));
 }
 
@@ -1959,7 +1959,7 @@ TEST_F(TestAscendcApiPerf, TestSelectCase1) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), "where_base_node");
   EXPECT_EQ(Str(res.Replace(ConcursiveReplaceVars(perf_res.ternary_ops))),
             "TernaryOp(16320 <= 2048, -9260586.41082808, 689197.283277584)");
@@ -2008,7 +2008,7 @@ TEST_F(TestAscendcApiPerf, TestSelectCase2) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), "where_base_node");
   EXPECT_EQ(Str(res.Replace(ConcursiveReplaceVars(perf_res.ternary_ops))),
             "TernaryOp(16320 <= 65536, 16926703.4515522, 22081696.3273777)");
@@ -2040,7 +2040,7 @@ TEST_F(TestAscendcApiPerf, TestSetVectorMask) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
 }
 
 // 测试 Sigmoid API
@@ -2076,7 +2076,7 @@ TEST_F(TestAscendcApiPerf, TestSigmoid) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), Str(expected_value));
 }
 
@@ -2113,7 +2113,7 @@ TEST_F(TestAscendcApiPerf, TestSign) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), Str(expected_value));
 }
 
@@ -2150,7 +2150,7 @@ TEST_F(TestAscendcApiPerf, TestSqrt) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), Str(expected_value));
 }
 
@@ -2187,7 +2187,7 @@ TEST_F(TestAscendcApiPerf, TestSub) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), Str(expected_value));
 }
 
@@ -2224,7 +2224,7 @@ TEST_F(TestAscendcApiPerf, TestSum) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), Str(expected_value));
 }
 
@@ -2261,7 +2261,7 @@ TEST_F(TestAscendcApiPerf, TestTanh) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), Str(expected_value));
 }
 
@@ -2298,7 +2298,7 @@ TEST_F(TestAscendcApiPerf, TestWholeReduceMax) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), Str(expected_value));
 }
 
@@ -2335,7 +2335,7 @@ TEST_F(TestAscendcApiPerf, TestWholeReduceMin) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), Str(expected_value));
 }
 
@@ -2372,7 +2372,7 @@ TEST_F(TestAscendcApiPerf, TestWholeReduceSum) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), Str(expected_value));
 }
 
@@ -2409,7 +2409,7 @@ TEST_F(TestAscendcApiPerf, TestZerosLike) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), Str(expected_value));
 }
 
@@ -2454,7 +2454,7 @@ TEST_F(TestAscendcApiPerf, TestWhereBase) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), "where_base_node");
   EXPECT_EQ(Str(res.Replace(ConcursiveReplaceVars(perf_res.ternary_ops))),
             "TernaryOp(16320 <= 2048, -9273412.97818479, 690200.90328796)");
@@ -2503,7 +2503,7 @@ TEST_F(TestAscendcApiPerf, TestWhereExtend) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), "3707.78800158992");
 }
 
@@ -2533,7 +2533,7 @@ TEST_F(TestAscendcApiPerf, TestConstant) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
 }
 
 // 测试 FlashSoftmax API
@@ -2576,7 +2576,7 @@ TEST_F(TestAscendcApiPerf, TestFlashSoftmax) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), Str(expected_value));
 }
 
@@ -2620,7 +2620,7 @@ TEST_F(TestAscendcApiPerf, TestDropOut) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), Str(expected_value));
 }
 
@@ -2656,7 +2656,7 @@ TEST_F(TestAscendcApiPerf, TestMatMul) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
 }
 
 // 测试 Erf API
@@ -2692,7 +2692,7 @@ TEST_F(TestAscendcApiPerf, TestErf) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), Str(expected_value));
 }
 
@@ -2727,7 +2727,7 @@ TEST_F(TestAscendcApiPerf, TestBroadcastMiddle) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), "2113.36481142044");
 }
 
@@ -2764,7 +2764,7 @@ TEST_F(TestAscendcApiPerf, TestBroadcastMerge) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), "7183.13282108307");
 }
 
@@ -2794,7 +2794,7 @@ TEST_F(TestAscendcApiPerf, TestBroadcastMerge2) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
 }
 
 // 测试 BroadcastMerge3场景
@@ -2823,7 +2823,7 @@ TEST_F(TestAscendcApiPerf, TestBroadcastMerge3) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
 }
 
 // 测试 BroadcastMiddle 边界情况 - 输入维度不足
@@ -2856,7 +2856,7 @@ TEST_F(TestAscendcApiPerf, TestBroadcastMiddleInvalidDims) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_GE(result, ge::SUCCESS);
+  EXPECT_GE(result, af::SUCCESS);
 }
 
 // 测试 BroadcastMiddle 边界情况 - 不支持的数据类型
@@ -2887,7 +2887,7 @@ TEST_F(TestAscendcApiPerf, TestBroadcastMiddleUnsupportedType) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
 }
 
 // 测试 BroadcastMiddle float32类型
@@ -2921,7 +2921,7 @@ TEST_F(TestAscendcApiPerf, TestBroadcastMiddleFloat32) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), "7183.13282108307");
 }
 
@@ -2958,7 +2958,7 @@ TEST_F(TestAscendcApiPerf, TestErfFloat32) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), Str(expected_value));
 }
 
@@ -2992,7 +2992,7 @@ TEST_F(TestAscendcApiPerf, TestBroadcastOuter) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), "67.1615731632008");
 }
 
@@ -3030,7 +3030,7 @@ TEST_F(TestAscendcApiPerf, TestBroadcastOuterFP32) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), "67.5690893734203");
 }
 // 测试 BroadcastInner 场景
@@ -3063,7 +3063,7 @@ TEST_F(TestAscendcApiPerf, TestBroadcastInner) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), "78.0291764239019");
 }
 
@@ -3097,7 +3097,7 @@ TEST_F(TestAscendcApiPerf, TestBroadcastInnerWithStride) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), "78.1671440434225");
 }
 
@@ -3131,7 +3131,7 @@ TEST_F(TestAscendcApiPerf, TestBroadcastInner2) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
 }
 
 // 测试 BroadcastInnerMerge 场景
@@ -3165,7 +3165,7 @@ TEST_F(TestAscendcApiPerf, TestBroadcastInnerMerge) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), "78.0291764239019");
 }
 
@@ -3198,7 +3198,7 @@ TEST_F(TestAscendcApiPerf, TestBroadcastInnerFP32) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), "78.3254064690833");
 }
 
@@ -3229,7 +3229,7 @@ TEST_F(TestAscendcApiPerf, TestBroadcastBoth) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), "80.8968982696533");
 }
 
@@ -3260,7 +3260,7 @@ TEST_F(TestAscendcApiPerf, TestBroadcastBothFloat32) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), "144.791696548462");
 }
 
@@ -3281,7 +3281,7 @@ TEST_F(TestAscendcApiPerf, TestErfEmptyInput) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 // 测试 Erf 不支持的数据类型
@@ -3305,7 +3305,7 @@ TEST_F(TestAscendcApiPerf, TestErfUnsupportedType) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
 }
 
 // 测试 LoadApi - bfloat16类型
@@ -3339,7 +3339,7 @@ TEST_F(TestAscendcApiPerf, TestLoadApiBFloat16) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   auto blockdim = CreateExpr("block_dim");
   auto T = Add(CreateExpr(7.90520000457764), Div(CreateExpr(7.30999994277954), blockdim));
   auto cycles = Add(Div(Mul(CreateExpr(64 * 128 * 2), CreateExpr(1)), T), CreateExpr(27.0100002288818));
@@ -3380,7 +3380,7 @@ TEST_F(TestAscendcApiPerf, TestStoreApiUint8) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   auto blockdim = CreateExpr("block_dim");
   auto T = Add(CreateExpr(9.96000003814697), Div(CreateExpr(3.78999996185303), blockdim));
   auto cycles = Add(Div(Mul(CreateExpr(64 * 128 * 1), CreateExpr(1)), T), CreateExpr(12.0900001525879));
@@ -3408,7 +3408,7 @@ TEST_F(TestAscendcApiPerf, TestEmptyDims) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 // 测试不存在的操作类型
@@ -3461,7 +3461,7 @@ TEST_F(TestAscendcApiPerf, TestAbsFloat32) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), Str(expected_value));
 }
 
@@ -3496,7 +3496,7 @@ TEST_F(TestAscendcApiPerf, TestStoreFloat32) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   auto blockdim = CreateExpr("block_dim");
   auto T = Add(CreateExpr(9.96000003814697), Div(CreateExpr(3.78999996185303), blockdim));
   auto cycles = Add(Div(Mul(CreateExpr(64 * 128 * 4), CreateExpr(1)), T), CreateExpr(12.0900001525879));
@@ -3537,7 +3537,7 @@ TEST_F(TestAscendcApiPerf, TestAddsFloat32) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), Str(expected_value));
 }
 
@@ -3572,7 +3572,7 @@ TEST_F(TestAscendcApiPerf, TestAddFloat32) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), Str(expected_value));
 }
 
@@ -3607,7 +3607,7 @@ TEST_F(TestAscendcApiPerf, TestAndFloat32) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), Str(expected_value));
 }
 
@@ -3642,7 +3642,7 @@ TEST_F(TestAscendcApiPerf, TestBroadCastOneDimFloat32) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), Str(expected_value));
 }
 
@@ -3677,7 +3677,7 @@ TEST_F(TestAscendcApiPerf, TestDuplicateFloat32) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), Str(expected_value));
 }
 
@@ -3712,7 +3712,7 @@ TEST_F(TestAscendcApiPerf, TestExpFloat32) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), Str(expected_value));
 }
 
@@ -3747,7 +3747,7 @@ TEST_F(TestAscendcApiPerf, TestMaxsFloat32) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), Str(expected_value));
 }
 
@@ -3782,7 +3782,7 @@ TEST_F(TestAscendcApiPerf, TestMaxFloat32) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), Str(expected_value));
 }
 
@@ -3817,7 +3817,7 @@ TEST_F(TestAscendcApiPerf, TestMinsFloat32) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), Str(expected_value));
 }
 
@@ -3852,7 +3852,7 @@ TEST_F(TestAscendcApiPerf, TestMinFloat32) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), Str(expected_value));
 }
 
@@ -3883,7 +3883,7 @@ TEST_F(TestAscendcApiPerf, TestLogicalAndFloat32) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), "552.477502822876");
 }
 
@@ -3914,7 +3914,7 @@ TEST_F(TestAscendcApiPerf, TestLogicalOrFloat32) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), "544.283803939819");
 }
 
@@ -3951,7 +3951,7 @@ TEST_F(TestAscendcApiPerf, TestMaximumFloat32) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), Str(expected_value));
 }
 
@@ -3988,7 +3988,7 @@ TEST_F(TestAscendcApiPerf, TestMinimumFloat32) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), Str(expected_value));
 }
 
@@ -4025,7 +4025,7 @@ TEST_F(TestAscendcApiPerf, TestMulsFloat32) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), Str(expected_value));
 }
 
@@ -4062,7 +4062,7 @@ TEST_F(TestAscendcApiPerf, TestMulFloat32) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), Str(expected_value));
 }
 
@@ -4099,7 +4099,7 @@ TEST_F(TestAscendcApiPerf, TestNegFloat32) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), Str(expected_value));
 }
 
@@ -4136,7 +4136,7 @@ TEST_F(TestAscendcApiPerf, TestReciprocalFloat32) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), Str(expected_value));
 }
 
@@ -4173,7 +4173,7 @@ TEST_F(TestAscendcApiPerf, TestReluFloat32) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), Str(expected_value));
 }
 
@@ -4210,7 +4210,7 @@ TEST_F(TestAscendcApiPerf, TestRsqrtFloat32) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), Str(expected_value));
 }
 
@@ -4240,7 +4240,7 @@ TEST_F(TestAscendcApiPerf, TestSetVectorMaskFloat32) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
 }
 
 // 测试 Sigmoid API - float32类型
@@ -4276,7 +4276,7 @@ TEST_F(TestAscendcApiPerf, TestSigmoidFloat32) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), Str(expected_value));
 }
 
@@ -4313,7 +4313,7 @@ TEST_F(TestAscendcApiPerf, TestSignFloat32) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), Str(expected_value));
 }
 
@@ -4350,7 +4350,7 @@ TEST_F(TestAscendcApiPerf, TestSqrtFloat32) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), Str(expected_value));
 }
 
@@ -4387,7 +4387,7 @@ TEST_F(TestAscendcApiPerf, TestSubFloat32) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), Str(expected_value));
 }
 
@@ -4424,7 +4424,7 @@ TEST_F(TestAscendcApiPerf, TestTanhFloat32) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), Str(expected_value));
 }
 
@@ -4471,7 +4471,7 @@ TEST_F(TestAscendcApiPerf, TestSelectFloat32) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), "where_base_node");
   EXPECT_EQ(Str(res.Replace(ConcursiveReplaceVars(perf_res.ternary_ops))),
             "TernaryOp(16320 <= 8192, -7731.84273529891, 4450.97347860783)");
@@ -4510,7 +4510,7 @@ TEST_F(TestAscendcApiPerf, TestWholeReduceMaxFloat32) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), Str(expected_value));
 }
 
@@ -4547,7 +4547,7 @@ TEST_F(TestAscendcApiPerf, TestWholeReduceMinFloat32) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), Str(expected_value));
 }
 
@@ -4584,7 +4584,7 @@ TEST_F(TestAscendcApiPerf, TestWholeReduceSumFloat32) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), Str(expected_value));
 }
 
@@ -4621,7 +4621,7 @@ TEST_F(TestAscendcApiPerf, TestZerosLikeFloat32) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), Str(expected_value));
 }
 
@@ -4658,7 +4658,7 @@ TEST_F(TestAscendcApiPerf, TestCompareScalarEQFloat32) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), Str(expected_value));
 }
 
@@ -4690,7 +4690,7 @@ TEST_F(TestAscendcApiPerf, TestCompareScalarEQUnsupported) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
 }
 
 // 测试 CompareScalarGE API - float32类型
@@ -4726,7 +4726,7 @@ TEST_F(TestAscendcApiPerf, TestCompareScalarGEFloat32) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), Str(expected_value));
 }
 
@@ -4763,7 +4763,7 @@ TEST_F(TestAscendcApiPerf, TestCompareScalarGTFloat32) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), Str(expected_value));
 }
 
@@ -4800,7 +4800,7 @@ TEST_F(TestAscendcApiPerf, TestCompareScalarLEFloat32) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), Str(expected_value));
 }
 
@@ -4837,7 +4837,7 @@ TEST_F(TestAscendcApiPerf, TestCompareScalarNEFloat32) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), Str(expected_value));
 }
 
@@ -4866,7 +4866,7 @@ TEST_F(TestAscendcApiPerf, TestMatMulInsufficientInputs) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 // 测试 MatMul API 边界情况 - 维度不匹配
@@ -4898,7 +4898,7 @@ TEST_F(TestAscendcApiPerf, TestMatMulMismatchedDimensions) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
 }
 
 // 测试 MatMul API 边界情况 - 维度小于2
@@ -4930,7 +4930,7 @@ TEST_F(TestAscendcApiPerf, TestMatMulInvalidDimCount) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 // 测试 Copy API 边界情况 - 空输入
@@ -4950,7 +4950,7 @@ TEST_F(TestAscendcApiPerf, TestCopyEmptyInput) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 // 测试 Copy API 边界情况 - 空维度
@@ -4971,7 +4971,7 @@ TEST_F(TestAscendcApiPerf, TestCopyEmptyDims) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 // 测试 CopyGMtoL1 API 边界情况 - 空输入
@@ -4991,7 +4991,7 @@ TEST_F(TestAscendcApiPerf, TestCopyGMtoL1EmptyInput) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 // 测试 CopyGMtoL1 API 边界情况 - 空维度
@@ -5012,7 +5012,7 @@ TEST_F(TestAscendcApiPerf, TestCopyGMtoL1EmptyDims) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 // 测试 CopyFromL1 API 边界情况 - 空输入
@@ -5032,7 +5032,7 @@ TEST_F(TestAscendcApiPerf, TestCopyFromL1EmptyInput) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 // 测试 CopyFromL1 API 边界情况 - 空维度
@@ -5053,7 +5053,7 @@ TEST_F(TestAscendcApiPerf, TestCopyFromL1EmptyDims) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 // 测试 CubeCompute API 边界情况 - 输入数量不足
@@ -5078,7 +5078,7 @@ TEST_F(TestAscendcApiPerf, TestCubeComputeInsufficientInputs) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 // 测试 CubeCompute API 边界情况 - 维度小于2
@@ -5108,7 +5108,7 @@ TEST_F(TestAscendcApiPerf, TestCubeComputeInvalidDimCount) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
 }
 
 // 测试 VectorCompute API 边界情况 - 空输入
@@ -5128,7 +5128,7 @@ TEST_F(TestAscendcApiPerf, TestVectorComputeEmptyInput) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 // 测试 VectorCompute API 边界情况 - 空维度
@@ -5149,7 +5149,7 @@ TEST_F(TestAscendcApiPerf, TestVectorComputeEmptyDims) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 // 测试 DropoutCompute API 边界情况 - 空输入
@@ -5169,7 +5169,7 @@ TEST_F(TestAscendcApiPerf, TestDropoutComputeEmptyInput) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 // 测试 DropoutCompute API 边界情况 - 空维度
@@ -5190,7 +5190,7 @@ TEST_F(TestAscendcApiPerf, TestDropoutComputeEmptyDims) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 // 测试 SoftmaxFlashV2 API 边界情况 - 空输入
@@ -5210,7 +5210,7 @@ TEST_F(TestAscendcApiPerf, TestSoftmaxFlashV2EmptyInput) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 // 测试 SoftmaxFlashV2 API 边界情况 - 空维度
@@ -5231,7 +5231,7 @@ TEST_F(TestAscendcApiPerf, TestSoftmaxFlashV2EmptyDims) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 // 测试 MatMul API - 高维矩阵乘法
@@ -5266,7 +5266,7 @@ TEST_F(TestAscendcApiPerf, TestMatMulHighDimensions) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
 }
 
 // 测试 Copy API - 不同硬件位置组合
@@ -5319,7 +5319,7 @@ TEST_F(TestAscendcApiPerf, TestCopyDifferentLocations) {
     node.node_ptr = node_ptr;
     auto result = perf(input_shapes, output_shapes, node, perf_res);
     ;
-    EXPECT_EQ(result, ge::SUCCESS) << "Failed for location i=" << i;
+    EXPECT_EQ(result, af::SUCCESS) << "Failed for location i=" << i;
   }
 }
 
@@ -5358,9 +5358,9 @@ TEST_F(TestAscendcApiPerf, TestVectorComputeDifferentTypes) {
       ;
 
       if (input_type == "float16" || input_type == "float32") {
-        EXPECT_EQ(result, ge::SUCCESS);
+        EXPECT_EQ(result, af::SUCCESS);
       } else {
-        EXPECT_EQ(result, ge::SUCCESS);
+        EXPECT_EQ(result, af::SUCCESS);
       }
     }
   }
@@ -5396,7 +5396,7 @@ TEST_F(TestAscendcApiPerf, TestCubeComputeSpecialDims) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
 
   // 测试3维输入
   input_shapes.clear();
@@ -5412,7 +5412,7 @@ TEST_F(TestAscendcApiPerf, TestCubeComputeSpecialDims) {
 
   result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
 }
 
 // 测试 Broadcast API - 特殊维度组合
@@ -5443,7 +5443,7 @@ TEST_F(TestAscendcApiPerf, TestBroadcastSpecialDims) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
 
   // 测试3维到4维广播
   input_shapes.clear();
@@ -5457,7 +5457,7 @@ TEST_F(TestAscendcApiPerf, TestBroadcastSpecialDims) {
 
   result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
 }
 
 // 测试 Load/Store API - 不同数据类型大小
@@ -5505,7 +5505,7 @@ TEST_F(TestAscendcApiPerf, TestLoadStoreDataTypeSizes) {
     auto result = perf(input_shapes, output_shapes, node, perf_res);
     ;
 
-    EXPECT_EQ(result, ge::SUCCESS);
+    EXPECT_EQ(result, af::SUCCESS);
 
     // 测试Store
     input.loc = att::HardwareDef::UB;
@@ -5517,7 +5517,7 @@ TEST_F(TestAscendcApiPerf, TestLoadStoreDataTypeSizes) {
     result = perf(input_shapes, output_shapes, node, perf_res);
     ;
 
-    EXPECT_EQ(result, ge::SUCCESS);
+    EXPECT_EQ(result, af::SUCCESS);
   }
 }
 
@@ -5562,9 +5562,9 @@ TEST_F(TestAscendcApiPerf, TestMatMulDifferentTypes) {
       ;
 
       if (type_a == "float16" && type_b == "float16") {
-        EXPECT_EQ(result, ge::SUCCESS);
+        EXPECT_EQ(result, af::SUCCESS);
       } else {
-        EXPECT_EQ(result, ge::SUCCESS);
+        EXPECT_EQ(result, af::SUCCESS);
       }
     }
   }
@@ -5607,7 +5607,7 @@ TEST_F(TestAscendcApiPerf, TestFlashSoftmaxDifferentDims) {
     node.node_ptr = node_ptr;
     auto result = perf(input_shapes, output_shapes, node, perf_res);
     ;
-    EXPECT_EQ(result, ge::SUCCESS);
+    EXPECT_EQ(result, af::SUCCESS);
   }
 }
 
@@ -5648,7 +5648,7 @@ TEST_F(TestAscendcApiPerf, TestDropOutDifferentDims) {
     node.node_ptr = node_ptr;
     auto result = perf(input_shapes, output_shapes, node, perf_res);
     ;
-    EXPECT_EQ(result, ge::SUCCESS);
+    EXPECT_EQ(result, af::SUCCESS);
   }
 }
 
@@ -5679,7 +5679,7 @@ TEST_F(TestAscendcApiPerf, TestLogicalOrEmptyInput) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 TEST_F(TestAscendcApiPerf, TestLogicalOrEmptyDims) {
@@ -5699,7 +5699,7 @@ TEST_F(TestAscendcApiPerf, TestLogicalOrEmptyDims) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 TEST_F(TestAscendcApiPerf, TestLogicalOrUnsupportedType) {
@@ -5722,7 +5722,7 @@ TEST_F(TestAscendcApiPerf, TestLogicalOrUnsupportedType) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
 }
 
 // 测试 LogicalAnd API 边界条件
@@ -5742,7 +5742,7 @@ TEST_F(TestAscendcApiPerf, TestLogicalAndEmptyInput) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 TEST_F(TestAscendcApiPerf, TestLogicalAndEmptyDims) {
@@ -5762,7 +5762,7 @@ TEST_F(TestAscendcApiPerf, TestLogicalAndEmptyDims) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 TEST_F(TestAscendcApiPerf, TestLogicalAndUnsupportedType) {
@@ -5785,7 +5785,7 @@ TEST_F(TestAscendcApiPerf, TestLogicalAndUnsupportedType) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
 }
 
 // 测试 WholeReduceSum API 边界条件
@@ -5805,7 +5805,7 @@ TEST_F(TestAscendcApiPerf, TestWholeReduceSumEmptyInput) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 TEST_F(TestAscendcApiPerf, TestWholeReduceSumEmptyDims) {
@@ -5825,7 +5825,7 @@ TEST_F(TestAscendcApiPerf, TestWholeReduceSumEmptyDims) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 TEST_F(TestAscendcApiPerf, TestWholeReduceSumUnsupportedType) {
@@ -5848,7 +5848,7 @@ TEST_F(TestAscendcApiPerf, TestWholeReduceSumUnsupportedType) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
 }
 
 // 测试 WholeReduceMin API 边界条件
@@ -5868,7 +5868,7 @@ TEST_F(TestAscendcApiPerf, TestWholeReduceMinEmptyInput) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 TEST_F(TestAscendcApiPerf, TestWholeReduceMinEmptyDims) {
@@ -5888,7 +5888,7 @@ TEST_F(TestAscendcApiPerf, TestWholeReduceMinEmptyDims) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 TEST_F(TestAscendcApiPerf, TestWholeReduceMinUnsupportedType) {
@@ -5911,7 +5911,7 @@ TEST_F(TestAscendcApiPerf, TestWholeReduceMinUnsupportedType) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
 }
 
 // 测试 WholeReduceMax API 边界条件
@@ -5931,7 +5931,7 @@ TEST_F(TestAscendcApiPerf, TestWholeReduceMaxEmptyInput) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 TEST_F(TestAscendcApiPerf, TestWholeReduceMaxEmptyDims) {
@@ -5951,7 +5951,7 @@ TEST_F(TestAscendcApiPerf, TestWholeReduceMaxEmptyDims) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 TEST_F(TestAscendcApiPerf, TestWholeReduceMaxUnsupportedType) {
@@ -5974,7 +5974,7 @@ TEST_F(TestAscendcApiPerf, TestWholeReduceMaxUnsupportedType) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
 }
 
 // 测试 Select API 边界条件
@@ -5994,7 +5994,7 @@ TEST_F(TestAscendcApiPerf, TestSelectEmptyInput) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 TEST_F(TestAscendcApiPerf, TestSelectEmptyDims) {
@@ -6014,7 +6014,7 @@ TEST_F(TestAscendcApiPerf, TestSelectEmptyDims) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 TEST_F(TestAscendcApiPerf, TestSelectUnsupportedType) {
@@ -6037,7 +6037,7 @@ TEST_F(TestAscendcApiPerf, TestSelectUnsupportedType) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 // 测试 Tanh API 边界条件
@@ -6057,7 +6057,7 @@ TEST_F(TestAscendcApiPerf, TestTanhEmptyInput) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 TEST_F(TestAscendcApiPerf, TestTanhEmptyDims) {
@@ -6077,7 +6077,7 @@ TEST_F(TestAscendcApiPerf, TestTanhEmptyDims) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 TEST_F(TestAscendcApiPerf, TestTanhUnsupportedType) {
@@ -6100,7 +6100,7 @@ TEST_F(TestAscendcApiPerf, TestTanhUnsupportedType) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
 }
 
 // 测试 Sub API 边界条件
@@ -6120,7 +6120,7 @@ TEST_F(TestAscendcApiPerf, TestSubEmptyInput) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 TEST_F(TestAscendcApiPerf, TestSubEmptyDims) {
@@ -6140,7 +6140,7 @@ TEST_F(TestAscendcApiPerf, TestSubEmptyDims) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 TEST_F(TestAscendcApiPerf, TestSubUnsupportedType) {
@@ -6163,7 +6163,7 @@ TEST_F(TestAscendcApiPerf, TestSubUnsupportedType) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
 }
 
 // 测试 Sqrt API 边界条件
@@ -6183,7 +6183,7 @@ TEST_F(TestAscendcApiPerf, TestSqrtEmptyInput) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 TEST_F(TestAscendcApiPerf, TestSqrtEmptyDims) {
@@ -6203,7 +6203,7 @@ TEST_F(TestAscendcApiPerf, TestSqrtEmptyDims) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 TEST_F(TestAscendcApiPerf, TestSqrtUnsupportedType) {
@@ -6226,7 +6226,7 @@ TEST_F(TestAscendcApiPerf, TestSqrtUnsupportedType) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
 }
 
 // 测试 Sign API 边界条件
@@ -6246,7 +6246,7 @@ TEST_F(TestAscendcApiPerf, TestSignEmptyInput) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 TEST_F(TestAscendcApiPerf, TestSignEmptyDims) {
@@ -6266,7 +6266,7 @@ TEST_F(TestAscendcApiPerf, TestSignEmptyDims) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 TEST_F(TestAscendcApiPerf, TestSignUnsupportedType) {
@@ -6289,7 +6289,7 @@ TEST_F(TestAscendcApiPerf, TestSignUnsupportedType) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
 }
 
 // 测试 Sigmoid API 边界条件
@@ -6309,7 +6309,7 @@ TEST_F(TestAscendcApiPerf, TestSigmoidEmptyInput) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 TEST_F(TestAscendcApiPerf, TestSigmoidEmptyDims) {
@@ -6329,7 +6329,7 @@ TEST_F(TestAscendcApiPerf, TestSigmoidEmptyDims) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 TEST_F(TestAscendcApiPerf, TestSigmoidUnsupportedType) {
@@ -6352,7 +6352,7 @@ TEST_F(TestAscendcApiPerf, TestSigmoidUnsupportedType) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
 }
 
 // 测试 SetVectorMask API 边界条件
@@ -6372,7 +6372,7 @@ TEST_F(TestAscendcApiPerf, TestSetVectorMaskEmptyInput) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
 }
 
 TEST_F(TestAscendcApiPerf, TestSetVectorMaskEmptyDims) {
@@ -6392,7 +6392,7 @@ TEST_F(TestAscendcApiPerf, TestSetVectorMaskEmptyDims) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
 }
 
 TEST_F(TestAscendcApiPerf, TestSetVectorMaskUnsupportedType) {
@@ -6415,7 +6415,7 @@ TEST_F(TestAscendcApiPerf, TestSetVectorMaskUnsupportedType) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
 }
 
 // 测试 Rsqrt API 边界条件
@@ -6435,7 +6435,7 @@ TEST_F(TestAscendcApiPerf, TestRsqrtEmptyInput) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 TEST_F(TestAscendcApiPerf, TestRsqrtEmptyDims) {
@@ -6455,7 +6455,7 @@ TEST_F(TestAscendcApiPerf, TestRsqrtEmptyDims) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 // 测试 BroadcastOuter API 边界条件
@@ -6475,7 +6475,7 @@ TEST_F(TestAscendcApiPerf, TestBroadcastOuterEmptyInput) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 TEST_F(TestAscendcApiPerf, TestBroadcastOuterEmptyDims) {
@@ -6495,7 +6495,7 @@ TEST_F(TestAscendcApiPerf, TestBroadcastOuterEmptyDims) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 TEST_F(TestAscendcApiPerf, TestBroadcastOuterUnsupportedType) {
@@ -6518,7 +6518,7 @@ TEST_F(TestAscendcApiPerf, TestBroadcastOuterUnsupportedType) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
 }
 
 // 测试 LoadApi API 边界条件
@@ -6537,7 +6537,7 @@ TEST_F(TestAscendcApiPerf, TestLoadApiEmptyInput) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 TEST_F(TestAscendcApiPerf, TestLoadApiEmptyDims) {
@@ -6556,7 +6556,7 @@ TEST_F(TestAscendcApiPerf, TestLoadApiEmptyDims) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 TEST_F(TestAscendcApiPerf, TestLoadApiUnsupportedType) {
@@ -6582,7 +6582,7 @@ TEST_F(TestAscendcApiPerf, TestLoadApiUnsupportedType) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
 }
 
 TEST_F(TestAscendcApiPerf, TestLoadApiForTypev1) {
@@ -6606,7 +6606,7 @@ TEST_F(TestAscendcApiPerf, TestLoadApiForTypev1) {
 
   PerfOutputInfo perf_res;
   ge::AscGraph asc_graph("test");
-  EXPECT_EQ(ge::SUCCESS, GraphConstructUtils::CreateSimpleLoadStoreOp(asc_graph));
+  EXPECT_EQ(af::SUCCESS, GraphConstructUtils::CreateSimpleLoadStoreOp(asc_graph));
   auto node_ptr = asc_graph.FindNode("load");
   EXPECT_FALSE(node_ptr == nullptr);
   EXPECT_TRUE(att::AttUtils::IsLoadNode(node_ptr.get()));
@@ -6615,7 +6615,7 @@ TEST_F(TestAscendcApiPerf, TestLoadApiForTypev1) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   Expr res = perf_res.pipe_res[PipeType::AIV_MTE2];
   // 存在外抛
   auto ternary_ops = perf_res.ternary_ops;
@@ -6670,7 +6670,7 @@ TEST_F(TestAscendcApiPerf, TestLoadApiForTypev2) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   Expr res = perf_res.pipe_res[PipeType::AIV_MTE2];
   // 外抛for循环
   auto ternary_ops = perf_res.ternary_ops;
@@ -6720,7 +6720,7 @@ TEST_F(TestAscendcApiPerf, TestStoreApiForType) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   Expr res = perf_res.pipe_res[PipeType::AIV_MTE3];
   auto ternary_ops = perf_res.ternary_ops;
   EXPECT_FALSE(ternary_ops.empty());
@@ -6752,7 +6752,7 @@ TEST_F(TestAscendcApiPerf, TestStoreApiEmptyInput) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 TEST_F(TestAscendcApiPerf, TestStoreApiEmptyDims) {
@@ -6771,7 +6771,7 @@ TEST_F(TestAscendcApiPerf, TestStoreApiEmptyDims) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 TEST_F(TestAscendcApiPerf, TestStoreApiUnsupportedType) {
@@ -6797,7 +6797,7 @@ TEST_F(TestAscendcApiPerf, TestStoreApiUnsupportedType) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
 }
 
 // 测试 AbsApi API 边界条件
@@ -6817,7 +6817,7 @@ TEST_F(TestAscendcApiPerf, TestAbsApiEmptyInput) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 TEST_F(TestAscendcApiPerf, TestAbsApiEmptyDims) {
@@ -6837,7 +6837,7 @@ TEST_F(TestAscendcApiPerf, TestAbsApiEmptyDims) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 TEST_F(TestAscendcApiPerf, TestAbsApiUnsupportedType) {
@@ -6860,7 +6860,7 @@ TEST_F(TestAscendcApiPerf, TestAbsApiUnsupportedType) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
 }
 
 // 测试 AddsApi API 边界条件
@@ -6880,7 +6880,7 @@ TEST_F(TestAscendcApiPerf, TestAddsApiEmptyInput) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 TEST_F(TestAscendcApiPerf, TestAddsApiEmptyDims) {
@@ -6900,7 +6900,7 @@ TEST_F(TestAscendcApiPerf, TestAddsApiEmptyDims) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 TEST_F(TestAscendcApiPerf, TestAddsApiUnsupportedType) {
@@ -6923,7 +6923,7 @@ TEST_F(TestAscendcApiPerf, TestAddsApiUnsupportedType) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
 }
 
 // 测试 AddApi API 边界条件
@@ -6943,7 +6943,7 @@ TEST_F(TestAscendcApiPerf, TestAddApiEmptyInput) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 TEST_F(TestAscendcApiPerf, TestAddApiEmptyDims) {
@@ -6963,7 +6963,7 @@ TEST_F(TestAscendcApiPerf, TestAddApiEmptyDims) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 TEST_F(TestAscendcApiPerf, TestAddApiUnsupportedType) {
@@ -6986,7 +6986,7 @@ TEST_F(TestAscendcApiPerf, TestAddApiUnsupportedType) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
 }
 
 // 测试 AndApi API 边界条件
@@ -7006,7 +7006,7 @@ TEST_F(TestAscendcApiPerf, TestAndApiEmptyInput) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 TEST_F(TestAscendcApiPerf, TestAndApiEmptyDims) {
@@ -7026,7 +7026,7 @@ TEST_F(TestAscendcApiPerf, TestAndApiEmptyDims) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 TEST_F(TestAscendcApiPerf, TestAndApiUnsupportedType) {
@@ -7049,7 +7049,7 @@ TEST_F(TestAscendcApiPerf, TestAndApiUnsupportedType) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
 }
 
 // 测试 BroadcastInner API 边界条件
@@ -7069,7 +7069,7 @@ TEST_F(TestAscendcApiPerf, TestBroadcastInnerEmptyInput) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 TEST_F(TestAscendcApiPerf, TestBroadcastInnerEmptyDims) {
@@ -7089,7 +7089,7 @@ TEST_F(TestAscendcApiPerf, TestBroadcastInnerEmptyDims) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 TEST_F(TestAscendcApiPerf, TestBroadcastInnerUnsupportedType) {
@@ -7112,7 +7112,7 @@ TEST_F(TestAscendcApiPerf, TestBroadcastInnerUnsupportedType) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
 }
 
 // 测试 BroadcastBoth API 边界条件
@@ -7132,7 +7132,7 @@ TEST_F(TestAscendcApiPerf, TestBroadcastBothEmptyInput) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 TEST_F(TestAscendcApiPerf, TestBroadcastBothEmptyDims) {
@@ -7152,7 +7152,7 @@ TEST_F(TestAscendcApiPerf, TestBroadcastBothEmptyDims) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 TEST_F(TestAscendcApiPerf, TestBroadcastBothUnsupportedType) {
@@ -7175,7 +7175,7 @@ TEST_F(TestAscendcApiPerf, TestBroadcastBothUnsupportedType) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
 }
 
 // 测试 BroadcastApi API 边界条件
@@ -7195,7 +7195,7 @@ TEST_F(TestAscendcApiPerf, TestBroadcastApiEmptyInput) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 TEST_F(TestAscendcApiPerf, TestBroadcastApiEmptyDims) {
@@ -7215,7 +7215,7 @@ TEST_F(TestAscendcApiPerf, TestBroadcastApiEmptyDims) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 // 测试 CompareScalarEQ API 边界条件
@@ -7235,7 +7235,7 @@ TEST_F(TestAscendcApiPerf, TestCompareScalarEQEmptyInput) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 TEST_F(TestAscendcApiPerf, TestCompareScalarEQEmptyDims) {
@@ -7255,7 +7255,7 @@ TEST_F(TestAscendcApiPerf, TestCompareScalarEQEmptyDims) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 TEST_F(TestAscendcApiPerf, TestCompareScalarEQUnsupportedType) {
@@ -7278,7 +7278,7 @@ TEST_F(TestAscendcApiPerf, TestCompareScalarEQUnsupportedType) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
 }
 
 // 测试 CompareScalarGE API 边界条件
@@ -7298,7 +7298,7 @@ TEST_F(TestAscendcApiPerf, TestCompareScalarGEEmptyInput) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 TEST_F(TestAscendcApiPerf, TestCompareScalarGEEmptyDims) {
@@ -7318,7 +7318,7 @@ TEST_F(TestAscendcApiPerf, TestCompareScalarGEEmptyDims) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 TEST_F(TestAscendcApiPerf, TestCompareScalarGEUnsupportedType) {
@@ -7341,7 +7341,7 @@ TEST_F(TestAscendcApiPerf, TestCompareScalarGEUnsupportedType) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
 }
 
 // 测试 CompareScalarGT API 边界条件
@@ -7361,7 +7361,7 @@ TEST_F(TestAscendcApiPerf, TestCompareScalarGTEmptyInput) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 TEST_F(TestAscendcApiPerf, TestCompareScalarGTEmptyDims) {
@@ -7381,7 +7381,7 @@ TEST_F(TestAscendcApiPerf, TestCompareScalarGTEmptyDims) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 TEST_F(TestAscendcApiPerf, TestCompareScalarGTUnsupportedType) {
@@ -7404,7 +7404,7 @@ TEST_F(TestAscendcApiPerf, TestCompareScalarGTUnsupportedType) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
 }
 
 // 测试 CompareScalarLE API 边界条件
@@ -7424,7 +7424,7 @@ TEST_F(TestAscendcApiPerf, TestCompareScalarLEEmptyInput) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 TEST_F(TestAscendcApiPerf, TestCompareScalarLEEmptyDims) {
@@ -7444,7 +7444,7 @@ TEST_F(TestAscendcApiPerf, TestCompareScalarLEEmptyDims) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 TEST_F(TestAscendcApiPerf, TestCompareScalarLEUnsupportedType) {
@@ -7467,7 +7467,7 @@ TEST_F(TestAscendcApiPerf, TestCompareScalarLEUnsupportedType) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
 }
 
 // 测试 CompareScalarNE API 边界条件
@@ -7487,7 +7487,7 @@ TEST_F(TestAscendcApiPerf, TestCompareScalarNEEmptyInput) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 TEST_F(TestAscendcApiPerf, TestCompareScalarNEEmptyDims) {
@@ -7507,7 +7507,7 @@ TEST_F(TestAscendcApiPerf, TestCompareScalarNEEmptyDims) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 TEST_F(TestAscendcApiPerf, TestCompareScalarNEUnsupportedType) {
@@ -7530,7 +7530,7 @@ TEST_F(TestAscendcApiPerf, TestCompareScalarNEUnsupportedType) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
 }
 
 // 测试 Div API 边界条件
@@ -7550,7 +7550,7 @@ TEST_F(TestAscendcApiPerf, TestDivEmptyInput) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 TEST_F(TestAscendcApiPerf, TestDivEmptyDims) {
@@ -7570,7 +7570,7 @@ TEST_F(TestAscendcApiPerf, TestDivEmptyDims) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 TEST_F(TestAscendcApiPerf, TestDivUnsupportedType) {
@@ -7593,7 +7593,7 @@ TEST_F(TestAscendcApiPerf, TestDivUnsupportedType) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
 }
 
 // 测试 Duplicate API 边界条件
@@ -7613,7 +7613,7 @@ TEST_F(TestAscendcApiPerf, TestDuplicateEmptyInput) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 TEST_F(TestAscendcApiPerf, TestDuplicateEmptyDims) {
@@ -7633,7 +7633,7 @@ TEST_F(TestAscendcApiPerf, TestDuplicateEmptyDims) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 TEST_F(TestAscendcApiPerf, TestDuplicateUnsupportedType) {
@@ -7656,7 +7656,7 @@ TEST_F(TestAscendcApiPerf, TestDuplicateUnsupportedType) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
 }
 
 TEST_F(TestAscendcApiPerf, TestErfEmptyDims) {
@@ -7676,7 +7676,7 @@ TEST_F(TestAscendcApiPerf, TestErfEmptyDims) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 // 测试 Exp API 边界条件
 TEST_F(TestAscendcApiPerf, TestExpEmptyInput) {
@@ -7695,7 +7695,7 @@ TEST_F(TestAscendcApiPerf, TestExpEmptyInput) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 TEST_F(TestAscendcApiPerf, TestExpEmptyDims) {
@@ -7715,7 +7715,7 @@ TEST_F(TestAscendcApiPerf, TestExpEmptyDims) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 TEST_F(TestAscendcApiPerf, TestExpUnsupportedType) {
@@ -7738,7 +7738,7 @@ TEST_F(TestAscendcApiPerf, TestExpUnsupportedType) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
 }
 
 // 测试 Maxs API 边界条件
@@ -7758,7 +7758,7 @@ TEST_F(TestAscendcApiPerf, TestMaxsEmptyInput) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 TEST_F(TestAscendcApiPerf, TestMaxsEmptyDims) {
@@ -7778,7 +7778,7 @@ TEST_F(TestAscendcApiPerf, TestMaxsEmptyDims) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 TEST_F(TestAscendcApiPerf, TestMaxsUnsupportedType) {
@@ -7801,7 +7801,7 @@ TEST_F(TestAscendcApiPerf, TestMaxsUnsupportedType) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
 }
 
 // 测试 Max API 边界条件
@@ -7821,7 +7821,7 @@ TEST_F(TestAscendcApiPerf, TestMaxEmptyInput) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 TEST_F(TestAscendcApiPerf, TestMaxEmptyDims) {
@@ -7841,7 +7841,7 @@ TEST_F(TestAscendcApiPerf, TestMaxEmptyDims) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 TEST_F(TestAscendcApiPerf, TestMaxUnsupportedType) {
@@ -7864,7 +7864,7 @@ TEST_F(TestAscendcApiPerf, TestMaxUnsupportedType) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
 }
 
 // 测试 Mins API 边界条件
@@ -7884,7 +7884,7 @@ TEST_F(TestAscendcApiPerf, TestMinsEmptyInput) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 // 测试default api
@@ -7913,7 +7913,7 @@ TEST_F(TestAscendcApiPerf, TestDefaultApi) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AICORE_MTE1];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), Str(expected_value));
 }
 
@@ -7943,7 +7943,7 @@ TEST_F(TestAscendcApiPerf, TestReduceAnyPerf) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), "612.478002905846");
 }
 
@@ -7973,7 +7973,7 @@ TEST_F(TestAscendcApiPerf, TestReduceMaxPerf) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), "612.478002905846");
 }
 
@@ -8003,7 +8003,7 @@ TEST_F(TestAscendcApiPerf, TestReduceAllPerf) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), "612.362982153893");
 }
 
@@ -8033,7 +8033,7 @@ TEST_F(TestAscendcApiPerf, TestReduceMinPerf) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), "612.362982153893");
 }
 
@@ -8062,7 +8062,7 @@ TEST_F(TestAscendcApiPerf, TestReduceSumPerf) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), "504.153908845037");
 }
 
@@ -8091,7 +8091,7 @@ TEST_F(TestAscendcApiPerf, TestReduceProdPerf) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), "536.264096941799");
 }
 
@@ -8120,7 +8120,7 @@ TEST_F(TestAscendcApiPerf, TestReduceMeanPerf) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), "527.964508138597");
 }
 
@@ -8149,7 +8149,7 @@ TEST_F(TestAscendcApiPerf, TestBlockReduceMax) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), "1112.00416696072");
 }
 
@@ -8178,7 +8178,7 @@ TEST_F(TestAscendcApiPerf, TestBlockReduceMin) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), "1112.00916612148");
 }
 
@@ -8207,7 +8207,7 @@ TEST_F(TestAscendcApiPerf, TestLogicalNot) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), "105.123966054297");
 }
 
@@ -8242,7 +8242,7 @@ TEST_F(TestAscendcApiPerf, TestOrUint16) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), Str(expected_value));
 }
 
@@ -8263,7 +8263,7 @@ TEST_F(TestAscendcApiPerf, TestOrEmptyInputShapes) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 // 测试 CopyUbtoUb API - float16类型
@@ -8297,7 +8297,7 @@ TEST_F(TestAscendcApiPerf, TestCopyUbtoUbFloat16) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), Str(expected_value));
 }
 
@@ -8332,7 +8332,7 @@ TEST_F(TestAscendcApiPerf, TestCopyUbtoUbFloat32) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), Str(expected_value));
 }
 
@@ -8353,7 +8353,7 @@ TEST_F(TestAscendcApiPerf, TestCopyUbtoUbEmptyInputShapes) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 // 测试 BrcbAPI - float16类型
@@ -8387,7 +8387,7 @@ TEST_F(TestAscendcApiPerf, TestBrcbFloat16) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), Str(expected_value));
 }
 
@@ -8422,7 +8422,7 @@ TEST_F(TestAscendcApiPerf, TestBrcb32) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res), Str(expected_value));
 }
 
@@ -8443,7 +8443,7 @@ TEST_F(TestAscendcApiPerf, TestBrcbEmptyInputShapes) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 // 测试 GatherAPI - float16类型
@@ -8476,7 +8476,7 @@ TEST_F(TestAscendcApiPerf, TestGatherFloat16) {
   ;
   Expr res1 = perf_res.pipe_res[PipeType::AIV_VEC];
   Expr res2 = perf_res.pipe_res[PipeType::AIV_MTE2];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   EXPECT_EQ(Str(res1), "354.892294883728");
   auto ternary_ops = perf_res.ternary_ops;
   EXPECT_TRUE(ternary_ops.empty());
@@ -8513,7 +8513,7 @@ TEST_F(TestAscendcApiPerf, TestGather32) {
   ;
   Expr res1 = perf_res.pipe_res[PipeType::AIV_VEC];
   Expr res2 = perf_res.pipe_res[PipeType::AIV_MTE2];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   std::cout << Str(res1) << std::endl;
   std::cout << Str(res2) << std::endl;
   EXPECT_EQ(Str(res1), "333.16509604454");
@@ -8537,7 +8537,7 @@ TEST_F(TestAscendcApiPerf, TestGatherEmptyInputShapes) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 // 测试 RemovePadAPI - float16类型
@@ -8565,7 +8565,7 @@ TEST_F(TestAscendcApiPerf, TestRemovePadFloat16) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   std::cout << Str(res) << std::endl;
   EXPECT_EQ(Str(res), "44.9745995998383");
 }
@@ -8595,7 +8595,7 @@ TEST_F(TestAscendcApiPerf, TestRemovePad32) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
   std::cout << Str(res) << std::endl;
   EXPECT_EQ(Str(res), "7706.30890846252");
 }
@@ -8617,7 +8617,7 @@ TEST_F(TestAscendcApiPerf, TestRemovePadEmptyInputShapes) {
   node.node_ptr = node_ptr;
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
-  EXPECT_NE(result, ge::SUCCESS);
+  EXPECT_NE(result, af::SUCCESS);
 }
 
 // 测试 ArgMax API
@@ -8653,7 +8653,7 @@ TEST_F(TestAscendcApiPerf, TestArgMax) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
 }
 
 // 测试 ArgMaxMultiRPhase1 API
@@ -8689,7 +8689,7 @@ TEST_F(TestAscendcApiPerf, TestArgMaxMultiRPhase1) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
 }
 
 // 测试 ArgMaxMultiRPhase2 API
@@ -8725,5 +8725,5 @@ TEST_F(TestAscendcApiPerf, TestArgMaxMultiRPhase2) {
   auto result = perf(input_shapes, output_shapes, node, perf_res);
   ;
   Expr res = perf_res.pipe_res[PipeType::AIV_VEC];
-  EXPECT_EQ(result, ge::SUCCESS);
+  EXPECT_EQ(result, af::SUCCESS);
 }

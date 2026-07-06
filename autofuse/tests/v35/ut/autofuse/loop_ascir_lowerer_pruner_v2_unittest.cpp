@@ -173,10 +173,10 @@ TEST_F(LoopAscIrLowerPrunerUTV2, GraphLiftingAfterSplitLowering) {
   cg->FindFirstNodeMatchType("Split")->GetOpDesc()->SetType("Split");
   af::AscIrLowerer lowerer;
   ASSERT_EQ(lowerer.Lowering(cg), GRAPH_SUCCESS);
-  EXPECT_EQ(asc_adapt::GeFallback(cg), SUCCESS);
+  EXPECT_EQ(asc_adapt::GeFallback(cg), af::SUCCESS);
   FusionStrategySolver fusion_strategy_solver;
   FusionDeciderRegistry::Instance().Register(std::unique_ptr<FusionDecider>(new AscBackendFusionDecider()));
-  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), SUCCESS);
+  EXPECT_EQ(fusion_strategy_solver.Fuse(cg), af::SUCCESS);
   ASSERT_EQ(lowerer.Lifting(cg), GRAPH_SUCCESS);
   std::string expected1 = R"(ComputeGraph(graph)
 tmp0 = ge.Data(data0, [])

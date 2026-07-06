@@ -156,7 +156,7 @@ TEST_F(ConcatScheduleCaseGeneratorTest, ConcatTailDim_SplitConcat_continuous_sma
 
   optimize::ConcatGroupPartitioner partitioner(concat_node, 1);
   std::vector<optimize::ConcatGroupPartitioner::ConcatGroup> groups;
-  ASSERT_EQ(partitioner.PartitionGroups(groups), ge::SUCCESS);
+  ASSERT_EQ(partitioner.PartitionGroups(groups), af::SUCCESS);
   size_t index = 0;
   size_t last_end = 0;
   for (const auto &group : groups) {
@@ -276,7 +276,7 @@ TEST_F(ConcatScheduleCaseGeneratorTest, ConcatTailDim_SplitConcat_1648_inputs) {
 
   optimize::ConcatGroupPartitioner partitioner(concat_node, 1);
   std::vector<optimize::ConcatGroupPartitioner::ConcatGroup> groups;
-  ASSERT_EQ(partitioner.PartitionGroups(groups), ge::SUCCESS);
+  ASSERT_EQ(partitioner.PartitionGroups(groups), af::SUCCESS);
   size_t index = 0;
   size_t last_end = 0;
   for (const auto &group : groups) {
@@ -328,7 +328,7 @@ TEST_F(ConcatScheduleCaseGeneratorTest, ConcatTailDim_SplitConcatStatiThenDynami
 
   optimize::ConcatGroupPartitioner partitioner(concat_node, 1);
   std::vector<optimize::ConcatGroupPartitioner::ConcatGroup> groups;
-  ASSERT_EQ(partitioner.PartitionGroups(groups), ge::SUCCESS);
+  ASSERT_EQ(partitioner.PartitionGroups(groups), af::SUCCESS);
   std::vector<std::vector<std::string>> results;
   for (const auto &group : groups) {
     std::cout << "start: " << group.start << ", end: " << group.end << ", type: " << group.group_type << std::endl;
@@ -380,7 +380,7 @@ TEST_F(ConcatScheduleCaseGeneratorTest, ConcatTailDim_SplitConcat) {
 
   optimize::ConcatGroupPartitioner partitioner(concat_node, 1);
   std::vector<optimize::ConcatGroupPartitioner::ConcatGroup> groups;
-  ASSERT_EQ(partitioner.PartitionGroups(groups), ge::SUCCESS);
+  ASSERT_EQ(partitioner.PartitionGroups(groups), af::SUCCESS);
   std::vector<std::vector<std::string>> results;
   for (const auto &group : groups) {
     std::cout << "start: " << group.start << ", end: " << group.end << ", type: " << group.group_type << std::endl;
@@ -438,7 +438,7 @@ TEST_F(ConcatScheduleCaseGeneratorTest, ConcatTailDim_SplitConcat_412_1) {
 
   optimize::ConcatGroupPartitioner partitioner(concat_node, 1);
   std::vector<optimize::ConcatGroupPartitioner::ConcatGroup> groups;
-  ASSERT_EQ(partitioner.PartitionGroups(groups), ge::SUCCESS);
+  ASSERT_EQ(partitioner.PartitionGroups(groups), af::SUCCESS);
   std::vector<std::vector<std::string>> results;
   for (const auto &group : groups) {
     std::cout << "start: " << group.start << ", end: " << group.end << ", type: " << group.group_type << std::endl;
@@ -491,7 +491,7 @@ TEST_F(ConcatScheduleCaseGeneratorTest, ConcatTailDim_SplitConcat_AlignAndSmallT
   ASSERT_TRUE(concat_node != nullptr);
   optimize::ConcatGroupPartitioner partitioner(concat_node, 1);
   std::vector<optimize::ConcatGroupPartitioner::ConcatGroup> groups;
-  ASSERT_EQ(partitioner.PartitionGroups(groups), ge::SUCCESS);
+  ASSERT_EQ(partitioner.PartitionGroups(groups), af::SUCCESS);
   std::vector<std::vector<std::string>> results;
   for (const auto &group : groups) {
     std::cout << "start: " << group.start << ", end: " << group.end << ", type: " << group.group_type << std::endl;
@@ -533,7 +533,7 @@ TEST_F(ConcatScheduleCaseGeneratorTest, ConcatTailDim_SplitConcat_ConvertSmallGr
   dlog_setlevel(0, 0, 1);
   optimize::ConcatGroupPartitioner partitioner(concat_node, 1);
   std::vector<optimize::ConcatGroupPartitioner::ConcatGroup> groups;
-  ASSERT_EQ(partitioner.PartitionGroups(groups), ge::SUCCESS);
+  ASSERT_EQ(partitioner.PartitionGroups(groups), af::SUCCESS);
   size_t index = 0;
   size_t last_end = 0;
   for (const auto &group : groups) {
@@ -580,7 +580,7 @@ TEST_F(ConcatScheduleCaseGeneratorTest, ConcatTailDim_SplitConcat_ConvertSmallGr
   dlog_setlevel(0, 0, 1);
   optimize::ConcatGroupPartitioner partitioner(concat_node, 1);
   std::vector<optimize::ConcatGroupPartitioner::ConcatGroup> groups;
-  ASSERT_EQ(partitioner.PartitionGroups(groups), ge::SUCCESS);
+  ASSERT_EQ(partitioner.PartitionGroups(groups), af::SUCCESS);
   size_t index = 0;
   size_t last_end = 0;
   for (const auto &group : groups) {
@@ -664,7 +664,7 @@ TEST_F(ConcatScheduleCaseGeneratorTest, concat_tail_dim1_scene) {
   optimize::ConcatFusionCaseGenerator generator;
   std::vector<af::AscGraph> generated_graphs;
   std::vector<std::string> score_functions;
-  EXPECT_EQ(generator.Generate(graph, generated_graphs, score_functions), ge::SUCCESS);
+  EXPECT_EQ(generator.Generate(graph, generated_graphs, score_functions), af::SUCCESS);
   EXPECT_EQ(generated_graphs.size(), 1UL);
   std::string load0_repeats = RepeatsToStr(generated_graphs[0], "load0");
   EXPECT_EQ(load0_repeats, "s0, 1, s2, 1, ");
@@ -752,7 +752,7 @@ TEST_F(ConcatScheduleCaseGeneratorTest, concat_data_to_different_axis) {
   optimize::ConcatFusionCaseGenerator generator;
   std::vector<af::AscGraph> generated_graphs;
   std::vector<std::string> score_functions;
-  EXPECT_EQ(generator.Generate(graph, generated_graphs, score_functions), ge::SUCCESS);
+  EXPECT_EQ(generator.Generate(graph, generated_graphs, score_functions), af::SUCCESS);
   ASSERT_EQ(generated_graphs.size(), 3UL);
 
   auto cg0 = af::AscGraphUtils::GetComputeGraph(generated_graphs[0]);
@@ -894,7 +894,7 @@ TEST_F(ConcatScheduleCaseGeneratorTest, ConcatBackwardFusion) {
   optimize::ConcatFusionCaseGenerator generator;
   std::vector<af::AscGraph> generated_graphs;
   std::vector<std::string> score_functions;
-  EXPECT_EQ(generator.Generate(graph, generated_graphs, score_functions), ge::SUCCESS);
+  EXPECT_EQ(generator.Generate(graph, generated_graphs, score_functions), af::SUCCESS);
   ASSERT_EQ(generated_graphs.size(), 3UL);
 
   auto cg0 = af::AscGraphUtils::GetComputeGraph(generated_graphs[0]);
@@ -1001,7 +1001,7 @@ TEST_F(ConcatScheduleCaseGeneratorTest, ConcatBackwardFusion_WithSameLoad) {
   optimize::ConcatFusionCaseGenerator generator;
   std::vector<af::AscGraph> generated_graphs;
   std::vector<std::string> score_functions;
-  EXPECT_EQ(generator.Generate(graph, generated_graphs, score_functions), ge::SUCCESS);
+  EXPECT_EQ(generator.Generate(graph, generated_graphs, score_functions), af::SUCCESS);
   ASSERT_EQ(generated_graphs.size(), 3UL);
   for (const auto &generated_graph : generated_graphs) {
     auto cg = af::AscGraphUtils::GetComputeGraph(generated_graph);
@@ -1028,7 +1028,7 @@ TEST_F(ConcatScheduleCaseGeneratorTest, ConcatScoreFunc) {
   ASSERT_TRUE(concat_node != nullptr);
   optimize::ConcatScoreFunctionGenerator generator(graph, concat_node, 1);
   std::string score_func;
-  EXPECT_EQ(generator.Generate(score_func), ge::SUCCESS);
+  EXPECT_EQ(generator.Generate(score_func), af::SUCCESS);
   EXPECT_TRUE(!score_func.empty());
 }
 
@@ -1040,7 +1040,7 @@ TEST_F(ConcatScheduleCaseGeneratorTest, ConcatScoreFunc_stride_aligned) {
   ASSERT_TRUE(concat_node != nullptr);
   optimize::ConcatScoreFunctionGenerator generator(graph, concat_node, 1);
   std::string score_func;
-  EXPECT_EQ(generator.Generate(score_func), ge::SUCCESS);
+  EXPECT_EQ(generator.Generate(score_func), af::SUCCESS);
   EXPECT_TRUE(score_func.find("return 1;") != std::string::npos);
 }
 
@@ -1052,7 +1052,7 @@ TEST_F(ConcatScheduleCaseGeneratorTest, ConcatScoreFunc_concat_dim_aligned) {
   ASSERT_TRUE(concat_node != nullptr);
   optimize::ConcatScoreFunctionGenerator generator(graph, concat_node, 1);
   std::string score_func;
-  EXPECT_EQ(generator.Generate(score_func), ge::SUCCESS);
+  EXPECT_EQ(generator.Generate(score_func), af::SUCCESS);
   EXPECT_TRUE(score_func.find("return 1;") != std::string::npos);
 }
 
@@ -1064,7 +1064,7 @@ TEST_F(ConcatScheduleCaseGeneratorTest, ConcatScoreFunc_concat_dim_unaligned) {
   ASSERT_TRUE(concat_node != nullptr);
   optimize::ConcatScoreFunctionGenerator generator(graph, concat_node, 1);
   std::string score_func;
-  EXPECT_EQ(generator.Generate(score_func), ge::SUCCESS);
+  EXPECT_EQ(generator.Generate(score_func), af::SUCCESS);
   EXPECT_TRUE(score_func.find("return -1;") != std::string::npos);
 }
 
@@ -1234,7 +1234,7 @@ TEST_F(ConcatScheduleCaseGeneratorTest, RecomputeNode) {
   ::ascir::utils::DumpGraph(graph, "BeforeGroup");
   optimize::ConcatGroupPartitioner partitioner(concat_node, 1);
   std::vector<optimize::ConcatGroupPartitioner::ConcatGroup> groups;
-  ASSERT_EQ(partitioner.PartitionGroups(groups), ge::SUCCESS);
+  ASSERT_EQ(partitioner.PartitionGroups(groups), af::SUCCESS);
 }
 
 TEST_F(ConcatScheduleCaseGeneratorTest, RecomputeNode_HorizontalFuse) {
@@ -1277,7 +1277,7 @@ TEST_F(ConcatScheduleCaseGeneratorTest, RecomputeNode_HorizontalFuse) {
   ::ascir::utils::DumpGraph(graph, "BeforeGroup");
   optimize::ConcatGroupPartitioner partitioner(concat_node, 1);
   std::vector<optimize::ConcatGroupPartitioner::ConcatGroup> groups;
-  ASSERT_EQ(partitioner.PartitionGroups(groups), ge::SUCCESS);
+  ASSERT_EQ(partitioner.PartitionGroups(groups), af::SUCCESS);
   ::ascir::utils::DumpGraph(graph, "AfterGroup");
   ASSERT_FALSE(partitioner.HasRecompute());
 }
@@ -1343,7 +1343,7 @@ TEST_F(ConcatScheduleCaseGeneratorTest, RecomputeSingeItemGroups) {
   ASSERT_TRUE(concat_node != nullptr);
 
   optimize::ConcatGroupPartitioner partitioner(concat_node, 1);
-  EXPECT_EQ(partitioner.RecomputeDiffAxes(), SUCCESS);
+  EXPECT_EQ(partitioner.RecomputeDiffAxes(), af::SUCCESS);
   EXPECT_TRUE(partitioner.HasRecompute());
 }
 
@@ -1380,7 +1380,7 @@ TEST_F(ConcatScheduleCaseGeneratorTest, BackwardFusionAndRecompute) {
   optimize::ConcatFusionCaseGenerator generator;
   std::vector<af::AscGraph> generated_graphs;
   std::vector<std::string> score_functions;
-  EXPECT_EQ(generator.Generate(graph, generated_graphs, score_functions), ge::SUCCESS);
+  EXPECT_EQ(generator.Generate(graph, generated_graphs, score_functions), af::SUCCESS);
   EXPECT_EQ(generated_graphs.size(), 2);
   const auto &converted_graph = generated_graphs[1];
   for (const auto &node : converted_graph.GetAllNodes()) {
@@ -1417,7 +1417,7 @@ TEST_F(ConcatScheduleCaseGeneratorTest, ConcatWithScalarDataInput) {
   optimize::ConcatFusionCaseGenerator generator;
   std::vector<af::AscGraph> generated_graphs;
   std::vector<std::string> score_functions;
-  EXPECT_EQ(generator.Generate(graph, generated_graphs, score_functions), ge::SUCCESS);
+  EXPECT_EQ(generator.Generate(graph, generated_graphs, score_functions), af::SUCCESS);
 
   // 验证 ScalarData 分裂后的副本保持 ScalarData 类型
   bool found_scalar_data_copy = false;
@@ -1479,7 +1479,7 @@ TEST_F(ConcatScheduleCaseGeneratorTest, ConcatWithTranspose_AxisOrderPreserved) 
   optimize::ConcatFusionCaseGenerator generator;
   std::vector<af::AscGraph> generated_graphs;
   std::vector<std::string> score_functions;
-  EXPECT_EQ(generator.Generate(graph, generated_graphs, score_functions), ge::SUCCESS);
+  EXPECT_EQ(generator.Generate(graph, generated_graphs, score_functions), af::SUCCESS);
 
   auto cg = af::AscGraphUtils::GetComputeGraph(graph);
   auto load0_after = std::dynamic_pointer_cast<af::AscNode>(cg->FindNode("load0"));

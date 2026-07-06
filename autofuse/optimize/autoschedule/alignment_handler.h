@@ -17,9 +17,9 @@ namespace optimize::autoschedule {
 class AlignmentHandler {
  public:
   // 只允许load出现尾轴非连续
-  static ge::Status AlignVectorizedStrides(ascir::ImplGraph &impl_graph);
+  static af::Status AlignVectorizedStrides(ascir::ImplGraph &impl_graph);
   // 优化节点的vectorized stride
-  static ge::Status ModifyVectorizedStrides(af::AscGraph &nddma_graph);
+  static af::Status ModifyVectorizedStrides(af::AscGraph &nddma_graph);
 };
 }  // namespace optimize::autoschedule
 

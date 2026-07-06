@@ -242,7 +242,7 @@ class SymbolProcessor {
         ss << "      " << tensor_type_obj << " = " << TensorTypeToCode(soc_to_sym.second->GetTensorType()) << ";\n";
       }
       ss << "    } else {\n";
-      ss << R"(      GELOGE(ge::FAILED, "Unknown npu arch: %s", npu_arch.c_str());)" << std::endl;
+      ss << R"(      GELOGE(af::FAILED, "Unknown npu arch: %s", npu_arch.c_str());)" << std::endl;
       ss << "      return af::FAILED;\n";
       ss << "    }\n";
       return;
@@ -809,7 +809,7 @@ class SocOrderedSymbolProcessor : public SymbolProcessor {
         }
       }
     }
-    ss << "      return ge::SUCCESS;" << std::endl;
+    ss << "      return af::SUCCESS;" << std::endl;
   }
 
   void GenerateOutputValidation(std::stringstream &ss) {
@@ -894,7 +894,7 @@ class SocOrderedSymbolProcessor : public SymbolProcessor {
       GE_ASSERT_TRUE((iter != name_to_syms.end()) && (iter->second != nullptr));
       inputs.push_back(GetDtypeByIndex(iter->second, index));
     }
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
 
   Status CollectOutputDtypes(const std::map<std::string, SymDtype *> &name_to_syms, size_t index,
@@ -905,7 +905,7 @@ class SocOrderedSymbolProcessor : public SymbolProcessor {
       GE_ASSERT_TRUE((iter != name_to_syms.end()) && (iter->second != nullptr));
       outputs.push_back(GetDtypeByIndex(iter->second, index));
     }
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
 
   static ge::DataType GetDtypeByIndex(const SymDtype *sym, size_t index) {
@@ -952,7 +952,7 @@ class SocOrderedSymbolProcessor : public SymbolProcessor {
       oss << GenContainerEntries(iter.second, meta) << std::endl;
     }
     oss << "    } else {\n";
-    oss << R"(      GELOGE(ge::FAILED, "Unknown npu arch: %s", npu_arch.c_str());)" << std::endl;
+    oss << R"(      GELOGE(af::FAILED, "Unknown npu arch: %s", npu_arch.c_str());)" << std::endl;
     oss << "      return af::FAILED;\n";
     oss << "    }\n";
     return oss.str();
@@ -1826,7 +1826,7 @@ void GenHeaderFileToStream(const char *path, std::stringstream &ss) {
   ss << "// Generated from asc-ir definition files, "
         "any modification made to this file may be overwritten after compile."
      << std::endl;
-  ss << "// If you want to add self-defined asc-ir, please create a seperated header file." << std::endl;
+  ss << "// If you want to add self-defined asc-ir, please create a separated header file." << std::endl;
   ss << "#ifndef " << guarder << std::endl;
   ss << "#define " << guarder << std::endl << std::endl;
 

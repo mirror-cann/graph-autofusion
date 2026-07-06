@@ -85,7 +85,7 @@ void ExeTimePassManager::CheckBroadcast(const NodeInfo &node) {
   }
 }
 
-ge::Status CheckExecConditionBroadcast(const TuningSpacePtr tuning_space, const NodeInfo &node, SubAxis *axis,
+af::Status CheckExecConditionBroadcast(const TuningSpacePtr tuning_space, const NodeInfo &node, SubAxis *axis,
                                        bool &is_split, Expr **fused_axis) {
   GE_ASSERT_NOTNULL(tuning_space);
   GE_ASSERT_NOTNULL(axis);
@@ -93,7 +93,7 @@ ge::Status CheckExecConditionBroadcast(const TuningSpacePtr tuning_space, const 
   if (node.exec_condition != af::ExecuteCondition::kCacheBlockSplitFusedBroadcastAxis &&
       node.exec_condition != af::ExecuteCondition::kCacheBlockSplitOriginBroadcastAxis) {
     GELOGD("exec_condition not match");
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
   is_split = true;
   if (node.exec_condition == af::ExecuteCondition::kCacheBlockSplitFusedBroadcastAxis) {
@@ -112,7 +112,7 @@ ge::Status CheckExecConditionBroadcast(const TuningSpacePtr tuning_space, const 
       }
     }
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 void ExeTimePassManager::CheckReduce(const NodeInfo &node) {

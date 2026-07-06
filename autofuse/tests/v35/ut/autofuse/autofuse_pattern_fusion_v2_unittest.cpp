@@ -148,10 +148,10 @@ TEST_F(PatternFusionBeforeAutoFuseV2UT, GatherForward_Tail_A3) {
     }
   }
   ASSERT_EQ(asc_node_count_after_lowering, 3);
-  EXPECT_EQ(fusion_strategy_solver.Fuse(graph), SUCCESS);
+  EXPECT_EQ(fusion_strategy_solver.Fuse(graph), af::SUCCESS);
   ASSERT_EQ(lowerer.Lifting(graph), GRAPH_SUCCESS);
   AscBackendPostProcessor post_processor;
-  EXPECT_EQ(post_processor.Do(graph), SUCCESS);
+  EXPECT_EQ(post_processor.Do(graph), af::SUCCESS);
   size_t asc_node_count_after_autofuse_gather = 0;
   size_t asc_node_count_after_autofuse = 0;
   for (auto &node : graph->GetDirectNode()) {
@@ -209,10 +209,10 @@ TEST_F(PatternFusionBeforeAutoFuseV2UT, GatherForward_NonTail_A3) {
     }
   }
   ASSERT_EQ(asc_node_count_after_lowering, 2);
-  EXPECT_EQ(fusion_strategy_solver.Fuse(graph), SUCCESS);
+  EXPECT_EQ(fusion_strategy_solver.Fuse(graph), af::SUCCESS);
   ASSERT_EQ(lowerer.Lifting(graph), GRAPH_SUCCESS);
   AscBackendPostProcessor post_processor;
-  EXPECT_EQ(post_processor.Do(graph), SUCCESS);
+  EXPECT_EQ(post_processor.Do(graph), af::SUCCESS);
   size_t asc_node_count_after_autofuse_gather = 0;
   size_t asc_node_count_after_autofuse = 0;
   for (auto &node : graph->GetDirectNode()) {
@@ -275,10 +275,10 @@ TEST_F(PatternFusionBeforeAutoFuseV2UT, GatherForward_Tail_A5_1) {
     }
   }
   ASSERT_EQ(asc_node_count_after_lowering, 2);
-  EXPECT_EQ(fusion_strategy_solver.Fuse(graph), SUCCESS);
+  EXPECT_EQ(fusion_strategy_solver.Fuse(graph), af::SUCCESS);
   ASSERT_EQ(lowerer.Lifting(graph), GRAPH_SUCCESS);
   AscBackendPostProcessor post_processor;
-  EXPECT_EQ(post_processor.Do(graph), SUCCESS);
+  EXPECT_EQ(post_processor.Do(graph), af::SUCCESS);
   size_t asc_node_count_after_autofuse_gather = 0;
   size_t asc_node_count_after_autofuse = 0;
   for (auto &node : graph->GetDirectNode()) {
@@ -370,10 +370,10 @@ TEST_F(PatternFusionBeforeAutoFuseV2UT, GatherForward_Tail_A5_2) {
     }
   }
   ASSERT_EQ(asc_node_count_after_lowering, 5);
-  EXPECT_EQ(fusion_strategy_solver.Fuse(graph), SUCCESS);
+  EXPECT_EQ(fusion_strategy_solver.Fuse(graph), af::SUCCESS);
   ASSERT_EQ(lowerer.Lifting(graph), GRAPH_SUCCESS);
   AscBackendPostProcessor post_processor;
-  EXPECT_EQ(post_processor.Do(graph), SUCCESS);
+  EXPECT_EQ(post_processor.Do(graph), af::SUCCESS);
   size_t asc_node_count_after_autofuse_gather = 0;
   size_t asc_node_count_after_autofuse = 0;
   for (auto &node : graph->GetDirectNode()) {
@@ -439,10 +439,10 @@ TEST_F(PatternFusionBeforeAutoFuseV2UT, GatherForward_NonTail_A5_1) {
     }
   }
   ASSERT_EQ(asc_node_count_after_lowering, 2);
-  EXPECT_EQ(fusion_strategy_solver.Fuse(graph), SUCCESS);
+  EXPECT_EQ(fusion_strategy_solver.Fuse(graph), af::SUCCESS);
   ASSERT_EQ(lowerer.Lifting(graph), GRAPH_SUCCESS);
   AscBackendPostProcessor post_processor;
-  EXPECT_EQ(post_processor.Do(graph), SUCCESS);
+  EXPECT_EQ(post_processor.Do(graph), af::SUCCESS);
   size_t asc_node_count_after_autofuse_gather = 0;
   size_t asc_node_count_after_autofuse = 0;
   for (auto &node : graph->GetDirectNode()) {
@@ -510,10 +510,10 @@ TEST_F(PatternFusionBeforeAutoFuseV2UT, GatherForward_NonTail_A5_2) {
     }
   }
   ASSERT_EQ(asc_node_count_after_lowering, 4);
-  EXPECT_EQ(fusion_strategy_solver.Fuse(graph), SUCCESS);
+  EXPECT_EQ(fusion_strategy_solver.Fuse(graph), af::SUCCESS);
   ASSERT_EQ(lowerer.Lifting(graph), GRAPH_SUCCESS);
   AscBackendPostProcessor post_processor;
-  EXPECT_EQ(post_processor.Do(graph), SUCCESS);
+  EXPECT_EQ(post_processor.Do(graph), af::SUCCESS);
   size_t asc_node_count_after_autofuse_gather = 0;
   size_t asc_node_count_after_autofuse = 0;
   for (auto &node : graph->GetDirectNode()) {
@@ -573,10 +573,10 @@ TEST_F(PatternFusionBeforeAutoFuseV2UT, GatherForward_NonTail_A5_3) {
     }
   }
   ASSERT_EQ(asc_node_count_after_lowering, 2);
-  EXPECT_EQ(fusion_strategy_solver.Fuse(graph), SUCCESS);
+  EXPECT_EQ(fusion_strategy_solver.Fuse(graph), af::SUCCESS);
   ASSERT_EQ(lowerer.Lifting(graph), GRAPH_SUCCESS);
   AscBackendPostProcessor post_processor;
-  EXPECT_EQ(post_processor.Do(graph), SUCCESS);
+  EXPECT_EQ(post_processor.Do(graph), af::SUCCESS);
   size_t asc_node_count_after_autofuse_gather = 0;
   size_t asc_node_count_after_autofuse = 0;
   for (auto &node : graph->GetDirectNode()) {
@@ -639,10 +639,10 @@ TEST_F(PatternFusionBeforeAutoFuseV2UT, GatherForward_NonTail_A5_4) {
     }
   }
   ASSERT_EQ(asc_node_count_after_lowering, 3);
-  EXPECT_EQ(fusion_strategy_solver.Fuse(graph), SUCCESS);
+  EXPECT_EQ(fusion_strategy_solver.Fuse(graph), af::SUCCESS);
   ASSERT_EQ(lowerer.Lifting(graph), GRAPH_SUCCESS);
   AscBackendPostProcessor post_processor;
-  EXPECT_EQ(post_processor.Do(graph), SUCCESS);
+  EXPECT_EQ(post_processor.Do(graph), af::SUCCESS);
   size_t asc_node_count_after_autofuse_gather = 0;
   size_t asc_node_count_after_autofuse = 0;
   for (auto &node : graph->GetDirectNode()) {
@@ -707,10 +707,10 @@ TEST_F(PatternFusionBeforeAutoFuseV2UT, GatherForward_NonTail_A5_5) {
     }
   }
   ASSERT_EQ(asc_node_count_after_lowering, 2);
-  EXPECT_EQ(fusion_strategy_solver.Fuse(graph), SUCCESS);
+  EXPECT_EQ(fusion_strategy_solver.Fuse(graph), af::SUCCESS);
   ASSERT_EQ(lowerer.Lifting(graph), GRAPH_SUCCESS);
   AscBackendPostProcessor post_processor;
-  EXPECT_EQ(post_processor.Do(graph), SUCCESS);
+  EXPECT_EQ(post_processor.Do(graph), af::SUCCESS);
   size_t asc_node_count_after_autofuse_gather = 0;
   size_t asc_node_count_after_autofuse = 0;
   for (auto &node : graph->GetDirectNode()) {
@@ -773,10 +773,10 @@ TEST_F(PatternFusionBeforeAutoFuseV2UT, GatherForward_NonTail_A5_6) {
     }
   }
   ASSERT_EQ(asc_node_count_after_lowering, 2);
-  EXPECT_EQ(fusion_strategy_solver.Fuse(graph), SUCCESS);
+  EXPECT_EQ(fusion_strategy_solver.Fuse(graph), af::SUCCESS);
   ASSERT_EQ(lowerer.Lifting(graph), GRAPH_SUCCESS);
   AscBackendPostProcessor post_processor;
-  EXPECT_EQ(post_processor.Do(graph), SUCCESS);
+  EXPECT_EQ(post_processor.Do(graph), af::SUCCESS);
   size_t asc_node_count_after_autofuse_gather = 0;
   size_t asc_node_count_after_autofuse = 0;
   for (auto &node : graph->GetDirectNode()) {
@@ -851,10 +851,10 @@ TEST_F(PatternFusionBeforeAutoFuseV2UT, GatherForward_NonTail_A5_7) {
     }
   }
   ASSERT_EQ(asc_node_count_after_lowering, 3);
-  EXPECT_EQ(fusion_strategy_solver.Fuse(graph), SUCCESS);
+  EXPECT_EQ(fusion_strategy_solver.Fuse(graph), af::SUCCESS);
   ASSERT_EQ(lowerer.Lifting(graph), GRAPH_SUCCESS);
   AscBackendPostProcessor post_processor;
-  EXPECT_EQ(post_processor.Do(graph), SUCCESS);
+  EXPECT_EQ(post_processor.Do(graph), af::SUCCESS);
   size_t asc_node_count_after_autofuse_gather = 0;
   size_t asc_node_count_after_autofuse = 0;
   for (auto &node : graph->GetDirectNode()) {
@@ -932,10 +932,10 @@ TEST_F(PatternFusionBeforeAutoFuseV2UT, GatherForward_NonTail_A5_8) {
     }
   }
   ASSERT_EQ(asc_node_count_after_lowering, 4);
-  EXPECT_EQ(fusion_strategy_solver.Fuse(graph), SUCCESS);
+  EXPECT_EQ(fusion_strategy_solver.Fuse(graph), af::SUCCESS);
   ASSERT_EQ(lowerer.Lifting(graph), GRAPH_SUCCESS);
   AscBackendPostProcessor post_processor;
-  EXPECT_EQ(post_processor.Do(graph), SUCCESS);
+  EXPECT_EQ(post_processor.Do(graph), af::SUCCESS);
   size_t asc_node_count_after_autofuse_gather = 0;
   size_t asc_node_count_after_autofuse = 0;
   for (auto &node : graph->GetDirectNode()) {
@@ -1026,10 +1026,10 @@ TEST_F(PatternFusionBeforeAutoFuseV2UT, GatherForward_NonTail_A5_9) {
     }
   }
   ASSERT_EQ(asc_node_count_after_lowering, 5);
-  EXPECT_EQ(fusion_strategy_solver.Fuse(graph), SUCCESS);
+  EXPECT_EQ(fusion_strategy_solver.Fuse(graph), af::SUCCESS);
   ASSERT_EQ(lowerer.Lifting(graph), GRAPH_SUCCESS);
   AscBackendPostProcessor post_processor;
-  EXPECT_EQ(post_processor.Do(graph), SUCCESS);
+  EXPECT_EQ(post_processor.Do(graph), af::SUCCESS);
   size_t asc_node_count_after_autofuse_gather = 0;
   size_t asc_node_count_after_autofuse = 0;
   for (auto &node : graph->GetDirectNode()) {
@@ -1123,10 +1123,10 @@ TEST_F(PatternFusionBeforeAutoFuseV2UT, GatherForward_NonTail_A5_10) {
     }
   }
   ASSERT_EQ(asc_node_count_after_lowering, 6);
-  EXPECT_EQ(fusion_strategy_solver.Fuse(graph), SUCCESS);
+  EXPECT_EQ(fusion_strategy_solver.Fuse(graph), af::SUCCESS);
   ASSERT_EQ(lowerer.Lifting(graph), GRAPH_SUCCESS);
   AscBackendPostProcessor post_processor;
-  EXPECT_EQ(post_processor.Do(graph), SUCCESS);
+  EXPECT_EQ(post_processor.Do(graph), af::SUCCESS);
   size_t asc_node_count_after_autofuse_gather = 0;
   size_t asc_node_count_after_autofuse = 0;
   for (auto &node : graph->GetDirectNode()) {
@@ -1211,10 +1211,10 @@ TEST_F(PatternFusionBeforeAutoFuseV2UT, GatherForward_NonTail_A5_11) {
     }
   }
   ASSERT_EQ(asc_node_count_after_lowering, 5);
-  EXPECT_EQ(fusion_strategy_solver.Fuse(graph), SUCCESS);
+  EXPECT_EQ(fusion_strategy_solver.Fuse(graph), af::SUCCESS);
   ASSERT_EQ(lowerer.Lifting(graph), GRAPH_SUCCESS);
   AscBackendPostProcessor post_processor;
-  EXPECT_EQ(post_processor.Do(graph), SUCCESS);
+  EXPECT_EQ(post_processor.Do(graph), af::SUCCESS);
   size_t asc_node_count_after_autofuse_gather = 0;
   size_t asc_node_count_after_autofuse = 0;
   for (auto &node : graph->GetDirectNode()) {
@@ -1281,10 +1281,10 @@ TEST_F(PatternFusionBeforeAutoFuseV2UT, GatherForward_NonTail_A5_12) {
     }
   }
   ASSERT_EQ(asc_node_count_after_lowering, 4);
-  EXPECT_EQ(fusion_strategy_solver.Fuse(graph), SUCCESS);
+  EXPECT_EQ(fusion_strategy_solver.Fuse(graph), af::SUCCESS);
   ASSERT_EQ(lowerer.Lifting(graph), GRAPH_SUCCESS);
   AscBackendPostProcessor post_processor;
-  EXPECT_EQ(post_processor.Do(graph), SUCCESS);
+  EXPECT_EQ(post_processor.Do(graph), af::SUCCESS);
   size_t asc_node_count_after_autofuse_gather = 0;
   size_t asc_node_count_after_autofuse = 0;
   for (auto &node : graph->GetDirectNode()) {
@@ -1353,10 +1353,10 @@ TEST_F(PatternFusionBeforeAutoFuseV2UT, GatherForward_NonTail_A5_13) {
     }
   }
   ASSERT_EQ(asc_node_count_after_lowering, 2);
-  EXPECT_EQ(fusion_strategy_solver.Fuse(graph), SUCCESS);
+  EXPECT_EQ(fusion_strategy_solver.Fuse(graph), af::SUCCESS);
   ASSERT_EQ(lowerer.Lifting(graph), GRAPH_SUCCESS);
   AscBackendPostProcessor post_processor;
-  EXPECT_EQ(post_processor.Do(graph), SUCCESS);
+  EXPECT_EQ(post_processor.Do(graph), af::SUCCESS);
   size_t asc_node_count_after_autofuse_gather = 0;
   size_t asc_node_count_after_autofuse = 0;
   for (auto &node : graph->GetDirectNode()) {
@@ -1416,10 +1416,10 @@ TEST_F(PatternFusionBeforeAutoFuseV2UT, GatherForward_NonTail_A5_14) {
     }
   }
   ASSERT_EQ(asc_node_count_after_lowering, 1);
-  EXPECT_EQ(fusion_strategy_solver.Fuse(graph), SUCCESS);
+  EXPECT_EQ(fusion_strategy_solver.Fuse(graph), af::SUCCESS);
   ASSERT_EQ(lowerer.Lifting(graph), GRAPH_SUCCESS);
   AscBackendPostProcessor post_processor;
-  EXPECT_EQ(post_processor.Do(graph), SUCCESS);
+  EXPECT_EQ(post_processor.Do(graph), af::SUCCESS);
   size_t asc_node_count_after_autofuse_gather = 0;
   size_t asc_node_count_after_autofuse = 0;
   for (auto &node : graph->GetDirectNode()) {
@@ -1479,10 +1479,10 @@ TEST_F(PatternFusionBeforeAutoFuseV2UT, GatherForward_NonTail_A5_15) {
     }
   }
   ASSERT_EQ(asc_node_count_after_lowering, 1);
-  EXPECT_EQ(fusion_strategy_solver.Fuse(graph), SUCCESS);
+  EXPECT_EQ(fusion_strategy_solver.Fuse(graph), af::SUCCESS);
   ASSERT_EQ(lowerer.Lifting(graph), GRAPH_SUCCESS);
   AscBackendPostProcessor post_processor;
-  EXPECT_EQ(post_processor.Do(graph), SUCCESS);
+  EXPECT_EQ(post_processor.Do(graph), af::SUCCESS);
   size_t asc_node_count_after_autofuse_gather = 0;
   size_t asc_node_count_after_autofuse = 0;
   for (auto &node : graph->GetDirectNode()) {

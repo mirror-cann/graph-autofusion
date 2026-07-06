@@ -664,7 +664,7 @@ TEST_F(TestOptimizerV2, PowScalarDtypeCheck) {
                    .Build();
 
   PowEquivSubstitutionPass pass;
-  EXPECT_EQ(pass.RunPass(graph), ge::SUCCESS);
+  EXPECT_EQ(pass.RunPass(graph), af::SUCCESS);
 
   // pow 节点应被替换
   auto pow_node = graph.FindNode("pow");
@@ -704,7 +704,7 @@ TEST_F(TestOptimizerV2, PowNegScalarNonFloatSkip) {
                    .Build();
 
   PowEquivSubstitutionPass pass;
-  EXPECT_EQ(pass.RunPass(graph), ge::SUCCESS);
+  EXPECT_EQ(pass.RunPass(graph), af::SUCCESS);
 
   // 非浮点类型，pow 节点应保留不替换
   auto pow_node = graph.FindNode("pow");
@@ -1180,7 +1180,7 @@ TEST_F(TestOptimizerV2, ScalarBroadcastOptimization_Scalar_Support_Add) {
   output_op.y.dtype = ge::DT_FLOAT;
 
   Status res = optimize::autoschedule::PassRunnerHandler::RunPasses(graph);
-  EXPECT_EQ(res, ge::SUCCESS);
+  EXPECT_EQ(res, af::SUCCESS);
   auto compute_graph = af::AscGraphUtils::GetComputeGraph(graph);
   EXPECT_EQ(compute_graph->GetAllNodesSize(), 6);
   EXPECT_EQ(compute_graph->FindNode("brc1"), nullptr);
@@ -1405,7 +1405,7 @@ TEST_F(TestOptimizerV2, ScalarBroadcastOptimization_Scalar_Support_Min) {
   output_op.y.dtype = ge::DT_FLOAT;
 
   Status res = optimize::autoschedule::PassRunnerHandler::RunPasses(graph);
-  EXPECT_EQ(res, ge::SUCCESS);
+  EXPECT_EQ(res, af::SUCCESS);
   auto compute_graph = af::AscGraphUtils::GetComputeGraph(graph);
   EXPECT_EQ(compute_graph->GetAllNodesSize(), 6);
   EXPECT_EQ(compute_graph->FindNode("brc1"), nullptr);
@@ -1523,7 +1523,7 @@ TEST_F(TestOptimizerV2, ScalarBroadcastOptimization_UbScalar_Unsupported_Min) {
   output_op.y.dtype = ge::DT_FLOAT;
 
   Status res = optimize::autoschedule::PassRunnerHandler::RunPasses(graph);
-  EXPECT_EQ(res, ge::SUCCESS);
+  EXPECT_EQ(res, af::SUCCESS);
   auto compute_graph = af::AscGraphUtils::GetComputeGraph(graph);
   // UbScalar场景：不支持scalar broadcast优化，brc节点保留
   EXPECT_EQ(compute_graph->GetAllNodesSize(), 8);
@@ -1631,7 +1631,7 @@ TEST_F(TestOptimizerV2, ScalarBroadcastOptimization_Scalar_Support_Max) {
   output_op.y.dtype = ge::DT_FLOAT;
 
   Status res = optimize::autoschedule::PassRunnerHandler::RunPasses(graph);
-  EXPECT_EQ(res, ge::SUCCESS);
+  EXPECT_EQ(res, af::SUCCESS);
   auto compute_graph = af::AscGraphUtils::GetComputeGraph(graph);
   EXPECT_EQ(compute_graph->GetAllNodesSize(), 6);
   EXPECT_EQ(compute_graph->FindNode("brc1"), nullptr);
@@ -1749,7 +1749,7 @@ TEST_F(TestOptimizerV2, ScalarBroadcastOptimization_UbScalar_Unsupported_Max) {
   output_op.y.dtype = ge::DT_FLOAT;
 
   Status res = optimize::autoschedule::PassRunnerHandler::RunPasses(graph);
-  EXPECT_EQ(res, ge::SUCCESS);
+  EXPECT_EQ(res, af::SUCCESS);
   auto compute_graph = af::AscGraphUtils::GetComputeGraph(graph);
   // UbScalar场景：不支持scalar broadcast优化，brc节点保留
   EXPECT_EQ(compute_graph->GetAllNodesSize(), 8);
@@ -3217,7 +3217,7 @@ TEST_F(TestOptimizerV2, TestNddmaReAlignVectorizedStrides) {
   out1.ir_attr.SetIndex(0);
 
   for (const auto &node : graph.GetAllNodes()) {
-    EXPECT_EQ(optimize::NddmaTemplate::ReAlignVectorizedStrides(node), SUCCESS);
+    EXPECT_EQ(optimize::NddmaTemplate::ReAlignVectorizedStrides(node), af::SUCCESS);
   }
 }
 TEST_F(TestOptimizerV2, SliceConcat) {

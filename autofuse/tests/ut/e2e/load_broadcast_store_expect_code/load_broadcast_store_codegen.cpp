@@ -43,7 +43,7 @@ int main(int argc, char *argv[]) {
   fused_schedule_result.node_idx_to_scheduled_results.push_back(schedule_results);
   InitScheduleResultsByImplGraphs({impl_graph}, fused_schedule_result);
   codegen::CodegenResult result;
-  if (c.Generate(fused_schedule_result, result) != ge::SUCCESS) {
+  if (c.Generate(fused_schedule_result, result) != af::SUCCESS) {
     std::cout << "graph generate failed" << std::endl;
   }
 
@@ -86,7 +86,7 @@ int main(int argc, char *argv[]) {
   fused_schedule_result_int64.fused_graph_name = af::AscendString("load_broadcast_store_int64");
   fused_schedule_result_int64.node_idx_to_scheduled_results.push_back(schedule_results_int64);
   InitScheduleResultsByImplGraphs({impl_graph_int64}, fused_schedule_result_int64);
-  if (c_int64.Generate(fused_schedule_result_int64, result) != ge::SUCCESS) {
+  if (c_int64.Generate(fused_schedule_result_int64, result) != af::SUCCESS) {
     std::cout << "graph_uint8 generate failed" << std::endl;
   }
 
@@ -121,7 +121,7 @@ int main(int argc, char *argv[]) {
   fused_schedule_result_uint8.fused_graph_name = af::AscendString("load_broadcast_store_uint8");
   fused_schedule_result_uint8.node_idx_to_scheduled_results.push_back(schedule_results_uint8);
   InitScheduleResultsByImplGraphs({impl_graph_uint8}, fused_schedule_result_uint8);
-  if (c_uint8.Generate(fused_schedule_result_uint8, result) != ge::SUCCESS) {
+  if (c_uint8.Generate(fused_schedule_result_uint8, result) != af::SUCCESS) {
     std::cout << "graph_uint8 generate failed" << std::endl;
   }
 

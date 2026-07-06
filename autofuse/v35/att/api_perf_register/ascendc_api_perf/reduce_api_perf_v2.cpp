@@ -31,7 +31,7 @@ constexpr uint32_t kReduceMaxMainRPower = 15U;
 // ReduceMin/Max/Any/AllPerf -> ReduceApiPerf -> ValidateReduceContext/ValidateReduceDtype
 // -> logical / AR-B64 / AR-normal / RA-B64 / RA-normal 分支建模
 // -> BuildMergeCost(多Reduce场景) -> perf_breakdowns 输出 body/merge/total。
-using ElementwisePerf = ge::Status (*)(const NodeDetail &, PerfOutputInfo &);
+using ElementwisePerf = af::Status (*)(const NodeDetail &, PerfOutputInfo &);
 
 enum class ReduceOpKind {
   kMin,
@@ -77,7 +77,7 @@ void AddReduceBreakdown(PerfOutputInfo &perf, const std::string &name, const Exp
   GetReduceBreakdownGroup(perf).items.emplace_back(PerfBreakdownItem{name, expr, desc, indent});
 }
 
-ge::Status ValidateReduceContext(const ReduceApiPerfContext &context) {
+af::Status ValidateReduceContext(const ReduceApiPerfContext &context) {
   const auto &node_detail = context.node_detail;
   GE_ASSERT_TRUE(!node_detail.input_dtype.empty(), "Reduce dtype is empty.");
   GE_ASSERT_TRUE(!node_detail.output_dtype.empty(), "Reduce output dtype is empty.");
@@ -89,7 +89,7 @@ ge::Status ValidateReduceContext(const ReduceApiPerfContext &context) {
                  node_detail.ToString().c_str());
   GE_ASSERT_TRUE(context.merge_times.IsValid(), "Reduce merge times is invalid, node[%s].",
                  node_detail.ToString().c_str());
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 bool IsB64Dtype(const std::string &dtype) {
@@ -145,18 +145,18 @@ bool IsSupportedReduceDtype(const std::string &dtype, const ReduceOpCostModel &m
   }
 }
 
-ge::Status WarnUnsupportedReduceDtype(const ReduceApiPerfContext &context, const ReduceOpCostModel &model) {
+af::Status WarnUnsupportedReduceDtype(const ReduceApiPerfContext &context, const ReduceOpCostModel &model) {
   GELOGW("[ATT Reduce] Reduce op[%s] dtype[%s] is unsupported, node[%s].", model.reduce_op.c_str(),
          context.node_detail.input_dtype[0].c_str(), context.node_detail.name.c_str());
-  return ge::FAILED;
+  return af::FAILED;
 }
 
-ge::Status ValidateReduceDtype(const ReduceApiPerfContext &context, const ReduceOpCostModel &model) {
+af::Status ValidateReduceDtype(const ReduceApiPerfContext &context, const ReduceOpCostModel &model) {
   const std::string &dtype = context.node_detail.input_dtype[0];
   if (!IsSupportedReduceDtype(dtype, model)) {
     return WarnUnsupportedReduceDtype(context, model);
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 bool IsByteSupportedDtype(const std::string &dtype) {
@@ -167,11 +167,11 @@ Expr PipeBarrierVPerf() {
   return CreateExpr(0);
 }
 
-ge::Status AddPipeCost(const PerfOutputInfo &src, PipeType pipe_type, Expr &dst) {
+af::Status AddPipeCost(const PerfOutputInfo &src, PipeType pipe_type, Expr &dst) {
   const auto iter = src.pipe_res.find(pipe_type);
   GE_ASSERT_TRUE(iter != src.pipe_res.end());
   dst = dst + iter->second;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Expr GetRepeatEle(const std::string &dtype) {
@@ -179,30 +179,30 @@ Expr GetRepeatEle(const std::string &dtype) {
   return iter == kRptEleMap.end() ? kRptSizeFloat : iter->second;
 }
 
-ge::Status GetPositiveConstValue(const Expr &value, const std::string &name, int64_t &const_value) {
+af::Status GetPositiveConstValue(const Expr &value, const std::string &name, int64_t &const_value) {
   GE_ASSERT_TRUE(value.IsConstExpr(), "%s must be const.", name.c_str());
   value.GetConstValue(const_value);
   GE_ASSERT_TRUE(const_value > 0, "%s must be positive.", name.c_str());
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Expr CeilDivByPositiveConst(const Expr &value, int64_t divisor) {
   return af::sym::Ceiling(value * af::sym::Rational(1, divisor));
 }
 
-ge::Status CeilDivByPositiveConstExpr(const Expr &value, const Expr &divisor, const std::string &divisor_name,
+af::Status CeilDivByPositiveConstExpr(const Expr &value, const Expr &divisor, const std::string &divisor_name,
                                       Expr &result) {
   int64_t divisor_value = 0;
   GE_ASSERT_SUCCESS(GetPositiveConstValue(divisor, divisor_name, divisor_value));
   result = CeilDivByPositiveConst(value, divisor_value);
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status AlignUp(const Expr &value, const Expr &alignment, Expr &result) {
+af::Status AlignUp(const Expr &value, const Expr &alignment, Expr &result) {
   int64_t alignment_value = 0;
   GE_ASSERT_SUCCESS(GetPositiveConstValue(alignment, "alignment", alignment_value));
   result = CeilDivByPositiveConst(value, alignment_value) * CreateExpr(alignment_value);
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Expr GetVectorBlockEle(const std::string &dtype) {
@@ -216,11 +216,11 @@ Expr MakeAlignKey(const Expr &last, const Expr &dtype_size, bool treat_one_as_al
 
 // 计算指定 VF 指令类型发射 instruct_count 次的开销（含 VFHead）
 // 内部使用 AddVfInstructPerf 累加语义：latency 取 Max，throughput 累加
-ge::Status VfOpCost(const std::string &vf_instruct_type, const std::string &dtype, const Expr &count,
+af::Status VfOpCost(const std::string &vf_instruct_type, const std::string &dtype, const Expr &count,
                     const Expr &repeat_ele, uint32_t instruct_count, Expr &cost) {
   if (instruct_count == 0U) {
     cost = CreateExpr(0);
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
   Expr max_latency = CreateExpr(0);
   Expr throughput = CreateExpr(0);
@@ -231,7 +231,7 @@ ge::Status VfOpCost(const std::string &vf_instruct_type, const std::string &dtyp
   }
   cost = VfPerfUtils::GetVFHeadCost() + max_latency + throughput;
   cost.Simplify();
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 struct VfCostAccumulator {
@@ -239,13 +239,13 @@ struct VfCostAccumulator {
   Expr throughput = CreateExpr(0);
 };
 
-ge::Status AddVfInstructCost(const std::string &vf_instruct_type, const std::string &dtype, const Expr &repeat_time,
+af::Status AddVfInstructCost(const std::string &vf_instruct_type, const std::string &dtype, const Expr &repeat_time,
                              uint32_t instruct_count, VfCostAccumulator &acc) {
   for (uint32_t i = 0; i < instruct_count; ++i) {
     GE_ASSERT_SUCCESS(
         VfPerfUtils::AddVfInstructPerf(vf_instruct_type, dtype, acc.max_latency, acc.throughput, repeat_time));
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Expr GetVfGroupCost(const VfCostAccumulator &acc) {
@@ -265,18 +265,18 @@ Expr GetB64RepeatEle(const std::string &dtype) {
   return CreateExpr(kB64RegTraitNumTwoElements);
 }
 
-ge::Status GetRaB64VectorBlockCount(const Expr &dim_a, const std::string &dtype, Expr &count) {
+af::Status GetRaB64VectorBlockCount(const Expr &dim_a, const std::string &dtype, Expr &count) {
   return AlignUp(dim_a, GetB64RepeatEle(dtype), count);
 }
 
-ge::Status GetPerInnerAxisVfCount(const Expr &outer, const Expr &inner, const Expr &repeat_ele, Expr &count) {
+af::Status GetPerInnerAxisVfCount(const Expr &outer, const Expr &inner, const Expr &repeat_ele, Expr &count) {
   Expr aligned_inner = CreateExpr(0);
   GE_ASSERT_SUCCESS(AlignUp(inner, repeat_ele, aligned_inner));
   count = outer * aligned_inner;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status BuildVfGroupCost(const ReduceOpCostModel &model, const std::string &dtype, const Expr &count,
+af::Status BuildVfGroupCost(const ReduceOpCostModel &model, const std::string &dtype, const Expr &count,
                             const Expr &repeat_ele, uint32_t load_count, uint32_t binary_count, uint32_t store_count,
                             Expr &cost) {
   Expr load_cost = CreateExpr(0);
@@ -287,10 +287,10 @@ ge::Status BuildVfGroupCost(const ReduceOpCostModel &model, const std::string &d
   GE_ASSERT_SUCCESS(VfOpCost(kStore, dtype, count, repeat_ele, store_count, store_cost));
   cost = load_cost + binary_cost + store_cost;
   cost.Simplify();
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status BuildVfGroupBodyCost(const ReduceOpCostModel &model, const std::string &dtype, const Expr &count,
+af::Status BuildVfGroupBodyCost(const ReduceOpCostModel &model, const std::string &dtype, const Expr &count,
                                 const Expr &repeat_ele, uint32_t load_count, uint32_t binary_count,
                                 uint32_t store_count, Expr &cost) {
   Expr repeat_time = CreateExpr(0);
@@ -301,11 +301,11 @@ ge::Status BuildVfGroupBodyCost(const ReduceOpCostModel &model, const std::strin
   GE_ASSERT_SUCCESS(AddVfInstructCost(kStore, dtype, repeat_time, store_count, acc));
   cost = acc.max_latency + acc.throughput;
   cost.Simplify();
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status AddB64BinaryFuncInstructCost(const ReduceOpCostModel &model, const Expr &repeat_time,
-                                        uint32_t binary_count, VfCostAccumulator &acc) {
+af::Status AddB64BinaryFuncInstructCost(const ReduceOpCostModel &model, const Expr &repeat_time, uint32_t binary_count,
+                                        VfCostAccumulator &acc) {
   for (uint32_t i = 0; i < binary_count; ++i) {
     if (model.op_kind == ReduceOpKind::kSum) {
       GE_ASSERT_SUCCESS(AddVfInstructCost(kVcadd, kUInt32, repeat_time, 3U, acc));
@@ -320,21 +320,21 @@ ge::Status AddB64BinaryFuncInstructCost(const ReduceOpCostModel &model, const Ex
     GE_ASSERT_SUCCESS(AddVfInstructCost(kSelect, kUInt32, repeat_time, 5U, acc));
     GE_ASSERT_SUCCESS(AddVfInstructCost(kDuplicate, kUInt32, repeat_time, 2U, acc));
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status BuildB64BinaryFuncCost(const ReduceOpCostModel &model, const Expr &repeat_time, Expr &cost) {
+af::Status BuildB64BinaryFuncCost(const ReduceOpCostModel &model, const Expr &repeat_time, Expr &cost) {
   VfCostAccumulator acc;
   GE_ASSERT_SUCCESS(AddB64BinaryFuncInstructCost(model, repeat_time, 1U, acc));
   cost = GetVfGroupCost(acc);
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status BuildB64BinaryCost(const ReduceOpCostModel &model, const Expr &count, const Expr &repeat_ele,
+af::Status BuildB64BinaryCost(const ReduceOpCostModel &model, const Expr &count, const Expr &repeat_ele,
                               uint32_t binary_count, Expr &cost) {
   if (binary_count == 0U) {
     cost = CreateExpr(0);
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
   int64_t repeat_ele_value = 0;
   GE_ASSERT_SUCCESS(GetPositiveConstValue(repeat_ele, "repeat_ele", repeat_ele_value));
@@ -342,14 +342,14 @@ ge::Status BuildB64BinaryCost(const ReduceOpCostModel &model, const Expr &count,
   GE_ASSERT_SUCCESS(BuildB64BinaryFuncCost(model, CeilDivByPositiveConst(count, repeat_ele_value), binary_func_cost));
   cost = binary_func_cost * CreateExpr(static_cast<int64_t>(binary_count));
   cost.Simplify();
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status BuildB64ReduceSumCost(const Expr &count, const Expr &repeat_ele, uint32_t reduce_count, Expr &cost) {
+af::Status BuildB64ReduceSumCost(const Expr &count, const Expr &repeat_ele, uint32_t reduce_count, Expr &cost) {
   return BuildB64BinaryCost({nullptr, kVcadd, kAdd, ReduceOpKind::kSum}, count, repeat_ele, reduce_count, cost);
 }
 
-ge::Status BuildB64VfGroupCost(const ReduceOpCostModel &model, const std::string &dtype, const Expr &count,
+af::Status BuildB64VfGroupCost(const ReduceOpCostModel &model, const std::string &dtype, const Expr &count,
                                uint32_t load_count, uint32_t binary_count, uint32_t store_count, Expr &cost) {
   if (!IsMinMaxReduce(model) && model.op_kind != ReduceOpKind::kSum) {
     const Expr repeat_ele = GetB64RepeatEle(dtype);
@@ -368,10 +368,10 @@ ge::Status BuildB64VfGroupCost(const ReduceOpCostModel &model, const std::string
   GE_ASSERT_SUCCESS(VfOpCost(kStore, dtype, count, repeat_ele, store_count, store_cost));
   cost = load_cost + binary_cost + store_cost;
   cost.Simplify();
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status BuildB64VfGroupBodyCost(const ReduceOpCostModel &model, const std::string &dtype, const Expr &count,
+af::Status BuildB64VfGroupBodyCost(const ReduceOpCostModel &model, const std::string &dtype, const Expr &count,
                                    uint32_t load_count, uint32_t binary_count, uint32_t store_count, Expr &cost) {
   const Expr repeat_ele = GetB64RepeatEle(dtype);
   Expr repeat_time = CreateExpr(0);
@@ -385,10 +385,10 @@ ge::Status BuildB64VfGroupBodyCost(const ReduceOpCostModel &model, const std::st
   }
   GE_ASSERT_SUCCESS(AddVfInstructCost(kStore, dtype, repeat_time, store_count, acc));
   cost = GetVfGroupBodyCost(acc);
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status BuildReduceVfGroupCost(const ReduceOpCostModel &model, const std::string &dtype, const Expr &count,
+af::Status BuildReduceVfGroupCost(const ReduceOpCostModel &model, const std::string &dtype, const Expr &count,
                                   const Expr &repeat_ele, const ReduceVfGroupCounts &counts, Expr &cost) {
   Expr load_cost = CreateExpr(0);
   Expr reduce_cost = CreateExpr(0);
@@ -402,10 +402,10 @@ ge::Status BuildReduceVfGroupCost(const ReduceOpCostModel &model, const std::str
   GE_ASSERT_SUCCESS(VfOpCost(kStore, dtype, count, repeat_ele, counts.store_count, store_cost));
   cost = load_cost + reduce_cost + store_cost;
   cost.Simplify();
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status BuildCopyOutCost(const ReduceOpCostModel &model, const std::string &dtype, const Expr &count,
+af::Status BuildCopyOutCost(const ReduceOpCostModel &model, const std::string &dtype, const Expr &count,
                             const Expr &repeat_ele, bool b64, Expr &cost) {
   if (b64) {
     return BuildB64VfGroupCost(model, dtype, count, 1U, 0U, 1U, cost);
@@ -413,13 +413,13 @@ ge::Status BuildCopyOutCost(const ReduceOpCostModel &model, const std::string &d
   return BuildVfGroupCost(model, dtype, count, repeat_ele, 1U, 0U, 1U, cost);
 }
 
-ge::Status BuildRepeatedVfGroupCost(const Expr &repeats, const std::function<ge::Status(Expr &)> &body_builder,
+af::Status BuildRepeatedVfGroupCost(const Expr &repeats, const std::function<af::Status(Expr &)> &body_builder,
                                     Expr &cost) {
   Expr body_cost = CreateExpr(0);
   GE_ASSERT_SUCCESS(body_builder(body_cost));
   cost = af::sym::Min(repeats, CreateExpr(1)) * CreateExpr(kReduceVfHeadCost) + repeats * body_cost;
   cost.Simplify();
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 bool IsPositiveConst(const Expr &value) {
@@ -470,8 +470,8 @@ struct RaNormalContext {
   Expr repeat_ele;
 };
 
-using TreeCostBuilder = std::function<ge::Status(uint32_t, const Expr &, Expr &)>;
-using TailInplaceCostBuilder = std::function<ge::Status(const TreeReduceParams &, Expr &)>;
+using TreeCostBuilder = std::function<af::Status(uint32_t, const Expr &, Expr &)>;
+using TailInplaceCostBuilder = std::function<af::Status(const TreeReduceParams &, Expr &)>;
 
 Expr MakeBoolExpr(bool value) {
   return CreateExpr(value ? 1 : 0);
@@ -508,7 +508,7 @@ void SetLegacyFoldFlags(uint32_t tail_folds, TreeReduceParams &params) {
   params.legacyFoldZero = MakeBoolExpr(tail_folds >= 2U);
 }
 
-ge::Status MakeTreeReduceParams(uint32_t main_r, const Expr &tail_r, uint32_t avg_folds, bool supports_fold_three,
+af::Status MakeTreeReduceParams(uint32_t main_r, const Expr &tail_r, uint32_t avg_folds, bool supports_fold_three,
                                 TreeReduceParams &params) {
   GE_ASSERT_TRUE(avg_folds > 0U, "avg_folds must be positive.");
   const uint32_t folds = CalculateFoldsConst(main_r);
@@ -520,44 +520,44 @@ ge::Status MakeTreeReduceParams(uint32_t main_r, const Expr &tail_r, uint32_t av
   params.tailFolds = CreateExpr(static_cast<int64_t>(tail_folds));
   params.flags = CalculateFoldFlagsConst(static_cast<uint16_t>(tail_folds), supports_fold_three);
   SetLegacyFoldFlags(tail_folds, params);
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 std::shared_ptr<IfCase> MakeLeafCase(const Expr &expr) {
   return std::make_shared<IfCase>(expr);
 }
 
-ge::Status BuildSymbolicTreeCurrentCase(const Expr &dim_r, const TreeCostBuilder &builder, uint32_t main_r,
+af::Status BuildSymbolicTreeCurrentCase(const Expr &dim_r, const TreeCostBuilder &builder, uint32_t main_r,
                                         bool split_exact_power, std::shared_ptr<IfCase> &case_expr) {
   Expr normal_cost = CreateExpr(0);
   GE_ASSERT_SUCCESS(builder(main_r, dim_r - CreateExpr(static_cast<int64_t>(main_r)), normal_cost));
   if (!split_exact_power || main_r <= 1U) {
     case_expr = MakeLeafCase(normal_cost);
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
 
   Expr exact_power_cost = CreateExpr(0);
   GE_ASSERT_SUCCESS(builder(main_r / 2U, CreateExpr(static_cast<int64_t>(main_r / 2U)), exact_power_cost));
   case_expr = std::make_shared<IfCase>(CondType::K_EQ, dim_r, CreateExpr(static_cast<int64_t>(main_r)),
                                        MakeLeafCase(exact_power_cost), MakeLeafCase(normal_cost));
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status BuildSymbolicTreeCostCase(const Expr &dim_r, const TreeCostBuilder &builder, uint32_t power,
+af::Status BuildSymbolicTreeCostCase(const Expr &dim_r, const TreeCostBuilder &builder, uint32_t power,
                                      bool split_exact_power, std::shared_ptr<IfCase> &case_expr) {
   const uint32_t main_r = 1U << power;
   std::shared_ptr<IfCase> cur_case;
   GE_ASSERT_SUCCESS(BuildSymbolicTreeCurrentCase(dim_r, builder, main_r, split_exact_power, cur_case));
   if (power == kReduceMaxMainRPower) {
     case_expr = std::move(cur_case);
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
 
   std::shared_ptr<IfCase> next_case;
   GE_ASSERT_SUCCESS(BuildSymbolicTreeCostCase(dim_r, builder, power + 1U, split_exact_power, next_case));
   case_expr = std::make_shared<IfCase>(CondType::K_LT, dim_r, CreateExpr(static_cast<int64_t>(1U << (power + 1U))),
                                        std::move(cur_case), std::move(next_case));
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 std::vector<Expr> GetFreeSymbols(const Expr &expr) {
@@ -568,14 +568,14 @@ std::vector<Expr> GetFreeSymbols(const Expr &expr) {
   return symbols;
 }
 
-ge::Status SelectSymbolicTreeCost(const std::string &var_name, const Expr &dim_r, const TreeCostBuilder &builder,
+af::Status SelectSymbolicTreeCost(const std::string &var_name, const Expr &dim_r, const TreeCostBuilder &builder,
                                   PerfOutputInfo &perf, Expr &cost, bool split_exact_power = false) {
   std::shared_ptr<IfCase> root_case;
   GE_ASSERT_SUCCESS(BuildSymbolicTreeCostCase(dim_r, builder, 0U, split_exact_power, root_case));
   cost = CreateExpr(var_name.c_str());
   TernaryOp ternary_op(cost, std::move(root_case), GetFreeSymbols(dim_r));
   perf.ternary_ops[cost] = ternary_op;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 uint32_t GetInplaceStoreCount(const NormalSymbolicTreeSpec &spec) {
@@ -590,7 +590,7 @@ uint32_t GetTailStoreCount(const NormalSymbolicTreeSpec &spec) {
   return spec.tail_store_count == 0U ? spec.store_count : spec.tail_store_count;
 }
 
-ge::Status CalculateTreeReduceParams(const Expr &dim_r, uint32_t avg_folds, bool supports_fold_three,
+af::Status CalculateTreeReduceParams(const Expr &dim_r, uint32_t avg_folds, bool supports_fold_three,
                                      TreeReduceParams &params) {
   GE_ASSERT_TRUE(avg_folds > 0U, "avg_folds must be positive.");
   if (dim_r.IsConstExpr()) {
@@ -608,7 +608,7 @@ ge::Status CalculateTreeReduceParams(const Expr &dim_r, uint32_t avg_folds, bool
     params.tailFolds = CreateExpr(static_cast<int64_t>(tail_folds));
     params.flags = CalculateFoldFlagsConst(static_cast<uint16_t>(tail_folds), supports_fold_three);
     SetLegacyFoldFlags(tail_folds, params);
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
 
   GELOGW("[ATT Reduce] dim_r is symbolic, using conservative tree reduce params.");
@@ -619,14 +619,14 @@ ge::Status CalculateTreeReduceParams(const Expr &dim_r, uint32_t avg_folds, bool
   params.tailFolds = CreateExpr(0);
   params.flags = CalculateFoldFlagsConst(0U, supports_fold_three);
   SetLegacyFoldFlags(0U, params);
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status ApplyAlignedNonReuseAdjustment(bool is_reuse_source, uint32_t avg_folds, bool supports_fold_three,
+af::Status ApplyAlignedNonReuseAdjustment(bool is_reuse_source, uint32_t avg_folds, bool supports_fold_three,
                                           TreeReduceParams &params) {
   GE_ASSERT_TRUE(avg_folds > 0U, "avg_folds must be positive.");
   if (is_reuse_source || !params.tailR.IsConstExpr() || !params.mainR.IsConstExpr()) {
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
 
   int64_t tail_r = 0;
@@ -634,7 +634,7 @@ ge::Status ApplyAlignedNonReuseAdjustment(bool is_reuse_source, uint32_t avg_fol
   params.tailR.GetConstValue(tail_r);
   params.mainR.GetConstValue(main_r);
   if (tail_r != 0 || main_r <= 1) {
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
 
   const uint32_t adjusted_main_r = static_cast<uint32_t>(main_r / 2);
@@ -648,10 +648,10 @@ ge::Status ApplyAlignedNonReuseAdjustment(bool is_reuse_source, uint32_t avg_fol
   params.tailFolds = CreateExpr(static_cast<int64_t>(tail_folds));
   params.flags = CalculateFoldFlagsConst(static_cast<uint16_t>(tail_folds), supports_fold_three);
   SetLegacyFoldFlags(tail_folds, params);
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status AddMainFoldCost(const ReduceOpCostModel &model, const std::string &dtype, const Expr &count,
+af::Status AddMainFoldCost(const ReduceOpCostModel &model, const std::string &dtype, const Expr &count,
                            const Expr &repeat_ele, const TreeReduceParams &params, uint32_t avg_folds, bool b64,
                            Expr &cost) {
   GE_ASSERT_TRUE(avg_folds > 0U, "avg_folds must be positive.");
@@ -666,7 +666,7 @@ ge::Status AddMainFoldCost(const ReduceOpCostModel &model, const std::string &dt
 
   if (!params.mainTimes.IsConstExpr()) {
     cost = cost + params.mainR * per_group;
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
 
   int64_t main_times_val = 0;
@@ -678,10 +678,10 @@ ge::Status AddMainFoldCost(const ReduceOpCostModel &model, const std::string &dt
     current_r = current_r * group_width_rational;
     cost = cost + current_r * per_group;
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status AddTailFoldCaseCost(const ReduceOpCostModel &model, const std::string &dtype, const Expr &count,
+af::Status AddTailFoldCaseCost(const ReduceOpCostModel &model, const std::string &dtype, const Expr &count,
                                const Expr &repeat_ele, bool b64, uint32_t load_count, uint32_t binary_count,
                                uint32_t store_count, Expr &cost) {
   Expr case_cost = CreateExpr(0);
@@ -692,10 +692,10 @@ ge::Status AddTailFoldCaseCost(const ReduceOpCostModel &model, const std::string
         BuildVfGroupCost(model, dtype, count, repeat_ele, load_count, binary_count, store_count, case_cost));
   }
   cost = cost + case_cost;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status AddTailFoldCost(const ReduceOpCostModel &model, const std::string &dtype, const Expr &count,
+af::Status AddTailFoldCost(const ReduceOpCostModel &model, const std::string &dtype, const Expr &count,
                            const Expr &repeat_ele, const FoldFlags &flags, bool b64, Expr &cost) {
   if (IsPositiveConst(flags.foldOne)) {
     GE_ASSERT_SUCCESS(AddTailFoldCaseCost(model, dtype, count, repeat_ele, b64, 2U, 1U, 1U, cost));
@@ -709,10 +709,10 @@ ge::Status AddTailFoldCost(const ReduceOpCostModel &model, const std::string &dt
   if (IsPositiveConst(flags.foldZero)) {
     GE_ASSERT_SUCCESS(AddTailFoldCaseCost(model, dtype, count, repeat_ele, b64, 1U, 0U, 1U, cost));
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status SelectByAlignment(const std::string &var_name, const Expr &align_key, const Expr &aligned_cost,
+af::Status SelectByAlignment(const std::string &var_name, const Expr &align_key, const Expr &aligned_cost,
                              const Expr &unaligned_cost, PerfOutputInfo &perf, Expr &cost) {
   auto aligned_case = std::make_shared<IfCase>(aligned_cost);
   GE_ASSERT_NOTNULL(aligned_case);
@@ -723,10 +723,10 @@ ge::Status SelectByAlignment(const std::string &var_name, const Expr &align_key,
   cost = CreateExpr(var_name.c_str());
   ternary_op.SetVariable(cost);
   perf.ternary_ops[cost] = ternary_op;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status SelectByLessEqual(const std::string &var_name, const Expr &left, const Expr &right, const Expr &true_cost,
+af::Status SelectByLessEqual(const std::string &var_name, const Expr &left, const Expr &right, const Expr &true_cost,
                              const Expr &false_cost, PerfOutputInfo &perf, Expr &cost) {
   auto true_case = std::make_shared<IfCase>(true_cost);
   GE_ASSERT_NOTNULL(true_case);
@@ -736,7 +736,7 @@ ge::Status SelectByLessEqual(const std::string &var_name, const Expr &left, cons
   cost = CreateExpr(var_name.c_str());
   ternary_op.SetVariable(cost);
   perf.ternary_ops[cost] = ternary_op;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Expr GetNormalVlSize(const std::string &dtype);
@@ -753,7 +753,7 @@ Expr GetArSegments(const NodeDetail &node_detail) {
              : CreateExpr(1);
 }
 
-ge::Status BuildArLessThanVlCost(const ReduceApiPerfContext &context, const ReduceOpCostModel &model, bool b64,
+af::Status BuildArLessThanVlCost(const ReduceApiPerfContext &context, const ReduceOpCostModel &model, bool b64,
                                  bool unaligned, Expr &cost) {
   const auto &nd = context.node_detail;
   const std::string &dtype = nd.input_dtype[0];
@@ -766,22 +766,22 @@ ge::Status BuildArLessThanVlCost(const ReduceApiPerfContext &context, const Redu
   GE_ASSERT_SUCCESS(BuildReduceVfGroupCost(model, dtype, count, repeat_ele, counts, cost));
   cost = segments * cost;
   cost.Simplify();
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status AddArMainFoldCost(const ReduceOpCostModel &model, const std::string &dtype, const Expr &count,
+af::Status AddArMainFoldCost(const ReduceOpCostModel &model, const std::string &dtype, const Expr &count,
                              const TreeReduceParams &params, uint32_t avg_folds, bool b64, Expr &cost) {
   TreeReduceParams base_params = params;
   const Expr repeat_ele = b64 ? GetB64RepeatEle(dtype) : GetNormalVlSize(dtype);
   GE_ASSERT_SUCCESS(AddMainFoldCost(model, dtype, count, repeat_ele, base_params, avg_folds, b64, cost));
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status BuildArTailInplaceCost(const ReduceApiPerfContext &context, const ReduceOpCostModel &model, bool b64,
+af::Status BuildArTailInplaceCost(const ReduceApiPerfContext &context, const ReduceOpCostModel &model, bool b64,
                                   bool unaligned, const TreeReduceParams &params, Expr &cost) {
   cost = CreateExpr(0);
   if (!IsPositiveConst(params.tailR)) {
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
   const auto &nd = context.node_detail;
   const std::string &dtype = nd.input_dtype[0];
@@ -792,7 +792,7 @@ ge::Status BuildArTailInplaceCost(const ReduceApiPerfContext &context, const Red
   const VfGroupCounts counts = unaligned ? VfGroupCounts{4U, 1U, 2U} : VfGroupCounts{2U, 1U, 1U};
   return BuildRepeatedVfGroupCost(
       repeats,
-      [&model, dtype, count, repeat_ele, counts, b64](Expr &body_cost) -> ge::Status {
+      [&model, dtype, count, repeat_ele, counts, b64](Expr &body_cost) -> af::Status {
         if (b64) {
           return BuildB64VfGroupBodyCost(model, dtype, count, counts.load_count, counts.binary_count,
                                          counts.store_count, body_cost);
@@ -803,7 +803,7 @@ ge::Status BuildArTailInplaceCost(const ReduceApiPerfContext &context, const Red
       cost);
 }
 
-ge::Status CalculateArTreeReduceParams(const ReduceApiPerfContext &context, uint32_t avg_folds,
+af::Status CalculateArTreeReduceParams(const ReduceApiPerfContext &context, uint32_t avg_folds,
                                        bool supports_fold_three, Expr vl_size, bool apply_non_reuse,
                                        TreeReduceParams &params) {
   GE_ASSERT_TRUE(avg_folds > 0U, "avg_folds must be positive.");
@@ -816,7 +816,7 @@ ge::Status CalculateArTreeReduceParams(const ReduceApiPerfContext &context, uint
     params.tailFolds = CreateExpr(0);
     params.flags = CalculateFoldFlagsConst(0U, supports_fold_three);
     SetLegacyFoldFlags(0U, params);
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
   int64_t dim_r = 0;
   int64_t vl_size_value = 0;
@@ -840,10 +840,10 @@ ge::Status CalculateArTreeReduceParams(const ReduceApiPerfContext &context, uint
   params.tailFolds = CreateExpr(static_cast<int64_t>(tail_folds));
   params.flags = CalculateFoldFlagsConst(static_cast<uint16_t>(tail_folds), supports_fold_three);
   SetLegacyFoldFlags(tail_folds, params);
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status BuildArOverVlCost(const ReduceApiPerfContext &context, const ReduceOpCostModel &model, bool b64,
+af::Status BuildArOverVlCost(const ReduceApiPerfContext &context, const ReduceOpCostModel &model, bool b64,
                              bool unaligned, PerfOutputInfo &perf, Expr &cost) {
   const auto &nd = context.node_detail;
   const std::string &dtype = nd.input_dtype[0];
@@ -859,7 +859,7 @@ ge::Status BuildArOverVlCost(const ReduceApiPerfContext &context, const ReduceOp
         b64 ? (unaligned ? "reduce_ar_b64_unaligned_tree_cost" : "reduce_ar_b64_aligned_tree_cost")
             : (unaligned ? "reduce_ar_normal_unaligned_tree_cost" : "reduce_ar_normal_aligned_tree_cost");
     TreeCostBuilder builder = [&context, &model, dtype, count, repeat_ele, avg_folds, supports_fold_three, b64,
-                               unaligned, vl_size](uint32_t main_r, const Expr &tail_r, Expr &case_cost) -> ge::Status {
+                               unaligned, vl_size](uint32_t main_r, const Expr &tail_r, Expr &case_cost) -> af::Status {
       const uint32_t base = std::max<uint32_t>(1U, main_r / static_cast<uint32_t>(vl_size));
       TreeReduceParams params;
       GE_ASSERT_SUCCESS(MakeTreeReduceParams(base, tail_r, avg_folds, supports_fold_three, params));
@@ -871,7 +871,7 @@ ge::Status BuildArOverVlCost(const ReduceApiPerfContext &context, const ReduceOp
       GE_ASSERT_SUCCESS(AddTailFoldCost(model, dtype, count, repeat_ele, params.flags, b64, tail_fold));
       case_cost = GetArSegments(context.node_detail) * (inplace_cost + main_fold + tail_fold);
       case_cost.Simplify();
-      return ge::SUCCESS;
+      return af::SUCCESS;
     };
     return SelectSymbolicTreeCost(var_name, nd.input_dims[1], builder, perf, cost,
                                   !unaligned && !context.is_reuse_source);
@@ -888,7 +888,7 @@ ge::Status BuildArOverVlCost(const ReduceApiPerfContext &context, const ReduceOp
   GE_ASSERT_SUCCESS(AddTailFoldCost(model, dtype, count, repeat_ele, params.flags, b64, tail_fold));
   cost = GetArSegments(nd) * (inplace_cost + main_fold + tail_fold);
   cost.Simplify();
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 bool IsConstLe(const Expr &lhs, const Expr &rhs) {
@@ -902,7 +902,7 @@ bool IsConstLe(const Expr &lhs, const Expr &rhs) {
   return lhs_value <= rhs_value;
 }
 
-ge::Status BuildArReduceCost(const ReduceApiPerfContext &context, const ReduceOpCostModel &model, bool b64,
+af::Status BuildArReduceCost(const ReduceApiPerfContext &context, const ReduceOpCostModel &model, bool b64,
                              bool unaligned, PerfOutputInfo &perf, Expr &cost) {
   const auto &nd = context.node_detail;
   const Expr vl_size = b64 ? GetB64RepeatEle(nd.input_dtype[0]) : GetNormalVlSize(nd.input_dtype[0]);
@@ -922,17 +922,17 @@ ge::Status BuildArReduceCost(const ReduceApiPerfContext &context, const ReduceOp
   return BuildArOverVlCost(context, model, b64, unaligned, perf, cost);
 }
 
-ge::Status BuildArB64AlignedCost(const ReduceApiPerfContext &context, const ReduceOpCostModel &model,
+af::Status BuildArB64AlignedCost(const ReduceApiPerfContext &context, const ReduceOpCostModel &model,
                                  PerfOutputInfo &perf, Expr &cost) {
   return BuildArReduceCost(context, model, true, false, perf, cost);
 }
 
-ge::Status BuildArB64UnalignedCost(const ReduceApiPerfContext &context, const ReduceOpCostModel &model,
+af::Status BuildArB64UnalignedCost(const ReduceApiPerfContext &context, const ReduceOpCostModel &model,
                                    PerfOutputInfo &perf, Expr &cost) {
   return BuildArReduceCost(context, model, true, true, perf, cost);
 }
 
-ge::Status BuildArB64Cost(const ReduceApiPerfContext &context, const ReduceOpCostModel &model, PerfOutputInfo &perf,
+af::Status BuildArB64Cost(const ReduceApiPerfContext &context, const ReduceOpCostModel &model, PerfOutputInfo &perf,
                           Expr &cost) {
   const auto &nd = context.node_detail;
   const Expr last = nd.input_dims[1];
@@ -944,20 +944,20 @@ ge::Status BuildArB64Cost(const ReduceApiPerfContext &context, const ReduceOpCos
   GE_ASSERT_SUCCESS(SelectByAlignment("reduce_ar_b64_align_case", MakeAlignKey(last, dtype_size, false), aligned_cost,
                                       unaligned_cost, perf, cost));
   AddReduceBreakdown(perf, "reduce_ar_b64_align_perf", cost, "AR B64 32B alignment selected branch", 1U);
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status BuildArNormalAlignedCost(const ReduceApiPerfContext &context, const ReduceOpCostModel &model,
+af::Status BuildArNormalAlignedCost(const ReduceApiPerfContext &context, const ReduceOpCostModel &model,
                                     PerfOutputInfo &perf, Expr &cost) {
   return BuildArReduceCost(context, model, false, false, perf, cost);
 }
 
-ge::Status BuildArNormalUnalignedCost(const ReduceApiPerfContext &context, const ReduceOpCostModel &model,
+af::Status BuildArNormalUnalignedCost(const ReduceApiPerfContext &context, const ReduceOpCostModel &model,
                                       PerfOutputInfo &perf, Expr &cost) {
   return BuildArReduceCost(context, model, false, true, perf, cost);
 }
 
-ge::Status BuildArNormalCost(const ReduceApiPerfContext &context, const ReduceOpCostModel &model, PerfOutputInfo &perf,
+af::Status BuildArNormalCost(const ReduceApiPerfContext &context, const ReduceOpCostModel &model, PerfOutputInfo &perf,
                              Expr &cost) {
   const auto &nd = context.node_detail;
   const Expr last = nd.input_dims[1];
@@ -969,10 +969,10 @@ ge::Status BuildArNormalCost(const ReduceApiPerfContext &context, const ReduceOp
   GE_ASSERT_SUCCESS(SelectByAlignment("reduce_ar_normal_align_case", MakeAlignKey(last, dtype_size, true), aligned_cost,
                                       unaligned_cost, perf, cost));
   AddReduceBreakdown(perf, "reduce_ar_normal_align_perf", cost, "AR normal 32B alignment selected branch", 1U);
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status AddSymbolicMainFoldCost(const ReduceOpCostModel &model, const NormalSymbolicTreeSpec &spec,
+af::Status AddSymbolicMainFoldCost(const ReduceOpCostModel &model, const NormalSymbolicTreeSpec &spec,
                                    const TreeReduceParams &params, uint32_t avg_folds, bool b64, Expr &cost) {
   GE_ASSERT_TRUE(avg_folds > 0U, "avg_folds must be positive.");
   Expr per_group = CreateExpr(0);
@@ -995,10 +995,10 @@ ge::Status AddSymbolicMainFoldCost(const ReduceOpCostModel &model, const NormalS
     current_r = current_r * group_width_rational;
     cost = cost + current_r * per_group;
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status AddSymbolicTailFoldCost(const ReduceOpCostModel &model, const NormalSymbolicTreeSpec &spec,
+af::Status AddSymbolicTailFoldCost(const ReduceOpCostModel &model, const NormalSymbolicTreeSpec &spec,
                                    const FoldFlags &flags, bool b64, Expr &cost) {
   cost = CreateExpr(0);
   const uint32_t store_count = GetTailStoreCount(spec);
@@ -1018,12 +1018,12 @@ ge::Status AddSymbolicTailFoldCost(const ReduceOpCostModel &model, const NormalS
     GE_ASSERT_SUCCESS(
         AddTailFoldCaseCost(model, spec.dtype, spec.count, spec.repeat_ele, b64, store_count, 0U, store_count, cost));
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status BuildTreeBodyCost(const ReduceOpCostModel &model, const NormalSymbolicTreeSpec &spec,
-                             uint32_t avg_folds, bool b64,
-                             const TreeReduceParams &params, const TailInplaceCostBuilder &tail_builder, Expr &cost) {
+af::Status BuildTreeBodyCost(const ReduceOpCostModel &model, const NormalSymbolicTreeSpec &spec, uint32_t avg_folds,
+                             bool b64, const TreeReduceParams &params, const TailInplaceCostBuilder &tail_builder,
+                             Expr &cost) {
   Expr inplace_one = CreateExpr(0);
   if (tail_builder != nullptr) {
     GE_ASSERT_SUCCESS(tail_builder(params, inplace_one));
@@ -1032,7 +1032,7 @@ ge::Status BuildTreeBodyCost(const ReduceOpCostModel &model, const NormalSymboli
     if (b64) {
       GE_ASSERT_SUCCESS(BuildRepeatedVfGroupCost(
           params.tailR,
-          [&model, spec, inplace_store_count](Expr &body_cost) -> ge::Status {
+          [&model, spec, inplace_store_count](Expr &body_cost) -> af::Status {
             return BuildB64VfGroupBodyCost(model, spec.dtype, spec.count, spec.inplace_load_count, 1U,
                                            inplace_store_count, body_cost);
           },
@@ -1040,7 +1040,7 @@ ge::Status BuildTreeBodyCost(const ReduceOpCostModel &model, const NormalSymboli
     } else {
       GE_ASSERT_SUCCESS(BuildRepeatedVfGroupCost(
           params.tailR,
-          [&model, spec, inplace_store_count](Expr &body_cost) -> ge::Status {
+          [&model, spec, inplace_store_count](Expr &body_cost) -> af::Status {
             return BuildVfGroupBodyCost(model, spec.dtype, spec.count, spec.repeat_ele, spec.inplace_load_count, 1U,
                                         inplace_store_count, body_cost);
           },
@@ -1054,14 +1054,14 @@ ge::Status BuildTreeBodyCost(const ReduceOpCostModel &model, const NormalSymboli
   GE_ASSERT_SUCCESS(AddSymbolicTailFoldCost(model, spec, params.flags, b64, tail_fold));
   cost = inplace_one + main_fold + tail_fold;
   cost.Simplify();
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 TreeCostBuilder MakeTreeCostBuilder(const ReduceOpCostModel &model, const NormalSymbolicTreeSpec &spec,
                                     uint32_t avg_folds, bool supports_fold_three, bool b64,
                                     const TailInplaceCostBuilder &tail_builder = nullptr) {
   return [&model, spec, avg_folds, supports_fold_three, b64, tail_builder](uint32_t main_r, const Expr &tail_r,
-                                                                          Expr &case_cost) -> ge::Status {
+                                                                           Expr &case_cost) -> af::Status {
     TreeReduceParams params;
     GE_ASSERT_SUCCESS(MakeTreeReduceParams(main_r, tail_r, avg_folds, supports_fold_three, params));
     return BuildTreeBodyCost(model, spec, avg_folds, b64, params, tail_builder, case_cost);
@@ -1075,14 +1075,14 @@ TreeCostBuilder MakeAlignedTreeCostBuilder(const ReduceApiPerfContext &context, 
   return MakeTreeCostBuilder(model, spec, avg_folds, supports_fold_three, b64);
 }
 
-ge::Status BuildRaB64ConstTreeCost(const ReduceOpCostModel &model, const std::string &dtype, const Expr &count,
+af::Status BuildRaB64ConstTreeCost(const ReduceOpCostModel &model, const std::string &dtype, const Expr &count,
                                    const Expr &repeat_ele, const TreeReduceParams &params, uint32_t inplace_load,
                                    uint32_t inplace_store, Expr &cost) {
   Expr inplace_add = CreateExpr(0);
   if (IsPositiveConst(params.tailR)) {
     GE_ASSERT_SUCCESS(BuildRepeatedVfGroupCost(
         params.tailR,
-        [&model, dtype, count, inplace_load, inplace_store](Expr &body_cost) -> ge::Status {
+        [&model, dtype, count, inplace_load, inplace_store](Expr &body_cost) -> af::Status {
           return BuildB64VfGroupBodyCost(model, dtype, count, inplace_load, 1U, inplace_store, body_cost);
         },
         inplace_add));
@@ -1093,10 +1093,10 @@ ge::Status BuildRaB64ConstTreeCost(const ReduceOpCostModel &model, const std::st
   GE_ASSERT_SUCCESS(AddTailFoldCost(model, dtype, count, repeat_ele, params.flags, true, tail_fold));
   cost = inplace_add + main_fold + tail_fold;
   cost.Simplify();
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status BuildRaB64AlignedCost(const ReduceApiPerfContext &context, const ReduceOpCostModel &model,
+af::Status BuildRaB64AlignedCost(const ReduceApiPerfContext &context, const ReduceOpCostModel &model,
                                  PerfOutputInfo &perf, Expr &cost) {
   const auto &nd = context.node_detail;
   const Expr dim_r = nd.input_dims[0];
@@ -1119,16 +1119,16 @@ ge::Status BuildRaB64AlignedCost(const ReduceApiPerfContext &context, const Redu
     params.mainR.GetConstValue(main_r);
     if (main_r == 1) {
       GE_ASSERT_SUCCESS(BuildCopyOutCost(model, dtype, dim_a, repeat_ele, true, cost));
-      return ge::SUCCESS;
+      return af::SUCCESS;
     }
   }
   GE_ASSERT_SUCCESS(ApplyAlignedNonReuseAdjustment(context.is_reuse_source, 3U, false, params));
 
   GE_ASSERT_SUCCESS(BuildRaB64ConstTreeCost(model, dtype, count, repeat_ele, params, 2U, 1U, cost));
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status BuildRaB64UnalignedCost(const ReduceApiPerfContext &context, const ReduceOpCostModel &model,
+af::Status BuildRaB64UnalignedCost(const ReduceApiPerfContext &context, const ReduceOpCostModel &model,
                                    PerfOutputInfo &perf, Expr &cost) {
   const auto &nd = context.node_detail;
   const Expr dim_r = nd.input_dims[0];
@@ -1147,10 +1147,10 @@ ge::Status BuildRaB64UnalignedCost(const ReduceApiPerfContext &context, const Re
   GE_ASSERT_SUCCESS(CalculateTreeReduceParams(dim_r, 3U, false, params));
 
   GE_ASSERT_SUCCESS(BuildRaB64ConstTreeCost(model, dtype, count, repeat_ele, params, 4U, 2U, cost));
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status BuildRaB64Cost(const ReduceApiPerfContext &context, const ReduceOpCostModel &model, PerfOutputInfo &perf,
+af::Status BuildRaB64Cost(const ReduceApiPerfContext &context, const ReduceOpCostModel &model, PerfOutputInfo &perf,
                           Expr &cost) {
   const auto &nd = context.node_detail;
   const Expr last = nd.input_dims[1];
@@ -1166,24 +1166,24 @@ ge::Status BuildRaB64Cost(const ReduceApiPerfContext &context, const ReduceOpCos
   GE_ASSERT_SUCCESS(SelectByAlignment("reduce_ra_b64_align_case", MakeAlignKey(last, dtype_size, false), aligned_cost,
                                       unaligned_cost, perf, cost));
   AddReduceBreakdown(perf, "reduce_ra_b64_align_perf", cost, "RA B64 32B alignment selected branch", 1U);
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Expr GetNormalVlSize(const std::string &dtype) {
   return GetRepeatEle(dtype);
 }
 
-ge::Status HandleDimREqualsOne(const ReduceApiPerfContext &context, const ReduceOpCostModel &model, Expr &cost,
+af::Status HandleDimREqualsOne(const ReduceApiPerfContext &context, const ReduceOpCostModel &model, Expr &cost,
                                bool &handled) {
   handled = false;
   const Expr dim_r = context.node_detail.input_dims[0];
   if (!dim_r.IsConstExpr()) {
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
   int64_t dim_r_val = 0;
   dim_r.GetConstValue(dim_r_val);
   if (dim_r_val != 1) {
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
   handled = true;
   const Expr dim_a = context.node_detail.input_dims[1];
@@ -1192,34 +1192,34 @@ ge::Status HandleDimREqualsOne(const ReduceApiPerfContext &context, const Reduce
   return BuildCopyOutCost(model, dtype, dim_a, repeat_ele, false, cost);
 }
 
-ge::Status PrepareRaNormalContext(const ReduceApiPerfContext &context, const ReduceOpCostModel &model, Expr &cost,
+af::Status PrepareRaNormalContext(const ReduceApiPerfContext &context, const ReduceOpCostModel &model, Expr &cost,
                                   RaNormalContext &ra_context, bool &handled) {
   GE_ASSERT_SUCCESS(HandleDimREqualsOne(context, model, cost, handled));
   if (handled) {
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
   const auto &nd = context.node_detail;
   ra_context.dim_r = nd.input_dims[0];
   ra_context.dim_a = nd.input_dims[1];
   ra_context.dtype = nd.input_dtype[0];
   ra_context.repeat_ele = GetNormalVlSize(ra_context.dtype);
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status BuildRaNormalConcatAlignedSymbolicCost(const ReduceOpCostModel &model, const NormalSymbolicTreeSpec &spec,
+af::Status BuildRaNormalConcatAlignedSymbolicCost(const ReduceOpCostModel &model, const NormalSymbolicTreeSpec &spec,
                                                   Expr &cost) {
   GE_ASSERT_SUCCESS(BuildVfGroupCost(model, spec.dtype, spec.count, spec.repeat_ele, 2U, 1U, 1U, cost));
   cost.Simplify();
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status BuildRaNormalConcatAlignedCost(const ReduceApiPerfContext &context, const ReduceOpCostModel &model,
+af::Status BuildRaNormalConcatAlignedCost(const ReduceApiPerfContext &context, const ReduceOpCostModel &model,
                                           Expr &cost) {
   RaNormalContext ra_ctx;
   bool handled = false;
   GE_ASSERT_SUCCESS(PrepareRaNormalContext(context, model, cost, ra_ctx, handled));
   if (handled) {
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
   if (ra_ctx.dim_r.IsConstExpr()) {
     int64_t dim_r_val = 0;
@@ -1262,16 +1262,16 @@ ge::Status BuildRaNormalConcatAlignedCost(const ReduceApiPerfContext &context, c
   GE_ASSERT_SUCCESS(BuildVfGroupCost(model, ra_ctx.dtype, ra_ctx.dim_a, ra_ctx.repeat_ele, 2U, 1U, 1U, final_fold));
   cost = inplace_add + fold_cost + final_fold;
   cost.Simplify();
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status BuildRaNormalLessThanVlAlignedCost(const ReduceApiPerfContext &context, const ReduceOpCostModel &model,
+af::Status BuildRaNormalLessThanVlAlignedCost(const ReduceApiPerfContext &context, const ReduceOpCostModel &model,
                                               PerfOutputInfo &perf, Expr &cost) {
   RaNormalContext ra_ctx;
   bool handled = false;
   GE_ASSERT_SUCCESS(PrepareRaNormalContext(context, model, cost, ra_ctx, handled));
   if (handled) {
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
   if (!ra_ctx.dim_r.IsConstExpr()) {
     NormalSymbolicTreeSpec spec{ra_ctx.dtype, ra_ctx.dim_r, ra_ctx.dim_a, ra_ctx.repeat_ele, 2U, 16U, 2U, 1U};
@@ -1299,10 +1299,10 @@ ge::Status BuildRaNormalLessThanVlAlignedCost(const ReduceApiPerfContext &contex
       AddTailFoldCost(model, ra_ctx.dtype, ra_ctx.dim_a, ra_ctx.repeat_ele, params.flags, false, tail_fold));
   cost = inplace_add + main_fold + tail_fold;
   cost.Simplify();
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status BuildRaNormalOverVlAlignedCost(const ReduceApiPerfContext &context, const ReduceOpCostModel &model,
+af::Status BuildRaNormalOverVlAlignedCost(const ReduceApiPerfContext &context, const ReduceOpCostModel &model,
                                           PerfOutputInfo &perf, Expr &cost) {
   const auto &nd = context.node_detail;
   const Expr dim_r = nd.input_dims[0];
@@ -1333,7 +1333,7 @@ ge::Status BuildRaNormalOverVlAlignedCost(const ReduceApiPerfContext &context, c
   if (IsPositiveConst(params.tailR)) {
     GE_ASSERT_SUCCESS(BuildRepeatedVfGroupCost(
         params.tailR,
-        [&model, dtype, count, repeat_ele](Expr &body_cost) -> ge::Status {
+        [&model, dtype, count, repeat_ele](Expr &body_cost) -> af::Status {
           return BuildVfGroupBodyCost(model, dtype, count, repeat_ele, 2U, 1U, 1U, body_cost);
         },
         inplace_add));
@@ -1345,10 +1345,10 @@ ge::Status BuildRaNormalOverVlAlignedCost(const ReduceApiPerfContext &context, c
   GE_ASSERT_SUCCESS(AddTailFoldCost(model, dtype, count, repeat_ele, params.flags, false, tail_fold));
   cost = inplace_add + main_fold + tail_fold;
   cost.Simplify();
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status BuildRaNormalAlignedCost(const ReduceApiPerfContext &context, const ReduceOpCostModel &model,
+af::Status BuildRaNormalAlignedCost(const ReduceApiPerfContext &context, const ReduceOpCostModel &model,
                                     PerfOutputInfo &perf, Expr &cost) {
   const auto &nd = context.node_detail;
   const Expr dim_a = nd.input_dims[1];
@@ -1370,13 +1370,13 @@ ge::Status BuildRaNormalAlignedCost(const ReduceApiPerfContext &context, const R
   return BuildRaNormalOverVlAlignedCost(context, model, perf, cost);
 }
 
-ge::Status AddNormalUnalignedMainFoldCost(const ReduceOpCostModel &model, const std::string &dtype, const Expr &dim_a,
+af::Status AddNormalUnalignedMainFoldCost(const ReduceOpCostModel &model, const std::string &dtype, const Expr &dim_a,
                                           const Expr &repeat_ele, const TreeReduceParams &params, Expr &cost) {
   Expr per_group = CreateExpr(0);
   GE_ASSERT_SUCCESS(BuildVfGroupCost(model, dtype, dim_a, repeat_ele, 32U, 15U, 2U, per_group));
   if (!params.mainTimes.IsConstExpr()) {
     cost = params.mainR * per_group;
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
 
   cost = CreateExpr(0);
@@ -1387,10 +1387,10 @@ ge::Status AddNormalUnalignedMainFoldCost(const ReduceOpCostModel &model, const 
     current_r = current_r / CreateExpr(16);
     cost = cost + current_r * per_group;
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status AddNormalUnalignedTailFoldCost(const ReduceOpCostModel &model, const std::string &dtype, const Expr &dim_a,
+af::Status AddNormalUnalignedTailFoldCost(const ReduceOpCostModel &model, const std::string &dtype, const Expr &dim_a,
                                           const Expr &repeat_ele, const FoldFlags &flags, Expr &cost) {
   cost = CreateExpr(0);
   if (IsPositiveConst(flags.foldOne)) {
@@ -1405,20 +1405,20 @@ ge::Status AddNormalUnalignedTailFoldCost(const ReduceOpCostModel &model, const 
   if (IsPositiveConst(flags.foldZero)) {
     GE_ASSERT_SUCCESS(AddTailFoldCaseCost(model, dtype, dim_a, repeat_ele, false, 2U, 0U, 2U, cost));
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status BuildNormalUnalignedInplaceCost(const ReduceOpCostModel &model, const std::string &dtype, const Expr &dim_a,
+af::Status BuildNormalUnalignedInplaceCost(const ReduceOpCostModel &model, const std::string &dtype, const Expr &dim_a,
                                            const Expr &repeat_ele, const Expr &tail_r, Expr &cost) {
   return BuildRepeatedVfGroupCost(
       tail_r,
-      [&model, dtype, dim_a, repeat_ele](Expr &body_cost) -> ge::Status {
+      [&model, dtype, dim_a, repeat_ele](Expr &body_cost) -> af::Status {
         return BuildVfGroupBodyCost(model, dtype, dim_a, repeat_ele, 4U, 1U, 2U, body_cost);
       },
       cost);
 }
 
-ge::Status BuildRaNormalUnalignedCost(const ReduceApiPerfContext &context, const ReduceOpCostModel &model,
+af::Status BuildRaNormalUnalignedCost(const ReduceApiPerfContext &context, const ReduceOpCostModel &model,
                                       PerfOutputInfo &perf, Expr &cost) {
   const auto &nd = context.node_detail;
   const Expr dim_r = nd.input_dims[0];
@@ -1428,7 +1428,7 @@ ge::Status BuildRaNormalUnalignedCost(const ReduceApiPerfContext &context, const
   if (!dim_r.IsConstExpr()) {
     NormalSymbolicTreeSpec spec{dtype, dim_r, dim_a, repeat_ele, 4U, 32U, 4U, 2U};
     TailInplaceCostBuilder tail_builder = [&model, dtype, dim_a, repeat_ele](const TreeReduceParams &params,
-                                                                             Expr &tail_cost) -> ge::Status {
+                                                                             Expr &tail_cost) -> af::Status {
       return BuildNormalUnalignedInplaceCost(model, dtype, dim_a, repeat_ele, params.tailR, tail_cost);
     };
     return SelectSymbolicTreeCost("reduce_ra_normal_unaligned_tree_cost", dim_r,
@@ -1448,10 +1448,10 @@ ge::Status BuildRaNormalUnalignedCost(const ReduceApiPerfContext &context, const
   GE_ASSERT_SUCCESS(AddNormalUnalignedTailFoldCost(model, dtype, dim_a, repeat_ele, params.flags, tail_fold));
   cost = inplace_add + main_fold + tail_fold;
   cost.Simplify();
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status BuildRaNormalCost(const ReduceApiPerfContext &context, const ReduceOpCostModel &model, PerfOutputInfo &perf,
+af::Status BuildRaNormalCost(const ReduceApiPerfContext &context, const ReduceOpCostModel &model, PerfOutputInfo &perf,
                              Expr &cost) {
   const auto &nd = context.node_detail;
   const Expr last = nd.input_dims[1];
@@ -1463,21 +1463,21 @@ ge::Status BuildRaNormalCost(const ReduceApiPerfContext &context, const ReduceOp
   GE_ASSERT_SUCCESS(SelectByAlignment("reduce_ra_normal_align_case", MakeAlignKey(last, dtype_size, false),
                                       aligned_cost, unaligned_cost, perf, cost));
   AddReduceBreakdown(perf, "reduce_ra_normal_align_perf", cost, "RA normal 32B alignment selected branch", 1U);
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status GetMergeTempSize(const ReduceApiPerfContext &context, Expr &temp_size) {
+af::Status GetMergeTempSize(const ReduceApiPerfContext &context, Expr &temp_size) {
   return AlignUp(context.merge_size, GetVectorBlockEle(context.node_detail.input_dtype[0]), temp_size);
 }
 
-ge::Status BuildMergeCopyCost(const ReduceApiPerfContext &context, const Expr &temp_size, Expr &cost) {
+af::Status BuildMergeCopyCost(const ReduceApiPerfContext &context, const Expr &temp_size, Expr &cost) {
   GE_ASSERT_SUCCESS(GetPerf(
       {kUb2ub, context.node_detail.input_dtype[0], context.node_detail.output_dtype[0], {temp_size}, CreateExpr(0)},
       cost));
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status BuildMergeElementwiseCost(const ReduceApiPerfContext &context, ElementwisePerf elementwise_perf,
+af::Status BuildMergeElementwiseCost(const ReduceApiPerfContext &context, ElementwisePerf elementwise_perf,
                                      const Expr &temp_size, Expr &cost) {
   PerfOutputInfo elem_perf;
   NodeDetail elem_nd = context.node_detail;
@@ -1485,10 +1485,10 @@ ge::Status BuildMergeElementwiseCost(const ReduceApiPerfContext &context, Elemen
   elem_nd.output_dims = {temp_size};
   GE_ASSERT_SUCCESS(elementwise_perf(elem_nd, elem_perf));
   GE_ASSERT_SUCCESS(AddPipeCost(elem_perf, PipeType::AIV_VEC, cost));
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status BuildMultiReduceCopyMergeCost(const ReduceApiPerfContext &context, ElementwisePerf elementwise_perf,
+af::Status BuildMultiReduceCopyMergeCost(const ReduceApiPerfContext &context, ElementwisePerf elementwise_perf,
                                          const Expr &temp_size, Expr &cost) {
   Expr copy_cost = CreateExpr(0);
   Expr elementwise_cost = CreateExpr(0);
@@ -1496,10 +1496,10 @@ ge::Status BuildMultiReduceCopyMergeCost(const ReduceApiPerfContext &context, El
   GE_ASSERT_SUCCESS(BuildMergeElementwiseCost(context, elementwise_perf, temp_size, elementwise_cost));
   cost = (copy_cost + (context.merge_times - CreateExpr(1)) * elementwise_cost) / context.merge_times;
   cost.Simplify();
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status BuildMergeCost(const ReduceApiPerfContext &context, ElementwisePerf elementwise_perf, Expr &cost) {
+af::Status BuildMergeCost(const ReduceApiPerfContext &context, ElementwisePerf elementwise_perf, Expr &cost) {
   cost = PipeBarrierVPerf();
   Expr temp_size = CreateExpr(0);
   GE_ASSERT_SUCCESS(GetMergeTempSize(context, temp_size));
@@ -1513,10 +1513,10 @@ ge::Status BuildMergeCost(const ReduceApiPerfContext &context, ElementwisePerf e
   } else if (context.merge_mode == ReduceMergeMode::kMergeByElementwise) {
     GE_ASSERT_SUCCESS(BuildMergeElementwiseCost(context, elementwise_perf, temp_size, cost));
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status BuildLogicalReduceCost(const ReduceApiPerfContext &context, const ReduceOpCostModel &model,
+af::Status BuildLogicalReduceCost(const ReduceApiPerfContext &context, const ReduceOpCostModel &model,
                                   PerfOutputInfo &perf, Expr &cost) {
   if (context.pattern == ReducePattern::kAR) {
     return BuildArNormalAlignedCost(context, model, perf, cost);
@@ -1525,10 +1525,10 @@ ge::Status BuildLogicalReduceCost(const ReduceApiPerfContext &context, const Red
 }
 }  // namespace
 
-ge::Status ReduceApiPerf(const ReduceApiPerfContext &context, const ReduceOpCostModel &model, PerfOutputInfo &perf) {
+af::Status ReduceApiPerf(const ReduceApiPerfContext &context, const ReduceOpCostModel &model, PerfOutputInfo &perf) {
   GE_ASSERT_SUCCESS(ValidateReduceContext(context));
-  const ge::Status dtype_status = ValidateReduceDtype(context, model);
-  if (dtype_status != ge::SUCCESS) {
+  const af::Status dtype_status = ValidateReduceDtype(context, model);
+  if (dtype_status != af::SUCCESS) {
     return dtype_status;
   }
   const auto &nd = context.node_detail;
@@ -1574,48 +1574,48 @@ ge::Status ReduceApiPerf(const ReduceApiPerfContext &context, const ReduceOpCost
   AddReduceBreakdown(perf, "reduce_total_perf", total, "Reduce API total perf = body + merge", 0U);
   perf.pipe_res[PipeType::AIV_VEC] = total;
   GELOGD("[ATT Reduce] ReduceApiPerf: result[%s], node[%s].", total.Str().get(), nd.name.c_str());
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status ReduceMinPerf(const ReduceApiPerfContext &context, PerfOutputInfo &perf) {
+af::Status ReduceMinPerf(const ReduceApiPerfContext &context, PerfOutputInfo &perf) {
   const ReduceOpCostModel model = {ascendcperf_v2::MinPerf, kReduceMin, kMin, ReduceOpKind::kMin};
   return ReduceApiPerf(context, model, perf);
 }
 
-ge::Status ReduceMaxPerf(const ReduceApiPerfContext &context, PerfOutputInfo &perf) {
+af::Status ReduceMaxPerf(const ReduceApiPerfContext &context, PerfOutputInfo &perf) {
   const ReduceOpCostModel model = {ascendcperf_v2::MaxPerf, kReduceMax, kMax, ReduceOpKind::kMax};
   return ReduceApiPerf(context, model, perf);
 }
 
-ge::Status ReduceAnyPerf(const ReduceApiPerfContext &context, PerfOutputInfo &perf) {
+af::Status ReduceAnyPerf(const ReduceApiPerfContext &context, PerfOutputInfo &perf) {
   const ReduceOpCostModel model = {ascendcperf_v2::MaxPerf, kReduceAny, kMax, ReduceOpKind::kAny};
   return ReduceApiPerf(context, model, perf);
 }
 
-ge::Status ReduceAllPerf(const ReduceApiPerfContext &context, PerfOutputInfo &perf) {
+af::Status ReduceAllPerf(const ReduceApiPerfContext &context, PerfOutputInfo &perf) {
   const ReduceOpCostModel model = {ascendcperf_v2::MinPerf, kReduceAll, kMin, ReduceOpKind::kAll};
   return ReduceApiPerf(context, model, perf);
 }
 
-ge::Status ReduceSumPerf(const ReduceApiPerfContext &context, PerfOutputInfo &perf) {
+af::Status ReduceSumPerf(const ReduceApiPerfContext &context, PerfOutputInfo &perf) {
   const ReduceOpCostModel model = {ascendcperf_v2::AddPerf, kVcadd, kAdd, ReduceOpKind::kSum};
   return ReduceApiPerf(context, model, perf);
 }
 
-ge::Status ReduceProdPerf(const ReduceApiPerfContext &context, PerfOutputInfo &perf) {
+af::Status ReduceProdPerf(const ReduceApiPerfContext &context, PerfOutputInfo &perf) {
   const ReduceOpCostModel model = {ascendcperf_v2::MulPerf, kMul, kMul, ReduceOpKind::kProd};
   return ReduceApiPerf(context, model, perf);
 }
 
-ge::Status ReduceMeanPerf(const ReduceApiPerfContext &context, PerfOutputInfo &perf) {
+af::Status ReduceMeanPerf(const ReduceApiPerfContext &context, PerfOutputInfo &perf) {
   const ReduceOpCostModel model = {ascendcperf_v2::AddPerf, kVcadd, kAdd, ReduceOpKind::kMean};
   GE_ASSERT_SUCCESS(ValidateReduceContext(context));
-  const ge::Status dtype_status = ValidateReduceDtype(context, model);
-  if (dtype_status != ge::SUCCESS) {
+  const af::Status dtype_status = ValidateReduceDtype(context, model);
+  if (dtype_status != af::SUCCESS) {
     return dtype_status;
   }
-  const ge::Status sum_status = ReduceSumPerf(context, perf);
-  if (sum_status != ge::SUCCESS) {
+  const af::Status sum_status = ReduceSumPerf(context, perf);
+  if (sum_status != af::SUCCESS) {
     return sum_status;
   }
   PerfOutputInfo muls_perf;
@@ -1629,7 +1629,7 @@ ge::Status ReduceMeanPerf(const ReduceApiPerfContext &context, PerfOutputInfo &p
   perf.pipe_res[PipeType::AIV_VEC] = perf.pipe_res[PipeType::AIV_VEC] + muls_cost;
   perf.pipe_res[PipeType::AIV_VEC].Simplify();
   AddReduceBreakdown(perf, "reduce_mean_muls_perf", muls_cost, "ReduceMean post ReduceSum Muls perf", 0U);
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 }  // namespace ascendcapi_v2
 }  // namespace att

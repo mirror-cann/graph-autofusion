@@ -52,7 +52,7 @@ bool OptionRegister::ValidateAndInitInnerOptions(std::map<std::string, std::stri
   // 检测是否有未注册的option
   for (const auto &pair : options) {
     if (registered_options_name_.find(pair.first) == registered_options_name_.cend()) {
-      GELOGE(ge::FAILED, "Option validation failed for option '%s'. It is not registered.", pair.first.c_str());
+      GELOGE(af::FAILED, "Option validation failed for option '%s'. It is not registered.", pair.first.c_str());
       return false;
     }
   }
@@ -62,7 +62,7 @@ bool OptionRegister::ValidateAndInitInnerOptions(std::map<std::string, std::stri
     if (iter != options.cend()) {
       // 开始校验
       if (!registered_option.validate_func(iter->second)) {
-        GELOGE(ge::FAILED, "Invalid option[%s] = %s.", iter->first.c_str(), iter->second.c_str());
+        GELOGE(af::FAILED, "Invalid option[%s] = %s.", iter->first.c_str(), iter->second.c_str());
         return false;
       } else {
         inner_options[registered_option.name] = iter->second;

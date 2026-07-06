@@ -35,7 +35,7 @@ af::Status GetPadHeightAndWidth(const af::AscTensor &node_input, af::Expression 
       height = height * node_input.attr.repeats[axis_id];
     }
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 af::Status GetPadTilingCall([[maybe_unused]] const std::string &tiling_data_type,
@@ -67,14 +67,14 @@ af::Status GetPadTilingCall([[maybe_unused]] const std::string &tiling_data_type
   oss << "apiPadTiling.SaveToBuffer((void *)&tiling_data." << field_name << ", sizeof(PadTiling));" << std::endl;
 
   code_string = oss.str();
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 af::Status GetPadTilingDefine([[maybe_unused]] const std::string &tiling_data_type,
                               [[maybe_unused]] const af::AscGraph &graph, [[maybe_unused]] const af::AscNodePtr &node,
                               [[maybe_unused]] const std::string &code_string,
                               [[maybe_unused]] uint32_t tiling_case_id) {
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 af::Status GetPadTilingHeadFiles([[maybe_unused]] const std::string &tiling_data_type,
@@ -90,7 +90,7 @@ af::Status GetPadTilingHeadFiles([[maybe_unused]] const std::string &tiling_data
 )";
 
   code_string = kHeaderContent;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 REGISTER_API_TILING_FUNC(kPadType, GetPadTilingCall, GetPadTilingDefine, GetPadTilingHeadFiles);

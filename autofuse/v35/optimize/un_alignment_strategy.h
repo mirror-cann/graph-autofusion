@@ -18,26 +18,26 @@ class UnAlignmentStrategy : public BaseAlignmentStrategy {
   ~UnAlignmentStrategy() override = default;
   UnAlignmentStrategy() = default;
 
-  ge::Status BackPropagateAlignment(const af::AscNodePtr &node, AlignmentType aligned_type) override;
-  ge::Status ModifyVectorizedStrides(ascir::ImplGraph &impl_graph) override;
-  static ge::Status ModifyTransposeFusionVectorizedStrides(af::AscGraph &nddma_graph, uint32_t align_width);
+  af::Status BackPropagateAlignment(const af::AscNodePtr &node, AlignmentType aligned_type) override;
+  af::Status ModifyVectorizedStrides(ascir::ImplGraph &impl_graph) override;
+  static af::Status ModifyTransposeFusionVectorizedStrides(af::AscGraph &nddma_graph, uint32_t align_width);
 
  protected:
-  ge::Status LoadAlignmentInferFunc(const af::AscNodePtr &node) override;
-  ge::Status StoreAlignmentInferFunc(const af::AscNodePtr &node) override;
-  ge::Status ConcatAlignmentInferFunc(const af::AscNodePtr &node) override;
+  af::Status LoadAlignmentInferFunc(const af::AscNodePtr &node) override;
+  af::Status StoreAlignmentInferFunc(const af::AscNodePtr &node) override;
+  af::Status ConcatAlignmentInferFunc(const af::AscNodePtr &node) override;
 
  private:
   AlignmentType GetDefaultAlignmentType() override;
-  ge::Status SetAlignInfoForTailBrcNodes(AlignmentType aligned_type, af::AscNode *node,
+  af::Status SetAlignInfoForTailBrcNodes(AlignmentType aligned_type, af::AscNode *node,
                                          std::set<af::Node *> &visited_nodes, std::queue<af::Node *> &node_queue);
-  static ge::Status BroadcastInputNodeIsScalar(const af::AscNodePtr &node, bool &is_scalar);
-  static ge::Status IsGraphHasNodeNeedTailAxisAlign(af::AscGraph &graph, bool &is_need_tail_align);
-  static ge::Status GetCurrentNodeContinuousTailAxisNum(const af::AscNodePtr &node, uint32_t &continuous_axis_num);
-  static ge::Status GetNodeContinuousTailAxisNumByStore(const af::AscNodePtr &node, uint32_t &continuous_axis_num);
-  static ge::Status GetNodeContinuousTailAxisNumByLoad(const af::AscNodePtr &node, uint32_t &continuous_axis_num);
-  static ge::Status CollectTransposePreNodes(const af::AscGraph &graph, std::set<af::AscNodePtr> &transpose_pre_nodes);
-  static ge::Status UpdateOutputVectorizedStrides(const af::AscNodePtr &node, uint32_t continuous_axis_num,
+  static af::Status BroadcastInputNodeIsScalar(const af::AscNodePtr &node, bool &is_scalar);
+  static af::Status IsGraphHasNodeNeedTailAxisAlign(af::AscGraph &graph, bool &is_need_tail_align);
+  static af::Status GetCurrentNodeContinuousTailAxisNum(const af::AscNodePtr &node, uint32_t &continuous_axis_num);
+  static af::Status GetNodeContinuousTailAxisNumByStore(const af::AscNodePtr &node, uint32_t &continuous_axis_num);
+  static af::Status GetNodeContinuousTailAxisNumByLoad(const af::AscNodePtr &node, uint32_t &continuous_axis_num);
+  static af::Status CollectTransposePreNodes(const af::AscGraph &graph, std::set<af::AscNodePtr> &transpose_pre_nodes);
+  static af::Status UpdateOutputVectorizedStrides(const af::AscNodePtr &node, uint32_t continuous_axis_num,
                                                   uint32_t align_width);
 };
 

@@ -34,7 +34,7 @@ struct ForceTilingCaseResult {
 
 class AttStrategyConfigUtils {
  public:
-  static ge::Status ParseForceTilingCase(const std::string &input, ForceTilingCaseResult &force_tiling_case);
+  static af::Status ParseForceTilingCase(const std::string &input, ForceTilingCaseResult &force_tiling_case);
 };
 
 }  // namespace ge

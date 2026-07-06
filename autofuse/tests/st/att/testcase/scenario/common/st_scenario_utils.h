@@ -77,21 +77,21 @@ inline void PrintTilingDebugInfo(const std::map<std::string, std::string> &tilin
 }
 
 // 构建单个测试用例的schedule result
-inline ge::Status ConstructSingleCaseForReduceSplitPenalty(std::vector<ascir::ScheduledResult> &schedule_results) {
+inline af::Status ConstructSingleCaseForReduceSplitPenalty(std::vector<ascir::ScheduledResult> &schedule_results) {
   ascir::ScheduleGroup schedule_group1;
   ascir::ScheduledResult scheduled_result1;
   ge::AscGraph graph_0("ReduceSplitPenalty");
-  GE_ASSERT_EQ(att::GraphConstructUtils::BuildConcatGroupAscendGraphS0S1ReduceMultiTiling(graph_0), ge::SUCCESS);
+  GE_ASSERT_EQ(att::GraphConstructUtils::BuildConcatGroupAscendGraphS0S1ReduceMultiTiling(graph_0), af::SUCCESS);
   graph_0.SetTilingKey(0U);
   schedule_group1.impl_graphs.emplace_back(graph_0);
   GraphConstructUtils::UpdateGraphsVectorizedStride(schedule_group1.impl_graphs);
   scheduled_result1.schedule_groups.emplace_back(schedule_group1);
   schedule_results.emplace_back(scheduled_result1);
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 // 生成tiling实现
-inline ge::Status GenTilingImpl(std::vector<ascir::ScheduledResult> &schedule_results) {
+inline af::Status GenTilingImpl(std::vector<ascir::ScheduledResult> &schedule_results) {
   std::map<std::string, std::string> options;
   std::map<std::string, std::string> tiling_funcs;
   std::string op_name = "ReduceSplitPenalty";
@@ -131,7 +131,7 @@ inline ge::Status GenTilingImpl(std::vector<ascir::ScheduledResult> &schedule_re
   generator_config.tiling_data_type_name = options[af::sym::kTilingDataTypeName];
   generator_config.gen_tiling_data = true;
   generator_config.gen_extra_infos = false;
-  GE_ASSERT_EQ(generator.GenTilingCode(op_name, all_model_infos, generator_config, tiling_res), ge::SUCCESS);
+  GE_ASSERT_EQ(generator.GenTilingCode(op_name, all_model_infos, generator_config, tiling_res), af::SUCCESS);
 
   // 写入tiling data到文件
   oss.open("ReduceSplitPenalty_tiling_data.h", std::ios::out);
@@ -159,11 +159,11 @@ inline ge::Status GenTilingImpl(std::vector<ascir::ScheduledResult> &schedule_re
                         .append(TOP_DIR)
                         .append("/autofuse/tests/st/att/testcase/stub/tilingdata_base.h ./register/ -f")
                         .c_str());
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 // 通用的 tiling 代码生成和写入逻辑
-inline ge::Status GenTilingCodeToFile(const std::string &op_name,
+inline af::Status GenTilingCodeToFile(const std::string &op_name,
                                       const std::map<std::string, std::string> &tiling_funcs,
                                       const ascir::FusedScheduledResult &fused_scheduled_result,
                                       const std::map<std::string, std::string> &options,
@@ -189,14 +189,14 @@ inline ge::Status GenTilingCodeToFile(const std::string &op_name,
   generator_config.tiling_data_type_name = options.at(af::sym::kTilingDataTypeName);
   generator_config.gen_tiling_data = true;
   generator_config.gen_extra_infos = false;
-  GE_ASSERT_EQ(generator.GenTilingCode(op_name, all_model_infos, generator_config, tiling_res), ge::SUCCESS);
+  GE_ASSERT_EQ(generator.GenTilingCode(op_name, all_model_infos, generator_config, tiling_res), af::SUCCESS);
 
   // 写入 tiling data
   oss.open(op_name + "_tiling_data.h", std::ios::out);
   oss << tiling_res[tiling_data_name];
   oss.close();
 
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 // 创建 tiling main 函数模板字符串

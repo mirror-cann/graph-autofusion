@@ -21,20 +21,20 @@ AlignmentType UnAlignmentStrategy::GetDefaultAlignmentType() {
   return AlignmentType::kNotAligned;
 }
 
-ge::Status UnAlignmentStrategy::LoadAlignmentInferFunc(const af::AscNodePtr &node) {
+af::Status UnAlignmentStrategy::LoadAlignmentInferFunc(const af::AscNodePtr &node) {
   const auto &output_attr = node->outputs[0].attr;
   if (!af::ops::IsOps<af::ascir_op::Load>(node)) {
     GELOGD("Node[%s] is continuous loading, input tensor does not needs to be aligned.", node->GetNamePtr());
     // vectorized_axis连续则可以连续搬运
     tensor_to_align_type_[&output_attr] = {AlignmentType::kNotAligned};
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
 
   if (IsLoadNeedAlignForReduce(node)) {
     // 符合该条件的load节点会转为nddma，不必对齐
     GELOGD("Node[%s] is discontinuous loading, input tensor needs to be fixed not aligned.", node->GetNamePtr());
     tensor_to_align_type_[&output_attr] = {AlignmentType::kNotAligned};
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
   DiscontinuityInfo info;
   GE_ASSERT_SUCCESS(TensorLayoutUtils::AnalyzeLoadDiscontinuity(output_attr, info),
@@ -51,10 +51,10 @@ ge::Status UnAlignmentStrategy::LoadAlignmentInferFunc(const af::AscNodePtr &nod
     GELOGD("Node[%s] is discontinuous loading, input tensor needs to be aligned.", node->GetNamePtr());
     tensor_to_align_type_[&output_attr] = {AlignmentType::kAligned};
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status UnAlignmentStrategy::StoreAlignmentInferFunc(const af::AscNodePtr &node) {
+af::Status UnAlignmentStrategy::StoreAlignmentInferFunc(const af::AscNodePtr &node) {
   const auto &output_attr = node->outputs[0].attr;
   AlignmentType input_align = tensor_to_align_type_[&node->inputs[0].attr].align_type;
   tensor_to_align_type_[&output_attr] = {input_align};
@@ -81,7 +81,7 @@ ge::Status UnAlignmentStrategy::StoreAlignmentInferFunc(const af::AscNodePtr &no
     tensor_to_align_type_[&output_attr] = {AlignmentType::kAligned};
     GE_ASSERT_SUCCESS(BackPropagateAlignment(node, AlignmentType::kAligned));
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 bool IsTailBroadcastNode(af::AscNode &node) {
@@ -106,12 +106,12 @@ bool IsTailBroadcastNode(af::AscNode &node) {
   const auto &in_attr = inputs[0]->attr;
   std::vector<af::Expression> in_vec_repeats;
   GE_ASSERT(ScheduleUtils::GetVectorRepeats(in_attr.repeats, in_attr.axis, in_attr.vectorized_axis, in_vec_repeats) ==
-            ge::SUCCESS);
+            af::SUCCESS);
 
   const auto &out_attr = outputs[0]->attr;
   std::vector<af::Expression> out_vec_repeats;
   GE_ASSERT(ScheduleUtils::GetVectorRepeats(out_attr.repeats, out_attr.axis, out_attr.vectorized_axis,
-                                            out_vec_repeats) == ge::SUCCESS);
+                                            out_vec_repeats) == af::SUCCESS);
 
   // 输入输出vectorized_strides大小一致，且非空
   GE_ASSERT(in_vec_repeats.size() == out_vec_repeats.size());
@@ -124,7 +124,7 @@ bool IsTailBroadcastNode(af::AscNode &node) {
   return is_tail_brc;
 }
 
-ge::Status UnAlignmentStrategy::SetAlignInfoForTailBrcNodes(AlignmentType aligned_type, af::AscNode *node,
+af::Status UnAlignmentStrategy::SetAlignInfoForTailBrcNodes(AlignmentType aligned_type, af::AscNode *node,
                                                             std::set<af::Node *> &visited_nodes,
                                                             std::queue<af::Node *> &node_queue) {
   for (const auto &output : node->outputs()) {
@@ -148,10 +148,10 @@ ge::Status UnAlignmentStrategy::SetAlignInfoForTailBrcNodes(AlignmentType aligne
     }
   }
   visited_nodes.insert(node);
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status UnAlignmentStrategy::BackPropagateAlignment(const af::AscNodePtr &node, AlignmentType aligned_type) {
+af::Status UnAlignmentStrategy::BackPropagateAlignment(const af::AscNodePtr &node, AlignmentType aligned_type) {
   std::set<af::Node *> visited_nodes;
   std::queue<af::Node *> node_queue;
   visited_nodes.emplace(node.get());
@@ -161,7 +161,7 @@ ge::Status UnAlignmentStrategy::BackPropagateAlignment(const af::AscNodePtr &nod
     node_queue.pop();
     GE_ASSERT_NOTNULL(curr_node);
     if (IsTailBroadcastNode(*curr_node)) {
-      GE_ASSERT(SetAlignInfoForTailBrcNodes(aligned_type, curr_node, visited_nodes, node_queue) == ge::SUCCESS);
+      GE_ASSERT(SetAlignInfoForTailBrcNodes(aligned_type, curr_node, visited_nodes, node_queue) == af::SUCCESS);
       continue;
     }
 
@@ -170,10 +170,10 @@ ge::Status UnAlignmentStrategy::BackPropagateAlignment(const af::AscNodePtr &nod
       SetAlignInfoForNodeInputs(aligned_type, curr_node, visited_nodes, node_queue);
     }
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status UnAlignmentStrategy::ConcatAlignmentInferFunc(const af::AscNodePtr &node) {
+af::Status UnAlignmentStrategy::ConcatAlignmentInferFunc(const af::AscNodePtr &node) {
   bool any_input_aligned = false;
   for (const auto &input : node->inputs()) {
     auto alignment_iter = tensor_to_align_type_.find(&input->attr);
@@ -197,7 +197,7 @@ ge::Status UnAlignmentStrategy::ConcatAlignmentInferFunc(const af::AscNodePtr &n
     }
   }
   tensor_to_align_type_[&output_attr] = {AlignmentType::kFixedNotAligned};
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 /**
@@ -210,7 +210,7 @@ Status GenLoadToGenNddmaNode(const af::AscNodePtr &node_load) {
 
   node_load->GetOpDesc()->SetType("Nddma");
   node_load->attr.type = "Nddma";
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status UnAlignmentStrategy::BroadcastInputNodeIsScalar(const af::AscNodePtr &node, bool &is_scalar) {
@@ -225,7 +225,7 @@ Status UnAlignmentStrategy::BroadcastInputNodeIsScalar(const af::AscNodePtr &nod
   }
   if (af::ops::IsOps<af::ascir_op::Scalar>(in_node) || af::ops::IsOps<af::ascir_op::ScalarData>(in_node)) {
     is_scalar = true;
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
   auto &output_attr = in_node->outputs[0].attr;
   const auto &output_vec_strides = output_attr.vectorized_strides;
@@ -233,7 +233,7 @@ Status UnAlignmentStrategy::BroadcastInputNodeIsScalar(const af::AscNodePtr &nod
   is_scalar = std::all_of(output_vec_strides.begin(), output_vec_strides.end(), [](const auto &stride) {
     return af::SymbolicUtils::StaticCheckEq(stride, af::sym::kSymbolZero) == af::TriBool::kTrue;
   });
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status UnAlignmentStrategy::IsGraphHasNodeNeedTailAxisAlign(af::AscGraph &graph, bool &is_need_tail_align) {
@@ -263,7 +263,7 @@ Status UnAlignmentStrategy::IsGraphHasNodeNeedTailAxisAlign(af::AscGraph &graph,
       break;
     }
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status UnAlignmentStrategy::GetCurrentNodeContinuousTailAxisNum(const af::AscNodePtr &node,
@@ -293,7 +293,7 @@ Status UnAlignmentStrategy::GetCurrentNodeContinuousTailAxisNum(const af::AscNod
       break;
     }
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status UnAlignmentStrategy::GetNodeContinuousTailAxisNumByStore(const af::AscNodePtr &node,
@@ -301,7 +301,7 @@ Status UnAlignmentStrategy::GetNodeContinuousTailAxisNumByStore(const af::AscNod
   continuous_tail_axis_num = UINT32_MAX;
   if (af::ops::IsOps<af::ascir_op::Store>(node)) {
     GE_ASSERT_SUCCESS(GetCurrentNodeContinuousTailAxisNum(node, continuous_tail_axis_num));
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
   for (size_t out_idx = 0U; out_idx < node->GetAllOutDataAnchorsSize(); out_idx++) {
     auto out_anchor = node->GetOutDataAnchor(out_idx);
@@ -324,7 +324,7 @@ Status UnAlignmentStrategy::GetNodeContinuousTailAxisNumByStore(const af::AscNod
       }
     }
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status UnAlignmentStrategy::GetNodeContinuousTailAxisNumByLoad(const af::AscNodePtr &node,
@@ -332,7 +332,7 @@ Status UnAlignmentStrategy::GetNodeContinuousTailAxisNumByLoad(const af::AscNode
   continuous_tail_axis_num = UINT32_MAX;
   if (af::ops::IsOps<af::ascir_op::Load>(node)) {
     GE_ASSERT_SUCCESS(GetCurrentNodeContinuousTailAxisNum(node, continuous_tail_axis_num));
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
   for (size_t in_idx = 0U; in_idx < node->GetAllInDataAnchorsSize(); in_idx++) {
     auto in_anchor = node->GetInDataAnchor(in_idx);
@@ -352,7 +352,7 @@ Status UnAlignmentStrategy::GetNodeContinuousTailAxisNumByLoad(const af::AscNode
       continuous_tail_axis_num = std::min(continuous_tail_axis_num, in_node_continuous_axis_num);
     }
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status UnAlignmentStrategy::CollectTransposePreNodes(const af::AscGraph &graph,
@@ -366,7 +366,7 @@ Status UnAlignmentStrategy::CollectTransposePreNodes(const af::AscGraph &graph,
     }
   }
   if (transpose_nodes.empty()) {
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
   // 2. 对每个 Transpose 节点，向上遍历收集所有前序节点
   for (const auto &transpose_node : transpose_nodes) {
@@ -404,7 +404,7 @@ Status UnAlignmentStrategy::CollectTransposePreNodes(const af::AscGraph &graph,
       }
     }
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status UnAlignmentStrategy::UpdateOutputVectorizedStrides(const af::AscNodePtr &node, uint32_t continuous_tail_axis_num,
@@ -437,7 +437,7 @@ Status UnAlignmentStrategy::UpdateOutputVectorizedStrides(const af::AscNodePtr &
       size_product = af::sym::Align(size_product, align_factor);
     }
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status UnAlignmentStrategy::ModifyTransposeFusionVectorizedStrides(af::AscGraph &nddma_graph, uint32_t align_width) {
@@ -445,7 +445,7 @@ Status UnAlignmentStrategy::ModifyTransposeFusionVectorizedStrides(af::AscGraph 
   GE_ASSERT_SUCCESS(IsGraphHasNodeNeedTailAxisAlign(nddma_graph, is_need_tail_align));
   if (is_need_tail_align) {
     GELOGW("Graph has node need tail axis align.");
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
 
   // 收集 Transpose 前序节点
@@ -479,7 +479,7 @@ Status UnAlignmentStrategy::ModifyTransposeFusionVectorizedStrides(af::AscGraph 
       GE_ASSERT_SUCCESS(UpdateOutputVectorizedStrides(node, continuous_tail_axis_num, align_width));
     }
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status UnAlignmentStrategy::ModifyVectorizedStrides(af::AscGraph &impl_graph) {
@@ -491,7 +491,7 @@ Status UnAlignmentStrategy::ModifyVectorizedStrides(af::AscGraph &impl_graph) {
     }
   }
   if (!has_transpose) {
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
   return ModifyTransposeFusionVectorizedStrides(impl_graph, BaseAlignmentStrategy::GetAlignWidth());
 }

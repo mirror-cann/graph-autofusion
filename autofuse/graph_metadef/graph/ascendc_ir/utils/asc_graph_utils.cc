@@ -118,7 +118,7 @@ Status AscGraphUtils::FromComputeGraph(const ComputeGraphPtr &compute_graph, Asc
   GE_ASSERT_NOTNULL(compute_graph);
   GE_ASSERT_NOTNULL(graph.impl_);
   graph.impl_->compute_graph_ = compute_graph;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 graphStatus AscGraphUtils::SerializeToProto(const AscGraph &asc_graph, ascendc_ir::proto::AscGraphDef &asc_graph_def) {

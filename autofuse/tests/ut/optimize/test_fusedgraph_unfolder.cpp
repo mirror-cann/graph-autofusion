@@ -910,7 +910,7 @@ TEST_F(FusedGraphUnfolderTest, AscBcNodeUnfolder_With_Same_Data_Diff_Repeats) {
 
   af::AscGraph unfolded_asc_graph("unfolded_asc_graph");
   Status ret = FusedGraphUnfolder::UnfoldFusedGraph(compute_graph, asc_backend_to_asc_graph, unfolded_asc_graph);
-  ASSERT_EQ(ret, ge::SUCCESS);
+  ASSERT_EQ(ret, af::SUCCESS);
 
   auto axis = unfolded_asc_graph.GetAllAxis();
   ASSERT_EQ(axis.size(), 2);
@@ -954,7 +954,7 @@ TEST_F(FusedGraphUnfolderTest, AscBcNodeUnfolder_With_Same_Data_Diff_Offset) {
 
   af::AscGraph unfolded_asc_graph("unfolded_asc_graph");
   Status ret = FusedGraphUnfolder::UnfoldFusedGraph(compute_graph, asc_backend_to_asc_graph, unfolded_asc_graph);
-  ASSERT_EQ(ret, ge::SUCCESS);
+  ASSERT_EQ(ret, af::SUCCESS);
 
   auto axis = unfolded_asc_graph.GetAllAxis();
   ASSERT_EQ(axis.size(), 2);
@@ -998,7 +998,7 @@ TEST_F(FusedGraphUnfolderTest, AscBcNodeUnfolder_With_Same_Data_Same_Load) {
 
   af::AscGraph unfolded_asc_graph("unfolded_asc_graph");
   Status ret = FusedGraphUnfolder::UnfoldFusedGraph(compute_graph, asc_backend_to_asc_graph, unfolded_asc_graph);
-  ASSERT_EQ(ret, ge::SUCCESS);
+  ASSERT_EQ(ret, af::SUCCESS);
 
   auto axis = unfolded_asc_graph.GetAllAxis();
   ASSERT_EQ(axis.size(), 2);
@@ -1035,7 +1035,7 @@ TEST_F(FusedGraphUnfolderTest, AscBcNodeUnfolder_With_Multi_Output) {
 
   af::AscGraph unfolded_asc_graph("unfolded_asc_graph");
   Status ret = FusedGraphUnfolder::UnfoldFusedGraph(compute_graph, asc_backend_to_asc_graph, unfolded_asc_graph);
-  ASSERT_EQ(ret, ge::SUCCESS);
+  ASSERT_EQ(ret, af::SUCCESS);
 
   auto axis = unfolded_asc_graph.GetAllAxis();
   ASSERT_EQ(axis.size(), 2);
@@ -1072,7 +1072,7 @@ TEST_F(FusedGraphUnfolderTest, AscBcNodeUnfolder_With_DifferentAxis) {
 
   af::AscGraph unfolded_asc_graph("unfolded_asc_graph");
   Status ret = FusedGraphUnfolder::UnfoldFusedGraph(compute_graph, asc_backend_to_asc_graph, unfolded_asc_graph);
-  ASSERT_EQ(ret, ge::SUCCESS);
+  ASSERT_EQ(ret, af::SUCCESS);
   auto axis = unfolded_asc_graph.GetAllAxis();
 
   ASSERT_EQ(axis.size(), 2);
@@ -1124,7 +1124,7 @@ TEST_F(FusedGraphUnfolderTest, AscBcNodeUnfolder_With_Reuse_Output) {
 
   af::AscGraph unfolded_asc_graph("unfolded_asc_graph");
   Status ret = FusedGraphUnfolder::UnfoldFusedGraph(compute_graph, asc_backend_to_asc_graph, unfolded_asc_graph);
-  ASSERT_EQ(ret, ge::SUCCESS);
+  ASSERT_EQ(ret, af::SUCCESS);
 
   auto axis = unfolded_asc_graph.GetAllAxis();
   ASSERT_EQ(axis.size(), 2);

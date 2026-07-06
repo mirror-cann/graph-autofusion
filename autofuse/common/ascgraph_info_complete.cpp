@@ -208,7 +208,7 @@ Status AscGraphInfoComplete::CompleteApiInfo(const af::AscGraph &optimize_graph)
                    node->GetNamePtr(), node->GetTypePtr());
     it->second.complete_api_info(node);
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 void AscGraphInfoComplete::AppendOriginalSizeVar(const af::AscGraph &graph, SizeVarSet &size_vars) {
@@ -224,7 +224,7 @@ void AscGraphInfoComplete::AppendOriginalSizeVar(const af::AscGraph &graph, Size
     }
 
     af::Expression cur_load_offset;
-    if (GetNodeIrAttrOffset(node, cur_load_offset) == ge::SUCCESS) {
+    if (GetNodeIrAttrOffset(node, cur_load_offset) == af::SUCCESS) {
       InsertFreeSymbolsIntoVarSet(cur_load_offset, size_vars);
     }
 

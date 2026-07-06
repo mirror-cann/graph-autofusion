@@ -9,18 +9,25 @@
  */
 
 // Locally maintained copy of CANN ge_api_error_codes.h with namespace ge -> af.
-// ge_error_codes.h uses #ifndef GE_ERRORNO_DEFINE to guard ge::SUCCESS/FAILED;
-// GE_ERRORNO_DEFINE is defined inside #ifndef GE_ERRORNO below, so as long as
-// ge_error_codes.h is included after this file the static const block is skipped.
 
-#ifndef INC_EXTERNAL_GE_COMMON_GE_API_ERROR_CODES_H_
-#define INC_EXTERNAL_GE_COMMON_GE_API_ERROR_CODES_H_
+#ifndef INC_EXTERNAL_GE_COMMON_AF_GE_API_ERROR_CODES_H_
+#define INC_EXTERNAL_GE_COMMON_AF_GE_API_ERROR_CODES_H_
 
 #include <map>
 #include <string>
 #include "ge_error_codes.h"
 #include "ge_api_types.h"
 #include "graph/ascend_string.h"
+
+#ifdef AF_GE_ERRORNO_DEFINE
+#undef AF_GE_ERRORNO_DEFINE
+#endif
+#ifdef AF_GE_ERRORNO_EXTERNAL
+#undef AF_GE_ERRORNO_EXTERNAL
+#endif
+#ifdef AF_GE_ERRORNO
+#undef AF_GE_ERRORNO
+#endif
 
 #ifdef __GNUC__
 #ifdef NO_METADEF_ABI_COMPATIABLE
@@ -36,8 +43,8 @@
 #endif
 #endif
 
-#ifndef GE_ERRORNO_DEFINE
-#define GE_ERRORNO_DEFINE(runtime, type, level, sysid, modid, name, value)                                \
+#ifndef AF_GE_ERRORNO_DEFINE
+#define AF_GE_ERRORNO_DEFINE(runtime, type, level, sysid, modid, name, value)                             \
   constexpr af::Status name = ((static_cast<uint32_t>(0xFFU & (static_cast<uint32_t>(runtime))) << 30U) | \
                                (static_cast<uint32_t>(0xFFU & (static_cast<uint32_t>(type))) << 28U) |    \
                                (static_cast<uint32_t>(0xFFU & (static_cast<uint32_t>(level))) << 25U) |   \
@@ -46,15 +53,15 @@
                                (static_cast<uint32_t>(0x0FFFU) & (static_cast<uint32_t>(value))))
 #endif
 
-#ifndef GE_ERRORNO_EXTERNAL
-#define GE_ERRORNO_EXTERNAL(name, desc) const af::ErrorNoRegisterar g_errorno_##name((name), (desc))
+#ifndef AF_GE_ERRORNO_EXTERNAL
+#define AF_GE_ERRORNO_EXTERNAL(name, desc) const af::ErrorNoRegisterar g_errorno_##name((name), (desc))
 #endif
 
-#ifndef GE_ERRORNO
+#ifndef AF_GE_ERRORNO
 // Code compose(4 byte), runtime: 2 bit, type: 2 bit, level: 3 bit, sysid: 8 bit, modid: 5 bit, value: 12 bit
-#define GE_ERRORNO(runtime, type, level, sysid, modid, name, value, desc) \
-  GE_ERRORNO_DEFINE(runtime, type, level, sysid, modid, name, value);     \
-  GE_ERRORNO_EXTERNAL(name, desc)
+#define AF_GE_ERRORNO(runtime, type, level, sysid, modid, name, value, desc) \
+  AF_GE_ERRORNO_DEFINE(runtime, type, level, sysid, modid, name, value);     \
+  AF_GE_ERRORNO_EXTERNAL(name, desc)
 
 namespace af {
 class GE_FUNC_VISIBILITY StatusFactory {
@@ -119,21 +126,14 @@ class GE_FUNC_VISIBILITY ErrorNoRegisterar {
 };
 
 // General error code
-GE_ERRORNO(0, 0, 0, 0, 0, SUCCESS, 0, "success");
-GE_ERRORNO(0b11, 0b11, 0b111, 0xFFU, 0b11111, FAILED, 0xFFFU, "failed"); /*lint !e401*/
+AF_GE_ERRORNO(0, 0, 0, 0, 0, SUCCESS, 0, "success");
+AF_GE_ERRORNO(0b11, 0b11, 0b111, 0xFFU, 0b11111, FAILED, 0xFFFU, "failed"); /*lint !e401*/
 }  // namespace af
 
-namespace ge {
-using StatusFactory = af::StatusFactory;
-using ErrorNoRegisterar = af::ErrorNoRegisterar;
-using Status = af::Status;
-using af::FAILED;
-using af::SUCCESS;
-}  // namespace ge
-
-#endif  // GE_ERRORNO
+#endif  // AF_GE_ERRORNO
 
 namespace af {
-GE_ERRORNO_DEFINE(0b01, 0b01, 0b000, 8, 0, END_OF_SEQUENCE, 7);
+AF_GE_ERRORNO_DEFINE(0b01, 0b01, 0b000, 8, 0, END_OF_SEQUENCE, 7);
 }
-#endif  // INC_EXTERNAL_GE_COMMON_GE_API_ERROR_CODES_H_
+
+#endif  // INC_EXTERNAL_GE_COMMON_AF_GE_API_ERROR_CODES_H_

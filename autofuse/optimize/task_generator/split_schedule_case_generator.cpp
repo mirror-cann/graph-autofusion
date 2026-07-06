@@ -33,7 +33,7 @@ Status SplitFusionCaseGenerator::Generate(ascir::HintGraph &graph, std::vector<a
                                           std::vector<std::string> &score_functions) {
   auto split_nodes = FindSplitNodes(graph);
   if (split_nodes.empty()) {
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
 
   auto split_node = split_nodes.front();
@@ -47,7 +47,7 @@ Status SplitFusionCaseGenerator::Generate(ascir::HintGraph &graph, std::vector<a
     GE_CHK_STATUS_RET(ConvertSplitToLoads(graph, split_node, split_dim), "ConvertSplitToLoads failed");
     graphs.emplace_back(graph);
     GELOGI("split on first dim, num_inputs = %u, 1 template was generated", split_node->inputs.Size());
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
   auto platform = PlatformFactory::GetInstance().GetPlatform();
   GE_ASSERT_NOTNULL(platform);
@@ -78,7 +78,7 @@ Status SplitFusionCaseGenerator::Generate(ascir::HintGraph &graph, std::vector<a
     GE_CHK_STATUS_RET(GenerateScoreFuncForUbSplit(graph, split_node, split_dim, score_functions[0]),
                       "Failed to generate score func");
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 std::vector<af::AscNodePtr> SplitFusionCaseGenerator::FindSplitNodes(const ascir::HintGraph &owner_graph) {
@@ -112,7 +112,7 @@ Status SplitFusionCaseGenerator::ResolveSplitDim(const af::AscNodePtr &split_nod
   is_first_dim = (is_first_dim || (split_dim == 0UL));  // 单输入时，当成首轴转store处理
   GELOGI("node:%s input_shape = %s, output_shape = %s, is_first_dim_split = %d", split_node->GetName().c_str(),
          af::ToString(input_repeats).c_str(), af::ToString(output_repeats).c_str(), is_first_dim);
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status SplitFusionCaseGenerator::ConvertSplitToLoads(ascir::HintGraph &owner_graph, const af::AscNodePtr &split_node,
@@ -130,7 +130,7 @@ Status SplitFusionCaseGenerator::ConvertSplitToLoads(ascir::HintGraph &owner_gra
   GE_CHK_STATUS_RET(RemoveUnusedNodes(split_node), "RemoveUnusedNodes failed");
   GE_ASSERT_GRAPH_SUCCESS(ScheduleUtils::TopologicalSorting(owner_graph));
   ascir::utils::DumpGraph(owner_graph, "AfterConvertSplitToLoad");
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status SplitFusionCaseGenerator::SplitSplits(const ascir::HintGraph &owner_graph, const af::AscNodePtr &split_node,
@@ -142,9 +142,9 @@ Status SplitFusionCaseGenerator::SplitSplits(const ascir::HintGraph &owner_graph
   SplitGroupPartitioner partitioner(split_node, split_dim);
   GE_ASSERT_SUCCESS(partitioner.PartitionGroups(groups));
   if ((groups.size() <= 1U) || (groups.size() == split_node->outputs().size())) {
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status SplitFusionCaseGenerator::Prepare(const af::AscNodePtr &split_node, size_t split_dim) {
@@ -171,7 +171,7 @@ Status SplitFusionCaseGenerator::Prepare(const af::AscNodePtr &split_node, size_
   }
   split_axis_id_ = split_node->attr.sched.axis[split_dim];
   split_dim_ = split_dim;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status SplitFusionCaseGenerator::ReplaceWithLoad(::ascir::ImplGraph &owner_graph, const af::AscNodePtr &split_node,
@@ -225,10 +225,10 @@ Status SplitFusionCaseGenerator::ReplaceWithLoad(::ascir::ImplGraph &owner_graph
   GE_CHK_STATUS_RET(CollectBackwardNodes(load_node, nodes, broadcast_node), "Failed to SplitData");
   GE_CHK_STATUS_RET(SplitOutReplaceAxis(owner_graph, nodes, load_node, out_index, broadcast_node),
                     "Failed to replace axis");
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status SplitFusionCaseGenerator::SplitDataForConvertLoad(ascir::ImplGraph &owner_graph,
+af::Status SplitFusionCaseGenerator::SplitDataForConvertLoad(ascir::ImplGraph &owner_graph,
                                                              const af::AscNodePtr &split_node,
                                                              const af::OutDataAnchorPtr &split_out_anchor,
                                                              af::AscNodePtr &new_load_node) {
@@ -246,7 +246,7 @@ ge::Status SplitFusionCaseGenerator::SplitDataForConvertLoad(ascir::ImplGraph &o
 
   /* 将新创建的load节点和data节点，连边 */
   GE_CHK_STATUS_RET(af::GraphUtils::AddEdge(new_out_anchor, new_load_node->GetInDataAnchor(0)), "Failed to AddEdge");
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 void SplitFusionCaseGenerator::IsBroadcastNode(const af::NodePtr &origin_node, af::AscNodePtr &broadcast_node,
@@ -259,7 +259,7 @@ void SplitFusionCaseGenerator::IsBroadcastNode(const af::NodePtr &origin_node, a
   return;
 }
 
-ge::Status SplitFusionCaseGenerator::CollectBackwardNodes(const af::AscNodePtr &load_node,
+af::Status SplitFusionCaseGenerator::CollectBackwardNodes(const af::AscNodePtr &load_node,
                                                           std::vector<af::AscNodePtr> &nodes,
                                                           af::AscNodePtr &broadcast_node) const {
   std::set<af::Node *> visited_nodes{load_node.get()};
@@ -302,10 +302,10 @@ ge::Status SplitFusionCaseGenerator::CollectBackwardNodes(const af::AscNodePtr &
   std::sort(nodes.begin(), nodes.end(), [](const af::AscNodePtr &lhs, const af::AscNodePtr &rhs) -> bool {
     return lhs->GetOpDesc()->GetId() < rhs->GetOpDesc()->GetId();
   });
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
-ge::Status SplitFusionCaseGenerator::SplitOutReplaceAxis(ascir::ImplGraph &owner_graph,
+af::Status SplitFusionCaseGenerator::SplitOutReplaceAxis(ascir::ImplGraph &owner_graph,
                                                          std::vector<af::AscNodePtr> &nodes,
                                                          const af::AscNodePtr &load_node_new, int32_t out_index,
                                                          af::AscNodePtr &broadcast_node) {
@@ -331,7 +331,7 @@ ge::Status SplitFusionCaseGenerator::SplitOutReplaceAxis(ascir::ImplGraph &owner
       GELOGD("Replace axis for node: %s(%s) success", asc_node->GetNamePtr(), asc_node->GetTypePtr());
     }
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status SplitFusionCaseGenerator::RemoveUnusedNodes(const af::AscNodePtr &split_node) const {
@@ -355,7 +355,7 @@ Status SplitFusionCaseGenerator::RemoveUnusedNodes(const af::AscNodePtr &split_n
     }
   }
 
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status SplitFusionCaseGenerator::GenerateScoreFuncForUbSplit(const ascir::HintGraph &graph,

@@ -42,7 +42,7 @@ Status InsertBroadcastAfterScalar(af::AscGraph &asc_graph, const af::AscNodePtr 
   GE_ASSERT_NOTNULL(out_anchor);
   auto peer_in_anchors = out_anchor->GetPeerInDataAnchors();
   if (peer_in_anchors.empty()) {
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
 
   std::vector<af::InDataAnchorPtr> compute_anchors;
@@ -54,7 +54,7 @@ Status InsertBroadcastAfterScalar(af::AscGraph &asc_graph, const af::AscNodePtr 
     }
   }
   if (compute_anchors.empty()) {
-    return ge::SUCCESS;
+    return af::SUCCESS;
   }
 
   auto ref_node = std::dynamic_pointer_cast<af::AscNode>(compute_anchors[0]->GetOwnerNode());
@@ -70,11 +70,11 @@ Status InsertBroadcastAfterScalar(af::AscGraph &asc_graph, const af::AscNodePtr 
   GELOGD("insert broadcast %s after scalar %s in graph %s.", b_node->GetName().c_str(), scalar_node->GetName().c_str(),
          asc_graph.GetName().c_str());
   inserted = true;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 }  // namespace
 
-ge::Status InsertBroadcastAfterScalarForAscGraph(af::AscGraph &asc_graph) {
+af::Status InsertBroadcastAfterScalarForAscGraph(af::AscGraph &asc_graph) {
   std::vector<af::AscNodePtr> scalar_nodes;
   for (const auto &node : asc_graph.GetAllNodes()) {
     if (node->GetType() == af::ascir_op::Scalar::Type) {
@@ -90,6 +90,6 @@ ge::Status InsertBroadcastAfterScalarForAscGraph(af::AscGraph &asc_graph) {
   if (inserted) {
     GE_ASSERT_GRAPH_SUCCESS(af::AscGraphUtils::GetComputeGraph(asc_graph)->TopologicalSorting());
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 }  // namespace af::pre_process

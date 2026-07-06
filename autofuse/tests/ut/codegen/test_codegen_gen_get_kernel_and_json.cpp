@@ -59,7 +59,7 @@ TEST_F(CodegenTest, GenerateTiling_ShouldReturnFailed_WhenInnerTilingCodegenFail
   std::map<std::string, std::string> tiling_file_name_to_content;
 
   EXPECT_EQ(codegen.GenerateTiling(fused_schedule_result, shape_info, "", "0", tiling_file_name_to_content),
-            ge::FAILED);
+            af::FAILED);
 }
 
 TEST_F(CodegenTest, GenGetKernelAndJson_ShouldReturnInvalidString_WhenKernelPathIsInvalid) {
@@ -80,7 +80,7 @@ TEST_F(CodegenTest, GenerateTilingForInductor_ShouldReturnFailed_WhenInnerTiling
   fused_schedule_result.node_idx_to_scheduled_results.push_back({});
   std::map<std::string, std::string> tiling_file_name_to_content;
 
-  EXPECT_EQ(codegen.GenerateTilingForInductor(fused_schedule_result, tiling_file_name_to_content), ge::FAILED);
+  EXPECT_EQ(codegen.GenerateTilingForInductor(fused_schedule_result, tiling_file_name_to_content), af::FAILED);
 }
 
 TEST_F(CodegenTest, GenerateTilingForInductor_LegacyApi_ShouldReturnContent_WhenInnerTilingSucceeds) {

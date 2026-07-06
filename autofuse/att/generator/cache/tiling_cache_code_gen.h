@@ -14,7 +14,7 @@
 #include <string>
 #include "base/base_types.h"
 #include "generator_config.h"
-#include "external/ge_common/ge_api_types.h"
+#include "external/ge_common_af/ge_api_types.h"
 #include "common/code_printer.h"
 
 namespace att {
@@ -32,9 +32,9 @@ class TilingCacheCodeGen {
   /**
    * @brief 生成FixedSizeHashMap模板类定义
    * @param code_printer 代码打印器
-   * @return ge::Status
+   * @return af::Status
    */
-  virtual ge::Status GenFixedSizeHashMapDef(ge::CodePrinter &code_printer) = 0;
+  virtual af::Status GenFixedSizeHashMapDef(ge::CodePrinter &code_printer) = 0;
 
   /**
    * @brief 生成常量定义代码

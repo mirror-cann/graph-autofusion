@@ -17,6 +17,6 @@ Status ScheduleTaskGenerator::GenerateTasks(::ascir::ImplGraph &optimize_graph, 
   const auto &platform = PlatformFactory::GetInstance().GetPlatform();
   GE_CHECK_NOTNULL(platform, "Platform is not found.");
   GE_ASSERT_SUCCESS(platform->GenerateTasks(optimize_graph, options, tasks));
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 }  // namespace optimize

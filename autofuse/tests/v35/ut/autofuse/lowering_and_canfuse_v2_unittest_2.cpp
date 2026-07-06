@@ -373,14 +373,14 @@ static ComputeGraphPtr ProcessGraphWithPipeline(const Graph &graph) {
   }
   FusionStrategySolver fusion_strategy_solver;
   FusionDeciderRegistry::Instance().Register(std::unique_ptr<FusionDecider>(new AscBackendFusionDecider()));
-  if (fusion_strategy_solver.Fuse(cg) != SUCCESS) {
+  if (fusion_strategy_solver.Fuse(cg) != af::SUCCESS) {
     return nullptr;
   }
   if (lowerer.Lifting(cg) != GRAPH_SUCCESS) {
     return nullptr;
   }
   AscBackendPostProcessor post_processor;
-  if (post_processor.Do(cg) != SUCCESS) {
+  if (post_processor.Do(cg) != af::SUCCESS) {
     return nullptr;
   }
   return cg;

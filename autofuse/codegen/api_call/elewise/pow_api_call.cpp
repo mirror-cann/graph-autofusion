@@ -97,7 +97,7 @@ Status PowApiCall::Generate(const TPipe &tpipe, const std::vector<ascir::AxisId>
     }
   }
   result = ss.str();
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 static ApiCallRegister<PowApiCall> register_pow_api_call("PowApiCall");

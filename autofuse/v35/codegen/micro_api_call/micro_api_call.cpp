@@ -18,9 +18,9 @@ using namespace std;
 namespace codegen {
 Status TensorManager::AddTensor(const MicroApiTensor &tensor) {
   auto is_insert = this->tensors_.emplace(tensor.id_, tensor).second;
-  GE_CHK_BOOL_RET_STATUS(is_insert, ge::FAILED, "Micro api tensor[%u,%s] is already added", tensor.id_,
+  GE_CHK_BOOL_RET_STATUS(is_insert, af::FAILED, "Micro api tensor[%u,%s] is already added", tensor.id_,
                          tensor.name.c_str());
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 const MicroApiTensor *TensorManager::GetTensor(ascir::TensorId id) const {
@@ -37,7 +37,7 @@ Status TensorManager::GenerateVreg(std::string &result) const {
     ss << m_api_tensor.Define() << std::endl;
   }
   result = ss.str();
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 const Type MicroApiTensor::UBTensorTypes(std::string &dtype_name) {
@@ -87,7 +87,7 @@ Status MicroApiCall::Generate(const TensorManager &tensor_mng, [[maybe_unused]] 
   }
   ss << param.p_reg << ");" << endl;
   result = ss.str();
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 static MicroApiCallRegister<MicroApiCall> register_micro_api_call("MicroApiCall");

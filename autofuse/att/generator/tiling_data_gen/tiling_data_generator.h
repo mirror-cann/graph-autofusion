@@ -15,7 +15,7 @@
 #include <vector>
 #include "base/model_info.h"
 #include "extra_info_gen/extra_info_config.h"
-#include "ge_common/ge_api_error_codes.h"
+#include "ge_common_af/ge_api_error_codes.h"
 
 namespace att {
 enum class TilingDataGenType {
@@ -32,7 +32,7 @@ class TilingDataGenBase {
   explicit TilingDataGenBase(const TilingDataGenType tiling_data_gen_type, const ModelInfo &model_info)
       : tiling_data_gen_type_(tiling_data_gen_type), model_info_(model_info) {};
   virtual ~TilingDataGenBase() = default;
-  virtual ge::Status Init() = 0;
+  virtual af::Status Init() = 0;
   virtual std::vector<std::pair<std::string, std::string>> GetTilingDataWithAnnotation() const;
   virtual std::vector<std::string> GetTilingFuncImpl(const std::string &tiling_type) const {
     (void)tiling_type;
@@ -61,7 +61,7 @@ class AxesTilingDataGen : public TilingDataGenBase {
       : TilingDataGenBase(TilingDataGenType::AXES_TILING_DATA_GEN, model_info) {};
   ~AxesTilingDataGen() override = default;
   // gen model info
-  ge::Status Init() override;
+  af::Status Init() override;
   bool IsInitialized() const {
     return is_initialized_;
   }
@@ -72,12 +72,12 @@ class AxesTilingDataGen : public TilingDataGenBase {
 
  private:
   // 添加轴size对齐表达式
-  ge::Status AddAxesAlignedSize();
+  af::Status AddAxesAlignedSize();
   // 添加轴的tail_size和loop_num表达式
-  ge::Status AddAxesTailSizeAndLoopNum();
+  af::Status AddAxesTailSizeAndLoopNum();
   // 添加尾块的tail_size和尾块的loop_num表达式
-  ge::Status AddSplitOuterAxisTailArgs();
-  ge::Status SetAxisArgExpr(const std::string &axis_name, const AxisTilingData &axis_tiling_data);
+  af::Status AddSplitOuterAxisTailArgs();
+  af::Status SetAxisArgExpr(const std::string &axis_name, const AxisTilingData &axis_tiling_data);
   std::vector<AxisTilingData> GetAxisTilingData(const std::string &axis_name) const;
   std::pair<std::string, std::string> GetAxisTilingData(const std::string &axis_name,
                                                         const TilingDataType arg_type) const;
@@ -100,12 +100,12 @@ class BlockDimTilingDataGen : public TilingDataGenBase {
       : TilingDataGenBase(TilingDataGenType::GENERAL_TILING_DATA_GEN, model_info),
         axes_tiling_data_gen_(axes_tiling_data_gen) {};
   ~BlockDimTilingDataGen() override = default;
-  ge::Status Init() override;
+  af::Status Init() override;
   std::vector<std::string> GetTilingFuncImpl(const std::string &tiling_type) const override;
   std::string GetTilingFuncInvoke() const override;
 
  private:
-  ge::Status AddUsedCoreNum();
+  af::Status AddUsedCoreNum();
 
   const std::shared_ptr<const AxesTilingDataGen> axes_tiling_data_gen_;
 };
@@ -115,7 +115,7 @@ class MemoryTilingDataGen : public TilingDataGenBase {
   explicit MemoryTilingDataGen(const ModelInfo &model_info)
       : TilingDataGenBase(TilingDataGenType::MEMORY_TILING_DATA_GEN, model_info) {};
   ~MemoryTilingDataGen() override = default;
-  ge::Status Init() override;
+  af::Status Init() override;
   std::vector<std::string> GetTilingFuncImpl(const std::string &tiling_type) const override;
   std::string GetTilingFuncInvoke() const override;
 
@@ -132,7 +132,7 @@ class TilingDataGenerator {
       : model_info_list_(model_info_list), extra_info_config_(extra_info_config) {};
   virtual ~TilingDataGenerator() = default;
   // gen model info
-  ge::Status Init();
+  af::Status Init();
   // gen code
   std::vector<std::pair<std::string, std::string>> GetTilingDataWithAnnotation(
       const uint32_t tiling_key, const TilingDataGenType tiling_data_gen_type) const;
@@ -146,7 +146,7 @@ class TilingDataGenerator {
   TilingDataGenerator(const TilingDataGenerator &) = delete;
   TilingDataGenerator &operator=(const TilingDataGenerator &) = delete;
   std::vector<TilingDataGenPtr> GetTilingDataGens(const uint32_t tiling_key) const;
-  ge::Status GenTilingData(const ModelInfo &model_info);
+  af::Status GenTilingData(const ModelInfo &model_info);
 
   // key: tiling_key
   std::unordered_map<uint32_t, std::vector<TilingDataGenPtr>> graphs_tiling_data_gens_;

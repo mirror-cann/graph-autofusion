@@ -64,12 +64,12 @@ Status ConcatGroupPartitioner::Initialize() {
   }
   GELOGI("output_repeat = %s, concat_dim = %zu, input_num = %u, max_input_num_per_group = %u",
          af::ToString(output_attr.repeats).c_str(), concat_dim_, concat_node_->inputs.Size(), max_input_num_per_group_);
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status ConcatGroupPartitioner::PartitionGroups(std::vector<ConcatGroup> &groups) {
   GE_ASSERT_SUCCESS(ParseConcatNode());
-  GE_CHK_BOOL_RET_SPECIAL_STATUS((stride_ == -1), ge::SUCCESS, "contains non-static dim after concat dim");
+  GE_CHK_BOOL_RET_SPECIAL_STATUS((stride_ == -1), af::SUCCESS, "contains non-static dim after concat dim");
   GE_ASSERT_SUCCESS(Initialize());
   const auto &all_in_data_anchors = concat_node_->GetAllInDataAnchorsPtr();
   for (size_t i = 0UL; i < all_in_data_anchors.size(); ++i) {
@@ -105,7 +105,7 @@ Status ConcatGroupPartitioner::PartitionGroups(std::vector<ConcatGroup> &groups)
     GE_ASSERT_SUCCESS(RecomputeNodesCrossGroups(true, has_recompute_));
   }
   groups = std::move(groups_);
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 bool ConcatGroupPartitioner::HasRecompute() const {
@@ -286,7 +286,7 @@ af::Status ConcatGroupPartitioner::RecomputeNodesCrossGroups(bool search_backwar
       GE_ASSERT_TRUE(depth >= 0);
     }
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 af::Status ConcatGroupPartitioner::FindFirstMultiOutputAnchors(const af::InDataAnchorPtr &in_anchor, int32_t end_index,
@@ -320,7 +320,7 @@ af::Status ConcatGroupPartitioner::FindFirstMultiOutputAnchors(const af::InDataA
                end_index, need_split);
         if (need_split) {
           to_split = cur_in_anchor;
-          return ge::SUCCESS;
+          return af::SUCCESS;
         }
       }
     }
@@ -330,7 +330,7 @@ af::Status ConcatGroupPartitioner::FindFirstMultiOutputAnchors(const af::InDataA
       }
     }
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 af::Status ConcatGroupPartitioner::CheckIsAncestorOfConcat(const af::OutDataAnchorPtr &out_anchor, int32_t start_index,
@@ -344,7 +344,7 @@ af::Status ConcatGroupPartitioner::CheckIsAncestorOfConcat(const af::OutDataAnch
     GE_ASSERT_NOTNULL(owner_node);
     if ((owner_node == concat_node_.get()) && NeedSplit(peer_in_anchor, start_index, concat_dim_size)) {
       need_split = true;
-      return ge::SUCCESS;
+      return af::SUCCESS;
     }
     if (visited.emplace(owner_node).second) {
       nodes.emplace_back(owner_node);
@@ -357,7 +357,7 @@ af::Status ConcatGroupPartitioner::CheckIsAncestorOfConcat(const af::OutDataAnch
       if (out_node == concat_node_) {
         if (NeedSplit(in_anchor, start_index, concat_dim_size)) {
           need_split = true;
-          return ge::SUCCESS;
+          return af::SUCCESS;
         }
       } else {
         if (visited.emplace(out_node.get()).second) {
@@ -373,7 +373,7 @@ af::Status ConcatGroupPartitioner::CheckIsAncestorOfConcat(const af::OutDataAnch
       }
     }
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 bool ConcatGroupPartitioner::NeedSplit(const af::InDataAnchorPtr &in_anchor, int32_t start_index,
@@ -434,7 +434,7 @@ af::Status ConcatGroupPartitioner::RecomputeInNodes(const af::InDataAnchorPtr &i
   // replace output edge
   in_anchor->UnlinkAll();
   GE_ASSERT_GRAPH_SUCCESS(af::GraphUtils::AddEdge(dst_new_node->GetOutDataAnchor(0), in_anchor));
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status ConcatGroupPartitioner::ParseConcatNode() {
@@ -444,7 +444,7 @@ Status ConcatGroupPartitioner::ParseConcatNode() {
   int64_t stride = 1;
   for (size_t i = concat_dim_ + 1; i < output_attr.repeats.size(); ++i) {
     const auto &expr = output_attr.repeats[i];
-    GE_CHK_BOOL_RET_SPECIAL_STATUS(!expr.IsConstExpr(), ge::SUCCESS, "contains non-static dim after concat dim");
+    GE_CHK_BOOL_RET_SPECIAL_STATUS(!expr.IsConstExpr(), af::SUCCESS, "contains non-static dim after concat dim");
     int64_t value = -1;
     GE_ASSERT_TRUE(expr.GetConstValue(value));
     GE_ASSERT_TRUE(value >= 0);
@@ -486,7 +486,7 @@ Status ConcatGroupPartitioner::ParseConcatNode() {
       concat_dim_sizes_.emplace_back(-1);
     }
   }
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 Status ConcatGroupPartitioner::TryOptimizeGroupSize() {
@@ -509,7 +509,7 @@ Status ConcatGroupPartitioner::TryOptimizeGroupSize() {
            max_input_num_per_group_);
   }
   default_cols_per_group_ = avg_cols_per_group;
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 uint32_t ConcatGroupPartitioner::MaxInputNumPerGroup() const {
@@ -527,7 +527,7 @@ Status ConcatGroupPartitioner::RecomputeDiffAxes() {
   }
   GE_ASSERT_SUCCESS(RecomputeNodesCrossGroups(false, has_recompute_));
   GE_ASSERT_SUCCESS(RecomputeNodesCrossGroups(true, has_recompute_));
-  return ge::SUCCESS;
+  return af::SUCCESS;
 }
 
 bool ConcatGroupPartitioner::InputHasTransposeOrReduce(size_t input_index) const {
