@@ -21,6 +21,70 @@ bool CompareByOrderInTensorAxis(const int64_t &lhs, const int64_t &rhs, const st
   return iter_lhs < iter_rhs;
 }
 
+bool IsAxisConsumedByReduce(const af::AscNodePtr &node, const int64_t axis_id) {
+  const auto &brc_out_attr = node->outputs[0].attr;
+  if (brc_out_attr.axis.size() != brc_out_attr.repeats.size()) {
+    return false;
+  }
+  auto brc_axis_iter = std::find(brc_out_attr.axis.begin(), brc_out_attr.axis.end(), axis_id);
+  if (brc_axis_iter == brc_out_attr.axis.end()) {
+    return false;
+  }
+  const auto brc_idx = static_cast<size_t>(std::distance(brc_out_attr.axis.begin(), brc_axis_iter));
+
+  for (const auto &out_node : node->GetOutDataNodes()) {
+    auto asc_out_node = std::dynamic_pointer_cast<af::AscNode>(out_node);
+    if ((asc_out_node == nullptr) || !optimize::ScheduleUtils::IsReduce(asc_out_node)) {
+      continue;
+    }
+    const auto &reduce_out_attr = asc_out_node->outputs[0].attr;
+    if (reduce_out_attr.axis.size() != reduce_out_attr.repeats.size()) {
+      continue;
+    }
+
+    auto reduce_axis_iter = std::find(reduce_out_attr.axis.begin(), reduce_out_attr.axis.end(), axis_id);
+    if (reduce_axis_iter == reduce_out_attr.axis.end()) {
+      continue;
+    }
+    const auto reduce_idx = static_cast<size_t>(std::distance(reduce_out_attr.axis.begin(), reduce_axis_iter));
+    const bool is_axis_consumed =
+        af::SymbolicUtils::StaticCheckEq(brc_out_attr.repeats[brc_idx], reduce_out_attr.repeats[reduce_idx]) !=
+        af::TriBool::kTrue;
+    if (is_axis_consumed) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool HasBroadcastExpansionOnNonVectorizedAxis(const af::AscNodePtr &brc_node, const af::AscTensorAttr &input_attr,
+                                              const af::AscTensorAttr &output_attr) {
+  if ((input_attr.axis.size() != input_attr.repeats.size()) ||
+      (output_attr.axis.size() != output_attr.repeats.size())) {
+    return false;
+  }
+
+  for (size_t idx = 0UL; idx < output_attr.axis.size(); ++idx) {
+    const auto axis_id = output_attr.axis[idx];
+    if (std::find(output_attr.vectorized_axis.begin(), output_attr.vectorized_axis.end(), axis_id) !=
+        output_attr.vectorized_axis.end()) {
+      continue;
+    }
+
+    auto input_axis_iter = std::find(input_attr.axis.begin(), input_attr.axis.end(), axis_id);
+    if (input_axis_iter == input_attr.axis.end()) {
+      continue;
+    }
+    const auto input_idx = static_cast<size_t>(std::distance(input_attr.axis.begin(), input_axis_iter));
+    const bool is_broadcast_expanded =
+        af::SymbolicUtils::StaticCheckEq(output_attr.repeats[idx], input_attr.repeats[input_idx]) != af::TriBool::kTrue;
+    if (is_broadcast_expanded && IsAxisConsumedByReduce(brc_node, axis_id)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 bool IsRedundantBroadcast(const ascir::ImplGraph &impl_graph, const af::AscNodePtr &brc_node,
                           const af::AscNodePtr &pre_node, const uint32_t pre_node_out_index) {
   if (optimize::ScheduleUtils::IsIOBuffer(pre_node)) {
@@ -43,6 +107,14 @@ bool IsRedundantBroadcast(const ascir::ImplGraph &impl_graph, const af::AscNodeP
     if (af::SymbolicUtils::StaticCheckEq(out_vec_repeats[idx], in_vec_repeats[idx]) != af::TriBool::kTrue) {
       return false;
     }
+  }
+
+  const auto &out_attr = brc_node->outputs[0].attr;
+  if (!optimize::ScheduleUtils::IsBroadcast(pre_node) &&
+      HasBroadcastExpansionOnNonVectorizedAxis(brc_node, in_attr, out_attr)) {
+    GELOGD("Graph [%s] Broadcast [%s] has valid non-vectorized shape expansion, keep it.", impl_graph.GetName().c_str(),
+           brc_node->GetNamePtr());
+    return false;
   }
 
   return true;

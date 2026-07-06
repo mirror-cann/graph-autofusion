@@ -422,6 +422,244 @@ static void Construct_RedundantBroadcastFusion(af::AscGraph &graph) {
   *y.y.strides = {s1 * s2, s2, One};
 }
 
+static void Construct_BroadcastExpandNonVectorizedAxis(af::AscGraph &graph) {
+  auto s0 = graph.CreateSizeVar("s0");
+  auto s1 = graph.CreateSizeVar("s1");
+
+  auto z0 = graph.CreateAxis("z0", s0);
+  auto z1 = graph.CreateAxis("z1", s1);
+
+  af::ascir_op::Data data0("data0", graph);
+  data0.ir_attr.SetIndex(0);
+  data0.attr.sched.axis = {z0.id, z1.id};
+  data0.attr.api.compute_type = af::ComputeType::kComputeInvalid;
+  data0.attr.api.type = af::ApiType::kAPITypeBuffer;
+  data0.y.dtype = ge::DT_FLOAT16;
+  *data0.y.axis = {z0.id, z1.id};
+  *data0.y.repeats = {One, s1};
+  *data0.y.strides = {Zero, One};
+
+  af::ascir_op::Load load0("load0");
+  graph.AddNode(load0);
+  load0.x = data0.y;
+  load0.attr.sched.axis = {z0.id, z1.id};
+  load0.attr.api.compute_type = af::ComputeType::kComputeLoad;
+  load0.y.dtype = ge::DT_FLOAT16;
+  *load0.y.axis = {z0.id, z1.id};
+  *load0.y.repeats = {One, s1};
+  *load0.y.strides = {Zero, One};
+  *load0.y.vectorized_axis = {z1.id};
+
+  af::ascir_op::Abs abs0("abs0");
+  graph.AddNode(abs0);
+  abs0.x = load0.y;
+  abs0.attr.sched.axis = {z0.id, z1.id};
+  abs0.attr.api.compute_type = af::ComputeType::kComputeElewise;
+  abs0.y.dtype = ge::DT_FLOAT16;
+  *abs0.y.axis = {z0.id, z1.id};
+  *abs0.y.repeats = {One, s1};
+  *abs0.y.strides = {Zero, One};
+  *abs0.y.vectorized_axis = {z1.id};
+
+  af::ascir_op::Broadcast brc0("brc0");
+  graph.AddNode(brc0);
+  brc0.x = abs0.y;
+  brc0.attr.sched.axis = {z0.id, z1.id};
+  brc0.attr.api.compute_type = af::ComputeType::kComputeBroadcast;
+  brc0.y.dtype = ge::DT_FLOAT16;
+  *brc0.y.axis = {z0.id, z1.id};
+  *brc0.y.repeats = {s0, s1};
+  *brc0.y.strides = {s1, One};
+  *brc0.y.vectorized_axis = {z1.id};
+
+  af::ascir_op::Sum reduce_sum("reduce_sum");
+  graph.AddNode(reduce_sum);
+  reduce_sum.x = brc0.y;
+  reduce_sum.attr.sched.axis = {z0.id, z1.id};
+  reduce_sum.attr.api.compute_type = af::ComputeType::kComputeReduce;
+  reduce_sum.y.dtype = ge::DT_FLOAT16;
+  *reduce_sum.y.axis = {z0.id, z1.id};
+  *reduce_sum.y.repeats = {One, s1};
+  *reduce_sum.y.strides = {Zero, One};
+  *reduce_sum.y.vectorized_axis = {z1.id};
+
+  af::ascir_op::Store store0("store0");
+  graph.AddNode(store0);
+  store0.x = reduce_sum.y;
+  store0.attr.sched.axis = {z0.id, z1.id};
+  store0.attr.api.compute_type = af::ComputeType::kComputeStore;
+  store0.y.dtype = ge::DT_FLOAT16;
+  *store0.y.axis = {z0.id, z1.id};
+  *store0.y.repeats = {One, s1};
+  *store0.y.strides = {Zero, One};
+
+  af::ascir_op::Output y("y");
+  y.ir_attr.SetIndex(0);
+  y.x = store0.y;
+  y.attr.sched.axis = {z0.id, z1.id};
+  y.attr.api.compute_type = af::ComputeType::kComputeInvalid;
+  y.attr.api.type = af::ApiType::kAPITypeBuffer;
+  y.y.dtype = ge::DT_FLOAT16;
+  *y.y.axis = {z0.id, z1.id};
+  *y.y.repeats = {One, s1};
+  *y.y.strides = {Zero, One};
+}
+
+static void Construct_BroadcastExpandNonVectorizedAxisReduceDifferentAxis(af::AscGraph &graph) {
+  auto s0 = graph.CreateSizeVar("s0");
+  auto s1 = graph.CreateSizeVar("s1");
+
+  auto z0 = graph.CreateAxis("z0", s0);
+  auto z1 = graph.CreateAxis("z1", s1);
+
+  af::ascir_op::Data data0("data0", graph);
+  data0.ir_attr.SetIndex(0);
+  data0.attr.sched.axis = {z0.id, z1.id};
+  data0.attr.api.compute_type = af::ComputeType::kComputeInvalid;
+  data0.attr.api.type = af::ApiType::kAPITypeBuffer;
+  data0.y.dtype = ge::DT_FLOAT16;
+  *data0.y.axis = {z0.id, z1.id};
+  *data0.y.repeats = {One, s1};
+  *data0.y.strides = {Zero, One};
+
+  af::ascir_op::Load load0("load0");
+  graph.AddNode(load0);
+  load0.x = data0.y;
+  load0.attr.sched.axis = {z0.id, z1.id};
+  load0.attr.api.compute_type = af::ComputeType::kComputeLoad;
+  load0.y.dtype = ge::DT_FLOAT16;
+  *load0.y.axis = {z0.id, z1.id};
+  *load0.y.repeats = {One, s1};
+  *load0.y.strides = {Zero, One};
+  *load0.y.vectorized_axis = {z1.id};
+
+  af::ascir_op::Abs abs0("abs0");
+  graph.AddNode(abs0);
+  abs0.x = load0.y;
+  abs0.attr.sched.axis = {z0.id, z1.id};
+  abs0.attr.api.compute_type = af::ComputeType::kComputeElewise;
+  abs0.y.dtype = ge::DT_FLOAT16;
+  *abs0.y.axis = {z0.id, z1.id};
+  *abs0.y.repeats = {One, s1};
+  *abs0.y.strides = {Zero, One};
+  *abs0.y.vectorized_axis = {z1.id};
+
+  af::ascir_op::Broadcast brc0("brc0");
+  graph.AddNode(brc0);
+  brc0.x = abs0.y;
+  brc0.attr.sched.axis = {z0.id, z1.id};
+  brc0.attr.api.compute_type = af::ComputeType::kComputeBroadcast;
+  brc0.y.dtype = ge::DT_FLOAT16;
+  *brc0.y.axis = {z0.id, z1.id};
+  *brc0.y.repeats = {s0, s1};
+  *brc0.y.strides = {s1, One};
+  *brc0.y.vectorized_axis = {z1.id};
+
+  af::ascir_op::Sum reduce_sum("reduce_sum");
+  graph.AddNode(reduce_sum);
+  reduce_sum.x = brc0.y;
+  reduce_sum.attr.sched.axis = {z0.id, z1.id};
+  reduce_sum.attr.api.compute_type = af::ComputeType::kComputeReduce;
+  reduce_sum.y.dtype = ge::DT_FLOAT16;
+  *reduce_sum.y.axis = {z0.id, z1.id};
+  *reduce_sum.y.repeats = {s0, One};
+  *reduce_sum.y.strides = {One, Zero};
+  *reduce_sum.y.vectorized_axis = {z1.id};
+
+  af::ascir_op::Store store0("store0");
+  graph.AddNode(store0);
+  store0.x = reduce_sum.y;
+  store0.attr.sched.axis = {z0.id, z1.id};
+  store0.attr.api.compute_type = af::ComputeType::kComputeStore;
+  store0.y.dtype = ge::DT_FLOAT16;
+  *store0.y.axis = {z0.id, z1.id};
+  *store0.y.repeats = {s0, One};
+  *store0.y.strides = {One, Zero};
+
+  af::ascir_op::Output y("y");
+  y.ir_attr.SetIndex(0);
+  y.x = store0.y;
+  y.attr.sched.axis = {z0.id, z1.id};
+  y.attr.api.compute_type = af::ComputeType::kComputeInvalid;
+  y.attr.api.type = af::ApiType::kAPITypeBuffer;
+  y.y.dtype = ge::DT_FLOAT16;
+  *y.y.axis = {z0.id, z1.id};
+  *y.y.repeats = {s0, One};
+  *y.y.strides = {One, Zero};
+}
+
+static void Construct_BroadcastAddNonVectorizedAxis(af::AscGraph &graph) {
+  auto s0 = graph.CreateSizeVar("s0");
+  auto s1 = graph.CreateSizeVar("s1");
+
+  auto z0 = graph.CreateAxis("z0", s0);
+  auto z1 = graph.CreateAxis("z1", s1);
+
+  af::ascir_op::Data data0("data0", graph);
+  data0.ir_attr.SetIndex(0);
+  data0.attr.sched.axis = {z1.id};
+  data0.attr.api.compute_type = af::ComputeType::kComputeInvalid;
+  data0.attr.api.type = af::ApiType::kAPITypeBuffer;
+  data0.y.dtype = ge::DT_FLOAT16;
+  *data0.y.axis = {z1.id};
+  *data0.y.repeats = {s1};
+  *data0.y.strides = {One};
+
+  af::ascir_op::Load load0("load0");
+  graph.AddNode(load0);
+  load0.x = data0.y;
+  load0.attr.sched.axis = {z1.id};
+  load0.attr.api.compute_type = af::ComputeType::kComputeLoad;
+  load0.y.dtype = ge::DT_FLOAT16;
+  *load0.y.axis = {z1.id};
+  *load0.y.repeats = {s1};
+  *load0.y.strides = {One};
+  *load0.y.vectorized_axis = {z1.id};
+
+  af::ascir_op::Broadcast brc_missing_axis("brc_missing_axis");
+  graph.AddNode(brc_missing_axis);
+  brc_missing_axis.x = load0.y;
+  brc_missing_axis.attr.sched.axis = {z0.id, z1.id};
+  brc_missing_axis.attr.api.compute_type = af::ComputeType::kComputeBroadcast;
+  brc_missing_axis.y.dtype = ge::DT_FLOAT16;
+  *brc_missing_axis.y.axis = {z0.id, z1.id};
+  *brc_missing_axis.y.repeats = {s0, s1};
+  *brc_missing_axis.y.strides = {s1, One};
+  *brc_missing_axis.y.vectorized_axis = {z1.id};
+
+  af::ascir_op::Sum reduce_missing_axis("reduce_missing_axis");
+  graph.AddNode(reduce_missing_axis);
+  reduce_missing_axis.x = brc_missing_axis.y;
+  reduce_missing_axis.attr.sched.axis = {z0.id, z1.id};
+  reduce_missing_axis.attr.api.compute_type = af::ComputeType::kComputeReduce;
+  reduce_missing_axis.y.dtype = ge::DT_FLOAT16;
+  *reduce_missing_axis.y.axis = {z0.id, z1.id};
+  *reduce_missing_axis.y.repeats = {One, s1};
+  *reduce_missing_axis.y.strides = {Zero, One};
+  *reduce_missing_axis.y.vectorized_axis = {z1.id};
+
+  af::ascir_op::Store store0("store0");
+  graph.AddNode(store0);
+  store0.x = reduce_missing_axis.y;
+  store0.attr.sched.axis = {z0.id, z1.id};
+  store0.attr.api.compute_type = af::ComputeType::kComputeStore;
+  store0.y.dtype = ge::DT_FLOAT16;
+  *store0.y.axis = {z0.id, z1.id};
+  *store0.y.repeats = {One, s1};
+  *store0.y.strides = {Zero, One};
+
+  af::ascir_op::Output y("y");
+  y.ir_attr.SetIndex(0);
+  y.x = store0.y;
+  y.attr.sched.axis = {z0.id, z1.id};
+  y.attr.api.compute_type = af::ComputeType::kComputeInvalid;
+  y.attr.api.type = af::ApiType::kAPITypeBuffer;
+  y.y.dtype = ge::DT_FLOAT16;
+  *y.y.axis = {z0.id, z1.id};
+  *y.y.repeats = {One, s1};
+  *y.y.strides = {Zero, One};
+}
+
 /**
  *                    store (s0,s1,s2,s3,s4)
  *                      |
@@ -3207,6 +3445,43 @@ TEST_F(AutoSchedulerUT, Autoschedule_autoschedule_remove_redundant_broadcast) {
 
   EXPECT_EQ(impl_graphs[1].scheduled_graph.FindNode("brc0"), nullptr);
   EXPECT_EQ(impl_graphs[1].scheduled_graph.FindNode("brc1"), nullptr);
+}
+
+TEST_F(AutoSchedulerUT, Autoschedule_keep_broadcast_expand_non_vectorized_axis) {
+  af::AscGraph graph("KeepBroadcastExpandNonVectorizedAxis");
+  Construct_BroadcastExpandNonVectorizedAxis(graph);
+
+  EXPECT_EQ(Scheduler::RemoveRedundantBroadcastNode(graph), ge::SUCCESS);
+
+  auto brc0 = graph.FindNode("brc0");
+  ASSERT_NE(brc0, nullptr);
+  auto reduce_sum = graph.FindNode("reduce_sum");
+  ASSERT_NE(reduce_sum, nullptr);
+  EXPECT_EQ(reduce_sum->GetInDataAnchor(0)->GetPeerOutAnchor()->GetOwnerNode()->GetName(), "brc0");
+}
+
+TEST_F(AutoSchedulerUT, Autoschedule_remove_broadcast_expand_non_vectorized_axis_reduce_different_axis) {
+  af::AscGraph graph("RemoveBroadcastExpandNonVectorizedAxisReduceDifferentAxis");
+  Construct_BroadcastExpandNonVectorizedAxisReduceDifferentAxis(graph);
+
+  EXPECT_EQ(Scheduler::RemoveRedundantBroadcastNode(graph), ge::SUCCESS);
+
+  EXPECT_EQ(graph.FindNode("brc0"), nullptr);
+  auto reduce_sum = graph.FindNode("reduce_sum");
+  ASSERT_NE(reduce_sum, nullptr);
+  EXPECT_EQ(reduce_sum->GetInDataAnchor(0)->GetPeerOutAnchor()->GetOwnerNode()->GetName(), "abs0");
+}
+
+TEST_F(AutoSchedulerUT, Autoschedule_remove_broadcast_add_non_vectorized_axis) {
+  af::AscGraph graph("RemoveBroadcastAddNonVectorizedAxis");
+  Construct_BroadcastAddNonVectorizedAxis(graph);
+
+  EXPECT_EQ(Scheduler::RemoveRedundantBroadcastNode(graph), ge::SUCCESS);
+
+  EXPECT_EQ(graph.FindNode("brc_missing_axis"), nullptr);
+  auto reduce_missing_axis = graph.FindNode("reduce_missing_axis");
+  ASSERT_NE(reduce_missing_axis, nullptr);
+  EXPECT_EQ(reduce_missing_axis->GetInDataAnchor(0)->GetPeerOutAnchor()->GetOwnerNode()->GetName(), "load0");
 }
 
 TEST_F(AutoSchedulerUT, Autoschedule_scheduler_gather_3axis) {
