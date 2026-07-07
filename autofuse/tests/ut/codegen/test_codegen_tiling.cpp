@@ -3399,6 +3399,16 @@ TEST_F(TestCodegenTiling, ParseSearchConfigsParsesExplicitConfigsOnly) {
   EXPECT_EQ(tiling_impl.find("return {SearchConfig()};"), std::string::npos);
 }
 
+TEST_F(TestCodegenTiling, ParseSearchConfigShouldNormalizeZeroUbThreshold) {
+  auto fused_schedule_result = this->GenBasicFusedScheduleResult({af::Symbol("s0"), af::Symbol("s1")});
+  auto tiling_files = this->GenerateForInductor(fused_schedule_result);
+  ASSERT_TRUE(tiling_files.find(codegen::kTilingDefAndConstIdentify) != tiling_files.end());
+  const auto &tiling_impl = tiling_files.at(codegen::kTilingDefAndConstIdentify);
+  EXPECT_NE(tiling_impl.find("constexpr double kMinUbThreshold = 0.001;"), std::string::npos);
+  EXPECT_NE(tiling_impl.find("if (IsEqual(out.ub_threshold, 0.0)) { out.ub_threshold = kMinUbThreshold; }"),
+            std::string::npos);
+}
+
 TEST_F(TestCodegenTiling, TopnCandidatesKeepDefaultFirst) {
   auto fused_schedule_result = this->GenBasicFusedScheduleResult({af::Symbol("s0"), af::Symbol("s1")});
   auto tiling_files = this->GenerateForInductor(fused_schedule_result);

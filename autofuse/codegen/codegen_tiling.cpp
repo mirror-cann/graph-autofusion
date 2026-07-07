@@ -4325,6 +4325,7 @@ std::string TilingLib::GenBuiltinTfPgoConfigsForInductor() const {
 std::string TilingLib::GenInductorConfigParserForInductor() const {
   std::stringstream ss;
   ss << "// Parse Inductor request configs from interface input." << std::endl;
+  ss << "constexpr double kMinUbThreshold = 0.001;" << std::endl;
   ss << "inline bool ParseSearchConfig(const std::map<std::string, std::string> &raw, SearchConfig &out) {"
      << std::endl;
   ss << "  out = SearchConfig();" << std::endl;
@@ -4332,6 +4333,7 @@ std::string TilingLib::GenInductorConfigParserForInductor() const {
   ss << "  if (ub_it != raw.end()) {" << std::endl;
   ss << "    out.ub_threshold_enabled = true;" << std::endl;
   ss << "    try { out.ub_threshold = std::stod(ub_it->second); } catch (...) { return false; }" << std::endl;
+  ss << "    if (IsEqual(out.ub_threshold, 0.0)) { out.ub_threshold = kMinUbThreshold; }" << std::endl;
   ss << "  }" << std::endl;
   ss << "  auto cn_it = raw.find(\"corenum_threshold\");" << std::endl;
   ss << "  if (cn_it != raw.end()) {" << std::endl;

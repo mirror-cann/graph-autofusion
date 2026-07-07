@@ -33,6 +33,9 @@ add_custom_command(
 add_custom_target(inductor_topn_test_codegen_outputs
     DEPENDS ${TOPN_TILING_DEF} ${TOPN_HOST_CODE} ${TOPN_DEVICE_CODE})
 add_inductor_host_abi1_helper(inductor_topn_host_abi1_helper inductor_topn_test_codegen_outputs ${TOPN_WORKDIR})
+target_compile_definitions(inductor_topn_host_abi1_helper PRIVATE
+    INDUCTOR_HOST_HELPER_CHECK_Z0T_POSITIVE=1
+)
 add_executable(inductor_topn_test_e2e test_e2e_inductor_topn_split_compile.cpp)
 add_dependencies(inductor_topn_test_e2e inductor_topn_host_abi1_helper)
 add_inductor_split_compile_test_runtime(inductor_topn_test_e2e)

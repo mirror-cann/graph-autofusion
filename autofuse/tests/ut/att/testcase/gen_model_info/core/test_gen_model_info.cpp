@@ -1201,8 +1201,12 @@ TEST_F(TestGenModelInfo, gen_schedule_group_with_var_relation) {
   std::map<std::string, std::string> tiling_funcs;
   EXPECT_EQ(GenTilingImplAutoFuseV3("FlashSoftmax", fused_schedule_result, options, tiling_funcs, true), true);
   CombineTilings(tiling_funcs, tiling_func);
-  EXPECT_NE(tiling_func.find(
-                "graph0_result0_g1_tiling_data.set_ND(static_cast<double>(graph0_result0_g0_tiling_data.get_ND()))"),
+  EXPECT_NE(
+      tiling_func.find(
+          "graph0_result0_g1_ND_var_relation_value = static_cast<double>(graph0_result0_g0_tiling_data.get_ND())"),
+      std::string::npos);
+  EXPECT_NE(tiling_func.find("graph0_result0_g1_tiling_data.set_ND(static_cast<uint32_t>("
+                             "graph0_result0_g1_ND_var_relation_value))"),
             std::string::npos);
 }
 

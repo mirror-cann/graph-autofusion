@@ -718,16 +718,79 @@ TEST(GeneratorUT, GenPGOGetScheduleResultSetsCurrentGroupVarRelationsBeforeSearc
       tiling_func_output.find("ScheduleResult1::PGOSearchTilingKey(tiling_data_list_tmp, group1_tiling_data");
   const auto group1_entry_pos =
       tiling_func_output.rfind("auto &group1_tiling_data = tiling_data.group1_tiling_data;", search_pos);
-  const auto set_pos = tiling_func_output.find("tiling_data.group1_tiling_data.set_dep_size(", group1_entry_pos);
-  const auto getter_pos = tiling_func_output.find("tiling_data.group0_tiling_data.get_src_size()", set_pos);
+  const auto guard_pos =
+      tiling_func_output.find("tiling_data.group0_tiling_data.get_src_size() == 0U", group1_entry_pos);
+  const auto value_pos = tiling_func_output.find("double group1_dep_size_var_relation_value =", group1_entry_pos);
+  const auto set_pos = tiling_func_output.find(
+      "tiling_data.group1_tiling_data.set_dep_size(static_cast<uint32_t>(group1_dep_size_var_relation_value))",
+      group1_entry_pos);
 
   ASSERT_NE(search_pos, std::string::npos);
   ASSERT_NE(group1_entry_pos, std::string::npos);
+  ASSERT_NE(guard_pos, std::string::npos);
+  ASSERT_NE(value_pos, std::string::npos);
   ASSERT_NE(set_pos, std::string::npos);
-  ASSERT_NE(getter_pos, std::string::npos);
   EXPECT_LT(group1_entry_pos, set_pos);
+  EXPECT_LT(guard_pos, value_pos);
+  EXPECT_LT(value_pos, set_pos);
   EXPECT_LT(set_pos, search_pos);
-  EXPECT_LT(getter_pos, search_pos);
+}
+
+TEST(GeneratorUT, GenPGOGetScheduleResultGuardsInvalidVarRelationBeforeSet) {
+  TilingCodeGenConfig config;
+  config.tiling_data_type_name = "AutofuseTilingData";
+  config.force_template_op_name = "test";
+  config.force_schedule_result = 0L;
+  config.is_inductor_scene = true;
+
+  TilingModelInfo tiling_model_info;
+  ModelInfo group0_info;
+  group0_info.schedule_group_ident.asc_graph_id = 0;
+  group0_info.schedule_group_ident.impl_graph_id = 0;
+  group0_info.schedule_group_ident.group_id = 0;
+  tiling_model_info.push_back(group0_info);
+  ModelInfo group1_info;
+  group1_info.schedule_group_ident.asc_graph_id = 0;
+  group1_info.schedule_group_ident.impl_graph_id = 0;
+  group1_info.schedule_group_ident.group_id = 1;
+  tiling_model_info.push_back(group1_info);
+
+  ScoreFuncs score_funcs;
+  MockHighPerfTilingCodeGenImpl genImpl("test", config, tiling_model_info, score_funcs, true);
+  genImpl.var_relations_[0][0][1][0]["Rm_org_size"] =
+      af::sym::Ceiling(af::sym::Ceiling(CreateExpr(7) / CreateExpr("z2t_size")) / CreateExpr("z2Tt_size"));
+
+  std::map<size_t, std::pair<std::string, std::string>> graph_info;
+  graph_info[0] = std::make_pair("ScheduleResult0", "group0");
+  graph_info[1] = std::make_pair("ScheduleResult1", "group1");
+
+  std::map<std::string, std::set<std::string>> hardware_map;
+  hardware_map["group0"].insert("block_dim");
+  hardware_map["group1"].insert("block_dim");
+
+  genImpl.tiling_func_.Reset();
+  EXPECT_EQ(genImpl.GenPGOGetScheduleResult(0, 0, graph_info, hardware_map), af::SUCCESS);
+  const std::string tiling_func_output = genImpl.tiling_func_.GetOutputStr();
+  const auto guard_pos = tiling_func_output.find("get_z2t_size() == 0U");
+  const auto value_pos = tiling_func_output.find("double group1_Rm_org_size_var_relation_value =");
+  const auto finite_pos = tiling_func_output.find("!std::isfinite(group1_Rm_org_size_var_relation_value)");
+  const auto set_pos = tiling_func_output.find("set_Rm_org_size(static_cast<uint32_t>(");
+  const auto invalid_pos =
+      tiling_func_output.find("valid_candidates[candidate_index - candidate_begin_index0] = false;");
+  const auto search_pos =
+      tiling_func_output.find("ScheduleResult1::GetTiling(tiling_data.group1_tiling_data, workspace_map, -1)");
+
+  ASSERT_NE(guard_pos, std::string::npos);
+  EXPECT_NE(tiling_func_output.find("get_z2Tt_size() == 0U"), std::string::npos);
+  ASSERT_NE(value_pos, std::string::npos);
+  ASSERT_NE(finite_pos, std::string::npos);
+  ASSERT_NE(set_pos, std::string::npos);
+  ASSERT_NE(invalid_pos, std::string::npos);
+  ASSERT_NE(search_pos, std::string::npos);
+  EXPECT_LT(guard_pos, value_pos);
+  EXPECT_LT(value_pos, finite_pos);
+  EXPECT_LT(finite_pos, set_pos);
+  EXPECT_LT(set_pos, search_pos);
 }
 
 TEST(GeneratorUT, GenWorkspaceRelatedVarsGuardsDynamicDenominator) {
