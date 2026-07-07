@@ -761,6 +761,7 @@ build_backend() {
                     brc_inline_test_e2e \
                     add_neg_test_e2e \
                     load_where_store_test_e2e \
+                    isinf_maskedfill_test_e2e \
                     load_where_x2_x3_is_ubscalar_store_test_e2e \
                     load_where_x2_is_ubscalar_store_test_e2e \
                     load_where_x3_is_ubscalar_store_test_e2e \

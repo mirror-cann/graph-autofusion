@@ -19,13 +19,13 @@ constexpr int32_t ONE_REPEAT_BYTE_SIZE = 256;
 constexpr int32_t MAX_REPEAT_NUM = 255;
 constexpr int32_t BASIC_TMP_SIZE = 8192;
 
-// is_inf tmp buf has two part
-// 1.sign_mask = ONE_BLK_SIZE
-// 2.half_isinf
+// is_inf tmp buf has two parts
+// 1.sign_mask = ONE_BLK_SIZE (32 bytes)
+// 2.calc_buf
 // if input_size > MAX_REPEAT_NUM * ONE_REPEAT_BYTE_SIZE
-//   half_isinf = MAX_REPEAT_NUM * ONE_REPEAT_BYTE_SIZE
+//   calc_buf = MAX_REPEAT_NUM * ONE_REPEAT_BYTE_SIZE
 // else
-//   half_isinf = input_size
+//   calc_buf = input_size
 std::vector<std::unique_ptr<TmpBufDesc>> CalcIsInfTmpSize(const AscNode &node) {
   AscNodeInputs node_inputs = node.inputs;
   auto type_size = Expression(Symbol(GetSizeByDataType(node_inputs[0].attr.dtype)));
