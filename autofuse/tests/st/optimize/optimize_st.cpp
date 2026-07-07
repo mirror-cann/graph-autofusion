@@ -4053,7 +4053,7 @@ TEST_F(OptimizerSt, NodeCacheMarkerReduce) {
   ::ascir::FusedScheduledResult fused_scheduled_result;
   Status res = optimizer.Optimize(graph, fused_scheduled_result);
   EXPECT_EQ(res, af::SUCCESS);
-  EXPECT_EQ(fused_scheduled_result.node_idx_to_scheduled_results[0].size(), 4UL);
+  EXPECT_EQ(fused_scheduled_result.node_idx_to_scheduled_results[0].size(), 3UL);
   const auto &impl_graphs = fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs;
   EXPECT_EQ(impl_graphs.size(), 2);
 

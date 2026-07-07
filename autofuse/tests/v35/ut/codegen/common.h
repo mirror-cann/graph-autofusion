@@ -10,6 +10,8 @@
 #ifndef __V35_UT_COMMON_H__
 #define __V35_UT_COMMON_H__
 
+#include <cstring>
+
 #include "runtime_stub.h"
 #include "platform_context.h"
 #include "graph/compute_graph.h"
@@ -79,10 +81,7 @@ class RuntimeStubV2 : public RuntimeStub {
   }
 
   rtError_t rtGetSocSpec(const char *label, const char *key, char *val, const uint32_t maxLen) override {
-    (void)label;
-    (void)key;
-    (void)strcpy_s(val, maxLen, "3510");
-    return RT_ERROR_NONE;
+    return CopyRuntimeSocSpecValue(label, key, val, maxLen, RuntimeSocSpecDefaults{"3510", "0"});
   }
 };
 

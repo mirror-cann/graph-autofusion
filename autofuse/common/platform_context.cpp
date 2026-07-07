@@ -49,12 +49,23 @@ void PlatformContext::SetPlatform(const std::string &platform_name) {
 
 void PlatformContext::SetPlatformInfo(const PlatformInfo &platform_info) {
   std::lock_guard<std::mutex> lg(mutex_);
+  if (platform_info.ub_size > 0) {
+    ub_size_override_ = platform_info.ub_size;
+    has_ub_size_override_ = true;
+  }
   if (!platform_info.soc_ver.empty()) {
     platform_info_ = platform_info;
     initialized_ = true;
     GELOGI("Set platform info: soc_ver=%s, aiv_num=%lld, ub_size=%lld", platform_info_.soc_ver.c_str(),
            platform_info_.aiv_num, platform_info_.ub_size);
   }
+}
+
+void PlatformContext::SetUbSizeOverride(int64_t ub_size) {
+  std::lock_guard<std::mutex> lg(mutex_);
+  ub_size_override_ = ub_size;
+  has_ub_size_override_ = true;
+  GELOGI("Set UB size override: ub_size=%lld", ub_size_override_);
 }
 
 af::Status PlatformContext::GetCurrentPlatformString(std::string &platform_name) {
@@ -107,5 +118,25 @@ af::Status PlatformContext::GetPlatformInfo(PlatformInfo &platform_info) {
   GELOGD("GetPlatformInfo: soc_ver=%s, aiv_num=%lld, ub_size=%lld", platform_info_.soc_ver.c_str(),
          platform_info_.aiv_num, platform_info_.ub_size);
   return af::SUCCESS;
+}
+
+bool PlatformContext::TryGetInitializedPlatformInfo(PlatformInfo &platform_info) {
+  std::lock_guard<std::mutex> lg(mutex_);
+  if (!initialized_) {
+    platform_info = PlatformInfo{};
+    return false;
+  }
+  platform_info = platform_info_;
+  return true;
+}
+
+bool PlatformContext::TryGetUbSizeOverride(int64_t &ub_size) const {
+  std::lock_guard<std::mutex> lg(mutex_);
+  if (!has_ub_size_override_) {
+    ub_size = 0;
+    return false;
+  }
+  ub_size = ub_size_override_;
+  return true;
 }
 }  // namespace ge

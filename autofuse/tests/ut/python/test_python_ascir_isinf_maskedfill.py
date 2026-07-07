@@ -16,7 +16,7 @@ from autofuse.pyautofuse import ascir, Autofuser, AutofuserOptions
 
 logger = logging.getLogger(__name__)
 
-ascir.utils.set_platform("2201", 1, 1024)
+ascir.utils.set_platform("2201", 1, 245760)
 
 
 @dataclass

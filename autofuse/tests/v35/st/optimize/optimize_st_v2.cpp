@@ -348,7 +348,7 @@ TEST_F(OptimizerStV2, ContinuesBroadcastOptimization_BABAB) {
   EXPECT_EQ(res, af::SUCCESS);
   ASSERT_EQ(fused_scheduled_result.node_idx_to_scheduled_results[0].size(), 1UL);
   ASSERT_EQ(fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups.size(), 1UL);
-  ASSERT_EQ(fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs.size(), 10UL);
+  ASSERT_EQ(fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs.size(), 6UL);
 
   auto impl_graph = impl_graphs[0];
   auto compute_graph = af::AscGraphUtils::GetComputeGraph(impl_graph);

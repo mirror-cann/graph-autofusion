@@ -31,6 +31,7 @@
 #include "graph/symbolizer/symbolic_utils.h"
 #include "optimize/graph_completeness/dtype_consistency.h"
 #include "pre_process/pre_process.h"
+#include "static_ub_template_filter.h"
 
 using namespace ascir;
 using namespace optimize;
@@ -638,7 +639,10 @@ Status Optimizer::OptimizeFusedAscBackend(const af::ComputeGraphPtr &fused_graph
     }
   }
   fused_scheduled_result.origin_vars.assign(original_var_set.begin(), original_var_set.end());
-  GE_CHK_STATUS_RET(BufQueAllocator().AllocBufQue(fused_scheduled_result));
+  BufQueAllocator allocator;
+  GE_CHK_STATUS_RET(allocator.PrepareImplGraphMemoryPlan(fused_scheduled_result));
+  GE_CHK_STATUS_RET(StaticUbTemplateFilter().Filter(fused_scheduled_result));
+  GE_CHK_STATUS_RET(allocator.CollectFusedIoNodes(fused_scheduled_result));
   GELOGI("AllocBufQue end");
   TryEnableGroupParallel(fused_scheduled_result);
   for (auto &scheduled_results : fused_scheduled_result.node_idx_to_scheduled_results) {
@@ -957,11 +961,14 @@ Status Optimizer::Optimize(af::AscGraph &hint_graph, FusedScheduledResult &fused
   GE_ASSERT_SUCCESS(OptimizeForHintGraph(hint_graph, fused_scheduled_result.node_idx_to_scheduled_results[0UL]),
                     "Failed to optimize for graph:[%s].", hint_graph.GetName().c_str());
   // 内存分配
-  GE_CHK_STATUS_RET(BufQueAllocator().AllocBufQue(fused_scheduled_result));
+  BufQueAllocator allocator;
+  GE_CHK_STATUS_RET(allocator.PrepareImplGraphMemoryPlan(fused_scheduled_result));
   if (options_.graph_type == GraphType::kAscGraph) {
     fused_scheduled_result.fused_graph_name = hint_graph.GetName().c_str();
     fused_scheduled_result.origin_vars.assign(original_var_set.begin(), original_var_set.end());
   }
+  GE_CHK_STATUS_RET(StaticUbTemplateFilter().Filter(fused_scheduled_result));
+  GE_CHK_STATUS_RET(allocator.CollectFusedIoNodes(fused_scheduled_result));
   GELOGI("AllocBufQue end");
   TryEnableGroupParallel(fused_scheduled_result);
   ExecSeqAdvancedOfLoad(fused_scheduled_result);

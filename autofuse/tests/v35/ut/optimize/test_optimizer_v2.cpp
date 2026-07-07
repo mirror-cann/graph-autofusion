@@ -3636,13 +3636,24 @@ TEST_F(TestOptimizerV2, LoadAlignmentInferFunc_multiple_axis_discontine) {
   ::ascir::FusedScheduledResult fused_scheduled_result;
   EXPECT_EQ(optimizer.Optimize(graph, fused_scheduled_result), af::SUCCESS);
   EXPECT_EQ(fused_scheduled_result.node_idx_to_scheduled_results.size(), 1UL);
-  EXPECT_EQ(fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups.size(), 1UL);
-  EXPECT_EQ(fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs.size(), 2UL);
-  for (auto impl_graph : fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs) {
-    auto load0_nddma = impl_graph.FindNode("load1");
-    EXPECT_NE(load0_nddma, nullptr);
-    EXPECT_EQ(load0_nddma->GetType(), "Nddma");
+  size_t load_to_nddma_graph_num = 0UL;
+  for (const auto &schedule_group : fused_scheduled_result.node_idx_to_scheduled_results[0][0].schedule_groups) {
+    for (auto impl_graph : schedule_group.impl_graphs) {
+      if (impl_graph.GetName().find("load_to_nddma") == std::string::npos) {
+        continue;
+      }
+      ++load_to_nddma_graph_num;
+      bool has_nddma_node = false;
+      for (const auto &node : impl_graph.GetAllNodes()) {
+        if (node != nullptr && node->GetType() == "Nddma") {
+          has_nddma_node = true;
+          break;
+        }
+      }
+      EXPECT_TRUE(has_nddma_node) << impl_graph.GetName();
+    }
   }
+  EXPECT_EQ(load_to_nddma_graph_num, 2UL);
 }
 
 TEST_F(TestOptimizerV2, JustMutmul) {

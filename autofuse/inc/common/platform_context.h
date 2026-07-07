@@ -36,6 +36,8 @@ class PlatformContext {
 
   void SetPlatformInfo(const PlatformInfo &platform_info);
 
+  void SetUbSizeOverride(int64_t ub_size);
+
   // 获取当前 platform 字符串
   af::Status GetCurrentPlatformString(std::string &platform_name);
 
@@ -44,15 +46,23 @@ class PlatformContext {
     platform_info_.soc_ver = "";
     platform_info_.aiv_num = 0;
     platform_info_.ub_size = 0;
+    ub_size_override_ = 0;
+    has_ub_size_override_ = false;
   }
 
   af::Status GetPlatformInfo(PlatformInfo &platform_info);
+
+  bool TryGetInitializedPlatformInfo(PlatformInfo &platform_info);
+
+  bool TryGetUbSizeOverride(int64_t &ub_size) const;
 
  private:
   af::Status Initialize();
   af::Status InitPlatformInfo();
   PlatformContext() = default;
   PlatformInfo platform_info_;
+  int64_t ub_size_override_ = 0;
+  bool has_ub_size_override_ = false;
   bool initialized_ = false;
   static std::mutex mutex_;
 };
