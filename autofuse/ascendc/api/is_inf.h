@@ -39,6 +39,21 @@ struct GetIsInfCalcType<float> {
   using Type = int32_t;
 };
 
+template <typename T>
+struct GetIsInfFloatType {
+  using Type = T;
+};
+
+template <>
+struct GetIsInfFloatType<int16_t> {
+  using Type = half;
+};
+
+template <>
+struct GetIsInfFloatType<int32_t> {
+  using Type = float;
+};
+
 template <typename T1, typename T2>
 inline __aicore__ constexpr T2 GetIsInfSignMask() {
   if constexpr (AscendC::IsSameType<T1, half>::value) {
@@ -67,11 +82,19 @@ inline __aicore__ void DoIsInf(const AscendC::LocalTensor<uint8_t> &dst, const A
                                const int calc_size, const int calCount) {
   // IsInf detection: diff == 0 means infinity
   // After And + Adds: NaN > 0, Inf == 0, finite < 0
-  // We need to detect diff == 0
-  Abs(calc_buf, calc_buf, calCount);
+  // Algorithm (same as isfinite.h):
+  // 1. Abs: NaN > 0, Inf = 0, finite > 0
+  // 2. Mins(1): NaN = 1, Inf = 0, finite = 1
+  // 3. Adds(-1): NaN = 0, Inf = -1, finite = 0
+  // 4. Abs: NaN = 0, Inf = 1, finite = 0
+  // 5. Mins(1): NaN = 0, Inf = 1, finite = 0
+  using TFloat = typename GetIsInfFloatType<T>::Type;
+  LocalTensor<TFloat> abs_buf = calc_buf.template ReinterpretCast<TFloat>();
+  Abs(abs_buf, abs_buf, calCount);
   Mins(calc_buf, calc_buf, static_cast<T>(1), calCount);
   Adds(calc_buf, calc_buf, static_cast<T>(-1), calCount);
-  Abs(calc_buf, calc_buf, calCount);
+  abs_buf = calc_buf.template ReinterpretCast<TFloat>();
+  Abs(abs_buf, abs_buf, calCount);
   Mins(calc_buf, calc_buf, static_cast<T>(1), calCount);
   LocalTensor<half> half_tmp = calc_buf.template ReinterpretCast<half>();
   if constexpr (AscendC::IsSameType<T, int32_t>::value) {

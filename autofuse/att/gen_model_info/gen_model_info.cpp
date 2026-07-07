@@ -10,7 +10,10 @@
 
 #include "gen_model_info.h"
 #include <fstream>
+#include <set>
 #include "common/util/mem_utils.h"
+#include "common/ub_expr/asc_graph_ub_expr_builder.h"
+#include "common/ub_expr/ub_expr_utils.h"
 #include "common/autofuse_config/auto_fuse_config_utils.h"
 #include "graph/utils/file_utils.h"
 #include "expr_gen/generate_tiling_expr.h"
@@ -37,6 +40,76 @@ constexpr uint32_t kConstType = 1U;
 constexpr uint32_t kVarType = 2U;
 constexpr uint32_t kDefaultAlignValue = 1U;
 const std::string kModelInfoFilePath = "./";
+
+std::set<std::string> GetUbContainerNames(const ModelInfo &model_info) {
+  std::set<std::string> names;
+  const auto ub_iter = model_info.hardware_cons.find(HardwareDef::UB);
+  if (ub_iter == model_info.hardware_cons.cend()) {
+    return names;
+  }
+  for (const auto &symbol : ub_iter->second.FreeSymbols()) {
+    const auto name_iter = model_info.variable_name_map.find(symbol);
+    const auto name = name_iter == model_info.variable_name_map.cend() ? Str(symbol) : name_iter->second;
+    if (model_info.container_exprs.find(name) != model_info.container_exprs.cend()) {
+      names.insert(name);
+    }
+  }
+  return names;
+}
+
+void EraseVariableByName(ExprExprMap &variable_expr_map, std::map<Expr, std::string, ExprCmp> &variable_name_map,
+                         const std::string &name) {
+  for (auto iter = variable_name_map.begin(); iter != variable_name_map.end();) {
+    if (iter->second == name || Str(iter->first) == name) {
+      variable_expr_map.erase(iter->first);
+      iter = variable_name_map.erase(iter);
+    } else {
+      ++iter;
+    }
+  }
+  for (auto iter = variable_expr_map.begin(); iter != variable_expr_map.end();) {
+    if (Str(iter->first) == name) {
+      iter = variable_expr_map.erase(iter);
+    } else {
+      ++iter;
+    }
+  }
+}
+
+void EraseContainerExprs(const std::set<std::string> &container_names, ModelInfo &model_info) {
+  for (const auto &name : container_names) {
+    model_info.container_exprs.erase(name);
+    EraseVariableByName(model_info.variable_expr_map, model_info.variable_name_map, name);
+  }
+}
+
+void ApplyCommonUbExprContext(const ascir::UbExprContext &context, ModelInfo &model_info) {
+  const auto old_ub_container_names = GetUbContainerNames(model_info);
+  const auto ub_expr_result = ascir::UbExprUtils::BuildUbExpr(context);
+  if (ub_expr_result.has_ub_expr) {
+    model_info.hardware_cons[HardwareDef::UB] = ub_expr_result.ub_expr;
+  } else {
+    model_info.hardware_cons.erase(HardwareDef::UB);
+  }
+  EraseContainerExprs(old_ub_container_names, model_info);
+  for (const auto &container : context.container_names) {
+    const auto expr_iter = context.container_expr.find(container.first);
+    if (expr_iter == context.container_expr.cend()) {
+      continue;
+    }
+    model_info.container_exprs[container.second] = expr_iter->second;
+    model_info.variable_expr_map[container.first] = expr_iter->second;
+    model_info.variable_name_map[container.first] = container.second;
+  }
+}
+
+af::Status RefreshCommonUbExprContext(const af::AscGraph &graph, ModelInfo &model_info) {
+  ascir::UbExprContext context;
+  GE_ASSERT_SUCCESS(ascir::AscGraphUbExprBuilder().Build(graph, context), "Build common UB expr failed, graph:[%s].",
+                    graph.GetName().c_str());
+  ApplyCommonUbExprContext(context, model_info);
+  return af::SUCCESS;
+}
 }  // namespace
 
 af::Status GenerateModelInfo(const af::AscGraph &graph, ModelInfo &model_info, TuningSpacePtr &tuning_space,
@@ -52,6 +125,7 @@ af::Status GenerateModelInfo(const af::AscGraph &graph, ModelInfo &model_info, T
   // step2: get basic expr constraint
   att::GenerateTilingExpr tiling_expr(tuning_space);
   GE_ASSERT_SUCCESS(tiling_expr.Generate(model_info), "Get basic expr constraint failed.");
+  GE_ASSERT_SUCCESS(RefreshCommonUbExprContext(graph, model_info), "Refresh common UB expr failed.");
   // step3: call passes to get configs
   ATTConfig att_config;
   std::vector<PassFunc> pass_funcs;

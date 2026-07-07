@@ -14,6 +14,7 @@
 #include "graph/symbolizer/symbolic_utils.h"
 #include "common_utils.h"
 #include "named_origin_buf_expr_generator.h"
+#include "ub_named_expr_builder.h"
 
 using namespace ascgen_utils;
 
@@ -403,7 +404,15 @@ std::string AxesReorderSolverGen::GenGetUbSizeStaticFunc() {
   bool ub_exist = false;
   auto ub_iter = hardware_use_map_.find(HardwareDef::UB);
   if (ub_iter != hardware_use_map_.end()) {
-    auto tmp_func_pair = GenNamedOriginBufExpr(ub_iter->second, "  ");
+    ascir::UbExprContext context;
+    context.ub_expr = ub_iter->second;
+    for (const auto &item : container_expr_) {
+      context.container_expr[item.first] = item.second;
+    }
+    for (const auto &item : container_names_) {
+      context.container_names[item.first] = item.second;
+    }
+    auto tmp_func_pair = BuildNamedUbExpr(context, "  ");
     std::string tmp_def = tmp_func_pair.first;
     std::string func_return_expr = tmp_func_pair.second;
     codes += tmp_def;

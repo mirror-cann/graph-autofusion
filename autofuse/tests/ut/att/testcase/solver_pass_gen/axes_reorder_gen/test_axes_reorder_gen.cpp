@@ -10,8 +10,10 @@
 
 #include "gtest/gtest.h"
 #include "base/base_types.h"
+#include "common/ub_expr/ub_expr_types.h"
 #define private public
 #include "generator/solver_pass_gen/axes_reorder_solver/axes_reorder_solver_gen.h"
+#include "generator/solver_pass_gen/axes_reorder_solver/ub_named_expr_builder.h"
 #include "gen_model_info/api_perf_register/v1/perf_param_v1.h"
 using namespace att;
 
@@ -270,8 +272,7 @@ TEST_F(TestAxesReorderSolverGen, GenSolverFuncImplAppliesRuntimeReorderOnceBefor
   EXPECT_LT(swap_pos, solver_pos);
 }
 
-TEST_F(TestAxesReorderSolverGen, TEST_GEN_SOLVER_case2)
-{
+TEST_F(TestAxesReorderSolverGen, TEST_GEN_SOLVER_case2) {
   Expr x0 = CreateExpr("x0");
   Expr x1 = CreateExpr("block_dim");
   std::vector<Expr> cut_cons;
@@ -904,6 +905,20 @@ TEST_F(TestAxesReorderSolverGen, GenGetUbSizeStaticFunc_UsesNamedExprForSemantic
   const std::string tensor_decl_line = actual.substr(tensor_decl, tensor_decl_end - tensor_decl);
   EXPECT_EQ(tensor_decl_line.find("common_size_"), std::string::npos) << actual;
   EXPECT_NE(actual.find("ub_size = (32 * Ceiling((Rational(1,32) * tensor_size_0)))"), std::string::npos) << actual;
+}
+
+TEST_F(TestAxesReorderSolverGen, BuildNamedUbExprUsesCommonOriginExpr) {
+  Expr tensor = CreateExpr("tensor_size");
+  Expr tensor_value = CreateExpr("s0") * CreateExpr("s1");
+  ascir::UbExprContext context;
+  context.ub_expr = af::sym::Mul(CreateExpr(32), af::sym::Ceiling(af::sym::Div(tensor, CreateExpr(32))));
+  context.container_expr[tensor] = tensor_value;
+  context.container_names[tensor] = "load0";
+
+  const auto actual = BuildNamedUbExpr(context, "  ");
+
+  EXPECT_NE(actual.first.find("auto tensor_size_0 = (s0 * s1);"), std::string::npos) << actual.first;
+  EXPECT_NE(actual.second.find("tensor_size_0"), std::string::npos) << actual.second;
 }
 
 TEST_F(TestAxesReorderSolverGen, GenGetUbSizeStaticFunc_NamesExpandedUbExpr) {

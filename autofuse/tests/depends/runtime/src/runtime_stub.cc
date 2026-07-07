@@ -43,6 +43,18 @@ rtError_t RuntimeStub::rtGetSocVersion(char *version, const uint32_t maxLen) {
 
 rtError_t RuntimeStub::rtGetSocSpec(const char *label, const char *key, char *val, const uint32_t maxLen) {
   (void)label;
+  if (strcmp(key, "NpuArch") == 0) {
+    (void)strcpy_s(val, maxLen, "2201");
+    return RT_ERROR_NONE;
+  }
+  if (strcmp(key, "vector_core_cnt") == 0) {
+    (void)strcpy_s(val, maxLen, "48");
+    return RT_ERROR_NONE;
+  }
+  if (strcmp(key, "ub_size") == 0) {
+    (void)strcpy_s(val, maxLen, "245760");
+    return RT_ERROR_NONE;
+  }
   // 返回 padding_size = 32 (兼容旧平台)
   if (strcmp(key, "padding_size") == 0) {
     (void)strcpy_s(val, maxLen, "32");

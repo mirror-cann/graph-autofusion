@@ -54,6 +54,87 @@ class BufQueAllocatorUT : public ::testing::Test {
 };
 }  // namespace optimize
 
+static af::AscGraph MakeStaticLoadStoreGraph(const std::string &name, int64_t size, int64_t data_index = 0) {
+  af::AscGraph graph(name.c_str());
+  const af::Expression s0 = graph.CreateSizeVar(size);
+  auto z0 = graph.CreateAxis("z0", s0);
+
+  af::ascir_op::Data data(("data" + std::to_string(data_index)).c_str(), graph);
+  data.ir_attr.SetIndex(data_index);
+  data.y.dtype = ge::DT_UINT8;
+
+  af::ascir_op::Load load("load");
+  load.x = data.y;
+  load.attr.api.compute_type = af::ComputeType::kComputeLoad;
+  load.attr.api.unit = af::ComputeUnit::kUnitMTE2;
+  load.y.dtype = ge::DT_UINT8;
+  *load.y.axis = {z0.id};
+  *load.y.repeats = {s0};
+  *load.y.strides = {af::ops::One};
+
+  af::ascir_op::Store store("store");
+  store.x = load.y;
+  store.attr.api.compute_type = af::ComputeType::kComputeStore;
+  store.attr.api.unit = af::ComputeUnit::kUnitMTE2;
+  store.y.dtype = ge::DT_UINT8;
+  *store.y.axis = {z0.id};
+  *store.y.repeats = {s0};
+  *store.y.strides = {af::ops::One};
+
+  af::ascir_op::Output output(("output" + std::to_string(data_index)).c_str());
+  output.x = store.y;
+  output.ir_attr.SetIndex(data_index);
+  return graph;
+}
+
+static ascir::FusedScheduledResult MakeFusedScheduledResultWithGraphs(std::vector<af::AscGraph> &&impl_graphs) {
+  ascir::FusedScheduledResult fused_result;
+  fused_result.node_idx_to_scheduled_results.resize(1UL);
+  auto &scheduled_result = fused_result.node_idx_to_scheduled_results[0].emplace_back();
+  auto &group = scheduled_result.schedule_groups.emplace_back();
+  group.impl_graphs = std::move(impl_graphs);
+  return fused_result;
+}
+
+TEST_F(BufQueAllocatorUT, PrepareImplGraphMemoryPlanDoesNotPopulateFusedIoNodes) {
+  auto fused_result = MakeFusedScheduledResultWithGraphs({MakeStaticLoadStoreGraph("prepared", 16)});
+
+  BufQueAllocator allocator;
+  ASSERT_EQ(allocator.PrepareImplGraphMemoryPlan(fused_result), af::SUCCESS);
+
+  EXPECT_TRUE(fused_result.input_nodes.empty());
+  EXPECT_TRUE(fused_result.output_nodes.empty());
+  EXPECT_TRUE(fused_result.workspace_nodes.empty());
+  auto &impl_graph = fused_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs[0];
+  auto load = impl_graph.FindNode("load");
+  ASSERT_NE(load, nullptr);
+  EXPECT_EQ(load->outputs[0].attr.mem.hardware, af::MemHardware::kMemHardwareUB);
+}
+
+TEST_F(BufQueAllocatorUT, CollectFusedIoNodesOnlyUsesRetainedImplGraphs) {
+  auto fused_result = MakeFusedScheduledResultWithGraphs(
+      {MakeStaticLoadStoreGraph("dropped", 16, 0), MakeStaticLoadStoreGraph("kept", 16, 1)});
+
+  BufQueAllocator allocator;
+  ASSERT_EQ(allocator.PrepareImplGraphMemoryPlan(fused_result), af::SUCCESS);
+  auto &impl_graphs = fused_result.node_idx_to_scheduled_results[0][0].schedule_groups[0].impl_graphs;
+  impl_graphs.erase(impl_graphs.begin());
+  ASSERT_EQ(allocator.CollectFusedIoNodes(fused_result), af::SUCCESS);
+
+  ASSERT_EQ(fused_result.input_nodes.size(), 1UL);
+  ASSERT_EQ(fused_result.output_nodes.size(), 1UL);
+  EXPECT_EQ(fused_result.input_nodes[0]->GetName(), "data1");
+  EXPECT_EQ(fused_result.output_nodes[0]->GetName(), "output1");
+}
+
+TEST_F(BufQueAllocatorUT, AllocBufQueKeepsOldOneShotBehavior) {
+  auto fused_result = MakeFusedScheduledResultWithGraphs({MakeStaticLoadStoreGraph("one_shot", 16)});
+
+  ASSERT_EQ(BufQueAllocator().AllocBufQue(fused_result), af::SUCCESS);
+  ASSERT_EQ(fused_result.input_nodes.size(), 1UL);
+  ASSERT_EQ(fused_result.output_nodes.size(), 1UL);
+}
+
 TEST_F(BufQueAllocatorUT, test_reuse_id_vecacc) {
   af::AscGraph graph("test_reuse_id_vecacc");
   const af::Expression s0 = graph.CreateSizeVar("s0");

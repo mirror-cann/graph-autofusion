@@ -10,6 +10,7 @@
 
 #ifndef AUTOFUSE_RUNTIME_STUB_H
 #define AUTOFUSE_RUNTIME_STUB_H
+#include <cstring>
 #include_next <runtime_stub.h>
 namespace af {
 using ge::RuntimeStub;
@@ -21,10 +22,7 @@ class RuntimeStubV2 : public ge::RuntimeStub {
   }
 
   rtError_t rtGetSocSpec(const char *label, const char *key, char *val, const uint32_t maxLen) override {
-    (void)label;
-    (void)key;
-    (void)strcpy_s(val, maxLen, "3510");
-    return RT_ERROR_NONE;
+    return ge::CopyRuntimeSocSpecValue(label, key, val, maxLen, ge::RuntimeSocSpecDefaults{"3510", "0"});
   }
 };
 }  // namespace af

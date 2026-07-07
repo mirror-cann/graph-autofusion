@@ -22,6 +22,8 @@ namespace optimize {
 class BufQueAllocator {
  public:
   Status AllocBufQue(::ascir::FusedScheduledResult &fused_scheduled_result);
+  Status PrepareImplGraphMemoryPlan(::ascir::FusedScheduledResult &fused_scheduled_result);
+  Status CollectFusedIoNodes(::ascir::FusedScheduledResult &fused_scheduled_result);
 
  private:
   Status AllocBufQueForSingleImplGraph(af::AscGraph &impl_graph, size_t max_que_num,
@@ -30,8 +32,11 @@ class BufQueAllocator {
                                 bool is_reduce_mem_reuse);
   Status AllocateForIoNodes(::ascir::FusedScheduledResult &fused_scheduled_result);
   Status AllocateForIoNodes(const af::AscGraph &impl_graph);
+  Status CollectIoNodes(const af::AscGraph &impl_graph);
+  void AppendCollectedIoNodes(::ascir::FusedScheduledResult &fused_scheduled_result) const;
   Status SetOutputTensorAttr(const af::AscGraph &impl_graph) const;
   static void SetGlobalMemInfo(const af::AscTensor &tensor, int64_t tensor_id);
+  static bool ShouldReplaceRepresentative(const ascir::NodeView &current, const ascir::NodeView &candidate);
   void InitTensorReuseInfoAndLifeTime(const ascir::NodeView &node, const af::AscTensor *output, TensorInfo &tensor_info,
                                       bool is_reduce_mem_reuse, bool is_cube_none_db) const;
   void InitTensorReuseInfo(const ascir::NodeView &node, const af::AscTensor *output, TensorInfo &tensor_info,

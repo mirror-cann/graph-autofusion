@@ -73,6 +73,15 @@ ascir::FusedScheduledResult CreateScheduleResultWithSingleAscGraph(
   fused_schedule_result.node_idx_to_scheduled_results.emplace_back(schedule_results);
   return fused_schedule_result;
 }
+
+bool HasVariableName(const ModelInfo &model_info, const std::string &name) {
+  for (const auto &item : model_info.variable_name_map) {
+    if (item.second == name) {
+      return true;
+    }
+  }
+  return false;
+}
 }  // namespace
 
 namespace af {
@@ -665,6 +674,21 @@ TEST_F(TestGenModelInfo, ModelInfoParser) {
   graphs.emplace_back(graph);
   EXPECT_EQ(GenerateModelInfo(graphs, model_info_list), af::SUCCESS);
   EXPECT_EQ(MakeJson(model_info_list, json_info), af::SUCCESS);
+}
+
+TEST_F(TestGenModelInfo, RefreshCommonUbExprKeepsNonContainerVariables) {
+  std::vector<af::AscGraph> graphs;
+  TilingModelInfo model_info_list;
+  af::AscGraph graph("graph");
+  ASSERT_EQ(af::ascir::cg::Build2DTransposeAscendGraph(graph, {1, 0}), af::SUCCESS);
+  graphs.emplace_back(graph);
+  const auto &tiling_data_name = graph.GetName() + "TilingData";
+  ASSERT_EQ(GenerateModelInfo(graphs, model_info_list, {{kTilingDataTypeName, tiling_data_name}}), af::SUCCESS);
+
+  ASSERT_EQ(model_info_list.size(), 1U);
+  EXPECT_TRUE(HasVariableName(model_info_list[0], "transpose_output_0"));
+  EXPECT_TRUE(HasVariableName(model_info_list[0], "add_output_0"));
+  EXPECT_NE(model_info_list[0].container_exprs.find("q0_size"), model_info_list[0].container_exprs.end());
 }
 
 TEST_F(TestGenModelInfo, ModelInfoParserForTranspose10ApiTiling) {

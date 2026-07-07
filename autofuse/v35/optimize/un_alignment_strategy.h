@@ -31,8 +31,6 @@ class UnAlignmentStrategy : public BaseAlignmentStrategy {
   AlignmentType GetDefaultAlignmentType() override;
   af::Status SetAlignInfoForTailBrcNodes(AlignmentType aligned_type, af::AscNode *node,
                                          std::set<af::Node *> &visited_nodes, std::queue<af::Node *> &node_queue);
-  static af::Status BroadcastInputNodeIsScalar(const af::AscNodePtr &node, bool &is_scalar);
-  static af::Status IsGraphHasNodeNeedTailAxisAlign(af::AscGraph &graph, bool &is_need_tail_align);
   static af::Status GetCurrentNodeContinuousTailAxisNum(const af::AscNodePtr &node, uint32_t &continuous_axis_num);
   static af::Status GetNodeContinuousTailAxisNumByStore(const af::AscNodePtr &node, uint32_t &continuous_axis_num);
   static af::Status GetNodeContinuousTailAxisNumByLoad(const af::AscNodePtr &node, uint32_t &continuous_axis_num);

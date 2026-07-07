@@ -1,21 +1,21 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------------------------------------
 # Copyright (c) 2025 Huawei Technologies Co., Ltd.
-# This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+# This program is free software, you can redistribute it and/or modify it under the terms and conditions of
 # CANN Open Software License Agreement Version 2.0 (the "License").
 # Please refer to the License for details. You may not use this file except in compliance with the License.
-# THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+# THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
 # INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
 # See LICENSE in the root of the software repository for the full text of the License.
 # -----------------------------------------------------------------------------------------------------------
 
-import math
 import pytest
 import json
 import time
 import os
 import shutil
 from autofuse.pyautofuse import ascir, Autofuser, AutofuserOptions, Schedule, CodeGen
+
 try:
     from autofuse import ascir_api
 except ImportError:
@@ -24,19 +24,19 @@ from ascir import Max, Min, Mod
 
 PYF_PATH = os.path.dirname(os.path.realpath(__file__))
 
-ascir.utils.set_platform("2201", 1, 1024)
+ascir.utils.set_platform("2201", 1, 245760)
 
 
 # pyascir 构图能力暂不支持
-class TestAscir():
+class TestAscir:
     @staticmethod
     def test_graph_create_size_expr_by_long():
         s0 = ascir.SizeExpr()
         assert s0 == 1
         try:
-            s0 = ascir.SizeExpr('100')
+            s0 = ascir.SizeExpr("100")
         except Exception as e:
-            assert e.args[0] == 'Only support type of SizeExpr or long'
+            assert e.args[0] == "Only support type of SizeExpr or long"
 
         assert s0 == 1
         s0 = ascir.SizeExpr(0)
@@ -67,20 +67,22 @@ class TestAscir():
     @staticmethod
     def test_graph_create_size():
         graph = ascir.HintGraph("test")
-        s0 = graph.create_size("s0")
-        s1 = graph.create_size("s1")
-        s2 = graph.create_size("s2")
+        graph.create_size("s0")
+        graph.create_size("s1")
+        graph.create_size("s2")
 
         debug_str = ascir.utils.debug_str(graph)
-        assert debug_str == "".join([
-            "Graph: test\n",
-            "Sizes:\n",
-            "  s0: VAR\n",
-            "  s1: VAR\n",
-            "  s2: VAR\n",
-            "Axis:\n",
-            "Nodes:\n",
-        ])
+        assert debug_str == "".join(
+            [
+                "Graph: test\n",
+                "Sizes:\n",
+                "  s0: VAR\n",
+                "  s1: VAR\n",
+                "  s2: VAR\n",
+                "Axis:\n",
+                "Nodes:\n",
+            ]
+        )
 
     @staticmethod
     def test_graph_create_axis():
@@ -89,33 +91,35 @@ class TestAscir():
         s1 = graph.create_size("s1")
         s2 = graph.create_size("s2")
 
-        z0 = graph.create_axis("z0", s0)
-        z1 = graph.create_axis("z1", s1)
-        z2 = graph.create_axis("z2", s2)
-        z3 = graph.create_axis("z3", 512)
-        z4 = graph.create_axis("z4", s1 + s2)
+        graph.create_axis("z0", s0)
+        graph.create_axis("z1", s1)
+        graph.create_axis("z2", s2)
+        graph.create_axis("z3", 512)
+        graph.create_axis("z4", s1 + s2)
 
         debug_str = ascir.utils.debug_str(graph)
-        assert debug_str == "".join([
-            "Graph: test\n",
-            "Sizes:\n",
-            "  s0: VAR\n",
-            "  s1: VAR\n",
-            "  s2: VAR\n",
-            "Axis:\n",
-            "  z0(0) : ORIGINAL, size:s0, \n",
-            "  z1(1) : ORIGINAL, size:s1, \n",
-            "  z2(2) : ORIGINAL, size:s2, \n",
-            "  z3(3) : ORIGINAL, size:512, \n",
-            "  z4(4) : ORIGINAL, size:(s1 + s2), \n",
-            "Nodes:\n",
-        ])
+        assert debug_str == "".join(
+            [
+                "Graph: test\n",
+                "Sizes:\n",
+                "  s0: VAR\n",
+                "  s1: VAR\n",
+                "  s2: VAR\n",
+                "Axis:\n",
+                "  z0(0) : ORIGINAL, size:s0, \n",
+                "  z1(1) : ORIGINAL, size:s1, \n",
+                "  z2(2) : ORIGINAL, size:s2, \n",
+                "  z3(3) : ORIGINAL, size:512, \n",
+                "  z4(4) : ORIGINAL, size:(s1 + s2), \n",
+                "Nodes:\n",
+            ]
+        )
 
     @staticmethod
     def test_graph_create_node():
         graph = ascir.HintGraph("test")
 
-        x = ascir.ops.Data("x", graph)
+        ascir.ops.Data("x", graph)
         debug_str = ascir.utils.debug_str(graph)
         assert debug_str
 
@@ -134,8 +138,12 @@ class TestAscir():
         try:
             graph.infer_dtypes()
         except Exception as e:
-            assert e.args[0] == 'Check dtype failed for cast Cast; input_dtypes: [DT_INT8], output_dytpes: [DT_INT4]'
+            assert (
+                e.args[0]
+                == "Check dtype failed for cast Cast; input_dtypes: [DT_INT8], output_dytpes: [DT_INT4]"
+            )
         import sys
+
         # 通常为2 （变量 + getrefcount 参数）
         print(f"x.attr ref count is {sys.getrefcount(x.attr)}")
         del x.attr
@@ -145,21 +153,23 @@ class TestAscir():
         graph = ascir.HintGraph("test")
 
         x = ascir_api.Data(graph, dtype=ascir.dtypes.int8)
-        cast = None
         try:
-            cast = ascir_api.Cast(graph, x, dtype=ascir.dtypes.int4, axis=[])
+            ascir_api.Cast(graph, x, dtype=ascir.dtypes.int4, axis=[])
         except Exception as e:
-            assert e.args[0] == 'Check dtype failed for cast_0 Cast; input_dtypes: [DT_INT8], output_dytpes: [DT_INT4]'
+            assert (
+                e.args[0]
+                == "Check dtype failed for cast_0 Cast; input_dtypes: [DT_INT8], output_dytpes: [DT_INT4]"
+            )
 
     @staticmethod
     def test_graph_create_const_node_with_value_str_attr():
         graph = ascir.HintGraph("test")
 
         x = ascir.ops.Scalar("x", graph)
-        x.attr.ir_attr.value = '11.1'
+        x.attr.ir_attr.value = "11.1"
         x.y.dtype = ascir.dtypes.float32
         debug_str = ascir.utils.debug_str(graph)
-        assert x.attr.ir_attr.value == '11.1'
+        assert x.attr.ir_attr.value == "11.1"
         assert debug_str
 
     @staticmethod
@@ -176,7 +186,7 @@ class TestAscir():
         x = ascir.ops.Data("x", graph)
         x.attr.sched.axis = [z0, z1, z2]
 
-        load = ascir.ops.Load("load")
+        ascir.ops.Load("load")
         x.y.dtype = ascir.dtypes.float16
         x.y.axis = [z0, z1, z2]
         assert x.y.axis == [z0.id, z1.id, z2.id]
@@ -198,7 +208,10 @@ class TestAscir():
         try:
             graph.infer_dtypes()
         except Exception as e:
-            assert e.args[0] == 'Infer dtype failed for load Load; input_dtypes: [DT_INT64] is not supportted now'
+            assert (
+                e.args[0]
+                == "Infer dtype failed for load Load; input_dtypes: [DT_INT64] is not supportted now"
+            )
         graph.infer_dtypes()
         debug_str = ascir.utils.debug_str(graph)
         assert debug_str
@@ -220,25 +233,27 @@ class TestAscir():
         start = time.time()
         time.sleep(0.1)
         end = time.time()
-        ascir.utils.duration_record(["device", "fused_graph"], int(start * 1e9), int((end - start) * 1e9))
+        ascir.utils.duration_record(
+            ["device", "fused_graph"], int(start * 1e9), int((end - start) * 1e9)
+        )
         ascir.utils.report_durations()
         try:
             ascir.utils.duration_record(["device", "fused_graph"], "time")
         except TypeError as e:
-            assert e.args[0] == 'UtilsDurationRecord param parse failed'
+            assert e.args[0] == "UtilsDurationRecord param parse failed"
 
         try:
             ascir.utils.duration_record(["device", "fused_graph"], int(-1), int(-1))
         except TypeError as e:
-            assert e.args[0] == 'duration param is invalid'
+            assert e.args[0] == "duration param is invalid"
 
         try:
             ascir.utils.duration_record([0, 1], int(-1), int(-1))
         except TypeError as e:
-            assert e.args[0] == 'target param is invalid'
+            assert e.args[0] == "target param is invalid"
 
 
-class TestAutofuseLoadAbsStore():
+class TestAutofuseLoadAbsStore:
     @staticmethod
     def construct_graph():
         graph = ascir.HintGraph("LoadAbsStore")
@@ -266,7 +281,7 @@ class TestAutofuseLoadAbsStore():
         try:
             load.attr.ir_attr.offset = "3"
         except Exception as e:
-            assert e.args[0] == 'Only support type of SizeExpr or long'
+            assert e.args[0] == "Only support type of SizeExpr or long"
         offset_of_0 = ascir.SizeExpr(0)
         load.attr.ir_attr.offset = offset_of_0
         assert load.attr.ir_attr.offset.expression == "0"
@@ -289,7 +304,7 @@ class TestAutofuseLoadAbsStore():
         try:
             store.attr.ir_attr.offset = "4"
         except Exception as e:
-            assert e.args[0] == 'Only support type of SizeExpr or long'
+            assert e.args[0] == "Only support type of SizeExpr or long"
         store.attr.ir_attr.offset = offset_of_0 + 1
         assert store.attr.ir_attr.offset.expression == "1"
         store.x = abs_op
@@ -322,9 +337,9 @@ class TestAutofuseLoadAbsStore():
 
         hint_graph = self.construct_graph()
         schedule_results = fuser.schedule(hint_graph)
-        graph_name = schedule_results.get_name()
-        input_num = schedule_results.get_input_num()
-        output_num = schedule_results.get_output_num()
+        schedule_results.get_name()
+        schedule_results.get_input_num()
+        schedule_results.get_output_num()
 
     def test_codegen(self):
         options = AutofuserOptions()
@@ -351,10 +366,12 @@ class TestAutofuseLoadAbsStore():
         assert isinstance(kernel_dict, dict), "kernel_dict should be a dictionary"
 
         # 验证字典中包含预期的键（可能是"ub"、"common"或"default"）
-        assert any(key in tiling_dict for key in ["ub", "common", "default"]), \
+        assert any(key in tiling_dict for key in ["ub", "common", "default"]), (
             "tiling_dict should contain at least one of the expected keys"
-        assert any(key in kernel_dict for key in ["ub", "common", "default"]), \
+        )
+        assert any(key in kernel_dict for key in ["ub", "common", "default"]), (
             "kernel_dict should contain at least one of the expected keys"
+        )
 
     def test_host_code_generator(self):
         # 测试host_code_generator方法
@@ -381,9 +398,9 @@ class TestAutofuseLoadAbsStore():
         assert isinstance(infer_shape, str), "infer_shape should be a string"
 
         # 验证py_tilings中包含预期的键（可能是"ub"、"common"或"default"）
-        assert any(key in py_tilings for key in ["ub", "common", "default"]), \
+        assert any(key in py_tilings for key in ["ub", "common", "default"]), (
             "py_tilings should contain at least one of the expected keys"
-
+        )
 
     def test_autofuse_backend(self):
         options = AutofuserOptions()
@@ -393,7 +410,7 @@ class TestAutofuseLoadAbsStore():
         tiling_def, host_tiling, op_kernel = fuser.autofuse_backend(hint_graph)
 
 
-class TestAutofuseLoadMatMulStore():
+class TestAutofuseLoadMatMulStore:
     @staticmethod
     def construct_graph():
         graph = ascir.HintGraph("LoadCubeStore")
@@ -421,7 +438,7 @@ class TestAutofuseLoadMatMulStore():
         try:
             load.attr.ir_attr.offset = "3"
         except Exception as e:
-            assert e.args[0] == 'Only support type of SizeExpr or long'
+            assert e.args[0] == "Only support type of SizeExpr or long"
         offset_of_0 = ascir.SizeExpr(0)
         load.attr.ir_attr.offset = offset_of_0
         assert load.attr.ir_attr.offset.expression == "0"
@@ -451,7 +468,7 @@ class TestAutofuseLoadMatMulStore():
         try:
             store.attr.ir_attr.offset = "4"
         except Exception as e:
-            assert e.args[0] == 'Only support type of SizeExpr or long'
+            assert e.args[0] == "Only support type of SizeExpr or long"
         store.attr.ir_attr.offset = offset_of_0 + 1
         assert store.attr.ir_attr.offset.expression == "1"
         store.x = matmul_op
@@ -480,8 +497,8 @@ class TestAutofuseLoadMatMulStore():
 
         hint_graph = self.construct_graph()
         schedule_results = fuser.schedule(hint_graph)
-        attr = schedule_results.is_cube_type()
-        attr = schedule_results.get_cube_attributes()
+        schedule_results.is_cube_type()
+        schedule_results.get_cube_attributes()
 
     def test_device_code_generator(self):
         # 测试device_code_generator方法
@@ -500,10 +517,12 @@ class TestAutofuseLoadMatMulStore():
         assert isinstance(kernel_dict, dict), "kernel_dict should be a dictionary"
 
         # 验证字典中包含预期的键（可能是"ub"、"common"或"default"）
-        assert any(key in tiling_dict for key in ["ub", "common", "default"]), \
+        assert any(key in tiling_dict for key in ["ub", "common", "default"]), (
             "tiling_dict should contain at least one of the expected keys"
-        assert any(key in kernel_dict for key in ["ub", "common", "default"]), \
+        )
+        assert any(key in kernel_dict for key in ["ub", "common", "default"]), (
             "kernel_dict should contain at least one of the expected keys"
+        )
 
     def test_host_code_generator(self):
         # 测试host_code_generator方法
@@ -530,15 +549,18 @@ class TestAutofuseLoadMatMulStore():
         assert isinstance(infer_shape, str), "infer_shape should be a string"
 
         # 验证py_tilings中包含预期的键（可能是"ub"、"common"或"default"）
-        assert any(key in py_tilings for key in ["ub", "common", "default"]), \
+        assert any(key in py_tilings for key in ["ub", "common", "default"]), (
             "py_tilings should contain at least one of the expected keys"
+        )
 
         # 验证每个值也是字典
         for key, value in py_tilings.items():
-            assert isinstance(value, dict), f"Value for key {key} should be a dictionary"
+            assert isinstance(value, dict), (
+                f"Value for key {key} should be a dictionary"
+            )
 
 
-class TestAutofuseLoadBatchMatmulStore():
+class TestAutofuseLoadBatchMatmulStore:
     @staticmethod
     def construct_graph():
         graph = ascir.HintGraph("LoadBatchMatMulStore")
@@ -566,7 +588,7 @@ class TestAutofuseLoadBatchMatmulStore():
         try:
             load.attr.ir_attr.offset = "3"
         except Exception as e:
-            assert e.args[0] == 'Only support type of SizeExpr or long'
+            assert e.args[0] == "Only support type of SizeExpr or long"
         offset_of_0 = ascir.SizeExpr(0)
         load.attr.ir_attr.offset = offset_of_0
         assert load.attr.ir_attr.offset.expression == "0"
@@ -596,7 +618,7 @@ class TestAutofuseLoadBatchMatmulStore():
         try:
             store.attr.ir_attr.offset = "4"
         except Exception as e:
-            assert e.args[0] == 'Only support type of SizeExpr or long'
+            assert e.args[0] == "Only support type of SizeExpr or long"
         store.attr.ir_attr.offset = offset_of_0 + 1
         assert store.attr.ir_attr.offset.expression == "1"
         store.x = matmul_op
@@ -625,11 +647,11 @@ class TestAutofuseLoadBatchMatmulStore():
 
         hint_graph = self.construct_graph()
         schedule_results = fuser.schedule(hint_graph)
-        attr = schedule_results.is_cube_type()
-        attr = schedule_results.get_cube_attributes()
+        schedule_results.is_cube_type()
+        schedule_results.get_cube_attributes()
 
 
-class TestAutofuseLoadMatMulStoreNew():
+class TestAutofuseLoadMatMulStoreNew:
     @staticmethod
     def construct_graph():
         graph = ascir.HintGraph("LoadCubeStoreNew")
@@ -695,8 +717,8 @@ class TestAutofuseLoadMatMulStoreNew():
         matmul_op.attr.ir_attr.enable_hf32 = 1
         matmul_op.attr.ir_attr.transpose_x1 = 0  # X1不转置
         matmul_op.attr.ir_attr.transpose_x2 = 0  # X2不转置
-        matmul_op.attr.ir_attr.has_relu = 0      # 不使用ReLU
-        matmul_op.attr.ir_attr.offset_x = 0       # 偏移量为0
+        matmul_op.attr.ir_attr.has_relu = 0  # 不使用ReLU
+        matmul_op.attr.ir_attr.offset_x = 0  # 偏移量为0
         matmul_op.y.dtype = ascir.dtypes.float16
         matmul_op.y.axis = [m, n]
         matmul_op.y.size = [s0, s2]
@@ -743,8 +765,8 @@ class TestAutofuseLoadMatMulStoreNew():
 
         hint_graph = self.construct_graph()
         schedule_results = fuser.schedule(hint_graph)
-        attr = schedule_results.is_cube_type()
-        attr = schedule_results.get_cube_attributes()
+        schedule_results.is_cube_type()
+        schedule_results.get_cube_attributes()
 
     def test_device_code_generator(self):
         # 测试device_code_generator方法
@@ -763,15 +785,19 @@ class TestAutofuseLoadMatMulStoreNew():
         assert isinstance(kernel_dict, dict), "kernel_dict should be a dictionary"
 
         # 验证字典中只包含"ub"或"common"键
-        assert any(key in tiling_dict for key in ["ub", "common", "default"]), \
+        assert any(key in tiling_dict for key in ["ub", "common", "default"]), (
             "tiling_dict should contain either 'ub', 'common' or 'default' key"
-        assert all(key in ["ub", "common", "default"] for key in tiling_dict.keys()), \
+        )
+        assert all(key in ["ub", "common", "default"] for key in tiling_dict.keys()), (
             "tiling_dict should only contain 'ub', 'common' or 'default' keys"
+        )
 
-        assert any(key in kernel_dict for key in ["ub", "common", "default"]), \
+        assert any(key in kernel_dict for key in ["ub", "common", "default"]), (
             "kernel_dict should contain either 'ub', 'common' or 'default' key"
-        assert all(key in ["ub", "common", "default"] for key in kernel_dict.keys()), \
+        )
+        assert all(key in ["ub", "common", "default"] for key in kernel_dict.keys()), (
             "kernel_dict should only contain 'ub', 'common' or 'default' keys"
+        )
 
     def test_host_code_generator(self):
         # 测试host_code_generator方法
@@ -798,14 +824,18 @@ class TestAutofuseLoadMatMulStoreNew():
         assert isinstance(infer_shape, str), "infer_shape should be a string"
 
         # 验证py_tilings中只包含"ub"或"common"键
-        assert any(key in py_tilings for key in ["ub", "common", "default"]), \
+        assert any(key in py_tilings for key in ["ub", "common", "default"]), (
             "py_tilings should contain either 'ub', 'common' or 'default' key"
-        assert all(key in ["ub", "common", "default"] for key in py_tilings.keys()), \
+        )
+        assert all(key in ["ub", "common", "default"] for key in py_tilings.keys()), (
             "py_tilings should only contain 'ub', 'common' or 'default' keys"
+        )
 
         # 验证每个值也是字典
         for key, value in py_tilings.items():
-            assert isinstance(value, dict), f"Value for key {key} should be a dictionary"
+            assert isinstance(value, dict), (
+                f"Value for key {key} should be a dictionary"
+            )
 
 
 class TestCubeAttributes:
@@ -931,7 +961,7 @@ class TestCubeAttributes:
         # assert attr_dict["input_num"] == 2, "input_num should be 2"
 
 
-class TestAutofuseGatherAbsStore():
+class TestAutofuseGatherAbsStore:
     @staticmethod
     def construct_graph():
         graph = ascir.HintGraph("GatherAbsStore")
@@ -1004,7 +1034,7 @@ class TestAutofuseGatherAbsStore():
         options = AutofuserOptions()
         fuser = Autofuser(options)
         hint_graph = self.construct_graph()
-        schedule_results = fuser.autofuse(hint_graph)
+        fuser.autofuse(hint_graph)
 
     @pytest.mark.skip
     def test_codegen(self):
@@ -1016,25 +1046,25 @@ class TestAutofuseGatherAbsStore():
         tiling_def, host_tiling, op_kernel = fuser.codegen(impl_graphs)
 
 
-class TestAutofuseLoadConcatStore():
+class TestAutofuseLoadConcatStore:
     @staticmethod
     def construct_graph():
         try:
-            NpuKernel0Graph = ascir.HintGraph(100)
+            npu_kernel0_graph = ascir.HintGraph(100)
         except Exception as e:
-            assert e.args[0] == 'argument 1 must be str, not int'
-        NpuKernel0Graph = ascir.HintGraph('LoadConcatStore')
-        s0 = NpuKernel0Graph.create_size("s0")
-        s1 = NpuKernel0Graph.create_size("s1")
-        z0 = NpuKernel0Graph.create_axis("z0", s0)
-        z1 = NpuKernel0Graph.create_axis("z1", s1 * 2)
-        arg2_1 = ascir.ops.Data('arg2_1', NpuKernel0Graph)
+            assert e.args[0] == "argument 1 must be str, not int"
+        npu_kernel0_graph = ascir.HintGraph("LoadConcatStore")
+        s0 = npu_kernel0_graph.create_size("s0")
+        s1 = npu_kernel0_graph.create_size("s1")
+        z0 = npu_kernel0_graph.create_axis("z0", s0)
+        z1 = npu_kernel0_graph.create_axis("z1", s1 * 2)
+        arg2_1 = ascir.ops.Data("arg2_1", npu_kernel0_graph)
         arg2_1.y.dtype = ascir.dtypes.float16
-        load = ascir.ops.Load('load')
+        load = ascir.ops.Load("load")
         try:
             load.infer_dtype()
         except Exception as e:
-            assert e.args[0] == 'node load Load need set input before call infer dype'
+            assert e.args[0] == "node load Load need set input before call infer dype"
         load.attr.sched.axis = [z0, z1]
         load.x = arg2_1.y
         load.y.axis = [z0, z1]
@@ -1042,32 +1072,32 @@ class TestAutofuseLoadConcatStore():
         load.y.size = [s0, s1]
         load.infer_dtype()
         assert load.y.dtype == ascir.dtypes.float16
-        arg3_1 = ascir.ops.Data('arg3_1', NpuKernel0Graph)
+        arg3_1 = ascir.ops.Data("arg3_1", npu_kernel0_graph)
         arg3_1.y.dtype = ascir.dtypes.float16
-        load1 = ascir.ops.Load('load1')
+        load1 = ascir.ops.Load("load1")
         load1.attr.sched.axis = [z0, z1]
         assert load1.attr.sched.axis == [z0.id, z1.id]
         load1.x = arg3_1.y
         load1.y.axis = [z0, z1]
         load1.y.strides = [s1, ascir.SizeExpr(1)]
         load1.y.size = [s0, s1]
-        concat = ascir.ops.Concat('concat')
+        concat = ascir.ops.Concat("concat")
         concat.attr.sched.axis = [z0, z1]
         concat.x = [load, load1.y]
         concat.y.axis = [z0, z1]
         concat.y.strides = [s1 + s1, ascir.SizeExpr(1)]
         concat.y.size = [s0, s1 * 2]
-        store = ascir.ops.Store('store')
+        store = ascir.ops.Store("store")
         store.attr.sched.axis = [z0, z1]
         store.x = concat.y
         store.y.axis = [z0, z1]
         store.y.strides = [s1 * 2, ascir.SizeExpr(1)]
         store.y.size = [s0, s1 * 2]
-        buf0 = ascir.ops.Output('buf0')
+        buf0 = ascir.ops.Output("buf0")
         buf0.x = store.y
         buf0.y.dtype = ascir.dtypes.float16
-        NpuKernel0Graph.infer_dtypes()
-        return NpuKernel0Graph
+        npu_kernel0_graph.infer_dtypes()
+        return npu_kernel0_graph
 
     def test_construct_graph(self):
         graph = self.construct_graph()
@@ -1079,10 +1109,10 @@ class TestAutofuseLoadConcatStore():
         fuser = Autofuser(options)
 
         hint_graph = self.construct_graph()
-        schedule_results = fuser.schedule(hint_graph)
+        fuser.schedule(hint_graph)
 
 
-class TestAutofuseLoadSplitStore():
+class TestAutofuseLoadSplitStore:
     @staticmethod
     def construct_graph():
         graph = ascir.HintGraph("LoadSplitStore")
@@ -1148,51 +1178,51 @@ class TestAutofuseLoadSplitStore():
             debug_graph = ascir.utils.debug_str(graph)
             assert debug_graph != ""
         finally:
-            ascir.utils.set_platform("2201", 1, 1024)
+            ascir.utils.set_platform("2201", 1, 245760)
 
 
-class TestWorkspaceOptimize():
+class TestWorkspaceOptimize:
     @staticmethod
     def construct_graph():
-        NpuKernel0Graph = ascir.HintGraph('workspace')
-        s0 = NpuKernel0Graph.create_size("s0")
-        z0 = NpuKernel0Graph.create_axis("z0", s0)
-        arg2_1 = ascir.ops.Data('arg2_1', NpuKernel0Graph)
+        npu_kernel0_graph = ascir.HintGraph("workspace")
+        s0 = npu_kernel0_graph.create_size("s0")
+        z0 = npu_kernel0_graph.create_axis("z0", s0)
+        arg2_1 = ascir.ops.Data("arg2_1", npu_kernel0_graph)
         arg2_1.y.dtype = ascir.dtypes.float16
-        load = ascir.ops.Load('load')
+        load = ascir.ops.Load("load")
         load.attr.sched.axis = [z0]
         load.x = arg2_1.y
         load.y.axis = [z0]
         load.y.strides = [ascir.SizeExpr(1)]
         load.y.size = [s0]
-        store = ascir.ops.Store('store')
+        store = ascir.ops.Store("store")
         store.attr.sched.axis = [z0]
         store.x = load.y
         store.y.axis = [z0]
         store.y.strides = [ascir.SizeExpr(1)]
         store.y.size = [s0]
-        ws = ascir.ops.Workspace('buf8')
+        ws = ascir.ops.Workspace("buf8")
         ws.attr.sched.axis = [z0]
         ws.x = store.y
         ws.y.size = [s0]
         ws.y.dtype = ascir.dtypes.float16
         ws.y.axis = [z0]
         ws.y.strides = [ascir.SizeExpr(1)]
-        load1 = ascir.ops.Load('load1')
+        load1 = ascir.ops.Load("load1")
         load1.attr.sched.axis = [z0]
         load1.x = ws.y
         load1.y.axis = [z0]
         load1.y.strides = [ascir.SizeExpr(1)]
         load1.y.size = [s0]
 
-        store1 = ascir.ops.Store('store1')
+        store1 = ascir.ops.Store("store1")
         store1.attr.sched.axis = [z0]
         store1.x = load1.y
         store1.y.axis = [z0]
         store1.y.strides = [ascir.SizeExpr(1)]
         store1.y.size = [s0]
 
-        ws1 = ascir.ops.Workspace('buf2')
+        ws1 = ascir.ops.Workspace("buf2")
         ws1.attr.sched.axis = [z0]
         ws1.x = store1.y
         ws1.y.size = [s0]
@@ -1200,21 +1230,21 @@ class TestWorkspaceOptimize():
         ws1.y.axis = [z0]
         ws1.y.strides = [ascir.SizeExpr(1)]
 
-        load2 = ascir.ops.Load('load2')
+        load2 = ascir.ops.Load("load2")
         load2.attr.sched.axis = [z0]
         load2.x = ws1.y
         load2.y.axis = [z0]
         load2.y.strides = [ascir.SizeExpr(1)]
         load2.y.size = [s0]
 
-        load3 = ascir.ops.Load('load3')
+        load3 = ascir.ops.Load("load3")
         load3.attr.sched.axis = [z0]
         load3.x = ws1.y
         load3.y.axis = [z0]
         load3.y.strides = [ascir.SizeExpr(1)]
         load3.y.size = [s0]
-        NpuKernel0Graph.infer_dtypes()
-        return NpuKernel0Graph
+        npu_kernel0_graph.infer_dtypes()
+        return npu_kernel0_graph
 
     def test_construct_graph(self):
         graph = self.construct_graph()
@@ -1226,9 +1256,10 @@ class TestWorkspaceOptimize():
         fuser = Autofuser(options)
 
         hint_graph = self.construct_graph()
-        schedule_results = fuser.schedule(hint_graph)
+        fuser.schedule(hint_graph)
 
-class TestCodeGenLoadAbsStore():
+
+class TestCodeGenLoadAbsStore:
     @staticmethod
     def construct_graph():
         graph = ascir.HintGraph("LoadAbsStore")
@@ -1298,7 +1329,7 @@ class TestCodeGenLoadAbsStore():
         scheduler = Schedule(options)
 
         hint_graph = self.construct_graph()
-        impl_graphs = scheduler.schedule(hint_graph)
+        scheduler.schedule(hint_graph)
 
     @pytest.mark.skip
     def test_codegen(self):
@@ -1307,9 +1338,13 @@ class TestCodeGenLoadAbsStore():
 
         hint_graph = self.construct_graph()
         impl_graphs = scheduler.schedule(hint_graph)
-        shape_info = ascir.ShapeInfo({"s0": "GetDimValueFromGraphInputData(0, 0);",
-                                      "s1": "GetDimValueFromGraphInputData(0, 1);",
-                                      "s2": "GetDimValueFromGraphInputData(1, 0);"})
+        shape_info = ascir.ShapeInfo(
+            {
+                "s0": "GetDimValueFromGraphInputData(0, 0);",
+                "s1": "GetDimValueFromGraphInputData(0, 1);",
+                "s2": "GetDimValueFromGraphInputData(1, 0);",
+            }
+        )
 
         kernel_path = "./fused_graph_kernel.o"
         with open(kernel_path, "wb") as o_file:
@@ -1319,73 +1354,79 @@ class TestCodeGenLoadAbsStore():
             "name": "Alice",
             "age": 30,
             "is_student": False,
-            "courses": ["Math", "Science", "History"]
+            "courses": ["Math", "Science", "History"],
         }
         json_path = "./fused_graph_kernel.json"
         with open(json_path, "w") as json_file:
             json.dump(data, json_file, indent=4)
 
         tiling_data, op_kernel = codegen.device_code_generator(hint_graph, impl_graphs)
-        tiling, infer_shape = codegen.host_code_generator(hint_graph, impl_graphs, shape_info, "", ["", ""])
+        tiling, infer_shape = codegen.host_code_generator(
+            hint_graph, impl_graphs, shape_info, "", ["", ""]
+        )
         get_kernel = codegen.get_kernel_and_json_generator(kernel_path, json_path)
         os.remove(kernel_path)
         os.remove(json_path)
-        assert tiling_data == "".join([
-            "#ifndef __Autofuse_Tiling_Data_H__\n"
-            "#define __Autofuse_Tiling_Data_H__\n"
-            "#include <stdint.h>\n"
-            "#include \"kernel_tiling/kernel_tiling.h\"\n"
-            "#define BEGIN_TILING_DATA_DEF_T(name) struct name {\n"
-            "#define TILING_DATA_FIELD_DEF_T(type, name) \\\n"
-            "  type name; \\\n"
-            "  inline void set_##name(type value) { name = value; } \\\n",
-            "  inline type get_##name() { return name; } \\\n"
-            "  inline type* get_addr_##name() {return &name;}\n"
-            "#define END_TILING_DATA_DEF_T };\n"
-            "#define TILING_DATA_FIELD_DEF_T_STRUCT(struct_type, filed_name) \\\n"
-            "  struct_type filed_name;\n\n"
-            "BEGIN_TILING_DATA_DEF_T(AutofuseTilingData)\n"
-            "  TILING_DATA_FIELD_DEF_T(uint32_t, block_dim);\n"
-            "  TILING_DATA_FIELD_DEF_T(uint32_t, corenum);\n"
-            "  TILING_DATA_FIELD_DEF_T(uint32_t, ub_size);\n"
-            "  TILING_DATA_FIELD_DEF_T(uint32_t, hbm_size);\n"
-            "  TILING_DATA_FIELD_DEF_T(uint32_t, tiling_key);\n"
-            "  TILING_DATA_FIELD_DEF_T(uint32_t, z0z1z2t_size);\n"
-            "  TILING_DATA_FIELD_DEF_T(uint32_t, z0z1z2Tb_size);\n"
-            "END_TILING_DATA_DEF_T;\n\n"
-            "struct AutofuseTilingDataPerf {\n"
-            "  AutofuseTilingData tiling_data;\n"
-            "  double best_perf;\n"
-            "};\n"
-            "#endif\n"
-        ])
+        assert tiling_data == "".join(
+            [
+                "#ifndef __Autofuse_Tiling_Data_H__\n"
+                "#define __Autofuse_Tiling_Data_H__\n"
+                "#include <stdint.h>\n"
+                '#include "kernel_tiling/kernel_tiling.h"\n'
+                "#define BEGIN_TILING_DATA_DEF_T(name) struct name {\n"
+                "#define TILING_DATA_FIELD_DEF_T(type, name) \\\n"
+                "  type name; \\\n"
+                "  inline void set_##name(type value) { name = value; } \\\n",
+                "  inline type get_##name() { return name; } \\\n"
+                "  inline type* get_addr_##name() {return &name;}\n"
+                "#define END_TILING_DATA_DEF_T };\n"
+                "#define TILING_DATA_FIELD_DEF_T_STRUCT(struct_type, filed_name) \\\n"
+                "  struct_type filed_name;\n\n"
+                "BEGIN_TILING_DATA_DEF_T(AutofuseTilingData)\n"
+                "  TILING_DATA_FIELD_DEF_T(uint32_t, block_dim);\n"
+                "  TILING_DATA_FIELD_DEF_T(uint32_t, corenum);\n"
+                "  TILING_DATA_FIELD_DEF_T(uint32_t, ub_size);\n"
+                "  TILING_DATA_FIELD_DEF_T(uint32_t, hbm_size);\n"
+                "  TILING_DATA_FIELD_DEF_T(uint32_t, tiling_key);\n"
+                "  TILING_DATA_FIELD_DEF_T(uint32_t, z0z1z2t_size);\n"
+                "  TILING_DATA_FIELD_DEF_T(uint32_t, z0z1z2Tb_size);\n"
+                "END_TILING_DATA_DEF_T;\n\n"
+                "struct AutofuseTilingDataPerf {\n"
+                "  AutofuseTilingData tiling_data;\n"
+                "  double best_perf;\n"
+                "};\n"
+                "#endif\n",
+            ]
+        )
 
-        assert infer_shape == "".join([
-            ""])
+        assert infer_shape == "".join([""])
 
-        assert get_kernel == "".join([
-            "#include <cstdint>\n"
-            "#include <cstring>\n"
-            "#include <vector>\n"
-            "extern \"C\" void GetKernelBin(std::vector<char> &kernel_bin) {\n"
-            "  std::vector<uint8_t> temp_kernel = {\n"
-            "    84, 104, 105, 115, 32, 105, 115, 32, 97, 32, 46, 111, 32, 102, 105, 108, 101, 32, 99, 111, \n"
-            "    110, 116, 101, 110, 116, 46, };\n"
-            "  kernel_bin.resize(temp_kernel.size());\n"
-            "  std::memcpy(kernel_bin.data(), temp_kernel.data(), temp_kernel.size() * sizeof(uint8_t));\n"
-            "}"])
+        assert get_kernel == "".join(
+            [
+                "#include <cstdint>\n"
+                "#include <cstring>\n"
+                "#include <vector>\n"
+                'extern "C" void GetKernelBin(std::vector<char> &kernel_bin) {\n'
+                "  std::vector<uint8_t> temp_kernel = {\n"
+                "    84, 104, 105, 115, 32, 105, 115, 32, 97, 32, 46, 111, 32, 102, 105, 108, 101, 32, 99, 111, \n"
+                "    110, 116, 101, 110, 116, 46, };\n"
+                "  kernel_bin.resize(temp_kernel.size());\n"
+                "  std::memcpy(kernel_bin.data(), temp_kernel.data(), temp_kernel.size() * sizeof(uint8_t));\n"
+                "}"
+            ]
+        )
 
 
-class TestComputeGraphInput():
+class TestComputeGraphInput:
     @staticmethod
     def construct_compute_graph():
         test_graph = os.path.join(PYF_PATH, "test_graph.txt")
-        with open(test_graph, 'r', encoding='utf-8') as file:
+        with open(test_graph, "r", encoding="utf-8") as file:
             content = file.read()
         compute_graph = ascir.utils.deserialize("compute_graph", content)
         print(compute_graph.get_name(), flush=True)
         print(compute_graph.get_info(), flush=True)
-        assert compute_graph != None
+        assert compute_graph is not None
         return compute_graph
 
     @pytest.mark.skip
@@ -1394,7 +1435,7 @@ class TestComputeGraphInput():
         scheduler = Schedule(options)
 
         compute_graph = self.construct_compute_graph()
-        schedule_results = scheduler.scheduleV2(compute_graph)
+        scheduler.scheduleV2(compute_graph)
 
     def test_scheduleV2_fail(self):
         options = AutofuserOptions()
@@ -1403,8 +1444,9 @@ class TestComputeGraphInput():
         compute_graph = ascir.HintComputeGraph("test")
         try:
             scheduler.scheduleV2(compute_graph)
-        except RuntimeError as e:
+        except RuntimeError:
             pass
+
     @pytest.mark.skip
     def test_computegraph_codegen(self):
         scheduler = Schedule()
@@ -1412,9 +1454,13 @@ class TestComputeGraphInput():
 
         compute_graph = self.construct_compute_graph()
         schedule_results = scheduler.scheduleV2(compute_graph)
-        shape_info = ascir.ShapeInfo({"s0": "GetDimValueFromGraphInputData(0, 0);",
-                                      "s1": "GetDimValueFromGraphInputData(0, 1);",
-                                      "s2": "GetDimValueFromGraphInputData(1, 0);"})
+        shape_info = ascir.ShapeInfo(
+            {
+                "s0": "GetDimValueFromGraphInputData(0, 0);",
+                "s1": "GetDimValueFromGraphInputData(0, 1);",
+                "s2": "GetDimValueFromGraphInputData(1, 0);",
+            }
+        )
 
         kernel_path = "./fused_graph_kernel.o"
         with open(kernel_path, "wb") as o_file:
@@ -1424,90 +1470,98 @@ class TestComputeGraphInput():
             "name": "Alice",
             "age": 30,
             "is_student": False,
-            "courses": ["Math", "Science", "History"]
+            "courses": ["Math", "Science", "History"],
         }
         json_path = "./fused_graph_kernel.json"
         with open(json_path, "w") as json_file:
             json.dump(data, json_file, indent=4)
 
         tiling_data, op_kernel = codegen.device_code_generator(schedule_results)
-        assert tiling_data == "".join([
-            "#ifndef __Autofuse_Tiling_Data_H__\n"
-            "#define __Autofuse_Tiling_Data_H__\n"
-            "#include <stdint.h>\n"
-            "#include \"kernel_tiling/kernel_tiling.h\"\n"
-            "#define BEGIN_TILING_DATA_DEF_T(name) struct name {\n"
-            "#define TILING_DATA_FIELD_DEF_T(type, name) \\\n"
-            "  type name; \\\n"
-            "  inline void set_##name(type value) { name = value; } \\\n",
-            "  inline type get_##name() { return name; } \\\n"
-            "  inline type* get_addr_##name() {return &name;}\n"
-            "#define END_TILING_DATA_DEF_T };\n"
-            "#define TILING_DATA_FIELD_DEF_T_STRUCT(struct_type, filed_name) \\\n"
-            "  struct_type filed_name;\n\n"
-            "BEGIN_TILING_DATA_DEF_T(AutofuseTilingData)\n"
-            "  TILING_DATA_FIELD_DEF_T(uint32_t, block_dim);\n"
-            "  TILING_DATA_FIELD_DEF_T(uint32_t, corenum);\n"
-            "  TILING_DATA_FIELD_DEF_T(uint32_t, ub_size);\n"
-            "  TILING_DATA_FIELD_DEF_T(uint32_t, hbm_size);\n"
-            "  TILING_DATA_FIELD_DEF_T(uint32_t, tiling_key);\n"
-            "  TILING_DATA_FIELD_DEF_T(uint32_t, z0z1z2t_size);\n"
-            "  TILING_DATA_FIELD_DEF_T(uint32_t, z0z1z2Tb_size);\n"
-            "  TILING_DATA_FIELD_DEF_T(uint32_t, q0_size);\n"
-            "  TILING_DATA_FIELD_DEF_T(uint32_t, q1_size);\n"
-            "  TILING_DATA_FIELD_DEF_T(uint32_t, b0_size);\n"
-            "END_TILING_DATA_DEF_T;\n\n"
-            "struct AutofuseTilingDataPerf {\n"
-            "  AutofuseTilingData tiling_data;\n"
-            "  double best_perf;\n"
-            "};\n"
-            "#endif\n"
-        ])
+        assert tiling_data == "".join(
+            [
+                "#ifndef __Autofuse_Tiling_Data_H__\n"
+                "#define __Autofuse_Tiling_Data_H__\n"
+                "#include <stdint.h>\n"
+                '#include "kernel_tiling/kernel_tiling.h"\n'
+                "#define BEGIN_TILING_DATA_DEF_T(name) struct name {\n"
+                "#define TILING_DATA_FIELD_DEF_T(type, name) \\\n"
+                "  type name; \\\n"
+                "  inline void set_##name(type value) { name = value; } \\\n",
+                "  inline type get_##name() { return name; } \\\n"
+                "  inline type* get_addr_##name() {return &name;}\n"
+                "#define END_TILING_DATA_DEF_T };\n"
+                "#define TILING_DATA_FIELD_DEF_T_STRUCT(struct_type, filed_name) \\\n"
+                "  struct_type filed_name;\n\n"
+                "BEGIN_TILING_DATA_DEF_T(AutofuseTilingData)\n"
+                "  TILING_DATA_FIELD_DEF_T(uint32_t, block_dim);\n"
+                "  TILING_DATA_FIELD_DEF_T(uint32_t, corenum);\n"
+                "  TILING_DATA_FIELD_DEF_T(uint32_t, ub_size);\n"
+                "  TILING_DATA_FIELD_DEF_T(uint32_t, hbm_size);\n"
+                "  TILING_DATA_FIELD_DEF_T(uint32_t, tiling_key);\n"
+                "  TILING_DATA_FIELD_DEF_T(uint32_t, z0z1z2t_size);\n"
+                "  TILING_DATA_FIELD_DEF_T(uint32_t, z0z1z2Tb_size);\n"
+                "  TILING_DATA_FIELD_DEF_T(uint32_t, q0_size);\n"
+                "  TILING_DATA_FIELD_DEF_T(uint32_t, q1_size);\n"
+                "  TILING_DATA_FIELD_DEF_T(uint32_t, b0_size);\n"
+                "END_TILING_DATA_DEF_T;\n\n"
+                "struct AutofuseTilingDataPerf {\n"
+                "  AutofuseTilingData tiling_data;\n"
+                "  double best_perf;\n"
+                "};\n"
+                "#endif\n",
+            ]
+        )
 
         output_shape = [["s0", "s1"]]
         vector_core_num = "0"
-        tiling, infer_shape = codegen.host_code_generator(schedule_results, shape_info, output_shape, "", vector_core_num)
-        pgo_src = codegen.pgo_code_generator(schedule_results, "")
+        tiling, infer_shape = codegen.host_code_generator(
+            schedule_results, shape_info, output_shape, "", vector_core_num
+        )
+        codegen.pgo_code_generator(schedule_results, "")
         get_kernel = codegen.get_kernel_and_json_generator(kernel_path, json_path)
         os.remove(kernel_path)
         os.remove(json_path)
-        assert get_kernel == "".join([
-            "#include <cstdint>\n"
-            "#include <cstring>\n"
-            "#include <vector>\n"
-            "extern \"C\" void GetKernelBin(std::vector<char> &kernel_bin) {\n"
-            "  std::vector<uint8_t> temp_kernel = {\n"
-            "    84, 104, 105, 115, 32, 105, 115, 32, 97, 32, 46, 111, 32, 102, 105, 108, 101, 32, 99, 111, \n"
-            "    110, 116, 101, 110, 116, 46, };\n"
-            "  kernel_bin.resize(temp_kernel.size());\n"
-            "  std::memcpy(kernel_bin.data(), temp_kernel.data(), temp_kernel.size() * sizeof(uint8_t));\n"
-            "}"])
+        assert get_kernel == "".join(
+            [
+                "#include <cstdint>\n"
+                "#include <cstring>\n"
+                "#include <vector>\n"
+                'extern "C" void GetKernelBin(std::vector<char> &kernel_bin) {\n'
+                "  std::vector<uint8_t> temp_kernel = {\n"
+                "    84, 104, 105, 115, 32, 105, 115, 32, 97, 32, 46, 111, 32, 102, 105, 108, 101, 32, 99, 111, \n"
+                "    110, 116, 101, 110, 116, 46, };\n"
+                "  kernel_bin.resize(temp_kernel.size());\n"
+                "  std::memcpy(kernel_bin.data(), temp_kernel.data(), temp_kernel.size() * sizeof(uint8_t));\n"
+                "}"
+            ]
+        )
 
         try:
             output_shape = ["s0"]
             vector_core_num = "0"
-            tiling, infer_shape = codegen.host_code_generator(schedule_results, shape_info,
-                                                              output_shape, "", vector_core_num)
-        except ValueError as e:
+            tiling, infer_shape = codegen.host_code_generator(
+                schedule_results, shape_info, output_shape, "", vector_core_num
+            )
+        except ValueError:
             pass
 
         try:
-            pgo_src = codegen.pgo_code_generator(schedule_results)
-        except ValueError as e:
+            codegen.pgo_code_generator(schedule_results)
+        except ValueError:
             pass
 
         try:
             get_kernel = codegen.get_kernel_and_json_generator(kernel_path, json_path)
-        except ValueError as e:
+        except ValueError:
             pass
 
         try:
             get_kernel = codegen.get_kernel_and_json_generator(kernel_path)
-        except ValueError as e:
+        except ValueError:
             pass
 
 
-class TestHintGraph():
+class TestHintGraph:
     @staticmethod
     def construct_graph():
         graph = ascir.HintGraph("LoadAbsStore")
@@ -1567,35 +1621,35 @@ class TestHintGraph():
         asc_graph = self.construct_graph()
         try:
             asc_graph.set_name(2)
-        except TypeError as e:
+        except TypeError:
             assert asc_graph.get_name() == "".join(["LoadAbsStore"])
 
         asc_graph.set_name("test_graph")
         assert asc_graph.get_name() == "".join(["test_graph"])
 
 
-class TestFusedGraph():
+class TestFusedGraph:
     @staticmethod
     def construct_add_ascgraph(name: str) -> ascir.HintGraph:
-        NpuKernel0Graph = ascir.HintGraph(name)
-        s0 = NpuKernel0Graph.create_size("s0")
-        s1 = NpuKernel0Graph.create_size("s1")
-        z0 = NpuKernel0Graph.create_axis("z0", s0)
-        z1 = NpuKernel0Graph.create_axis("z1", s1)
-        sub_data0 = ascir.ops.Data('sub_data0', NpuKernel0Graph)
+        npu_kernel0_graph = ascir.HintGraph(name)
+        s0 = npu_kernel0_graph.create_size("s0")
+        s1 = npu_kernel0_graph.create_size("s1")
+        z0 = npu_kernel0_graph.create_axis("z0", s0)
+        z1 = npu_kernel0_graph.create_axis("z1", s1)
+        sub_data0 = ascir.ops.Data("sub_data0", npu_kernel0_graph)
         sub_data0.y.dtype = ascir.dtypes.float16
         sub_data0.attr.ir_attr.index = 0
-        load0 = ascir.ops.Load('load')
+        load0 = ascir.ops.Load("load")
         load0.attr.ir_attr.offset = 0
         load0.attr.sched.axis = [z0, z1]
         load0.x = sub_data0.y
         load0.y.axis = [z0, z1]
         load0.y.strides = [s1, ascir.SizeExpr(1)]
         load0.y.size = [s0, s1]
-        sub_data1 = ascir.ops.Data('sub_data1', NpuKernel0Graph)
+        sub_data1 = ascir.ops.Data("sub_data1", npu_kernel0_graph)
         sub_data1.y.dtype = ascir.dtypes.float16
         sub_data1.attr.ir_attr.index = 1
-        load1 = ascir.ops.Load('load')
+        load1 = ascir.ops.Load("load")
         load1.attr.ir_attr.offset = ascir.SizeExpr(0)
         load1.attr.sched.axis = [z0, z1]
         load1.x = sub_data1.y
@@ -1603,7 +1657,7 @@ class TestFusedGraph():
         load1.y.strides = [s1, ascir.SizeExpr(1)]
         load1.y.size = [s0, s1]
 
-        add0 = ascir.ops.Add('add')
+        add0 = ascir.ops.Add("add")
         add0.attr.sched.axis = [z0, z1]
         add0.x1 = load0.y
         add0.x2 = load1.y
@@ -1611,52 +1665,52 @@ class TestFusedGraph():
         add0.y.strides = [s1 + s1, ascir.SizeExpr(1)]
         add0.y.size = [s0, s1 * 2]
 
-        store0 = ascir.ops.Store('store')
+        store0 = ascir.ops.Store("store")
         store0.attr.ir_attr.offset = ascir.SizeExpr(0)
         store0.attr.sched.axis = [z0, z1]
         store0.x = add0.y
         store0.y.axis = [z0, z1]
-        store0.y.strides = [s1 ** 2, ascir.SizeExpr(1)]
+        store0.y.strides = [s1**2, ascir.SizeExpr(1)]
         store0.y.size = [s0, s1 * 2]
 
-        store1 = ascir.ops.Store('store')
+        store1 = ascir.ops.Store("store")
         store1.attr.ir_attr.offset = ascir.SizeExpr(10)
         store1.attr.sched.axis = [z0, z1]
         store1.x = add0.y
         store1.y.axis = [z0, z1]
         store1.y.strides = [s1 * 2, ascir.SizeExpr(1)]
         store1.y.size = [s0, s1 * 2]
-        buf0 = ascir.ops.Output('buf0')
+        buf0 = ascir.ops.Output("buf0")
         buf0.attr.ir_attr.index = 0
         # store0, strore1 写到同一个output上，偏移不同
         buf0.x = [store0.y, store1]
         buf0.y.dtype = ascir.dtypes.float16
-        buf1 = ascir.ops.Output('buf1')
+        buf1 = ascir.ops.Output("buf1")
         buf1.attr.ir_attr.index = 1
         buf1.x = store1.y
-        NpuKernel0Graph.infer_dtypes()
-        ascir.utils.dump(NpuKernel0Graph)
-        return NpuKernel0Graph
+        npu_kernel0_graph.infer_dtypes()
+        ascir.utils.dump(npu_kernel0_graph)
+        return npu_kernel0_graph
 
     @staticmethod
     def construct_add_ascgraph_without_data(name: str) -> ascir.HintGraph:
-        NpuKernel0Graph = ascir.HintGraph(name)
-        s0 = NpuKernel0Graph.create_size("s0")
-        s1 = NpuKernel0Graph.create_size("s1")
-        z0 = NpuKernel0Graph.create_axis("z0", s0)
-        z1 = NpuKernel0Graph.create_axis("z1", s1)
-        sub_data0 = ascir.ops.Scalar('sub_data0', NpuKernel0Graph)
+        npu_kernel0_graph = ascir.HintGraph(name)
+        s0 = npu_kernel0_graph.create_size("s0")
+        s1 = npu_kernel0_graph.create_size("s1")
+        z0 = npu_kernel0_graph.create_axis("z0", s0)
+        z1 = npu_kernel0_graph.create_axis("z1", s1)
+        sub_data0 = ascir.ops.Scalar("sub_data0", npu_kernel0_graph)
         sub_data0.y.dtype = ascir.dtypes.float16
-        load0 = ascir.ops.Load('load')
+        load0 = ascir.ops.Load("load")
         load0.attr.ir_attr.offset = 0
         load0.attr.sched.axis = [z0, z1]
         load0.x = sub_data0.y
         load0.y.axis = [z0, z1]
         load0.y.strides = [s1, ascir.SizeExpr(1)]
         load0.y.size = [s0, s1]
-        sub_data1 = ascir.ops.Scalar('sub_data1', NpuKernel0Graph)
+        sub_data1 = ascir.ops.Scalar("sub_data1", npu_kernel0_graph)
         sub_data1.y.dtype = ascir.dtypes.float16
-        load1 = ascir.ops.Load('load')
+        load1 = ascir.ops.Load("load")
         load1.attr.ir_attr.offset = ascir.SizeExpr(0)
         load1.attr.sched.axis = [z0, z1]
         load1.x = sub_data1.y
@@ -1664,7 +1718,7 @@ class TestFusedGraph():
         load1.y.strides = [s1, ascir.SizeExpr(1)]
         load1.y.size = [s0, s1]
 
-        add0 = ascir.ops.Add('add')
+        add0 = ascir.ops.Add("add")
         add0.attr.sched.axis = [z0, z1]
         add0.x1 = load0.y
         add0.x2 = load1.y
@@ -1672,134 +1726,158 @@ class TestFusedGraph():
         add0.y.strides = [s1 + s1, ascir.SizeExpr(1)]
         add0.y.size = [s0, s1 * 2]
 
-        store0 = ascir.ops.Store('store')
+        store0 = ascir.ops.Store("store")
         store0.attr.ir_attr.offset = ascir.SizeExpr(0)
         store0.attr.sched.axis = [z0, z1]
         store0.x = add0.y
         store0.y.axis = [z0, z1]
-        store0.y.strides = [s1 ** 2, ascir.SizeExpr(1)]
+        store0.y.strides = [s1**2, ascir.SizeExpr(1)]
         store0.y.size = [s0, s1 * 2]
 
-        store1 = ascir.ops.Store('store')
+        store1 = ascir.ops.Store("store")
         store1.attr.ir_attr.offset = ascir.SizeExpr(10)
         store1.attr.sched.axis = [z0, z1]
         store1.x = add0.y
         store1.y.axis = [z0, z1]
         store1.y.strides = [s1 * 2, ascir.SizeExpr(1)]
         store1.y.size = [s0, s1 * 2]
-        buf0 = ascir.ops.Output('buf0')
+        buf0 = ascir.ops.Output("buf0")
         buf0.attr.ir_attr.index = 0
         # store0, strore1 写到同一个output上，偏移不同
         buf0.x = [store0.y, store1]
         buf0.y.dtype = ascir.dtypes.float16
-        buf1 = ascir.ops.Output('buf1')
+        buf1 = ascir.ops.Output("buf1")
         buf1.attr.ir_attr.index = 1
         buf1.x = store1.y
-        NpuKernel0Graph.infer_dtypes()
-        ascir.utils.dump(NpuKernel0Graph)
-        return NpuKernel0Graph
+        npu_kernel0_graph.infer_dtypes()
+        ascir.utils.dump(npu_kernel0_graph)
+        return npu_kernel0_graph
 
     def test_fused_graph_construct_and_dump_with_ascbackend_node(self):
-        FusedGraph = ascir.FusedGraph('fused_graph')
-        data0 = ascir.ops.Data('data0', FusedGraph)
+        fused_graph = ascir.FusedGraph("fused_graph")
+        data0 = ascir.ops.Data("data0", fused_graph)
         data0.attr.ir_attr.index = 0
-        data1 = ascir.ops.Data('data1', FusedGraph)
+        data1 = ascir.ops.Data("data1", fused_graph)
         data1.attr.ir_attr.index = 0
-        ascgraph_node0 = ascir.ops.AscBackend("ascgraph_node0", self.construct_add_ascgraph_without_data("ascgraph0"),
-                                              FusedGraph)
-        ascgraph_node1 = ascir.ops.AscBackend("ascgraph_node1", self.construct_add_ascgraph("ascgraph1"), FusedGraph)
+        ascgraph_node0 = ascir.ops.AscBackend(
+            "ascgraph_node0",
+            self.construct_add_ascgraph_without_data("ascgraph0"),
+            fused_graph,
+        )
+        ascgraph_node1 = ascir.ops.AscBackend(
+            "ascgraph_node1", self.construct_add_ascgraph("ascgraph1"), fused_graph
+        )
         ascgraph_node1.x = [data0.y, data1.y]
-        ascgraph_node2 = ascir.ops.AscBackend("ascgraph_node2", self.construct_add_ascgraph("ascgraph2"), FusedGraph)
+        ascgraph_node2 = ascir.ops.AscBackend(
+            "ascgraph_node2", self.construct_add_ascgraph("ascgraph2"), fused_graph
+        )
         ascgraph_node2.x = [ascgraph_node0.y[0], ascgraph_node1.y[1]]
-        output = ascir.ops.Output('output', FusedGraph)
+        output = ascir.ops.Output("output", fused_graph)
         output.x = ascgraph_node2.y[1]
-        ascir.utils.dump(FusedGraph)
+        ascir.utils.dump(fused_graph)
 
     def test_fused_graph_inductor(self):
-        FusedGraph = ascir.FusedGraph('fused_graph')
+        fused_graph = ascir.FusedGraph("fused_graph")
 
         options = AutofuserOptions()
-        scheduler = Schedule(options)
+        Schedule(options)
         fuser = Autofuser(options)
         try:
-            schedule_results = fuser.schedule(FusedGraph)
-            tiling_def, host_tiling, op_kernel = fuser.autofuse_backend(FusedGraph)
-        except RuntimeError as e:
+            fuser.schedule(fused_graph)
+            tiling_def, host_tiling, op_kernel = fuser.autofuse_backend(fused_graph)
+        except RuntimeError:
             pass
 
     def test_fused_graph_construct_and_dump_with_ascgraph_node(self):
-        FusedGraph = ascir.FusedGraph('fused_graph')
-        data0 = ascir.ops.Data('data0', FusedGraph)
+        fused_graph = ascir.FusedGraph("fused_graph")
+        data0 = ascir.ops.Data("data0", fused_graph)
         data0.attr.ir_attr.index = 0
-        data1 = ascir.ops.Data('data1', FusedGraph)
+        data1 = ascir.ops.Data("data1", fused_graph)
         data1.attr.ir_attr.index = 0
-        ascgraph_node0 = ascir.ops.AscGraph("ascgraph_node0", self.construct_add_ascgraph("ascgraph0"), FusedGraph)
+        ascgraph_node0 = ascir.ops.AscGraph(
+            "ascgraph_node0", self.construct_add_ascgraph("ascgraph0"), fused_graph
+        )
         ascgraph_node0.x = [data0.y, data1.y]
-        ascgraph_node1 = ascir.ops.AscGraph("ascgraph_node1", self.construct_add_ascgraph("ascgraph1"), FusedGraph)
+        ascgraph_node1 = ascir.ops.AscGraph(
+            "ascgraph_node1", self.construct_add_ascgraph("ascgraph1"), fused_graph
+        )
         ascgraph_node1.x = [data0.y, data1.y]
-        ascgraph_node2 = ascir.ops.AscGraph("ascgraph_node2", self.construct_add_ascgraph("ascgraph2"), FusedGraph)
+        ascgraph_node2 = ascir.ops.AscGraph(
+            "ascgraph_node2", self.construct_add_ascgraph("ascgraph2"), fused_graph
+        )
         ascgraph_node2.x = [ascgraph_node0.y[0], ascgraph_node1.y[0]]
-        output = ascir.ops.Output('output', FusedGraph)
+        output = ascir.ops.Output("output", fused_graph)
         output.x = ascgraph_node2.y[0]
         try:
             ascgraph_node2.x = [ascgraph_node0.y[0].dtype, ascgraph_node1.y[0]]
         except TypeError as e:
             assert e.args[0] == "Input Type is invalid."
 
-        ascir.utils.dump(FusedGraph)
+        ascir.utils.dump(fused_graph)
         try:
             ascir.utils.dump(data0)
         except TypeError as e:
-            assert e.args[0] == "Argument must be a HintGraph or FusedGraph object, got Data"
+            assert (
+                e.args[0]
+                == "Argument must be a HintGraph or FusedGraph object, got Data"
+            )
 
 
-class TestFusedGraphByApi():
+class TestFusedGraphByApi:
     @staticmethod
     def construct_add_ascgraph(name: str) -> ascir.HintGraph:
-        NpuKernel0Graph = ascir.HintGraph(name)
-        s0 = NpuKernel0Graph.create_size("s0")
-        s1 = NpuKernel0Graph.create_size("s1")
-        z0 = NpuKernel0Graph.create_axis("z0", s0)
-        z1 = NpuKernel0Graph.create_axis("z1", s1)
-        sub_data0 = ascir_api.Data(NpuKernel0Graph, dtype=ascir.dtypes.float16)
-        load0 = ascir_api.Load(NpuKernel0Graph, sub_data0, offset=0, axis=[z0, z1])
+        npu_kernel0_graph = ascir.HintGraph(name)
+        s0 = npu_kernel0_graph.create_size("s0")
+        s1 = npu_kernel0_graph.create_size("s1")
+        z0 = npu_kernel0_graph.create_axis("z0", s0)
+        z1 = npu_kernel0_graph.create_axis("z1", s1)
+        sub_data0 = ascir_api.Data(npu_kernel0_graph, dtype=ascir.dtypes.float16)
+        load0 = ascir_api.Load(npu_kernel0_graph, sub_data0, offset=0, axis=[z0, z1])
         assert load0.axis == [z0.id, z1.id]
         assert load0.size == [s0, s1]
         assert load0.strides == [s1, 1]
-        sub_data1 = ascir_api.Data(NpuKernel0Graph, dtype=ascir.dtypes.float16)
-        load1 = ascir_api.Load(NpuKernel0Graph, sub_data1, offset=0, axis=[z0, z1])
-        add0 = ascir_api.Add(NpuKernel0Graph, load0, load1, axis=[z0, z1])
+        sub_data1 = ascir_api.Data(npu_kernel0_graph, dtype=ascir.dtypes.float16)
+        load1 = ascir_api.Load(npu_kernel0_graph, sub_data1, offset=0, axis=[z0, z1])
+        add0 = ascir_api.Add(npu_kernel0_graph, load0, load1, axis=[z0, z1])
         assert add0.axis == [z0.id, z1.id]
         assert add0.size == [s0, s1]
         assert add0.strides == [s1, 1]
-        store0 = ascir_api.Store(NpuKernel0Graph, add0, offset=0, axis=[z0, z1])
-        store1 = ascir_api.Store(NpuKernel0Graph, add0, offset=10, axis=[z0, z1])
+        store0 = ascir_api.Store(npu_kernel0_graph, add0, offset=0, axis=[z0, z1])
+        store1 = ascir_api.Store(npu_kernel0_graph, add0, offset=10, axis=[z0, z1])
         # store0, strore1 写到同一个output上，偏移不同
-        buf0 = ascir_api.Output(NpuKernel0Graph, [store0, store1], dtype=ascir.dtypes.float16)
-        buf1 = ascir_api.Output(NpuKernel0Graph, store1) # infer
+        ascir_api.Output(
+            npu_kernel0_graph, [store0, store1], dtype=ascir.dtypes.float16
+        )
+        buf1 = ascir_api.Output(npu_kernel0_graph, store1)  # infer
         assert buf1.dtype == ascir.dtypes.float16
-        print(ascir.utils.debug_str(NpuKernel0Graph))
-        return NpuKernel0Graph
+        print(ascir.utils.debug_str(npu_kernel0_graph))
+        return npu_kernel0_graph
 
     def test_fused_graph_construct_and_dump_with_ascbackend_node(self):
-        FusedGraph = ascir.FusedGraph('fused_graph')
-        data0 = ascir.ops.Data('data0', FusedGraph)
+        fused_graph = ascir.FusedGraph("fused_graph")
+        data0 = ascir.ops.Data("data0", fused_graph)
         data0.attr.ir_attr.index = 0
-        data1 = ascir.ops.Data('data1', FusedGraph)
+        data1 = ascir.ops.Data("data1", fused_graph)
         data1.attr.ir_attr.index = 0
-        ascgraph_node0 = ascir.ops.AscGraph("ascgraph_node0", self.construct_add_ascgraph("ascgraph0"),
-                                            FusedGraph)
+        ascgraph_node0 = ascir.ops.AscGraph(
+            "ascgraph_node0", self.construct_add_ascgraph("ascgraph0"), fused_graph
+        )
         ascgraph_node0.x = [data0.y, data1.y]
-        ascgraph_node1 = ascir.ops.AscGraph("ascgraph_node1", self.construct_add_ascgraph("ascgraph1"), FusedGraph)
+        ascgraph_node1 = ascir.ops.AscGraph(
+            "ascgraph_node1", self.construct_add_ascgraph("ascgraph1"), fused_graph
+        )
         ascgraph_node1.x = [data0.y, data1.y]
-        ascgraph_node2 = ascir.ops.AscGraph("ascgraph_node2", self.construct_add_ascgraph("ascgraph2"), FusedGraph)
+        ascgraph_node2 = ascir.ops.AscGraph(
+            "ascgraph_node2", self.construct_add_ascgraph("ascgraph2"), fused_graph
+        )
         ascgraph_node2.x = [ascgraph_node0.y[0], ascgraph_node1.y[1]]
-        output = ascir.ops.Output('output', FusedGraph)
+        output = ascir.ops.Output("output", fused_graph)
         output.x = ascgraph_node2.y[1]
-        ascir.utils.dump(FusedGraph)
+        ascir.utils.dump(fused_graph)
+
 
 # 测试包含transpose的sched, codegen的流程, 执行不抛异常, 返回结果非空
-class TestAutofuseLoadTransposeStore():
+class TestAutofuseLoadTransposeStore:
     @staticmethod
     def construct_invalid_graph():
         graph = ascir.HintGraph("LoadTransposeStore")
@@ -1835,7 +1913,7 @@ class TestAutofuseLoadTransposeStore():
         buf_z2 = graph.create_axis("buf_z2", s2)
 
         arg3_1 = ascir.ops.Data("arg3_1", graph)
-        arg3_1.attr.ir_attr.index= 0
+        arg3_1.attr.ir_attr.index = 0
         arg3_1.attr.sched.axis = [z0, z1, z2]
         arg3_1.y.dtype = ascir.dtypes.float16
         arg3_1.y.axis = [z0, z1, z2]
@@ -1846,7 +1924,7 @@ class TestAutofuseLoadTransposeStore():
         try:
             load.attr.ir_attr.offset = "3"
         except Exception as e:
-            assert e.args[0] == 'Only support type of SizeExpr or long'
+            assert e.args[0] == "Only support type of SizeExpr or long"
         offset_of_0 = ascir.SizeExpr(0)
         load.attr.ir_attr.offset = offset_of_0
         assert load.attr.ir_attr.offset.expression == "0"
@@ -1869,7 +1947,7 @@ class TestAutofuseLoadTransposeStore():
         try:
             store.attr.ir_attr.offset = "4"
         except Exception as e:
-            assert e.args[0] == 'Only support type of SizeExpr or long'
+            assert e.args[0] == "Only support type of SizeExpr or long"
         store.attr.ir_attr.offset = offset_of_0 + 1
         assert store.attr.ir_attr.offset.expression == "1"
         store.x = transpose0_op
@@ -1888,7 +1966,7 @@ class TestAutofuseLoadTransposeStore():
         buf1.y.axis = [z1, z0, z2]
         buf1.y.size = [s1, s0, s2]
         buf1.y.strides = [s0 * s2, s2, ascir.SizeExpr(1)]
-        graph.set_axis_map({z0:[buf_z0], z1:[buf_z1], z2:[buf_z2]})
+        graph.set_axis_map({z0: [buf_z0], z1: [buf_z1], z2: [buf_z2]})
         return graph
 
     def test_construct_graph(self):
@@ -1897,33 +1975,35 @@ class TestAutofuseLoadTransposeStore():
         assert debug_str
 
     def test_autofuse_backend(self):
-         options = AutofuserOptions()
-         fuser = Autofuser(options)
-         try:
+        options = AutofuserOptions()
+        fuser = Autofuser(options)
+        try:
             hint_graph = self.construct_graph()
             sched_result = fuser.schedule(hint_graph)
             tiling_def, host_tiling, op_kernel = fuser.codegen(sched_result)
             assert len(tiling_def) > 0
             assert len(host_tiling) > 0
             assert len(op_kernel) > 0
-         except RuntimeError as e:
+        except RuntimeError:
             pass
+
     import os
+
     def test_autofuse_backend_faild_dump_graph(self):
         options = AutofuserOptions()
         fuser = Autofuser(options)
         hint_graph = self.construct_invalid_graph()
-        with pytest.raises(RuntimeError, match=r'^Optimize fail$'):
-            sched_result = fuser.schedule(hint_graph)
-        target_dir = './'
+        with pytest.raises(RuntimeError, match=r"^Optimize fail$"):
+            fuser.schedule(hint_graph)
+        target_dir = "./"
         for item in os.listdir(target_dir):
             item_path = os.path.join(target_dir, item)
-            if os.path.isdir(item_path) and item.startswith('ascgen_dump_pid'):
+            if os.path.isdir(item_path) and item.startswith("ascgen_dump_pid"):
                 print(f"delete dump dir :{item_path}")
                 shutil.rmtree(item_path)
 
 
-class TestSizeExprMaxMin():
+class TestSizeExprMaxMin:
     """Test Max and Min functions for SizeExpr"""
 
     @staticmethod
@@ -2001,7 +2081,7 @@ class TestSizeExprMaxMin():
         s1 = ascir.SizeExpr(20)
         s2 = ascir.SizeExpr(30)
         expr1 = s0 + s1  # 30
-        expr2 = s2       # 30
+        expr2 = s2  # 30
         max_expr = Max(expr1, expr2)
         assert max_expr == 30
 
@@ -2012,7 +2092,7 @@ class TestSizeExprMaxMin():
         s1 = ascir.SizeExpr(20)
         s2 = ascir.SizeExpr(5)
         expr1 = s0 + s1  # 30
-        expr2 = s2       # 5
+        expr2 = s2  # 5
         min_expr = Min(expr1, expr2)
         assert min_expr == 5
 
@@ -2045,7 +2125,7 @@ class TestSizeExprMaxMin():
         assert min_val == 20
 
 
-class TestSizeExprMod():
+class TestSizeExprMod:
     """Test Mod function for SizeExpr"""
 
     @staticmethod
@@ -2103,7 +2183,7 @@ class TestSizeExprMod():
         assert mod_abc == 2
 
 
-class TestSizeExprArithmetic():
+class TestSizeExprArithmetic:
     """Test SizeExpr arithmetic operators in various scenarios"""
 
     @staticmethod
@@ -2113,8 +2193,8 @@ class TestSizeExprArithmetic():
         base_size = graph.create_size("base")
 
         # Block size = base^2
-        block_size = base_size ** 2
-        z0 = graph.create_axis("z0", block_size)
+        block_size = base_size**2
+        graph.create_axis("z0", block_size)
 
         debug_str = ascir.utils.debug_str(graph)
         assert debug_str
@@ -2130,7 +2210,7 @@ class TestSizeExprArithmetic():
 
         # Total elements = batch * seq * hidden
         total_elements = batch_size * seq_len * hidden_size
-        z0 = graph.create_axis("z0", total_elements)
+        graph.create_axis("z0", total_elements)
 
         debug_str = ascir.utils.debug_str(graph)
         assert debug_str
@@ -2145,7 +2225,7 @@ class TestSizeExprArithmetic():
 
         # Split size = total / num_splits
         split_size = total_size / num_splits
-        z0 = graph.create_axis("z0", split_size)
+        graph.create_axis("z0", split_size)
 
         debug_str = ascir.utils.debug_str(graph)
         assert debug_str
@@ -2161,11 +2241,10 @@ class TestSizeExprArithmetic():
 
         # Total size = size1 + size2 + constant
         total_size = size1 + size2 + constant
-        z0 = graph.create_axis("z0", total_size)
+        graph.create_axis("z0", total_size)
 
         debug_str = ascir.utils.debug_str(graph)
         assert debug_str
-
 
     @staticmethod
     def test_subtraction_basic():
@@ -2213,7 +2292,7 @@ class TestSizeExprArithmetic():
         assert result == 7
 
 
-class TestSizeExprEdgeCases():
+class TestSizeExprEdgeCases:
     """Test SizeExpr edge cases and boundary conditions"""
 
     @staticmethod
@@ -2277,7 +2356,7 @@ class TestSizeExprEdgeCases():
         assert min_val == 0
 
 
-class TestSizeExprInRealScenarios():
+class TestSizeExprInRealScenarios:
     """Test SizeExpr in real-world scenarios"""
 
     @staticmethod
@@ -2292,7 +2371,7 @@ class TestSizeExprInRealScenarios():
         # Clamp tile size: at least min_tile, at most max_tile
         clamped_size = Min(Max(requested_size, min_tile), max_tile)
 
-        z0 = graph.create_axis("z0", clamped_size)
+        graph.create_axis("z0", clamped_size)
 
         debug_str = ascir.utils.debug_str(graph)
         assert debug_str
@@ -2311,13 +2390,13 @@ class TestSizeExprInRealScenarios():
         # offset = n*C*H*W + c*H*W + h*W + w
         offset = n * c * h * w + c * h * w + h * w + w
 
-        z0 = graph.create_axis("z0", offset)
+        graph.create_axis("z0", offset)
 
         debug_str = ascir.utils.debug_str(graph)
         assert debug_str
 
 
-class TestSizeExprOperatorCombination():
+class TestSizeExprOperatorCombination:
     """Test SizeExpr operator combinations"""
 
     @staticmethod
@@ -2333,8 +2412,8 @@ class TestSizeExprOperatorCombination():
         remainder = total_size % block_size
 
         # Create axes for both
-        z_blocks = graph.create_axis("z_blocks", num_blocks)
-        z_remain = graph.create_axis("z_remain", remainder)
+        graph.create_axis("z_blocks", num_blocks)
+        graph.create_axis("z_remain", remainder)
 
         debug_str = ascir.utils.debug_str(graph)
         assert debug_str
@@ -2352,7 +2431,7 @@ class TestSizeExprOperatorCombination():
         # Clamp value between min and max
         clamped = Min(Max(value, min_val), max_val)
 
-        z0 = graph.create_axis("z0", clamped)
+        graph.create_axis("z0", clamped)
 
         debug_str = ascir.utils.debug_str(graph)
         assert debug_str
@@ -2369,7 +2448,7 @@ class TestSizeExprOperatorCombination():
         # For concat, output size in non-concat dim is max of inputs
         max_dim_size = Max(Max(size1, size2), size3)
 
-        z0 = graph.create_axis("z0", max_dim_size)
+        graph.create_axis("z0", max_dim_size)
 
         debug_str = ascir.utils.debug_str(graph)
         assert debug_str
@@ -2386,13 +2465,13 @@ class TestSizeExprOperatorCombination():
         # Min helps check the smaller dimension
         min_size = Min(size1, size2)
 
-        z0 = graph.create_axis("z0", min_size)
+        graph.create_axis("z0", min_size)
 
         debug_str = ascir.utils.debug_str(graph)
         assert debug_str
 
 
-class TestSizeExprErrorScenarios():
+class TestSizeExprErrorScenarios:
     """Test SizeExpr error handling and edge cases"""
 
     @staticmethod
@@ -2402,9 +2481,9 @@ class TestSizeExprErrorScenarios():
         graph.create_size("size1")
         # Max with no arguments should raise TypeError
         try:
-            result = Max()
+            Max()
             assert False, "Expected TypeError for Max() with no arguments"
-        except (TypeError, AttributeError) as e:
+        except (TypeError, AttributeError):
             # Expected - invalid number of arguments
             pass
 
@@ -2415,7 +2494,7 @@ class TestSizeExprErrorScenarios():
         size1 = graph.create_size("size1")
         # Max with single argument should raise TypeError
         try:
-            result = Max(size1)
+            Max(size1)
             assert False, "Expected TypeError for Max() with single argument"
         except TypeError:
             # Expected - invalid number of arguments
@@ -2430,7 +2509,7 @@ class TestSizeExprErrorScenarios():
         size3 = graph.create_size("size3")
         # Max with three arguments should raise TypeError
         try:
-            result = Max(size1, size2, size3)
+            Max(size1, size2, size3)
             assert False, "Expected TypeError for Max() with three arguments"
         except TypeError:
             # Expected - invalid number of arguments
@@ -2443,14 +2522,14 @@ class TestSizeExprErrorScenarios():
         size1 = graph.create_size("size1")
         # Max with string argument
         try:
-            result = Max(size1, "invalid")
+            Max(size1, "invalid")
             # If it doesn't raise, at least verify it handles gracefully
         except (TypeError, AttributeError, SystemError):
             # Expected - invalid type
             pass
         # Max with None argument
         try:
-            result = Max(size1, None)
+            Max(size1, None)
             # If it doesn't raise, at least verify it handles gracefully
         except (TypeError, AttributeError, SystemError):
             # Expected - invalid type
@@ -2463,7 +2542,7 @@ class TestSizeExprErrorScenarios():
         graph.create_size("size1")
         # Min with no arguments should raise TypeError
         try:
-            result = Min()
+            Min()
             assert False, "Expected TypeError for Min() with no arguments"
         except (TypeError, AttributeError):
             # Expected - invalid number of arguments
@@ -2476,7 +2555,7 @@ class TestSizeExprErrorScenarios():
         size1 = graph.create_size("size1")
         # Min with single argument should raise TypeError
         try:
-            result = Min(size1)
+            Min(size1)
             assert False, "Expected TypeError for Min() with single argument"
         except TypeError:
             # Expected - invalid number of arguments
@@ -2489,14 +2568,14 @@ class TestSizeExprErrorScenarios():
         size1 = graph.create_size("size1")
         # Min with integer argument
         try:
-            result = Min(size1, 42)
+            Min(size1, 42)
             # If it doesn't raise, at least verify it handles gracefully
         except (TypeError, AttributeError, SystemError):
             # Expected - invalid type
             pass
         # Min with dict argument
         try:
-            result = Min(size1, {"key": "value"})
+            Min(size1, {"key": "value"})
             # If it doesn't raise, at least verify it handles gracefully
         except (TypeError, AttributeError, SystemError):
             # Expected - invalid type
@@ -2509,7 +2588,7 @@ class TestSizeExprErrorScenarios():
         graph.create_size("size1")
         # Mod with no arguments should raise TypeError
         try:
-            result = Mod()
+            Mod()
             assert False, "Expected TypeError for Mod() with no arguments"
         except (TypeError, AttributeError):
             # Expected - invalid number of arguments
@@ -2522,7 +2601,7 @@ class TestSizeExprErrorScenarios():
         size1 = graph.create_size("size1")
         # Mod with single argument should raise TypeError
         try:
-            result = Mod(size1)
+            Mod(size1)
             assert False, "Expected TypeError for Mod() with single argument"
         except TypeError:
             # Expected - invalid number of arguments
@@ -2535,14 +2614,14 @@ class TestSizeExprErrorScenarios():
         size1 = graph.create_size("size1")
         # Mod with list argument
         try:
-            result = Mod(size1, [1, 2, 3])
+            Mod(size1, [1, 2, 3])
             # If it doesn't raise, at least verify it handles gracefully
         except (TypeError, AttributeError, SystemError):
             # Expected - invalid type
             pass
         # Mod with tuple argument
         try:
-            result = Mod(size1, (1, 2))
+            Mod(size1, (1, 2))
             # If it doesn't raise, at least verify it handles gracefully
         except (TypeError, AttributeError, SystemError):
             # Expected - invalid type
@@ -2555,7 +2634,7 @@ class TestSizeExprErrorScenarios():
         s1 = ascir.SizeExpr(50)
         # This tests the operator in reverse - string formatting with SizeExpr
         try:
-            result = "invalid" % s1
+            "invalid" % s1
             # String % with SizeExpr - might work differently
         except (TypeError, AttributeError):
             # Expected - string formatting doesn't support SizeExpr
@@ -2566,7 +2645,7 @@ class TestSizeExprErrorScenarios():
         """Test FloorDiv with negative value edge case"""
         s0 = ascir.SizeExpr(100)
         # Negative divisor - verify it handles without crashing
-        result = s0 // -5
+        s0 // -5
         # Just verify it doesn't crash
 
     @staticmethod
@@ -2574,7 +2653,7 @@ class TestSizeExprErrorScenarios():
         """Test Max with None as left argument"""
         # None is not a valid SizeExpr - should raise SystemError
         try:
-            result = Max(None, ascir.SizeExpr(10))
+            Max(None, ascir.SizeExpr(10))
         except (SystemError, TypeError):
             # Expected - None is not a valid SizeExpr
             pass
@@ -2584,7 +2663,7 @@ class TestSizeExprErrorScenarios():
         """Test Max with None as right argument"""
         # None is not a valid SizeExpr - should raise SystemError
         try:
-            result = Max(ascir.SizeExpr(10), None)
+            Max(ascir.SizeExpr(10), None)
         except (SystemError, TypeError):
             # Expected - None is not a valid SizeExpr
             pass
@@ -2594,7 +2673,7 @@ class TestSizeExprErrorScenarios():
         """Test Min with None as both arguments"""
         # None is not a valid SizeExpr - should raise SystemError
         try:
-            result = Min(None, None)
+            Min(None, None)
         except (SystemError, TypeError):
             # Expected - None is not a valid SizeExpr
             pass
@@ -2641,3 +2720,4 @@ class TestSizeExprErrorScenarios():
 
         result = ascir.utils.set_platform("2201", 1, 1024)
         assert result is None, "set_platform should return None for valid input"
+        ascir.utils.set_platform("2201", 1, 245760)

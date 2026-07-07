@@ -160,6 +160,12 @@ Status BufQueAllocator::AllocBufQueForSingleImplGraph(af::AscGraph &impl_graph, 
 }
 
 Status BufQueAllocator::AllocBufQue(::ascir::FusedScheduledResult &fused_scheduled_result) {
+  GE_CHK_STATUS_RET(PrepareImplGraphMemoryPlan(fused_scheduled_result), "PrepareImplGraphMemoryPlan failed");
+  GE_CHK_STATUS_RET(CollectFusedIoNodes(fused_scheduled_result), "CollectFusedIoNodes failed");
+  return ge::GRAPH_SUCCESS;
+}
+
+Status BufQueAllocator::PrepareImplGraphMemoryPlan(::ascir::FusedScheduledResult &fused_scheduled_result) {
   const auto &platform = PlatformFactory::GetInstance().GetPlatform();
   GE_CHECK_NOTNULL(platform, "Platform is not found.");
 
@@ -179,6 +185,25 @@ Status BufQueAllocator::AllocBufQue(::ascir::FusedScheduledResult &fused_schedul
   return ge::GRAPH_SUCCESS;
 }
 
+Status BufQueAllocator::CollectFusedIoNodes(::ascir::FusedScheduledResult &fused_scheduled_result) {
+  fused_scheduled_result.input_nodes.clear();
+  fused_scheduled_result.output_nodes.clear();
+  fused_scheduled_result.workspace_nodes.clear();
+  node_type_to_index_to_node_.clear();
+  for (const auto &scheduled_results : fused_scheduled_result.node_idx_to_scheduled_results) {
+    for (const auto &result : scheduled_results) {
+      for (const auto &schedule_group : result.schedule_groups) {
+        for (const auto &impl_graph : schedule_group.impl_graphs) {
+          GE_CHK_STATUS_RET(CollectIoNodes(impl_graph), "CollectIoNodes failed, graph = %s",
+                            impl_graph.GetName().c_str());
+        }
+      }
+    }
+  }
+  AppendCollectedIoNodes(fused_scheduled_result);
+  return ge::GRAPH_SUCCESS;
+}
+
 Status BufQueAllocator::AllocateForIoNodes(const af::AscGraph &impl_graph) {
   for (const auto &node : impl_graph.GetAllNodes()) {
     GE_ASSERT_NOTNULL(node);
@@ -193,7 +218,8 @@ Status BufQueAllocator::AllocateForIoNodes(const af::AscGraph &impl_graph) {
         tensor_id = it->second;
         GELOGI("same index, cur_node: %s", node->GetName().c_str());
         auto &index_to_node = node_type_to_index_to_node_[node->GetType()];
-        if (node->GetName().size() < index_to_node[index]->GetName().size()) {
+        auto node_it = index_to_node.find(index);
+        if (node_it == index_to_node.end() || ShouldReplaceRepresentative(node_it->second, node)) {
           index_to_node[index] = node;
         }
       } else {
@@ -244,18 +270,65 @@ Status BufQueAllocator::AllocateForIoNodes(::ascir::FusedScheduledResult &fused_
       }
     }
   }
+  return ge::GRAPH_SUCCESS;
+}
+
+bool BufQueAllocator::ShouldReplaceRepresentative(const ascir::NodeView &current, const ascir::NodeView &candidate) {
+  if (current == nullptr) {
+    return true;
+  }
+  if (candidate == nullptr) {
+    return false;
+  }
+  return candidate->GetName().size() < current->GetName().size();
+}
+
+Status BufQueAllocator::CollectIoNodes(const af::AscGraph &impl_graph) {
+  for (const auto &node : impl_graph.GetAllNodes()) {
+    GE_ASSERT_NOTNULL(node);
+    if (ScheduleUtils::IsDataInput(node) || IsOps<Output>(node)) {
+      int64_t index = -1;
+      GE_CHK_STATUS_RET(node->attr.ir_attr->GetAttrValue("index", index), "Get attr index failed, node = %s[%s]",
+                        node->GetNamePtr(), node->GetTypePtr());
+      auto &index_to_node = node_type_to_index_to_node_[node->GetType()];
+      const auto iter = index_to_node.find(index);
+      if (iter == index_to_node.end() || ShouldReplaceRepresentative(iter->second, node)) {
+        index_to_node[index] = node;
+      }
+      continue;
+    }
+    if (IsOps<Workspace>(node)) {
+      const auto iter = workspace_name_to_tensor_id_.find(node->GetName());
+      GE_ASSERT_TRUE(iter != workspace_name_to_tensor_id_.end(), "Workspace tensor id is not allocated, node = %s",
+                     node->GetNamePtr());
+      node_type_to_index_to_node_[node->GetType()][iter->second] = node;
+    }
+  }
+  return ge::GRAPH_SUCCESS;
+}
+
+void BufQueAllocator::AppendCollectedIoNodes(::ascir::FusedScheduledResult &fused_scheduled_result) const {
   for (const auto &type : {Data::Type, af::ascir_op::ScalarData::Type}) {
-    for (const auto &index_and_node : node_type_to_index_to_node_[type]) {
+    const auto iter = node_type_to_index_to_node_.find(type);
+    if (iter == node_type_to_index_to_node_.cend()) {
+      continue;
+    }
+    for (const auto &index_and_node : iter->second) {
       fused_scheduled_result.input_nodes.emplace_back(index_and_node.second);
     }
   }
-  for (const auto &index_and_node : node_type_to_index_to_node_[Output::Type]) {
-    fused_scheduled_result.output_nodes.emplace_back(index_and_node.second);
+  const auto output_iter = node_type_to_index_to_node_.find(Output::Type);
+  if (output_iter != node_type_to_index_to_node_.cend()) {
+    for (const auto &index_and_node : output_iter->second) {
+      fused_scheduled_result.output_nodes.emplace_back(index_and_node.second);
+    }
   }
-  for (const auto &index_and_node : node_type_to_index_to_node_[Workspace::Type]) {
-    fused_scheduled_result.workspace_nodes.emplace_back(index_and_node.second);
+  const auto workspace_iter = node_type_to_index_to_node_.find(Workspace::Type);
+  if (workspace_iter != node_type_to_index_to_node_.cend()) {
+    for (const auto &index_and_node : workspace_iter->second) {
+      fused_scheduled_result.workspace_nodes.emplace_back(index_and_node.second);
+    }
   }
-  return ge::GRAPH_SUCCESS;
 }
 
 Status BufQueAllocator::SetOutputTensorAttr(const af::AscGraph &impl_graph) const {

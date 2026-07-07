@@ -37,7 +37,7 @@ class TestApiZeta : public testing::Test {
 
     GmToUb(xTensor, param.x1, param.size);
     GmToUb(qTensor, param.x2, param.size);
-    Zeta<float>(dstTensor, xTensor, qTensor, tmpTensor, param.size);
+    ZetaExtend<float>(dstTensor, xTensor, qTensor, tmpTensor, param.size);
     UbToGm(param.y, dstTensor, param.size);
   }
 

@@ -43,7 +43,7 @@ class TestApiNdtr : public testing::Test {
     LocalTensor<uint8_t> l_tmp = tmpBuf.Get<uint8_t>();
 
     GmToUb(l_src, param.src, param.size);
-    Ndtr<T>(l_dst, l_src, l_tmp, param.size);
+    NdtrExtend<T>(l_dst, l_src, l_tmp, param.size);
     UbToGm(param.dst, l_dst, param.size);
   }
 
@@ -65,7 +65,7 @@ class TestApiNdtr : public testing::Test {
     }();
 
     constexpr T inv_sqrt2 = 0.7071067811865475f;  // 1/sqrt(2)
-    
+
     for (int i = 0; i < param.size; i++) {
       T input = static_cast<T>(distr(eng));
       param.src[i] = input;
@@ -86,43 +86,43 @@ class TestApiNdtr : public testing::Test {
 
     // Test cases for large inputs (beyond Pade approximation reliable range)
     // |x| >= 3.92 should be handled as boundary cases to avoid precision issues
-    
+
     // Case 0: x = 4.0 (just above threshold)
     param.src[0] = 4.0f;
     param.exp[0] = 1.0f;  // Boundary value
-    
+
     // Case 1: x = -4.0 (just below threshold)
     param.src[1] = -4.0f;
     param.exp[1] = 0.0f;  // Boundary value
-    
+
     // Case 2: x = 4.5 (above threshold)
     param.src[2] = 4.5f;
     param.exp[2] = 1.0f;
-    
+
     // Case 3: x = -4.5 (above threshold)
     param.src[3] = -4.5f;
     param.exp[3] = 0.0f;
-    
+
     // Case 4: x = 6.0 (large positive)
     param.src[4] = 6.0f;
     param.exp[4] = 1.0f;
-    
+
     // Case 5: x = -6.0 (large negative)
     param.src[5] = -6.0f;
     param.exp[5] = 0.0f;
-    
+
     // Case 6: x = +inf
     param.src[6] = inf_val;
     param.exp[6] = 1.0f;
-    
+
     // Case 7: x = -inf
     param.src[7] = -inf_val;
     param.exp[7] = 0.0f;
-    
+
     // Case 8: x = 3.93 (just above threshold)
     param.src[8] = 3.93f;
     param.exp[8] = 1.0f;
-    
+
     // Case 9: x = -3.93 (just above threshold)
     param.src[9] = -3.93f;
     param.exp[9] = 0.0f;
@@ -136,7 +136,7 @@ class TestApiNdtr : public testing::Test {
 
     T nan_val = std::numeric_limits<T>::quiet_NaN();
     T inf_val = std::numeric_limits<T>::infinity();
-    
+
     constexpr T inv_sqrt2 = 0.7071067811865475f;
 
     // Test case 0: x = 0, ndtr(0) = 0.5
@@ -171,7 +171,7 @@ class TestApiNdtr : public testing::Test {
     param.src[7] = -2.0f;
     param.exp[7] = static_cast<T>(0.5 * (1.0 + std::erf(-2.0 * inv_sqrt2)));
 
-// Test case 8: x = 3.5, still within Pade range (below threshold 3.92)
+    // Test case 8: x = 3.5, still within Pade range (below threshold 3.92)
     param.src[8] = 3.5f;
     param.exp[8] = static_cast<T>(0.5 * (1.0 + std::erf(3.5 * inv_sqrt2)));
 
@@ -182,7 +182,7 @@ class TestApiNdtr : public testing::Test {
     // Test case 10: x = 4.0, beyond threshold (|x| >= 3.92)
     param.src[10] = 4.0f;
     param.exp[10] = 1.0f;  // Use boundary value
-    
+
     // Test case 11: x = -4.0, beyond threshold (|x| >= 3.92)
     param.src[11] = -4.0f;
     param.exp[11] = 0.0f;  // Use boundary value
@@ -191,12 +191,12 @@ class TestApiNdtr : public testing::Test {
   template <typename T>
   static uint32_t Valid(T *dst, T *exp, T *src, size_t comp_size) {
     uint32_t diff_count = 0;
-    
+
     for (uint32_t i = 0; i < comp_size; i++) {
       bool is_diff = false;
       T abs_diff = 0;
       T rel_err = 0;
-      
+
       if (std::isnan(exp[i])) {
         if (!std::isnan(dst[i])) {
           is_diff = true;
@@ -207,10 +207,10 @@ class TestApiNdtr : public testing::Test {
         }
       } else {
         abs_diff = std::abs(dst[i] - exp[i]);
-        
+
         // Safe division: handle multiple cases to prevent division by zero
         T abs_exp = std::abs(exp[i]);
-        
+
         if (abs_exp < T(1e-10)) {
           // When exp[i] is very close to 0 or exactly 0
           // Use absolute error instead of relative error
@@ -226,7 +226,7 @@ class TestApiNdtr : public testing::Test {
           // Compute relative error with safe denominator
           T rel_den = std::max(abs_exp, T(1e-10));
           rel_err = abs_diff / rel_den;
-        
+
           // Use relative error threshold of 1e-3 for Pade approximation
           // Some precision loss is expected for polynomial approximation
           if (rel_err > T(1e-3)) {
@@ -234,12 +234,12 @@ class TestApiNdtr : public testing::Test {
           }
         }
       }
-      
+
       if (is_diff) {
         diff_count++;
       }
     }
-    
+
     return diff_count;
   }
 
@@ -256,7 +256,7 @@ class TestApiNdtr : public testing::Test {
 
     uint32_t diff_count = Valid<T>(param.dst, param.exp, param.src, param.size);
     EXPECT_EQ(diff_count, 0);
-    
+
     AscendC::GmFree(param.dst);
     AscendC::GmFree(param.exp);
     AscendC::GmFree(param.src);
@@ -275,7 +275,7 @@ class TestApiNdtr : public testing::Test {
 
     uint32_t diff_count = Valid<T>(param.dst, param.exp, param.src, param.size);
     EXPECT_EQ(diff_count, 0);
-    
+
     AscendC::GmFree(param.dst);
     AscendC::GmFree(param.exp);
     AscendC::GmFree(param.src);
@@ -294,7 +294,7 @@ class TestApiNdtr : public testing::Test {
 
     uint32_t diff_count = Valid<T>(param.dst, param.exp, param.src, param.size);
     EXPECT_EQ(diff_count, 0);
-    
+
     AscendC::GmFree(param.dst);
     AscendC::GmFree(param.exp);
     AscendC::GmFree(param.src);

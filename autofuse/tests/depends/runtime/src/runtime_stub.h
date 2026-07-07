@@ -12,6 +12,7 @@
 #define __INC_LLT_RUNTIME_STUB_H
 
 #include <cstdint>
+#include <cstring>
 #include <vector>
 #include <memory>
 #include <mutex>
@@ -21,6 +22,34 @@
 using rtError_t = int32_t;
 constexpr rtError_t RT_ERROR_NONE = 0;
 namespace ge {
+struct RuntimeSocSpecDefaults {
+  const char *npu_arch = "3510";
+  const char *fallback = "0";
+};
+
+struct RuntimeSocSpecValue {
+  const char *key;
+  const char *value;
+};
+
+inline rtError_t CopyRuntimeSocSpecValue(const char *label, const char *key, char *val, const uint32_t maxLen,
+                                         const RuntimeSocSpecDefaults &defaults) {
+  (void)label;
+  const RuntimeSocSpecValue specs[] = {
+      {"NpuArch", defaults.npu_arch},
+      {"vector_core_cnt", "48"},
+      {"ub_size", "245760"},
+  };
+  for (const auto &spec : specs) {
+    if (std::strcmp(key, spec.key) == 0) {
+      (void)strcpy_s(val, maxLen, spec.value);
+      return RT_ERROR_NONE;
+    }
+  }
+  (void)strcpy_s(val, maxLen, defaults.fallback);
+  return RT_ERROR_NONE;
+}
+
 class RuntimeStub {
  public:
   virtual ~RuntimeStub() = default;
@@ -55,10 +84,7 @@ class RuntimeStubV2Common : public RuntimeStub {
   }
 
   rtError_t rtGetSocSpec(const char *label, const char *key, char *val, const uint32_t maxLen) override {
-    (void)label;
-    (void)key;
-    (void)strcpy_s(val, maxLen, "3510");
-    return RT_ERROR_NONE;
+    return CopyRuntimeSocSpecValue(label, key, val, maxLen, RuntimeSocSpecDefaults{"3510", "0"});
   }
 };
 }  // namespace ge

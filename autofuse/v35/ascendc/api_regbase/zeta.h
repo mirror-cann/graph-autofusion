@@ -290,8 +290,8 @@ __simd_vf__ inline void ZetaImplVF(__ubuf__ T *dst, __ubuf__ T *src0, __ubuf__ T
 }
 
 template <typename T>
-__aicore__ inline void Zeta(const LocalTensor<T> &dst, const LocalTensor<T> &src0, const LocalTensor<T> &src1,
-                            const LocalTensor<uint8_t> &sharedTmpBuffer, const uint32_t calCount) {
+__aicore__ inline void ZetaExtend(const LocalTensor<T> &dst, const LocalTensor<T> &src0, const LocalTensor<T> &src1,
+                                  const LocalTensor<uint8_t> &sharedTmpBuffer, const uint32_t calCount) {
   if ASCEND_IS_AIC {
     return;
   }
