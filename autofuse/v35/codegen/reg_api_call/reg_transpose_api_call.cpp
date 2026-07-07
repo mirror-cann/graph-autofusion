@@ -40,12 +40,10 @@ uint32_t GetContinuousInnerAxisNum(const Tensor &y, std::vector<ascir::SizeExpr>
   }
   for (int32_t i = y.vectorized_axis.size() - 2; i >= 0; i--) {
     af::Expression inner_axis_stride = output_vectorized_repeats[i + 1] * y.vectorized_strides[i + 1];
-    if (af::SymbolicUtils::StaticCheckEq(y.vectorized_strides[i], inner_axis_stride) == af::TriBool::kTrue) {
+    if (af::SymbolicUtils::StaticCheckEq(y.vectorized_strides[i], inner_axis_stride) == af::TriBool::kTrue &&
+        transpose_inner_axis_num < 3U) {  // transpose api only support 3 inner continuous axis
       transpose_inner_axis_num++;
     } else {
-      break;
-    }
-    if (transpose_inner_axis_num >= 2U) {  // transpose api only support 2 inner axis
       break;
     }
   }
@@ -107,7 +105,7 @@ Status TransposeRegApiCall::BuildApiParam(const TPipe &tpipe, const std::vector<
       ExprItemFactory::Direct(ge::Symbol(tpipe.tiler.TensorVectorizedOffset(current_axis, x).c_str())));
   CombinedExpression output_inner_offset = CombinedExpression(
       ExprItemFactory::Direct(ge::Symbol(tpipe.tiler.TensorVectorizedOffset(current_axis, y).c_str())));
-  if (transpose_total_axis_num > 4U) {
+  if (y.vectorized_axis.size() > 4U) {
     std::vector<ascir::SizeExpr> input_loop_stride(reordered_in_vectorized_strides.begin(),
                                                    reordered_in_vectorized_strides.end() - transpose_total_axis_num);
     std::vector<ascir::SizeExpr> output_loop_stride(y.vectorized_strides.begin(),
