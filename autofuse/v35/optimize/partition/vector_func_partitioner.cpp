@@ -1010,7 +1010,8 @@ af::Status VectorFuncPartitioner::MergeContinuousVectorAxis(af::AscGraph &vf_gra
       if (ScheduleUtils::IsBuffer(node)) {
         continue;
       }
-      GELOGD("Apply merged axis id [%ld] to node:[%s].", node_merge_axis->id, node->GetNamePtr());
+      GELOGD("Apply merged axis id [%ld] to graph [%s] node:[%s].", node_merge_axis->id, vf_graph.GetName().c_str(),
+             node->GetNamePtr());
       GE_ASSERT_SUCCESS(ApplyMerge(node, node_merge_axis, from_ids), "Failed to apply axis merge.");
     }
   }

@@ -213,59 +213,6 @@ Status GenLoadToGenNddmaNode(const af::AscNodePtr &node_load) {
   return af::SUCCESS;
 }
 
-Status UnAlignmentStrategy::BroadcastInputNodeIsScalar(const af::AscNodePtr &node, bool &is_scalar) {
-  af::AscNodePtr in_node = node;
-  while (af::ops::IsOps<af::ascir_op::Broadcast>(in_node)) {
-    auto brc_in_anchor = in_node->GetInDataAnchor(0);
-    GE_CHECK_NOTNULL(brc_in_anchor);
-    auto peer_out_anchor = brc_in_anchor->GetPeerOutAnchor();
-    GE_CHECK_NOTNULL(peer_out_anchor);
-    in_node = std::dynamic_pointer_cast<af::AscNode>(peer_out_anchor->GetOwnerNode());
-    GE_CHECK_NOTNULL(in_node);
-  }
-  if (af::ops::IsOps<af::ascir_op::Scalar>(in_node) || af::ops::IsOps<af::ascir_op::ScalarData>(in_node)) {
-    is_scalar = true;
-    return af::SUCCESS;
-  }
-  auto &output_attr = in_node->outputs[0].attr;
-  const auto &output_vec_strides = output_attr.vectorized_strides;
-  GE_ASSERT_TRUE(!output_vec_strides.empty());
-  is_scalar = std::all_of(output_vec_strides.begin(), output_vec_strides.end(), [](const auto &stride) {
-    return af::SymbolicUtils::StaticCheckEq(stride, af::sym::kSymbolZero) == af::TriBool::kTrue;
-  });
-  return af::SUCCESS;
-}
-
-Status UnAlignmentStrategy::IsGraphHasNodeNeedTailAxisAlign(af::AscGraph &graph, bool &is_need_tail_align) {
-  // 1、如果图中有broadcast节点，且broadcast节点的输入节点是Nddma或Load，那么后续会合并成一个nddma节点，可以进行轴合并再对齐。
-  // 2、如果图中有broadcast节点的输入节点是Scalar或ScalarData或者vectorized_strides全为0，这种情况下也可以进行轴合并再对齐。
-  // 3、其他情况下，广播节点的存在暂时不能进行轴合并后再对齐，保留尾轴对齐策略。
-  is_need_tail_align = false;
-  for (const auto &node : graph.GetAllNodes()) {
-    if (af::ops::IsOps<af::ascir_op::Broadcast>(node)) {
-      auto brc_in_anchor = node->GetInDataAnchor(0);
-      GE_CHECK_NOTNULL(brc_in_anchor);
-      auto peer_out_anchor = brc_in_anchor->GetPeerOutAnchor();
-      GE_CHECK_NOTNULL(peer_out_anchor);
-      const auto &in_node = std::dynamic_pointer_cast<af::AscNode>(peer_out_anchor->GetOwnerNode());
-      GE_CHECK_NOTNULL(in_node);
-      if (af::ops::IsOps<af::ascir_op::Nddma>(in_node) || af::ops::IsOps<af::ascir_op::Load>(in_node)) {
-        is_need_tail_align = false;
-        continue;
-      }
-      bool is_scalar = false;
-      GE_ASSERT_SUCCESS(BroadcastInputNodeIsScalar(in_node, is_scalar));
-      if (is_scalar) {
-        is_need_tail_align = false;
-        continue;
-      }
-      is_need_tail_align = true;
-      break;
-    }
-  }
-  return af::SUCCESS;
-}
-
 Status UnAlignmentStrategy::GetCurrentNodeContinuousTailAxisNum(const af::AscNodePtr &node,
                                                                 uint32_t &continuous_tail_axis_num) {
   continuous_tail_axis_num = 0;
@@ -345,6 +292,11 @@ Status UnAlignmentStrategy::GetNodeContinuousTailAxisNumByLoad(const af::AscNode
     if (af::ops::IsOps<af::ascir_op::Load>(in_node)) {
       uint32_t load_continuous_axis_num = 0;
       GE_ASSERT_SUCCESS(GetCurrentNodeContinuousTailAxisNum(in_node, load_continuous_axis_num));
+      continuous_tail_axis_num = std::min(continuous_tail_axis_num, load_continuous_axis_num);
+    } else if (af::ops::IsOps<af::ascir_op::Broadcast>(node)) {
+      // transpose模板中出现的brc节点的输入一定是scalar，向量化轴的对齐按照brc节点本身标注的stride信息进行。
+      uint32_t load_continuous_axis_num = 0;
+      GE_ASSERT_SUCCESS(GetCurrentNodeContinuousTailAxisNum(node, load_continuous_axis_num));
       continuous_tail_axis_num = std::min(continuous_tail_axis_num, load_continuous_axis_num);
     } else {
       uint32_t in_node_continuous_axis_num = 0;
@@ -440,19 +392,12 @@ Status UnAlignmentStrategy::UpdateOutputVectorizedStrides(const af::AscNodePtr &
   return af::SUCCESS;
 }
 
-Status UnAlignmentStrategy::ModifyTransposeFusionVectorizedStrides(af::AscGraph &nddma_graph, uint32_t align_width) {
-  bool is_need_tail_align = true;
-  GE_ASSERT_SUCCESS(IsGraphHasNodeNeedTailAxisAlign(nddma_graph, is_need_tail_align));
-  if (is_need_tail_align) {
-    GELOGW("Graph has node need tail axis align.");
-    return af::SUCCESS;
-  }
-
+Status UnAlignmentStrategy::ModifyTransposeFusionVectorizedStrides(af::AscGraph &graph, uint32_t align_width) {
   // 收集 Transpose 前序节点
   std::set<af::AscNodePtr> transpose_pre_nodes;
-  GE_ASSERT_SUCCESS(CollectTransposePreNodes(nddma_graph, transpose_pre_nodes));
+  GE_ASSERT_SUCCESS(CollectTransposePreNodes(graph, transpose_pre_nodes));
 
-  for (const auto &node : nddma_graph.GetAllNodes()) {
+  for (const auto &node : graph.GetAllNodes()) {
     if (af::ops::IsOps<af::ascir_op::Data>(node) || af::ops::IsOps<af::ascir_op::Scalar>(node) ||
         af::ops::IsOps<af::ascir_op::ScalarData>(node) || af::ops::IsOps<af::ascir_op::Output>(node) ||
         af::ops::IsOps<af::ascir_op::Workspace>(node)) {

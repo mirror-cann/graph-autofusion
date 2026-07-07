@@ -2398,8 +2398,8 @@ TEST_F(TestOptimizerV2, LoadBrcTransposeCase) {
   std::vector<autoschedule::AutoScheduleOutput> impl_graphs;
   optimize::autoschedule::AutoSchedule autoschedule(graph, impl_graphs);
   autoschedule.DoAutoSchedule();
-  EXPECT_EQ(impl_graphs.size(), 1);
-  EXPECT_EQ(impl_graphs[0].scheduled_graph.GetName(), "gen_nddma_B0X1Y0_nddma");
+  EXPECT_EQ(impl_graphs.size(), 2);
+  EXPECT_EQ(impl_graphs[1].scheduled_graph.GetName(), "gen_nddma_B0X1Y0_nddma");
 }
 
 TEST_F(TestOptimizerV2, LoadCastBrcCase) {
@@ -2638,8 +2638,8 @@ TEST_F(TestOptimizerV2, LoadCastBrcTransposeCase) {
   std::vector<autoschedule::AutoScheduleOutput> impl_graphs;
   optimize::autoschedule::AutoSchedule autoschedule(graph, impl_graphs);
   autoschedule.DoAutoSchedule();
-  EXPECT_EQ(impl_graphs.size(), 1);
-  EXPECT_EQ(impl_graphs[0].scheduled_graph.GetName(), "gen_nddma_B0X1Y0_nddma");
+  EXPECT_EQ(impl_graphs.size(), 2);
+  EXPECT_EQ(impl_graphs[1].scheduled_graph.GetName(), "gen_nddma_B0X1Y0_nddma");
 }
 
 TEST_F(TestOptimizerV2, LoadCastTransposeCase) {

@@ -20,6 +20,8 @@
 namespace optimize {
 namespace {
 constexpr uint32_t kAlignBytes = 32U;
+constexpr int32_t kTwoBytes = 2;
+constexpr int32_t kFourBytes = 4;
 
 bool IsNddma(const af::AscNodePtr &node) {
   return ScheduleUtils::IsLoad(node) && node->attr.type == "Nddma";
@@ -405,10 +407,104 @@ af::Status NddmaTemplate::SwapCastBrcAndGenNddma(const af::AscNodePtr &node_cast
   return af::SUCCESS;
 }
 
-bool NddmaTemplate::NeedDropBasedCase(const af::AscGraph &origin_graph, [[maybe_unused]] const af::AscGraph &based_case,
+af::Status NddmaTemplate::BroadcastInputNodeIsScalar(const af::AscNodePtr &node, bool &is_scalar) {
+  is_scalar = false;
+  af::AscNodePtr in_node = node;
+  while (af::ops::IsOps<af::ascir_op::Broadcast>(in_node)) {
+    auto brc_in_anchor = in_node->GetInDataAnchor(0);
+    GE_CHECK_NOTNULL(brc_in_anchor);
+    auto peer_out_anchor = brc_in_anchor->GetPeerOutAnchor();
+    GE_CHECK_NOTNULL(peer_out_anchor);
+    in_node = std::dynamic_pointer_cast<af::AscNode>(peer_out_anchor->GetOwnerNode());
+    GE_CHECK_NOTNULL(in_node);
+  }
+  if (af::ops::IsOps<af::ascir_op::Scalar>(in_node) || af::ops::IsOps<af::ascir_op::ScalarData>(in_node)) {
+    is_scalar = true;
+    GELOGD("Node [%s] is scalar.", in_node->GetNamePtr());
+    return af::SUCCESS;
+  }
+  auto &output_attr = in_node->outputs[0].attr;
+  const auto &output_vec_strides = output_attr.vectorized_strides;
+  GE_ASSERT_TRUE(!output_vec_strides.empty());
+  is_scalar = std::all_of(output_vec_strides.begin(), output_vec_strides.end(), [](const auto &stride) {
+    return af::SymbolicUtils::StaticCheckEq(stride, af::sym::kSymbolZero) == af::TriBool::kTrue;
+  });
+  return af::SUCCESS;
+}
+
+af::Status NddmaTemplate::IsVectorizedAxisDoubleCut(af::AscGraph &graph, const af::AscNodePtr &node,
+                                                    bool &is_vectorized_axis_double_cut) {
+  is_vectorized_axis_double_cut = false;
+  auto &output_attr = node->outputs[0].attr;
+  const auto &output_vec_axis = output_attr.vectorized_axis;
+  GE_ASSERT_TRUE(!output_vec_axis.empty());
+  for (size_t i = 0; i < output_vec_axis.size(); i++) {
+    auto axis = graph.FindAxis(output_vec_axis[i]);
+    GE_ASSERT_NOTNULL(axis);
+    if ((axis->type == af::Axis::Type::kAxisTypeTileInner) && (i > 0)) {
+      is_vectorized_axis_double_cut = true;
+      break;
+    }
+  }
+  return af::SUCCESS;
+}
+
+af::Status NddmaTemplate::IsNeedDropTransposeBrcFuse(const af::AscGraph &bash_graph, bool &is_need_drop) {
+  // broadcast-api要求输入内存连续，因此如果是双切分且输入节点不是scalar(或者vectorized_strides全为0)，则需要drop该模板。
+  af::AscGraph graph(bash_graph.GetName().c_str());
+  GE_ASSERT_TRUE(graph.CopyFrom(bash_graph));
+  is_need_drop = false;
+  for (const auto &node : graph.GetAllNodes()) {
+    if (af::ops::IsOps<af::ascir_op::Broadcast>(node)) {
+      auto brc_in_anchor = node->GetInDataAnchor(0);
+      GE_CHECK_NOTNULL(brc_in_anchor);
+      auto peer_out_anchor = brc_in_anchor->GetPeerOutAnchor();
+      GE_CHECK_NOTNULL(peer_out_anchor);
+      const auto &in_node = std::dynamic_pointer_cast<af::AscNode>(peer_out_anchor->GetOwnerNode());
+      GE_CHECK_NOTNULL(in_node);
+
+      bool is_scalar = false;
+      bool is_vectorized_axis_double_cut = false;
+      GE_ASSERT_SUCCESS(BroadcastInputNodeIsScalar(in_node, is_scalar));
+      GELOGD("Node [%s] is scalar: %d.", in_node->GetNamePtr(), is_scalar);
+      GE_ASSERT_SUCCESS(IsVectorizedAxisDoubleCut(graph, node, is_vectorized_axis_double_cut));
+      GELOGD("Node [%s] is vectorized axis double cut: %d.", node->GetNamePtr(), is_vectorized_axis_double_cut);
+      if (!is_scalar && is_vectorized_axis_double_cut) {
+        is_need_drop = true;
+        break;
+      }
+    }
+  }
+  return af::SUCCESS;
+}
+
+af::Status NddmaTemplate::IsDataTypeValidInBasedCase(const af::AscGraph &graph, bool &is_dtype_valid) {
+  // Transpose的base_case目前基于gather api实现，当前方案仅支持b16/b32数据类型。
+  is_dtype_valid = true;
+  for (const auto &node : graph.GetAllNodes()) {
+    if (af::ops::IsOps<af::ascir_op::Transpose>(node)) {
+      auto &output_attr = node->outputs[0].attr;
+      const auto dtype_size = GetSizeByDataType(output_attr.dtype);
+      if (dtype_size < kTwoBytes || dtype_size > kFourBytes) {
+        is_dtype_valid = false;
+        break;
+      }
+    }
+  }
+  return af::SUCCESS;
+}
+
+bool NddmaTemplate::NeedDropBasedCase(const af::AscGraph &origin_graph, const af::AscGraph &based_case,
                                       [[maybe_unused]] const af::AscGraph &new_case) {
-  if (ScheduleUtils::HasComputeType(origin_graph, af::ComputeType::kComputeTranspose) &&
-      ScheduleUtils::HasComputeType(origin_graph, af::ComputeType::kComputeBroadcast)) {
+  if (!ScheduleUtils::HasComputeType(origin_graph, af::ComputeType::kComputeTranspose)) {
+    return false;
+  }
+  bool is_dtype_valid = false;
+  if (IsDataTypeValidInBasedCase(based_case, is_dtype_valid) != af::SUCCESS || !is_dtype_valid) {
+    return true;
+  }
+  bool is_need_drop = false;
+  if (IsNeedDropTransposeBrcFuse(based_case, is_need_drop) != af::SUCCESS || is_need_drop) {
     return true;
   }
   return false;
