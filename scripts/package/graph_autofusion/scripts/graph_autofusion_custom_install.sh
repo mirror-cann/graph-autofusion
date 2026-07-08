@@ -124,7 +124,7 @@ graph_autofusion_install_package() {
             log "INFO" "install ${_package} successfully!"
         fi
     else
-        log "ERROR" "ERR_NO:0x0080;ERR_DES:install ${_package} faied, can not find the matched package for this platform."
+        log "ERROR" "ERR_NO:0x0080;ERR_DES:install ${_package} failed, can not find the matched package for this platform."
         exit 1
     fi
 }
@@ -347,7 +347,7 @@ custom_install() {
         if [ "${pylocal}" = "y" ]; then
             log "INFO" "please make sure PYTHONPATH include ${WHL_INSTALL_DIR_PATH}."
         else
-            log "INFO" "The package te is already installed in python default path. It is recommended to install it using the '--pylocal' parameter, install the package graph_autofusion in the ${WHL_INSTALL_DIR_PATH}."
+            log "INFO" "The package graph_autofusion is already installed in python default path. It is recommended to install it using the '--pylocal' parameter, install the package graph_autofusion in the ${WHL_INSTALL_DIR_PATH}."
         fi
 
         if [ "x$stage" = "xinstall" ]; then
@@ -369,7 +369,7 @@ custom_install() {
     if [ -d "${autofuse_python_dir}" ]; then
         log "INFO" "pre-compiling autofuse python scripts..."
         python3 -m compileall -q "${autofuse_python_dir}" 2>/dev/null || true
-        chmod -R 550 "${autofuse_python_dir}/__pycache__" 2>/dev/null || true
+        chmod -R 555 "${autofuse_python_dir}/__pycache__" 2>/dev/null || true
         log "INFO" "autofuse python scripts pre-compiled."
     fi
 
