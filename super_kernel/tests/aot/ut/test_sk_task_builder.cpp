@@ -1675,9 +1675,9 @@ TEST_F(SkTaskBuilderTest, AddFuncTask_DisableDcciByCapBits_ClearsBit5)
     EXPECT_EQ((funcTask.debugOptions & 0x20U), 0U);
 }
 
-TEST_F(SkTaskBuilderTest, AddFuncTask_DisableDcciByList_ClearsBit5)
+TEST_F(SkTaskBuilderTest, AddFuncTask_DisableDcciByListAndCapAllowsDcci_AddsAfterFallback)
 {
-    // 通过 disableDcciList 禁用 dcci，bit 5 应清除
+    // SK_BIND 未声明 disable_dcci，但 option 禁用 dcci 时，记录 mismatch warning 并兜底追加 after_kernel_end。
     opts->AddOption(std::make_unique<StringListOptOption>(
         "dcci_disable", aclskOptionType::DCCI_DISABLE_ON_KERNEL, std::vector<std::string>{"k"}));
 
@@ -1691,6 +1691,29 @@ TEST_F(SkTaskBuilderTest, AddFuncTask_DisableDcciByList_ClearsBit5)
     ASSERT_TRUE(builder->AddFuncTask(aic, kernel, &dfx, 0, 0, 1, SkTaskType::TYPE_FUNC, 1));
 
     TaskInfo& funcTask = aic.taskQue.get()->taskInfos[aic.taskQue.get()->taskCnt - 1];
+    EXPECT_NE((funcTask.debugOptions & 0x1U), 0U);
+    EXPECT_NE((funcTask.debugOptions & 0x8U), 0U);
+    EXPECT_NE((funcTask.debugOptions & 0x20U), 0U);
+}
+
+TEST_F(SkTaskBuilderTest, AddFuncTask_DisableDcciByListAndCapDisablesDcci_NoAfterFallback)
+{
+    // SK_BIND 已声明 disable_dcci 时，沿用原语义，不因为 disable list 额外追加 after_kernel_end。
+    opts->AddOption(std::make_unique<StringListOptOption>(
+        "dcci_disable", aclskOptionType::DCCI_DISABLE_ON_KERNEL, std::vector<std::string>{"k"}));
+
+    SkTask aic;
+    ASSERT_TRUE(aic.taskQue.Init(8));
+
+    auto* kernel = CreateKernelNodeEx(44009, 0, INVALID_TASK_ID, INVALID_TASK_ID, SkKernelType::AIC_ONLY);
+    kernel->nodeInfos.kernelInfos.capBits.disableDcci = true;
+
+    SkDfxInfo dfx{};
+    ASSERT_TRUE(builder->AddFuncTask(aic, kernel, &dfx, 0, 0, 1, SkTaskType::TYPE_FUNC, 1));
+
+    TaskInfo& funcTask = aic.taskQue.get()->taskInfos[aic.taskQue.get()->taskCnt - 1];
+    EXPECT_NE((funcTask.debugOptions & 0x1U), 0U);
+    EXPECT_EQ((funcTask.debugOptions & 0x8U), 0U);
     EXPECT_EQ((funcTask.debugOptions & 0x20U), 0U);
 }
 

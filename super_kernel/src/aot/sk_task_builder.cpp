@@ -29,6 +29,12 @@ extern "C" aclrtBinHandle AscendGetEntryBinHandle();
 
 namespace {
 constexpr size_t kCounterAlignBytes = 64;
+constexpr uint64_t kDebugOptionDisableDcci = 0x1;
+constexpr uint64_t kDebugOptionDebugSyncAll = 0x2;
+constexpr uint64_t kDebugOptionDcciBeforeKernelStart = 0x4;
+constexpr uint64_t kDebugOptionDcciAfterKernelEnd = 0x8;
+constexpr uint64_t kDebugOptionCrossCoreSyncCheck = 0x10;
+constexpr uint64_t kDebugOptionEnableDcciAfterFunc = 0x20;
 
 inline size_t AlignUp(size_t value, size_t align)
 {
@@ -215,6 +221,57 @@ void DumpDeviceArgs(std::string skFuncName, const SkDeviceEntryArgs* args,
         DumpDeviceArgsDetail(skFuncName, args, tasks);
     }
     DumpDeviceArgsDetail(skFuncName, args, tasks);
+}
+
+bool MatchKernelOption(const SuperKernelOptionsManager& opts, const std::vector<std::string>& kernelList,
+                       const std::string& funcName)
+{
+    return !kernelList.empty() && !funcName.empty() && opts.MatchKernelNameInList(kernelList, funcName);
+}
+
+uint64_t BuildFuncTaskDebugOptions(const SuperKernelOptionsManager& opts, const KernelInfos& kernelInfo,
+                                   const std::vector<std::string>& disableDcciList,
+                                   const std::vector<std::string>& dcciBeforeKernelStartList,
+                                   const std::vector<std::string>& dcciAfterKernelEndList,
+                                   uint32_t debugCrossCoreSyncCheck)
+{
+    const bool disableDcciByCap = kernelInfo.capBits.disableDcci;
+    const bool disableDcciByOption = MatchKernelOption(opts, disableDcciList, kernelInfo.funcName);
+    const bool dcciBeforeKernelStart = MatchKernelOption(opts, dcciBeforeKernelStartList, kernelInfo.funcName);
+    bool dcciAfterKernelEnd = MatchKernelOption(opts, dcciAfterKernelEndList, kernelInfo.funcName);
+
+    if (disableDcciByOption && !disableDcciByCap) {
+        SK_LOGW(
+            "DCCI disable option and SK_BIND mismatch for %s: dcci_disable_on_kernel=true, "
+            "but SK_BIND disable_dcci=0. The sub-kernel binary may be reused from stale cache.",
+            kernelInfo.funcName.c_str());
+    }
+
+    if (!disableDcciByCap && disableDcciByOption && !dcciBeforeKernelStart && !dcciAfterKernelEnd) {
+        dcciAfterKernelEnd = true;
+        SK_LOGI(
+            "Apply dcci_after_kernel_end fallback for %s: SK_BIND disable_dcci=0, "
+            "dcci_disable_on_kernel option matched, before/after dcci options not matched",
+            kernelInfo.funcName.c_str());
+    }
+
+    uint64_t debugOptions = 0;
+    if (disableDcciByCap || disableDcciByOption) {
+        debugOptions |= kDebugOptionDisableDcci;
+    }
+    if (dcciBeforeKernelStart) {
+        debugOptions |= kDebugOptionDcciBeforeKernelStart;
+    }
+    if (dcciAfterKernelEnd) {
+        debugOptions |= kDebugOptionDcciAfterKernelEnd;
+    }
+    if (debugCrossCoreSyncCheck == 1) {
+        debugOptions |= kDebugOptionCrossCoreSyncCheck;
+    }
+    if ((debugOptions & kDebugOptionDcciAfterKernelEnd) != 0 || (debugOptions & kDebugOptionDisableDcci) == 0) {
+        debugOptions |= kDebugOptionEnableDcciAfterFunc;
+    }
+    return debugOptions;
 }
 
 // ========== SkTaskBuilder static helper implementations ==========
@@ -1577,7 +1634,7 @@ bool SkTaskBuilder::AddSyncTask(SkTask& skTask, size_t nodeIndex, SkCoreSyncType
     taskInfo.extraInfo = static_cast<uint64_t>(earlyStartConfig);
     taskInfo.relatedType = relatedType;
     if (opts.EnableDebug() && debugSyncAll == 1) {
-        taskInfo.debugOptions |= 0x2;
+        taskInfo.debugOptions |= kDebugOptionDebugSyncAll;
     }
     taskQue->taskCnt++;
     return true;
@@ -1795,38 +1852,8 @@ bool SkTaskBuilder::AddFuncTask(SkTask& skTask, SuperKernelBaseNode* node, SkDfx
         skTask.numBlocks = std::max(skTask.numBlocks, static_cast<uint32_t>(taskInfo.numBlocks));
         skTask.funcCnt++;
 
-        if (kernelInfo.capBits.disableDcci) {
-            taskInfo.debugOptions |= 0x1;
-        }
-
-        if (!disableDcciList.empty() && !kernelInfo.funcName.empty()) {
-            if (opts.MatchKernelNameInList(disableDcciList, kernelInfo.funcName)) {
-                taskInfo.debugOptions |= 0x1;
-            }
-        }
-
-        if (!dcciBeforeKernelStartList.empty() && !kernelInfo.funcName.empty()) {
-            if (opts.MatchKernelNameInList(dcciBeforeKernelStartList, kernelInfo.funcName)) {
-                taskInfo.debugOptions |= 0x4;
-            }
-        }
-
-        if (!dcciAfterKernelEndList.empty() && !kernelInfo.funcName.empty()) {
-            if (opts.MatchKernelNameInList(dcciAfterKernelEndList, kernelInfo.funcName)) {
-                taskInfo.debugOptions |= 0x8;
-            }
-        }
-
-        if (debugCrossCoreSyncCheck == 1) {
-            taskInfo.debugOptions |= 0x10;
-        }
-
-        // 设置 bit 5 (enable_dcci_after_func)
-        // 逻辑：设置了 after_kernel_end (bit 3) 或 未禁用 dcci (bit 0 未设置) 时需要执行 dcci
-        // 直接基于已设置的 bit 位判断，避免重复计算
-        if ((taskInfo.debugOptions & 0x8) || !(taskInfo.debugOptions & 0x1)) {
-            taskInfo.debugOptions |= 0x20;
-        }
+        taskInfo.debugOptions |= BuildFuncTaskDebugOptions(opts, kernelInfo, disableDcciList, dcciBeforeKernelStartList,
+                                                           dcciAfterKernelEndList, debugCrossCoreSyncCheck);
     }
     taskQue->taskCnt++;
     return true;
