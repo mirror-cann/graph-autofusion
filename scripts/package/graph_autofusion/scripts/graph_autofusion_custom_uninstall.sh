@@ -1,7 +1,7 @@
 #!/bin/bash
 # ----------------------------------------------------------------------------------------------------------------------
-# Copyright (c) 2025 Huawei Technologies Co., Ltd.
-# This program is free software, you can redistribute it and/or modify it under the terms and contiditions of
+# Copyright (c) 2026 Huawei Technologies Co., Ltd.
+# This program is free software, you can redistribute it and/or modify it under the terms and conditions of
 # CANN Open Software License Agreement Version 2.0 (the "License").
 # Please refer to the License for details. You may not use this file except in compliance with the License.
 # THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
@@ -215,9 +215,7 @@ custom_uninstall() {
         remove_empty_dir "${WHL_INSTALL_DIR_PATH}"
         remove_empty_dir "${common_parse_dir}/python"
         local autofuse_python_dir="${WHL_INSTALL_DIR_PATH}/autofuse"
-        local autofuse_include_dir="${common_parse_dir}/pkg_inc/autofuse"
         remove_dir "${autofuse_python_dir}/__pycache__"
-        remove_dir "${autofuse_include_dir}"
     fi
 
     return 0

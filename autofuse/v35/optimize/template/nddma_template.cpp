@@ -449,10 +449,8 @@ af::Status NddmaTemplate::IsVectorizedAxisDoubleCut(af::AscGraph &graph, const a
   return af::SUCCESS;
 }
 
-af::Status NddmaTemplate::IsNeedDropTransposeBrcFuse(const af::AscGraph &bash_graph, bool &is_need_drop) {
+af::Status NddmaTemplate::IsNeedDropTransposeBrcFuse(af::AscGraph &graph, bool &is_need_drop) {
   // broadcast-api要求输入内存连续，因此如果是双切分且输入节点不是scalar(或者vectorized_strides全为0)，则需要drop该模板。
-  af::AscGraph graph(bash_graph.GetName().c_str());
-  GE_ASSERT_TRUE(graph.CopyFrom(bash_graph));
   is_need_drop = false;
   for (const auto &node : graph.GetAllNodes()) {
     if (af::ops::IsOps<af::ascir_op::Broadcast>(node)) {
@@ -494,6 +492,34 @@ af::Status NddmaTemplate::IsDataTypeValidInBasedCase(const af::AscGraph &graph, 
   return af::SUCCESS;
 }
 
+af::Status NddmaTemplate::IsTransposeContinuousVectorizedAxisNumValid(af::AscGraph &graph,
+                                                                      bool &is_vectorized_continuous_axis_num_valid) {
+  is_vectorized_continuous_axis_num_valid = true;
+  for (const auto &node : graph.GetAllNodes()) {
+    if (af::ops::IsOps<af::ascir_op::Transpose>(node)) {
+      auto &output_attr = node->outputs[0].attr;
+      const auto &output_vec_axis = output_attr.vectorized_axis;
+      GE_ASSERT_TRUE(!output_vec_axis.empty());
+      uint32_t transpose_inner_axis_num = 0U;
+      for (auto axis_it = output_vec_axis.rbegin(); axis_it != output_vec_axis.rend(); axis_it++) {
+        auto axis = graph.FindAxis(*axis_it);
+        GE_ASSERT_NOTNULL(axis);
+        if ((axis->type == af::Axis::Type::kAxisTypeTileInner)) {
+          transpose_inner_axis_num++;
+          break;
+        }
+        transpose_inner_axis_num++;
+      }
+      // transpose api only support 3 inner continuous axis
+      if (transpose_inner_axis_num > 3U) {
+        is_vectorized_continuous_axis_num_valid = false;
+        break;
+      }
+    }
+  }
+  return af::SUCCESS;
+}
+
 bool NddmaTemplate::NeedDropBasedCase(const af::AscGraph &origin_graph, const af::AscGraph &based_case,
                                       [[maybe_unused]] const af::AscGraph &new_case) {
   if (!ScheduleUtils::HasComputeType(origin_graph, af::ComputeType::kComputeTranspose)) {
@@ -503,8 +529,17 @@ bool NddmaTemplate::NeedDropBasedCase(const af::AscGraph &origin_graph, const af
   if (IsDataTypeValidInBasedCase(based_case, is_dtype_valid) != af::SUCCESS || !is_dtype_valid) {
     return true;
   }
+  af::AscGraph graph(based_case.GetName().c_str());
+  if (!graph.CopyFrom(based_case)) {
+    return true;
+  }
+  bool is_vectorized_continuous_axis_num_valid = false;
+  if (IsTransposeContinuousVectorizedAxisNumValid(graph, is_vectorized_continuous_axis_num_valid) != af::SUCCESS ||
+      !is_vectorized_continuous_axis_num_valid) {
+    return true;
+  }
   bool is_need_drop = false;
-  if (IsNeedDropTransposeBrcFuse(based_case, is_need_drop) != af::SUCCESS || is_need_drop) {
+  if (IsNeedDropTransposeBrcFuse(graph, is_need_drop) != af::SUCCESS || is_need_drop) {
     return true;
   }
   return false;

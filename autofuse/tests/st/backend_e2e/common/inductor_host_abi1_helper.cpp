@@ -114,6 +114,17 @@ class TypedHostRunner : public HostCaseRunner {
   double ResultPerf(size_t index) const override {
     return perf_(&topn_result_.tiling_datas[index]);
   }
+  bool VerifyExtraTopnResult() const override {
+#ifdef INDUCTOR_HOST_HELPER_CHECK_Z0T_POSITIVE
+    for (const auto &tiling_data : topn_result_.tiling_datas) {
+      if (tiling_data.get_z0t_size() == 0U) {
+        std::cerr << "topn z0t_size should be positive" << std::endl;
+        return false;
+      }
+    }
+#endif
+    return true;
+  }
   std::string DefaultRepr() const override {
     return repr_(&default_tiling_data_);
   }

@@ -269,6 +269,10 @@ bool ParseHostHelperOptions(int argc, char **argv, HostHelperOptions *options) {
       options->verify_empty_config = true;
       continue;
     }
+    if (name == "--check-z0t-positive") {
+      options->check_z0t_positive = true;
+      continue;
+    }
     std::string value;
     if (!ParseOptionValue(argc, argv, &i, &value) || !ApplyOption(name, value, options)) {
       return false;
@@ -290,6 +294,7 @@ int RunHostCheck(const HostHelperOptions &options, HostCaseRunner *runner) {
   const bool loaded = LoadInputConfigs(options.input_configs_file, &input_configs);
   const bool passed = loaded && runner->Resolve(host_handle.ptr) && VerifyInvalidTopn(runner, input_configs) &&
                       VerifyAutofuseTiling(runner) && VerifyTopnUniqueness(runner, input_configs, options) &&
+                      (!options.check_z0t_positive || runner->VerifyExtraTopnResult()) &&
                       (!options.verify_empty_config || VerifyEmptyConfigPath(runner)) &&
                       WriteFile(options.tiling_repr_out, runner->DefaultRepr());
   if (!host_handle.Close()) {

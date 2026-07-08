@@ -52,6 +52,9 @@
 
 namespace {
 
+constexpr const char *kZeroUbThresholdInputConfigsJson =
+    R"([{"ub_threshold":0.0,"corenum_threshold":1.0,"enable_multicore_ub_tradeoff":false}])";
+
 std::string ReadFile(const std::string &path) {
   std::ifstream in(path);
   std::stringstream buf;
@@ -186,22 +189,31 @@ int RunHostCompile(const std::string &tiling_def, const std::string &host_code, 
   return ret;
 }
 
-int RunHostHelper(const std::string &host_bin, const std::string &tiling_repr_file) {
+int RunHostHelperWithConfigs(const std::string &host_bin, const std::string &tiling_repr_file,
+                             const std::string &input_configs_json, int64_t topn, const std::string &perf_order,
+                             bool check_z0t_positive = false) {
   const std::string input_configs_file = OUTPUT_DIR "/host_input_configs.json";
-  WriteFile(input_configs_file, HOST_INPUT_CONFIGS_JSON);
+  WriteFile(input_configs_file, input_configs_json);
   std::string cmd = std::string(HOST_HELPER_BIN) + " --host-so " + host_bin + " --tiling-repr-out " + tiling_repr_file +
-                    " --input-configs " + input_configs_file + " --topn " + std::to_string(HOST_TOPN) +
-                    " --perf-order " + std::string(HOST_PERF_ORDER);
+                    " --input-configs " + input_configs_file + " --topn " + std::to_string(topn) + " --perf-order " +
+                    perf_order;
   if (!std::string(HOST_DYNAMIC_SHAPE_ARGS).empty()) {
     cmd += " --dynamic-shape-args " + std::string(HOST_DYNAMIC_SHAPE_ARGS);
   }
   if (HOST_VERIFY_EMPTY_CONFIG != 0) {
     cmd += " --verify-empty-config";
   }
+  if (check_z0t_positive) {
+    cmd += " --check-z0t-positive";
+  }
   cmd += " 2>&1";
   int ret = RunCommand(cmd);
   if (ret != 0) printf("host helper failed, ret=%d\n", ret);
   return ret;
+}
+
+int RunHostHelper(const std::string &host_bin, const std::string &tiling_repr_file) {
+  return RunHostHelperWithConfigs(host_bin, tiling_repr_file, HOST_INPUT_CONFIGS_JSON, HOST_TOPN, HOST_PERF_ORDER);
 }
 
 int RunKernelCompile(const std::string &tiling_def, const std::string &device_code, const std::string &output_file,
@@ -301,6 +313,9 @@ TEST_F(TestBackendInductorTopnSplitCompile, SplitCompileChainWorks) {
   VerifySplitHostArtifacts(OUTPUT_DIR "/host_out/host");
   const std::string tiling_repr_file = OUTPUT_DIR "/tiling_repr.txt";
   ASSERT_EQ(RunHostHelper(host_bin, tiling_repr_file), 0);
+  ASSERT_EQ(RunHostHelperWithConfigs(host_bin, OUTPUT_DIR "/zero_ub_threshold_tiling_repr.txt",
+                                     kZeroUbThresholdInputConfigsJson, 1, "sorted-by-perf", true),
+            0);
   std::string tiling_repr = ReadFile(tiling_repr_file);
   ASSERT_FALSE(tiling_repr.empty());
 

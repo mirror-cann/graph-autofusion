@@ -1464,6 +1464,7 @@ af::Status TilingCodeGenImpl::GenMacroInclude() {
   tiling_head_.AddLine("#include <functional>");
   tiling_head_.AddLine("#include <chrono>");
   tiling_head_.AddLine("#include <cstdint>");
+  tiling_head_.AddLine("#include <limits>");
   tiling_head_.AddLine("#include <string>");
   std::set<std::string> uniq_head_files;
   for (const auto &model_info : tiling_model_info_) {
@@ -2952,6 +2953,95 @@ inline af::Expression GetInputVarFromSrcVarExprWithPrefix(const af::Expression &
   return src_var_expr.Replace(var_replacement);
 }
 
+inline std::vector<std::string> GetSortedFreeVarNames(const af::Expression &src_var_expr) {
+  std::vector<std::string> vars;
+  for (const auto &arg : src_var_expr.FreeSymbols()) {
+    if (arg.GetExprType() == af::ExprType::kExprVariable) {
+      vars.emplace_back(Str(arg));
+    }
+  }
+  std::sort(vars.begin(), vars.end());
+  return vars;
+}
+
+inline std::string GetLeadingSpaces(const std::string &prefix) {
+  const auto pos = prefix.find_first_not_of(' ');
+  return pos == std::string::npos ? prefix : prefix.substr(0UL, pos);
+}
+
+inline std::string GenVarRelationSourceZeroCond(const std::vector<std::string> &vars,
+                                                const std::string &src_tiling_data_name,
+                                                const std::string &tiling_data_prefix) {
+  std::string cond;
+  for (const auto &var : vars) {
+    if (!cond.empty()) {
+      cond += " || ";
+    }
+    cond += tiling_data_prefix + src_tiling_data_name + "_tiling_data.get_" + var + "() == 0U";
+  }
+  return cond;
+}
+
+inline std::string GenVarRelationInvalidCheck(const std::string &value_name) {
+  return "!std::isfinite(" + value_name + ") || " + value_name + " <= 0.0 || " + value_name +
+         " > static_cast<double>(std::numeric_limits<uint32_t>::max())";
+}
+
+inline std::string GenInvalidVarRelationActions(const std::string &indent,
+                                                const std::vector<std::string> &invalid_actions) {
+  std::string code;
+  for (const auto &action : invalid_actions) {
+    code += indent + "  " + action + "\n";
+  }
+  return code;
+}
+
+inline std::string GenVarRelationSetStatement(const std::string &target_prefix, const std::string &dst_tiling_data_name,
+                                              const std::string &var_name, const std::string &src_tiling_data_name,
+                                              const af::Expression &src_var_expr,
+                                              const std::vector<std::string> &invalid_actions) {
+  const std::string indent = GetLeadingSpaces(target_prefix);
+  const auto src_vars = GetSortedFreeVarNames(src_var_expr);
+  const std::string zero_cond = GenVarRelationSourceZeroCond(src_vars, src_tiling_data_name, "tiling_data.");
+  const std::string value_name = dst_tiling_data_name + "_" + var_name + "_var_relation_value";
+  const auto dst_expr = GetInputVarFromSrcVarExprWithPrefix(src_var_expr, src_tiling_data_name);
+  std::string code;
+  if (!zero_cond.empty()) {
+    code += indent + "if (" + zero_cond + ") {\n";
+    code += indent + "  OP_LOGW(OP_NAME, \"Skip invalid var relation " + var_name + ": source value is zero.\");\n";
+    code += GenInvalidVarRelationActions(indent, invalid_actions);
+    code += indent + "}\n";
+  }
+  code += indent + "double " + value_name + " = " + Str(dst_expr) + ";\n";
+  code += indent + "if (" + GenVarRelationInvalidCheck(value_name) + ") {\n";
+  code += indent + "  OP_LOGW(OP_NAME, \"Skip invalid var relation " + var_name + ": invalid computed value.\");\n";
+  code += GenInvalidVarRelationActions(indent, invalid_actions);
+  code += indent + "}\n";
+  code += target_prefix + dst_tiling_data_name + "_tiling_data.set_" + var_name + "(static_cast<uint32_t>(" +
+          value_name + "));\n";
+  return code;
+}
+
+inline std::string GenVarRelationSetCondition(const std::string &dst_tiling_data_name, const std::string &var_name,
+                                              const std::string &src_tiling_data_name,
+                                              const af::Expression &src_var_expr) {
+  const auto src_vars = GetSortedFreeVarNames(src_var_expr);
+  const std::string zero_cond = GenVarRelationSourceZeroCond(src_vars, src_tiling_data_name, "");
+  const std::string value_name = dst_tiling_data_name + "_" + var_name + "_var_relation_value";
+  const auto dst_expr = GetInputVarFromSrcVarExpr(src_var_expr, src_tiling_data_name);
+  std::string condition = "([&]() -> bool { ";
+  if (!zero_cond.empty()) {
+    condition += "if (" + zero_cond + ") { OP_LOGW(OP_NAME, \"Skip invalid var relation " + var_name +
+                 ": source value is zero.\"); return false; } ";
+  }
+  condition += "double " + value_name + " = " + Str(dst_expr) + "; ";
+  condition += "if (" + GenVarRelationInvalidCheck(value_name) + ") { OP_LOGW(OP_NAME, \"Skip invalid var relation " +
+               var_name + ": invalid computed value.\"); return false; } ";
+  condition += dst_tiling_data_name + "_tiling_data.set_" + var_name + "(static_cast<uint32_t>(" + value_name +
+               ")); return true; }())";
+  return condition;
+}
+
 inline std::pair<std::string, bool> ProcessVarRelations(
     const std::map<size_t, std::pair<std::string, std::string>> &graph_info,
     const std::map<size_t, std::map<size_t, std::map<std::string, af::Expression>>> &var_relation, size_t group_id) {
@@ -2966,8 +3056,9 @@ inline std::pair<std::string, bool> ProcessVarRelations(
         auto src_it = graph_info.find(src_id);
         auto dst_it = graph_info.find(group_id);
         if (src_it != graph_info.end() && dst_it != graph_info.end()) {
-          auto dst_expr = GetInputVarFromSrcVarExpr(pair.second, src_it->second.second);
-          input_vars_set_code += dst_it->second.second + "_tiling_data.set_" + pair.first + "(" + Str(dst_expr) + "), ";
+          input_vars_set_code +=
+              (input_vars_set_code.empty() ? "" : "&&") +
+              GenVarRelationSetCondition(dst_it->second.second, pair.first, src_it->second.second, pair.second);
         }
       }
     }
@@ -2978,7 +3069,7 @@ inline std::pair<std::string, bool> ProcessVarRelations(
 inline std::pair<std::string, bool> ProcessVarRelationsStatement(
     const std::map<size_t, std::pair<std::string, std::string>> &graph_info,
     const std::map<size_t, std::map<size_t, std::map<std::string, af::Expression>>> &var_relation, size_t group_id,
-    const std::string &prefix) {
+    const std::string &prefix, const std::vector<std::string> &invalid_actions) {
   std::string input_vars_set_code;
   bool need_update = false;
   auto it = var_relation.find(group_id);
@@ -2989,9 +3080,8 @@ inline std::pair<std::string, bool> ProcessVarRelationsStatement(
         auto src_it = graph_info.find(src_id);
         auto dst_it = graph_info.find(group_id);
         if (src_it != graph_info.end() && dst_it != graph_info.end()) {
-          auto dst_expr = GetInputVarFromSrcVarExprWithPrefix(pair.second, src_it->second.second);
-          input_vars_set_code +=
-              prefix + dst_it->second.second + "_tiling_data.set_" + pair.first + "(" + Str(dst_expr) + ");\n";
+          input_vars_set_code += GenVarRelationSetStatement(prefix, dst_it->second.second, pair.first,
+                                                            src_it->second.second, pair.second, invalid_actions);
           need_update = true;
         }
       }
@@ -3292,7 +3382,7 @@ af::Status TilingCodeGenImpl::GenSingleGroupScheduleResult(
       GenSetHardwareCodes(group_info.second.second, hardware_iter->second);
       if (need_update_second_group_input_vars) {
         std::string tiling_hyphens = check_cond.empty() ? "" : "&&";
-        check_cond += (tiling_hyphens + "(" + input_vars_set_code + "true)");
+        check_cond += (tiling_hyphens + "(" + input_vars_set_code + ")");
       }
       GE_ASSERT_SUCCESS(GenScheduleGroupDoTiling(check_cond, group_info.second.second, group_info.second.first),
                         "Gen schedule group do tiling failed, graph id[%zu], impl id[%zu]", asc_graph_id,
@@ -3447,7 +3537,7 @@ void TilingCodeGenImpl::GenPGOByCoreNumGetScheduleResult(
                          std::to_string(group_index) + ";");
     tiling_func_.AddLine("  for (auto &tiling_data : tiling_data_list_tmp" + std::to_string(group_index - 1) + ") {");
     auto [input_vars_set_code, need_update_second_group_input_vars] =
-        ProcessVarRelationsStatement(graph_info, var_relation, group_info.first, "    ");
+        ProcessVarRelationsStatement(graph_info, var_relation, group_info.first, "    ", {"continue;"});
     std::string tiling_item_name = group_info.second.second + "_tiling_data";
     tiling_func_.AddLine("    auto &" + tiling_item_name + " = tiling_data." + tiling_item_name + ";");
     const auto &hardware_iter = hardware_map.find(group_info.second.second);
@@ -3509,7 +3599,8 @@ void TilingCodeGenImpl::GenFillOtherGroupsGetTiling(
       GELOGW("Hardware info not found for group %s.", group_iter.second.second.c_str());
     }
     auto [input_vars_set_code, need_update] = ProcessVarRelationsStatement(
-        graph_info, var_relations_[asc_graph_id][impl_graph_id], group_iter.first, "      tiling_data.");
+        graph_info, var_relations_[asc_graph_id][impl_graph_id], group_iter.first, "      tiling_data.",
+        {"valid_candidates[candidate_index - " + candidate_begin_name + "] = false;", "continue;"});
     if (need_update) {
       tiling_func_.AddLine(input_vars_set_code);
     }
@@ -3594,7 +3685,7 @@ af::Status TilingCodeGenImpl::GenPGOScheduleGroupSearchEntry(
   }
   GenSetHardwareCodes(group_info.second.second, hardware_iter->second);
   auto [input_vars_set_code, need_update] = ProcessVarRelationsStatement(
-      graph_info, var_relations_[asc_graph_id][impl_graph_id], group_info.first, "  tiling_data.");
+      graph_info, var_relations_[asc_graph_id][impl_graph_id], group_info.first, "  tiling_data.", {"return true;"});
   if (need_update) {
     tiling_func_.AddLine(input_vars_set_code);
   }

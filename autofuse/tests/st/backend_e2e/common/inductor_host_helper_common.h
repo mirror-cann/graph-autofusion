@@ -42,6 +42,7 @@ struct HostHelperOptions {
   std::vector<int64_t> dynamic_shape_args;
   int64_t topn = 4;
   bool verify_empty_config = false;
+  bool check_z0t_positive = false;
   PerfOrderMode perf_order_mode = PerfOrderMode::kAscendingSkipFirst;
 };
 
@@ -59,6 +60,9 @@ class HostCaseRunner {
   virtual std::string DefaultRepr() const = 0;
   virtual uint32_t DefaultWorkspace() const = 0;
   virtual uint32_t DefaultBlockDim() const = 0;
+  virtual bool VerifyExtraTopnResult() const {
+    return true;
+  }
 };
 
 template <typename Fn>

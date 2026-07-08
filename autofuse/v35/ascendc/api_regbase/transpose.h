@@ -90,9 +90,9 @@ inline __simd_vf__ void GenTwoInnerDimTransposeIndex(__ubuf__ T *dst_idx, const 
 }
 
 template <typename T>
-inline __simd_vf__ void GenThreeDimTransposeIndex(__ubuf__ T *dst_idx, const T dst_dim1, const T dst_dim2,
-                                                  const T src_stride0, const T src_stride1, const T src_stride2,
-                                                  RangeType<T> count) {
+inline __simd_vf__ void GenThreeInnerDimTransposeIndex(__ubuf__ T *dst_idx, const T dst_dim1, const T dst_dim2,
+                                                       const T src_stride0, const T src_stride1, const T src_stride2,
+                                                       RangeType<T> count) {
   uint16_t vl_size = static_cast<uint16_t>(GetVecLen() / sizeof(T));
   T last_dim_inc = static_cast<T>(vl_size % dst_dim2);
   T last_2nd_dim_inc = static_cast<T>(vl_size / dst_dim2 % dst_dim1);
@@ -174,6 +174,9 @@ __aicore__ inline void GenTransposeIndex(__ubuf__ T *dst_idx, const T (&dst_dims
     GenOneInnerDimTransposeIndex(dst_idx, src_strides[0], cal_cnt);
   } else if constexpr (dim == 2) {
     GenTwoInnerDimTransposeIndex(dst_idx, dst_dims[1], src_strides[0], src_strides[1], cal_cnt);
+  } else if constexpr (dim == 3) {
+    GenThreeInnerDimTransposeIndex(dst_idx, dst_dims[1], dst_dims[2], src_strides[0], src_strides[1], src_strides[2],
+                                   cal_cnt);
   }
 }
 
@@ -322,8 +325,12 @@ __aicore__ inline void TransposeExtend(const LocalTensor<T> &dst, const LocalTen
     GenTwoInnerDimTransposeIndex(index_buf, dst_dims[3], src_strides[2], src_strides[3], cal_cnt);
     TransposeTwoOuterDimExtendImpl(dst_buf, src_buf, index_buf, dst_dims[0], src_strides[0], dst_strides[0],
                                    dst_dims[1], src_strides[1], dst_strides[1], cal_cnt);
+  } else if constexpr (dim == 4U && inner_dim == 3U) {
+    GenThreeInnerDimTransposeIndex(index_buf, dst_dims[2], dst_dims[3], src_strides[1], src_strides[2], src_strides[3],
+                                   cal_cnt);
+    TransposeOneOuterDimExtendImpl(dst_buf, src_buf, index_buf, dst_dims[0], src_strides[0], dst_strides[0], cal_cnt);
   } else {
-    GenTransposeIndex<RangeType<T>, dim>(index_buf, dst_dims, src_strides, cal_cnt);
+    GenTransposeIndex<RangeType<T>, inner_dim>(index_buf, dst_dims, src_strides, cal_cnt);
     TransposeExtendImpl(dst_buf, src_buf, index_buf, cal_cnt);
   }
 }
