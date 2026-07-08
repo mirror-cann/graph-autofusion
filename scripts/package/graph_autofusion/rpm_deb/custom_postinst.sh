@@ -58,7 +58,7 @@ fi
 autofuse_python_dir="${WHL_INSTALL_DIR_PATH}/autofuse"
 if [ -d "${autofuse_python_dir}" ]; then
     python3 -m compileall -q "${autofuse_python_dir}" 2>/dev/null || true
-    chmod -R 550 "${autofuse_python_dir}/__pycache__" 2>/dev/null || true
+    chmod -R 555 "${autofuse_python_dir}/__pycache__" 2>/dev/null || true
 fi
 
 chmod_recur "${sourcedir}/python" 750 dir
