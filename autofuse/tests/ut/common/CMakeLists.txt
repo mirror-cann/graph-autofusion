@@ -3,6 +3,9 @@ file(GLOB_RECURSE COMMON_SRC_FILES CONFIGURE_DEPENDS
         "${COMMON_ROOT_DIR}/*.cpp"
         "${COMMON_ROOT_DIR}/*.cc"
 )
+list(REMOVE_ITEM COMMON_SRC_FILES
+        "${COMMON_ROOT_DIR}/autofuse_backend_spec_api.cpp"
+)
 
 file(GLOB_RECURSE COMMON_TEST_SRCS CONFIGURE_DEPENDS "*.cpp" "*.cc")
 add_executable(test_common

@@ -195,6 +195,9 @@ cmake_print_variables(ENABLE_OPEN_SRC)
 ####################################common############################################
 set(COMMON_DIR ${CODE_ROOT_DIR}/common)
 file(GLOB_RECURSE CODEGEN_COMMON_SRCS CONFIGURE_DEPENDS "${COMMON_DIR}/*.cpp" "${COMMON_DIR}/*.cc")
+list(REMOVE_ITEM CODEGEN_COMMON_SRCS
+        "${COMMON_DIR}/autofuse_backend_spec_api.cpp"
+)
 add_library(ascgen_common SHARED
         ${CODEGEN_COMMON_SRCS}
 )
@@ -360,7 +363,7 @@ add_library(codegen SHARED
 
 set(CMAKE_LIBRARY_PATH "${CMAKE_LIBRARY_PATH};${CODE_ROOT_DIR}/att/build")
 
-target_compile_options(codegen PRIVATE 
+target_compile_options(codegen PRIVATE
     -Wfloat-equal -Wextra
 )
 
@@ -440,75 +443,6 @@ else ()
             c_sec
     )
 endif ()
-
-######################################autofuse##########################################
-# Note: autofuse/autofuse/ is frontend code that stays in ge repo, NOT compiled in af repo.
-# The autofuse library is NOT built here. The autofuse_utils_ut test directly
-# compiles only the needed source files (auto_fuse_config.cpp).
-# See: autofuse/CMakeLists.txt line ~268: "autofuse/autofuse/ 是前端代码，留在 ge 仓，af 仓不构建"
-if(TRUE)  # enable autofuse library for parity check with GE tests linkage
-set(AUTOFUSE_DIR ${CODE_ROOT_DIR}/autofuse)
-    file(GLOB_RECURSE AUTOFUSE_SOURCES "${AUTOFUSE_DIR}/*.cpp")
-
-add_library(autofuse SHARED
-   ${AUTOFUSE_SOURCES}
-)
-target_compile_definitions(autofuse PRIVATE
-        PROTOBUF_INLINE_NOT_IN_HEADERS=0
-        google=ascend_private
-)
-
-target_include_directories(autofuse PUBLIC
-    ${AUTOFUSE_DIR}
-    ${CODE_ROOT_DIR}
-    ${CODE_ROOT_DIR}/autofuse
-    ${CMAKE_CURRENT_SOURCE_DIR}
-    ${CMAKE_BINARY_DIR}/proto/metadef_protos_af
-)
-
-target_compile_options(autofuse PRIVATE -fPIC -Werror -fno-common -Wextra -Wfloat-equal -O0)
-
-if (ENABLE_OPEN_SRC)
-    target_link_libraries(autofuse PUBLIC
-        -lgcov
-        mmpa_headers
-        metadef_headers
-        ascir_ops_headers
-        ascend_protobuf
-        c_sec
-        json
-        atrace
-        unified_dlog
-        error_manager
-        graph_base_af
-        graph_af
-        aihac_symbolizer_af
-        ascgen_common
-        codegen
-        optimize
-        autofuse_runtime_stub
-    )
-else ()
-    target_link_libraries(autofuse PUBLIC
-        graph_af
-        unified_dlog
-        atrace_share
-        graph_base_af
-        mmpa_headers
-        metadef_headers
-        ascir_ops_headers
-        atrace_headers
-        error_manager
-        ascend_protobuf
-        c_sec
-        json
-        aihac_symbolizer_af
-        aihac_codegen
-        runtime_headers
-    )
-endif ()
-
-endif()  # if(FALSE) - autofuse frontend library disabled
 
 ####################################pyautofuse############################################
 set(PYAUTOFUSE_DIR ${CODE_ROOT_DIR}/compiler/py_module/)

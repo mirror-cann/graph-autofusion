@@ -1,9 +1,9 @@
 /**
  * Copyright (c) 2025 Huawei Technologies Co., Ltd.
- * This program is free software, you can redistribute it and/or modify it under the terms and conditions of 
+ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
  * CANN Open Software License Agreement Version 2.0 (the "License").
  * Please refer to the License for details. You may not use this file except in compliance with the License.
- * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, 
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
  * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  * See LICENSE in the root of the software repository for the full text of the License.
  */
@@ -15,8 +15,8 @@
 #include "ascir_ops.h"
 #include "ascir_ops_utils.h"
 #include "ascgen_log.h"
+#include "graph/utils/type_utils.h"
 #include "graph/ascendc_ir/utils/asc_graph_utils.h"
-#include "fusion/loop_types.h"
 #include "common/platform_context.h"
 
 #include "pyascir_types.h"
@@ -28,14 +28,24 @@ using ascir::ImplGraph;
 namespace pyascir {
 // 生成推导dtype的映射
 using InferDtypeFunc = Status (*)(const std::vector<af::DataType> &input_dtypes,
-                                  std::vector<af::DataType> &expect_output_dtypes,
-                                  const std::string &npu_arch);
+                                  std::vector<af::DataType> &expect_output_dtypes, const std::string &npu_arch);
 std::map<std::string, pyascir::InferDtypeFunc> kInferDtypeFuncs = {
 #define OP(NAME) {#NAME, af::ascir_op::NAME::InferDataType},
     REGISTERED_OPS
 #undef OP
 };
 namespace {
+std::string DataTypesToString(const std::vector<af::DataType> &dtypes) {
+  if (dtypes.empty()) {
+    return "[]";
+  }
+  std::string result = "[" + ge::TypeUtils::DataTypeToSerialString(dtypes[0]);
+  for (size_t i = 1U; i < dtypes.size(); ++i) {
+    result += ", " + ge::TypeUtils::DataTypeToSerialString(dtypes[i]);
+  }
+  return result + "]";
+}
+
 InferDtypeFunc GetInferDtypeFunc(const std::string &node_type) {
   auto iter = kInferDtypeFuncs.find(node_type);
   PY_ASSERT(iter != kInferDtypeFuncs.end(), "%s has no infer dtype func", node_type.c_str());
@@ -119,14 +129,12 @@ bool CollectInputDtypes(const af::AscNodePtr &node, std::vector<af::DataType> &i
 
 bool HasDynamicOutput(const af::OpDescPtr &op_desc) {
   const auto &ir_outputs = op_desc->GetIrOutputs();
-  return std::any_of(ir_outputs.begin(), ir_outputs.end(), [](const auto &output_def) {
-    return output_def.second == af::IrOutputType::kIrOutputDynamic;
-  });
+  return std::any_of(ir_outputs.begin(), ir_outputs.end(),
+                     [](const auto &output_def) { return output_def.second == af::IrOutputType::kIrOutputDynamic; });
 }
 
 bool DoDynamicOutputInference(const af::AscNodePtr &node, InferDtypeFunc infer_func,
-                              const std::vector<af::DataType> &input_dtypes,
-                              std::vector<af::DataType> &output_dtyps) {
+                              const std::vector<af::DataType> &input_dtypes, std::vector<af::DataType> &output_dtyps) {
   auto op_desc = node->GetOpDesc();
   PY_ASSERT_NOTNULL(op_desc, "op_desc is null!");
   const auto &ir_outputs = op_desc->GetIrOutputs();
@@ -161,8 +169,7 @@ bool DoDynamicOutputInference(const af::AscNodePtr &node, InferDtypeFunc infer_f
       output_dtyps.clear();
       break;
     }
-    PY_ASSERT(unique_dtypes.size() == 1U, "%s dynamic_output should have uniform dtypes",
-              op_desc->GetNamePtr());
+    PY_ASSERT(unique_dtypes.size() == 1U, "%s dynamic_output should have uniform dtypes", op_desc->GetNamePtr());
     output_dtyps.push_back(*unique_dtypes.begin());
   }
   if (!has_complete_output_dtypes) {
@@ -170,28 +177,28 @@ bool DoDynamicOutputInference(const af::AscNodePtr &node, InferDtypeFunc infer_f
   }
 
   std::string npu_arch;
-  PY_ASSERT_SUCCESS(ge::PlatformContext::GetInstance().GetCurrentPlatformString(npu_arch),
-                    "Failed to get npu_arch");
+  PY_ASSERT_SUCCESS(ge::PlatformContext::GetInstance().GetCurrentPlatformString(npu_arch), "Failed to get npu_arch");
 
   if (has_complete_output_dtypes) {
     PY_ASSERT_SUCCESS(infer_func(input_dtypes, output_dtyps, npu_arch),
                       "Check dtype failed for %s %s; input_dtypes: %s, output_dytpes: %s", node->GetNamePtr(),
-                      node->GetTypePtr(), ge::loop::StrJoin(input_dtypes).c_str(),
-                      ge::loop::StrJoin(output_dtyps).c_str());
+                      node->GetTypePtr(), DataTypesToString(input_dtypes).c_str(),
+                      DataTypesToString(output_dtyps).c_str());
     return true;
   }
 
   PY_ASSERT_SUCCESS(infer_func(input_dtypes, output_dtyps, npu_arch),
                     "Infer dtype failed for %s %s; input_dtypes: %s is not supportted now", node->GetNamePtr(),
-                    node->GetTypePtr(), ge::loop::StrJoin(input_dtypes).c_str(),
-                    ge::loop::StrJoin(output_dtyps).c_str());
+                    node->GetTypePtr(), DataTypesToString(input_dtypes).c_str(),
+                    DataTypesToString(output_dtyps).c_str());
 
   PY_ASSERT_EQ(output_dtyps.size(), ir_outputs.size());
   std::vector<af::DataType> expanded_output_dtypes;
   for (size_t ir_output_index = 0UL; ir_output_index < ir_outputs.size(); ++ir_output_index) {
     const auto range_iter = ir_output_2_range.find(ir_output_index);
     PY_ASSERT(range_iter != ir_output_2_range.end(), "Invalid ir_output_index: %zu", ir_output_index);
-    expanded_output_dtypes.insert(expanded_output_dtypes.end(), range_iter->second.second, output_dtyps[ir_output_index]);
+    expanded_output_dtypes.insert(expanded_output_dtypes.end(), range_iter->second.second,
+                                  output_dtyps[ir_output_index]);
   }
 
   PY_ASSERT_EQ(expanded_output_dtypes.size(), op_desc->GetOutputsSize());
@@ -210,8 +217,7 @@ bool DoInference(const af::AscNodePtr &node, InferDtypeFunc infer_func, const st
   }
   // 获取 npu_arch
   std::string npu_arch;
-  PY_ASSERT_SUCCESS(ge::PlatformContext::GetInstance().GetCurrentPlatformString(npu_arch),
-                    "Failed to get npu_arch");
+  PY_ASSERT_SUCCESS(ge::PlatformContext::GetInstance().GetCurrentPlatformString(npu_arch), "Failed to get npu_arch");
 
   // 收集非DT_UNDEFINED的预定义输出类型
   bool for_infer = true;
@@ -227,14 +233,14 @@ bool DoInference(const af::AscNodePtr &node, InferDtypeFunc infer_func, const st
   if (!for_infer) {
     PY_ASSERT_SUCCESS(infer_func(input_dtypes, output_dtyps, npu_arch),
                       "Check dtype failed for %s %s; input_dtypes: %s, output_dytpes: %s", node->GetNamePtr(),
-                      node->GetTypePtr(), ge::loop::StrJoin(input_dtypes).c_str(),
-                      ge::loop::StrJoin(output_dtyps).c_str());
+                      node->GetTypePtr(), DataTypesToString(input_dtypes).c_str(),
+                      DataTypesToString(output_dtyps).c_str());
     return true;
   }
   PY_ASSERT_SUCCESS(infer_func(input_dtypes, output_dtyps, npu_arch),
                     "Infer dtype failed for %s %s; input_dtypes: %s is not supportted now", node->GetNamePtr(),
-                    node->GetTypePtr(), ge::loop::StrJoin(input_dtypes).c_str(),
-                    ge::loop::StrJoin(output_dtyps).c_str());
+                    node->GetTypePtr(), DataTypesToString(input_dtypes).c_str(),
+                    DataTypesToString(output_dtyps).c_str());
 
   PY_ASSERT_EQ(output_dtyps.size(), op_desc->GetOutputsSize());
   for (size_t i = 0UL; i < output_dtyps.size(); ++i) {
@@ -996,8 +1002,7 @@ static bool ProcessConv2DNode(const af::AscNodePtr &node, PyObject *attr_dict) {
   PY_ASSERT_GRAPH_SUCCESS(ascgen_utils::GetCubeInputNum(node, conv_input_num));
   SET_DICT_LONG(attr_dict, "input_num", conv_input_num);
   std::string npu_arch;
-  PY_ASSERT_SUCCESS(ge::PlatformContext::GetInstance().GetCurrentPlatformString(npu_arch),
-                    "Failed to get npu_arch");
+  PY_ASSERT_SUCCESS(ge::PlatformContext::GetInstance().GetCurrentPlatformString(npu_arch), "Failed to get npu_arch");
   PyDict_SetItemString(attr_dict, "npu_arch", PyUnicode_FromString(npu_arch.c_str()));
   return true;
 }
@@ -1130,12 +1135,10 @@ PyMethodDef FusedScheduledResult::methods[] = {
     {"get_output_num", reinterpret_cast<PyCFunction>(FusedScheduledResult::GetOutputNum), METH_NOARGS,
      "Get graph output num"},
     {"get_name", reinterpret_cast<PyCFunction>(FusedScheduledResult::GetName), METH_NOARGS, "Get graph name"},
-    {"is_cube_type", reinterpret_cast<PyCFunction>(FusedScheduledResult::IsCubeType), METH_NOARGS,
-     "Check cube type"},
+    {"is_cube_type", reinterpret_cast<PyCFunction>(FusedScheduledResult::IsCubeType), METH_NOARGS, "Check cube type"},
     {"get_cube_attributes", reinterpret_cast<PyCFunction>(FusedScheduledResult::GetCubeAttributes), METH_NOARGS,
      "Get cube attributes"},
-    {"is_conv_type", reinterpret_cast<PyCFunction>(FusedScheduledResult::IsConvType), METH_NOARGS,
-     "Check conv type"},
+    {"is_conv_type", reinterpret_cast<PyCFunction>(FusedScheduledResult::IsConvType), METH_NOARGS, "Check conv type"},
     {nullptr}};
 
 PyTypeObject FusedScheduledResult::type = {PyVarObject_HEAD_INIT(nullptr, 0)};

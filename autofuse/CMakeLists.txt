@@ -269,12 +269,6 @@ install(DIRECTORY ${CODE_ROOT_DIR}/inc/fusion/
     FILES_MATCHING PATTERN "*.h"
 )
 
-install(DIRECTORY ${CODE_ROOT_DIR}/inc/autofuse/autofuse_frame/
-    DESTINATION ${AUTOFUSE_INSTALL_INCLUDE_DIR}/autofuse_frame
-    COMPONENT ${AUTOFUSE_INSTALL_COMPONENT}
-    FILES_MATCHING PATTERN "*.h"
-)
-
 install(FILES
         ${CODE_ROOT_DIR}/inc/common/autofuse_base_type.h
         ${CODE_ROOT_DIR}/inc/common/platform_context.h
@@ -290,21 +284,21 @@ install(FILES
 
 install(FILES
         ${CODE_ROOT_DIR}/ascir/meta/ascend_graph_code_dumper.h
-    DESTINATION ${AUTOFUSE_INSTALL_INCLUDE_DIR}/ascir/meta
-    COMPONENT ${AUTOFUSE_INSTALL_COMPONENT}
+        DESTINATION ${AUTOFUSE_INSTALL_INCLUDE_DIR}/ascir/meta
+        COMPONENT ${AUTOFUSE_INSTALL_COMPONENT}
 )
 
 install(FILES
         ${CODE_ROOT_DIR}/common/common_utils.h
         ${CODE_ROOT_DIR}/common/schedule_result.h
-    DESTINATION ${AUTOFUSE_INSTALL_INCLUDE_DIR}/common
-    COMPONENT ${AUTOFUSE_INSTALL_COMPONENT}
+        DESTINATION ${AUTOFUSE_INSTALL_INCLUDE_DIR}/common
+        COMPONENT ${AUTOFUSE_INSTALL_COMPONENT}
 )
 
 install(FILES
         ${CODE_ROOT_DIR}/att/base/base_types.h
-    DESTINATION ${AUTOFUSE_INSTALL_INCLUDE_DIR}/base
-    COMPONENT ${AUTOFUSE_INSTALL_COMPONENT}
+        DESTINATION ${AUTOFUSE_INSTALL_INCLUDE_DIR}/base
+        COMPONENT ${AUTOFUSE_INSTALL_COMPONENT}
 )
 
 install(FILES
@@ -359,23 +353,12 @@ install(FILES ${CODE_ROOT_DIR}/inc/graph_metadef/graph/debug/ge_util.h
     COMPONENT ${AUTOFUSE_INSTALL_COMPONENT}
 )
 
-# ascir_ops.h depends on af::ascir::cg types defined in cg_utils.h and its dependencies.
-install(FILES
-        ${CODE_ROOT_DIR}/inc/graph_metadef/graph/utils/cg_utils.h
-        ${CODE_ROOT_DIR}/inc/graph_metadef/graph/utils/axis_utils.h
-        ${CODE_ROOT_DIR}/inc/graph_metadef/graph/utils/node_utils_ex.h
-        ${CODE_ROOT_DIR}/inc/graph_metadef/graph/utils/dtype_transform_utils.h
-    DESTINATION ${AUTOFUSE_INSTALL_INCLUDE_DIR}/graph_metadef/graph/utils
-    COMPONENT ${AUTOFUSE_INSTALL_COMPONENT}
-)
-
 # ascir/meta headers keep source-relative layout.
 install(FILES
         ${CODE_ROOT_DIR}/ascir/meta/ascir.h
         ${CODE_ROOT_DIR}/ascir/meta/ascir_ops_utils.h
-        ${CODE_ROOT_DIR}/ascir/meta/ascir_utils.h
-    DESTINATION ${AUTOFUSE_INSTALL_INCLUDE_DIR}/ascir/meta
-    COMPONENT ${AUTOFUSE_INSTALL_COMPONENT}
+        DESTINATION ${AUTOFUSE_INSTALL_INCLUDE_DIR}/ascir/meta
+        COMPONENT ${AUTOFUSE_INSTALL_COMPONENT}
 )
 
 # generated ascir_ops.h (produced by ascir_builtin_ops_header at build time)
@@ -408,7 +391,6 @@ install(FILES
 install(FILES
         ${CMAKE_BINARY_DIR}/proto/metadef_protos_af/proto/af_ir.pb.h
         ${CMAKE_BINARY_DIR}/proto/metadef_protos_af/proto/ascendc_ir.pb.h
-        ${CMAKE_BINARY_DIR}/proto/metadef_protos_af/proto/af_attr_group_base.pb.h
     DESTINATION ${AUTOFUSE_INSTALL_INCLUDE_DIR}/proto
     COMPONENT ${AUTOFUSE_INSTALL_COMPONENT}
 )
@@ -428,8 +410,6 @@ install(FILES
 
 install(FILES
         ${CODE_ROOT_DIR}/inc/graph_metadef/graph/ascendc_ir/utils/asc_graph_utils.h
-        ${CODE_ROOT_DIR}/inc/graph_metadef/graph/ascendc_ir/utils/asc_tensor_utils.h
-        ${CODE_ROOT_DIR}/inc/graph_metadef/graph/ascendc_ir/utils/ascendc_ir_dump_utils.h
     DESTINATION ${AUTOFUSE_INSTALL_INCLUDE_DIR}/graph_metadef/graph/ascendc_ir/utils
     COMPONENT ${AUTOFUSE_INSTALL_COMPONENT}
 )
