@@ -31,6 +31,51 @@ namespace {
 std::string ToString(const af::Expression &e) {
   return std::string(e.Serialize().get());
 }
+
+void SetGlobalOutput(const af::AscNodePtr &node, uint32_t tensor_id) {
+  node->outputs[0].attr.mem.alloc_type = af::AllocType::kAllocTypeGlobal;
+  node->outputs[0].attr.mem.tensor_id = tensor_id;
+}
+
+void SetScalarLikeQueueOutput(const af::AscNodePtr &node, const af::Axis &axis, const af::Expression &repeat,
+                              uint32_t tensor_id, uint32_t queue_id) {
+  auto &attr = node->outputs[0].attr;
+  attr.axis = {axis.id};
+  attr.vectorized_axis = {axis.id};
+  attr.vectorized_strides = {af::ops::Zero};
+  attr.repeats = {repeat};
+  attr.strides = {af::ops::Zero};
+  attr.mem.alloc_type = af::AllocType::kAllocTypeQueue;
+  attr.mem.tensor_id = tensor_id;
+  attr.que.id = queue_id;
+  attr.mem.reuse_id = 0;
+  attr.que.depth = 2;
+  attr.que.buf_num = 2;
+  attr.opt.merge_scope = af::kIdNone;
+}
+
+void SetVectorQueueOutput(const af::AscNodePtr &node, const af::Axis &axis, const af::Expression &repeat,
+                          af::Position position, uint32_t tensor_id, uint32_t queue_id) {
+  auto &attr = node->outputs[0].attr;
+  attr.axis = {axis.id};
+  attr.vectorized_axis = {axis.id};
+  attr.vectorized_strides = {af::ops::One};
+  attr.repeats = {repeat};
+  attr.strides = {af::ops::One};
+  attr.mem.position = position;
+  attr.mem.alloc_type = af::AllocType::kAllocTypeQueue;
+  attr.mem.tensor_id = tensor_id;
+  attr.que.id = queue_id;
+  attr.opt.merge_scope = af::kIdNone;
+}
+
+void SetVectorInputQueueOutput(const af::AscNodePtr &node, const af::Axis &axis, const af::Expression &repeat,
+                               uint32_t tensor_id, uint32_t queue_id) {
+  SetVectorQueueOutput(node, axis, repeat, af::Position::kPositionVecIn, tensor_id, queue_id);
+  node->outputs[0].attr.mem.reuse_id = 0;
+  node->outputs[0].attr.que.depth = 2;
+  node->outputs[0].attr.que.buf_num = 2;
+}
 }
 
 TEST(CodegenKernel, Kernel_DynamicInputDtypeCheck) {
@@ -401,6 +446,57 @@ TEST(CodegenKernel, Kernel_DynamicShapeConsistencyCheckValid) {
   codegen::Kernel kernel(graph.GetName());
   auto ret = CheckGraphValidity(graph);
   EXPECT_EQ(ret, ge::SUCCESS);
+}
+
+TEST(CodegenKernel, Kernel_BitwiseAndScalarDataInputInvalidCheck) {
+  af::AscGraph graph("test_graph");
+  const af::Expression s0 = graph.CreateSizeVar(8);
+  auto z0 = graph.CreateAxis("z0", s0);
+
+  af::ascir_op::Data x_op("x", graph);
+  x_op.ir_attr.SetIndex(0);
+  af::ascir_op::ScalarData scalar_op("scalar", graph);
+  scalar_op.ir_attr.SetIndex(1);
+
+  af::ascir_op::Load load_op("load");
+  af::ascir_op::BitwiseAnd bitwise_and_op("bitwise_and");
+  af::ascir_op::Store store_op("store");
+  af::ascir_op::Output y_op("y");
+  y_op.ir_attr.SetIndex(0);
+
+  x_op.y.dtype = ge::DT_UINT8;
+  scalar_op.y.dtype = ge::DT_UINT8;
+  load_op.x = x_op.y;
+  load_op.y.dtype = ge::DT_UINT8;
+  bitwise_and_op.x1 = load_op.y;
+  bitwise_and_op.x2 = scalar_op.y;
+  bitwise_and_op.y.dtype = ge::DT_UINT8;
+  store_op.x = bitwise_and_op.y;
+  store_op.y.dtype = ge::DT_UINT8;
+  y_op.x = store_op.y;
+  y_op.y.dtype = ge::DT_UINT8;
+
+  auto x = graph.FindNode("x");
+  auto scalar = graph.FindNode("scalar");
+  auto load = graph.FindNode("load");
+  auto bitwise_and = graph.FindNode("bitwise_and");
+  auto store = graph.FindNode("store");
+  ASSERT_NE(x, nullptr);
+  ASSERT_NE(scalar, nullptr);
+  ASSERT_NE(load, nullptr);
+  ASSERT_NE(bitwise_and, nullptr);
+  ASSERT_NE(store, nullptr);
+
+  SetGlobalOutput(x, 0);
+  SetScalarLikeQueueOutput(scalar, z0, s0, 1, 0);
+  SetVectorInputQueueOutput(load, z0, s0, 2, 1);
+
+  bitwise_and->attr.api.unit = af::ComputeUnit::kUnitVector;
+  SetVectorQueueOutput(bitwise_and, z0, s0, af::Position::kPositionVecOut, 3, 2);
+  SetGlobalOutput(store, 4);
+
+  auto ret = CheckGraphValidity(graph);
+  EXPECT_NE(ret, af::SUCCESS);
 }
 
 TEST(CodegenKernel, Kernel_StaticShapeVecAxisConsistencyInValidCheck) {

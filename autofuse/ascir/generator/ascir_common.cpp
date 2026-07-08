@@ -14,6 +14,11 @@
 
 namespace af {
 namespace ascir {
+namespace {
+bool IsScalarInputType(const std::string &node_type) {
+  return node_type == "Scalar" || node_type == "ScalarData";
+}
+}  // namespace
 
 bool OnlySecondInputSupportScalar(const std::vector<bool> &is_scalar_list) {
   GE_ASSERT_EQ(is_scalar_list.size(), 2UL);
@@ -204,7 +209,7 @@ Status ValidateShapeConsistencyWithSingleOutput(const AscNode &node,
 bool IsNodeHasScalarInput(const AscNode &node) {
   AscNodeInputs node_inputs = node.inputs;
   for (size_t i = 0; i < node_inputs().size(); i++) {
-    if (node.GetInDataNodes().at(i)->GetType() == "Scalar") {
+    if (IsScalarInputType(node.GetInDataNodes().at(i)->GetType())) {
       return true;
     }
   }
@@ -212,7 +217,7 @@ bool IsNodeHasScalarInput(const AscNode &node) {
 }
 
 bool IsNodeFirstInputScalar(const AscNode &node) {
-  return node.GetInDataNodes().at(0)->GetType() == "Scalar";
+  return IsScalarInputType(node.GetInDataNodes().at(0)->GetType());
 }
 } // namespace ascir
 } // namespace af
