@@ -13,11 +13,12 @@
 
 #include <string>
 #include <memory>
+#include <functional>
 #include <unordered_map>
 #include "base_platform.h"
 
 namespace optimize {
-using PlatformCreator = std::unique_ptr<BasePlatform> (*)();
+using PlatformCreator = std::function<std::unique_ptr<BasePlatform>()>;
 
 class PlatformFactory {
  public:
@@ -39,13 +40,14 @@ class PlatformFactory {
 template <typename T>
 class PlatformRegistrar {
  public:
-  explicit PlatformRegistrar(const std::string &platform_name);
+  PlatformRegistrar(const std::string &platform_name, bool is_default_enabled);
 };
 
 template <typename T>
-PlatformRegistrar<T>::PlatformRegistrar(const std::string &platform_name) {
+PlatformRegistrar<T>::PlatformRegistrar(const std::string &platform_name, bool is_default_enabled) {
   PlatformFactory::GetInstance().RegisterPlatform(
-      platform_name, []() -> std::unique_ptr<BasePlatform> { return std::make_unique<T>(); });
+      platform_name,
+      [is_default_enabled]() -> std::unique_ptr<BasePlatform> { return std::make_unique<T>(is_default_enabled); });
 }
 }  // namespace optimize
 

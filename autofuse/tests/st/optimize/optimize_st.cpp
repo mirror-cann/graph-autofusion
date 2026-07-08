@@ -42,6 +42,7 @@
 #include "codegen.h"
 #include "ascgraph_info_complete.h"
 #include "asc_graph_builder.h"
+#include "common/autofuse_backend_spec_api.h"
 
 using namespace std;
 using namespace af;
@@ -3638,6 +3639,15 @@ TEST_F(OptimizerSt, platform_reg_test) {
   EXPECT_EQ(platform_v1->PartitionSubFunctions(graph), af::SUCCESS);
 }
 
+TEST_F(OptimizerSt, platform_config_test) {
+  auto platform_v1 = optimize::PlatformFactory::GetInstance().GetPlatform();
+  ASSERT_NE(platform_v1, nullptr);
+  const auto &config = platform_v1->GetPlatformConfig();
+  EXPECT_FALSE(config.is_default_enabled);
+  EXPECT_FALSE(config.is_support_compat_mode);
+  EXPECT_EQ(config.max_que_num, 4UL);
+}
+
 TEST_F(OptimizerSt, ReduceNeedAlignment) {
   const Expression s0 = af::Symbol(7);
   const Expression s1 = af::Symbol(8);
@@ -4072,6 +4082,13 @@ TEST_F(OptimizerSt, BackendSpec) {
   auto spec = optimize::BackendSpec::GetInstance();
   ASSERT_TRUE(spec != nullptr);
   ASSERT_EQ(spec->concat_max_input_num, 63);
+  ASSERT_FALSE(spec->is_default_enabled);
+}
+
+TEST_F(OptimizerSt, AutofuseBackendSpecTest) {
+  auto spec = ge::GetAutofuseBackendSpec();
+  ASSERT_NE(spec, nullptr);
+  EXPECT_FALSE(spec->is_default_enabled);
 }
 
 TEST_F(OptimizerSt, TestConcatBackwardFusionGraph_OptimizeSuccess) {

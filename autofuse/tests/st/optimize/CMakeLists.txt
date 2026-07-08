@@ -5,6 +5,7 @@ file(GLOB_RECURSE OPTIMIZE_TEST_FILES "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp")
 add_executable(optimize_st
         test.cpp
         ${OPTIMIZE_TEST_FILES}
+        ${CODE_ROOT_DIR}/common/autofuse_backend_spec_api.cpp
         ${CODE_ROOT_DIR}/tests/framework/easy_asc_graph/asc_graph_builder.cpp
 )
 

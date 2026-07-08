@@ -43,6 +43,7 @@ struct AutofuseBackendSpec {
   uint32_t max_input_nums_after_fuse = 8U;
   uint32_t transpose_mode = static_cast<uint32_t>(AutofuseTransposeMode::TRANSPOSE_MODE_NORMAL);
   bool enable_matmul_lowering_to_matmul = false;
+  bool is_default_enabled = false;
 };
 
 std::unique_ptr<AutofuseBackendSpec> GetAutofuseBackendSpec();

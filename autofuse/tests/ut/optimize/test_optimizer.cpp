@@ -42,6 +42,7 @@
 #include "asc_graph_builder.h"
 #include "codegen.h"
 #include "optimize/graph_pass/pass_utils.h"
+#include "common/autofuse_backend_spec_api.h"
 
 using namespace af;
 using namespace af::ops;
@@ -7216,10 +7217,61 @@ TEST_F(TestOptimizer, platform_reg_test) {
   EXPECT_EQ(platform_fake, nullptr);
 }
 
+TEST_F(TestOptimizer, platform_config_test) {
+  // "2201" -> PlatformV1, is_default_enabled = false
+  std::string platform_str;
+  ge::PlatformContext::GetInstance().GetCurrentPlatformString(platform_str);
+  EXPECT_EQ(platform_str, "2201");
+  auto platform_v1 = optimize::PlatformFactory::GetInstance().GetPlatform();
+  ASSERT_NE(platform_v1, nullptr);
+  const auto &config_v1 = platform_v1->GetPlatformConfig();
+  EXPECT_FALSE(config_v1.is_default_enabled);
+  EXPECT_FALSE(config_v1.is_support_compat_mode);
+  EXPECT_EQ(config_v1.max_que_num, 4UL);
+
+  // "3510" -> PlatformV2, is_default_enabled = true
+  ge::PlatformContext::GetInstance().SetPlatform("3510");
+  auto platform_3510 = optimize::PlatformFactory::GetInstance().GetPlatform();
+  ASSERT_NE(platform_3510, nullptr);
+  const auto &config_3510 = platform_3510->GetPlatformConfig();
+  EXPECT_TRUE(config_3510.is_default_enabled);
+  EXPECT_TRUE(config_3510.is_support_compat_mode);
+  EXPECT_EQ(config_3510.max_que_num, 14UL);
+
+  // "5102" -> PlatformV2, is_default_enabled = false
+  ge::PlatformContext::GetInstance().SetPlatform("5102");
+  auto platform_5102 = optimize::PlatformFactory::GetInstance().GetPlatform();
+  ASSERT_NE(platform_5102, nullptr);
+  const auto &config_5102 = platform_5102->GetPlatformConfig();
+  EXPECT_FALSE(config_5102.is_default_enabled);
+  EXPECT_TRUE(config_5102.is_support_compat_mode);
+  EXPECT_EQ(config_5102.max_que_num, 14UL);
+}
+
 TEST_F(TestOptimizer, BackendSpec) {
   auto spec = optimize::BackendSpec::GetInstance();
   ASSERT_TRUE(spec != nullptr);
   ASSERT_EQ(spec->concat_max_input_num, 63);
+  ASSERT_FALSE(spec->is_default_enabled);
+}
+
+TEST_F(TestOptimizer, AutofuseBackendSpecTest) {
+  // "2201" -> is_default_enabled = false
+  auto spec_2201 = ge::GetAutofuseBackendSpec();
+  ASSERT_NE(spec_2201, nullptr);
+  EXPECT_FALSE(spec_2201->is_default_enabled);
+
+  // "3510" -> is_default_enabled = true
+  ge::PlatformContext::GetInstance().SetPlatform("3510");
+  auto spec_3510 = ge::GetAutofuseBackendSpec();
+  ASSERT_NE(spec_3510, nullptr);
+  EXPECT_TRUE(spec_3510->is_default_enabled);
+
+  // "5102" -> is_default_enabled = false
+  ge::PlatformContext::GetInstance().SetPlatform("5102");
+  auto spec_5102 = ge::GetAutofuseBackendSpec();
+  ASSERT_NE(spec_5102, nullptr);
+  EXPECT_FALSE(spec_5102->is_default_enabled);
 }
 
 TEST_F(TestOptimizer, BrcCacheReuseOtherMem) {

@@ -22,6 +22,7 @@ namespace optimize {
 struct PlatformConfig {
   size_t max_que_num = 4U;
   bool is_support_compat_mode = false;
+  bool is_default_enabled = false;
 };
 
 class BasePlatform {
@@ -39,12 +40,17 @@ class BasePlatform {
   // 获取平台相关规格
   virtual std::unique_ptr<BackendSpec> GetBackendSpec() const = 0;
 
-  virtual const PlatformConfig &GetPlatformConfig() const = 0;
+  const PlatformConfig &GetPlatformConfig() const {
+    return config_;
+  }
 
   virtual Status GenerateTasks(::ascir::ImplGraph &optimize_graph, const OptimizerOptions &options,
                                std::vector<ScheduleTask> &tasks) const = 0;
 
   virtual std::set<std::string> BroadcastTypes() const = 0;
+
+ protected:
+  PlatformConfig config_;
 };
 }  // namespace optimize
 #endif  // OPTIMIZE_PLATFORM_BASE_PLATFORM_H

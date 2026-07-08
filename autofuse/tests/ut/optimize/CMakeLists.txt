@@ -6,6 +6,7 @@ list(FILTER OPTIMIZE_TEST_FILES EXCLUDE REGEX "autofuse_backend_stub.cpp")
 add_executable(optimize_ut
         test.cpp
         ${OPTIMIZE_TEST_FILES}
+        ${CODE_ROOT_DIR}/common/autofuse_backend_spec_api.cpp
 )
 
 target_include_directories(optimize_ut PRIVATE

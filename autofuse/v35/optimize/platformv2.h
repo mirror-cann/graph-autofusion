@@ -16,7 +16,7 @@
 namespace optimize {
 class PlatformV2 : public BasePlatform {
  public:
-  PlatformV2();
+  explicit PlatformV2(bool is_default_enabled);
   ~PlatformV2() override = default;
   af::Status PartitionSubFunctions(af::AscGraph &impl_graph) override;
   std::unique_ptr<BaseAlignmentStrategy> GetAlignmentStrategy() override;
@@ -25,11 +25,7 @@ class PlatformV2 : public BasePlatform {
   std::unique_ptr<BackendSpec> GetBackendSpec() const override;
   Status GenerateTasks(ascir::ImplGraph &optimize_graph, const OptimizerOptions &options,
                        std::vector<ScheduleTask> &tasks) const override;
-  const PlatformConfig &GetPlatformConfig() const override;
   std::set<std::string> BroadcastTypes() const override;
-
- private:
-  PlatformConfig config_;
 };
 }  // namespace optimize
 #endif  // OPTIMIZE_PLATFORM_V1_PLATFORM_V2_H
