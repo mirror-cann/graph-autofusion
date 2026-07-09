@@ -308,6 +308,7 @@ inline __aicore__ void Concat16MultipleColumns(const ConcatParams<T, dim_size> &
   TransposeParams trans_param = trans_para;
   trans_param.column_offset = column_align_cnt;
   trans_param.columns_cur_loop = col_not_align_cnt;
+  AscendC::PipeBarrier<PIPE_V>();
   FirstTransposeMatrix(tmp_buf1, *dst.tensor, trans_param, 0, dst.stride[0]);
   trans_param.column_offset = trans_para.column_loop * max_columns;
   trans_param.columns_cur_loop = trans_para.columns_cur_loop;
@@ -316,7 +317,9 @@ inline __aicore__ void Concat16MultipleColumns(const ConcatParams<T, dim_size> &
   uint32_t row_cnt = col_not_align_cnt + trans_para.columns_cur_loop;  // 第二次转置前的总行数
   constexpr uint32_t column_cnt = GetTotalColumns<T>();                // 第二次转置前的总列数
   LocalTensor<T> tmp_buf2 = tmp_buf1[column_cnt * row_cnt];
+  AscendC::PipeBarrier<PIPE_V>();
   SecondTranspose<T>(tmp_buf1, tmp_buf2, row_cnt, column_cnt);
+  AscendC::PipeBarrier<PIPE_V>();
 
   // 3.拼接回dst
   struct RowParam row;
@@ -393,6 +396,7 @@ inline __aicore__ void MultipleInputsConcat16Rows(const ConcatParams<T, dim_size
   trans_param.row.rows_cur_loop = row.rows_cur_loop;
   trans_param.column_offset = column_align_cnt;
   trans_param.columns_cur_loop = col_not_align_cnt;
+  AscendC::PipeBarrier<PIPE_V>();
   FirstTransposeMatrix(tmp_buf1, *dst.tensor, trans_param, 0, dst.stride[0]);
 
   auto total_column_cnt = col_not_align_cnt;
@@ -409,12 +413,13 @@ inline __aicore__ void MultipleInputsConcat16Rows(const ConcatParams<T, dim_size
     sub_column_cnt += srcs[idx].shape[1];
     total_column_cnt += srcs[idx].shape[1];
   }
-
+  AscendC::PipeBarrier<PIPE_V>();
   // 2.第二次转置回来,转置策略为竖着取横着放，尽量增大repeat
   constexpr uint32_t column_cnt = GetTotalColumns<T>();
   uint32_t row_cnt = total_column_cnt;
   LocalTensor<T> tmp_buf2 = tmp_buf1[column_cnt * row_cnt];
   SecondTranspose<T>(tmp_buf1, tmp_buf2, row_cnt, column_cnt);
+  AscendC::PipeBarrier<PIPE_V>();
 
   // 3.拼接回dst
   DataCopyToDst<T, dim_size>(dst, tmp_buf2, row_cnt, row, column_align_cnt);
@@ -495,6 +500,7 @@ inline __aicore__ void CopyThenTranspose16Rows(const ConcatParams<T, dim_size> &
 
   // 由于该分支只会在dst上尾部column未对齐的时候进入，因此需要先处理dst上未对齐的部分
   // 将dst上未对齐的column拷贝到buf
+  AscendC::PipeBarrier<PIPE_V>();
   CopyUnAlignDstToTmp<T, kMergedDimNum>(tmp_buf1, dst, row, column_align_cnt, tmp_stride0);
   AscendC::PipeBarrier<PIPE_V>();
   curr_tmp_column += align;

@@ -58,23 +58,50 @@ Expression CalcForSmallTailKernel(AscNodeOutputs &node_outputs, uint32_t concat_
   return Symbol(buf_size);
 }
 
-bool IsAllStaticAligned(AscNodeInputs &node_inputs, uint32_t concat_dim, int32_t align_size) {
-  for (uint32_t i = 0; i < node_inputs.Size(); ++i) {
-    auto axis = node_inputs[i].attr.repeats[concat_dim];
-    for (uint32_t j = concat_dim + 1; j < node_inputs[i].attr.repeats.size(); ++j) {
-      axis = sym::Mul(axis, node_inputs[i].attr.repeats[j]);
-    }
+bool IsAllStaticAligned(const AscNode &node, int32_t align_size) {
+  AscNodeInputs node_inputs = node.inputs;
+  AscNodeOutputs node_outputs = node.outputs;
+  const auto &output_attr = node_outputs[0].attr;
+  const auto &input0_attr = node_inputs[0].attr;
+  GE_WARN_ASSERT(!output_attr.vectorized_axis.empty() && !output_attr.vectorized_strides.empty(),
+                 "vectorized_axis or vectorized_strides is empty, not aligned.");
 
-    if (SymbolicUtils::StaticCheckEq(sym::Mod(axis, Symbol(align_size)), sym::kSymbolZero) != TriBool::kTrue) {
-      GELOGD("The product of dims after concat_dim is %s, not aligned.",
-             SymbolicUtils::ToString(sym::Mod(axis, Symbol(align_size))).c_str());
+  size_t concat_dim = 0;
+  bool find_concat_dim = false;
+  for (size_t i = 0; i < output_attr.vectorized_axis.size(); i++) {
+    auto axis_id = output_attr.vectorized_axis[i];
+    auto it = std::find(output_attr.axis.begin(), output_attr.axis.end(), axis_id);
+    GE_WARN_ASSERT(it != output_attr.axis.end(), "axis_id %ld not found in output[0].attr.axis, not aligned.", axis_id);
+    const auto pos = static_cast<uint32_t>(std::distance(output_attr.axis.begin(), it));
+    if (SymbolicUtils::StaticCheckEq(input0_attr.repeats[pos], output_attr.repeats[pos]) != TriBool::kTrue) {
+      concat_dim = i;
+      find_concat_dim = true;
+      GELOGD("find concat_dim: %zu in vectorized_axis.", concat_dim);
+      break;
+    }
+  }
+
+  GE_WARN_ASSERT(find_concat_dim, "not find concat dim in vectorized_axis, not aligned.");
+
+  for (uint32_t i = 0; i < node_inputs.Size(); ++i) {
+    const auto &input_attr = node_inputs[i].attr;
+    auto axis_id = input_attr.vectorized_axis[concat_dim];
+    auto it = std::find(input_attr.axis.begin(), input_attr.axis.end(), axis_id);
+    GE_WARN_ASSERT(it != input_attr.axis.end(), "axis_id %ld not found in input[%u].attr.axis, not aligned.", axis_id,
+                   i);
+    const auto pos = static_cast<uint32_t>(std::distance(input_attr.axis.begin(), it));
+    const Expression axis_size = input_attr.repeats[pos] * output_attr.vectorized_strides[concat_dim];
+    if (SymbolicUtils::StaticCheckEq(sym::Mod(axis_size, Symbol(align_size)), sym::kSymbolZero) != TriBool::kTrue) {
+      GELOGD("input[%u]: repeats[%u] * vectorized_strides[%zu] = %s, not aligned to %d.", i, pos, concat_dim,
+             SymbolicUtils::ToString(sym::Mod(axis_size, Symbol(align_size))).c_str(), align_size);
       return false;
     }
   }
   return true;
 }
 
-Expression CalcForDefaultKernel(AscNodeInputs &node_inputs, uint32_t concat_dim, bool flag) {
+Expression CalcForDefaultKernel(const AscNode &node, uint32_t concat_dim, bool flag) {
+  AscNodeInputs node_inputs = node.inputs;
   Expression max_axis_size = Symbol(0);
   if (flag) {
     for (uint32_t i = 1; i < node_inputs.Size(); ++i) {
@@ -93,7 +120,7 @@ Expression CalcForDefaultKernel(AscNodeInputs &node_inputs, uint32_t concat_dim,
   auto type_size = GetSizeByDataType(node_inputs[0].attr.dtype);
   GE_ASSERT_TRUE(type_size != 0, "Invalid node inputs dtype, sizeof(T) = 0.");
   Expression min_tmp_buf_size = Symbol(0);
-  bool is_aligned = IsAllStaticAligned(node_inputs, concat_dim, ALIGNSIZE32 / type_size);
+  bool is_aligned = IsAllStaticAligned(node, ALIGNSIZE32 / type_size);
   if (type_size == TYPESIZEEQ8) {
     min_tmp_buf_size =
         is_aligned ? Symbol(0)
@@ -137,7 +164,7 @@ std::vector<std::unique_ptr<TmpBufDesc>> CalcConcatTmpSize(const AscNode &node) 
   bool concat_small_tail = false;
   (void)af::AttrUtils::GetBool(node.GetOpDesc(), "_concat_small_tail", concat_small_tail);
   const auto tmp_buf_size = concat_small_tail ? CalcForSmallTailKernel(node_outputs, concat_dim)
-                                              : CalcForDefaultKernel(node_inputs, concat_dim, flag);
+                                              : CalcForDefaultKernel(node, concat_dim, flag);
   if (SymbolicUtils::StaticCheckEq(tmp_buf_size, sym::kSymbolZero) == TriBool::kTrue) {
     GELOGI("%s does not require tmp buf", node.GetNamePtr());
     return {};
@@ -156,22 +183,11 @@ std::vector<std::unique_ptr<TmpBufDesc>> CalcConcatTmpSize(const AscNode &node) 
 
 std::vector<std::unique_ptr<TmpBufDesc>> CalcConcatTmpSizeV2(const AscNode &node) {
   AscNodeInputs node_inputs = node.inputs;
-  AscNodeOutputs node_outputs = node.outputs;
   GE_ASSERT_TRUE(node_inputs.Size() > 0);
-  uint32_t concat_dim = 0;
-  const auto num_dims = node_outputs[0].attr.repeats.size();
-  for (uint32_t idx = 0; idx < num_dims; ++idx) {
-    const auto i = num_dims - idx - 1;
-    if (node_outputs[0].attr.repeats[i] != node_inputs[0].attr.repeats[i]) {
-      concat_dim = i;
-      break;
-    }
-  }
   auto type_size = GetSizeByDataType(node_inputs[0].attr.dtype);
   GE_ASSERT_TRUE(type_size > 0, "%s Invalid node inputs dtype: %d", node.GetNamePtr(),
                  static_cast<int32_t>(node_inputs[0].attr.dtype));
-  Expression min_tmp_buf_size = Symbol(0);
-  bool is_aligned = IsAllStaticAligned(node_inputs, concat_dim, ALIGNSIZE32 / type_size);
+  bool is_aligned = IsAllStaticAligned(node, ALIGNSIZE32 / type_size);
   if (is_aligned) {
     GELOGD("%s is all aligned", node.GetNamePtr());
     return {};

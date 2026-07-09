@@ -99,6 +99,7 @@ class ConcatGroupPartitioner {
   int64_t known_rows_ = 1L;
   int64_t total_rows_ = 0L;
   int64_t default_cols_per_group_ = 0L;
+  int64_t max_cols_per_group_ = 0L;
   bool has_recompute_ = false;
 };
 }  // namespace optimize
