@@ -13,7 +13,7 @@
 #include <utility>
 #include "nlohmann/json.hpp"
 #include "framework/common/debug/ge_log.h"
-#include "external/ge_common_af/ge_api_types.h"
+#include "ge_common_af/ge_api_types.h"
 
 namespace af {
 using Json = nlohmann::json;

@@ -34,7 +34,6 @@ target_include_directories(ascir_builtin_ops PRIVATE
         ${GE_METADEF_INC_DIR}
         ${GE_METADEF_INC_DIR}/graph
         ${GE_METADEF_INC_DIR}/graph/ascendc_ir
-        ${GE_METADEF_INC_DIR}/external
         ${GE_METADEF_DIR}/graph/ascendc_ir/generator
         )
 
@@ -59,7 +58,6 @@ target_include_directories(aihac_codegen PRIVATE
     ${GE_METADEF_INC_DIR}
     ${GE_METADEF_INC_DIR}/graph
     ${GE_METADEF_INC_DIR}/graph/ascendc_ir
-    ${GE_METADEF_INC_DIR}/external
     ${GE_METADEF_DIR}/graph/ascendc_ir/generator
     ${ops_header_dir}
 )

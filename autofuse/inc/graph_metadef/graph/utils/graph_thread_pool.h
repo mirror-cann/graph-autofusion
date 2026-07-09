@@ -22,7 +22,7 @@
 #include <vector>
 
 #include "framework/common/debug/ge_log.h"
-#include "external/ge_common_af/ge_api_error_codes.h"
+#include "ge_common_af/ge_api_error_codes.h"
 #include "common/util/mem_utils.h"
 
 namespace af {

@@ -14,7 +14,7 @@
 #include <map>
 
 #include "graph/debug/ge_util.h"
-#include "external/graph/types.h"
+#include "graph/types.h"
 
 namespace af {
 namespace {

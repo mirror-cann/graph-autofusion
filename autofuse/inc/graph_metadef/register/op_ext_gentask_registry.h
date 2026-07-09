@@ -15,7 +15,7 @@
 #include <vector>
 #include "graph/node.h"
 #include "proto/task.pb.h"
-#include "external/ge_common_af/ge_api_types.h"
+#include "ge_common_af/ge_api_types.h"
 #include "common/opskernel/ops_kernel_info_types.h"
 namespace fe {
 using OpExtGenTaskFunc = af::Status (*)(const ge::Node &node, ge::RunContext &context,

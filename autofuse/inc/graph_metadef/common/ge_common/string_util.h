@@ -20,7 +20,7 @@
 #include <string>
 #include <vector>
 #include "graph/types.h"
-#include "external/ge_common_af/ge_error_codes.h"
+#include "ge_common_af/ge_error_codes.h"
 
 namespace af {
 using ge::char_t;

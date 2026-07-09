@@ -13,7 +13,7 @@
 
 #include "tiling_cache_code_gen.h"
 #include "base/model_info.h"
-#include "external/ge_common_af/ge_api_types.h"
+#include "ge_common_af/ge_api_types.h"
 
 namespace att {
 namespace cache {

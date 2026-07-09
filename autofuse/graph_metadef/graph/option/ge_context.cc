@@ -15,7 +15,7 @@
 #include "graph/types.h"
 #include "framework/common/debug/ge_log.h"
 #include "utils/extern_math_util.h"
-#include "external/ge_common_af/ge_api_types.h"
+#include "ge_common_af/ge_api_types.h"
 
 namespace af {
 namespace {

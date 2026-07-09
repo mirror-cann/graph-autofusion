@@ -7,7 +7,7 @@
 #ifndef AF_INC_BASE_UTILS_TYPE_UTILS_IMPL_H_
 #define AF_INC_BASE_UTILS_TYPE_UTILS_IMPL_H_
 
-#include "external/graph/ascend_string.h"
+#include "graph/ascend_string.h"
 #include "graph/types.h"
 
 namespace af {
