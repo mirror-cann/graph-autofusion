@@ -14,7 +14,9 @@
 namespace optimize {
 std::unique_ptr<BackendSpec> BackendSpec::GetInstance() {
   const auto platform = PlatformFactory::GetInstance().GetPlatform();
-  GE_ASSERT_NOTNULL(platform);
+  if (platform == nullptr) {
+    return nullptr;
+  }
   return platform->GetBackendSpec();
 }
 }  // namespace optimize

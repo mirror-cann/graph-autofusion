@@ -33,6 +33,7 @@ std::unique_ptr<AutofuseBackendSpec> GetAutofuseBackendSpec() {
   spec->max_input_nums_after_fuse = backend_spec->max_input_nums_after_fuse;
   spec->transpose_mode = backend_spec->transpose_mode;
   spec->enable_matmul_lowering_to_matmul = backend_spec->enable_matmul_lowering_to_matmul;
+  spec->is_default_enabled = backend_spec->is_default_enabled;
   return spec;
 }
 }  // namespace ge

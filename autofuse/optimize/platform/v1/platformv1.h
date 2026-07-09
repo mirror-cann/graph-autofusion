@@ -16,21 +16,17 @@
 namespace optimize {
 class PlatformV1 : public BasePlatform {
  public:
-  PlatformV1();
+  explicit PlatformV1(bool is_default_enabled);
   ~PlatformV1() override = default;
   af::Status PartitionSubFunctions(af::AscGraph &impl_graph) override;
   std::unique_ptr<BaseAlignmentStrategy> GetAlignmentStrategy() override;
   unique_ptr<BasePassRunner> GetPassRunner() override;
   std::unique_ptr<BaseTemplateGenerator> GetTemplateGenerator() override;
   std::unique_ptr<BackendSpec> GetBackendSpec() const override;
-  const PlatformConfig &GetPlatformConfig() const override;
 
   Status GenerateTasks(::ascir::ImplGraph &optimize_graph, const OptimizerOptions &options,
                        std::vector<ScheduleTask> &tasks) const override;
   std::set<std::string> BroadcastTypes() const override;
-
- private:
-  PlatformConfig config_;
 };
 }  // namespace optimize
 #endif  // OPTIMIZE_PLATFORM_V1_PLATFORM_V1_H

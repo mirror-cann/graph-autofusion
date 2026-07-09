@@ -26,9 +26,10 @@
 namespace optimize {
 constexpr size_t kMaxVecQueNum = 14UL;
 
-PlatformV2::PlatformV2() {
+PlatformV2::PlatformV2(bool is_default_enabled) {
   config_.max_que_num = kMaxVecQueNum;
   config_.is_support_compat_mode = true;
+  config_.is_default_enabled = is_default_enabled;
 }
 
 af::Status PlatformV2::PartitionSubFunctions(af::AscGraph &impl_graph) {
@@ -78,6 +79,7 @@ std::unique_ptr<BackendSpec> PlatformV2::GetBackendSpec() const {
   // 256*1024是UB size
   ret->set_local_memory_size = 248 * 1024 - 8 * 1024 - 32 * 1024;
   ret->pgo_spec = {false};
+  ret->is_default_enabled = config_.is_default_enabled;
   return ret;
 }
 
@@ -100,17 +102,13 @@ Status PlatformV2::GenerateTasks(ascir::ImplGraph &optimize_graph, const Optimiz
   return af::SUCCESS;
 }
 
-const PlatformConfig &PlatformV2::GetPlatformConfig() const {
-  return config_;
-}
-
 std::set<std::string> PlatformV2::BroadcastTypes() const {
   return {af::ascir_op::Broadcast::Type, af::ascir_op::Nddma::Type};
 }
 
-#define REGISTER_PLATFORM_V2(platform_name, suffix) \
-  static PlatformRegistrar<PlatformV2> registrar_##suffix(platform_name)
+#define REGISTER_PLATFORM_V2(platform_name, suffix, is_default_enabled) \
+  static PlatformRegistrar<PlatformV2> registrar_##suffix(platform_name, is_default_enabled)
 
-REGISTER_PLATFORM_V2("3510", v2);
-REGISTER_PLATFORM_V2("5102", V2_1);
+REGISTER_PLATFORM_V2("3510", v2, true);
+REGISTER_PLATFORM_V2("5102", V2_1, false);
 }  // namespace optimize

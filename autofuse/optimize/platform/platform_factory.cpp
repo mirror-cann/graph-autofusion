@@ -37,7 +37,7 @@ BasePlatform *PlatformFactory::GetPlatform() {
     return platform_name_to_instances_[platform_name].get();
   }
 
-  GELOGE(af::FAILED, "Can't find platform %s", platform_name.c_str());
+  GELOGW("Can't find platform %s", platform_name.c_str());
   return nullptr;
 }
 

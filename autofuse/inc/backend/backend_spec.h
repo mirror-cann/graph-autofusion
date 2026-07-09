@@ -52,6 +52,7 @@ struct BackendSpec {
   uint32_t max_group_num_per_compile_unit = 5;
   PgoSpec pgo_spec;
   bool enable_matmul_lowering_to_matmul;  // 限制A2A3 不能lowering出matmul，不限制matmul lowering成别的ascir类型
+  bool is_default_enabled;
 };
 }  // namespace optimize
 

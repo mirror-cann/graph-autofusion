@@ -22,8 +22,9 @@
 namespace optimize {
 constexpr size_t kMaxVecQueNum = 4UL;
 
-PlatformV1::PlatformV1() {
+PlatformV1::PlatformV1(bool is_default_enabled) {
   config_.max_que_num = kMaxVecQueNum;
+  config_.is_default_enabled = is_default_enabled;
 }
 
 af::Status PlatformV1::PartitionSubFunctions([[maybe_unused]] af::AscGraph &impl_graph) {
@@ -66,11 +67,8 @@ std::unique_ptr<BackendSpec> PlatformV1::GetBackendSpec() const {
   ret->transpose_mode = static_cast<uint32_t>(TransposeMode::TRANSPOSE_MODE_NORMAL);
   ret->set_local_memory_size = 0;
   ret->pgo_spec = {true};
+  ret->is_default_enabled = config_.is_default_enabled;
   return ret;
-}
-
-const PlatformConfig &PlatformV1::GetPlatformConfig() const {
-  return config_;
 }
 
 Status PlatformV1::GenerateTasks(ascir::ImplGraph &optimize_graph, const OptimizerOptions &options,
@@ -94,8 +92,8 @@ std::set<std::string> PlatformV1::BroadcastTypes() const {
   return {af::ascir_op::Broadcast::Type};
 }
 
-#define REGISTER_PLATFORM_V1(platform_name, suffix) \
-  static PlatformRegistrar<PlatformV1> registrar_##suffix(platform_name)
+#define REGISTER_PLATFORM_V1(platform_name, suffix, is_default_enabled) \
+  static PlatformRegistrar<PlatformV1> registrar_##suffix(platform_name, is_default_enabled)
 
-REGISTER_PLATFORM_V1("2201", v1);
+REGISTER_PLATFORM_V1("2201", v1, false);
 }  // namespace optimize
