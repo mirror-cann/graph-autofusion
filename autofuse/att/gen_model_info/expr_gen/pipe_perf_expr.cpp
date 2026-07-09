@@ -587,7 +587,7 @@ af::Status PipePerfExpr::GetPerfExpr(std::map<PipeType, Expr> &pipe_costs,
 // 获取节点性能（内部方法，包含VectorFunc特殊处理）
 af::Status PipePerfExpr::GetNodePerfInternal(const NodeInfo &node, std::map<PipeType, Expr> &node_perf,
                                              std::map<Expr, TernaryOp, ExprCmp> &ternary_ops,
-                                             std::vector<PerfBreakdownGroup> &perf_breakdowns) const {
+                                             std::vector<PerfBreakdownGroup> &perf_breakdowns, bool tail_shape) const {
   if (node.node_type == kVectorFunc) {
     // VectorFunc节点特殊处理
     std::vector<NodePerfInfo> node_perf_infos;
@@ -597,7 +597,7 @@ af::Status PipePerfExpr::GetNodePerfInternal(const NodeInfo &node, std::map<Pipe
     GE_ASSERT_SUCCESS(ConvertToPerfInfo(node.sub_nodes_infos, node_perf_infos, vector_func_dims),
                       "Convert to perf info failed, node = %s %s", node.name.c_str(), node.node_type.c_str());
     Expr res;
-    GE_ASSERT_SUCCESS(VfPerfUtils::GetVectorFunctionPerf(node_perf_infos, res),
+    GE_ASSERT_SUCCESS(VfPerfUtils::GetVectorFunctionPerf(node_perf_infos, node.vector_func_params, ternary_ops, res),
                       "Get vector function perf failed, node = %s %s.", node.name.c_str(), node.node_type.c_str());
 
     // 为VectorFunc节点创建ternary_ops条目
@@ -620,8 +620,8 @@ af::Status PipePerfExpr::GetNodePerfInternal(const NodeInfo &node, std::map<Pipe
     }
   } else {
     // 普通节点
-    GE_ASSERT_SUCCESS(GetNodePerf(node, node_perf, ternary_ops, perf_breakdowns), "Get node [%s][%s] perf failed.",
-                      node.name.c_str(), node.node_type.c_str());
+    GE_ASSERT_SUCCESS(GetNodePerf(node, node_perf, ternary_ops, perf_breakdowns, tail_shape),
+                      "Get node [%s][%s] perf failed.", node.name.c_str(), node.node_type.c_str());
   }
   return af::SUCCESS;
 }
@@ -639,7 +639,7 @@ af::Status PipePerfExpr::AddNodePerfToPipeCost(const NodeInfo &node, const Expr 
     GELOGD("Node with single cut, add tail perf.");
     Expr tail_exe_time;
     std::map<PipeType, Expr> node_tail_perf;
-    GE_ASSERT_SUCCESS(GetNodePerf(node, node_tail_perf, ternary_ops, perf_breakdowns, true),
+    GE_ASSERT_SUCCESS(GetNodePerfInternal(node, node_tail_perf, ternary_ops, perf_breakdowns, true),
                       "Get node [%s] tail perf failed.", node.name.c_str());
     GE_ASSERT_SUCCESS(GetTailExeTime(node, exe_var, tail_exe_time));
     GE_ASSERT_SUCCESS(AddTailPerf(tail_exe_time, exe_var, node_tail_perf, ctx));

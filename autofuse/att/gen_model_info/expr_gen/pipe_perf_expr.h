@@ -74,7 +74,7 @@ class PipePerfExpr {
   // 获取节点性能（内部方法，包含VectorFunc特殊处理）
   af::Status GetNodePerfInternal(const NodeInfo &node, std::map<PipeType, Expr> &node_perf,
                                  std::map<Expr, TernaryOp, ExprCmp> &ternary_ops,
-                                 std::vector<PerfBreakdownGroup> &perf_breakdowns) const;
+                                 std::vector<PerfBreakdownGroup> &perf_breakdowns, bool tail_shape = false) const;
   // 添加节点性能到pipe_costs
   af::Status AddNodePerfToPipeCost(const NodeInfo &node, const Expr &exe_var, const std::map<PipeType, Expr> &node_perf,
                                    std::map<PipeType, Expr> &pipe_costs,

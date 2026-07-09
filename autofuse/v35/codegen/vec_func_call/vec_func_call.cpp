@@ -10,7 +10,7 @@
 #include "vec_func_call.h"
 
 #include <sstream>
-#include "attr_utils.h"
+#include "ascir_node_param/ascir_node_param.h"
 #include "ascir_ops.h"
 #include "common/ge_common/debug/log.h"
 #include "graph/ascendc_ir/utils/asc_tensor_utils.h"
@@ -31,6 +31,16 @@ using namespace af::ascir_op;
 using namespace ascgen_utils;
 
 namespace {
+std::vector<ge::Expression> GetVfOutputDims(const VectorizedAxisLoopMergeStatus &merge_info) {
+  std::vector<ge::Expression> output_dims;
+  const size_t dim_size = merge_info.merge_repeats.size();
+  size_t start_idx = dim_size <= kVFMaxLoop ? 0 : dim_size - kVFMaxLoop;
+  for (; start_idx < dim_size; ++start_idx) {
+    output_dims.emplace_back(merge_info.merge_repeats[start_idx]);
+  }
+  return output_dims;
+}
+
 void ParamPostProcess(std::stringstream &ss) {
   if (ss.str().length() < kCommaSpaceLength) {
     return;
@@ -329,36 +339,30 @@ Status VfCall::ParseInputOutputInfo(const TPipe &tpipe) const {
   return af::SUCCESS;
 }
 
-void GenerateStridesEqualCheck(const std::vector<Tensor> &inputs, const std::vector<Tensor> &outputs,
-                               const VectorizedAxisLoopMergeStatus &merge_info, std::stringstream &ss) {
-  std::vector<std::string> all_stride_names;
-  for (size_t j = 0; j < merge_info.inputs_strides.size(); j++) {
-    size_t stride_size = merge_info.inputs_strides[j].size();
+void CollectStrideNames(const std::vector<Tensor> &tensors, const std::vector<std::vector<ge::Expression>> &strides,
+                        std::vector<std::string> &all_stride_names, std::vector<ge::Expression> &all_strides) {
+  for (size_t j = 0; j < strides.size(); j++) {
+    size_t stride_size = strides[j].size();
     size_t start_idx = stride_size <= kVFMaxLoop ? 0 : stride_size - kVFMaxLoop;
     for (; start_idx < stride_size; start_idx++) {
-      if (merge_info.inputs_strides[j][start_idx].Simplify() == af::ops::One ||
-          merge_info.inputs_strides[j][start_idx].Simplify() == af::ops::Zero) {
+      if (strides[j][start_idx].Simplify() == af::ops::One || strides[j][start_idx].Simplify() == af::ops::Zero) {
         continue;
       }
       std::stringstream tensor_name;
-      tensor_name << inputs[j];
-      all_stride_names.push_back(tensor_name.str() + "_stride_" + std::to_string(start_idx));
+      tensor_name << tensors[j];
+      const std::string stride_name = tensor_name.str() + "_stride_" + std::to_string(start_idx);
+      all_stride_names.push_back(stride_name);
+      all_strides.emplace_back(strides[j][start_idx]);
     }
   }
+}
 
-  for (size_t j = 0; j < merge_info.outputs_strides.size(); j++) {
-    size_t stride_size = merge_info.outputs_strides[j].size();
-    size_t start_idx = stride_size <= kVFMaxLoop ? 0 : stride_size - kVFMaxLoop;
-    for (; start_idx < stride_size; start_idx++) {
-      if (merge_info.outputs_strides[j][start_idx].Simplify() == af::ops::One ||
-          merge_info.outputs_strides[j][start_idx].Simplify() == af::ops::Zero) {
-        continue;
-      }
-      std::stringstream tensor_name;
-      tensor_name << outputs[j];
-      all_stride_names.push_back(tensor_name.str() + "_stride_" + std::to_string(start_idx));
-    }
-  }
+void GenerateStridesEqualCheck(const std::vector<Tensor> &inputs, const std::vector<Tensor> &outputs,
+                               const VectorizedAxisLoopMergeStatus &merge_info,
+                               std::vector<ge::Expression> &all_strides, std::stringstream &ss) {
+  std::vector<std::string> all_stride_names;
+  CollectStrideNames(inputs, merge_info.inputs_strides, all_stride_names, all_strides);
+  CollectStrideNames(outputs, merge_info.outputs_strides, all_stride_names, all_strides);
 
   if (all_stride_names.empty()) {
     ss << "  uint32_t strides_align = 0;\n  bool strides_equal = false;\n";
@@ -430,6 +434,21 @@ void GenerateTensorDefs(const TPipe &tpipe, const TensorManager &tensor_mgr, con
   }
 }
 
+af::Status UpdateVectorFuncNodeParams(const af::AscNodePtr &node, const VectorizedAxisLoopMergeStatus &merge_info,
+                                      const std::vector<ge::Expression> &all_strides) {
+  GE_ASSERT_NOTNULL(node);
+  auto params = ascir_param::GetAscirNodeParams(node);
+  GE_ASSERT_NOTNULL(params);
+  ascir_param::VectorFuncNodeParams vector_func_params;
+  vector_func_params.is_double_loop = true;
+  vector_func_params.all_strides = all_strides;
+  vector_func_params.output_dims = GetVfOutputDims(merge_info);
+  params->api_name = node->GetType();
+  params->status = ascir_param::ParamBuildStatus::kBuilt;
+  params->specific_params = vector_func_params;
+  return af::SUCCESS;
+}
+
 Status VfCall::GenerateFuncDefinition(const TPipe &tpipe, const Tiler &tiler, std::stringstream &ss) const {
   // 收集输入输出信息，由于GenInnerLoopSizeAndActualSize函数中会刷新tiler对象中的actual_sizes字段,
   // 导致生成函数签名和函数调用时，获取到的size信息不一致，因此生成函数签名和函数调用时均需要调用合轴函数
@@ -485,13 +504,14 @@ Status VfCall::GenerateFuncDefinition(const TPipe &tpipe, const Tiler &tiler, st
   int32_t only_loop_max_depth = -1;
   std::vector<std::string> loop_size_vec;
   root_loop_.Generate(tpipe, tensor_mgr_, stride_depth, loop_body, loop_size, only_loop_max_depth, loop_size_vec);
+  const bool is_double_loop =
+      stride_depth == MAX_VF_AXIS_MERGE_SIZE - 1 && only_loop_max_depth == MAX_VF_AXIS_MERGE_SIZE - 1;
+  std::vector<ge::Expression> all_strides;
   params << std::endl << loop_size << std::endl;
-  if (stride_depth == MAX_VF_AXIS_MERGE_SIZE - 1 &&
-      only_loop_max_depth ==
-          MAX_VF_AXIS_MERGE_SIZE -
-              1) {  // 假如stride_depth为1即两层循环，那实际上loop里递归了三次，分别是0、1、2，在2里单独处理call
-    GenerateStridesEqualCheck(this->ub_inputs_, this->ub_outputs_, merge_info, params);
+  if (is_double_loop) {  // 假如stride_depth为1即两层循环，那实际上loop里递归了三次，分别是0、1、2，在2里单独处理call
+    GenerateStridesEqualCheck(this->ub_inputs_, this->ub_outputs_, merge_info, all_strides, params);
     OptimizeMergeParamsAndLoopSize(loop_size_vec, params);
+    GE_ASSERT_SUCCESS(UpdateVectorFuncNodeParams(node, merge_info, all_strides));
   }
   vf_body << std::endl << loop_body << std::endl;
   GetVFCallFuncBody(params.str(), vf_body.str(), ss);

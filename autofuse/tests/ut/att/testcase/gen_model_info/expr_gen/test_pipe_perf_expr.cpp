@@ -12,6 +12,7 @@
 #include <iostream>
 #include "gtest/gtest.h"
 #include "base/att_const_values.h"
+#include "gen_model_info/api_perf_register/utils/vf_perf_utils.h"
 #include "gen_model_info.h"
 #include "test_fa_ascir_graph.h"
 #include "parser/ascend_graph_parser.h"
@@ -19,6 +20,7 @@
 #include "expr_gen/pipe_perf_expr.h"
 #undef private
 #include "ascir_ops.h"
+#include "ascir_node_param/ascir_param_builder.h"
 #include "expr_gen/arg_list_manager.h"
 #include "ascendc_ir/ascendc_ir_core/ascendc_ir.h"
 #include "graph_construct_utils.h"
@@ -176,6 +178,34 @@ NodeInfo CreateSubNodeInfo(const std::string &name, const std::string &type, con
   return node_info;
 }
 
+void SetAscirNodeParamsForTest(const af::AscNodePtr &node, const ascir_param::AscirNodeParamsPtr &params) {
+  ASSERT_NE(node, nullptr);
+  ASSERT_NE(params, nullptr);
+  auto op_desc = node->GetOpDesc();
+  ASSERT_NE(op_desc, nullptr);
+  ASSERT_TRUE(op_desc->SetExtAttr("AscirNodeParams", params));
+}
+
+NodePerfInfo CreateVectorFuncNodePerfInfo() {
+  NodePerfInfo node_perf_info;
+  node_perf_info.optype = kAbs;
+  node_perf_info.input_dtype = kFloat32;
+  node_perf_info.output_dtype = kFloat32;
+  node_perf_info.dims = {CreateExpr("vf_dim")};
+  return node_perf_info;
+}
+
+void ExpectValidPerfWithoutDynamicTernary(const ascir_param::VectorFuncNodeParams &vector_func_params) {
+  std::vector<NodePerfInfo> node_perf_infos = {CreateVectorFuncNodePerfInfo()};
+  std::map<Expr, TernaryOp, ExprCmp> ternary_ops;
+  Expr perf;
+
+  ASSERT_EQ(VfPerfUtils::GetVectorFunctionPerf(node_perf_infos, vector_func_params, ternary_ops, perf), af::SUCCESS);
+
+  EXPECT_TRUE(perf.IsValid());
+  EXPECT_TRUE(ternary_ops.empty());
+}
+
 // 辅助函数：验证 contrib 变量
 void VerifyContribVar(const std::map<Expr, TernaryOp, ExprCmp> &exe_times) {
   bool found_aiv_vec_contrib = false;
@@ -291,6 +321,136 @@ TEST_F(TestPipePerfExpr, ConvertToPerfInfoUsesParentGraphDims) {
   ASSERT_EQ(node_perf_infos.size(), 1UL);
   ASSERT_EQ(node_perf_infos[0].dims.size(), 1UL);
   EXPECT_EQ(Str(node_perf_infos[0].dims[0]), "z0bt_size");
+}
+
+TEST_F(TestPipePerfExpr, VectorFuncPerfUsesDefaultParamsWhenNoCodegenParams) {
+  ascir_param::VectorFuncNodeParams vector_func_params;
+
+  ExpectValidPerfWithoutDynamicTernary(vector_func_params);
+}
+
+TEST_F(TestPipePerfExpr, VectorFuncPerfUsesUnequalFormulaWhenDoubleLoopHasNoStride) {
+  ascir_param::VectorFuncNodeParams vector_func_params;
+  vector_func_params.is_double_loop = true;
+  vector_func_params.output_dims = {CreateExpr("outer_dim"), CreateExpr("inner_dim")};
+
+  ExpectValidPerfWithoutDynamicTernary(vector_func_params);
+}
+
+TEST_F(TestPipePerfExpr, VectorFuncPerfUsesEqualFormulaWhenDoubleLoopHasSingleStride) {
+  ascir_param::VectorFuncNodeParams vector_func_params;
+  vector_func_params.is_double_loop = true;
+  vector_func_params.all_strides = {CreateExpr("only_stride")};
+  vector_func_params.output_dims = {CreateExpr("outer_dim"), CreateExpr("inner_dim")};
+
+  ExpectValidPerfWithoutDynamicTernary(vector_func_params);
+}
+
+TEST_F(TestPipePerfExpr, VectorFuncPerfCreatesDynamicStrideTernaryOp) {
+  std::vector<NodePerfInfo> node_perf_infos = {CreateVectorFuncNodePerfInfo()};
+  ascir_param::VectorFuncNodeParams vector_func_params;
+  vector_func_params.is_double_loop = true;
+  vector_func_params.all_strides = {CreateExpr("input_stride"), CreateExpr("output_stride")};
+  vector_func_params.output_dims = {CreateExpr("outer_dim"), CreateExpr("inner_dim")};
+  std::map<Expr, TernaryOp, ExprCmp> ternary_ops;
+  Expr perf;
+
+  ASSERT_EQ(VfPerfUtils::GetVectorFunctionPerf(node_perf_infos, vector_func_params, ternary_ops, perf), af::SUCCESS);
+
+  EXPECT_EQ(Str(perf), "vf_dynamic_perf");
+  auto iter = ternary_ops.find(perf);
+  ASSERT_NE(iter, ternary_ops.end());
+  EXPECT_EQ(iter->second.GetDescription(), "vf_dynamic_perf");
+  const std::string ternary_expr = iter->second.GetTernaryOpStr();
+  EXPECT_NE(ternary_expr.find("input_stride"), std::string::npos);
+  EXPECT_NE(ternary_expr.find("output_stride"), std::string::npos);
+}
+
+TEST_F(TestPipePerfExpr, ParserCopiesVectorFuncNodeParamsFromAscirNodeParams) {
+  af::AscGraph graph("vf_graph");
+  ASSERT_EQ(af::ascir::cg::BuildVectorFuncTestGraph(graph), af::SUCCESS);
+  auto vf_node = graph.FindNode("vector_func");
+  ASSERT_NE(vf_node, nullptr);
+  auto params = std::make_shared<ascir_param::AscirNodeParams>();
+  ascir_param::VectorFuncNodeParams expected_params;
+  expected_params.is_double_loop = true;
+  expected_params.all_strides = {CreateExpr("input_stride"), CreateExpr("output_stride")};
+  expected_params.output_dims = {CreateExpr("outer_dim"), CreateExpr("inner_dim")};
+  params->api_name = kVectorFunc;
+  params->status = ascir_param::ParamBuildStatus::kBuilt;
+  params->specific_params = expected_params;
+  SetAscirNodeParamsForTest(vf_node, params);
+
+  TuningSpacePtr ts = std::make_shared<TuningSpace>();
+  ASSERT_NE(ts, nullptr);
+  att::AscendGraphParser ascend_graph_parser(ts);
+  ASSERT_EQ(ascend_graph_parser.GraphParser(graph), af::SUCCESS);
+
+  const auto vector_func_iter = std::find_if(ts->node_infos.begin(), ts->node_infos.end(),
+                                             [](const NodeInfo &node) { return node.node_type == kVectorFunc; });
+  ASSERT_NE(vector_func_iter, ts->node_infos.end());
+  EXPECT_TRUE(vector_func_iter->vector_func_params.is_double_loop);
+  ASSERT_EQ(vector_func_iter->vector_func_params.all_strides.size(), 2U);
+  EXPECT_EQ(Str(vector_func_iter->vector_func_params.all_strides[0]), "input_stride");
+  ASSERT_EQ(vector_func_iter->vector_func_params.output_dims.size(), 2U);
+  EXPECT_EQ(Str(vector_func_iter->vector_func_params.output_dims[1]), "inner_dim");
+}
+
+TEST_F(TestPipePerfExpr, ParserKeepsDefaultVectorFuncNodeParamsWhenAscirNodeParamsMissing) {
+  af::AscGraph graph("vf_graph");
+  ASSERT_EQ(af::ascir::cg::BuildVectorFuncTestGraph(graph), af::SUCCESS);
+
+  TuningSpacePtr ts = std::make_shared<TuningSpace>();
+  ASSERT_NE(ts, nullptr);
+  att::AscendGraphParser ascend_graph_parser(ts);
+  ASSERT_EQ(ascend_graph_parser.GraphParser(graph), af::SUCCESS);
+
+  const auto vector_func_iter = std::find_if(ts->node_infos.begin(), ts->node_infos.end(),
+                                             [](const NodeInfo &node) { return node.node_type == kVectorFunc; });
+  ASSERT_NE(vector_func_iter, ts->node_infos.end());
+  EXPECT_FALSE(vector_func_iter->vector_func_params.is_double_loop);
+  EXPECT_TRUE(vector_func_iter->vector_func_params.all_strides.empty());
+  EXPECT_TRUE(vector_func_iter->vector_func_params.output_dims.empty());
+}
+
+TEST_F(TestPipePerfExpr, VectorFuncTailPerfUsesVectorFuncInternalPath) {
+  af::AscGraph graph("vf_graph");
+  ASSERT_EQ(af::ascir::cg::BuildVectorFuncTestGraph(graph), af::SUCCESS);
+  auto vf_node = graph.FindNode("vector_func");
+  ASSERT_NE(vf_node, nullptr);
+  auto params = std::make_shared<ascir_param::AscirNodeParams>();
+  ascir_param::VectorFuncNodeParams vector_func_params;
+  vector_func_params.is_double_loop = true;
+  vector_func_params.all_strides = {CreateExpr(1)};
+  vector_func_params.output_dims = {CreateExpr(1), CreateExpr(64)};
+  params->api_name = kVectorFunc;
+  params->status = ascir_param::ParamBuildStatus::kBuilt;
+  params->specific_params = vector_func_params;
+  SetAscirNodeParamsForTest(vf_node, params);
+
+  TuningSpacePtr ts = std::make_shared<TuningSpace>();
+  ASSERT_NE(ts, nullptr);
+  att::AscendGraphParser ascend_graph_parser(ts);
+  ASSERT_EQ(ascend_graph_parser.GraphParser(graph), af::SUCCESS);
+  const auto vector_func_iter = std::find_if(ts->node_infos.begin(), ts->node_infos.end(),
+                                             [](const NodeInfo &node) { return node.node_type == kVectorFunc; });
+  ASSERT_NE(vector_func_iter, ts->node_infos.end());
+
+  PipePerfExpr pipe_perf(ts);
+  std::map<PipeType, Expr> node_perf;
+  std::map<Expr, TernaryOp, ExprCmp> ternary_ops;
+  std::vector<PerfBreakdownGroup> perf_breakdowns;
+
+  ASSERT_EQ(pipe_perf.GetNodePerfInternal(*vector_func_iter, node_perf, ternary_ops, perf_breakdowns, true),
+            af::SUCCESS);
+
+  const auto iter = node_perf.find(PipeType::AIV_VEC);
+  ASSERT_NE(iter, node_perf.end());
+  const auto ternary_iter = ternary_ops.find(iter->second);
+  ASSERT_NE(ternary_iter, ternary_ops.end());
+  const std::string desc = ternary_iter->second.GetDescription();
+  EXPECT_NE(desc.find("VectorFunc"), std::string::npos) << desc;
+  EXPECT_NE(desc.find("AIV_VEC_perf"), std::string::npos) << desc;
 }
 
 TEST_F(TestPipePerfExpr, case_get_perf_for_loop) {

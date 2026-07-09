@@ -14,6 +14,7 @@
 #include "ascir_node_param/ascir_node_param.h"
 
 namespace ascir_param {
+bool IsReduceParamSupported(const std::string &api_name);
 af::Status EnrichAscirGraphNodeParams(const af::AscGraph &graph);
 }  // namespace ascir_param
 

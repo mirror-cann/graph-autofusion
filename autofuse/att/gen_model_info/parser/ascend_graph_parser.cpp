@@ -21,9 +21,10 @@
 #include "util/thread_local_context.h"
 #include "att_utils.h"
 #include "ascendc_ir/ascendc_ir_core/ascendc_ir.h"
+#include "ascir_node_param/ascir_node_param.h"
 #include "base_types_printer.h"
 #include "common_utils.h"
-#include "reduce_specific_params_builder.h"
+#include "specific_params_builder.h"
 #include "vector_function_graph_parser.h"
 
 namespace att {
@@ -770,7 +771,7 @@ af::Status AscendGraphParser::ConvertNodeInfos(const af::AscNodePtr &ge_node, co
     }
   }
   node_info.node_ptr = ge_node;
-  GE_ASSERT_SUCCESS(FillReduceSpecificParams(ge_node, node_info));
+  GE_ASSERT_SUCCESS(FillSpecificParams(ge_node, node_info));
   auto vectorized_axis_ids = GetNodeVectorizedAxis(ge_node, loop_axis);
   for (const auto &axis_info : vectorized_axis_ids) {
     auto sub_axis_iter = sub_axes_info_.find(axis_info);

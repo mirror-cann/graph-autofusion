@@ -19,7 +19,7 @@
 #include "ascir_node_param/ascir_node_param.h"
 #include "ascir_node_param/ascir_param_builder.h"
 #include "ascir_ops.h"
-#include "parser/reduce_specific_params_builder.h"
+#include "parser/specific_params_builder.h"
 #include "common/platform_context.h"
 #include "codegen_api_param/codegen_api_param.h"
 #include "v35/att/api_perf_register/ascendc_api_perf/reduce_api_perf_v2.h"
@@ -167,7 +167,7 @@ void SetReduceSpecificParams(NodeInfo &node, codegen::ReducePattern pattern, cod
 
 // --- Parser integration tests ---
 
-TEST_F(UTestReduceMinMaxApiPerfV2, FillReduceSpecificParamsRegistersSharedNodeParams) {
+TEST_F(UTestReduceMinMaxApiPerfV2, FillSpecificParamsRegistersSharedReduceNodeParams) {
   using ascir_reduce_test_helpers::BuildReduceNodeInfo;
   using ascir_reduce_test_helpers::ReduceTestEnv;
   ReduceTestEnv env("max");
@@ -183,7 +183,7 @@ TEST_F(UTestReduceMinMaxApiPerfV2, FillReduceSpecificParamsRegistersSharedNodePa
   EXPECT_EQ(node_info.reduce_specific_params.canonical_params.merge_size, reduce->canonical_params.merge_size);
 }
 
-TEST_F(UTestReduceMinMaxApiPerfV2, FillReduceSpecificParamsRegistersSkippedForUnsupportedApi) {
+TEST_F(UTestReduceMinMaxApiPerfV2, FillSpecificParamsRegistersSkippedForUnsupportedApi) {
   af::AscGraph graph("skip_param_graph");
   af::ascir_op::Add add("add");
   graph.AddNode(add);
@@ -195,14 +195,14 @@ TEST_F(UTestReduceMinMaxApiPerfV2, FillReduceSpecificParamsRegistersSkippedForUn
   node_info.node_type = "Add";
   node_info.node_ptr = node;
   EXPECT_EQ(ascir_param::EnrichAscirGraphNodeParams(graph), af::SUCCESS);
-  EXPECT_EQ(FillReduceSpecificParams(node, node_info), af::SUCCESS);
+  EXPECT_EQ(FillSpecificParams(node, node_info), af::SUCCESS);
   const auto params = ascir_param::GetAscirNodeParams(node);
   ASSERT_NE(params, nullptr);
   EXPECT_EQ(params->status, ascir_param::ParamBuildStatus::kSkipped);
   EXPECT_FALSE(node_info.reduce_specific_params.canonical_params.valid);
 }
 
-TEST_F(UTestReduceMinMaxApiPerfV2, FillReduceSpecificParamsKeepsInvalidWhenParamsMissing) {
+TEST_F(UTestReduceMinMaxApiPerfV2, FillSpecificParamsKeepsInvalidWhenParamsMissing) {
   using ascir_reduce_test_helpers::ReduceTestEnv;
   ReduceTestEnv env("max");
   NodeInfo node_info;
@@ -210,7 +210,7 @@ TEST_F(UTestReduceMinMaxApiPerfV2, FillReduceSpecificParamsKeepsInvalidWhenParam
   node_info.node_type = "Max";
   node_info.node_ptr = env.node;
 
-  EXPECT_EQ(FillReduceSpecificParams(env.node, node_info), af::SUCCESS);
+  EXPECT_EQ(FillSpecificParams(env.node, node_info), af::SUCCESS);
   EXPECT_EQ(ascir_param::GetAscirNodeParams(env.node), nullptr);
   EXPECT_FALSE(node_info.reduce_specific_params.canonical_params.valid);
 }

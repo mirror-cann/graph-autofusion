@@ -22,30 +22,6 @@ Expr GetDataTypeSize(const std::string &data_type) {
   }
   return iter->second;
 }
-bool IsLoadStoreVfApi(const std::string &micro_api_type) {
-  const std::set<std::string> kLoadStoreVfType{kMoveGmToUb, kMoveUbToGm};
-  return kLoadStoreVfType.find(micro_api_type) != kLoadStoreVfType.end();
-}
-
-// 获取vf api的基础latency和throughput
-af::Status GetVFNodePerf(const NodePerfInfo &node_info, const uint32_t micro_api_len, Expr &latency, Expr &throughput) {
-  GE_ASSERT_SUCCESS(VfPerfUtils::GetVfInstructPerf(node_info.optype, node_info.input_dtype, latency, throughput));
-  Expr dim_product = std::accumulate(node_info.dims.begin(), node_info.dims.end(), CreateExpr(1),
-                                     [](const Expr &a, const Expr &b) { return a * b; });
-  // 简化计算，后续进一步考虑每个op的latency和throughput的掩盖
-  Expr shape_size = dim_product * GetDataTypeSize(node_info.input_dtype);
-  Expr api_count = af::sym::Ceiling(shape_size / CreateExpr(micro_api_len));
-  api_count = api_count.Simplify();
-  throughput = throughput * api_count;
-  throughput = throughput.Simplify();
-  GELOGD(
-      "[VF_PERF_DFX] node[%s], input_dtype[%s], dims[%s], dim_product[%s], shape_size[%s], micro_api_len[%u], "
-      "api_count[%s], latency[%s], throughput[%s]",
-      node_info.optype.c_str(), node_info.input_dtype.c_str(), GetVecString(node_info.dims).c_str(),
-      dim_product.Serialize().get(), shape_size.Serialize().get(), micro_api_len, api_count.Serialize().get(),
-      latency.Serialize().get(), throughput.Serialize().get());
-  return af::SUCCESS;
-}
 
 const PerfParamTable *GetParamPerfTable() {
   const auto default_impl = ascgen_utils::GetAscIrAttImpl(kDefaultApi);
@@ -56,6 +32,65 @@ const PerfParamTable *GetParamPerfTable() {
   GE_ASSERT_NOTNULL(api_perf);
   return api_perf->GetPerfParam();
 }
+
+Expr GetVFApiCount(const NodePerfInfo &node_info, const uint32_t micro_api_len, bool strides_equal,
+                   const ascir_param::VectorFuncNodeParams &vector_func_params) {
+  const Expr data_type_size = GetDataTypeSize(node_info.input_dtype);
+  if (vector_func_params.is_double_loop && strides_equal) {
+    const Expr element_count = vector_func_params.all_strides[0] * vector_func_params.output_dims[0];
+    return af::sym::Ceiling(element_count * data_type_size / CreateExpr(micro_api_len));
+  }
+  if (vector_func_params.is_double_loop && !strides_equal) {
+    GE_ASSERT_TRUE(vector_func_params.output_dims.size() >= 2U,
+                   "VectorFunc double loop with unequal strides requires output_dims size >= 2, but got %zu.",
+                   vector_func_params.output_dims.size());
+    return vector_func_params.output_dims[0] *
+           af::sym::Ceiling(vector_func_params.output_dims[1] * data_type_size / CreateExpr(micro_api_len));
+  }
+  Expr dim_product = std::accumulate(node_info.dims.begin(), node_info.dims.end(), CreateExpr(1),
+                                     [](const Expr &a, const Expr &b) { return a * b; });
+  return af::sym::Ceiling(dim_product * data_type_size / CreateExpr(micro_api_len));
+}
+
+// 获取vf api的基础latency和throughput
+af::Status GetVFNodePerf(const NodePerfInfo &node_info, const uint32_t micro_api_len, bool strides_equal,
+                         const ascir_param::VectorFuncNodeParams &vector_func_params, Expr &latency, Expr &throughput) {
+  GE_ASSERT_SUCCESS(VfPerfUtils::GetVfInstructPerf(node_info.optype, node_info.input_dtype, latency, throughput));
+  // 简化计算，后续进一步考虑每个op的latency和throughput的掩盖
+  Expr api_count = GetVFApiCount(node_info, micro_api_len, strides_equal, vector_func_params);
+  api_count = api_count.Simplify();
+  throughput = throughput * api_count;
+  throughput = throughput.Simplify();
+  GELOGD("Got node %s input %s reg base latency %s, throughput %s, api_count %s", node_info.optype.c_str(),
+         node_info.input_dtype.c_str(), latency.Serialize().get(), throughput.Serialize().get(),
+         api_count.Serialize().get());
+  return af::SUCCESS;
+}
+
+af::Status GetVectorFunctionPerfByStrideStatus(const std::vector<NodePerfInfo> &node_perf_infos,
+                                               const uint32_t micro_api_len, bool strides_equal,
+                                               const ascir_param::VectorFuncNodeParams &vector_func_params, Expr &res) {
+  Expr all_micro_api_cost = CreateExpr(0);
+  Expr max_latency = CreateExpr(0);
+  for (const auto &node_info : node_perf_infos) {
+    Expr latency = CreateExpr(0);
+    Expr throughput = CreateExpr(0);
+    GE_ASSERT_SUCCESS(GetVFNodePerf(node_info, micro_api_len, strides_equal, vector_func_params, latency, throughput));
+    all_micro_api_cost = af::sym::Add(all_micro_api_cost, throughput);
+    max_latency = af::sym::Max(max_latency, latency);
+  }
+  max_latency = max_latency.Simplify();
+  all_micro_api_cost = all_micro_api_cost.Simplify();
+  res = af::sym::Add(all_micro_api_cost, max_latency);
+  const auto vector_function_head_cost = GetParamPerfTable()->GetVectorFunctionHeadCost();
+  res = af::sym::Add(res, vector_function_head_cost);
+  res = res.Simplify();
+  GELOGD("Got vector function perf %s, vector_function_head_cost %s, max_latency %s, all_micro_api_cost %s",
+         res.Serialize().get(), vector_function_head_cost.Serialize().get(), max_latency.Serialize().get(),
+         all_micro_api_cost.Serialize().get());
+  return af::SUCCESS;
+}
+
 }  // namespace
 
 af::Status VfPerfUtils::GetVfInstructPerf(const std::string &micro_api_type, const std::string &data_type,
@@ -106,35 +141,40 @@ Expr VfPerfUtils::GetVFHeadCost() {
 // 5.Micro Api的并发度
 // 第一版建模简化模型，仅考虑1,2,3，每个op的latency求最大值，throughput求和
 // 后续建模考虑4,5
-af::Status VfPerfUtils::GetVectorFunctionPerf(const std::vector<NodePerfInfo> &node_perf_infos, Expr &res) {
+af::Status VfPerfUtils::GetVectorFunctionPerf(const std::vector<NodePerfInfo> &node_perf_infos,
+                                              const ascir_param::VectorFuncNodeParams &vector_func_params,
+                                              std::map<Expr, TernaryOp, ExprCmp> &ternary_ops, Expr &res) {
   const auto param_table = GetParamPerfTable();
   GE_ASSERT_NOTNULL(param_table);
   const uint32_t micro_api_len = param_table->GetMicroApiLen();
-  Expr all_micro_api_cost = CreateExpr(0);
-  Expr max_latency = CreateExpr(0);
-  for (const auto &node_info : node_perf_infos) {
-    Expr latency = CreateExpr(0);
-    Expr throughput = CreateExpr(0);
-    if (IsLoadStoreVfApi(node_info.optype)) {
-      // Load Store VF API暂认为非主导因素，待后续支持搬运类算子或Brc算子时再进行建模
-      continue;
-    }
-    // 在vf function内的必须支持vector, 待校验
-    GE_ASSERT_SUCCESS(GetVFNodePerf(node_info, micro_api_len, latency, throughput));
-    // 每个op的latency相加, throughput求最大值
-    all_micro_api_cost = af::sym::Add(all_micro_api_cost, throughput);
-    max_latency = af::sym::Max(max_latency, latency);
+  const auto &all_strides = vector_func_params.all_strides;
+  if (!vector_func_params.is_double_loop) {
+    return GetVectorFunctionPerfByStrideStatus(node_perf_infos, micro_api_len, false, vector_func_params, res);
   }
-  max_latency = max_latency.Simplify();
-  all_micro_api_cost = all_micro_api_cost.Simplify();
-  // 加上最大的latency
-  res = af::sym::Add(all_micro_api_cost, max_latency);
-  const auto vector_function_head_cost = param_table->GetVectorFunctionHeadCost();
-  res = af::sym::Add(res, vector_function_head_cost);
-  res = res.Simplify();
-  GELOGD("Got vector function perf %s, vector_function_head_cost %s, max_latency %s, all_micro_api_cost %s",
-         res.Serialize().get(), vector_function_head_cost.Serialize().get(), max_latency.Serialize().get(),
-         all_micro_api_cost.Serialize().get());
+  if (all_strides.empty()) {
+    return GetVectorFunctionPerfByStrideStatus(node_perf_infos, micro_api_len, false, vector_func_params, res);
+  }
+  if (all_strides.size() == 1U) {
+    return GetVectorFunctionPerfByStrideStatus(node_perf_infos, micro_api_len, true, vector_func_params, res);
+  }
+  Expr strides_equal_perf;
+  Expr strides_unequal_perf;
+  GE_ASSERT_SUCCESS(GetVectorFunctionPerfByStrideStatus(node_perf_infos, micro_api_len, true, vector_func_params,
+                                                        strides_equal_perf));
+  GE_ASSERT_SUCCESS(GetVectorFunctionPerfByStrideStatus(node_perf_infos, micro_api_len, false, vector_func_params,
+                                                        strides_unequal_perf));
+  res = CreateExpr("vf_dynamic_perf");
+  GetPerfVar("vf_dynamic_perf", res, ternary_ops);
+  std::shared_ptr<IfCase> equal_case = std::make_shared<IfCase>(strides_equal_perf);
+  for (size_t i = all_strides.size() - 1U; i > 0U; --i) {
+    equal_case = std::make_shared<IfCase>(CondType::K_EQ, all_strides[0], all_strides[i], std::move(equal_case),
+                                          std::make_shared<IfCase>(strides_unequal_perf));
+  }
+  std::vector<Expr> related_vars;
+  equal_case->GetUsedArgs(related_vars);
+  ternary_ops[res] = TernaryOp(res, std::move(equal_case), related_vars);
+  ternary_ops[res].SetVariable(res);
+  ternary_ops[res].SetDescription("vf_dynamic_perf");
   return af::SUCCESS;
 }
 }  // namespace att

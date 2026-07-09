@@ -181,6 +181,7 @@ struct NodeInfo {
   af::AscNodePtr node_ptr;
   std::set<std::string> from_data;  // 隶属的Data节点名称
   std::vector<NodeInfo> sub_nodes_infos;
+  ascir_param::VectorFuncNodeParams vector_func_params;
   ascir_param::ReduceNodeParams reduce_specific_params;
   af::ExecuteCondition exec_condition{af::ExecuteCondition::kNoCache};
   std::string DebugString() const {
