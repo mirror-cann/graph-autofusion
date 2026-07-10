@@ -12,7 +12,9 @@
 #define AUTOFUSE_VF_PERF_UTILS_H
 
 #include "base/att_const_values.h"
+#include "ascir_node_param/ascir_node_param.h"
 #include "gen_model_info/api_perf_register/perf_param.h"
+#include "util/ternary_op.h"
 namespace att {
 class VfPerfUtils {
  public:
@@ -26,7 +28,9 @@ class VfPerfUtils {
   // 获取vf头开销
   static Expr GetVFHeadCost();
   // 根据vf function子图解析的结果获取vf function的性能
-  static af::Status GetVectorFunctionPerf(const std::vector<NodePerfInfo> &node_perf_infos, Expr &res);
+  static af::Status GetVectorFunctionPerf(const std::vector<NodePerfInfo> &node_perf_infos,
+                                          const ascir_param::VectorFuncNodeParams &vector_func_params,
+                                          std::map<Expr, TernaryOp, ExprCmp> &ternary_ops, Expr &res);
 };
 }  // namespace att
 

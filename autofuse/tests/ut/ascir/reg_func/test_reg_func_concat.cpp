@@ -125,12 +125,16 @@ void CreateStaticGraph(af::AscGraph &graph, int32_t dim0, int32_t dim1, int32_t 
   *x1.y.axis = {z0.id, zo_s_0.id};
   *x1.y.repeats = {s0, s1};
   *x1.y.strides = {s1, One};
+  *x1.y.vectorized_axis = {z0.id, zo_s_0.id};
+  *x1.y.vectorized_strides = {s1, One};
 
   x2.attr.sched.axis = {z0.id, zo_s_1.id};
   x2.y.dtype = T;
   *x2.y.axis = {z0.id, zo_s_1.id};
   *x2.y.repeats = {s0, s2};
   *x2.y.strides = {s2, One};
+  *x2.y.vectorized_axis = {z0.id, zo_s_1.id};
+  *x2.y.vectorized_strides = {s2, One};
 
   load1.x = x1.y;
   load1.attr.sched.axis = {z0.id, zo_s_0.id};
@@ -138,6 +142,8 @@ void CreateStaticGraph(af::AscGraph &graph, int32_t dim0, int32_t dim1, int32_t 
   *load1.y.axis = {z0.id, zo_s_0.id};
   *load1.y.repeats = {s0, s1};
   *load1.y.strides = {s1, One};
+  *load1.y.vectorized_axis = {z0.id, zo_s_0.id};
+  *load1.y.vectorized_strides = {s1, One};
 
   load2.x = x2.y;
   load2.attr.sched.axis = {z0.id, zo_s_1.id};
@@ -145,6 +151,8 @@ void CreateStaticGraph(af::AscGraph &graph, int32_t dim0, int32_t dim1, int32_t 
   *load2.y.axis = {z0.id, zo_s_1.id};
   *load2.y.repeats = {s0, s2};
   *load2.y.strides = {s2, One};
+  *load2.y.vectorized_axis = {z0.id, zo_s_1.id};
+  *load2.y.vectorized_strides = {s2, One};
 
   concat.x = {load1.y, load2.y};
   concat.attr.sched.axis = {z0.id, zo.id};
@@ -152,6 +160,8 @@ void CreateStaticGraph(af::AscGraph &graph, int32_t dim0, int32_t dim1, int32_t 
   *concat.y.axis = {z0.id, zo.id};
   *concat.y.repeats = {s0, s1 + s2};
   *concat.y.strides = {s1 + s2, One};
+  *concat.y.vectorized_axis = {z0.id, zo.id};
+  *concat.y.vectorized_strides = {s1 + s2, One};
 
   store.x = concat.y;
   store.attr.sched.axis = {z0.id, zo.id};
@@ -159,6 +169,8 @@ void CreateStaticGraph(af::AscGraph &graph, int32_t dim0, int32_t dim1, int32_t 
   *store.y.axis = {z0.id, zo.id};
   *store.y.repeats = {s0, s1 + s2};
   *store.y.strides = {s1 + s2, One};
+  *store.y.vectorized_axis = {z0.id, zo.id};
+  *store.y.vectorized_strides = {s1 + s2, One};
 
   y.x = store.y;
   y.attr.sched.axis = {z0.id, zo.id};
@@ -166,6 +178,8 @@ void CreateStaticGraph(af::AscGraph &graph, int32_t dim0, int32_t dim1, int32_t 
   *y.y.axis = {z0.id, zo.id};
   *y.y.repeats = {s0, s1 + s2};
   *y.y.strides = {s1 + s2, One};
+  *y.y.vectorized_axis = {z0.id, zo.id};
+  *y.y.vectorized_strides = {s1 + s2, One};
 }
 
 template <af::DataType T>
@@ -262,12 +276,16 @@ void CreateStaticGraphNotLastAxis(af::AscGraph &graph, int32_t dim0, int32_t dim
   *x1.y.axis = {z0.id, zo_s_0.id};
   *x1.y.repeats = {s1, s0};
   *x1.y.strides = {s0, One};
+  *x1.y.vectorized_axis = {z0.id, zo_s_0.id};
+  *x1.y.vectorized_strides = {s0, One};
 
   x2.attr.sched.axis = {z0.id, zo_s_1.id};
   x2.y.dtype = T;
   *x2.y.axis = {z0.id, zo_s_1.id};
   *x2.y.repeats = {s2, s0};
   *x2.y.strides = {s0, One};
+  *x2.y.vectorized_axis = {z0.id, zo_s_1.id};
+  *x2.y.vectorized_strides = {s0, One};
 
   load1.x = x1.y;
   load1.attr.sched.axis = {z0.id, zo_s_0.id};
@@ -275,6 +293,8 @@ void CreateStaticGraphNotLastAxis(af::AscGraph &graph, int32_t dim0, int32_t dim
   *load1.y.axis = {z0.id, zo_s_0.id};
   *load1.y.repeats = {s1, s0};
   *load1.y.strides = {s0, One};
+  *load1.y.vectorized_axis = {z0.id, zo_s_0.id};
+  *load1.y.vectorized_strides = {s0, One};
 
   load2.x = x2.y;
   load2.attr.sched.axis = {z0.id, zo_s_1.id};
@@ -282,6 +302,8 @@ void CreateStaticGraphNotLastAxis(af::AscGraph &graph, int32_t dim0, int32_t dim
   *load2.y.axis = {z0.id, zo_s_1.id};
   *load2.y.repeats = {s2, s0};
   *load2.y.strides = {s0, One};
+  *load2.y.vectorized_axis = {z0.id, zo_s_1.id};
+  *load2.y.vectorized_strides = {s0, One};
 
   concat.x = {load1.y, load2.y};
   concat.attr.sched.axis = {z0.id, zo.id};
@@ -289,6 +311,8 @@ void CreateStaticGraphNotLastAxis(af::AscGraph &graph, int32_t dim0, int32_t dim
   *concat.y.axis = {z0.id, zo.id};
   *concat.y.repeats = {s1 + s2, s0};
   *concat.y.strides = {s0, One};
+  *concat.y.vectorized_axis = {z0.id, zo.id};
+  *concat.y.vectorized_strides = {s0, One};
 
   store.x = concat.y;
   store.attr.sched.axis = {z0.id, zo.id};
@@ -297,6 +321,8 @@ void CreateStaticGraphNotLastAxis(af::AscGraph &graph, int32_t dim0, int32_t dim
   *store.y.axis = {z0.id, zo.id};
   *store.y.repeats = {s1 + s2, s0};
   *store.y.strides = {s0, One};
+  *store.y.vectorized_axis = {z0.id, zo.id};
+  *store.y.vectorized_strides = {s0, One};
 
   y.x = store.y;
   y.attr.sched.axis = {z0.id, zo.id};
@@ -304,6 +330,8 @@ void CreateStaticGraphNotLastAxis(af::AscGraph &graph, int32_t dim0, int32_t dim
   *y.y.axis = {z0.id, zo.id};
   *y.y.repeats = {s1 + s2, s0};
   *y.y.strides = {s0, One};
+  *y.y.vectorized_axis = {z0.id, zo.id};
+  *y.y.vectorized_strides = {s0, One};
 }
 
 /**

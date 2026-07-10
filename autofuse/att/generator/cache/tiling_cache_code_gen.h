@@ -14,7 +14,7 @@
 #include <string>
 #include "base/base_types.h"
 #include "generator_config.h"
-#include "external/ge_common_af/ge_api_types.h"
+#include "ge_common_af/ge_api_types.h"
 #include "common/code_printer.h"
 
 namespace att {

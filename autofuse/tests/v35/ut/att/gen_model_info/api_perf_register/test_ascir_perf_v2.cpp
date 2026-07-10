@@ -22,7 +22,7 @@
 #include "common/platform_context.h"
 #include "api_perf_register/utils/api_perf_utils.h"
 #include "graph_construct_utils.h"
-#include "parser/reduce_specific_params_builder.h"
+#include "parser/specific_params_builder.h"
 #include "tests/ut/common/ascir_reduce_test_helpers.h"
 
 using namespace att;
@@ -62,7 +62,7 @@ void SetSingleReduceSpecificParams(NodeInfo &node) {
   params.exprs.merge_times = {true, {{CreateExpr(1), ascir_param::ParamExprRole::kSemantic}}};
 }
 
-TEST_F(UTestAscirPerfV2, FillReduceSpecificParamsStoresSharedParamsOnAscNode) {
+TEST_F(UTestAscirPerfV2, FillSpecificParamsStoresSharedReduceParamsOnAscNode) {
   using ascir_reduce_test_helpers::BuildReduceNodeInfo;
   using ascir_reduce_test_helpers::ReduceTestEnv;
   ReduceTestEnv env("reduce");

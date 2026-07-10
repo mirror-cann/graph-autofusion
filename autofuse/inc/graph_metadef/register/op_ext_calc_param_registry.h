@@ -15,7 +15,7 @@
 #include <functional>
 #include <vector>
 #include "graph/node.h"
-#include "external/ge_common_af/ge_api_types.h"
+#include "ge_common_af/ge_api_types.h"
 
 namespace fe {
 using OpExtCalcParamFunc = af::Status (*)(const ge::Node &node);

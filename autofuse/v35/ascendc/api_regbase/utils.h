@@ -89,7 +89,8 @@ constexpr static AscendC::MicroAPI::CastTrait cast_trait_int16_2_uint8 = {
     AscendC::RoundMode::UNKNOWN,
 };
 
-static constexpr MicroAPI::DivSpecificMode high_precision_div_mode = {MicroAPI::MaskMergeMode::ZEROING, true};
+static constexpr AscendC::MicroAPI::DivSpecificMode high_precision_div_mode = {
+    AscendC::MicroAPI::MaskMergeMode::ZEROING, true};
 
 }  // namespace
 #endif  // __ASCENDC_REGBASE_API_UTILS_H__

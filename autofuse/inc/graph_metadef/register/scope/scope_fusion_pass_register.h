@@ -16,7 +16,7 @@
 #include <vector>
 #include <map>
 #include <unordered_map>
-#include "external/ge_common_af/ge_api_error_codes.h"
+#include "ge_common_af/ge_api_error_codes.h"
 #include "register/register_error_codes.h"
 #include "register/register_types.h"
 #include "graph/operator.h"

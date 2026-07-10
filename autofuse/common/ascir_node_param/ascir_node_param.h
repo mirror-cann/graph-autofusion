@@ -68,7 +68,13 @@ struct ReduceNodeParams {
   ReduceParamExprs exprs;
 };
 
-using AnySpecificParams = std::variant<std::monostate, ReduceNodeParams>;
+struct VectorFuncNodeParams {
+  bool is_double_loop{false};
+  std::vector<ge::Expression> all_strides;
+  std::vector<ge::Expression> output_dims;
+};
+
+using AnySpecificParams = std::variant<std::monostate, ReduceNodeParams, VectorFuncNodeParams>;
 
 struct AscirNodeParams {
   // 扩展属性载荷版本，用于后续兼容。

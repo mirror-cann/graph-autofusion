@@ -23,6 +23,7 @@
 namespace ascir_param {
 namespace {
 constexpr const char *kAscirNodeParams = "AscirNodeParams";
+constexpr const char *kVectorFunc = "VectorFunc";
 
 struct AscirParamSourceContext {
   af::AscNodePtr node;
@@ -84,8 +85,9 @@ af::Status RegisterAscirNodeParams(const af::AscNodePtr &node, const AscirNodePa
         graph_name.c_str(), static_cast<void *>(node.get()), static_cast<void *>(op_desc.get()),
         static_cast<void *>(owner_graph.get()));
   }
+  const std::string graph_name = owner_graph == nullptr ? std::string("<null>") : owner_graph->GetName();
   GE_ASSERT_TRUE(op_desc->SetExtAttr(kAscirNodeParams, params), "Graph:%s, Node:%s SetExtAttr failed",
-                 node->GetOwnerComputeGraph()->GetName().c_str(), node->GetNamePtr());
+                 graph_name.c_str(), node->GetNamePtr());
   return af::SUCCESS;
 }
 
@@ -94,6 +96,15 @@ af::Status RegisterSkippedAscirNodeParams(const af::AscNodePtr &node) {
   auto params = std::make_shared<AscirNodeParams>();
   params->api_name = node->GetType();
   params->status = ParamBuildStatus::kSkipped;
+  return RegisterAscirNodeParams(node, params);
+}
+
+af::Status RegisterVectorFuncAscirNodeParams(const af::AscNodePtr &node) {
+  GE_ASSERT_NOTNULL(node);
+  auto params = std::make_shared<AscirNodeParams>();
+  params->api_name = node->GetType();
+  params->status = ParamBuildStatus::kBuilt;
+  params->specific_params = VectorFuncNodeParams{};
   return RegisterAscirNodeParams(node, params);
 }
 
@@ -414,13 +425,6 @@ af::Status FillReduceReuseSource(const af::AscNodePtr &node, codegen::ReduceReus
   return af::SUCCESS;
 }
 
-bool IsReduceParamSupported(const std::string &api_name) {
-  static const std::set<std::string> kReduceTypes = {"Max",        "Min",       "Mean",      "Prod",       "Sum",
-                                                     "Any",        "All",       "ReduceMax", "ReduceMean", "ReduceMin",
-                                                     "ReduceProd", "ReduceSum", "ReduceAny", "ReduceAll"};
-  return kReduceTypes.count(api_name) != 0U;
-}
-
 af::Status BuildReduceInput(const AscirParamBuildContext &ctx, codegen::ReduceSpecificParamBuildInput &input) {
   GE_ASSERT_TRUE(!ctx.inputs.empty(), "Reduce input tensor is empty, node[%s].", ctx.api_name.c_str());
   GE_ASSERT_TRUE(!ctx.outputs.empty(), "Reduce output tensor is empty, node[%s].", ctx.api_name.c_str());
@@ -497,6 +501,9 @@ af::Status BuildAndRegisterAscirNodeParams(const AscirParamBuildContext &ctx) {
 
 af::Status EnrichAscirNodeParams(const AscirParamSourceContext &source) {
   GE_ASSERT_NOTNULL(source.node);
+  if (source.node->GetType() == kVectorFunc) {
+    return RegisterVectorFuncAscirNodeParams(source.node);
+  }
   if (!IsReduceParamSupported(source.node->GetType())) {
     return RegisterSkippedAscirNodeParams(source.node);
   }
@@ -505,6 +512,13 @@ af::Status EnrichAscirNodeParams(const AscirParamSourceContext &source) {
   return BuildAndRegisterAscirNodeParams(ctx);
 }
 }  // namespace
+
+bool IsReduceParamSupported(const std::string &api_name) {
+  static const std::set<std::string> kReduceTypes = {"Max",        "Min",       "Mean",      "Prod",       "Sum",
+                                                     "Any",        "All",       "ReduceMax", "ReduceMean", "ReduceMin",
+                                                     "ReduceProd", "ReduceSum", "ReduceAny", "ReduceAll"};
+  return kReduceTypes.count(api_name) != 0U;
+}
 
 af::Status EnrichAscirGraphNodeParams(const af::AscGraph &graph) {
   for (const auto &node : graph.GetAllNodes()) {

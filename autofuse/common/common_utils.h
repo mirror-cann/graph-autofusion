@@ -13,7 +13,7 @@
 
 #include <string>
 #include "graph/symbolizer/symbolic.h"
-#include "external/ge_common_af/ge_api_types.h"
+#include "ge_common_af/ge_api_types.h"
 #include "graph/ascendc_ir/ascendc_ir_core/ascendc_ir.h"
 #include "graph/ascendc_ir/ascir_registry.h"
 #include "ascir.h"

@@ -28,6 +28,7 @@ constexpr int32_t kConcatAlgTranspose = 0;
 constexpr int64_t kVectorBlockSize = 256;
 constexpr int64_t kMinGroupNum = 2L;
 constexpr int64_t kMinGroupSizeByte = 1024U;
+constexpr af::float64_t kRatioThreshold = 2.0;
 
 template <typename T1, typename T2>
 int64_t CeilDiv(const T1 n1, const T2 n2) {
@@ -45,6 +46,7 @@ Status ConcatGroupPartitioner::Initialize() {
   GE_ASSERT_NOTNULL(backend_spec);
   concat_by_transpose_ = (backend_spec->concat_alg == kConcatAlgTranspose);
   default_cols_per_group_ = kMaxBlockSize / dtype_size_;
+  max_cols_per_group_ = default_cols_per_group_;
   max_input_num_per_group_ = MaxInputNumPerGroup();
   // row足够大时仅row就足够分核, 不需要group parallel，否则尝试分组
   if (known_rows_ <= kGroupParallelRowThreshold) {
@@ -56,6 +58,20 @@ Status ConcatGroupPartitioner::Initialize() {
     const auto is_tail_concat = (concat_dim_ == output_attr.repeats.size() - 1UL);
     can_use_small_tail_ = is_tail_concat && (dtype_size_ == sizeof(uint16_t) || dtype_size_ == sizeof(uint32_t));
     group_type_to_limit_[kGroupTypeSmallTail] = kMaxBlockSizeForSmallTail;
+    if (!is_tail_concat) {
+      // 非尾轴concat, 尾轴会对齐到32B
+      int64_t tail_dim_size = -1;
+      GE_ASSERT_TRUE(concat_node_->outputs[0].attr.repeats.back().GetConstValue(tail_dim_size));
+      tail_dim_size *= dtype_size_;
+      const auto aligned_size = (tail_dim_size + kAlignment - 1) / kAlignment * kAlignment;
+      const auto ratio = static_cast<af::float64_t>(aligned_size) / static_cast<af::float64_t>(tail_dim_size);
+      if (ratio >= kRatioThreshold) {
+        default_cols_per_group_ =
+            static_cast<int64_t>(static_cast<af::float64_t>(default_cols_per_group_) * kRatioThreshold / ratio);
+        max_cols_per_group_ = default_cols_per_group_;
+        GELOGD("tail dim = %ld, update default_cols_per_group to %ld", tail_dim_size, default_cols_per_group_);
+      }
+    }
   } else {
     if (output_cols_ > 0) {
       GE_ASSERT_SUCCESS(TryOptimizeGroupSize());
@@ -232,7 +248,7 @@ bool ConcatGroupPartitioner::CanMerge(const ConcatGroupPartitioner::ConcatGroup 
   auto total_num = (lhs.end - lhs.start) + (rhs.end - rhs.start);
   auto any_group_has_single_item = (lhs.end - lhs.start == 1) || (rhs.end - rhs.start == 1);
   return (any_group_has_single_item || (total_num <= max_input_num_per_group_)) &&
-         ((lhs.size + rhs.size) <= kMaxBlockSize / dtype_size_);
+         ((lhs.size + rhs.size) <= max_cols_per_group_);
 }
 
 void ConcatGroupPartitioner::ConvertToDefaultIfTooSmall() {

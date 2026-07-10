@@ -18,7 +18,7 @@
 #include "ascir_ops.h"
 #include "ascir_node_param/ascir_node_param.h"
 #include "ascir_node_param/ascir_param_builder.h"
-#include "gen_model_info/parser/reduce_specific_params_builder.h"
+#include "gen_model_info/parser/specific_params_builder.h"
 #include "gen_model_info/parser/tuning_space.h"
 
 namespace ascir_reduce_test_helpers {
@@ -96,7 +96,7 @@ inline att::NodeInfo BuildReduceNodeInfo(ReduceTestEnv &env, const std::string &
       BuildParserTensor("y", {&env.axis0, &env.axis1}, {ge::Symbol(8), ge::Symbol(1)}, {ge::Symbol(1), ge::Symbol(0)})};
   node_info.loop_axes = {&env.axis1};
   (void)ascir_param::EnrichAscirGraphNodeParams(env.graph);
-  (void)att::FillReduceSpecificParams(env.node, node_info);
+  (void)att::FillSpecificParams(env.node, node_info);
   return node_info;
 }
 

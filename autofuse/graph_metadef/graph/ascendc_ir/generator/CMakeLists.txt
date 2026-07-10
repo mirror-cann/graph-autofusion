@@ -18,7 +18,6 @@ target_link_options(aihac_ir_register PRIVATE
 
 target_include_directories(aihac_ir_register PRIVATE
     ${GE_METADEF_INC_DIR}
-    ${GE_METADEF_INC_DIR}/external
     ${GE_METADEF_INC_DIR}/graph
     ${GE_METADEF_INC_DIR}/graph/ascendc_ir
     ${GE_METADEF_INC_DIR}/graph/ascendc_ir/ascendc_ir_core
@@ -62,7 +61,6 @@ target_link_options(ascir_generate PRIVATE
 
 target_include_directories(ascir_generate PRIVATE
     ${GE_METADEF_INC_DIR}
-    ${GE_METADEF_INC_DIR}/external
     ${GE_METADEF_INC_DIR}/graph
     ${GE_METADEF_INC_DIR}/graph/ascendc_ir
     ${GE_METADEF_INC_DIR}/graph/ascendc_ir/ascendc_ir_core
@@ -97,7 +95,6 @@ target_compile_options(ascir_ops_header_generator PRIVATE
 
 target_include_directories(ascir_ops_header_generator PRIVATE
     ${GE_METADEF_INC_DIR}
-    ${GE_METADEF_INC_DIR}/external
     ${GE_METADEF_INC_DIR}/graph
     ${GE_METADEF_INC_DIR}/graph/ascendc_ir
     ${GE_METADEF_INC_DIR}/graph/ascendc_ir/ascendc_ir_core

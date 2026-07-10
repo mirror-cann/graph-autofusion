@@ -64,6 +64,43 @@ TEST(AscirNodeParamsTest, EnrichGraphRegistersSkippedForUnsupportedApi) {
   EXPECT_TRUE(std::holds_alternative<std::monostate>(params->specific_params));
 }
 
+TEST(AscirNodeParamsTest, VectorFuncParamsCanBeStoredInAscirNodeParams) {
+  ascir_param::AscirNodeParams params;
+  ascir_param::VectorFuncNodeParams vf_params;
+  vf_params.is_double_loop = true;
+  vf_params.all_strides = {Expr(4), Expr(8)};
+  vf_params.output_dims = {Expr(2), Expr(16)};
+
+  params.specific_params = vf_params;
+
+  const auto *stored = ascir_param::GetSpecificParams<ascir_param::VectorFuncNodeParams>(params);
+  ASSERT_NE(stored, nullptr);
+  EXPECT_TRUE(stored->is_double_loop);
+  ASSERT_EQ(stored->all_strides.size(), 2U);
+  EXPECT_EQ(stored->all_strides[0], Expr(4));
+  ASSERT_EQ(stored->output_dims.size(), 2U);
+  EXPECT_EQ(stored->output_dims[1], Expr(16));
+}
+
+TEST(AscirNodeParamsTest, EnrichGraphRegistersVectorFuncParams) {
+  af::AscGraph graph("test_graph");
+  af::ascir_op::VectorFunc vf_op("vf");
+  graph.AddNode(vf_op);
+  auto node = graph.FindNode("vf");
+  ASSERT_NE(node, nullptr);
+
+  ExpectEnrichSuccess(graph);
+  auto params = ascir_param::GetAscirNodeParams(node);
+  ASSERT_NE(params, nullptr);
+  EXPECT_EQ(params->api_name, "VectorFunc");
+  EXPECT_EQ(params->status, ascir_param::ParamBuildStatus::kBuilt);
+  const auto *stored = ascir_param::GetSpecificParams<ascir_param::VectorFuncNodeParams>(*params);
+  ASSERT_NE(stored, nullptr);
+  EXPECT_FALSE(stored->is_double_loop);
+  EXPECT_TRUE(stored->all_strides.empty());
+  EXPECT_TRUE(stored->output_dims.empty());
+}
+
 TEST(AscirNodeParamsTest, EnrichReduceParamsForArSingleReduce) {
   auto env = MakeArReduceEnv("max");
 

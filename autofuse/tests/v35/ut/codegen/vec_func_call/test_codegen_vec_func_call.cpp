@@ -11,6 +11,8 @@
 #include "gtest/gtest.h"
 #include "node_utils_ex.h"
 #include "ascir_utils.h"
+#include "ascir_node_param/ascir_node_param.h"
+#include "ascir_node_param/ascir_param_builder.h"
 #include "graph_utils.h"
 #include "ascendc_ir.h"
 #include "ascir_ops.h"
@@ -136,6 +138,129 @@ std::string GenerateScalarDataVfCall(AscGraph &graph, const af::Axis &z0, const 
   std::string result;
   EXPECT_EQ(call.Generate(tpipe, vector<af::AxisId>{}, result), 0);
   return result;
+}
+
+template <typename TensorLike>
+void SetFiveDimSchedule(TensorLike &tensor, const std::vector<af::Axis> &axes,
+                        const std::vector<af::Expression> &repeats, const std::vector<af::Expression> &strides) {
+  *tensor.axis = {axes[0].id, axes[1].id, axes[2].id, axes[3].id, axes[4].id};
+  *tensor.repeats = repeats;
+  *tensor.strides = strides;
+}
+
+void SetFiveDimVecInAttr(AscTensor &tensor, const std::vector<af::Axis> &axes,
+                         const std::vector<af::Expression> &strides, int64_t tensor_id) {
+  tensor.attr.vectorized_axis = {axes[0].id, axes[1].id, axes[2].id, axes[3].id, axes[4].id};
+  tensor.attr.vectorized_strides = strides;
+  tensor.attr.dtype = af::DT_FLOAT;
+  tensor.attr.mem.position = af::Position::kPositionVecIn;
+  tensor.attr.mem.tensor_id = tensor_id;
+}
+
+void InitDoubleLoopVfGraph(VectorFunc &vf_op, Store &store_op, Load &sub_load_op, Abs &abs_op, Store &sub_store_op,
+                           Output &sub_output_op, const Load &load_op, const Data &sub_x_op,
+                           const std::vector<af::Axis> &axes, const std::vector<af::Expression> &repeats,
+                           const std::vector<af::Expression> &strides) {
+  vf_op.InstanceOutputy(1);
+  vf_op.x = {load_op.y};
+  vf_op.attr.sched.axis = {axes[0].id, axes[1].id, axes[2].id, axes[3].id, axes[4].id};
+  SetFiveDimSchedule(vf_op.y[0], axes, repeats, strides);
+
+  store_op.x = vf_op.y[0];
+  store_op.ir_attr.SetOffset(af::Symbol(0));
+  SetFiveDimSchedule(store_op.y, axes, repeats, strides);
+
+  sub_load_op.x = sub_x_op.y;
+  sub_load_op.attr.sched.axis = {axes[3].id, axes[4].id};
+  sub_load_op.attr.sched.loop_axis = axes[4].id;
+  SetFiveDimSchedule(sub_load_op.y, axes, repeats, strides);
+
+  abs_op.x = sub_load_op.y;
+  abs_op.attr.sched.axis = {axes[3].id, axes[4].id};
+  abs_op.attr.sched.loop_axis = axes[4].id;
+  SetFiveDimSchedule(abs_op.y, axes, repeats, strides);
+
+  sub_store_op.x = abs_op.y;
+  sub_store_op.attr.sched.axis = {axes[3].id, axes[4].id};
+  sub_store_op.attr.sched.loop_axis = axes[4].id;
+  SetFiveDimSchedule(sub_store_op.y, axes, repeats, strides);
+  sub_output_op.x = sub_store_op.y;
+}
+
+void InitDoubleLoopTensorAttrs(AscGraph &graph, AscGraph &vf_sub_graph, const std::vector<af::Axis> &axes,
+                               const std::vector<af::Expression> &base_strides,
+                               const std::vector<af::Expression> &output_strides) {
+  auto load = graph.FindNode("load");
+  SetFiveDimVecInAttr(load->outputs[0], axes, base_strides, 0);
+  load->outputs[0].attr.mem.alloc_type = af::AllocType::kAllocTypeQueue;
+  load->outputs[0].attr.que.id = 1;
+  load->outputs[0].attr.opt.merge_scope = af::kIdNone;
+
+  SetFiveDimVecInAttr(vf_sub_graph.FindNode("sub_load")->outputs[0], axes, base_strides, 0);
+  SetFiveDimVecInAttr(vf_sub_graph.FindNode("abs")->outputs[0], axes, base_strides, 1);
+  SetFiveDimVecInAttr(vf_sub_graph.FindNode("sub_store")->outputs[0], axes, output_strides, 2);
+
+  auto vf = graph.FindNode("vf");
+  SetFiveDimVecInAttr(vf->outputs[0], axes, output_strides, 1);
+  vf->outputs[0].attr.mem.alloc_type = af::AllocType::kAllocTypeQueue;
+  vf->outputs[0].attr.que.id = 1;
+  vf->outputs[0].attr.opt.merge_scope = af::kIdNone;
+
+  auto store = graph.FindNode("store");
+  store->outputs[0].attr.vectorized_axis = {axes[0].id, axes[1].id, axes[2].id, axes[3].id, axes[4].id};
+  store->outputs[0].attr.vectorized_strides = output_strides;
+  store->outputs[0].attr.dtype = af::DT_FLOAT;
+  store->outputs[0].attr.mem.position = af::Position::kPositionVecOut;
+  store->outputs[0].attr.mem.tensor_id = 2;
+  store->outputs[0].attr.mem.alloc_type = af::AllocType::kAllocTypeQueue;
+  store->outputs[0].attr.que.id = 2;
+  store->outputs[0].attr.opt.merge_scope = af::kIdNone;
+}
+
+void PrepareDoubleLoopCodegen(AscGraph &graph, const std::vector<af::Axis> &axes,
+                              const std::vector<af::Expression> &repeats, codegen::Tiler &tiler, codegen::TPipe &tpipe,
+                              codegen::VfCall &call, std::stringstream &func_def) {
+  auto load = graph.FindNode("load");
+  auto vf = graph.FindNode("vf");
+  tpipe.AddTensor(load->outputs[0]);
+  tpipe.AddTensor(vf->outputs[0]);
+  for (const auto &axis : axes) {
+    tiler.AddAxis(axis);
+  }
+  for (const auto &repeat : repeats) {
+    tiler.AddSizeVar(af::SizeVar(repeat));
+  }
+
+  codegen::ApiTensor x1;
+  x1.id = load->outputs[0].attr.mem.tensor_id;
+  ASSERT_EQ(call.Init(vf), 0);
+  call.inputs.push_back(&x1);
+  ASSERT_EQ(ascir_param::EnrichAscirGraphNodeParams(graph), af::SUCCESS);
+  ASSERT_EQ(call.GenerateFuncDefinition(tpipe, tiler, func_def), 0);
+}
+
+void RegisterDoubleLoopNodes(AscGraph &graph, AscGraph &vf_sub_graph, VectorFunc &vf_op, Data &sub_x_op,
+                             Output &sub_output_op, Load &load_op, Store &store_op, const std::string &sub_graph_name) {
+  vf_op.SetAttr("sub_graph_name", sub_graph_name);
+  sub_x_op.ir_attr.SetIndex(0);
+  sub_output_op.ir_attr.SetIndex(0);
+  graph.AddNode(load_op);
+  graph.AddSubGraph(vf_sub_graph);
+  graph.AddNode(store_op);
+}
+
+void CheckDoubleLoopVectorFuncParams(const af::AscNodePtr &vf) {
+  auto params = ascir_param::GetAscirNodeParams(vf);
+  ASSERT_NE(params, nullptr);
+  const auto *vector_func_params = std::get_if<ascir_param::VectorFuncNodeParams>(&params->specific_params);
+  ASSERT_NE(vector_func_params, nullptr);
+  EXPECT_TRUE(vector_func_params->is_double_loop);
+  ASSERT_EQ(vector_func_params->all_strides.size(), 6U);
+  EXPECT_STREQ(vector_func_params->all_strides[0].Serialize().get(), "(s2 * s3 * s4)");
+  EXPECT_STREQ(vector_func_params->all_strides[5].Serialize().get(), "(2 * s4)");
+  ASSERT_EQ(vector_func_params->output_dims.size(), 4U);
+  EXPECT_STREQ(vector_func_params->output_dims[0].Serialize().get(), "s1");
+  EXPECT_STREQ(vector_func_params->output_dims[3].Serialize().get(), "s4");
 }
 }  // namespace
 
@@ -1038,6 +1163,61 @@ TEST(CodegenKernel, VfCall_FiveDimLoad) {
           "* t->s3 * t->s4), (3 * t->s3 * t->s4), (2 * t->s4), (t->s2 * t->s3 * t->s4), (t->s3 * t->s4), t->s4);\n\n"
           "}\n"
           "#endif\n"});
+}
+
+TEST(CodegenKernel, VfCall_DoubleLoopWritesVectorFuncParams) {
+  ge::SetupRuntimeStub();
+  af::AscGraph graph("test_graph");
+
+  af::Expression Two = af::Symbol(2);
+  af::Expression Three = af::Symbol(3);
+  af::Expression Four = af::Symbol(4);
+  af::Expression Five = af::Symbol(5);
+
+  auto s0 = graph.CreateSizeVar("s0");
+  auto s1 = graph.CreateSizeVar("s1");
+  auto s2 = graph.CreateSizeVar("s2");
+  auto s3 = graph.CreateSizeVar("s3");
+  auto s4 = graph.CreateSizeVar("s4");
+  auto z0 = graph.CreateAxis("z0", s0);
+  auto z1 = graph.CreateAxis("z1", s1);
+  auto z2 = graph.CreateAxis("z2", s2);
+  auto z3 = graph.CreateAxis("z3", s3);
+  auto z4 = graph.CreateAxis("z4", s4);
+  const std::vector<af::Axis> axes = {z0, z1, z2, z3, z4};
+  const std::vector<af::Expression> repeats = {s0, s1, s2, s3, s4};
+  const std::vector<af::Expression> base_strides = {s1 * s2 * s3 * s4, s2 * s3 * s4, s3 * s4, s4, One};
+  const std::vector<af::Expression> output_strides = {s1 * s2 * s3 * s4 * Five, s2 * s3 * s4 * Four, s3 * s4 * Three,
+                                                      s4 * Two, One};
+
+  Data x_op("x", graph);
+  Load load_op("load");
+  std::string sub_graph_name = "vf_sub_graph_double_loop";
+  af::AscGraph vf_sub_graph(sub_graph_name.c_str());
+  VectorFunc vf_op("vf");
+  Data sub_x_op("sub_x", vf_sub_graph);
+  Load sub_load_op("sub_load");
+  Abs abs_op("abs");
+  Store sub_store_op("sub_store");
+  Output sub_output_op("sub_output");
+  Store store_op("store");
+  RegisterDoubleLoopNodes(graph, vf_sub_graph, vf_op, sub_x_op, sub_output_op, load_op, store_op, sub_graph_name);
+
+  load_op.x = x_op.y;
+  load_op.attr.sched.axis = {z0.id, z1.id, z2.id, z3.id, z4.id};
+  SetFiveDimSchedule(load_op.y, axes, repeats, base_strides);
+  InitDoubleLoopVfGraph(vf_op, store_op, sub_load_op, abs_op, sub_store_op, sub_output_op, load_op, sub_x_op, axes,
+                        repeats, base_strides);
+  InitDoubleLoopTensorAttrs(graph, vf_sub_graph, axes, base_strides, output_strides);
+
+  codegen::Tiler tiler;
+  codegen::TPipe tpipe("tpipe", tiler);
+  codegen::VfCall call;
+  std::stringstream func_def;
+  PrepareDoubleLoopCodegen(graph, axes, repeats, tiler, tpipe, call, func_def);
+
+  auto vf = graph.FindNode("vf");
+  CheckDoubleLoopVectorFuncParams(vf);
 }
 
 // 测试单维场景不触发优化逻辑
