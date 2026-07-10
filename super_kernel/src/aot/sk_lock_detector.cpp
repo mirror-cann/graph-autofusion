@@ -482,7 +482,6 @@ bool LockDetector::IsFusible(SuperKernelBaseNode &curNode) {
         depOpVecNum);
   } else {
     SK_LOGI("[lock detector] Node %s: cannot be fused", curNode.Format().c_str());
-    curNode.SetIsFusible(false);
     // If deadlock was detected, set the failure reason with detail
     if (deadlockReason_ != DeadlockFailReason::NOT_FIND_DEADLOCK) {
       curNode.SetFusionFailReason(deadlockReason_);

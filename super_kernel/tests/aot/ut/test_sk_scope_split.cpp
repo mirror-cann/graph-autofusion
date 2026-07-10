@@ -2631,6 +2631,7 @@ TEST_F(SuperKernelScopeSplitterTest, DeadlockRefine_ResourceDeadlockSplitAtWait)
 
   // 期望切分为至少2个scope
   EXPECT_GE(scopeInfos.size(), 2);
+  EXPECT_TRUE(k2->IsFusible()) << "deadlock node entering scopeAfter should be restored to fusible";
 
   std::set<uint64_t> allProcessedNodes;
   for (const auto &scope : scopeInfos) {
