@@ -308,14 +308,18 @@ Status BufQueAllocator::CollectIoNodes(const af::AscGraph &impl_graph) {
 }
 
 void BufQueAllocator::AppendCollectedIoNodes(::ascir::FusedScheduledResult &fused_scheduled_result) const {
+  std::multimap<int64_t, ::ascir::NodeView> index_to_input_node;
   for (const auto &type : {Data::Type, af::ascir_op::ScalarData::Type}) {
     const auto iter = node_type_to_index_to_node_.find(type);
     if (iter == node_type_to_index_to_node_.cend()) {
       continue;
     }
     for (const auto &index_and_node : iter->second) {
-      fused_scheduled_result.input_nodes.emplace_back(index_and_node.second);
+      index_to_input_node.emplace(index_and_node.first, index_and_node.second);
     }
+  }
+  for (const auto &index_and_node : index_to_input_node) {
+    fused_scheduled_result.input_nodes.emplace_back(index_and_node.second);
   }
   const auto output_iter = node_type_to_index_to_node_.find(Output::Type);
   if (output_iter != node_type_to_index_to_node_.cend()) {
