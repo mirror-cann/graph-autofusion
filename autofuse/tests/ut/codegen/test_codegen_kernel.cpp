@@ -3756,6 +3756,68 @@ TEST(CodegenKernel, TwoWorkspaceReuseAsInputCodegen) {
                                 "global_1.SetGlobalBuffer((__gm__ half*)workspace);\n"});
 }
 
+TEST(CodegenKernel, GlobalTensorInitShouldUseWorkspaceReuseOverride) {
+  af::AscGraph graph("test_graph");
+
+  auto s0 = graph.CreateSizeVar("s0");
+  auto z0 = graph.CreateAxis("z0", s0);
+
+  Data x_op("x", graph);
+  Store store_op("store");
+  Workspace workspace_op("workspace");
+  graph.AddNode(store_op);
+  graph.AddNode(workspace_op);
+
+  x_op.ir_attr.SetIndex(0);
+  x_op.y.dtype = ge::DT_FLOAT16;
+  store_op.x = x_op.y;
+  store_op.y.dtype = ge::DT_FLOAT16;
+  *store_op.y.axis = {z0.id};
+  workspace_op.x = store_op.y;
+  workspace_op.y.dtype = ge::DT_FLOAT16;
+  *workspace_op.y.axis = {z0.id};
+
+  auto x = graph.FindNode("x");
+  auto store = graph.FindNode("store");
+  auto workspace = graph.FindNode("workspace");
+
+  x->outputs[0].attr.mem.alloc_type = af::AllocType::kAllocTypeGlobal;
+  x->outputs[0].attr.mem.tensor_id = 0;
+  store->outputs[0].attr.mem.alloc_type = af::AllocType::kAllocTypeGlobal;
+  store->outputs[0].attr.mem.tensor_id = 1;
+  store->outputs[0].attr.repeats = {s0};
+  store->outputs[0].attr.strides = {One};
+  workspace->outputs[0].attr.mem.alloc_type = af::AllocType::kAllocTypeGlobal;
+  workspace->outputs[0].attr.mem.tensor_id = 1;
+  workspace->outputs[0].attr.repeats = {s0};
+  workspace->attr.api.compute_type = af::ComputeType::kComputeInvalid;
+
+  ::ascir::FusedScheduledResult fused_schedule_result;
+  fused_schedule_result.input_nodes.push_back(x);
+  fused_schedule_result.workspace_nodes.push_back(workspace);
+
+  codegen::Kernel kernel(graph.GetName());
+  codegen::Kernel::ParseGraph(graph, fused_schedule_result, kernel);
+  std::string result;
+  EXPECT_EQ(kernel.GlobalTensorInit(result, "y0"), af::SUCCESS);
+  EXPECT_EQ(result, std::string{"GlobalTensor<half> global_0;\n"
+                                "global_0.SetGlobalBuffer((__gm__ half*)x);\n"
+                                "GM_ADDR workspace_reuse = y0;\n"
+                                "GlobalTensor<half> global_1;\n"
+                                "global_1.SetGlobalBuffer((__gm__ half*)workspace_reuse);\n"});
+}
+
+TEST(CodegenKernel, GenCubeCommonTilingSingleFuncCallShouldUseOutputOverride) {
+  codegen::Kernel kernel("cube_kernel");
+  kernel.inputs.emplace_back(GM_ADDR("x"));
+  af::AscGraph graph("cube_graph");
+
+  const auto result = kernel.GenCubeCommonTilingSingleFuncCall(graph, "y0");
+
+  EXPECT_NE(result.find("y0, workspace + vec_wss, gm_tiling_data);"), std::string::npos);
+  EXPECT_EQ(result.find("workspace, workspace + vec_wss, gm_tiling_data);"), std::string::npos);
+}
+
 TEST(CodegenKernel, WorkspaceReuseOutputAsInputCodegen) {
   af::AscGraph graph0("test_graph0");
   af::AscGraph graph("test_graph");

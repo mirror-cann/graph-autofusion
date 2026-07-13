@@ -10,6 +10,7 @@
 # -----------------------------------------------------------------------------------------------------------
 
 import os
+import types
 
 import pytest
 
@@ -20,19 +21,40 @@ MODULE_PATH = os.path.join(PYTHON_DIR, "ascendc_compile.py")
 
 _LAUNCH_FUNC = (
     'extern "C" int64_t AutofuseLaunch(uint32_t blockDim, void* stream, void* input0, void* output0, '
-    'void* workspace, AutofuseTilingData* tiling_data)\n'
-    '{\n'
-    '  static_kernel<<<blockDim, nullptr, stream>>>(\n'
-    '      (uint8_t*)input0, (uint8_t*)output0,\n'
-    '      (uint8_t*)workspace, *tiling_data);\n'
-    '  return 0;\n'
-    '}\n'
+    "void* workspace, AutofuseTilingData* tiling_data)\n"
+    "{\n"
+    "  static_kernel<<<blockDim, nullptr, stream>>>(\n"
+    "      (uint8_t*)input0, (uint8_t*)output0,\n"
+    "      (uint8_t*)workspace, *tiling_data);\n"
+    "  return 0;\n"
+    "}\n"
 )
+
+
+def fake_get_soc_spec(key):
+    return {
+        "vector_core_cnt": 20,
+        "ub_size": 262144,
+    }.get(key, "")
 
 
 @pytest.fixture()
 def ascendc_compile_module():
-    with load_compile_module(MODULE_NAME, MODULE_PATH) as loaded_module:
+    platform_info_module = types.ModuleType(
+        "asc_op_compile_base.common.platform.platform_info"
+    )
+    platform_info_module.get_soc_spec = fake_get_soc_spec
+    extra_modules = {
+        "asc_op_compile_base": types.ModuleType("asc_op_compile_base"),
+        "asc_op_compile_base.common": types.ModuleType("asc_op_compile_base.common"),
+        "asc_op_compile_base.common.platform": types.ModuleType(
+            "asc_op_compile_base.common.platform"
+        ),
+        "asc_op_compile_base.common.platform.platform_info": platform_info_module,
+    }
+    with load_compile_module(
+        MODULE_NAME, MODULE_PATH, extra_modules=extra_modules
+    ) as loaded_module:
         yield loaded_module
 
 
@@ -51,7 +73,9 @@ def test_link_shared_adds_requested_libraries(ascendc_compile_module):
     ascendc_compile_module.module.ASCEND_PATH = "/usr/local/Ascend/cann"
     ascendc_compile_module.module.machine = "x86_64"
 
-    result = ascendc_compile_module.link_shared("kernel.so", ["host.o"], link_libraries=["graph_base", "register"])
+    result = ascendc_compile_module.link_shared(
+        "kernel.so", ["host.o"], link_libraries=["graph_base", "register"]
+    )
 
     assert result == "kernel.so"
     assert captured["stage_name"] == "LinkObj"
@@ -75,18 +99,24 @@ def test_link_shared_skips_libraries_by_default(ascendc_compile_module):
     assert "-lgraph_base" not in captured["cmd"]
 
 
-def test_host_target_records_compile_and_link_stage(ascendc_compile_module, tmpdir, capsys):
+def test_host_target_records_compile_and_link_stage(
+    ascendc_compile_module, tmpdir, capsys
+):
     host_dir = tmpdir.mkdir("host")
     host_file = host_dir.join("graph_tiling_func.cpp")
     host_file.write("host")
-    args = type("Args", (), {
-        "host_files": str(host_file),
-        "compile_options": "",
-        "soc_version": "Ascend910B",
-        "stage": "host",
-        "graph_name": "graph",
-        "output_file": str(tmpdir.join("host.so")),
-    })()
+    args = type(
+        "Args",
+        (),
+        {
+            "host_files": str(host_file),
+            "compile_options": "",
+            "soc_version": "Ascend910B",
+            "stage": "host",
+            "graph_name": "graph",
+            "output_file": str(tmpdir.join("host.so")),
+        },
+    )()
 
     ascendc_compile_module.module.run_compile_command = _noop_run_compile_command
     ascendc_compile_module.link_host_target(args, str(tmpdir))
@@ -97,22 +127,28 @@ def test_host_target_records_compile_and_link_stage(ascendc_compile_module, tmpd
     assert capsys.readouterr().out == ""
 
 
-def test_kernel_target_records_device_compile_and_link_stage(ascendc_compile_module, tmpdir):
+def test_kernel_target_records_device_compile_and_link_stage(
+    ascendc_compile_module, tmpdir
+):
     device_dir = tmpdir.mkdir("device")
     device_file = device_dir.join("graph_op_kernel.cpp")
     device_file.write(
         'extern "C" __global__ __aicore__ void graph_kernel(GM_ADDR input0) {}\n'
     )
     output_file = tmpdir.join("kernel.so")
-    args = type("Args", (), {
-        "device_files": str(device_file),
-        "output_file": str(output_file),
-        "soc_version": "Ascend910B",
-        "stage": "device",
-        "tiling_repr": None,
-        "force_unknown": True,
-        "graph_name": "graph",
-    })()
+    args = type(
+        "Args",
+        (),
+        {
+            "device_files": str(device_file),
+            "output_file": str(output_file),
+            "soc_version": "Ascend910B",
+            "stage": "device",
+            "tiling_repr": None,
+            "force_unknown": True,
+            "graph_name": "graph",
+        },
+    )()
 
     ascendc_compile_module.module.run_compile_command = _noop_run_compile_command
     ascendc_compile_module.link_kernel_target(args, None, str(tmpdir))
@@ -122,10 +158,48 @@ def test_kernel_target_records_device_compile_and_link_stage(ascendc_compile_mod
     assert ["InductorCompile", "device", "LinkDeviceSo", "graph"] in labels
 
 
-def test_try_static_shape_compile_records_stage_when_force_unknown(ascendc_compile_module, tmpdir):
-    args = type("Args", (), {"force_unknown": True, "stage": "all", "graph_name": "graph"})()
+def test_compile_device_obj_includes_machine_asc_headers(
+    ascendc_compile_module, tmpdir
+):
+    calls = []
+    device_file = tmpdir.mkdir("device").join("graph_op_kernel.cpp")
+    args = type(
+        "Args",
+        (),
+        {
+            "device_files": str(device_file),
+            "soc_version": "Ascend910B",
+            "stage": "device",
+            "graph_name": "graph",
+        },
+    )()
 
-    assert ascendc_compile_module.try_static_shape_compile(args, str(tmpdir), "kernel.so") is False
+    def fake_run_compile_command(cmd, stage_name):
+        calls.append((cmd, stage_name))
+
+    ascendc_compile_module.module.ASCEND_PATH = "/usr/local/Ascend/cann"
+    ascendc_compile_module.module.machine = "aarch64"
+    ascendc_compile_module.module.run_compile_command = fake_run_compile_command
+
+    ascendc_compile_module.compile_device_obj(args, str(tmpdir))
+
+    assert len(calls) == 1
+    cmd, stage_name = calls[0]
+    assert stage_name == "Device"
+    assert "/usr/local/Ascend/cann/aarch64-linux/asc/include" in cmd
+
+
+def test_try_static_shape_compile_records_stage_when_force_unknown(
+    ascendc_compile_module, tmpdir
+):
+    args = type(
+        "Args", (), {"force_unknown": True, "stage": "all", "graph_name": "graph"}
+    )()
+
+    assert (
+        ascendc_compile_module.try_static_shape_compile(args, str(tmpdir), "kernel.so")
+        is False
+    )
 
     labels = [item[0] for item in ascendc_compile_module.duration_records]
     assert ["InductorCompile", "all", "TryStaticShapeCompile", "graph"] in labels
@@ -136,11 +210,15 @@ def test_copy_so_to_output_records_stage(ascendc_compile_module, tmpdir):
     dst_file = tmpdir.mkdir("out").join("target.so")
     src_file.write("binary")
     src_directory = os.getcwd()
-    args = type("Args", (), {
-        "output_file": str(dst_file),
-        "stage": "host",
-        "graph_name": "graph",
-    })()
+    args = type(
+        "Args",
+        (),
+        {
+            "output_file": str(dst_file),
+            "stage": "host",
+            "graph_name": "graph",
+        },
+    )()
 
     ascendc_compile_module.copy_so_to_output(str(src_file), args, src_directory)
 
@@ -149,122 +227,148 @@ def test_copy_so_to_output_records_stage(ascendc_compile_module, tmpdir):
     assert dst_file.read() == "binary"
 
 
-def test_static_shape_kernel_proc_removes_tiling_data_from_launch(ascendc_compile_module, tmpdir):
+def test_static_shape_kernel_proc_removes_tiling_data_from_launch(
+    ascendc_compile_module, tmpdir
+):
     device_dir = tmpdir.mkdir("device")
     kernel_file = device_dir.join("static_kernel.cpp")
     kernel_file.write(
         'extern "C" __global__ __aicore__ void static_kernel(GM_ADDR input0, GM_ADDR output0, '
-        'GM_ADDR workspace, AutofuseTilingData t) {\n'
-        '  use(t);\n'
-        '}\n'
-        'void init_static_kernel(void) {}\n'
+        "GM_ADDR workspace, AutofuseTilingData t) {\n"
+        "  use(t);\n"
+        "}\n"
+        "void init_static_kernel(void) {}\n"
         'extern "C" int64_t AutofuseLaunch(uint32_t blockDim, void* stream, void* input0, void* output0, '
-        'void* workspace, AutofuseTilingData* tiling_data)\n'
-        '{\n'
-        '  static_kernel<<<blockDim, nullptr, stream>>>((uint8_t*)input0, (uint8_t*)output0, '
-        '(uint8_t*)workspace, *tiling_data);\n'
-        '  return 0;\n'
-        '}\n'
+        "void* workspace, AutofuseTilingData* tiling_data)\n"
+        "{\n"
+        "  static_kernel<<<blockDim, nullptr, stream>>>((uint8_t*)input0, (uint8_t*)output0, "
+        "(uint8_t*)workspace, *tiling_data);\n"
+        "  return 0;\n"
+        "}\n"
     )
     args = type("Args", (), {"device_files": str(kernel_file)})()
 
-    ascendc_compile_module.static_shape_kernel_proc(args, str(tmpdir), "AutofuseTilingData{.block_dim = 8}")
+    ascendc_compile_module.static_shape_kernel_proc(
+        args, str(tmpdir), "AutofuseTilingData{.block_dim = 8}"
+    )
 
     content = kernel_file.read()
     assert (
         'extern "C" __global__ __aicore__ void static_kernel(GM_ADDR input0, GM_ADDR output0, GM_ADDR workspace) {'
         in content
     )
-    assert "constexpr AutofuseTilingData t = AutofuseTilingData{.block_dim = 8};" in content
-    assert ("static_kernel<<<blockDim, nullptr, stream>>>("
-            "(uint8_t*)input0, (uint8_t*)output0, (uint8_t*)workspace);"
-            in content)
+    assert (
+        "constexpr AutofuseTilingData t = AutofuseTilingData{.block_dim = 8};"
+        in content
+    )
+    assert (
+        "static_kernel<<<blockDim, nullptr, stream>>>("
+        "(uint8_t*)input0, (uint8_t*)output0, (uint8_t*)workspace);" in content
+    )
     assert "*tiling_data" not in content
 
 
-def test_static_shape_kernel_proc_removes_multiline_tiling_data_from_launch(ascendc_compile_module, tmpdir):
+def test_static_shape_kernel_proc_removes_multiline_tiling_data_from_launch(
+    ascendc_compile_module, tmpdir
+):
     device_dir = tmpdir.mkdir("device")
     kernel_file = device_dir.join("static_kernel.cpp")
     kernel_file.write(
         'extern "C" __global__ __aicore__ void static_kernel(GM_ADDR input0, GM_ADDR output0, '
-        'GM_ADDR workspace, AutofuseTilingData t) {\n'
-        '  use(t);\n'
-        '}\n'
-        + _LAUNCH_FUNC
+        "GM_ADDR workspace, AutofuseTilingData t) {\n"
+        "  use(t);\n"
+        "}\n" + _LAUNCH_FUNC
     )
     args = type("Args", (), {"device_files": str(kernel_file)})()
 
-    ascendc_compile_module.static_shape_kernel_proc(args, str(tmpdir), "AutofuseTilingData{.block_dim = 8}")
+    ascendc_compile_module.static_shape_kernel_proc(
+        args, str(tmpdir), "AutofuseTilingData{.block_dim = 8}"
+    )
 
     content = kernel_file.read()
     assert "*tiling_data" not in content
     assert "(uint8_t*)workspace);" in content
 
 
-def test_static_shape_kernel_proc_removes_multiline_kernel_param(ascendc_compile_module, tmpdir):
+def test_static_shape_kernel_proc_removes_multiline_kernel_param(
+    ascendc_compile_module, tmpdir
+):
     device_dir = tmpdir.mkdir("device")
     kernel_file = device_dir.join("static_kernel.cpp")
     kernel_file.write(
         'extern "C" __global__ __aicore__ void static_kernel(\n'
-        '    GM_ADDR input0,\n'
-        '    GM_ADDR output0,\n'
-        '    GM_ADDR workspace,\n'
-        '    AutofuseTilingData t) {\n'
-        '  use(t);\n'
-        '}\n'
-        + _LAUNCH_FUNC
+        "    GM_ADDR input0,\n"
+        "    GM_ADDR output0,\n"
+        "    GM_ADDR workspace,\n"
+        "    AutofuseTilingData t) {\n"
+        "  use(t);\n"
+        "}\n" + _LAUNCH_FUNC
     )
     args = type("Args", (), {"device_files": str(kernel_file)})()
 
-    ascendc_compile_module.static_shape_kernel_proc(args, str(tmpdir), "AutofuseTilingData{.block_dim = 8}")
+    ascendc_compile_module.static_shape_kernel_proc(
+        args, str(tmpdir), "AutofuseTilingData{.block_dim = 8}"
+    )
 
     content = kernel_file.read()
     assert "GM_ADDR workspace) {" in content
     assert "AutofuseTilingData t) {" not in content
-    assert "constexpr AutofuseTilingData t = AutofuseTilingData{.block_dim = 8};" in content
+    assert (
+        "constexpr AutofuseTilingData t = AutofuseTilingData{.block_dim = 8};"
+        in content
+    )
     assert "(uint8_t*)workspace);" in content
 
 
-def test_static_shape_kernel_proc_removes_indented_kernel_param(ascendc_compile_module, tmpdir):
+def test_static_shape_kernel_proc_removes_indented_kernel_param(
+    ascendc_compile_module, tmpdir
+):
     device_dir = tmpdir.mkdir("device")
     kernel_file = device_dir.join("static_kernel.cpp")
     kernel_file.write(
         '  extern "C" __global__ __aicore__ void static_kernel(GM_ADDR input0, GM_ADDR output0, '
-        'GM_ADDR workspace, AutofuseTilingData t) {\n'
-        '  use(t);\n'
-        '}\n'
-        + _LAUNCH_FUNC
+        "GM_ADDR workspace, AutofuseTilingData t) {\n"
+        "  use(t);\n"
+        "}\n" + _LAUNCH_FUNC
     )
     args = type("Args", (), {"device_files": str(kernel_file)})()
 
-    ascendc_compile_module.static_shape_kernel_proc(args, str(tmpdir), "AutofuseTilingData{.block_dim = 8}")
+    ascendc_compile_module.static_shape_kernel_proc(
+        args, str(tmpdir), "AutofuseTilingData{.block_dim = 8}"
+    )
 
     content = kernel_file.read()
     assert "AutofuseTilingData t) {" not in content
-    assert "constexpr AutofuseTilingData t = AutofuseTilingData{.block_dim = 8};" in content
+    assert (
+        "constexpr AutofuseTilingData t = AutofuseTilingData{.block_dim = 8};"
+        in content
+    )
     assert "(uint8_t*)workspace);" in content
 
 
 def test_static_shape_kernel_proc_keeps_launch_when_kernel_definition_not_rewritten(
-        ascendc_compile_module, tmpdir):
+    ascendc_compile_module, tmpdir
+):
     device_dir = tmpdir.mkdir("device")
     kernel_file = device_dir.join("static_kernel.cpp")
     kernel_file.write(
-        '__global__ __aicore__ __launch_bounds__(1) void static_kernel('
-        'GM_ADDR input0, GM_ADDR workspace, AutofuseTilingData t) {\n'
-        '  use(t);\n'
-        '}\n'
+        "__global__ __aicore__ __launch_bounds__(1) void static_kernel("
+        "GM_ADDR input0, GM_ADDR workspace, AutofuseTilingData t) {\n"
+        "  use(t);\n"
+        "}\n"
         'extern "C" int64_t AutofuseLaunch(uint32_t blockDim, void* stream, void* input0, '
-        'void* workspace, AutofuseTilingData* tiling_data)\n'
-        '{\n'
-        '  static_kernel<<<blockDim, nullptr, stream>>>((uint8_t*)input0, '
-        '(uint8_t*)workspace, *tiling_data);\n'
-        '  return 0;\n'
-        '}\n'
+        "void* workspace, AutofuseTilingData* tiling_data)\n"
+        "{\n"
+        "  static_kernel<<<blockDim, nullptr, stream>>>((uint8_t*)input0, "
+        "(uint8_t*)workspace, *tiling_data);\n"
+        "  return 0;\n"
+        "}\n"
     )
     args = type("Args", (), {"device_files": str(kernel_file)})()
 
-    ascendc_compile_module.static_shape_kernel_proc(args, str(tmpdir), "AutofuseTilingData{.block_dim = 8}")
+    ascendc_compile_module.static_shape_kernel_proc(
+        args, str(tmpdir), "AutofuseTilingData{.block_dim = 8}"
+    )
 
     content = kernel_file.read()
     assert "AutofuseTilingData t) {" in content
@@ -275,28 +379,35 @@ def test_static_shape_kernel_proc_keeps_launch_when_kernel_definition_not_rewrit
     )
 
 
-def test_static_shape_kernel_proc_only_rewrites_launch_for_rewritten_kernel(ascendc_compile_module, tmpdir):
+def test_static_shape_kernel_proc_only_rewrites_launch_for_rewritten_kernel(
+    ascendc_compile_module, tmpdir
+):
     device_dir = tmpdir.mkdir("device")
     kernel_file = device_dir.join("static_kernel.cpp")
     kernel_file.write(
         'extern "C" __global__ __aicore__ void static_kernel(GM_ADDR input0, GM_ADDR workspace, '
-        'AutofuseTilingData t) {\n'
-        '  use(t);\n'
-        '}\n'
+        "AutofuseTilingData t) {\n"
+        "  use(t);\n"
+        "}\n"
         'extern "C" int64_t AutofuseLaunch(uint32_t blockDim, void* stream, void* input0, '
-        'void* workspace, AutofuseTilingData* tiling_data)\n'
-        '{\n'
-        '  static_kernel<<<blockDim, nullptr, stream>>>((uint8_t*)input0, (uint8_t*)workspace, *tiling_data);\n'
-        '  other_kernel<<<blockDim, nullptr, stream>>>((uint8_t*)input0, (uint8_t*)workspace, *tiling_data);\n'
-        '  return 0;\n'
-        '}\n'
+        "void* workspace, AutofuseTilingData* tiling_data)\n"
+        "{\n"
+        "  static_kernel<<<blockDim, nullptr, stream>>>((uint8_t*)input0, (uint8_t*)workspace, *tiling_data);\n"
+        "  other_kernel<<<blockDim, nullptr, stream>>>((uint8_t*)input0, (uint8_t*)workspace, *tiling_data);\n"
+        "  return 0;\n"
+        "}\n"
     )
     args = type("Args", (), {"device_files": str(kernel_file)})()
 
-    ascendc_compile_module.static_shape_kernel_proc(args, str(tmpdir), "AutofuseTilingData{.block_dim = 8}")
+    ascendc_compile_module.static_shape_kernel_proc(
+        args, str(tmpdir), "AutofuseTilingData{.block_dim = 8}"
+    )
 
     content = kernel_file.read()
-    assert "static_kernel<<<blockDim, nullptr, stream>>>((uint8_t*)input0, (uint8_t*)workspace);" in content
+    assert (
+        "static_kernel<<<blockDim, nullptr, stream>>>((uint8_t*)input0, (uint8_t*)workspace);"
+        in content
+    )
     assert (
         "other_kernel<<<blockDim, nullptr, stream>>>((uint8_t*)input0, (uint8_t*)workspace, *tiling_data);"
         in content
@@ -304,25 +415,26 @@ def test_static_shape_kernel_proc_only_rewrites_launch_for_rewritten_kernel(asce
 
 
 def test_static_shape_kernel_proc_keeps_dynamic_inductor_tiling_when_tiling_repr_is_none(
-        ascendc_compile_module, tmpdir):
+    ascendc_compile_module, tmpdir
+):
     device_dir = tmpdir.mkdir("device")
     kernel_file = device_dir.join("static_kernel.cpp")
     kernel_file.write(
         'extern "C" __global__ __aicore__ void static_kernel(GM_ADDR input0, GM_ADDR workspace, '
-        'AutofuseTilingData t) {\n'
-        '#ifdef INDUCTOR_CONST_TILING_DATA\n'
-        '  const AutofuseTilingData t;\n'
-        '#else\n'
-        '  use(t);\n'
-        '#endif\n'
-        '}\n'
+        "AutofuseTilingData t) {\n"
+        "#ifdef INDUCTOR_CONST_TILING_DATA\n"
+        "  const AutofuseTilingData t;\n"
+        "#else\n"
+        "  use(t);\n"
+        "#endif\n"
+        "}\n"
         'extern "C" int64_t AutofuseLaunch(uint32_t blockDim, void* stream, void* input0, '
-        'void* workspace, AutofuseTilingData* tiling_data)\n'
-        '{\n'
-        '  static_kernel<<<blockDim, nullptr, stream>>>((uint8_t*)input0, '
-        '(uint8_t*)workspace, *tiling_data);\n'
-        '  return 0;\n'
-        '}\n'
+        "void* workspace, AutofuseTilingData* tiling_data)\n"
+        "{\n"
+        "  static_kernel<<<blockDim, nullptr, stream>>>((uint8_t*)input0, "
+        "(uint8_t*)workspace, *tiling_data);\n"
+        "  return 0;\n"
+        "}\n"
     )
     args = type("Args", (), {"device_files": str(kernel_file), "stage": "device"})()
 
@@ -334,22 +446,65 @@ def test_static_shape_kernel_proc_keeps_dynamic_inductor_tiling_when_tiling_repr
     assert "const AutofuseTilingData t;" not in content
     assert (
         "static_kernel<<<blockDim, nullptr, stream>>>((uint8_t*)input0, "
-        "(uint8_t*)workspace, *tiling_data);"
-        in content
+        "(uint8_t*)workspace, *tiling_data);" in content
     )
 
 
+def _make_device_stage_args():
+    return type("Args", (), {"stage": "device"})()
+
+
+def _make_inductor_const_tiling_branch_lines():
+    return [
+        "#ifdef INDUCTOR_CONST_TILING_DATA\n",
+        "const CVAutofuseTilingData& gm_tiling_data = kConstTilingData;\n",
+        "#else\n",
+        "const TILING_DATA_T& gm_tiling_data = t;\n",
+        "#endif\n",
+    ]
+
+
+def test_expand_inductor_const_tiling_data_selects_dynamic_branch_without_tiling_repr(
+    ascendc_compile_module,
+):
+    args = _make_device_stage_args()
+    lines = _make_inductor_const_tiling_branch_lines()
+
+    result = ascendc_compile_module.expand_inductor_const_tiling_data(args, lines, None)
+
+    assert result == ["const TILING_DATA_T& gm_tiling_data = t;\n"]
+
+
+def test_expand_inductor_const_tiling_data_selects_const_branch_with_tiling_repr(
+    ascendc_compile_module,
+):
+    args = _make_device_stage_args()
+    lines = _make_inductor_const_tiling_branch_lines()
+
+    result = ascendc_compile_module.expand_inductor_const_tiling_data(
+        args, lines, "AutofuseTilingData{}"
+    )
+
+    assert result == [
+        "const CVAutofuseTilingData& gm_tiling_data = kConstTilingData;\n"
+    ]
+
+
 def _make_compile_args(host_files=None):
-    return type("Args", (), {
-        "host_files": host_files,
-        "device_files": "/tmp/build/device/kernel.cpp",
-        "soc_version": "Ascend910B",
-        "compile_options": "-Werror",
-        "output_file": "/tmp/build/kernel.so",
-        "force_unknown": True,
-        "stage": "all",
-        "tiling_repr": None,
-    })()
+    return type(
+        "Args",
+        (),
+        {
+            "host_files": host_files,
+            "device_files": "/tmp/build/device/kernel.cpp",
+            "soc_version": "Ascend910B",
+            "compile_options": "-Werror",
+            "output_file": "/tmp/build/kernel.so",
+            "force_unknown": True,
+            "stage": "all",
+            "tiling_repr": None,
+        },
+    )()
 
 
 def test_build_host_compile_cmd_uses_bisheng_without_cmake(ascendc_compile_module):
@@ -358,7 +513,11 @@ def test_build_host_compile_cmd_uses_bisheng_without_cmake(ascendc_compile_modul
     args = _make_compile_args("/tmp/build/host/graph_tiling_func.cpp")
 
     cmd = ascendc_compile_module.build_host_compile_cmd(
-        args, "/tmp/build", "/tmp/build/host/graph_tiling_func.cpp", "/tmp/build/host/graph_tiling_func.cpp.o")
+        args,
+        "/tmp/build",
+        "/tmp/build/host/graph_tiling_func.cpp",
+        "/tmp/build/host/graph_tiling_func.cpp.o",
+    )
 
     assert cmd[0] == "/usr/local/Ascend/cann/tools/bisheng_compiler/bin/bisheng"
     assert "-c" in cmd
@@ -388,10 +547,12 @@ def test_compile_host_objs_keeps_single_file_compatible(ascendc_compile_module):
 
 def test_compile_host_objs_compiles_multiple_files(ascendc_compile_module, monkeypatch):
     calls = []
-    args = _make_compile_args([
-        "/tmp/build/host/graph_tiling_func_a.cpp",
-        "/tmp/build/host/graph_tiling_func_b.cpp",
-    ])
+    args = _make_compile_args(
+        [
+            "/tmp/build/host/graph_tiling_func_a.cpp",
+            "/tmp/build/host/graph_tiling_func_b.cpp",
+        ]
+    )
 
     def fake_run_compile_command(cmd, stage_name):
         calls.append((cmd, stage_name))
@@ -412,7 +573,9 @@ def test_compile_host_objs_compiles_multiple_files(ascendc_compile_module, monke
     assert all("cmake" not in cmd and "make" not in cmd for cmd in compile_cmds)
 
 
-def test_get_host_compile_worker_count_uses_32_worker_limit(ascendc_compile_module, monkeypatch):
+def test_get_host_compile_worker_count_uses_32_worker_limit(
+    ascendc_compile_module, monkeypatch
+):
     monkeypatch.setattr(ascendc_compile_module.os, "cpu_count", lambda: 64)
     assert ascendc_compile_module.get_host_compile_worker_count(32) == 32
     assert ascendc_compile_module.get_host_compile_worker_count(12) == 12
@@ -423,10 +586,12 @@ def test_get_host_compile_worker_count_uses_32_worker_limit(ascendc_compile_modu
 
 
 def test_compile_host_objs_reports_failed_source(ascendc_compile_module, monkeypatch):
-    args = _make_compile_args([
-        "/tmp/build/host/graph_tiling_func_a.cpp",
-        "/tmp/build/host/graph_tiling_func_b.cpp",
-    ])
+    args = _make_compile_args(
+        [
+            "/tmp/build/host/graph_tiling_func_a.cpp",
+            "/tmp/build/host/graph_tiling_func_b.cpp",
+        ]
+    )
 
     def fake_run_compile_command(cmd, stage_name):
         if "/tmp/build/host/graph_tiling_func_b.cpp" in cmd:
@@ -442,11 +607,15 @@ def test_compile_host_objs_reports_failed_source(ascendc_compile_module, monkeyp
     assert "stderr: fail" in str(exc_info.value)
 
 
-def test_compile_host_obj_rejects_multiple_sources_without_compile(ascendc_compile_module):
-    args = _make_compile_args([
-        "/tmp/build/host/graph_tiling_func_a.cpp",
-        "/tmp/build/host/graph_tiling_func_b.cpp",
-    ])
+def test_compile_host_obj_rejects_multiple_sources_without_compile(
+    ascendc_compile_module,
+):
+    args = _make_compile_args(
+        [
+            "/tmp/build/host/graph_tiling_func_a.cpp",
+            "/tmp/build/host/graph_tiling_func_b.cpp",
+        ]
+    )
 
     def fake_run_compile_command(cmd, stage_name):
         pytest.fail("should not compile")
@@ -485,10 +654,12 @@ def test_build_device_so_links_all_host_objects(ascendc_compile_module):
 
 def test_link_host_target_links_multiple_host_objects(ascendc_compile_module):
     captured = {}
-    args = _make_compile_args([
-        "/tmp/build/host/graph_tiling_func_a.cpp",
-        "/tmp/build/host/graph_tiling_func_b.cpp",
-    ])
+    args = _make_compile_args(
+        [
+            "/tmp/build/host/graph_tiling_func_a.cpp",
+            "/tmp/build/host/graph_tiling_func_b.cpp",
+        ]
+    )
 
     def fake_compile_host_objs(compile_args, temp_dir):
         return ["a.o", "b.o"]
@@ -511,7 +682,9 @@ def test_link_host_target_links_multiple_host_objects(ascendc_compile_module):
     assert captured["link_libraries"] == ascendc_compile_module.HOST_LINK_LIBRARIES
 
 
-def test_link_kernel_target_reuses_host_objects_for_static_recompile(ascendc_compile_module):
+def test_link_kernel_target_reuses_host_objects_for_static_recompile(
+    ascendc_compile_module,
+):
     calls = []
     args = _make_compile_args()
     args.force_unknown = False
@@ -519,7 +692,9 @@ def test_link_kernel_target_reuses_host_objects_for_static_recompile(ascendc_com
     def fake_try_static_shape_compile(compile_args, temp_dir, so_path):
         return True
 
-    ascendc_compile_module.module.try_static_shape_compile = fake_try_static_shape_compile
+    ascendc_compile_module.module.try_static_shape_compile = (
+        fake_try_static_shape_compile
+    )
 
     def fake_build_device_so(compile_args, host_obj_paths, temp_dir):
         calls.append(list(host_obj_paths))
@@ -527,7 +702,9 @@ def test_link_kernel_target_reuses_host_objects_for_static_recompile(ascendc_com
 
     ascendc_compile_module.module.build_device_so = fake_build_device_so
 
-    result = ascendc_compile_module.link_kernel_target(args, ["a.o", "b.o"], "/tmp/build")
+    result = ascendc_compile_module.link_kernel_target(
+        args, ["a.o", "b.o"], "/tmp/build"
+    )
 
     assert result == "/tmp/build/kernel_2.so"
     assert calls == [["a.o", "b.o"], ["a.o", "b.o"]]
