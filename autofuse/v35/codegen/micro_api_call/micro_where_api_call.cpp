@@ -29,8 +29,14 @@ Status MicroWhereApiCall::Generate(const codegen::TensorManager &tensor_mng, [[m
   if (!is_mask_reg) {
     std::string dtype_name;
     Tensor::DtypeName(mask_tensor->dtype_, dtype_name);
-    ss << "AscendC::Reg::CompareScalar<" << dtype_name << ", AscendC::CMPMODE::NE>(" << mask_name << ", "
-       << *mask_tensor << ", static_cast<" << dtype_name << ">(0), " << param.p_reg << ");" << std::endl;
+    if (mask_tensor->dtype_ == af::DT_BOOL) {
+      ss << "AscendC::Reg::CompareScalar<uint8_t, AscendC::CMPMODE::NE>(" << mask_name
+         << ", (AscendC::Reg::RegTensor<uint8_t> &)(" << *mask_tensor << "), static_cast<uint8_t>(0), " << param.p_reg
+         << ");" << std::endl;
+    } else {
+      ss << "AscendC::Reg::CompareScalar<" << dtype_name << ", AscendC::CMPMODE::NE>(" << mask_name << ", "
+         << *mask_tensor << ", static_cast<" << dtype_name << ">(0), " << param.p_reg << ");" << std::endl;
+    }
   }
 
   // Where/Select 调用：Select(output, T1, T2, mask)

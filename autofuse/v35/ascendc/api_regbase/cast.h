@@ -336,7 +336,7 @@ inline __simd_vf__ void CastExtendBool(__ubuf__ OutT *dstUb, __ubuf__ InT *srcUb
     MicroAPI::Or(u32Vreg, negVreg, u32Vreg, exMaskReg);
     MicroAPI::ShiftRights(u32Vreg, u32Vreg, shift, exMaskReg);
     MicroAPI::DataCopy<uint8_t, MicroAPI::StoreDist::DIST_PACK4_B32>(
-        dstUb + innerLoopStride * i, (MicroAPI::RegTensor<uint8_t> &)u32Vreg, stMaskReg);
+        (__ubuf__ uint8_t *)(dstUb + innerLoopStride * i), (MicroAPI::RegTensor<uint8_t> &)u32Vreg, stMaskReg);
   }
 }
 

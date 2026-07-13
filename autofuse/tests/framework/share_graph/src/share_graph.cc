@@ -357,16 +357,65 @@ static void CreateAddAbsAscGraph(af::AscGraph &graph, size_t dims_size) {
 }
 
 /**
- *      output
+ *      output(bool)
  *         |
- *       store
+ *       store(bool)
  *         |
- *        add(bf16)
- *       /   \
- *   load0   load1
- *     |       |
- *   data0   data1
+ *    transpose(bool)  [2D, perms={1,0}]
+ *         |
+ *      load(bool)
+ *         |
+ *      data(bool)
  */
+static void CreateTransposeBoolAscGraph(af::AscGraph &graph) {
+  af::ascir_op::Data x("data0", graph);
+  x.ir_attr.SetIndex(0);
+  x.y.dtype = af::DT_BOOL;
+
+  af::ascir_op::Load load("load0");
+  load.x = x.y;
+  load.y.dtype = af::DT_BOOL;
+
+  af::ascir_op::Transpose transpose("transpose");
+  transpose.x = load.y;
+  transpose.y.dtype = af::DT_BOOL;
+  transpose.attr.tmp_buffers = {{{af::Symbol(8192), -1}, af::MemAttr(), 0}};
+
+  af::ascir_op::Store store("store");
+  store.x = transpose.y;
+  store.y.dtype = af::DT_BOOL;
+
+  af::ascir_op::Output output("output");
+  output.x = store.y;
+  output.y.dtype = af::DT_BOOL;
+  output.ir_attr.SetIndex(0);
+
+  ConstructVVAscGraphAxisInfo(graph, 2, {1, 0});
+}
+
+af::ComputeGraphPtr ShareGraph::TransposeBoolFusedGraph() {
+  auto builder = GraphBuilder("transpose_bool_test");
+  auto data0 = builder.AddNode("data0", "Data", 0, 1);
+  af::AttrUtils::SetInt(data0->GetOpDescBarePtr(), "_parent_node_index", 0);
+
+  auto ascbc = builder.AddNode("ascbc", "AscGraph", 1, 1);
+  auto netoutput = builder.AddNode("netoutput1", af::NETOUTPUT, 1, 0);
+
+  builder.AddDataEdge(data0, 0, ascbc, 0);
+  builder.AddDataEdge(ascbc, 0, netoutput, 0);
+  ComputeGraphPtr compute_graph = builder.GetGraph();
+  if (compute_graph == nullptr) {
+    return nullptr;
+  }
+  auto ascbc_node = compute_graph->FindNode("ascbc");
+  af::AscGraph sub_graph("transpose_bool");
+  CreateTransposeBoolAscGraph(sub_graph);
+
+  std::string sub_graph_str;
+  af::AscGraphUtils::SerializeToReadable(sub_graph, sub_graph_str);
+  af::AttrUtils::SetStr(ascbc_node->GetOpDescBarePtr(), "ascgraph", sub_graph_str);
+  return compute_graph;
+}
 static void CreateBF16AddAscGraph(af::AscGraph &graph, size_t dims_size) {
   af::ascir_op::Data x1("data0", graph);
   x1.ir_attr.SetIndex(0);
@@ -3028,7 +3077,7 @@ af::ComputeGraphPtr ShareGraph::LoadToStoreAndAbsFusedGraph(size_t dims_size) {
 }
 
 /**
- *              output
+ *      output
  *                |
  *              store
  *                |
@@ -9359,6 +9408,217 @@ af::ComputeGraphPtr ShareGraph::LoadCompareWhereFusedGraph() {
   af::AscGraphUtils::SerializeToReadable(sub_graph, sub_graph_str);
   af::AttrUtils::SetStr(ascbc_node->GetOpDescBarePtr(), "ascgraph", sub_graph_str);
   return compute_graph;
+}
+
+template <typename TensorT>
+static void SetTensor2DInfo(TensorT &tensor, const std::vector<int64_t> &axis,
+                            const std::vector<af::Expression> &repeats, const std::vector<af::Expression> &strides,
+                            af::DataType dtype) {
+  tensor.dtype = dtype;
+  *tensor.axis = axis;
+  *tensor.repeats = repeats;
+  *tensor.strides = strides;
+}
+
+template <typename NodeT>
+static void SetNode2DInfo(NodeT &node, const std::vector<int64_t> &axis) {
+  node.attr.sched.axis = axis;
+}
+
+struct AscGraph2DInfo {
+  std::vector<int64_t> axis;
+  std::vector<af::Expression> repeats;
+  std::vector<af::Expression> strides;
+};
+
+static AscGraph2DInfo CreateAscGraph2DInfo(af::AscGraph &graph) {
+  auto s0 = Symbol("s0");
+  auto s1 = Symbol("s1");
+  auto z0 = graph.CreateAxis("z0", s0);
+  auto z1 = graph.CreateAxis("z1", s1);
+  return {{z0.id, z1.id}, {s0, s1}, {s1, af::ops::One}};
+}
+
+static void InitBoolMaskInput(af::ascir_op::Data &data, af::ascir_op::Load &load, const AscGraph2DInfo &info,
+                              uint32_t index) {
+  data.ir_attr.SetIndex(index);
+  SetNode2DInfo(data, info.axis);
+  SetTensor2DInfo(data.y, info.axis, info.repeats, info.strides, af::DT_FLOAT);
+  load.x = data.y;
+  SetNode2DInfo(load, info.axis);
+  SetTensor2DInfo(load.y, info.axis, info.repeats, info.strides, af::DT_FLOAT);
+}
+
+static void CreateBoolMaskPredicates(af::AscGraph &graph, const AscGraph2DInfo &info, const af::ascir_op::Load &load0,
+                                     const af::ascir_op::Load &load1, af::ascir_op::Gt &gt) {
+  af::ascir_op::IsFinite isfinite("isfinite");
+  isfinite.x = load0.y;
+  SetNode2DInfo(isfinite, info.axis);
+  SetTensor2DInfo(isfinite.y, info.axis, info.repeats, info.strides, af::DT_BOOL);
+
+  af::ascir_op::Isnan isnan("isnan");
+  isnan.x = load0.y;
+  SetNode2DInfo(isnan, info.axis);
+  SetTensor2DInfo(isnan.y, info.axis, info.repeats, info.strides, af::DT_BOOL);
+
+  gt.x1 = load0.y;
+  gt.x2 = load1.y;
+  SetNode2DInfo(gt, info.axis);
+  SetTensor2DInfo(gt.y, info.axis, info.repeats, info.strides, af::DT_BOOL);
+
+  af::ascir_op::Cast cast("cast");
+  cast.x = load0.y;
+  SetNode2DInfo(cast, info.axis);
+  SetTensor2DInfo(cast.y, info.axis, info.repeats, info.strides, af::DT_BOOL);
+
+  af::ascir_op::Scalar scalar("scalar", graph);
+  scalar.ir_attr.SetIndex(4);
+  scalar.ir_attr.SetValue("1");
+  scalar.y.dtype = af::DT_BOOL;
+
+  af::ascir_op::Broadcast broadcast("broadcast");
+  broadcast.x = scalar.y;
+  SetNode2DInfo(broadcast, info.axis);
+  SetTensor2DInfo(broadcast.y, info.axis, info.repeats, info.strides, af::DT_BOOL);
+}
+
+static void CreateBoolMaskOutput(const AscGraph2DInfo &info, const af::ascir_op::Gt &gt,
+                                 const af::ascir_op::Load &load2, const af::ascir_op::Load &load3) {
+  af::ascir_op::Where where("where");
+  where.x1 = gt.y;
+  where.x2 = load2.y;
+  where.x3 = load3.y;
+  SetNode2DInfo(where, info.axis);
+  SetTensor2DInfo(where.y, info.axis, info.repeats, info.strides, af::DT_FLOAT);
+
+  af::ascir_op::Store store("store");
+  store.x = where.y;
+  SetNode2DInfo(store, info.axis);
+  SetTensor2DInfo(store.y, info.axis, info.repeats, info.strides, af::DT_FLOAT);
+
+  af::ascir_op::Output output("output");
+  output.x = store.y;
+  output.ir_attr.SetIndex(0);
+  output.y.dtype = af::DT_FLOAT;
+}
+
+/**
+ *               output
+ *                  |
+ *                store
+ *                  |
+ *                where
+ *              /   |   \
+ *            gt  load2 load3
+ *           /  \   |     |
+ *        load0 load1 data2 data3
+ *          |
+ *        data0
+ *
+ *   load0 also feeds IsFinite, Isnan and Cast. Scalar(bool) feeds Broadcast
+ *   to cover DT_BOOL scalar/broadcast codegen paths in the same AscGraph.
+ */
+static void CreateBoolMaskFlowGraph(af::AscGraph &graph) {
+  auto info = CreateAscGraph2DInfo(graph);
+  af::ascir_op::Data data0("data0", graph), data1("data1", graph), data2("data2", graph), data3("data3", graph);
+  af::ascir_op::Load load0("load0"), load1("load1"), load2("load2"), load3("load3");
+  InitBoolMaskInput(data0, load0, info, 0);
+  InitBoolMaskInput(data1, load1, info, 1);
+  InitBoolMaskInput(data2, load2, info, 2);
+  InitBoolMaskInput(data3, load3, info, 3);
+
+  af::ascir_op::Gt gt("gt");
+  CreateBoolMaskPredicates(graph, info, load0, load1, gt);
+  CreateBoolMaskOutput(info, gt, load2, load3);
+}
+
+static af::ComputeGraphPtr BuildFourInputAscGraph(const std::string &graph_name, const std::string &sub_graph_name,
+                                                  void (*create_sub_graph)(af::AscGraph &)) {
+  auto builder = GraphBuilder(graph_name);
+  std::vector<NodePtr> data_nodes;
+  data_nodes.reserve(4);
+  for (int32_t index = 0; index < 4; ++index) {
+    auto data = builder.AddNode("data" + std::to_string(index), "Data", 0, 1);
+    af::AttrUtils::SetInt(data->GetOpDescBarePtr(), "_parent_node_index", index);
+    data_nodes.push_back(data);
+  }
+
+  auto ascbc = builder.AddNode("ascbc", "AscGraph", 4, 1);
+  auto netoutput = builder.AddNode("netoutput1", af::NETOUTPUT, 1, 0);
+  for (int32_t index = 0; index < 4; ++index) {
+    builder.AddDataEdge(data_nodes[index], 0, ascbc, index);
+  }
+  builder.AddDataEdge(ascbc, 0, netoutput, 0);
+
+  ComputeGraphPtr compute_graph = builder.GetGraph();
+  if (compute_graph == nullptr) {
+    return nullptr;
+  }
+
+  auto ascbc_node = compute_graph->FindNode("ascbc");
+  af::AscGraph sub_graph(sub_graph_name.c_str());
+  create_sub_graph(sub_graph);
+  std::string sub_graph_str;
+  af::AscGraphUtils::SerializeToReadable(sub_graph, sub_graph_str);
+  af::AttrUtils::SetStr(ascbc_node->GetOpDescBarePtr(), "ascgraph", sub_graph_str);
+  return compute_graph;
+}
+
+af::ComputeGraphPtr ShareGraph::BoolMaskFlowFusedGraph() {
+  return BuildFourInputAscGraph("bool_mask_flow_test", "bool_mask_flow", CreateBoolMaskFlowGraph);
+}
+
+/**
+ *            output
+ *               |
+ *             store
+ *               |
+ *            select
+ *          /   |   \
+ *        gt  load2 load3
+ *       /  \   |     |
+ *    load0 load1 data2 data3
+ *      |     |
+ *    data0 data1
+ *
+ *   Gt produces DT_BOOL mask, Select uses it as condition.
+ *   Select now shares WhereAscIrCodegenImplV2 codegen path.
+ */
+static void CreateSelectBoolGraph(af::AscGraph &graph) {
+  auto info = CreateAscGraph2DInfo(graph);
+  af::ascir_op::Data data0("data0", graph), data1("data1", graph), data2("data2", graph), data3("data3", graph);
+  af::ascir_op::Load load0("load0"), load1("load1"), load2("load2"), load3("load3");
+  InitBoolMaskInput(data0, load0, info, 0);
+  InitBoolMaskInput(data1, load1, info, 1);
+  InitBoolMaskInput(data2, load2, info, 2);
+  InitBoolMaskInput(data3, load3, info, 3);
+
+  af::ascir_op::Gt gt("gt");
+  gt.x1 = load0.y;
+  gt.x2 = load1.y;
+  SetNode2DInfo(gt, info.axis);
+  SetTensor2DInfo(gt.y, info.axis, info.repeats, info.strides, af::DT_BOOL);
+
+  af::ascir_op::Select select("select");
+  select.x1 = gt.y;
+  select.x2 = load2.y;
+  select.x3 = load3.y;
+  SetNode2DInfo(select, info.axis);
+  SetTensor2DInfo(select.y, info.axis, info.repeats, info.strides, af::DT_FLOAT);
+
+  af::ascir_op::Store store("store");
+  store.x = select.y;
+  SetNode2DInfo(store, info.axis);
+  SetTensor2DInfo(store.y, info.axis, info.repeats, info.strides, af::DT_FLOAT);
+
+  af::ascir_op::Output output("output");
+  output.x = store.y;
+  output.ir_attr.SetIndex(0);
+  output.y.dtype = af::DT_FLOAT;
+}
+
+af::ComputeGraphPtr ShareGraph::SelectBoolFusedGraph() {
+  return BuildFourInputAscGraph("select_bool_test", "select_bool", CreateSelectBoolGraph);
 }
 
 /**

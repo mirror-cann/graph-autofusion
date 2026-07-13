@@ -152,6 +152,12 @@ TEST(CompareV2ApiCallTest, CompareV2ApiCall_Counter) {
           "{static_cast<uint16_t>(t->s2), static_cast<uint16_t>(1)});\n"});
 }
 
+TEST(CompareV2ApiCallTest, BoolDtypeNameIsBool) {
+  std::string dtype_name;
+  EXPECT_EQ(codegen::Tensor::DtypeName(ge::DT_BOOL, dtype_name), af::SUCCESS);
+  EXPECT_EQ(dtype_name, "bool");
+}
+
 TEST(CompareV2ApiCallTest, CompareV2ApiCall_Scalar) {
   af::AscGraph graph("test_graph");
   auto s0 = graph.CreateSizeVar("s0");

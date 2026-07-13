@@ -18,7 +18,7 @@
 #include "tikicpulib.h"
 #include "utils.h" #noqa
 #include "duplicate.h" #noqa
-#include "api_regbase/where_v2.h"
+#include "api_regbase/where.h"
 
 using namespace AscendC;
 

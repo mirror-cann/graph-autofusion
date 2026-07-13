@@ -882,6 +882,9 @@ build_backend() {
                       truediv_bf16_test_e2e_v2 \
                       atan2_bf16_test_e2e_v2 \
                       ceil2int_bf16_test_e2e_v2 \
+                      bool_mask_flow_test_e2e_v2 \
+                      transpose_bool_test_e2e_v2 \
+                      select_bool_test_e2e_v2 \
                       copysign_bf16_test_e2e_v2 \
                       erfcx_test_e2e_v2 \
                       expm_test_e2e_v2"

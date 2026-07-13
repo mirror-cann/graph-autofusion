@@ -130,6 +130,9 @@ struct ShareGraph {
   static af::ComputeGraphPtr BF16SigmoidFusedGraph(size_t dims_size);
   static af::ComputeGraphPtr LoadCompareScalarWhereFusedGraph();
   static af::ComputeGraphPtr LoadCompareWhereFusedGraph();
+  static af::ComputeGraphPtr BoolMaskFlowFusedGraph();
+  static af::ComputeGraphPtr TransposeBoolFusedGraph();
+  static af::ComputeGraphPtr SelectBoolFusedGraph();
   static af::ComputeGraphPtr BinaryApiScalarFusedGraph();
   static af::ComputeGraphPtr FloorToIntFloatFusedGraph(size_t dims_size);
   static af::ComputeGraphPtr FmodFloatFusedGraph(size_t dims_size);

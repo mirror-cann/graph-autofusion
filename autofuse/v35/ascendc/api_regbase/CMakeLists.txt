@@ -16,7 +16,6 @@ set(ascendc_api_regbase_extend_src
         pow.h
         split.h
         where.h
-        where_v2.h
         erf.h
         erfinv.h
         exp2.h

@@ -16,4 +16,10 @@ inline __aicore__ void LogicalNotExtend(const AscendC::LocalTensor<uint8_t> &dst
   auto dst_bool = dst.template ReinterpretCast<bool>();
   AscendC::LogicalNot(dst_bool, src, count);
 }
+
+template <typename T>
+inline __aicore__ void LogicalNotExtend(const AscendC::LocalTensor<bool> &dst, const AscendC::LocalTensor<T> &src,
+                                        const uint32_t count) {
+  AscendC::LogicalNot(dst, src, count);
+}
 #endif  // __ASCENDC_API_REGBASE_LOGICAL_NOT_H
