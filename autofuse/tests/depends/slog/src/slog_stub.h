@@ -81,7 +81,7 @@ class SlogStub {
   std::map<int, std::string> level_str = {{DLOG_DEBUG, "[DEBUG]"}, {DLOG_INFO, "[INFO]"},   {DLOG_WARN, "[WARNING]"},
                                           {DLOG_ERROR, "[ERROR]"}, {DLOG_DEBUG, "[TRACE]"}, {DLOG_NULL, "[NULL]"},
                                           {DLOG_EVENT, "[EVENT]"}};
-  std::map<int, std::string> module_id_str = {{GE, "GE"}, {FE, "FE"}, {HCCL, "HCCL"}, {RUNTIME, "RUNTIME"}};
+  std::map<int, std::string> module_id_str = {{GE, "GE"}, {FE, "FE"}, {RUNTIME, "RUNTIME"}};
 };
 }  // namespace ge
 #endif  // AIR_CXX_TESTS_DEPENDS_SLOG_SRC_SLOG_STUB_H_

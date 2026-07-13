@@ -16,7 +16,7 @@
 #include "graph/op_desc.h"
 namespace af {
 // 待废弃枚举，1230废弃，不推荐使用，推荐使用HiddenInputSubType (arg_desc_info.h)
-enum class HiddenInputsType : uint32_t { HCOM, TILEFWK, HCCLSUPERKERNEL, MAX };
+enum class HiddenInputsType : uint32_t { HCOM, TILEFWK, MAX };
 
 using GetHiddenAddrs = ge::graphStatus (*)(const OpDescPtr &op_desc, std::vector<void *> &addr);
 class HiddenInputsFuncRegistry {

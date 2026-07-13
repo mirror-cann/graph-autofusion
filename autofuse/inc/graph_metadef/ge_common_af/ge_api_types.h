@@ -57,8 +57,6 @@ const char_t *const OPTION_EXEC_PROFILING_BPPONIT_OPTIONS = "ge.exec.profilingBp
 // profiling flag
 const char_t *const OPTION_EXEC_PROFILING_MODE = "ge.exec.profilingMode";
 const char_t *const OPTION_EXEC_PROFILING_OPTIONS = "ge.exec.profilingOptions";
-// Hccl flag, if ge.exec.hcclFlag =1, it means load plugin for opskernel, else:ge.exec.hcclFlag =0
-const char_t *const OPTION_EXEC_HCCL_FLAG = "ge.exec.hcclFlag";
 const char_t *const OPTION_EXEC_ATOMIC_FLAG = "ge.exec.enable_atomic";
 const char_t *const OPTION_EXEC_DISABLE_REUSED_MEMORY = "ge.exec.disableReuseMemory";
 const char_t *const OPTION_EXEC_ENABLE_TAILING_OPTIMIZATION = "ge.exec.isTailingOptimization";
@@ -151,8 +149,6 @@ const char_t *const GRAPH_PARALLEL_OPTION_PATH = "ge.graphParallelOptionPath";
 const std::string DISTRIBUTED_CLUSTER_BUILD = "ge.distributed_cluster_build";
 const std::string MODEL_RELATION_CONFIG = "ge.offline_model_relation";
 const std::string CLUSTER_CONFIG = "ge.cluster_config";
-const std::string OPTION_HCCL_COMPILER_OFFLINE = "ge.offline_hccl_compile";
-
 // option for screen log
 constexpr const char_t *OPTION_SCREEN_PRINT_MODE = "ge.screen_print_mode";
 
@@ -165,13 +161,11 @@ const char_t *const OPTION_TUNINGPATH = "ge.tuningPath";
 const char_t *const OPTION_AOE_CONFIG_FILE = "ge.aoe_config_file";
 const char_t *const OPTION_SESSION_DEVICE_ID = "ge.session_device_id";
 const char_t *const OPTION_DISTRIBUTE_CONFIG = "distribute_config";
-const char_t *const OPTION_EXEC_HCCL_EXECUTE_TIMEOUT = "ge.exec.hcclExecuteTimeOut";
 const char_t *const OPTION_EXEC_PLACEMENT = "ge.exec.placement";
 const char_t *const OPTION_IS_VAR_INIT_GRAPH = "ge.exec.isVarInitGraph";
 const char_t *const OPTION_EXEC_OVERFLOW = "ge.exec.overflow";
 const char_t *const OPTION_DATAFLOW_DEPLOY_INFO_PATH = "ge.experiment.data_flow_deploy_info_path";
 const char_t *const OPTION_MOMORY_POOL_THRESHOLD = "ge.experiment.memory_pool_threshold";
-const char_t *const OPTION_HCCL_ALGORITHM = "HCCL_algorithm";
 const char_t *const OPTION_ES_CLUSTER_CONFIG = "ge.esClusterConfig";
 const char_t *const OPTION_EXECUTE_TIMES = "execute_times";
 const char_t *const OPTION_ES_MAX_REMOTEOP_NUM_PER_STREAM = "es_max_remoteop_num_per_stream";
@@ -339,8 +333,8 @@ const std::string DDK_VERSION_FLAG = "ge.DDK_version";
 const std::string GE_FE_FLAG = "ge.feFlag";
 
 // Configure stream max parallel num only by Session constructor options param,
-// its value should be stream:int, such as "DNN_V100:2,DNN_HCCL:3",
-// default value is "1", such as "DNN_V100:1,DNN_HCCL:1"
+// its value should be stream:int, such as "DNN_V100:2",
+// default value is "1", such as "DNN_V100:1"
 // this option is to obtain stream max parallel num
 const std::string STREAM_MAX_PARALLEL_NUM = "ge.streamMaxParallelNum";
 

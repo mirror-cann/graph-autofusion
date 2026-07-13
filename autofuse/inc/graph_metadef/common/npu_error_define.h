@@ -47,7 +47,6 @@ typedef enum tagHiAiNpuModuleId {
   HIAI_TOOLCHIAN = 15,
   HIAI_ALG = 16,
   HIAI_PROFILING = 17,
-  HIAI_HCCL = 18,
   HIAI_SIMULATION = 19,
   HIAI_BIOS = 20,
   HIAI_SEC = 21,

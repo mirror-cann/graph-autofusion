@@ -201,11 +201,7 @@ GE_ERRORNO_RUNTIME(GE_RTI_CALL_CCE_DESTORY_HANDLE_FAILED, 39, "destory handle fa
 GE_ERRORNO_RUNTIME(GE_RTI_CALL_RUNTIME_CREATE_EVENT_FAILED, 40, "call rutime create event failed");
 GE_ERRORNO_RUNTIME(GE_RTI_CALL_RUNTIME_EVENT_RECORD_FAILED, 41, "call rutime event record failed");
 GE_ERRORNO_RUNTIME(GE_RTI_CALL_RUNTIME_STREAM_WAIT_EVENT_FAILED, 42, "call rutime stream wait event failed");
-GE_ERRORNO_RUNTIME(GE_RTI_CALL_HCCL_BROADCAST_FAILED, 43, "call hccl hcom broadcast failed");
-GE_ERRORNO_RUNTIME(GE_RTI_CALL_HCCL_ALL_GATHER_FAILED, 44, "call hccl hcom all gather failed");
-GE_ERRORNO_RUNTIME(GE_RTI_CALL_HCCL_ALL_REDUCE_FAILED, 45, "call hccl hcom all reduce failed");
 GE_ERRORNO_RUNTIME(GE_RTI_CALL_RUNTIME_DESTORY_EVENT_FAILED, 46, "destory rt event failed");
-GE_ERRORNO_RUNTIME(GE_RTI_CALL_HCCL_REDUCE_SCATTER_FAILED, 47, "call hccl hcom reduce scatter failed");
 
 // Executor module error code definition
 GE_ERRORNO_EXECUTOR(GE_EXEC_NOT_INIT, 1, "GE Executor is not yet initialized.");

@@ -103,8 +103,6 @@ enum class ScalarType : uint32_t {
   INVALID_DTYPE = static_cast<uint32_t>(-1),
 };
 
-enum class HcclServerType : uint32_t { AICPU = 0, AICORE = 1, CCU = 2, MAX };
-
 union ScalarNum {
   uint64_t value_u64;
   int64_t value_i64;
@@ -458,9 +456,6 @@ class OpMC2Def {
   OpMC2Def(const OpMC2Def &mc2_def);
   ~OpMC2Def();
   OpMC2Def &operator=(const OpMC2Def &mc2_def);
-  OpMC2Def &HcclGroup(const char *value);
-  OpMC2Def &HcclGroup(std::vector<const char *> value);
-  void HcclServerType(enum HcclServerType type, const char *soc = nullptr);
 
  private:
   friend class AclnnFallBackGenerator;
@@ -473,8 +468,6 @@ class OpMC2Def {
   friend class OpDefImpl;
   friend class OpMC2DefImpl;
 
-  std::vector<ge::AscendString> &GetHcclGroups(void) const;
-  ops::HcclServerType GetHcclServerType(const ge::AscendString &soc_version = "") const;
   std::unique_ptr<OpMC2DefImpl> impl_;
 };
 

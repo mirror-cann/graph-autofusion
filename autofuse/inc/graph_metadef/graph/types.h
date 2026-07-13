@@ -542,7 +542,6 @@ enum class ImplyType : unsigned int {
   AI_CPU,
   CCE,
   GELOCAL,
-  HCCL,
   INVALID = 0xFFFFFFFF,
 };
 using char_t = ge::char_t;
