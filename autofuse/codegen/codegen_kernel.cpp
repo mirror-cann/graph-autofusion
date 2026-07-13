@@ -3585,16 +3585,31 @@ Status Kernel::GenerateKernelByNode(const ascir::ImplGraph &graph, stringstream 
     ss << "#if defined(__DAV_C310__) || (defined(__NPU_ARCH__) && (__NPU_ARCH__ == 5102 || __NPU_ARCH__ == 3510))"
        << std::endl;
   }
+  const std::string kMatMulTilingKeyDynamic = "mat_mul_tiling_key_dynamic.h";
+  const std::string kBatchMatMulV3TilingKeyDynamic = "batch_mat_mul_v3_tiling_key_dynamic.h";
   for (const auto &node : graph.GetAllNodes()) {
     auto impl = ascgen_utils::GetAscIrCodegenImpl(node->GetType());
     GE_ASSERT_NOTNULL(impl, "GetAscIrCodegenImpl of node %s[%s] is null", node->GetTypePtr(), node->GetNamePtr());
     for (const auto &header_str : impl->LoadApiHeaderFiles(is_dynamic)) {
       const auto &file = AscendCApiRegistry::GetInstance().GetFileContent(header_str);
-      if (!file.empty()) {
-        if (kernel_file_ptr.find(&(file)) == kernel_file_ptr.end()) {
-          kernel_file_ptr.insert(&(file));
-          ss << file;
-        }
+      if (file.empty() || kernel_file_ptr.find(&(file)) != kernel_file_ptr.end()) {
+        continue;
+      }
+      kernel_file_ptr.insert(&(file));
+      const bool is_matmul_tiling_key =
+          header_str == kMatMulTilingKeyDynamic || header_str == kBatchMatMulV3TilingKeyDynamic;
+      if (is_matmul_tiling_key) {
+        ss << "#ifndef ASCENDC_TPL_KERNEL" << std::endl;
+        ss << "#define ASCENDC_TPL_KERNEL" << std::endl;
+        ss << "#define AF_UNDEF_ASCENDC_TPL_KERNEL" << std::endl;
+        ss << "#endif" << std::endl;
+      }
+      ss << file;
+      if (is_matmul_tiling_key) {
+        ss << "#ifdef AF_UNDEF_ASCENDC_TPL_KERNEL" << std::endl;
+        ss << "#undef ASCENDC_TPL_KERNEL" << std::endl;
+        ss << "#undef AF_UNDEF_ASCENDC_TPL_KERNEL" << std::endl;
+        ss << "#endif" << std::endl;
       }
     }
   }
