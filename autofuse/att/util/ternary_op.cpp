@@ -10,6 +10,8 @@
 #include "ternary_op.h"
 #include <cmath>
 
+#include "generator/preprocess/ast_optimizer.h"
+
 namespace att {
 namespace {
 void AddUsedArgs(const Expr &expr, std::vector<Expr> &used_args) {
@@ -289,18 +291,138 @@ void GetPerfVar(const std::string &prefix, Expr &res, const std::map<Expr, Terna
 namespace {
 // 叶子节点表达式超过此长度时提取为命名变量，避免内联过长
 constexpr size_t kLeafExprMaxInlineLen = 60U;
+// 重复子表达式达到此长度时提取为公共变量，避免二分树叶子重复展开
+constexpr size_t kCommonExprMinLen = 60U;
 
-std::string CondToStr(CondType type, const Expr &left, const Expr &right) {
+struct DecomposeContext {
+  DecomposeContext(const std::string &var_prefix, std::string &output) : prefix(var_prefix), preamble(output) {}
+
+  std::string prefix;
+  std::string &preamble;
+  int node_counter = 0;
+  int common_counter = 0;
+  std::map<std::string, size_t> ast_ref_count;
+  std::map<std::string, std::string> ast_hash_to_var;
+  std::map<std::string, ASTPtr> expr_asts;
+};
+
+struct BuiltAstExpr {
+  std::string expr;
+  bool replaced = false;
+};
+
+bool IsAstLeaf(const ASTNode &node) {
+  return node.type == NodeType::VARIABLE || node.type == NodeType::NUMBER;
+}
+
+ASTPtr ParseCompleteAst(const std::string &expr_str, DecomposeContext &context) {
+  auto ast_iter = context.expr_asts.find(expr_str);
+  if (ast_iter != context.expr_asts.end()) {
+    return ast_iter->second;
+  }
+  Parser parser(expr_str, false);
+  ASTPtr ast = parser.Parse();
+  if (!parser.IsFullyParsed()) {
+    ast = nullptr;
+  }
+  context.expr_asts[expr_str] = ast;
+  return ast;
+}
+
+void CountAstRefs(const ASTPtr &node, DecomposeContext &context) {
+  if (node == nullptr) {
+    return;
+  }
+  if (!IsAstLeaf(*node)) {
+    ++context.ast_ref_count[node->hash];
+  }
+  for (const auto &child : node->children) {
+    CountAstRefs(child, context);
+  }
+}
+
+void CountExprAstRefs(const Expr &expr, DecomposeContext &context) {
+  const std::string expr_str = Str(expr);
+  if (expr_str.length() < kCommonExprMinLen) {
+    return;
+  }
+  CountAstRefs(ParseCompleteAst(expr_str, context), context);
+}
+
+void CountIfCaseAstRefs(const IfCase &node, DecomposeContext &context) {
+  if (node.IsLeaf()) {
+    CountExprAstRefs(node.GetExpr(), context);
+    return;
+  }
+  CountExprAstRefs(node.GetCondLeft(), context);
+  CountExprAstRefs(node.GetCondRight(), context);
+  CountIfCaseAstRefs(*node.GetChoiceA(), context);
+  CountIfCaseAstRefs(*node.GetChoiceB(), context);
+}
+
+std::string RebuildAstNode(const ASTPtr &node, const std::vector<std::string> &children) {
+  if (node->type == NodeType::FUNCTION) {
+    std::string expr = node->op + "(";
+    for (size_t i = 0U; i < children.size(); ++i) {
+      expr += (i == 0U ? "" : ", ") + children[i];
+    }
+    return expr + ")";
+  }
+  if (node->type == NodeType::OPERATOR && children.size() == 2U) {
+    return "(" + children[0] + " " + node->op + " " + children[1] + ")";
+  }
+  return node->expr;
+}
+
+BuiltAstExpr BuildAstExpr(const ASTPtr &node, DecomposeContext &context) {
+  if (node == nullptr || IsAstLeaf(*node)) {
+    return {node == nullptr ? "" : node->expr, false};
+  }
+  std::vector<std::string> children;
+  bool child_replaced = false;
+  for (const auto &child : node->children) {
+    BuiltAstExpr child_expr = BuildAstExpr(child, context);
+    children.emplace_back(std::move(child_expr.expr));
+    child_replaced = child_replaced || child_expr.replaced;
+  }
+  const std::string expr = RebuildAstNode(node, children);
+  if (context.ast_ref_count[node->hash] <= 1U || expr.length() < kCommonExprMinLen) {
+    return {expr, child_replaced};
+  }
+  auto var_iter = context.ast_hash_to_var.find(node->hash);
+  if (var_iter != context.ast_hash_to_var.end()) {
+    return {var_iter->second, true};
+  }
+  const std::string var_name = context.prefix + "_common" + std::to_string(context.common_counter++);
+  context.preamble += "  double " + var_name + " = " + expr + ";\n";
+  context.ast_hash_to_var[node->hash] = var_name;
+  return {var_name, true};
+}
+
+std::string BuildExpr(const Expr &expr, DecomposeContext &context) {
+  const std::string expr_str = Str(expr);
+  if (expr_str.length() < kCommonExprMinLen) {
+    return expr_str;
+  }
+  ASTPtr ast = ParseCompleteAst(expr_str, context);
+  if (ast == nullptr) {
+    return expr_str;
+  }
+  BuiltAstExpr built_expr = BuildAstExpr(ast, context);
+  return built_expr.replaced ? built_expr.expr : expr_str;
+}
+
+std::string CondToStr(CondType type, const std::string &left, const std::string &right) {
   if (type == CondType::K_EQ) {
-    return "IsEqual(" + Str(left) + ", " + Str(right) + ")";
+    return "IsEqual(" + left + ", " + right + ")";
   } else if (type == CondType::K_LT) {
-    return Str(left) + " < " + Str(right);
+    return left + " < " + right;
   } else if (type == CondType::K_GT) {
-    return Str(left) + " > " + Str(right);
+    return left + " > " + right;
   } else if (type == CondType::K_LE) {
-    return Str(left) + " <= " + Str(right);
+    return left + " <= " + right;
   } else {
-    return Str(left) + " >= " + Str(right);
+    return left + " >= " + right;
   }
 }
 
@@ -359,43 +481,44 @@ bool TryEvalConstCond(CondType type, const Expr &left, const Expr &right, bool &
 // 叶子节点表达式超过 kLeafExprMaxInlineLen 时也提取为命名 double 变量。
 // is_root=true 时，返回完整 TernaryOp 表达式供调用者赋值给外层变量（不额外包一层）。
 // is_root=false 时，生成一个 double 子变量，返回该变量名（避免嵌套字面量）。
-std::string DecomposeIfCase(const IfCase &node, const std::string &prefix, int &counter, std::string &preamble,
-                            bool is_root = false) {
+std::string DecomposeIfCase(const IfCase &node, DecomposeContext &context, bool is_root = false) {
   if (node.IsLeaf()) {
-    std::string leaf_expr = Str(node.GetExpr());
+    std::string leaf_expr = BuildExpr(node.GetExpr(), context);
     if (leaf_expr.length() <= kLeafExprMaxInlineLen) {
       return leaf_expr;
     }
     // 叶子表达式过长：提取为命名变量 _caseN
-    std::string case_var = prefix + "_case" + std::to_string(counter++);
-    preamble += "  double " + case_var + " = " + leaf_expr + ";\n";
+    std::string case_var = context.prefix + "_case" + std::to_string(context.node_counter++);
+    context.preamble += "  double " + case_var + " = " + leaf_expr + ";\n";
     return case_var;
   }
   // 常量条件折叠：若 cond 两侧均为常量，直接取对应分支，不生成 bool/TernaryOp
   if (bool const_result = false;
       TryEvalConstCond(node.GetCondType(), node.GetCondLeft(), node.GetCondRight(), const_result)) {
     const IfCase &taken = const_result ? *node.GetChoiceA() : *node.GetChoiceB();
-    return DecomposeIfCase(taken, prefix, counter, preamble, is_root);
+    return DecomposeIfCase(taken, context, is_root);
   }
-  const std::string cond_name = prefix + "_cond" + std::to_string(counter++);
-  preamble +=
-      "  bool " + cond_name + " = " + CondToStr(node.GetCondType(), node.GetCondLeft(), node.GetCondRight()) + ";\n";
-  const std::string true_str = DecomposeIfCase(*node.GetChoiceA(), prefix, counter, preamble);
-  const std::string false_str = DecomposeIfCase(*node.GetChoiceB(), prefix, counter, preamble);
+  const std::string cond_name = context.prefix + "_cond" + std::to_string(context.node_counter++);
+  const std::string cond_left = BuildExpr(node.GetCondLeft(), context);
+  const std::string cond_right = BuildExpr(node.GetCondRight(), context);
+  context.preamble += "  bool " + cond_name + " = " + CondToStr(node.GetCondType(), cond_left, cond_right) + ";\n";
+  const std::string true_str = DecomposeIfCase(*node.GetChoiceA(), context);
+  const std::string false_str = DecomposeIfCase(*node.GetChoiceB(), context);
   const std::string tenary_str = "TernaryOp(" + cond_name + ", " + true_str + ", " + false_str + ")";
   if (is_root) {
     return tenary_str;
   }
   // 非根节点：提取为命名 double 变量，避免嵌套字面量
-  std::string sub_var = prefix + "_branch" + std::to_string(counter++);
-  preamble += "  double " + sub_var + " = " + tenary_str + ";\n";
+  std::string sub_var = context.prefix + "_branch" + std::to_string(context.node_counter++);
+  context.preamble += "  double " + sub_var + " = " + tenary_str + ";\n";
   return sub_var;
 }
 }  // namespace
 
 void TernaryOp::DecomposeNamedVars(const std::string &var_prefix, std::string &preamble,
                                    std::string &tenary_expr) const {
-  int counter = 0;
-  tenary_expr = DecomposeIfCase(*ternary_op_, var_prefix, counter, preamble, true);
+  DecomposeContext context(var_prefix, preamble);
+  CountIfCaseAstRefs(*ternary_op_, context);
+  tenary_expr = DecomposeIfCase(*ternary_op_, context, true);
 }
 }  // namespace att
