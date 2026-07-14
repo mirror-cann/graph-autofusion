@@ -182,7 +182,6 @@ const std::string ATTR_NAME_IS_ROOT_GRAPH = "_is_root_graph";
 const std::string ATTR_NAME_NODE_CONNECT_INPUT = "_is_connected_to_data";
 const std::string ATTR_NAME_NODE_CONNECT_OUTPUT = "_is_connected_to_netoutput";
 
-// Need Map rank id when hccl task init for NPU
 const std::string ATTR_NAME_NEED_MAP_RANK_ID = "_need_map_rank_id";
 
 // To be deleted
@@ -866,7 +865,7 @@ const std::string AVG_POOL_GRAD_OUTPUT_SHAPE = "avg_pool_grad_output_shape";
 // Pad
 const std::string ATTR_PAD_FORMAT = "attr_pad_format";
 
-// Varible
+// Variable
 const std::string VAR_ATTR_FORMAT = "_var_format";
 const std::string VAR_ATTR_NAME = "var_name";
 const std::string VAR_ATTR_FRACTALZ_FORMAT = "FZ";
@@ -1160,20 +1159,12 @@ const std::string ATTR_NAME_UNREGST_ATTRLIST = "_unregst_attrlist";
 // used for Horovod
 const std::string ATTR_INTER_EVENT_IDENTIFY = "event_id";
 const std::string ATTR_HOROVOD_ATTR_REDUCE_TYPE = "reduce_op";
-// used for allreduce tailing optimization
-const std::string ATTR_NAME_HCCL_FUSED_GROUP = "_hccl_fused_group";
-const std::string ATTR_NAME_HCCL_FUSED_FLAG = "_hccl_fused_node";
-// used for recording the number of tasks to be issued for each operator
-const std::string ATTR_NAME_HCCL_TASK_NUM = "_hccl_task_num";
-const std::string ATTR_NAME_HCCL_ATTACHED_TASK_NUM = "_hccl_attached_task_num";
 // used for recording task num of RTS nodes such as MemcpyAsync
 const std::string ATTR_NAME_NODE_SQE_NUM = "_node_sqe_num";
 // used for parallel group
 const std::string ATTR_NAME_PARALLEL_GROUP = "_parallel_group";
 
 const std::string ATTR_NAME_IS_SUPPORT_ADDR_REFRESH = "_is_support_addr_refresh";
-
-const std::string ATTR_NAME_HCCL_GROUP_ID_LIST = "_hccl_group_id_list";
 
 // dynamic shape attr
 const std::string ATTR_DYNAMIC_SHAPE_FIXED_ADDR = "_alloc_fixed_addr";

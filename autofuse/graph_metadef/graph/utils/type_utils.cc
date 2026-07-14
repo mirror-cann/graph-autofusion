@@ -68,9 +68,9 @@ const std::map<domi::FrameworkType, std::string> kFmkTypeToString = {
 };
 
 const std::map<domi::ImplyType, std::string> kImplyTypeToString = {
-    {domi::ImplyType::BUILDIN, "buildin"}, {domi::ImplyType::TVM, "tvm"},        {domi::ImplyType::CUSTOM, "custom"},
-    {domi::ImplyType::AI_CPU, "ai_cpu"},   {domi::ImplyType::CCE, "cce"},        {domi::ImplyType::GELOCAL, "gelocal"},
-    {domi::ImplyType::HCCL, "hccl"},       {domi::ImplyType::INVALID, "invalid"}};
+    {domi::ImplyType::BUILDIN, "buildin"}, {domi::ImplyType::TVM, "tvm"}, {domi::ImplyType::CUSTOM, "custom"},
+    {domi::ImplyType::AI_CPU, "ai_cpu"},   {domi::ImplyType::CCE, "cce"}, {domi::ImplyType::GELOCAL, "gelocal"},
+    {domi::ImplyType::INVALID, "invalid"}};
 }  // namespace
 
 std::string TypeUtils::DataTypeToSerialString(const DataType data_type) {

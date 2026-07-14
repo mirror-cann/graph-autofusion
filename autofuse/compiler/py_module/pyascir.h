@@ -110,7 +110,9 @@ PyMODINIT_FUNC PyInit_pyautofuse(void);
   OP(Sigmoid)             \
   OP(Concat)              \
   OP(MatMul)              \
+  OP(MatMulBias)          \
   OP(BatchMatMul)         \
+  OP(BatchMatMulBias)     \
   OP(Where)               \
   OP(Gather)              \
   OP(Transpose)           \

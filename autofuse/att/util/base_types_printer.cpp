@@ -202,7 +202,8 @@ std::string BaseTypeUtils::DtypeToStr(ge::DataType dtype) {
   const std::map<ge::DataType, const ge::char_t *> kTypeName = {
       {ge::DT_FLOAT, "float32"}, {ge::DT_FLOAT16, "float16"}, {ge::DT_BF16, "bfloat16"}, {ge::DT_INT8, "int8"},
       {ge::DT_UINT8, "uint8"},   {ge::DT_INT16, "int16"},     {ge::DT_UINT16, "uint16"}, {ge::DT_INT32, "int32"},
-      {ge::DT_UINT32, "uint32"}, {ge::DT_INT64, "int64"},     {ge::DT_UINT64, "uint64"}, {ge::DT_DOUBLE, "double"}};
+      {ge::DT_UINT32, "uint32"}, {ge::DT_INT64, "int64"},     {ge::DT_UINT64, "uint64"}, {ge::DT_DOUBLE, "double"},
+      {ge::DT_BOOL, "bool"}};
   const auto &type_name_iter = kTypeName.find(dtype);
   if (type_name_iter == kTypeName.end()) {
     return "unknown";

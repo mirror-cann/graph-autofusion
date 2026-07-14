@@ -60,9 +60,6 @@ Register::Register() {
   const std::string kAscendcWhereRegBaseStr = {
 #include "where_reg_base.h"
   };
-  const std::string kAscendcWhereV2RegBaseStr = {
-#include "where_v2_reg_base.h"
-  };
   const std::string kAscendcGatherRegBaseStr = {
 #include "gather_reg_base.h"
   };
@@ -186,7 +183,6 @@ Register::Register() {
       {"floor_div_reg_base.h", kAscendcFloorDivRegBaseStr},
       {"sign_reg_base.h", kAscendcSignRegBaseStr},
       {"where_reg_base.h", kAscendcWhereRegBaseStr},
-      {"where_v2_reg_base.h", kAscendcWhereV2RegBaseStr},
       {"gather_reg_base.h", kAscendcGatherRegBaseStr},
       {"broadcast_reg_base.h", kAscendcBroadcastRegStr},
       {"utils_reg_base.h", kAscendcUtilsRegBaseStr},

@@ -68,16 +68,16 @@ public:
             array_value_->push_back(Json(v));
         }
     }
-    
+
     Json(const Json& other) : type_(other.type_) {
         CopyValue(other);
     }
-    
+
     Json(Json&& other) noexcept : type_(other.type_) {
         MoveValue(std::move(other));
         other.type_ = Type::null;
     }
-    
+
     Json& operator=(const Json& other) {
         if (this != &other) {
             Clear();
@@ -86,7 +86,7 @@ public:
         }
         return *this;
     }
-    
+
     Json& operator=(Json&& other) noexcept {
         if (this != &other) {
             Clear();
@@ -96,11 +96,11 @@ public:
         }
         return *this;
     }
-    
+
     ~Json() {
         Clear();
     }
-    
+
     Type type() const { return type_; }
     bool is_null() const { return type_ == Type::null; }
     bool is_boolean() const { return type_ == Type::boolean; }
@@ -108,33 +108,33 @@ public:
     bool is_string() const { return type_ == Type::string; }
     bool is_array() const { return type_ == Type::array; }
     bool is_object() const { return type_ == Type::object; }
-    
+
     bool get_bool() const {
         if (type_ != Type::boolean) throw std::runtime_error("Json is not a boolean");
         return bool_value_;
     }
-    
+
     int64_t get_int64() const {
         if (type_ == Type::number_integer) return int_value_;
         if (type_ == Type::number_float) return static_cast<int64_t>(float_value_);
         throw std::runtime_error("Json is not a number");
     }
-    
+
     int get_int() const {
         return static_cast<int>(get_int64());
     }
-    
+
     double get_double() const {
         if (type_ == Type::number_float) return float_value_;
         if (type_ == Type::number_integer) return static_cast<double>(int_value_);
         throw std::runtime_error("Json is not a number");
     }
-    
+
     std::string get_string() const {
         if (type_ != Type::string) throw std::runtime_error("Json is not a string");
         return *string_value_;
     }
-    
+
     std::vector<int64_t> get_int64_array() const {
         if (type_ != Type::array) throw std::runtime_error("Json is not an array");
         std::vector<int64_t> result;
@@ -143,7 +143,7 @@ public:
         }
         return result;
     }
-    
+
     std::vector<double> get_double_array() const {
         if (type_ != Type::array) throw std::runtime_error("Json is not an array");
         std::vector<double> result;
@@ -152,7 +152,7 @@ public:
         }
         return result;
     }
-    
+
     std::vector<std::string> get_string_array() const {
         if (type_ != Type::array) throw std::runtime_error("Json is not an array");
         std::vector<std::string> result;
@@ -161,7 +161,7 @@ public:
         }
         return result;
     }
-    
+
     Json& operator[](const std::string& key) {
         if (type_ == Type::null) {
             type_ = Type::object;
@@ -170,7 +170,7 @@ public:
         if (type_ != Type::object) throw std::runtime_error("Json is not an object");
         return (*object_value_)[key];
     }
-    
+
     const Json& operator[](const std::string& key) const {
         if (type_ != Type::object) throw std::runtime_error("Json is not an object");
         static const Json null_json;
@@ -178,24 +178,24 @@ public:
         if (it == object_value_->end()) return null_json;
         return it->second;
     }
-    
+
     Json& operator[](size_t index) {
         if (type_ != Type::array) throw std::runtime_error("Json is not an array");
         if (index >= array_value_->size()) throw std::runtime_error("Array index out of bounds");
         return (*array_value_)[index];
     }
-    
+
     const Json& operator[](size_t index) const {
         if (type_ != Type::array) throw std::runtime_error("Json is not an array");
         if (index >= array_value_->size()) throw std::runtime_error("Array index out of bounds");
         return (*array_value_)[index];
     }
-    
+
     bool contains(const std::string& key) const {
         if (type_ != Type::object) return false;
         return object_value_->find(key) != object_value_->end();
     }
-    
+
     void push_back(const Json& value) {
         if (type_ == Type::null) {
             type_ = Type::array;
@@ -204,7 +204,7 @@ public:
         if (type_ != Type::array) throw std::runtime_error("Json is not an array");
         array_value_->push_back(value);
     }
-    
+
     void push_back(Json&& value) {
         if (type_ == Type::null) {
             type_ = Type::array;
@@ -213,41 +213,41 @@ public:
         if (type_ != Type::array) throw std::runtime_error("Json is not an array");
         array_value_->push_back(std::move(value));
     }
-    
+
     size_t size() const {
         if (type_ == Type::array) return array_value_->size();
         if (type_ == Type::object) return object_value_->size();
         return 0;
     }
-    
+
     std::string dump(int indent = -1) const {
         std::ostringstream oss;
         Dump(oss, indent, 0);
         return oss.str();
     }
-    
+
     static Json parse(const std::string& str) {
         Parser parser(str);
         return parser.Parse();
     }
-    
+
     static Json array() {
         Json j;
         j.type_ = Type::array;
         j.array_value_ = new std::vector<Json>();
         return j;
     }
-    
+
     static Json object() {
         Json j;
         j.type_ = Type::object;
         j.object_value_ = new std::map<std::string, Json>();
         return j;
     }
-    
+
 private:
     Type type_;
-    
+
     union {
         bool bool_value_;
         int64_t int_value_;
@@ -256,7 +256,7 @@ private:
         std::vector<Json>* array_value_;
         std::map<std::string, Json>* object_value_;
     };
-    
+
     void Clear() {
         switch (type_) {
             case Type::string:
@@ -272,7 +272,7 @@ private:
                 break;
         }
     }
-    
+
     void CopyValue(const Json& other) {
         switch (other.type_) {
             case Type::null:
@@ -297,7 +297,7 @@ private:
                 break;
         }
     }
-    
+
     void MoveValue(Json&& other) {
         switch (other.type_) {
             case Type::null:
@@ -325,13 +325,13 @@ private:
                 break;
         }
     }
-    
+
     void Dump(std::ostringstream& oss, int indent, int level) const {
         std::string indent_str;
         if (indent > 0) {
             indent_str = std::string(level * indent, ' ');
         }
-        
+
         switch (type_) {
             case Type::null:
                 oss << "null";
@@ -399,7 +399,7 @@ private:
                 break;
         }
     }
-    
+
     static std::string EscapeString(const std::string& str) {
         std::string result;
         for (char c : str) {
@@ -424,55 +424,55 @@ private:
         }
         return result;
     }
-    
+
     class Parser {
     public:
         Parser(const std::string& str) : str_(str), pos_(0) {
             SkipWhitespace();
         }
-        
+
         Json Parse() {
             if (pos_ >= str_.size()) {
                 throw std::runtime_error("Empty JSON string");
             }
             return ParseValue();
         }
-        
+
     private:
         const std::string& str_;
         size_t pos_;
-        
+
         void SkipWhitespace() {
-            while (pos_ < str_.size() && (str_[pos_] == ' ' || str_[pos_] == '\t' || 
+            while (pos_ < str_.size() && (str_[pos_] == ' ' || str_[pos_] == '\t' ||
                                           str_[pos_] == '\n' || str_[pos_] == '\r')) {
                 ++pos_;
             }
         }
-        
+
         char Peek() const {
             if (pos_ >= str_.size()) return '\0';
             return str_[pos_];
         }
-        
+
         char Consume() {
             if (pos_ >= str_.size()) return '\0';
             return str_[pos_++];
         }
-        
+
         Json ParseValue() {
             SkipWhitespace();
             char c = Peek();
-            
+
             if (c == 'n') return ParseNull();
             if (c == 't' || c == 'f') return ParseBoolean();
             if (c == '"') return ParseString();
             if (c == '[') return ParseArray();
             if (c == '{') return ParseObject();
             if (c == '-' || (c >= '0' && c <= '9')) return ParseNumber();
-            
+
             throw std::runtime_error(std::string("Unexpected character: ") + c);
         }
-        
+
         Json ParseNull() {
             if (str_.substr(pos_, 4) == "null") {
                 pos_ += 4;
@@ -480,7 +480,7 @@ private:
             }
             throw std::runtime_error("Expected 'null'");
         }
-        
+
         Json ParseBoolean() {
             if (str_.substr(pos_, 4) == "true") {
                 pos_ += 4;
@@ -492,15 +492,15 @@ private:
             }
             throw std::runtime_error("Expected 'true' or 'false'");
         }
-        
+
         Json ParseNumber() {
             size_t start = pos_;
             if (Peek() == '-') Consume();
-            
+
             while (pos_ < str_.size() && (str_[pos_] >= '0' && str_[pos_] <= '9')) {
                 ++pos_;
             }
-            
+
             bool is_float = false;
             if (pos_ < str_.size() && str_[pos_] == '.') {
                 is_float = true;
@@ -509,7 +509,7 @@ private:
                     ++pos_;
                 }
             }
-            
+
             if (pos_ < str_.size() && (str_[pos_] == 'e' || str_[pos_] == 'E')) {
                 is_float = true;
                 ++pos_;
@@ -520,7 +520,7 @@ private:
                     ++pos_;
                 }
             }
-            
+
             std::string num_str = str_.substr(start, pos_ - start);
             if (is_float) {
                 return Json(std::stod(num_str));
@@ -528,12 +528,12 @@ private:
                 return Json(static_cast<int64_t>(std::stoll(num_str)));
             }
         }
-        
+
         Json ParseString() {
             if (Consume() != '"') {
                 throw std::runtime_error("Expected '\"'");
             }
-            
+
             std::string result;
             while (pos_ < str_.size() && str_[pos_] != '"') {
                 if (str_[pos_] == '\\') {
@@ -577,36 +577,36 @@ private:
                 }
                 ++pos_;
             }
-            
+
             if (pos_ >= str_.size() || Consume() != '"') {
                 throw std::runtime_error("Unterminated string");
             }
-            
+
             return Json(result);
         }
-        
+
         Json ParseArray() {
             if (Consume() != '[') {
                 throw std::runtime_error("Expected '['");
             }
-            
+
             Json result = Json::array();
             SkipWhitespace();
-            
+
             if (Peek() == ']') {
                 Consume();
                 return result;
             }
-            
+
             while (true) {
                 result.push_back(ParseValue());
                 SkipWhitespace();
-                
+
                 if (Peek() == ']') {
                     Consume();
                     return result;
                 }
-                
+
                 if (Peek() == ',') {
                     Consume();
                 } else {
@@ -614,38 +614,38 @@ private:
                 }
             }
         }
-        
+
         Json ParseObject() {
             if (Consume() != '{') {
                 throw std::runtime_error("Expected '{'");
             }
-            
+
             Json result = Json::object();
             SkipWhitespace();
-            
+
             if (Peek() == '}') {
                 Consume();
                 return result;
             }
-            
+
             while (true) {
                 SkipWhitespace();
                 Json key = ParseString();
                 SkipWhitespace();
-                
+
                 if (Consume() != ':') {
                     throw std::runtime_error("Expected ':' after key");
                 }
-                
+
                 Json value = ParseValue();
                 result[key.get_string()] = std::move(value);
                 SkipWhitespace();
-                
+
                 if (Peek() == '}') {
                     Consume();
                     return result;
                 }
-                
+
                 if (Peek() == ',') {
                     Consume();
                 } else {
@@ -663,7 +663,7 @@ namespace crypto {
 class SHA1 {
 public:
     static constexpr size_t DIGEST_LENGTH = 20;
-    
+
     static std::string Hash(const std::string& input) {
         SHA1 sha1;
         sha1.Update(reinterpret_cast<const uint8_t*>(input.c_str()), input.length());
@@ -676,7 +676,7 @@ private:
     SHA1() {
         Reset();
     }
-    
+
     void Reset() {
         m_digest[0] = 0x67452301;
         m_digest[1] = 0xEFCDAB89;
@@ -686,27 +686,27 @@ private:
         m_block_len = 0;
         m_total_len = 0;
     }
-    
+
     void Update(const uint8_t* data, size_t len) {
         while (len) {
             size_t copy_len = std::min(len, 64 - m_block_len);
             std::memcpy(m_block + m_block_len, data, copy_len);
-            
+
             m_block_len += copy_len;
             m_total_len += copy_len;
             data += copy_len;
             len -= copy_len;
-            
+
             if (m_block_len == 64) {
                 ProcessBlock(m_block);
                 m_block_len = 0;
             }
         }
     }
-    
+
     void Final(uint8_t* digest) {
         uint64_t total_bits = m_total_len * 8;
-        
+
         m_block[m_block_len++] = 0x80;
         if (m_block_len > 56) {
             while (m_block_len < 64) {
@@ -715,17 +715,17 @@ private:
             ProcessBlock(m_block);
             m_block_len = 0;
         }
-        
+
         while (m_block_len < 56) {
             m_block[m_block_len++] = 0;
         }
-        
+
         for (int i = 7; i >= 0; --i) {
             m_block[m_block_len++] = static_cast<uint8_t>((total_bits >> (i * 8)) & 0xFF);
         }
-        
+
         ProcessBlock(m_block);
-        
+
         for (int i = 0; i < 5; ++i) {
             digest[i * 4 + 0] = static_cast<uint8_t>((m_digest[i] >> 24) & 0xFF);
             digest[i * 4 + 1] = static_cast<uint8_t>((m_digest[i] >> 16) & 0xFF);
@@ -733,29 +733,29 @@ private:
             digest[i * 4 + 3] = static_cast<uint8_t>(m_digest[i] & 0xFF);
         }
     }
-    
+
     void ProcessBlock(const uint8_t* block) {
         uint32_t w[80];
-        
+
         for (int i = 0; i < 16; ++i) {
-            w[i] = (block[i * 4 + 0] << 24) | (block[i * 4 + 1] << 16) | 
+            w[i] = (block[i * 4 + 0] << 24) | (block[i * 4 + 1] << 16) |
                    (block[i * 4 + 2] << 8) | block[i * 4 + 3];
         }
-        
+
         for (int i = 16; i < 80; ++i) {
             uint32_t temp = w[i - 3] ^ w[i - 8] ^ w[i - 14] ^ w[i - 16];
             w[i] = ROTL(temp, 1);
         }
-        
+
         uint32_t a = m_digest[0];
         uint32_t b = m_digest[1];
         uint32_t c = m_digest[2];
         uint32_t d = m_digest[3];
         uint32_t e = m_digest[4];
-        
+
         for (int i = 0; i < 80; ++i) {
             uint32_t f, k;
-            
+
             if (i < 20) {
                 f = (b & c) | ((~b) & d);
                 k = 0x5A827999;
@@ -769,7 +769,7 @@ private:
                 f = b ^ c ^ d;
                 k = 0xCA62C1D6;
             }
-            
+
             uint32_t temp = ROTL(a, 5) + f + e + k + w[i];
             e = d;
             d = c;
@@ -777,18 +777,18 @@ private:
             b = a;
             a = temp;
         }
-        
+
         m_digest[0] += a;
         m_digest[1] += b;
         m_digest[2] += c;
         m_digest[3] += d;
         m_digest[4] += e;
     }
-    
+
     static uint32_t ROTL(uint32_t x, uint32_t n) {
         return (x << n) | (x >> (32 - n));
     }
-    
+
     static std::string DigestToHex(const uint8_t* digest) {
         std::ostringstream oss;
         oss << std::hex << std::setfill('0');
@@ -797,7 +797,7 @@ private:
         }
         return oss.str();
     }
-    
+
     uint32_t m_digest[5];
     uint8_t m_block[64];
     size_t m_block_len;
@@ -837,6 +837,7 @@ struct AttrInfo {
 struct CompileInfo {
     std::string soc_version;
     std::string core_type;
+    std::string device_id;
     std::string op_kernel_lib;
     std::string op_impl_mode;
     int64_t aicore_num = 0;
@@ -849,10 +850,13 @@ struct TilingResult {
     int64_t tiling_key = 0;
     int64_t block_dim = 0;
     int64_t workspace_size = 0;
+    uint32_t cube_used_core_num = 1;
+    uint32_t cube_base_m = 16;
+    uint32_t cube_base_n = 16;
     bool atomic_flag = false;
     std::string error_msg;
     bool success = false;
-    
+
     BatchMatMulV3BasicTilingData batch_matmul_tiling_data;
     MatMulV3BasicTilingData matmul_basic_tiling_data;
 };
@@ -1004,6 +1008,7 @@ std::string CubeKernelTilingWrapper::SerializeToJson(const CompileInfo& compile_
     json j;
     j["soc_version"] = compile_info.soc_version;
     j["core_type"] = compile_info.core_type;
+    j["device_id"] = compile_info.device_id;
     j["op_kernel_lib"] = compile_info.op_kernel_lib;
     j["op_impl_mode"] = compile_info.op_impl_mode;
     j["aicore_num"] = compile_info.aicore_num;
@@ -1285,9 +1290,17 @@ TilingResult CubeKernelTilingWrapper::DoMatMulTiling(const CompileInfo& compile_
 
             if (result.tiling_data.size() >= sizeof(MatMulV3BasicTilingData)) {
                 memcpy(&result.matmul_basic_tiling_data, result.tiling_data.data(), sizeof(MatMulV3BasicTilingData));
+                result.cube_used_core_num = std::max(result.matmul_basic_tiling_data.usedCoreNum, 1U);
+                result.cube_base_m = std::max(result.matmul_basic_tiling_data.baseM, 1U);
+                result.cube_base_n = std::max(result.matmul_basic_tiling_data.baseN, 1U);
             }
             if (result.tiling_data.size() >= sizeof(BatchMatMulV3BasicTilingData)) {
                 memcpy(&result.batch_matmul_tiling_data, result.tiling_data.data(), sizeof(BatchMatMulV3BasicTilingData));
+                if (is_batch) {
+                    result.cube_used_core_num = std::max(result.batch_matmul_tiling_data.matMulTilingData.usedCoreNum, 1U);
+                    result.cube_base_m = std::max(result.batch_matmul_tiling_data.matMulTilingData.baseM, 1U);
+                    result.cube_base_n = std::max(result.batch_matmul_tiling_data.matMulTilingData.baseN, 1U);
+                }
             }
         }
         if (j.contains("tiling_key")) {

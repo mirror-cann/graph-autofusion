@@ -14,6 +14,7 @@
 #define private public
 #include "codegen.h"
 #include "codegen_tiling.h"
+#include "codegen_tiling_cube_wrapper.h"
 #include "common_utils.h"
 #include "ascir_ops.h"
 #include "ascir_ops_utils.h"
@@ -2527,6 +2528,14 @@ TEST_F(TestCodegenTiling, GenerateForInductorCvFusionShouldEmitCvTilingAndCubeWr
   EXPECT_EQ(tiling_impl.find("GetModeledPerfForTesting"), std::string::npos);
   EXPECT_EQ(tiling_impl.find("AscirCompileAndLaunch"), std::string::npos);
   EXPECT_EQ(tiling_impl.find("GenAscirTilingAndLaunchFunc"), std::string::npos);
+}
+
+TEST_F(TestCodegenTiling, CubeWrapperShouldPreserveTilingDataBytes) {
+  const auto &wrapper_hpp = kCubeKernelTilingWrapperHppValue;
+  const auto &wrapper_cpp = kCubeKernelTilingWrapperCppValue;
+  EXPECT_NE(wrapper_hpp.find("std::vector<uint8_t> tiling_data;"), std::string::npos);
+  EXPECT_NE(wrapper_cpp.find("result.tiling_data.push_back"), std::string::npos);
+  EXPECT_NE(wrapper_cpp.find("result.tiling_data = AlignTilingDataTo8Bytes"), std::string::npos);
 }
 
 TEST_F(TestCodegenTiling, MultiGroupInductorShouldContainTopnMainOutputAbi) {

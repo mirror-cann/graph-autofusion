@@ -84,7 +84,6 @@ const std::string kTaskTypeInvalid = "TASK_TYPE_INVALID";
 const std::string kTaskTypeFftsPlus = "FFTS_PLUS";
 const std::string kEngineNameVectorCore = "VectorEngine";
 
-const std::string kEngineNameHccl = "ops_kernel_info_hccl";
 const std::string kEngineNameRts = "DNN_VM_RTS_OP_STORE";
 const std::string kEngineNameHostCpu = "DNN_VM_HOST_CPU_OP_STORE";
 const std::string kEngineNameGeLocal = "DNN_VM_GE_LOCAL_OP_STORE";

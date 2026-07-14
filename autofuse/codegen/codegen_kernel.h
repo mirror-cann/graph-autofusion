@@ -298,6 +298,7 @@ class TPipe : public Variable {
   std::string reuse_dtype_name = "";
   std::vector<ascir::TensorId> need_gen_blk_tensors;
   ascir::CubeTemplateType cv_fusion_type{ascir::CubeTemplateType::kDefault};
+  bool is_inductor{false};
   ascir::TensorId cube_output_tensor_id = af::kIdNone;
   ascir::TensorId cube_output_que_id = af::kIdNone;
   std::vector<ascir::BufId> contiguous_buf_ids;
@@ -405,7 +406,7 @@ class Kernel {
   static Status ParseGraph(const ascir::ImplGraph &graph, const ascir::FusedScheduledResult &fused_schedule_result,
                            Kernel &kernel);
   Status Generate(const std::string &impl_graph_name, const std::string &tiling_data, std::string &result,
-                  const ascir::ImplGraph &graph);
+                  const ascir::ImplGraph &graph, const std::string &workspace_buffer_arg_override = "");
   static std::string GetIncludeApiHeaderFiles(const ascir::FusedScheduledResult &fused_schedule_result);
   static std::string IncludeAndDefines(const ascir::FusedScheduledResult &fused_schedule_result,
                                        const std::string &kernel_task_type, bool use_tensor_desc = false,
@@ -420,11 +421,12 @@ class Kernel {
                                           bool is_conv2d, bool is_dynamic = false, bool is_db = false) const;
   af::Status GenCubeCommonTiling(std::stringstream &ss, const bool is_batch, bool is_conv2d = false,
                                  bool is_dynamic = false, bool is_db = false) const;
-  std::string GenCubeCommonTilingSingleFuncCall(const ascir::ImplGraph &impl_graph) const;
+  std::string GenCubeCommonTilingSingleFuncCall(const ascir::ImplGraph &impl_graph,
+                                                const std::string &output_arg_override = "") const;
   static std::string KernelFuncDeclare(const std::string &graph_name,
                                        const ascir::FusedScheduledResult &fused_schedule_result,
                                        bool use_list_tensor = false, bool is_inductor = false, bool is_conv2d = false);
-  Status GlobalTensorInit(std::string &result) const;
+  Status GlobalTensorInit(std::string &result, const std::string &workspace_buffer_arg_override = "") const;
   Status GlobalTensorAssign(std::string &result) const;
   Status GlobalTensorDefine(std::string &result) const;
   Status LocalTensorQueBufAlloc(std::string &result, const ascir::ImplGraph &graph) const;
@@ -507,6 +509,11 @@ class Kernel {
                                                   std::stringstream &ss, std::stringstream &res_ss,
                                                   const bool use_list_tensor,
                                                   std::unordered_set<const std::string *> &kernel_file_ptr);
+  Status AppendInputGlobalTensorInit(std::stringstream &ss) const;
+  Status AppendOutputGlobalTensorInit(std::stringstream &ss) const;
+  Status AppendConstTensorInit(std::stringstream &ss) const;
+  Status AppendUbScalarTensorInit(std::stringstream &ss) const;
+  Status AppendWorkspaceTensorInit(std::stringstream &ss, const std::string &workspace_buffer_arg_override) const;
   static Status GenCVKernelFuncWithMulGroup(const ascir::FusedScheduledResult &fused_schedule_result,
                                             const CodegenConfig &config, std::stringstream &ss, std::stringstream &ss1,
                                             bool use_list_tensor);
@@ -528,6 +535,12 @@ class Kernel {
                                            std::stringstream &cube_ss, const bool use_list_tensor,
                                            std::unordered_set<const std::string *> &kernel_file_ptr);
   static Status GenCubeCommonFuncForAICMixDynamic(const ascir::FusedScheduledResult &fused_schedule_result,
+                                                  const size_t graph_id, const size_t common_index,
+                                                  const size_t group_index, const CodegenConfig &config,
+                                                  std::stringstream &ss, std::stringstream &cube_ss,
+                                                  const bool use_list_tensor,
+                                                  std::unordered_set<const std::string *> &kernel_file_ptr);
+  static Status GenCubeCommonFuncForAIVMixDynamic(const ascir::FusedScheduledResult &fused_schedule_result,
                                                   const size_t graph_id, const size_t common_index,
                                                   const size_t group_index, const CodegenConfig &config,
                                                   std::stringstream &ss, std::stringstream &cube_ss,

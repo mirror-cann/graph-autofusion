@@ -5224,8 +5224,8 @@ inline Tensor HcomAllToAllVC(const Tensor &send_data, const Tensor &send_count_m
   return out;
 }
 inline Tensor HcomCollRemoteLookup(const Tensor &table_id, const Tensor &keys, int64_t tag, int64_t max_num,
-                                   int64_t embedding_dim, int64_t insert_option = 0,
-                                   const char *group = "hccl_world_group", int64_t flags = 0) {
+                                   int64_t embedding_dim, int64_t insert_option = 0, const char *group = "world_group",
+                                   int64_t flags = 0) {
   auto out = EsHcomCollRemoteLookup(table_id.GetEsbTensor(), keys.GetEsbTensor(), tag, max_num, embedding_dim,
                                     insert_option, group, flags);
   return out;
@@ -5240,7 +5240,7 @@ struct HcomCollRemoteLookupPairedOutput {
 inline HcomCollRemoteLookupPairedOutput HcomCollRemoteLookupPaired(const Tensor &table_id, const Tensor &keys,
                                                                    int64_t tag, int64_t max_num, int64_t embedding_dim,
                                                                    int64_t insert_option = 0,
-                                                                   const char *group = "hccl_world_group",
+                                                                   const char *group = "world_group",
                                                                    int64_t flags = 0) {
   auto out = EsHcomCollRemoteLookupPaired(table_id.GetEsbTensor(), keys.GetEsbTensor(), tag, max_num, embedding_dim,
                                           insert_option, group, flags);
@@ -5256,14 +5256,14 @@ struct HcomCollRemoteLookupUniquedAndPairedOutput {
 inline HcomCollRemoteLookupUniquedAndPairedOutput HcomCollRemoteLookupUniquedAndPaired(
     const Tensor &table_id, const Tensor &keys, const Tensor &key_num_input, const Tensor &unique_indices,
     const Tensor &key_count, int64_t tag, int64_t max_num, int64_t embedding_dim, int64_t flags,
-    int64_t insert_option = 0, const char *group = "hccl_world_group") {
+    int64_t insert_option = 0, const char *group = "world_group") {
   auto out = EsHcomCollRemoteLookupUniquedAndPaired(
       table_id.GetEsbTensor(), keys.GetEsbTensor(), key_num_input.GetEsbTensor(), unique_indices.GetEsbTensor(),
       key_count.GetEsbTensor(), tag, max_num, embedding_dim, flags, insert_option, group);
   return {out.values, out.indices, out.num_uniqued, out.ps_segments, out.ps_segments_num};
 }
 inline Tensor HcomCollRemoteUpdate(const Tensor &table_id, const Tensor &keys, const Tensor &values, int64_t tag,
-                                   int64_t max_num, int64_t embedding_dim, const char *group = "hccl_world_group") {
+                                   int64_t max_num, int64_t embedding_dim, const char *group = "world_group") {
   auto out = EsHcomCollRemoteUpdate(table_id.GetEsbTensor(), keys.GetEsbTensor(), values.GetEsbTensor(), tag, max_num,
                                     embedding_dim, group);
   return out;
@@ -5271,7 +5271,7 @@ inline Tensor HcomCollRemoteUpdate(const Tensor &table_id, const Tensor &keys, c
 inline Tensor HcomCollRemoteUpdatePaired(const Tensor &table_id, const Tensor &keys, const Tensor &values,
                                          const Tensor &indices, const Tensor &num_uniqued, const Tensor &ps_segments,
                                          const Tensor &ps_segments_num, const Tensor &global_step, int64_t tag,
-                                         int64_t max_num, int64_t embedding_dim, const char *group = "hccl_world_group",
+                                         int64_t max_num, int64_t embedding_dim, const char *group = "world_group",
                                          int64_t padding_key = 0, int64_t flags = 0) {
   auto out = EsHcomCollRemoteUpdatePaired(
       table_id.GetEsbTensor(), keys.GetEsbTensor(), values.GetEsbTensor(), indices.GetEsbTensor(),

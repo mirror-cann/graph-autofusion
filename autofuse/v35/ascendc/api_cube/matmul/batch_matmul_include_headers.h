@@ -19,6 +19,8 @@
 #include "arch35/batch_mat_mul_v3_iterbatch_kernel_advanced.h"
 #include "arch35/batch_mat_mul_v3_iterbatch_basicapi_block_scheduler.h"
 #include "arch35/batch_mat_mul_v3_iterbatch_basicapi_cmct.h"
+#include "arch35/batch_mat_mul_v3_mergebatch_basicapi_block_scheduler.h"
+#include "arch35/batch_mat_mul_v3_mergebatch_basicapi_cmct.h"
 #include "arch35/block_scheduler_aswt.h"
 #include "arch35/batch_mat_mul_v3_matmul2mul_block_scheduler.h"
 #include "arch35/batch_mat_mul_v3_matmul2mul_cmct.h"

@@ -69,28 +69,29 @@ inline const std::string kUInt32 = "uint32";
 inline const std::string kInt32 = "int32";
 inline const std::string kUInt64 = "uint64";
 inline const std::string kInt64 = "int64";
+inline const std::string kBool = "bool";
 inline const std::map<std::string, Expr> kBlkEleMap = {
     {kInt8, CreateExpr(32)},   {kUInt8, CreateExpr(32)}, {kFloat16, CreateExpr(16)}, {kBfloat16, CreateExpr(16)},
     {kUInt16, CreateExpr(16)}, {kInt16, CreateExpr(16)}, {kFloat32, CreateExpr(8)},  {kUInt32, CreateExpr(8)},
-    {kInt32, CreateExpr(8)},   {kUInt64, CreateExpr(4)}, {kInt64, CreateExpr(4)},
+    {kInt32, CreateExpr(8)},   {kUInt64, CreateExpr(4)}, {kInt64, CreateExpr(4)},    {kBool, CreateExpr(32)},
 };
 
 inline const std::map<std::string, Expr> kDataTypeSizeMap = {
     {kInt8, CreateExpr(1)},   {kUInt8, CreateExpr(1)},  {kFloat16, CreateExpr(2)}, {kBfloat16, CreateExpr(2)},
     {kUInt16, CreateExpr(2)}, {kInt16, CreateExpr(2)},  {kFloat32, CreateExpr(4)}, {kUInt32, CreateExpr(4)},
-    {kInt32, CreateExpr(4)},  {kUInt64, CreateExpr(8)}, {kInt64, CreateExpr(8)},
+    {kInt32, CreateExpr(4)},  {kUInt64, CreateExpr(8)}, {kInt64, CreateExpr(8)},   {kBool, CreateExpr(1)},
 };
 
 inline const std::map<std::string, Expr> kRptEleMap = {
     {kInt8, CreateExpr(256)},   {kUInt8, CreateExpr(256)}, {kFloat16, CreateExpr(128)}, {kBfloat16, CreateExpr(128)},
     {kUInt16, CreateExpr(128)}, {kInt16, CreateExpr(128)}, {kFloat32, CreateExpr(64)},  {kUInt32, CreateExpr(64)},
-    {kInt32, CreateExpr(64)},   {kUInt64, CreateExpr(32)}, {kInt64, CreateExpr(32)},
+    {kInt32, CreateExpr(64)},   {kUInt64, CreateExpr(32)}, {kInt64, CreateExpr(32)},    {kBool, CreateExpr(256)},
 };
 
 inline const std::map<std::string, Expr> kBrcbRepeatMap = {
     {kInt8, CreateExpr(254U)},   {kUInt8, CreateExpr(254U)}, {kFloat16, CreateExpr(254U)}, {kFloat32, CreateExpr(255U)},
     {kUInt16, CreateExpr(254U)}, {kInt16, CreateExpr(254U)}, {kUInt32, CreateExpr(255U)},  {kInt32, CreateExpr(255U)},
-    {kUInt64, CreateExpr(255U)}, {kInt64, CreateExpr(255U)},
+    {kUInt64, CreateExpr(255U)}, {kInt64, CreateExpr(255U)}, {kBool, CreateExpr(254U)},
 };
 
 // options

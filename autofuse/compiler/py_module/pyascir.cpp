@@ -1159,6 +1159,16 @@ DEFINE_IR_ATTR_ACCESSORS(MatMul, AscMatMulIrAttrDef, kOffsetX, int64_t, PyLong_C
                          SetOffset_x, GetOffset_x)
 DEFINE_IR_ATTR_ACCESSORS(MatMul, AscMatMulIrAttrDef, kEnableHf32, int64_t, PyLong_Check, PyLong_FromLong, PyLong_AsLong,
                          SetEnable_hf32, GetEnable_hf32)
+DEFINE_IR_ATTR_ACCESSORS(MatMulBias, AscMatMulBiasIrAttrDef, kHasRelu, int64_t, PyLong_Check, PyLong_FromLong,
+                         PyLong_AsLong, SetHas_relu, GetHas_relu)
+DEFINE_IR_ATTR_ACCESSORS(MatMulBias, AscMatMulBiasIrAttrDef, kTransposeX1, int64_t, PyLong_Check, PyLong_FromLong,
+                         PyLong_AsLong, SetTranspose_x1, GetTranspose_x1)
+DEFINE_IR_ATTR_ACCESSORS(MatMulBias, AscMatMulBiasIrAttrDef, kTransposeX2, int64_t, PyLong_Check, PyLong_FromLong,
+                         PyLong_AsLong, SetTranspose_x2, GetTranspose_x2)
+DEFINE_IR_ATTR_ACCESSORS(MatMulBias, AscMatMulBiasIrAttrDef, kOffsetX, int64_t, PyLong_Check, PyLong_FromLong,
+                         PyLong_AsLong, SetOffset_x, GetOffset_x)
+DEFINE_IR_ATTR_ACCESSORS(MatMulBias, AscMatMulBiasIrAttrDef, kEnableHf32, int64_t, PyLong_Check, PyLong_FromLong,
+                         PyLong_AsLong, SetEnable_hf32, GetEnable_hf32)
 DEFINE_IR_ATTR_ACCESSORS(BatchMatMul, AscBatchMatMulIrAttrDef, kHasRelu, int64_t, PyLong_Check, PyLong_FromLong,
                          PyLong_AsLong, SetHas_relu, GetHas_relu)
 DEFINE_IR_ATTR_ACCESSORS(BatchMatMul, AscBatchMatMulIrAttrDef, kAdjX1, int64_t, PyLong_Check, PyLong_FromLong,
@@ -1169,6 +1179,16 @@ DEFINE_IR_ATTR_ACCESSORS(BatchMatMul, AscBatchMatMulIrAttrDef, kOffsetX, int64_t
                          PyLong_AsLong, SetOffset_x, GetOffset_x)
 DEFINE_IR_ATTR_ACCESSORS(BatchMatMul, AscBatchMatMulIrAttrDef, kEnableHf32, int64_t, PyLong_Check, PyLong_FromLong,
                          PyLong_AsLong, SetEnable_hf32, GetEnable_hf32)
+DEFINE_IR_ATTR_ACCESSORS(BatchMatMulBias, AscBatchMatMulBiasIrAttrDef, kHasRelu, int64_t, PyLong_Check, PyLong_FromLong,
+                         PyLong_AsLong, SetHas_relu, GetHas_relu)
+DEFINE_IR_ATTR_ACCESSORS(BatchMatMulBias, AscBatchMatMulBiasIrAttrDef, kAdjX1, int64_t, PyLong_Check, PyLong_FromLong,
+                         PyLong_AsLong, SetAdj_x1, GetAdj_x1)
+DEFINE_IR_ATTR_ACCESSORS(BatchMatMulBias, AscBatchMatMulBiasIrAttrDef, kAdjX2, int64_t, PyLong_Check, PyLong_FromLong,
+                         PyLong_AsLong, SetAdj_x2, GetAdj_x2)
+DEFINE_IR_ATTR_ACCESSORS(BatchMatMulBias, AscBatchMatMulBiasIrAttrDef, kOffsetX, int64_t, PyLong_Check, PyLong_FromLong,
+                         PyLong_AsLong, SetOffset_x, GetOffset_x)
+DEFINE_IR_ATTR_ACCESSORS(BatchMatMulBias, AscBatchMatMulBiasIrAttrDef, kEnableHf32, int64_t, PyLong_Check,
+                         PyLong_FromLong, PyLong_AsLong, SetEnable_hf32, GetEnable_hf32)
 DEFINE_IR_ATTR_ACCESSORS(
     Scalar, AscScalarIrAttrDef, kValueAttr, std::string, PyUnicode_Check,
     [](const std::string &str) { return PyUnicode_FromString(str.c_str()); }, PyUnicode_AsUTF8, SetValue, GetValue)
@@ -1260,8 +1280,12 @@ const std::map<std::string, typename IrAttr<OpType>::handler> IrAttr<OpType>::at
     {"Gather", AutoRegAttrHandle<af::ascir_op::Gather, kAxisAttr>::RegHandle},
     {"MatMul",
      AutoRegAttrHandle<af::ascir_op::MatMul, kHasRelu, kOffsetX, kTransposeX1, kTransposeX2, kEnableHf32>::RegHandle},
+    {"MatMulBias", AutoRegAttrHandle<af::ascir_op::MatMulBias, kHasRelu, kOffsetX, kTransposeX1, kTransposeX2,
+                                     kEnableHf32>::RegHandle},
     {"BatchMatMul",
      AutoRegAttrHandle<af::ascir_op::BatchMatMul, kHasRelu, kOffsetX, kAdjX1, kAdjX2, kEnableHf32>::RegHandle},
+    {"BatchMatMulBias",
+     AutoRegAttrHandle<af::ascir_op::BatchMatMulBias, kHasRelu, kOffsetX, kAdjX1, kAdjX2, kEnableHf32>::RegHandle},
     {"LeakyRelu", AutoRegAttrHandle<af::ascir_op::LeakyRelu, kNegativeSlopeAttr>::RegHandle},
     {"Axpy", AutoRegAttrHandle<af::ascir_op::Axpy, kAlphaAttr>::RegHandle},
     {"Unsupported", AutoRegAttrHandle<af::ascir_op::Unsupported, kErrorMsgAttr>::RegHandle},

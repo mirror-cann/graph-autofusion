@@ -2038,7 +2038,7 @@ class WhereAscIrCodegenImplV2 : public AscIrCodegenV2 {
     return "WhereExtend";
   }
   [[nodiscard]] std::vector<std::string> LoadApiHeaderFiles([[maybe_unused]] bool is_dynamic) const override {
-    return {"where_v2_reg_base.h"};
+    return {"where_reg_base.h"};
   }
   [[nodiscard]] std::string GetMicroApiCallName() const override {
     return "MicroWhereApiCall";
@@ -2072,55 +2072,9 @@ class WhereAscIrCodegenImplV2 : public AscIrCodegenV2 {
   }
 };
 
-class SelectAscIrCodegenImplV2 : public AscIrCodegenV2 {
- public:
-  [[nodiscard]] std::vector<std::unique_ptr<TmpBufDesc>> CalcTmpBufSize(const AscNode &node) override {
-    return CalcSelectTmpSize(node);
-  }
-  [[nodiscard]] std::string GetApiCallName() const override {
-    return "WhereApiCall";
-  }
-  [[nodiscard]] std::string GetApiName() const override {
-    return "Where";
-  }
-  [[nodiscard]] std::vector<std::string> LoadApiHeaderFiles([[maybe_unused]] bool is_dynamic) const override {
-    return {"duplicate.h", "where.h"};
-  }
-  [[nodiscard]] bool IsScalarInputSupported(const std::vector<bool> &is_scalar_list) const override {
-    GE_ASSERT_EQ(is_scalar_list.size(), 3UL);
-    return !is_scalar_list[0];  // 除第1个外都支持Scalar
-  }
-  [[nodiscard]] std::string GetMicroApiCallName() const override {
-    return "MicroWhereApiCall";
-  }
-  [[nodiscard]] std::string GetMicroApiName() const override {
-    return "Select";
-  }
-  [[nodiscard]] bool IsVectorFunctionSupported(const AscNode &node) const override {
-    if (!IsAllVecAxisContinuous(node)) {
-      return false;
-    }
-    return true;
-  }
-  [[nodiscard]] std::vector<std::string> IncludeApiHeaderFiles() const override {
-    return {
-        "basic_api/kernel_operator_vec_duplicate_intf.h",     "basic_api/kernel_operator_vec_vconv_intf.h",
-        "basic_api/kernel_operator_vec_cmpsel_intf.h",        "basic_api/kernel_operator_vec_binary_intf.h",
-        "basic_api/kernel_operator_vec_binary_scalar_intf.h", "basic_api/kernel_operator_vec_transpose_intf.h",
-    };
-  }
-  [[nodiscard]] bool IsNodeValid(const AscNode &node) const override {
-    GE_ASSERT_TRUE(!IsNodeFirstInputScalar(node), "Node %s[%s] not support first input scalar", node.GetTypePtr(),
-                   node.GetNamePtr());
-    GE_ASSERT_SUCCESS(ValidateShapeConsistencyWithSingleOutput(node, {false, {1, 2}}),
-                      "Node %s[%s] check shape consistency failed", node.GetTypePtr(), node.GetNamePtr());
-    return true;
-  }
-};
-
-// MaskedFill reuses Select codegen. IsScalarInputSupported checks original input order
+// MaskedFill reuses Where codegen. IsScalarInputSupported checks original input order
 // (before MaskedFillInputReorderPass): inputs[1]=mask cannot be scalar.
-class MaskedFillAscIrCodegenImplV2 : public SelectAscIrCodegenImplV2 {
+class MaskedFillAscIrCodegenImplV2 : public WhereAscIrCodegenImplV2 {
  public:
   [[nodiscard]] std::vector<std::unique_ptr<TmpBufDesc>> CalcTmpBufSize(const AscNode &node) override {
     return CalcMaskedFillTmpSize(node);
@@ -3782,8 +3736,12 @@ class RemainderAscIrCodegenImplV2 : public AscIrCodegenV2 {
 /*********************************************************************************/
 class UnsupportedAscIrCodegenImplV2 : public AscIrCodegenV2 {
  public:
-  [[nodiscard]] std::string GetApiCallName() const override { return ""; }
-  [[nodiscard]] std::string GetApiName() const override { return "Unsupported"; }
+  [[nodiscard]] std::string GetApiCallName() const override {
+    return "";
+  }
+  [[nodiscard]] std::string GetApiName() const override {
+    return "Unsupported";
+  }
 };
 }  // namespace ascir
 }  // namespace af

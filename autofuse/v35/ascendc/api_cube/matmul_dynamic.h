@@ -73,12 +73,17 @@ constexpr CubeFormat format_y = CubeFormat::ND;
     op.Process();                                                                                    \
   } while (0)
 #endif
+#ifdef INDUCTOR_TILING_DATA
+template <typename CVTilingT, int8_t API_LEVEL, int8_t A_TRANS, int8_t B_TRANS, int8_t BATCH_MODEL, int8_t MODEL,
+          int8_t FULL_LOAD, int8_t L0C2OUT_MODEL>
+#else
 template <int8_t API_LEVEL, int8_t A_TRANS, int8_t B_TRANS, int8_t BATCH_MODEL, int8_t MODEL, int8_t FULL_LOAD,
           int8_t L0C2OUT_MODEL>
+#endif
 __aicore__ void mat_mul_v3(GM_ADDR aGM, GM_ADDR bGM, GM_ADDR biasGM, GM_ADDR offsetWGM, GM_ADDR cGM,
                            GM_ADDR workspaceGM,
 #ifdef INDUCTOR_TILING_DATA
-                           const CVAutofuseTilingData &tilingGM
+                           const CVTilingT &tilingGM
 #else
                            GM_ADDR tilingGM
 #endif
@@ -176,12 +181,17 @@ __aicore__ void mat_mul_v3(GM_ADDR aGM, GM_ADDR bGM, GM_ADDR biasGM, GM_ADDR off
   }
 }
 
+#ifdef INDUCTOR_TILING_DATA
+template <typename CVTilingT, int8_t API_LEVEL, int8_t A_TRANS, int8_t B_TRANS, int8_t BATCH_MODEL, int8_t MODEL,
+          int8_t FULL_LOAD, int8_t L0C2OUT_MODEL>
+#else
 template <int8_t API_LEVEL, int8_t A_TRANS, int8_t B_TRANS, int8_t BATCH_MODEL, int8_t MODEL, int8_t FULL_LOAD,
           int8_t L0C2OUT_MODEL>
+#endif
 __aicore__ void mat_mul_v3_fusion(GM_ADDR aGM, GM_ADDR bGM, GM_ADDR biasGM, GM_ADDR offsetWGM, GM_ADDR cGM,
                                   GM_ADDR workspaceGM,
 #ifdef INDUCTOR_TILING_DATA
-                                  const CVAutofuseTilingData &tilingGM,
+                                  const CVTilingT &tilingGM,
 #else
                                   GM_ADDR tilingGM,
 #endif
@@ -281,12 +291,17 @@ __aicore__ void mat_mul_v3_fusion(GM_ADDR aGM, GM_ADDR bGM, GM_ADDR biasGM, GM_A
   }
 }
 
+#ifdef INDUCTOR_TILING_DATA
+template <typename CVTilingT, int8_t API_LEVEL, int8_t A_TRANS, int8_t B_TRANS, int8_t BATCH_MODEL, int8_t MODEL,
+          int8_t FULL_LOAD, int8_t L0C2OUT_MODEL>
+#else
 template <int8_t API_LEVEL, int8_t A_TRANS, int8_t B_TRANS, int8_t BATCH_MODEL, int8_t MODEL, int8_t FULL_LOAD,
           int8_t L0C2OUT_MODEL>
+#endif
 __aicore__ void mat_mul_v3_fusion_db(GM_ADDR aGM, GM_ADDR bGM, GM_ADDR biasGM, GM_ADDR offsetWGM, GM_ADDR cGM,
                                      GM_ADDR workspaceGM,
 #ifdef INDUCTOR_TILING_DATA
-                                     const CVAutofuseTilingData &tilingGM,
+                                     const CVTilingT &tilingGM,
 #else
                                      GM_ADDR tilingGM,
 #endif

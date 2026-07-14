@@ -332,11 +332,30 @@ class OutputHandler {
   }
 
  protected:
-  static void GenerateCustomTypeInference(const SymDtype *sym, std::stringstream &ss, int space_count) {
+  void GenerateCustomTypeInference(const SymDtype *sym, std::stringstream &ss, int space_count) {
     // 走到这里说明out使用了跟所有input不一样的sym, 并且此输出只有一个支持的类型
-    auto support_types = sym->GetTensorType().tensor_type_impl_->GetMutableDateTypeSet();
-    ss << std::string(space_count, ' ') << "expect_output_dtypes.push_back("
-       << DataTypeToSerialString(*support_types.begin()) << ");\n";
+    const auto &soc_to_sym_store = def_.GetSocToDataTypeSymbolStore();
+    const auto &sym_id = sym->Id();
+    bool is_first = true;
+    for (const auto &soc_store : soc_to_sym_store) {
+      const auto &named_syms = soc_store.second.GetNamedSymbols();
+      auto it = named_syms.find(sym_id);
+      if (it == named_syms.end()) {
+        continue;
+      }
+      auto support_types = it->second->GetTensorType().tensor_type_impl_->GetMutableDateTypeSet();
+      if (is_first) {
+        ss << std::string(space_count, ' ') << "if (npu_arch == \"" << soc_store.first << "\") {\n";
+        is_first = false;
+      } else {
+        ss << std::string(space_count, ' ') << "} else if (npu_arch == \"" << soc_store.first << "\") {\n";
+      }
+      ss << std::string(space_count + 2U, ' ') << "expect_output_dtypes.push_back("
+         << DataTypeToSerialString(*support_types.begin()) << ");\n";
+    }
+    if (!is_first) {
+      ss << std::string(space_count, ' ') << "}\n";
+    }
   }
 
   Status GenerateCustomTypeValidation(SymDtype *sym, std::stringstream &ss) {
@@ -354,13 +373,32 @@ class OutputHandler {
       }
     }
     const std::string tensor_type_obj = "support_dtypes_of_sym_" + sym->Id();
-    ss << "    static std::set<ge::DataType> " << tensor_type_obj << " = " << TensorTypeToCode(sym->GetTensorType())
-       << ";\n";
-    // 共sym的已经都校验过一致了，所以这里可以用第一个来校验是否在支持范围内
-    auto check_index = indexes_of_this_sym.front();
-    ss << "    GE_WARN_ASSERT("
-       << "support_dtypes_of_sym_" << sym->Id() << ".find(expect_output_dtypes[" << check_index
-       << "]) != support_dtypes_of_sym_" << sym->Id() << ".end());" << std::endl;
+    const auto &soc_to_sym_store = def_.GetSocToDataTypeSymbolStore();
+    const auto &sym_id = sym->Id();
+    ss << "    std::set<ge::DataType> " << tensor_type_obj << ";\n";
+    bool is_first = true;
+    for (const auto &soc_store : soc_to_sym_store) {
+      const auto &named_syms = soc_store.second.GetNamedSymbols();
+      auto it = named_syms.find(sym_id);
+      if (it == named_syms.end()) {
+        continue;
+      }
+      if (is_first) {
+        ss << "    if (npu_arch == \"" << soc_store.first << "\") {\n";
+        is_first = false;
+      } else {
+        ss << "    } else if (npu_arch == \"" << soc_store.first << "\") {\n";
+      }
+      ss << "      " << tensor_type_obj << " = " << TensorTypeToCode(it->second->GetTensorType()) << ";\n";
+    }
+    if (!is_first) {
+      ss << "    }\n";
+      // 共sym的已经都校验过一致了，所以这里可以用第一个来校验是否在支持范围内
+      auto check_index = indexes_of_this_sym.front();
+      ss << "    GE_WARN_ASSERT("
+         << "support_dtypes_of_sym_" << sym->Id() << ".find(expect_output_dtypes[" << check_index
+         << "]) != support_dtypes_of_sym_" << sym->Id() << ".end());" << std::endl;
+    }
     return SUCCESS;
   }
 

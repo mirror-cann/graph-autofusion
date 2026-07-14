@@ -18,10 +18,22 @@ inline __aicore__ void LogicalOrExtend(const LocalTensor<uint8_t> &dst, const Lo
 }
 
 template <typename T>
+inline __aicore__ void LogicalOrExtend(const LocalTensor<bool> &dst, const LocalTensor<T> &src1,
+                                       const LocalTensor<T> &src2, const uint32_t size) {
+  AscendC::LogicalOr(dst, src1, src2, size);
+}
+
+template <typename T>
 inline __aicore__ void LogicalAndExtend(const LocalTensor<uint8_t> &dst, const LocalTensor<T> &src1,
                                         const LocalTensor<T> &src2, const uint32_t size) {
   auto dst_tmp = dst.template ReinterpretCast<bool>();
   AscendC::LogicalAnd(dst_tmp, src1, src2, size);
+}
+
+template <typename T>
+inline __aicore__ void LogicalAndExtend(const LocalTensor<bool> &dst, const LocalTensor<T> &src1,
+                                        const LocalTensor<T> &src2, const uint32_t size) {
+  AscendC::LogicalAnd(dst, src1, src2, size);
 }
 
 template <typename T>
@@ -32,6 +44,12 @@ inline __aicore__ void LogicalOrExtends(const LocalTensor<uint8_t> &dst, const L
 }
 
 template <typename T>
+inline __aicore__ void LogicalOrExtends(const LocalTensor<bool> &dst, const LocalTensor<T> &src1, const T src2,
+                                        const uint32_t size) {
+  AscendC::LogicalOrs(dst, src1, src2, size);
+}
+
+template <typename T>
 inline __aicore__ void LogicalAndExtends(const LocalTensor<uint8_t> &dst, const LocalTensor<T> &src1, const T src2,
                                          const uint32_t size) {
   auto dst_tmp = dst.template ReinterpretCast<bool>();
@@ -39,16 +57,32 @@ inline __aicore__ void LogicalAndExtends(const LocalTensor<uint8_t> &dst, const 
 }
 
 template <typename T>
+inline __aicore__ void LogicalAndExtends(const LocalTensor<bool> &dst, const LocalTensor<T> &src1, const T src2,
+                                         const uint32_t size) {
+  AscendC::LogicalAnds(dst, src1, src2, size);
+}
+
+template <typename T>
 inline __aicore__ void LogicalOrExtends(const LocalTensor<uint8_t> &dst, const T src1, const T src2) {
-  auto dst_tmp = dst.template ReinterpretCast<bool>();
   uint8_t res = src1 || src2;
   AscendC::Duplicate(dst, res, dst.GetSize());
 }
 
 template <typename T>
+inline __aicore__ void LogicalOrExtends(const LocalTensor<bool> &dst, const T src1, const T src2) {
+  bool res = src1 || src2;
+  AscendC::Duplicate(dst, res, dst.GetSize());
+}
+
+template <typename T>
 inline __aicore__ void LogicalAndExtends(const LocalTensor<uint8_t> &dst, const T src1, const T src2) {
-  auto dst_tmp = dst.template ReinterpretCast<bool>();
   uint8_t res = src1 && src2;
+  AscendC::Duplicate(dst, res, dst.GetSize());
+}
+
+template <typename T>
+inline __aicore__ void LogicalAndExtends(const LocalTensor<bool> &dst, const T src1, const T src2) {
+  bool res = src1 && src2;
   AscendC::Duplicate(dst, res, dst.GetSize());
 }
 

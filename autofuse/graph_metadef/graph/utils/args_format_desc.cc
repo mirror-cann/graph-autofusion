@@ -475,11 +475,6 @@ static graphStatus HiddenInputParser(const OpDescPtr &op_desc, const std::string
     arg_descs.emplace_back(arg);
     return ge::GRAPH_SUCCESS;
   }
-  if (sscanf_s(pattern_str.c_str(), "hi.hcclsk%d*", &arg.ir_idx) == kDigitFormatCnt) {
-    *reinterpret_cast<uint32_t *>(arg.reserved) = static_cast<uint32_t>(HiddenInputsType::HCCLSUPERKERNEL);
-    arg_descs.emplace_back(arg);
-    return ge::GRAPH_SUCCESS;
-  }
   GELOGE(ge::GRAPH_FAILED, "Hidden input type [%s] is unsupported.", pattern_str.c_str());
   return ge::GRAPH_FAILED;
 }
@@ -490,10 +485,6 @@ static void HiddenInputSerializer(std::stringstream &ss, const std::string &patt
   }
   if (*reinterpret_cast<const uint32_t *>(arg_desc.reserved) == static_cast<uint32_t>(HiddenInputsType::TILEFWK)) {
     ss << pattern << ".tilefwk" << arg_desc.ir_idx << "*";
-  }
-  if (*reinterpret_cast<const uint32_t *>(arg_desc.reserved) ==
-      static_cast<uint32_t>(HiddenInputsType::HCCLSUPERKERNEL)) {
-    ss << pattern << ".hcclsk" << arg_desc.ir_idx << "*";
   }
   return;
 }

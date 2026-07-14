@@ -66,11 +66,21 @@ __simd_vf__ inline void CompareNormal2DVecImpl(__ubuf__ uint8_t *dst, __ubuf__ I
   }
 }
 
-template <typename InT, uint8_t dim, CMPMODE mode>
-__aicore__ inline void CompareExtend(const LocalTensor<uint8_t> &dst, const LocalTensor<InT> &src0,
+template <typename OutT>
+__aicore__ inline LocalTensor<uint8_t> GetCompareUint8Output(const LocalTensor<OutT> &dst) {
+  if constexpr (Std::is_same<OutT, uint8_t>::value) {
+    return dst;
+  } else {
+    return dst.template ReinterpretCast<uint8_t>();
+  }
+}
+
+template <typename InT, uint8_t dim, CMPMODE mode, typename OutT>
+__aicore__ inline void CompareExtend(const LocalTensor<OutT> &dst, const LocalTensor<InT> &src0,
                                      const LocalTensor<InT> &src1, const uint16_t (&output_dims)[dim],
                                      const uint16_t (&output_stride)[dim], const uint16_t (&input_stride)[dim]) {
   static_assert((dim == 1) || (dim == 2), "CompareExtend only support dim=1 or dim=2");
+  auto dstUint8 = GetCompareUint8Output(dst);
   bool src1IsScalar = false;
   InT scalar = 0;
 
@@ -82,7 +92,7 @@ __aicore__ inline void CompareExtend(const LocalTensor<uint8_t> &dst, const Loca
     src1IsScalar = true;
     scalar = src1.GetValue(0);
   }
-  __ubuf__ uint8_t *dstLocal = (__ubuf__ uint8_t *)dst.GetPhyAddr();
+  __ubuf__ uint8_t *dstLocal = (__ubuf__ uint8_t *)dstUint8.GetPhyAddr();
   __ubuf__ InT *src0Local = (__ubuf__ InT *)src0.GetPhyAddr();
   __ubuf__ InT *src1Local = (__ubuf__ InT *)src1.GetPhyAddr();
   const uint16_t dstStride = output_stride[0];
@@ -117,16 +127,17 @@ __aicore__ inline void CompareExtend(const LocalTensor<uint8_t> &dst, const Loca
   }
 }
 
-template <typename InT, uint8_t dim, CMPMODE mode>
-__aicore__ inline void CompareScalarExtend(const LocalTensor<uint8_t> &dst, const LocalTensor<InT> &src0,
+template <typename InT, uint8_t dim, CMPMODE mode, typename OutT>
+__aicore__ inline void CompareScalarExtend(const LocalTensor<OutT> &dst, const LocalTensor<InT> &src0,
                                            const InT srcScalar, const uint16_t (&output_dims)[dim],
                                            const uint16_t (&output_stride)[dim], const uint16_t (&input_stride)[dim]) {
   static_assert((dim == 1) || (dim == 2), "CompareExtend only support dim=1 or dim=2");
+  auto dstUint8 = GetCompareUint8Output(dst);
   uint16_t vlSize = static_cast<uint32_t>(GetVecLen() / sizeof(InT));
   if constexpr (sizeof(InT) == 8) {
     vlSize = static_cast<uint32_t>(2 * GetVecLen() / sizeof(InT));
   }
-  __ubuf__ uint8_t *dstLocal = (__ubuf__ uint8_t *)dst.GetPhyAddr();
+  __ubuf__ uint8_t *dstLocal = (__ubuf__ uint8_t *)dstUint8.GetPhyAddr();
   __ubuf__ InT *src0Local = (__ubuf__ InT *)src0.GetPhyAddr();
   __ubuf__ InT *src1Local = (__ubuf__ InT *)src0.GetPhyAddr();
   const uint16_t dstStride = output_stride[0];

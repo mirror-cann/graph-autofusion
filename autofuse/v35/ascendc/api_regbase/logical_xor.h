@@ -16,4 +16,10 @@ inline __aicore__ void LogicalXorExtend(const LocalTensor<uint8_t> &dst, const L
   auto dst_tmp = dst.template ReinterpretCast<bool>();
   AscendC::LogicalXor(dst_tmp, src1, src2, size);
 }
+
+template <typename T>
+inline __aicore__ void LogicalXorExtend(const LocalTensor<bool> &dst, const LocalTensor<T> &src1,
+                                        const LocalTensor<T> &src2, const uint32_t size) {
+  AscendC::LogicalXor(dst, src1, src2, size);
+}
 #endif  // __ASCENDC_API_REGBASE_LOGICAL_XOR_H

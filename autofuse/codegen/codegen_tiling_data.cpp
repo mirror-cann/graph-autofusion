@@ -16,6 +16,21 @@
 
 using namespace ascgen_utils;
 
+namespace {
+void AppendCVAutofuseCommonTilingFields(std::stringstream &ss) {
+  ss << "    union {\n";
+  ss << "        CVAutofuseExternTilingData extern_tiling_data;\n";
+  ss << "        struct {\n";
+  ss << "            AutofuseTilingData tiling_data;\n";
+  ss << "            uint64_t cube_tiling_key;\n";
+  ss << "            CVTilingData cv_tiling_data;\n";
+  ss << "        };\n";
+  ss << "    };\n";
+  ss << "    uint32_t stage_size_name;\n";
+  ss << "    uint32_t cube_ub_stage_size;\n";
+}
+}  // namespace
+
 codegen::TilingData::TilingData(const std::string &kernel, const std::string &name_class)
     : class_name(name_class), kernel_name(kernel) {}
 
@@ -224,8 +239,6 @@ std::string codegen::TilingData::Generate(const ascir::FusedScheduledResult &fus
     std::string output_type;
     GE_ASSERT_SUCCESS(ascgen_utils::GetCubeInfo(fused_schedule_result, is_batch, is_conv, input_type, output_type),
                       "Failed to get cube info from FusedScheduledResult");
-    std::string struct_name = is_batch ? "BatchMatMulV3BasicTilingData" : "MatMulV3BasicTilingData";
-
     std::string axis_name;
     if ((elemwise_schedule_result.node_idx_to_scheduled_results.size() > 0U) &&
         (elemwise_schedule_result.node_idx_to_scheduled_results[0].size() > 0U) &&
@@ -241,39 +254,65 @@ std::string codegen::TilingData::Generate(const ascir::FusedScheduledResult &fus
       }
     }
 
-    if (is_conv) {
-      struct_name = "Conv2DTilingData";
-    }
     ss << "#ifndef DYNAMIC_MM_TILING_DATA\n"
        << "#define DYNAMIC_MM_TILING_DATA\n"
        << "#include \"arch35/mat_mul_tiling_data.h\"\n"
+       << "#define CV_TILING_MAX_SIZE(lhs, rhs) ((lhs) > (rhs) ? (lhs) : (rhs))\n"
+       << "#define MATMUL_TILING_DATA_STORAGE_SIZE \\\n"
+       << "    CV_TILING_MAX_SIZE(sizeof(MatMulV3TilingDataCopy), \\\n"
+       << "    CV_TILING_MAX_SIZE(sizeof(BatchMatMulV3TilingData), \\\n"
+       << "    CV_TILING_MAX_SIZE(sizeof(BatchMatMulV3BasicTilingData), \\\n"
+       << "    CV_TILING_MAX_SIZE(sizeof(BatchMatMulV3IterBatchBasicTilingData), \\\n"
+       << "    CV_TILING_MAX_SIZE(sizeof(BatchMatMulV3MergeBatchBasicTilingData), \\\n"
+       << "    CV_TILING_MAX_SIZE(sizeof(BatchMatMulToMulBasicTilingData), "
+          "sizeof(MatMulV3KEqZeroBasicTilingData)))))))\n"
        << "struct CVTilingData {\n"
        << "    uint8_t fusion_mode; // 0:ub; 1:safety\n"
        << "    uint8_t ub_mode; // 0:no db; 1:db\n"
        << "    uint8_t cv_aic_num;\n"
        << "    uint8_t cv_aiv_num;\n"
-       << "    uint8_t cv_vec_wss;\n"
+       << "    uint32_t cv_vec_wss;\n"
        << "    uint8_t mix_mode;\n"
+       << "};\n"
+       << "#define CV_TILING_ALIGN_UP(value, align) ((((value) + (align) - 1) / (align)) * (align))\n"
+       << "template <typename MatmulTilingT>\n"
+       << "struct CVAutofuseUbTilingDataT {\n"
+       << "    static constexpr size_t kMatmulTilingBytes = CV_TILING_ALIGN_UP(sizeof(MatmulTilingT), 8);\n"
+       << "    uint32_t stage_size_name;\n"
+       << "    uint32_t cube_ub_stage_size;\n"
+       << "    alignas(8) uint8_t matmul_tiling_data[kMatmulTilingBytes];\n"
+       << "};\n"
+       << "template <typename MatmulTilingT>\n"
+       << "struct CVAutofuseTilingDataT {\n"
+       << "    static constexpr size_t kMatmulTilingBytes = CV_TILING_ALIGN_UP(sizeof(MatmulTilingT), 8);\n"
+       << "    AutofuseTilingData tiling_data;\n"
+       << "    uint64_t cube_tiling_key;\n"
+       << "    CVTilingData cv_tiling_data;\n"
+       << "    uint32_t stage_size_name;\n"
+       << "    uint32_t cube_ub_stage_size;\n"
+       << "    alignas(8) uint8_t matmul_tiling_data[kMatmulTilingBytes];\n"
+       << "};\n"
+       << "struct CVAutofuseExternTilingData {\n"
+       << "    AutofuseTilingData tiling_data;\n"
+       << "    uint64_t cube_tiling_key;\n"
+       << "    CVTilingData cv_tiling_data;\n"
        << "};\n"
        << "struct CVAutofuseUbTilingData {\n";
 
-    ss << "    " << struct_name << " matmul_tiling_data;\n";
     ss << "    uint32_t stage_size_name;\n";
+    ss << "    uint32_t cube_ub_stage_size;\n";
+    ss << "    alignas(8) uint8_t matmul_tiling_data[MATMUL_TILING_DATA_STORAGE_SIZE];\n";
 
     ss << "};\n"
        << "struct CVAutofuseTilingData {\n";
 
     // 静态shape下生成const数组定义（使用placeholder，后续替换为实际大小和初始化）
     if (const_mode_) {
-      ss << "    const uint8_t matmul_tiling_data[/* MATMUL_TILING_SIZE_PLACEHOLDER */];\n";
-      ss << "    const AutofuseTilingData tiling_data;\n";
-      ss << "    const uint64_t cube_tiling_key;\n";
-      ss << "    const CVTilingData cv_tiling_data;\n";
+      AppendCVAutofuseCommonTilingFields(ss);
+      ss << "    uint8_t matmul_tiling_data[/* MATMUL_TILING_SIZE_PLACEHOLDER */];\n";
     } else {
-      ss << "    " << struct_name << " matmul_tiling_data;\n";
-      ss << "    AutofuseTilingData tiling_data;\n";
-      ss << "    uint64_t cube_tiling_key;\n";
-      ss << "    CVTilingData cv_tiling_data;\n";
+      AppendCVAutofuseCommonTilingFields(ss);
+      ss << "    alignas(8) uint8_t matmul_tiling_data[MATMUL_TILING_DATA_STORAGE_SIZE];\n";
     }
 
     ss << "};\n"
@@ -286,6 +325,12 @@ std::string codegen::TilingData::Generate(const ascir::FusedScheduledResult &fus
        << "#define DTYPE_BIAS " << output_type << "\n"
        << "#define OP_TYPE_RELU_VALUE 0\n";
     if (const_mode_) {
+      ss << "template <typename T>\n"
+         << "T convert_from_bytes(const uint8_t *bytes) {\n"
+         << "  T value;\n"
+         << "  __builtin_memcpy(&value, bytes, sizeof(T));\n"
+         << "  return value;\n"
+         << "}\n";
       ss << "#define GET_TILING_DATA_WITH_STRUCT(tiling_struct, tiling_data, tiling_arg) \\\n"
          << "const tiling_struct tiling_data = convert_from_bytes<tiling_struct>(kConstMatmulTilingBytes); \n"
          << "#define GET_TILING_DATA_WITH_STRUCT_PTR(tiling_struct, tiling_data, tiling_arg) \\\n"
@@ -623,6 +668,18 @@ std::string codegen::TilingData::GenCVConstTilingData(const std::string &tiling_
     const_tiling_data_field.clear();
     const_tiling_data_field.push_back(tiling_data_struct_name);
 
+    // UB prefix fields
+    std::string stage_size_name_def = "GenTilingDataValue_stage_size_name_field_def";
+    ss << "  std::string " << stage_size_name_def << " = GenTilingDataFieldConstDefFunc(\"stage_size_name\", (uint32_t)"
+       << tiling_data_struct_name << ".stage_size_name);" << std::endl;
+    field_var_defs_.push_back(stage_size_name_def);
+
+    std::string cube_ub_stage_size_def = "GenTilingDataValue_cube_ub_stage_size_field_def";
+    ss << "  std::string " << cube_ub_stage_size_def
+       << " = GenTilingDataFieldConstDefFunc(\"cube_ub_stage_size\", (uint32_t)" << tiling_data_struct_name
+       << ".cube_ub_stage_size);" << std::endl;
+    field_var_defs_.push_back(cube_ub_stage_size_def);
+
     // cube_tiling_key字段
     std::string cube_key_field = "cube_tiling_key";
     std::string cube_key_func_str = GetNameOfGenTilingDataFieldConstDefFunc(cube_key_field);
@@ -685,6 +742,17 @@ std::string codegen::TilingData::GenCVConstTilingData(const std::string &tiling_
 // GenCVConstReplace: 执行CV字段的替换（必须在raw string赋值之后调用）
 std::string codegen::TilingData::GenCVConstReplace(const std::string &tiling_data_struct_name) {
   std::stringstream ss;
+
+  // UB prefix const replacements
+  ss << "  // Replace UB prefix const declarations with actual values" << std::endl;
+  ss << "  std::string stage_size_name_field = GenTilingDataFieldConstDefFunc(\"stage_size_name\", ";
+  ss << "(uint32_t)" << tiling_data_struct_name << ".stage_size_name);" << std::endl;
+  ss << "  replaceSubstring(tiling_data_const_gen_result, " << std::endl;
+  ss << "    \"const uint32_t stage_size_name;\", stage_size_name_field);" << std::endl;
+  ss << "  std::string cube_ub_stage_size_field = GenTilingDataFieldConstDefFunc(\"cube_ub_stage_size\", ";
+  ss << "(uint32_t)" << tiling_data_struct_name << ".cube_ub_stage_size);" << std::endl;
+  ss << "  replaceSubstring(tiling_data_const_gen_result, " << std::endl;
+  ss << "    \"const uint32_t cube_ub_stage_size;\", cube_ub_stage_size_field);" << std::endl;
 
   // cube_tiling_key 常量替换
   ss << "  // Replace cube_tiling_key const declaration with actual value" << std::endl;
