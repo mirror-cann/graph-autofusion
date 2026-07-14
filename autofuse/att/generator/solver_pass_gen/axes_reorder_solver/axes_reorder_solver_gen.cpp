@@ -23,6 +23,51 @@ namespace {
 // AxesReorderSolverGen 默认阈值
 constexpr double kDefaultSolverUbThreshold = 0.2;
 constexpr double kDefaultSolverCoreNumThreshold = 0.4;
+
+void CollectContainerWorkList(const std::vector<Expr> &exprs, const ExprExprMap &container_expr,
+                              std::vector<Expr> &work_list) {
+  for (const auto &expr : exprs) {
+    for (const auto &sym : expr.FreeSymbols()) {
+      auto container_it = container_expr.find(sym);
+      if (container_it == container_expr.end()) {
+        continue;
+      }
+      for (const auto &container_sym : container_it->second.FreeSymbols()) {
+        work_list.push_back(container_sym);
+      }
+    }
+  }
+}
+
+struct TernaryVarDeclOrderContext {
+  const std::set<std::string> &needed_vars;
+  const std::map<Expr, TernaryOp, ExprCmp> &ternary_ops;
+  std::set<std::string> visiting_vars;
+  std::set<std::string> ordered_vars;
+  std::vector<Expr> decl_order;
+};
+
+void CollectTernaryVarDeclOrder(const Expr &var, TernaryVarDeclOrderContext &context) {
+  const std::string var_name = Str(var);
+  if ((context.needed_vars.count(var_name) == 0U) || (context.ordered_vars.count(var_name) > 0U)) {
+    return;
+  }
+  const auto ternary_it = context.ternary_ops.find(var);
+  if (ternary_it == context.ternary_ops.end()) {
+    return;
+  }
+  if (context.visiting_vars.count(var_name) > 0U) {
+    GELOGW("Circular dependency detected when generating ternary variable [%s].", var_name.c_str());
+    return;
+  }
+  context.visiting_vars.insert(var_name);
+  for (const auto &dep : ternary_it->second.GetUsedArgs()) {
+    CollectTernaryVarDeclOrder(dep, context);
+  }
+  context.visiting_vars.erase(var_name);
+  context.ordered_vars.insert(var_name);
+  context.decl_order.emplace_back(var);
+}
 }  // namespace
 ExprUintMap AxesReorderSolverGen::priority_map_;
 
@@ -531,19 +576,27 @@ void AxesReorderSolverGen::CollectInitialWorkList(std::vector<Expr> &work_list) 
 
 void AxesReorderSolverGen::CollectNeededTenaryVarsClosure(std::vector<Expr> &work_list,
                                                           std::set<std::string> &needed_vars) const {
+  std::set<std::string> visited_vars;
   while (!work_list.empty()) {
     Expr sym = work_list.back();
     work_list.pop_back();
     std::string sym_name = Str(sym);
-    if (needed_vars.count(sym_name) > 0U) {
+    if (visited_vars.count(sym_name) > 0U) {
       continue;
     }
-    auto it = ternary_ops_.find(sym);
-    if (it == ternary_ops_.end()) {
+    visited_vars.insert(sym_name);
+    auto container_it = container_expr_.find(sym);
+    if (container_it != container_expr_.end()) {
+      for (const auto &dep : container_it->second.FreeSymbols()) {
+        work_list.push_back(dep);
+      }
+    }
+    auto ternary_it = ternary_ops_.find(sym);
+    if (ternary_it == ternary_ops_.end()) {
       continue;
     }
     needed_vars.insert(sym_name);
-    for (const auto &dep : it->second.GetRelatedVars()) {
+    for (const auto &dep : ternary_it->second.GetUsedArgs()) {
       work_list.push_back(dep);
     }
   }
@@ -572,13 +625,13 @@ std::string AxesReorderSolverGen::GenTenaryVarDecls(const std::set<std::string> 
   std::string perf_decls;
   std::set<std::string> declared_vars;
   std::map<std::string, std::string> content_to_first_var;
+  TernaryVarDeclOrderContext context{needed_vars, ternary_ops_, {}, {}, {}};
 
   for (const auto &replace_pair : replace_vars_) {
-    const Expr &var = replace_pair.first;
+    CollectTernaryVarDeclOrder(replace_pair.first, context);
+  }
+  for (const auto &var : context.decl_order) {
     const std::string var_name = Str(var);
-    if (needed_vars.count(var_name) == 0U) {
-      continue;
-    }
     auto it = ternary_ops_.find(var);
     if (it == ternary_ops_.end()) {
       continue;
@@ -612,10 +665,16 @@ std::string AxesReorderSolverGen::GenGetObjStaticFunc() {
   std::vector<Expr> work_list;
   CollectInitialWorkList(work_list);
   CollectNeededTenaryVarsClosure(work_list, needed_vars);
-  std::string perf_decls = GenTenaryVarDecls(needed_vars);
+  std::set<std::string> pre_origin_vars;
+  CollectContainerWorkList(funcs, container_expr_, work_list);
+  CollectNeededTenaryVarsClosure(work_list, pre_origin_vars);
+  for (const auto &var : pre_origin_vars) {
+    needed_vars.erase(var);
+  }
 
+  codes += GenTenaryVarDecls(pre_origin_vars);
   codes += GenOriginExpr(funcs, "  ");
-  codes += perf_decls;
+  codes += GenTenaryVarDecls(needed_vars);
   codes += pipe_obj;
   if (!IsValid(expr)) {
     codes += "  return 0;\n";
