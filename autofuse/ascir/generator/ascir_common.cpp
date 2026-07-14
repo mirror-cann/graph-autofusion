@@ -112,11 +112,11 @@ bool IsVectorizedAxisSupportBrc(const AscNode &node, size_t input_id, const Broa
   return false;
 }
 
-Status ValidateInputTensorLoopAxis(const AscNode &node, size_t input_id, size_t input_axis_id) {
+Status ValidateInputTensorLoopAxis(const AscNode &node, size_t input_id, size_t input_axis_id, size_t output_id) {
   AscNodeInputs node_inputs = node.inputs;
   AscNodeOutputs node_outputs = node.outputs;
   auto input_attr = node_inputs[input_id].attr;
-  auto output_attr = node_outputs[0].attr;
+  auto output_attr = node_outputs[output_id].attr;
 
   auto it = std::find(output_attr.axis.begin(), output_attr.axis.end(), input_attr.axis[input_axis_id]);
   GE_ASSERT_TRUE(it != output_attr.axis.end(),
@@ -131,10 +131,10 @@ Status ValidateInputTensorLoopAxis(const AscNode &node, size_t input_id, size_t 
   } else if (SymbolicUtils::StaticCheckEq(output_attr.repeats[output_axis_id], input_attr.repeats[input_axis_id]) ==
              TriBool::kUnknown) {
     GELOGW(
-        "Node %s[%s]: input tensor %zu loop axis %zu repeat %s and output tensor 0 loop axis %zu repeat %s may not "
+        "Node %s[%s]: input tensor %zu loop axis %zu repeat %s and output tensor %zu loop axis %zu repeat %s may not "
         "be equal or broadcastable(relation cannot be determined)",
         node.GetTypePtr(), node.GetNamePtr(), input_id, input_axis_id, input_attr.repeats[input_axis_id].Str().get(),
-        output_axis_id, output_attr.repeats[output_axis_id].Str().get());
+        output_id, output_axis_id, output_attr.repeats[output_axis_id].Str().get());
     return af::SUCCESS;
   }
 
@@ -146,12 +146,12 @@ Status ValidateInputTensorLoopAxis(const AscNode &node, size_t input_id, size_t 
   return af::FAILED;
 }
 
-Status ValidateInputTensorVectorizedAxis(const AscNode &node, size_t input_id, size_t input_axis_id,
+Status ValidateInputTensorVectorizedAxis(const AscNode &node, size_t input_id, size_t input_axis_id, size_t output_id,
                                          const BroadcastCapability &broadcast_capability) {
   AscNodeInputs node_inputs = node.inputs;
   AscNodeOutputs node_outputs = node.outputs;
   auto input_attr = node_inputs[input_id].attr;
-  auto output_attr = node_outputs[0].attr;
+  auto output_attr = node_outputs[output_id].attr;
 
   auto it = std::find(output_attr.axis.begin(), output_attr.axis.end(), input_attr.axis[input_axis_id]);
   GE_ASSERT_TRUE(it != output_attr.axis.end(),
@@ -174,21 +174,23 @@ Status ValidateInputTensorVectorizedAxis(const AscNode &node, size_t input_id, s
   }
 
   GELOGE(af::FAILED,
-         "Node %s[%s]: input tensor %zu vectorized_axis %zu repeat: %s and output tensor 0 vectorized_axis "
+         "Node %s[%s]: input tensor %zu vectorized_axis %zu repeat: %s and output tensor %zu vectorized_axis "
          "%zu repeat: %s are not equal or broadcastable",
          node.GetTypePtr(), node.GetNamePtr(), input_id, input_axis_id, input_attr.repeats[input_axis_id].Str().get(),
-         output_axis_id, output_attr.repeats[output_axis_id].Str().get());
+         output_id, output_axis_id, output_attr.repeats[output_axis_id].Str().get());
   return af::FAILED;
 }
 
-Status ValidateShapeConsistencyWithSingleOutput(const AscNode &node, const BroadcastCapability &broadcast_capability) {
+Status ValidateShapeConsistencyWithOutput(const AscNode &node, size_t output_id,
+                                          const BroadcastCapability &broadcast_capability) {
   AscNodeInputs node_inputs = node.inputs;
   AscNodeOutputs node_outputs = node.outputs;
-  GE_ASSERT_TRUE(!(node_outputs().size() != 1), "Node %s[%s]: output tensor size is not equal with 1",
-                 node.GetTypePtr(), node.GetNamePtr());
-  GE_ASSERT_TRUE(!node_outputs[0].attr.vectorized_axis.empty(), "Node %s[%s]: output tensor has empty vectorized_axis",
-                 node.GetTypePtr(), node.GetNamePtr());
-  std::vector<Expression> output_repeats = node_outputs[0].attr.repeats;
+  GE_ASSERT_TRUE(output_id < node_outputs().size(),
+                 "Node %s[%s]: output id %zu is out of range, output tensor size is %zu", node.GetTypePtr(),
+                 node.GetNamePtr(), output_id, node_outputs().size());
+  GE_ASSERT_TRUE(!node_outputs[output_id].attr.vectorized_axis.empty(),
+                 "Node %s[%s]: output tensor %zu has empty vectorized_axis", node.GetTypePtr(), node.GetNamePtr(),
+                 output_id);
 
   for (size_t i = 0; i < node_inputs().size(); i++) {
     auto &input = node_inputs[i];
@@ -200,19 +202,25 @@ Status ValidateShapeConsistencyWithSingleOutput(const AscNode &node, const Broad
     for (size_t j = 0; j < input.attr.repeats.size(); j++) {
       if (std::find(input.attr.vectorized_axis.begin(), input.attr.vectorized_axis.end(), input.attr.axis[j]) !=
           input.attr.vectorized_axis.end()) {
-        GE_ASSERT_SUCCESS(ValidateInputTensorVectorizedAxis(node, i, j, broadcast_capability),
-                          "Node %s[%s]: input "
-                          "tensor %zu axis %zu validate vectorized_axis consistency failed",
-                          node.GetTypePtr(), node.GetNamePtr(), i, j);
+        GE_ASSERT_SUCCESS(
+            ValidateInputTensorVectorizedAxis(node, i, j, output_id, broadcast_capability),
+            "Node %s[%s]: input tensor %zu axis %zu validate output %zu vectorized_axis consistency failed",
+            node.GetTypePtr(), node.GetNamePtr(), i, j, output_id);
       } else {
-        GE_ASSERT_SUCCESS(ValidateInputTensorLoopAxis(node, i, j),
-                          "Node %s[%s]: input tensor %zu "
-                          "%zu axis %zu validate loop axis consistency failed",
-                          node.GetTypePtr(), node.GetNamePtr(), i, j);
+        GE_ASSERT_SUCCESS(ValidateInputTensorLoopAxis(node, i, j, output_id),
+                          "Node %s[%s]: input tensor %zu axis %zu validate output %zu loop axis consistency failed",
+                          node.GetTypePtr(), node.GetNamePtr(), i, j, output_id);
       }
     }
   }
   return af::SUCCESS;
+}
+
+Status ValidateShapeConsistencyWithSingleOutput(const AscNode &node, const BroadcastCapability &broadcast_capability) {
+  AscNodeOutputs node_outputs = node.outputs;
+  GE_ASSERT_TRUE(node_outputs().size() == 1U, "Node %s[%s]: output tensor size is not equal with 1", node.GetTypePtr(),
+                 node.GetNamePtr());
+  return ValidateShapeConsistencyWithOutput(node, 0U, broadcast_capability);
 }
 
 bool IsNodeHasScalarInput(const AscNode &node) {

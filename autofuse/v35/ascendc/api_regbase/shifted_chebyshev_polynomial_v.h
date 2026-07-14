@@ -11,8 +11,6 @@
 #ifndef __ASCENDC_API_REGBASE_SHIFTED_CHEBYSHEV_POLYNOMIAL_V_H__
 #define __ASCENDC_API_REGBASE_SHIFTED_CHEBYSHEV_POLYNOMIAL_V_H__
 
-#include "shifted_chebyshev_polynomial_utils.h"
-
 using namespace AscendC;
 
 template <typename T, int64_t N>

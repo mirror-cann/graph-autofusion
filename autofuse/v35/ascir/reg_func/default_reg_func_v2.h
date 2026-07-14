@@ -52,6 +52,8 @@ std::vector<std::unique_ptr<TmpBufDesc>> CalcModifiedBesselI0TmpSizeV2(const Asc
 std::vector<std::unique_ptr<TmpBufDesc>> CalcModifiedBesselI1TmpSizeV2(const AscNode &node);
 std::vector<std::unique_ptr<TmpBufDesc>> CalcModifiedBesselK0TmpSizeV2(const AscNode &node);
 std::vector<std::unique_ptr<TmpBufDesc>> CalcModifiedBesselK1TmpSizeV2(const AscNode &node);
+std::vector<std::unique_ptr<TmpBufDesc>> CalcScaledModifiedBesselK0TmpSizeV2(const AscNode &node);
+std::vector<std::unique_ptr<TmpBufDesc>> CalcScaledModifiedBesselK1TmpSizeV2(const AscNode &node);
 std::vector<std::unique_ptr<TmpBufDesc>> CalcIsInfTmpSize(const AscNode &node);
 std::vector<std::unique_ptr<TmpBufDesc>> CalcMaskedFillTmpSize(const AscNode &node);
 }  // namespace ascir

@@ -25,6 +25,8 @@ bool OnlySecondInputSupportScalar(const std::vector<bool> &is_scalar_list);
 [[nodiscard]] std::pair<std::vector<ge::DataType>, std::vector<ge::DataType>> GetConversionFromDtypeMap(
     const AscNode &node, const std::map<ge::DataType, ge::DataType> &dtype_conversion_map);
 bool IsAllVecAxisContinuous(const AscNode &node);
+Status ValidateShapeConsistencyWithOutput(const AscNode &node, size_t output_id,
+                                          const BroadcastCapability &broadcast_capability = {false, {}});
 Status ValidateShapeConsistencyWithSingleOutput(const AscNode &node,
                                                 const BroadcastCapability &broadcast_capability = {false, {}});
 bool IsNodeHasScalarInput(const AscNode &node);

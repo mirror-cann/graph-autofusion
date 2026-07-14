@@ -11,9 +11,6 @@
 #ifndef __ASCENDC_API_REGBASE_BESSEL_Y0_H__
 #define __ASCENDC_API_REGBASE_BESSEL_Y0_H__
 
-#include "bessel_j0.h"
-#include "bessel_j_utils.h"
-#include "trigonometric_function_utils.h"
 // Coefficients for small argument: 0 < x <= 5.0 (from PyTorch Math.cuh)
 constexpr float Y0_YP[8] = {
     +1.55924367855235737965e+04, -1.46639295903971606143e+07, +5.43526477051876500413e+09, -9.82136065717911466409e+11,

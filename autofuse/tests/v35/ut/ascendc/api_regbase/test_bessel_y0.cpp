@@ -13,6 +13,9 @@
 #include "gtest/gtest.h"
 #include "tikicpulib.h"
 #include "test_api_utils.h"
+#include "bessel_j_utils.h"
+#include "trigonometric_function_utils.h"
+#include "bessel_j0.h"
 #include "bessel_y0.h"
 
 using namespace AscendC;
