@@ -11,9 +11,6 @@
 #ifndef __ASCENDC_API_REGBASE_SPHERICAL_BESSEL_J0_H__
 #define __ASCENDC_API_REGBASE_SPHERICAL_BESSEL_J0_H__
 
-#include "bessel_j_utils.h"
-#include "trigonometric_function_utils.h"
-
 constexpr float SBESJ0_TAYLOR_COEFFS[6] = {
     1.0f / 6227020800.0f, -1.0f / 39916800.0f, 1.0f / 362880.0f, -1.0f / 5040.0f, 1.0f / 120.0f, -1.0f / 6.0f,
 };

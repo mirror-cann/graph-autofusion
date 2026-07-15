@@ -10,8 +10,6 @@
 #ifndef __ASCENDC_API_REGBASE_IGAMMAC_HELPER_CONTINUED_FRACTION_H__
 #define __ASCENDC_API_REGBASE_IGAMMAC_HELPER_CONTINUED_FRACTION_H__
 
-#include "series.h"
-
 namespace AscendC {
 namespace IGammaCInternal {
 

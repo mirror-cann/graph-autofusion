@@ -12,7 +12,8 @@
 
 namespace att {
 // 表达式涉及的函数
-const std::vector<std::string> functions_set = {"Ceiling", "Min", "Max", "Rational", "Floor", "Log", "Pow", "Mod"};
+const std::vector<std::string> functions_set = {"Ceiling", "Min", "Max", "Rational", "Floor",
+                                                "Log",     "Pow", "Mod", "Abs"};
 
 // 判断字符是否是数字或相关符号
 bool IsNumberChar(char c) {
@@ -95,7 +96,9 @@ ASTPtr Parser::ParsePrimary() {
     Consume();
     auto node = ParseExpr();
     if (Peek() != ")") {
-      GELOGD("error: expected ')', got '%s'", Peek().c_str());
+      if (enable_log_) {
+        GELOGD("error: expected ')', got '%s'", Peek().c_str());
+      }
       return nullptr;
     }
     Consume();
@@ -117,7 +120,9 @@ ASTPtr Parser::ParsePrimary() {
     Consume();
     return std::make_shared<ASTNode>(token, NodeType::VARIABLE);
   }
-  GELOGD("error: invalid expression: '%s'", token.c_str());
+  if (enable_log_) {
+    GELOGD("error: invalid expression: '%s'", token.c_str());
+  }
   return nullptr;
 }
 
@@ -166,6 +171,9 @@ ASTPtr Parser::ParseTerm() {
 
 ASTPtr Parser::Parse() {
   tokens_ = Tokenize(expr_);
+  if (!enable_log_) {
+    return ParseExpr();
+  }
   GELOGD("tokenize success, tokens are: ");
   std::string buf;
   for (auto &t : tokens_) {

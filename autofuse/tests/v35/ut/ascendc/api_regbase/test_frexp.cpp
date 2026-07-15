@@ -15,6 +15,7 @@
 #include "gtest/gtest.h"
 #include "tikicpulib.h"
 #include "test_api_utils.h"
+#include "api_regbase/utils.h"
 #include "api_regbase/frexp.h"
 
 using namespace AscendC;

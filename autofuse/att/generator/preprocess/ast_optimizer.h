@@ -83,9 +83,12 @@ using ASTPtr = std::shared_ptr<ASTNode>;
 // AST解析模块，功能包含词法分析和语法分析，最终生成AST
 class Parser {
  public:
-  explicit Parser(const std::string &e) : expr_(e) {}
+  explicit Parser(const std::string &e, bool enable_log = true) : expr_(e), enable_log_(enable_log) {}
   ~Parser() = default;
   ASTPtr Parse();
+  bool IsFullyParsed() const {
+    return pos_ == tokens_.size();
+  }
 
  private:
   std::string Peek(size_t offset = 0) {
@@ -103,6 +106,7 @@ class Parser {
   std::string expr_;
   std::vector<std::string> tokens_;
   size_t pos_ = 0;
+  bool enable_log_ = true;
 };
 
 // AST优化器，功能为遍历语法树，提取公共子表达式，表达为临时变量，返回优化后的表达式

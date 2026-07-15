@@ -11,8 +11,6 @@
 #ifndef __ASCENDC_API_REGBASE_FREXP_H__
 #define __ASCENDC_API_REGBASE_FREXP_H__
 
-#include "utils.h"
-
 using namespace AscendC;
 
 template <typename T>
@@ -101,7 +99,8 @@ __simd_vf__ inline void FrexpImplVF(__ubuf__ uint32_t *mantissaUb, __ubuf__ int3
 
 template <typename T>
 __aicore__ inline void FrexpExtend(const LocalTensor<T> &mantissa, const LocalTensor<int32_t> &exponent,
-                                   const LocalTensor<T> &src, const LocalTensor<uint8_t> &sharedTmpBuffer, const uint32_t calCount) {
+                                   const LocalTensor<T> &src, const LocalTensor<uint8_t> &sharedTmpBuffer,
+                                   const uint32_t calCount) {
   if ASCEND_IS_AIC {
     return;
   }

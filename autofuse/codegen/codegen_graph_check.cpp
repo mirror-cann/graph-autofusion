@@ -132,7 +132,7 @@ bool CollectOutputDtypes(const ascir::NodeView &node, std::vector<ge::DataType> 
   }
 
   // ArgMaxMultiRPhase1有两个输出（value和index），dtype不同，直接收集所有输出
-  if (node->GetType() == "ArgMaxMultiRPhase1") {
+  if (node->GetType() == "ArgMaxMultiRPhase1" || node->GetType() == af::ascir_op::Frexp::Type) {
     for (auto output : node->outputs()) {
       if (output->attr.dtype == ge::DT_UNDEFINED) {
         return true;

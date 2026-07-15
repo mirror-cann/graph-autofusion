@@ -11,17 +11,16 @@
 #ifndef __ASCENDC_API_SIGNBIT_H__
 #define __ASCENDC_API_SIGNBIT_H__
 
-
 using namespace AscendC;
 
 /**
- * @brief Extract sign bit from input tensor and output as bool tensor.
+ * @brief Extract sign bit from input tensor and output as uint8_t or bool tensor.
  *
  * For each element in src, extracts the sign bit and stores the result in dst:
- *   - dst[i] = true  if src[i] is negative (sign bit is 1)
- *   - dst[i] = false if src[i] is positive or zero (sign bit is 0)
+ *   - dst[i] = 1/true  if src[i] is negative (sign bit is 1)
+ *   - dst[i] = 0/false if src[i] is positive or zero (sign bit is 0)
  *
- * Note: For floating-point values, this correctly handles -0.0 (returns true).
+ * Note: For floating-point values, this correctly handles -0.0 (returns 1/true).
  *
  * Implementation uses ShiftRights to extract sign bit directly:
  * 1. Load input as uint32_t (reinterpret from int32_t or float)
@@ -29,7 +28,8 @@ using namespace AscendC;
  * 3. Store result as uint8_t using PACK4_B32 mode
  *
  * @tparam T Input data type, must be int32_t or float.
- * @param dst Output tensor (bool type), stores the sign bit results.
+ * @tparam U Output data type, must be uint8_t or bool.
+ * @param dst Output tensor (uint8_t or bool type), stores the sign bit results.
  * @param src Input tensor (int32_t or float type).
  * @param sharedTmpBuffer Temporary buffer (reserved for future extension, not used).
  * @param calCount Number of elements to process.
@@ -63,18 +63,24 @@ __simd_vf__ inline void SignBitImplVF(__ubuf__ uint8_t *dstUb, __ubuf__ T *srcUb
   }
 }
 
-template <typename T>
-__aicore__ inline void SignBitExtend(const LocalTensor<bool> &dst, const LocalTensor<T> &src,
+template <typename T, typename U>
+__aicore__ inline void SignBitExtend(const LocalTensor<U> &dst, const LocalTensor<T> &src,
                                      const LocalTensor<uint8_t> &sharedTmpBuffer, const uint32_t calCount) {
   if ASCEND_IS_AIC {
     return;
   }
   static_assert(std::is_same<T, int32_t>::value || std::is_same<T, float>::value,
-                "Unsupported data type for SignBitExtend");
+                "Unsupported input data type for SignBitExtend");
+  static_assert(std::is_same<U, uint8_t>::value || std::is_same<U, bool>::value,
+                "Unsupported output data type for SignBitExtend, must be uint8_t or bool");
 
-  LocalTensor<uint8_t> dstUint = dst.template ReinterpretCast<uint8_t>();
-
-  __ubuf__ uint8_t *dstUb = (__ubuf__ uint8_t *)dstUint.GetPhyAddr();
+  __ubuf__ uint8_t *dstUb;
+  if constexpr (std::is_same<U, uint8_t>::value) {
+    dstUb = (__ubuf__ uint8_t *)dst.GetPhyAddr();
+  } else {
+    LocalTensor<uint8_t> dstUint = dst.template ReinterpretCast<uint8_t>();
+    dstUb = (__ubuf__ uint8_t *)dstUint.GetPhyAddr();
+  }
   __ubuf__ T *srcUb = (__ubuf__ T *)src.GetPhyAddr();
 
   SignBitImplVF<T>(dstUb, srcUb, calCount);

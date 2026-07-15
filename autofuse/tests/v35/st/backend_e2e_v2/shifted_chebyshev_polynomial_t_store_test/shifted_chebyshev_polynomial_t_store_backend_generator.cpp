@@ -1,0 +1,82 @@
+/**
+ * Copyright (c) 2026 Huawei Technologies Co., Ltd.
+ * This program is free software, you can redistribute it and/or modify it under
+ * the terms and conditions of CANN Open Software License Agreement Version 2.0
+ * (the "License"). Please refer to the License for details. You may not use
+ * this file except in compliance with the License. THIS SOFTWARE IS PROVIDED ON
+ * AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS
+ * FOR A PARTICULAR PURPOSE. See LICENSE in the root of the software repository
+ * for the full text of the License.
+ */
+
+#include <exception>
+#include <fstream>
+#include <gtest/gtest.h>
+#include <iostream>
+#include <map>
+#include <string>
+#include <vector>
+
+#include "backend_common.h"
+#include "codegen.h"
+#include "common/platform_context.h"
+#include "optimize.h"
+#include "runtime_stub.h"
+#include "share_graph.h"
+
+class TestBackendShiftedChebyshevPolynomialTStoreE2e : public testing::Test {
+ protected:
+  void SetUp() override {
+    dlog_setlevel(ASCGEN_MODULE_NAME, DLOG_ERROR, 0);
+    ge::PlatformContext::GetInstance().Reset();
+    auto shifted_chebyshev_stub_v2 = std::make_shared<af::RuntimeStubV2>();
+    ge::RuntimeStub::SetInstance(shifted_chebyshev_stub_v2);
+  }
+  void TearDown() override {
+    dlog_setlevel(ASCGEN_MODULE_NAME, DLOG_ERROR, 0);
+    ge::RuntimeStub::Reset();
+  }
+};
+
+TEST_F(TestBackendShiftedChebyshevPolynomialTStoreE2e, ShiftedChebyshevPolynomialTStoreE2eCodegen) {
+  bool gen_success = true;
+  std::string shifted_chebyshev_tiling_stub = R"(
+#define REGISTER_TILING_DEFAULT(tiling)
+#define GET_TILING_DATA(t, tiling)  AutofuseTilingData t = *(AutofuseTilingData*)tiling;
+)";
+
+  std::map<std::string, std::string> shifted_chebyshev_shape_info({{"s0", "stub_s0"}, {"s1", "stub_s1"}});
+  auto graph = ascir::ShareGraph::ShiftedChebyshevPolynomialTStoreFusedGraph(2);
+  std::vector<std::string> shifted_chebyshev_parts = splitString(KERNEL_SRC_LIST, ':');
+  const std::string &kernel_src_file_name = shifted_chebyshev_parts[0];
+  const std::string &tiling_src_file_name = shifted_chebyshev_parts[1];
+  const std::string &tiling_data_src_file_name = shifted_chebyshev_parts[2];
+
+  try {
+    optimize::Optimizer shifted_chebyshev_optimizer(optimize::OptimizerOptions{});
+    codegen::Codegen shifted_chebyshev_codegen(codegen::CodegenOptions{});
+
+    std::fstream shifted_chebyshev_kernel_stream(kernel_src_file_name, std::ios::out);
+    std::fstream shifted_chebyshev_tiling_stream(tiling_src_file_name, std::ios::out);
+    std::fstream shifted_chebyshev_data_stream(tiling_data_src_file_name, std::ios::out);
+
+    std::vector<::ascir::ScheduledResult> shifted_chebyshev_schedules;
+    ascir::FusedScheduledResult shifted_chebyshev_fused_result;
+    shifted_chebyshev_fused_result.node_idx_to_scheduled_results.push_back(shifted_chebyshev_schedules);
+    EXPECT_EQ(shifted_chebyshev_optimizer.Optimize(graph, shifted_chebyshev_fused_result), 0);
+    codegen::CodegenResult shifted_chebyshev_result;
+    EXPECT_EQ(shifted_chebyshev_codegen.Generate(shifted_chebyshev_shape_info, shifted_chebyshev_fused_result,
+                                                 shifted_chebyshev_result),
+              0);
+    EXPECT_NE(shifted_chebyshev_result.kernel.find("ShiftedChebyshevPolynomialTExtend"), std::string::npos);
+    shifted_chebyshev_kernel_stream << shifted_chebyshev_tiling_stub
+                                    << RemoveSubDirInclude(shifted_chebyshev_result.kernel);
+    shifted_chebyshev_tiling_stream << shifted_chebyshev_result.tiling;
+    shifted_chebyshev_data_stream << shifted_chebyshev_result.tiling_data;
+  } catch (...) {
+    gen_success = false;
+  }
+
+  EXPECT_EQ(gen_success, true);
+}

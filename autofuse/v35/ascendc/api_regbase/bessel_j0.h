@@ -11,9 +11,6 @@
 #ifndef __ASCENDC_API_REGBASE_BESSEL_J0_H__
 #define __ASCENDC_API_REGBASE_BESSEL_J0_H__
 
-#include "bessel_j_utils.h"
-#include "trigonometric_function_utils.h"
-
 // Coefficients for small argument: |x| <= 5.0
 constexpr float J0_RP[4] = {
     -4.79443220978201773821e+09,
