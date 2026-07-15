@@ -56,6 +56,7 @@ add_library(test_regbase_ascendc OBJECT
     ./test_spherical_bessel_j0.cpp
     ./test_ndtri.cpp
     ./test_ndtr.cpp
+    ./test_log_ndtr.cpp
     ./test_nextafter.cpp
     ./test_i0.cpp
     )
