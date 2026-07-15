@@ -306,8 +306,8 @@ ComputeGraphPtr BuildFusedGraphWithReuseOutput(const std::string node_type = "")
 
 void CreateAddAscGraph(af::AscGraph &graph) {
   auto ONE = af::Symbol(1);
-  const af::Expression s0 = graph.CreateSizeVar("s0");
-  const af::Expression s1 = graph.CreateSizeVar("s1");
+  const af::Expression s0 = af::Symbol("s0");
+  const af::Expression s1 = af::Symbol("s1");
 
   auto z0 = graph.CreateAxis("z0", s0);
   auto z1 = graph.CreateAxis("z1", s1);
@@ -423,8 +423,8 @@ void CreateAddAscGraphOneDim(af::AscGraph &graph) {
 
 void CreateAddAscGraph2(af::AscGraph &graph, const int64_t load1_offset = 0) {
   auto ONE = af::Symbol(1);
-  const af::Expression s0 = graph.CreateSizeVar("s0");
-  const af::Expression s2 = graph.CreateSizeVar("s2");
+  const af::Expression s0 = af::Symbol("s0");
+  const af::Expression s2 = af::Symbol("s2");
 
   auto z0 = graph.CreateAxis("z0", s0);
   auto z1 = graph.CreateAxis("z1", s2);
@@ -494,8 +494,8 @@ void CreateAddAscGraph2(af::AscGraph &graph, const int64_t load1_offset = 0) {
 
 void CreateAddAscGraph3(af::AscGraph &graph, const int64_t load1_offset = 0) {
   auto ONE = af::Symbol(1);
-  const af::Expression s0 = graph.CreateSizeVar("s0");
-  const af::Expression s2 = graph.CreateSizeVar("s1");
+  const af::Expression s0 = af::Symbol("s0");
+  const af::Expression s2 = af::Symbol("s1");
 
   auto z0 = graph.CreateAxis("z0", s0);
   auto z1 = graph.CreateAxis("z1", s2);
@@ -635,8 +635,8 @@ void CreatePackFirstDimAscGraph(af::AscGraph &graph, const int64_t load1_offset 
 
 void CreateAddAscGraph3SameData(af::AscGraph &graph, const int64_t load1_offset = 0) {
   auto ONE = af::Symbol(1);
-  const af::Expression s0 = graph.CreateSizeVar("s0");
-  const af::Expression s2 = graph.CreateSizeVar("s1");
+  const af::Expression s0 = af::Symbol("s0");
+  const af::Expression s2 = af::Symbol("s1");
 
   auto z0 = graph.CreateAxis("z0", s0);
   auto z1 = graph.CreateAxis("z1", s2);
@@ -704,79 +704,64 @@ void CreateAddAscGraph3SameData(af::AscGraph &graph, const int64_t load1_offset 
   y2.ir_attr.SetIndex(1);
 }
 
-void CreateConcatAscGraph(af::AscGraph &graph) {
+void CreateConcatInputChain(af::ascir_op::Data &data, af::ascir_op::Load &load, const af::Axis &z0, const af::Axis &z1,
+                            const af::Expression &s0, const af::Expression &input_dim, const af::Expression &stride) {
   auto ONE = af::Symbol(1);
-  const af::Expression s0 = graph.CreateSizeVar("s0");
-  const af::Expression s1 = graph.CreateSizeVar("s1");
-  const af::Expression s2 = graph.CreateSizeVar("s2");
+  data.attr.sched.axis = {z0.id, z1.id};
+  *data.y.axis = {z0.id, z1.id};
+  *data.y.repeats = {s0, input_dim};
+  *data.y.strides = {stride, ONE};
+  load.ir_attr.SetOffset(af::Symbol(0));
+  load.x = data.y;
+  load.attr.sched.axis = {z0.id, z1.id};
+  *load.y.axis = {z0.id, z1.id};
+  *load.y.repeats = {s0, input_dim};
+  *load.y.strides = {stride, ONE};
+}
 
-  auto z0 = graph.CreateAxis("z0", s0);
-  auto z1 = graph.CreateAxis("z1", s1 + s2 + s2);
-
-  af::ascir_op::Data x1("concat_data0", graph);
-  x1.ir_attr.SetIndex(0);
-  x1.attr.sched.axis = {z0.id, z1.id};
-  *x1.y.axis = {z0.id, z1.id};
-  *x1.y.repeats = {s0, s1};
-  *x1.y.strides = {s1, ONE};
-
-  af::ascir_op::Load x1Local("concat_load0");
-  x1Local.ir_attr.SetOffset(af::Symbol(0));
-  x1Local.x = x1.y;
-  x1Local.attr.sched.axis = {z0.id, z1.id};
-  *x1Local.y.axis = {z0.id, z1.id};
-  *x1Local.y.repeats = {s0, s1};
-  *x1Local.y.strides = {s1, ONE};
-
-  af::ascir_op::Data x2("concat_data1", graph);
-  x2.ir_attr.SetIndex(1);
-  x2.attr.sched.axis = {z0.id, z1.id};
-  *x2.y.axis = {z0.id, z1.id};
-  *x2.y.repeats = {s0, s2};
-  *x2.y.strides = {s2, ONE};
-
-  af::ascir_op::Load x2Local("concat_load1");
-  x2Local.ir_attr.SetOffset(af::Symbol(0));
-  x2Local.x = x2.y;
-  x2Local.attr.sched.axis = {z0.id, z1.id};
-  *x2Local.y.axis = {z0.id, z1.id};
-  *x2Local.y.repeats = {s0, s2};
-  *x2Local.y.strides = {s2, ONE};
-
-  af::ascir_op::Data concat_data2("concat_data2", graph);
-  concat_data2.ir_attr.SetIndex(2);
-  concat_data2.attr.sched.axis = {z0.id, z1.id};
-  *concat_data2.y.axis = {z0.id, z1.id};
-  *concat_data2.y.repeats = {s0, s2};
-  *concat_data2.y.strides = {s2, ONE};
-
-  af::ascir_op::Load concat_load2("concat_load2");
-  concat_load2.ir_attr.SetOffset(af::Symbol(0));
-  concat_load2.x = concat_data2.y;
-  concat_load2.attr.sched.axis = {z0.id, z1.id};
-  *concat_load2.y.axis = {z0.id, z1.id};
-  *concat_load2.y.repeats = {s0, s2};
-  *concat_load2.y.strides = {s2, ONE};
-
-  af::ascir_op::Concat concat("concat");
-  concat.x = {x1Local.y, x2Local.y, concat_load2.y};
+void CreateConcatOutputChain(af::ascir_op::Concat &concat, af::ascir_op::Store &store, af::ascir_op::Output &output,
+                             const af::Axis &z0, const af::Axis &z1, const af::Expression &s0,
+                             const af::Expression &total_dim) {
+  auto ONE = af::Symbol(1);
   concat.attr.sched.axis = {z0.id, z1.id};
   *concat.y.axis = {z0.id, z1.id};
-  *concat.y.repeats = {s0, s1 + s2 + s2};
-  *concat.y.strides = {s1 + s2 + s2, ONE};
+  *concat.y.repeats = {s0, total_dim};
+  *concat.y.strides = {total_dim, ONE};
+  store.x = concat.y;
+  store.attr.sched.axis = {z0.id, z1.id};
+  *store.y.axis = {z0.id, z1.id};
+  *store.y.repeats = {s0, total_dim};
+  *store.y.strides = {total_dim, ONE};
+  output.x = store.y;
+  output.y.dtype = ge::DT_FLOAT16;
+  output.ir_attr.SetIndex(0);
+}
 
+void CreateConcatAscGraph(af::AscGraph &graph, const bool same_data = false) {
+  const af::Expression s0 = af::Symbol("s0");
+  const af::Expression s1 = af::Symbol("s1");
+  const af::Expression s2 = af::Symbol("s2");
+  const auto input_dim = same_data ? s1 : s2;
+  const auto total_dim = s1 + input_dim + input_dim;
+  auto z0 = graph.CreateAxis("z0", s0);
+  auto z1 = graph.CreateAxis("z1", total_dim);
+  af::ascir_op::Data x1("concat_data0", graph);
+  x1.ir_attr.SetIndex(0);
+  af::ascir_op::Load x1Local("concat_load0");
+  CreateConcatInputChain(x1, x1Local, z0, z1, s0, s1, s1);
+  af::ascir_op::Data x2("concat_data1", graph);
+  x2.ir_attr.SetIndex(1);
+  af::ascir_op::Load x2Local("concat_load1");
+  CreateConcatInputChain(x2, x2Local, z0, z1, s0, input_dim, input_dim);
+  af::ascir_op::Data concat_data2("concat_data2", graph);
+  concat_data2.ir_attr.SetIndex(2);
+  af::ascir_op::Load concat_load2("concat_load2");
+  CreateConcatInputChain(concat_data2, concat_load2, z0, z1, s0, input_dim, input_dim);
+  af::ascir_op::Concat concat("concat");
+  concat.x = {x1Local.y, x2Local.y, concat_load2.y};
   af::ascir_op::Store x_out("concat_store");
-  x_out.x = concat.y;
-  x_out.attr.sched.axis = {z0.id, z1.id};
-  *x_out.y.axis = {z0.id, z1.id};
-  *x_out.y.repeats = {s0, s1 + s2 + s2};
-  *x_out.y.strides = {s1 + s2 + s2, ONE};
-
   af::ascir_op::Output y("concat_out");
-  y.x = x_out.y;
-  y.y.dtype = ge::DT_FLOAT16;
-  y.ir_attr.SetIndex(0);
-
+  CreateConcatOutputChain(concat, x_out, y, z0, z1, s0, total_dim);
   AscGraphInfoComplete::CompleteApiInfo(graph);
 }
 
@@ -990,7 +975,7 @@ TEST_F(FusedGraphUnfolderTest, AscBcNodeUnfolder_With_Same_Data_Same_Load) {
 
   CreateAddAscGraph(add_sub_graph1);
   CreateAddAscGraph3SameData(add_sub_graph2);
-  CreateConcatAscGraph(concat_sub_graph);
+  CreateConcatAscGraph(concat_sub_graph, true);
 
   asc_backend_to_asc_graph.emplace(ascbc1.get(), add_sub_graph1);
   asc_backend_to_asc_graph.emplace(ascbc2.get(), add_sub_graph2);
@@ -1137,6 +1122,143 @@ TEST_F(FusedGraphUnfolderTest, AscBcNodeUnfolder_With_Reuse_Output) {
   int64_t idx = -1;
   data0->attr.ir_attr->GetAttrValue("index", idx);
   EXPECT_EQ(idx, 0);
+}
+
+TEST_F(FusedGraphUnfolderTest, BuildLocalAxisMapping_MultipleUnitAxesHasUniqueMapping) {
+  AscTensorAttr source;
+  source.axis = {101, 102};
+  source.repeats = {af::Symbol(55), af::Symbol(3)};
+  source.strides = {af::Symbol(3), af::Symbol(1)};
+  AscTensorAttr target;
+  target.axis = {201, 202, 203, 204};
+  target.repeats = {af::Symbol(55), af::Symbol(1), af::Symbol(1), af::Symbol(3)};
+  target.strides = {af::Symbol(3), af::Symbol(0), af::Symbol(0), af::Symbol(1)};
+  FusedGraphUnfolder::AxisMappingResult result;
+
+  EXPECT_EQ(FusedGraphUnfolder::BuildLocalAxisMapping(source, target, result), af::SUCCESS);
+  EXPECT_EQ(result.old_to_global, (std::vector<size_t>{0UL, 3UL}));
+  EXPECT_EQ(result.inserted_axes, (std::vector<bool>{false, true, true, false}));
+}
+
+TEST_F(FusedGraphUnfolderTest, BuildLocalAxisMapping_MultipleEmbeddingsAreAmbiguous) {
+  AscTensorAttr source;
+  source.axis = {101, 102, 103};
+  source.repeats = {af::Symbol(55), af::Symbol(1), af::Symbol(3)};
+  source.strides = {af::Symbol(3), af::Symbol(0), af::Symbol(1)};
+  AscTensorAttr target;
+  target.axis = {201, 202, 203, 204};
+  target.repeats = {af::Symbol(55), af::Symbol(1), af::Symbol(1), af::Symbol(3)};
+  target.strides = {af::Symbol(3), af::Symbol(0), af::Symbol(0), af::Symbol(1)};
+  FusedGraphUnfolder::AxisMappingResult result;
+
+  EXPECT_EQ(FusedGraphUnfolder::BuildLocalAxisMapping(source, target, result), af::FAILED);
+  EXPECT_EQ(result.status, FusedGraphUnfolder::AxisMappingStatus::kAmbiguous);
+  EXPECT_EQ(result.reason, FusedGraphUnfolder::AxisMappingFailureReason::kMultipleMappings);
+}
+
+TEST_F(FusedGraphUnfolderTest, BuildLocalAxisMapping_NonUnitInsertedAxisIsUnsupported) {
+  AscTensorAttr source;
+  source.axis = {101, 102};
+  source.repeats = {af::Symbol(55), af::Symbol(3)};
+  source.strides = {af::Symbol(3), af::Symbol(1)};
+  AscTensorAttr target;
+  target.axis = {201, 202, 203};
+  target.repeats = {af::Symbol(55), af::Symbol(2), af::Symbol(3)};
+  target.strides = {af::Symbol(3), af::Symbol(0), af::Symbol(1)};
+  FusedGraphUnfolder::AxisMappingResult result;
+
+  EXPECT_EQ(FusedGraphUnfolder::BuildLocalAxisMapping(source, target, result), af::FAILED);
+  EXPECT_EQ(result.status, FusedGraphUnfolder::AxisMappingStatus::kUnsupported);
+  EXPECT_EQ(result.reason, FusedGraphUnfolder::AxisMappingFailureReason::kNonUnitInsertedAxis);
+}
+
+TEST_F(FusedGraphUnfolderTest, BuildLocalAxisMapping_UnknownRepeatEqualityIsUnsupported) {
+  AscTensorAttr source;
+  source.axis = {101};
+  source.repeats = {af::Symbol("source_repeat")};
+  source.strides = {af::Symbol(1)};
+  AscTensorAttr target;
+  target.axis = {201};
+  target.repeats = {af::Symbol("target_repeat")};
+  target.strides = {af::Symbol(1)};
+  FusedGraphUnfolder::AxisMappingResult result;
+
+  EXPECT_EQ(FusedGraphUnfolder::BuildLocalAxisMapping(source, target, result), af::FAILED);
+  EXPECT_EQ(result.status, FusedGraphUnfolder::AxisMappingStatus::kUnsupported);
+}
+
+TEST_F(FusedGraphUnfolderTest, BuildGraphAxisMapping_ComposesIntermediateMapping) {
+  AscGraph source_graph("source_graph");
+  auto source_axis0 = source_graph.CreateAxis("source_axis0", af::Symbol(55));
+  auto source_axis1 = source_graph.CreateAxis("source_axis1", af::Symbol(3));
+  AscGraph target_graph("target_graph");
+  auto target_axis0 = target_graph.CreateAxis("target_axis0", af::Symbol(55));
+  auto target_axis1 = target_graph.CreateAxis("target_axis1", af::Symbol(1));
+  auto target_axis2 = target_graph.CreateAxis("target_axis2", af::Symbol(3));
+  AscTensorAttr source;
+  source.axis = {source_axis0.id, source_axis1.id};
+  source.repeats = {af::Symbol(55), af::Symbol(3)};
+  source.strides = {af::Symbol(3), af::Symbol(1)};
+  AscTensorAttr target;
+  target.axis = {target_axis0.id, target_axis1.id, target_axis2.id};
+  target.repeats = {af::Symbol(55), af::Symbol(1), af::Symbol(3)};
+  target.strides = {af::Symbol(3), af::Symbol(0), af::Symbol(1)};
+  std::vector<size_t> source_to_global;
+
+  ASSERT_EQ(source_graph.GetAllAxis().size(), 2UL);
+  ASSERT_EQ(target_graph.GetAllAxis().size(), 3UL);
+  EXPECT_TRUE(FusedGraphUnfolder::BuildGraphAxisMapping(source_graph, source, target_graph, target, {0UL, 1UL, 3UL},
+                                                        source_to_global));
+  EXPECT_EQ(source_to_global, (std::vector<size_t>{0UL, 3UL}));
+}
+
+TEST_F(FusedGraphUnfolderTest, BuildGraphAxisMapping_RejectsDuplicateGlobalAxis) {
+  AscGraph source_graph("source_graph");
+  auto source_axis0 = source_graph.CreateAxis("source_axis0", af::Symbol(55));
+  auto source_axis1 = source_graph.CreateAxis("source_axis1", af::Symbol(3));
+  AscGraph target_graph("target_graph");
+  auto target_axis0 = target_graph.CreateAxis("target_axis0", af::Symbol(55));
+  auto target_axis1 = target_graph.CreateAxis("target_axis1", af::Symbol(3));
+  AscTensorAttr source;
+  source.axis = {source_axis0.id, source_axis1.id};
+  source.repeats = {af::Symbol(55), af::Symbol(3)};
+  source.strides = {af::Symbol(3), af::Symbol(1)};
+  AscTensorAttr target;
+  target.axis = {target_axis0.id, target_axis1.id};
+  target.repeats = {af::Symbol(55), af::Symbol(3)};
+  target.strides = {af::Symbol(3), af::Symbol(1)};
+  std::vector<size_t> source_to_global;
+
+  EXPECT_FALSE(FusedGraphUnfolder::BuildGraphAxisMapping(source_graph, source, target_graph, target, {0UL, 0UL},
+                                                         source_to_global));
+}
+
+TEST_F(FusedGraphUnfolderTest, ApplyMappedLoopAxis_PreservesBufferAttributes) {
+  AscGraph graph("buffer_graph");
+  const auto s0 = af::Symbol(2);
+  const auto s1 = af::Symbol(3);
+  auto z0 = graph.CreateAxis("z0", s0);
+  auto z1 = graph.CreateAxis("z1", s1);
+  AscGraph global_graph("global_graph");
+  auto global_z0 = global_graph.CreateAxis("z0", s0);
+  auto global_z1 = global_graph.CreateAxis("z1", s1);
+  auto global_z2 = global_graph.CreateAxis("z2", af::Symbol(5));
+  af::ascir_op::Data buffer("buffer", graph);
+  buffer.attr.api.type = af::ApiType::kAPITypeBuffer;
+  buffer.attr.sched.axis = {z0.id, z1.id};
+  *buffer.y.axis = {z0.id, z1.id};
+  *buffer.y.repeats = {s0, s1};
+  *buffer.y.strides = {s1, af::Symbol(1)};
+
+  ASSERT_EQ(FusedGraphUnfolder::ApplyMappedLoopAxis(graph, global_graph.GetAllAxis(),
+                                                    {global_z0.id, global_z1.id, global_z2.id}, {0UL, 2UL}),
+            af::SUCCESS);
+  const auto buffer_node = graph.FindNode("buffer");
+  ASSERT_NE(buffer_node, nullptr);
+  EXPECT_EQ(buffer_node->attr.sched.axis, (std::vector<af::AxisId>{z0.id, z1.id}));
+  EXPECT_EQ(buffer_node->outputs[0].attr.axis, (std::vector<af::AxisId>{z0.id, z1.id}));
+  EXPECT_EQ(buffer_node->outputs[0].attr.repeats, (std::vector<af::Expression>{s0, s1}));
+  EXPECT_EQ(buffer_node->outputs[0].attr.strides, (std::vector<af::Expression>{s1, af::Symbol(1)}));
 }
 
 TEST_F(FusedGraphUnfolderTest, TestIsSameLoad) {
