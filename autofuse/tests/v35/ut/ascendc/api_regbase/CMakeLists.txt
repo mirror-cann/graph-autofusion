@@ -59,6 +59,7 @@ add_library(test_regbase_ascendc OBJECT
     ./test_log_ndtr.cpp
     ./test_nextafter.cpp
     ./test_i0.cpp
+    ./test_hypot.cpp
     )
 target_link_libraries(test_regbase_ascendc
     ascendc_api_regbase_extend

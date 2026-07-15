@@ -71,6 +71,7 @@ set(ascendc_api_regbase_extend_src
         igammac_helper/continued_fraction.h
         igammac_helper/asymptotic_series.h
         igammac_helper/series_complement.h
+        hypot.h
 )
 
 set(generated_regbase_files)
