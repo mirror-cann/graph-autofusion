@@ -232,8 +232,8 @@ inline __simd_vf__ void TransposeOneOuterDimExtendImpl(__ubuf__ T *dst, __ubuf__
   MicroAPI::MaskReg mask;
   for (uint16_t i = 0U; i < repeat_time; i++) {
     mask = MicroAPI::UpdateMask<T>(cal_cnt);
+    MicroAPI::LoadAlign(idx_reg, index + i * vl_size);
     for (uint16_t j = 0U; j < dst_dim0; j++) {
-      MicroAPI::LoadAlign(idx_reg, index + i * vl_size);
       MicroAPI::Gather(dst_reg, src + j * src_stride0, (MicroAPI::RegTensor<IdxType<T>> &)idx_reg, mask);
       MicroAPI::StoreAlign(dst + j * dst_stride0 + i * vl_size, dst_reg, mask);
     }
@@ -255,9 +255,9 @@ inline __simd_vf__ void TransposeTwoOuterDimExtendImpl(__ubuf__ T *dst, __ubuf__
   MicroAPI::MaskReg mask;
   for (uint16_t i = 0U; i < repeat_time; i++) {
     mask = MicroAPI::UpdateMask<T>(cal_cnt);
+    MicroAPI::LoadAlign(idx_reg, index + i * vl_size);
     for (uint16_t j = 0U; j < dst_dim0; j++) {
       for (uint16_t k = 0U; k < dst_dim1; k++) {
-        MicroAPI::LoadAlign(idx_reg, index + i * vl_size);
         MicroAPI::Gather(dst_reg, src + j * src_stride0 + k * src_stride1, (MicroAPI::RegTensor<IdxType<T>> &)idx_reg,
                          mask);
         MicroAPI::StoreAlign(dst + i * vl_size + j * dst_stride0 + k * dst_stride1, dst_reg, mask);
@@ -282,10 +282,10 @@ inline __simd_vf__ void TransposeThreeOuterDimExtendImpl(__ubuf__ T *dst, __ubuf
   MicroAPI::MaskReg mask;
   for (uint16_t i = 0U; i < repeat_time; i++) {
     mask = MicroAPI::UpdateMask<T>(cal_cnt);
+    MicroAPI::LoadAlign(idx_reg, index + i * vl_size);
     for (uint16_t j = 0U; j < dst_dim0; j++) {
       for (uint16_t k = 0U; k < dst_dim1; k++) {
         for (uint16_t m = 0U; m < dst_dim2; m++) {
-          MicroAPI::LoadAlign(idx_reg, index + i * vl_size);
           MicroAPI::Gather(dst_reg, src + j * src_stride0 + k * src_stride1 + m * src_stride2,
                            (MicroAPI::RegTensor<IdxType<T>> &)idx_reg, mask);
           MicroAPI::StoreAlign(dst + i * vl_size + j * dst_stride0 + k * dst_stride1 + m * dst_stride2, dst_reg, mask);
