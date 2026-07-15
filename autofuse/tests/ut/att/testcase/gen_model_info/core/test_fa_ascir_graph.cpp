@@ -14,9 +14,8 @@ namespace att {
 using namespace att;
 using namespace af::ascir_op;
 namespace {
-void InitDataNode(Data &node, int32_t &exec_order, std::initializer_list<int64_t> axis, af::DataType dtype,
+void InitDataNode(Data &node, std::initializer_list<int64_t> axis, af::DataType dtype,
                   std::initializer_list<Expr> repeats, std::initializer_list<Expr> strides) {
-  node.attr.sched.exec_order = exec_order++;
   node.attr.sched.axis = axis;
   node.y.dtype = dtype;
   *node.y.axis = axis;
@@ -24,9 +23,8 @@ void InitDataNode(Data &node, int32_t &exec_order, std::initializer_list<int64_t
   *node.y.strides = strides;
 }
 
-void InitLoadNode(Load &node, int32_t &exec_order, std::initializer_list<int64_t> axis, af::DataType dtype,
+void InitLoadNode(Load &node, std::initializer_list<int64_t> axis, af::DataType dtype,
                   std::initializer_list<Expr> repeats, std::initializer_list<Expr> strides) {
-  node.attr.sched.exec_order = exec_order++;
   node.attr.sched.axis = axis;
   node.y.dtype = dtype;
   *node.y.axis = axis;
@@ -34,9 +32,8 @@ void InitLoadNode(Load &node, int32_t &exec_order, std::initializer_list<int64_t
   *node.y.strides = strides;
 }
 
-void InitStoreNode(Store &node, int32_t &exec_order, std::initializer_list<int64_t> axis, af::DataType dtype,
+void InitStoreNode(Store &node, std::initializer_list<int64_t> axis, af::DataType dtype,
                    std::initializer_list<Expr> repeats, std::initializer_list<Expr> strides) {
-  node.attr.sched.exec_order = exec_order++;
   node.attr.sched.axis = axis;
   node.y.dtype = dtype;
   *node.y.axis = axis;
@@ -44,9 +41,8 @@ void InitStoreNode(Store &node, int32_t &exec_order, std::initializer_list<int64
   *node.y.strides = strides;
 }
 
-void InitOutputNode(Output &node, int32_t &exec_order, std::initializer_list<int64_t> axis, af::DataType dtype,
+void InitOutputNode(Output &node, std::initializer_list<int64_t> axis, af::DataType dtype,
                     std::initializer_list<Expr> repeats, std::initializer_list<Expr> strides) {
-  node.attr.sched.exec_order = exec_order++;
   node.y.dtype = dtype;
   *node.y.axis = axis;
   *node.y.repeats = repeats;
@@ -54,9 +50,8 @@ void InitOutputNode(Output &node, int32_t &exec_order, std::initializer_list<int
 }
 
 template <typename T>
-void InitUnaryNode(T &node, int32_t &exec_order, std::initializer_list<int64_t> axis, af::DataType dtype,
+void InitUnaryNode(T &node, std::initializer_list<int64_t> axis, af::DataType dtype,
                    std::initializer_list<Expr> repeats, std::initializer_list<Expr> strides) {
-  node.attr.sched.exec_order = exec_order++;
   node.attr.sched.axis = axis;
   node.y.dtype = dtype;
   *node.y.axis = axis;
@@ -212,44 +207,43 @@ void ApplyVec2NodesSched(af::AscGraph &graph, const SchedAxis &a) {
 }
 }  // namespace
 
-void FaBeforeAutoFuseBmm1(af::AscGraph &graph, int32_t &exec_order, const std::initializer_list<int64_t> &bmmAxis,
+void FaBeforeAutoFuseBmm1(af::AscGraph &graph, const std::initializer_list<int64_t> &bmmAxis,
                           const std::initializer_list<Expr> &vec1R, const std::initializer_list<Expr> &vec1S,
                           const Expr &B, const Expr &N, const Expr &G, const Expr &S1, const Expr &S2, const Expr &D,
                           const Expr &ONE, const Expr &ZERO, Add &out_mul1) {
   Data query("query", graph);
-  InitDataNode(query, exec_order, bmmAxis, af::DT_FLOAT16, {B, N, G, S1, ONE, D, ONE},
+  InitDataNode(query, bmmAxis, af::DT_FLOAT16, {B, N, G, S1, ONE, D, ONE},
                {N * G * S1 * D, G * S1 * D, S1 * D, D, ZERO, ONE, ZERO});
   Data key("key", graph);
-  InitDataNode(key, exec_order, bmmAxis, af::DT_FLOAT16, {B, N, G, ONE, S2, D, ONE},
+  InitDataNode(key, bmmAxis, af::DT_FLOAT16, {B, N, G, ONE, S2, D, ONE},
                {N * S1 * D, S2 * D, S2 * D, ZERO, D, ONE, ZERO});
   Add bmm1("bmm1");
   bmm1.x1 = query.y;
   bmm1.x2 = key.y;
-  InitUnaryNode(bmm1, exec_order, bmmAxis, af::DT_FLOAT, vec1R, vec1S);
+  InitUnaryNode(bmm1, bmmAxis, af::DT_FLOAT, vec1R, vec1S);
   Load load1("load1");
   load1.x = bmm1.y;
-  InitLoadNode(load1, exec_order, bmmAxis, af::DT_FLOAT, vec1R, vec1S);
+  InitLoadNode(load1, bmmAxis, af::DT_FLOAT, vec1R, vec1S);
   Data pse("pse", graph);
-  InitDataNode(pse, exec_order, bmmAxis, af::DT_FLOAT16, vec1R, vec1S);
+  InitDataNode(pse, bmmAxis, af::DT_FLOAT16, vec1R, vec1S);
   Load loadPse("loadPse");
   loadPse.x = pse.y;
-  InitLoadNode(loadPse, exec_order, bmmAxis, af::DT_FLOAT16, vec1R, vec1S);
+  InitLoadNode(loadPse, bmmAxis, af::DT_FLOAT16, vec1R, vec1S);
   Cast castPse("castPse");
   castPse.x = loadPse.y;
-  InitUnaryNode(castPse, exec_order, bmmAxis, af::DT_FLOAT, vec1R, vec1S);
+  InitUnaryNode(castPse, bmmAxis, af::DT_FLOAT, vec1R, vec1S);
   Add add1("add1");
   add1.x1 = load1.y;
   add1.x2 = castPse.y;
-  InitUnaryNode(add1, exec_order, bmmAxis, af::DT_FLOAT, vec1R, vec1S);
+  InitUnaryNode(add1, bmmAxis, af::DT_FLOAT, vec1R, vec1S);
   Data scaleValue("scaleValue", graph);
-  scaleValue.attr.sched.exec_order = exec_order++;
   scaleValue.y.dtype = af::DT_FLOAT;
   out_mul1.x1 = add1.y;
   out_mul1.x2 = scaleValue.y;
-  InitUnaryNode(out_mul1, exec_order, bmmAxis, af::DT_FLOAT, vec1R, vec1S);
+  InitUnaryNode(out_mul1, bmmAxis, af::DT_FLOAT, vec1R, vec1S);
 }
 
-void FaBeforeAutoFuseVec1(af::AscGraph &graph, int32_t &exec_order, const std::initializer_list<int64_t> &bmmAxis,
+void FaBeforeAutoFuseVec1(af::AscGraph &graph, const std::initializer_list<int64_t> &bmmAxis,
                           const std::initializer_list<Expr> &vec1R, const std::initializer_list<Expr> &vec1S,
                           const std::initializer_list<Expr> &reduceR, const std::initializer_list<Expr> &reduceS,
                           const Expr &B, const Expr &N, const Expr &G, const Expr &S1, const Expr &S2, const Expr &BL,
@@ -258,59 +252,57 @@ void FaBeforeAutoFuseVec1(af::AscGraph &graph, int32_t &exec_order, const std::i
   auto maskR = std::initializer_list<Expr>{B, ONE, ONE, S1, S2, ONE, ONE};
   auto maskS = std::initializer_list<Expr>{S1 * S2, S1 * S2, S1 * S2, S2, ONE, ZERO, ZERO};
   Data attenMask("attenMask", graph);
-  InitDataNode(attenMask, exec_order, bmmAxis, af::DT_UINT8, maskR, maskS);
+  InitDataNode(attenMask, bmmAxis, af::DT_UINT8, maskR, maskS);
   Load loadAttenMask("loadAttenMask");
   loadAttenMask.x = attenMask.y;
-  InitLoadNode(loadAttenMask, exec_order, bmmAxis, af::DT_UINT8, maskR, maskS);
+  InitLoadNode(loadAttenMask, bmmAxis, af::DT_UINT8, maskR, maskS);
   Select select("select");
   select.x1 = mul1.y;
   select.x2 = loadAttenMask.y;
-  InitUnaryNode(select, exec_order, bmmAxis, af::DT_FLOAT, vec1R, vec1S);
-  InitDataNode(out_softmaxExp, exec_order, bmmAxis, af::DT_FLOAT, reduceR, reduceS);
+  InitUnaryNode(select, bmmAxis, af::DT_FLOAT, vec1R, vec1S);
+  InitDataNode(out_softmaxExp, bmmAxis, af::DT_FLOAT, reduceR, reduceS);
   Data softmaxApiTmpBuf("softmaxApiTmpBuf", graph);
-  InitDataNode(softmaxApiTmpBuf, exec_order, bmmAxis, af::DT_FLOAT, {ONE, ONE, ONE, S1, S2, ONE, ONE},
+  InitDataNode(softmaxApiTmpBuf, bmmAxis, af::DT_FLOAT, {ONE, ONE, ONE, S1, S2, ONE, ONE},
                {ZERO, ZERO, ZERO, S2, ONE, ZERO, ZERO});
   out_flashSoftmax.x = {select.y, out_softmaxExp.y, softmaxApiTmpBuf.y};
-  InitUnaryNode(out_flashSoftmax, exec_order, bmmAxis, af::DT_FLOAT, vec1R, vec1S);
+  InitUnaryNode(out_flashSoftmax, bmmAxis, af::DT_FLOAT, vec1R, vec1S);
   Store storeSoftmaxMax("storeSoftmaxMax");
   storeSoftmaxMax.x = out_flashSoftmax.y;
-  InitStoreNode(storeSoftmaxMax, exec_order, bmmAxis, af::DT_FLOAT, {B, N, G, S1, S2, ONE, BL},
+  InitStoreNode(storeSoftmaxMax, bmmAxis, af::DT_FLOAT, {B, N, G, S1, S2, ONE, BL},
                 {N * G * S1 * BL, G * S1 * BL, S1 * BL, BL, ZERO, ZERO, ONE});
   Output softmaxMax("softmaxMax");
   softmaxMax.x = storeSoftmaxMax.y;
-  softmaxMax.attr.sched.exec_order = exec_order++;
   Data dropMask("dropMask", graph);
-  InitDataNode(dropMask, exec_order, bmmAxis, af::DT_UINT8, vec1R, vec1S);
+  InitDataNode(dropMask, bmmAxis, af::DT_UINT8, vec1R, vec1S);
   Load loadDropMask("loadDropMask");
   loadDropMask.x = dropMask.y;
-  InitLoadNode(loadDropMask, exec_order, bmmAxis, af::DT_UINT8, vec1R, vec1S);
+  InitLoadNode(loadDropMask, bmmAxis, af::DT_UINT8, vec1R, vec1S);
   Add dropout("dropout");
   dropout.x1 = out_flashSoftmax.y;
   dropout.x2 = loadDropMask.y;
-  InitUnaryNode(dropout, exec_order, bmmAxis, af::DT_FLOAT, vec1R, vec1S);
+  InitUnaryNode(dropout, bmmAxis, af::DT_FLOAT, vec1R, vec1S);
   Cast castVec1Res("castVec1Res");
   castVec1Res.x = dropout.y;
-  InitUnaryNode(castVec1Res, exec_order, bmmAxis, af::DT_FLOAT16, vec1R, vec1S);
+  InitUnaryNode(castVec1Res, bmmAxis, af::DT_FLOAT16, vec1R, vec1S);
   out_storeVec1Res.x = castVec1Res.y;
-  InitStoreNode(out_storeVec1Res, exec_order, bmmAxis, af::DT_FLOAT16, vec1R, vec1R);
+  InitStoreNode(out_storeVec1Res, bmmAxis, af::DT_FLOAT16, vec1R, vec1R);
 }
 
-void FaBeforeAutoFuseBmm2(af::AscGraph &graph, int32_t &exec_order, const std::initializer_list<int64_t> &bmmAxis,
+void FaBeforeAutoFuseBmm2(af::AscGraph &graph, const std::initializer_list<int64_t> &bmmAxis,
                           const std::initializer_list<Expr> &vec2R, const std::initializer_list<Expr> &vec2S,
                           const Expr &B, const Expr &N, const Expr &G, const Expr &S2, const Expr &D, const Expr &ONE,
                           const Expr &ZERO, Store &storeVec1Res, Data &softmaxExp, Concat &flashSoftmax) {
   Data value("value", graph);
-  InitDataNode(value, exec_order, bmmAxis, af::DT_FLOAT16, {B, N, G, ONE, S2, D, ONE},
+  InitDataNode(value, bmmAxis, af::DT_FLOAT16, {B, N, G, ONE, S2, D, ONE},
                {N * S2 * D, S2 * D, S2 * D, ZERO, D, ONE, ZERO});
   Add bmm2("bmm2");
   bmm2.x1 = storeVec1Res.y;
   bmm2.x2 = value.y;
-  InitUnaryNode(bmm2, exec_order, bmmAxis, af::DT_FLOAT, vec2R, vec2S);
+  InitUnaryNode(bmm2, bmmAxis, af::DT_FLOAT, vec2R, vec2S);
   Load load2("load2");
   load2.x = bmm2.y;
-  InitLoadNode(load2, exec_order, bmmAxis, af::DT_FLOAT, vec2R, vec2S);
+  InitLoadNode(load2, bmmAxis, af::DT_FLOAT, vec2R, vec2S);
   Workspace addResOut("addResOut");
-  addResOut.attr.sched.exec_order = exec_order++;
   addResOut.attr.sched.axis = bmmAxis;
   addResOut.x = load2.y;
   addResOut.y.dtype = af::DT_FLOAT;
@@ -319,28 +311,28 @@ void FaBeforeAutoFuseBmm2(af::AscGraph &graph, int32_t &exec_order, const std::i
   *addResOut.y.strides = vec2S;
   Load loadAddResOut("loadAddResOut");
   loadAddResOut.x = addResOut.y;
-  InitLoadNode(loadAddResOut, exec_order, bmmAxis, af::DT_FLOAT, vec2R, vec2S);
+  InitLoadNode(loadAddResOut, bmmAxis, af::DT_FLOAT, vec2R, vec2S);
   Mul mulRes("mulRes");
   mulRes.x1 = loadAddResOut.y;
   mulRes.x2 = softmaxExp.y;
-  InitUnaryNode(mulRes, exec_order, bmmAxis, af::DT_FLOAT, vec2R, vec2S);
+  InitUnaryNode(mulRes, bmmAxis, af::DT_FLOAT, vec2R, vec2S);
   Add addRes("addRes");
   addRes.x1 = load2.y;
   addRes.x2 = mulRes.y;
-  InitUnaryNode(addRes, exec_order, bmmAxis, af::DT_FLOAT, vec2R, vec2S);
+  InitUnaryNode(addRes, bmmAxis, af::DT_FLOAT, vec2R, vec2S);
   Div div("div");
   div.x1 = addRes.y;
   div.x2 = flashSoftmax.y;
-  InitUnaryNode(div, exec_order, bmmAxis, af::DT_FLOAT, vec2R, vec2S);
+  InitUnaryNode(div, bmmAxis, af::DT_FLOAT, vec2R, vec2S);
   Cast castBmm2Res("castBmm2Res");
   castBmm2Res.x = div.y;
-  InitUnaryNode(castBmm2Res, exec_order, bmmAxis, af::DT_FLOAT16, vec2R, vec2S);
+  InitUnaryNode(castBmm2Res, bmmAxis, af::DT_FLOAT16, vec2R, vec2S);
   Store store("store");
   store.x = castBmm2Res.y;
-  InitStoreNode(store, exec_order, bmmAxis, af::DT_FLOAT16, vec2R, vec2S);
+  InitStoreNode(store, bmmAxis, af::DT_FLOAT16, vec2R, vec2S);
   Output buf("buf");
   buf.x = store.y;
-  InitOutputNode(buf, exec_order, bmmAxis, af::DT_FLOAT16, vec2R, vec2S);
+  InitOutputNode(buf, bmmAxis, af::DT_FLOAT16, vec2R, vec2S);
 }
 
 void FaBeforeAutoFuse(af::AscGraph &graph) {
@@ -367,16 +359,14 @@ void FaBeforeAutoFuse(af::AscGraph &graph) {
   auto vec2S = std::initializer_list<Expr>{N * G * S1 * D, G * S1 * D, S1 * D, D, ZERO, ONE, ZERO};
   auto reduceR = std::initializer_list<Expr>{ONE, ONE, ONE, S1, ONE, ONE, BL};
   auto reduceS = std::initializer_list<Expr>{ZERO, ZERO, ZERO, BL, ZERO, ZERO, ONE};
-  int32_t exec_order = 0;
   Add mul1("mul1");
-  FaBeforeAutoFuseBmm1(graph, exec_order, bmmAxis, vec1R, vec1S, B, N, G, S1, S2, D, ONE, ZERO, mul1);
+  FaBeforeAutoFuseBmm1(graph, bmmAxis, vec1R, vec1S, B, N, G, S1, S2, D, ONE, ZERO, mul1);
   Data softmaxExp("softmaxExp", graph);
   Concat flashSoftmax("flashSoftmax");
   Store storeVec1Res("storeVec1Res");
-  FaBeforeAutoFuseVec1(graph, exec_order, bmmAxis, vec1R, vec1S, reduceR, reduceS, B, N, G, S1, S2, BL, ONE, ZERO, mul1,
-                       softmaxExp, flashSoftmax, storeVec1Res);
-  FaBeforeAutoFuseBmm2(graph, exec_order, bmmAxis, vec2R, vec2S, B, N, G, S2, D, ONE, ZERO, storeVec1Res, softmaxExp,
-                       flashSoftmax);
+  FaBeforeAutoFuseVec1(graph, bmmAxis, vec1R, vec1S, reduceR, reduceS, B, N, G, S1, S2, BL, ONE, ZERO, mul1, softmaxExp,
+                       flashSoftmax, storeVec1Res);
+  FaBeforeAutoFuseBmm2(graph, bmmAxis, vec2R, vec2S, B, N, G, S2, D, ONE, ZERO, storeVec1Res, softmaxExp, flashSoftmax);
 }
 
 void FaAfterApiInfo(af::AscGraph &graph) {
@@ -512,16 +502,15 @@ void UnknownGraph(af::AscGraph &graph) {
   auto resAxis = {x.id, y.id};
   auto resRepeat = std::initializer_list<Expr>{X, Y};
   auto resStride = std::initializer_list<Expr>{Y, ONE};
-  int32_t exec_order = 0;
 
   Data input("input", graph);
-  InitDataNode(input, exec_order, resAxis, af::DT_UINT32, resRepeat, resStride);
+  InitDataNode(input, resAxis, af::DT_UINT32, resRepeat, resStride);
   SetApiAttr(graph.FindNode("input"), af::ApiType::kAPITypeBuffer, af::ComputeUnit::kUnitNone);
   SetNodeMemAttr(graph.FindNode("input"), tensorID, {"input", 0, 0, 0, -1, -1, false, false});
 
   Load load("load");
   load.x = input.y;
-  InitLoadNode(load, exec_order, resAxis, af::DT_UINT32, resRepeat, resStride);
+  InitLoadNode(load, resAxis, af::DT_UINT32, resRepeat, resStride);
   auto load_node = graph.FindNode("load");
   SetApiAttr(load_node, af::ApiType::kAPITypeCompute, af::ComputeUnit::kUnitNone);
   load_node->attr.sched.loop_axis = x.id;
@@ -530,7 +519,7 @@ void UnknownGraph(af::AscGraph &graph) {
 
   Nop unknown("unknown");
   unknown.x = load.y;
-  InitUnaryNode(unknown, exec_order, resAxis, af::DT_UINT32, resRepeat, resStride);
+  InitUnaryNode(unknown, resAxis, af::DT_UINT32, resRepeat, resStride);
   auto unknown_node = graph.FindNode("unknown");
   SetApiAttr(unknown_node, af::ApiType::kAPITypeBuffer, af::ComputeUnit::kUnitVector);
   unknown_node->attr.sched.loop_axis = x.id;
@@ -539,7 +528,7 @@ void UnknownGraph(af::AscGraph &graph) {
 
   Store store("store");
   store.x = unknown.y;
-  InitStoreNode(store, exec_order, resAxis, af::DT_UINT32, resRepeat, resStride);
+  InitStoreNode(store, resAxis, af::DT_UINT32, resRepeat, resStride);
   auto store_node = graph.FindNode("store");
   SetApiAttr(store_node, af::ApiType::kAPITypeCompute, af::ComputeUnit::kUnitNone);
   store_node->attr.sched.loop_axis = x.id;
@@ -548,7 +537,7 @@ void UnknownGraph(af::AscGraph &graph) {
 
   Output output("output");
   output.x = store.y;
-  InitOutputNode(output, exec_order, resAxis, af::DT_UINT32, resRepeat, resStride);
+  InitOutputNode(output, resAxis, af::DT_UINT32, resRepeat, resStride);
   SetApiAttr(graph.FindNode("output"), af::ApiType::kAPITypeBuffer, af::ComputeUnit::kUnitNone);
   SetNodeMemAttr(graph.FindNode("output"), tensorID, {"output", 0, 0, 0, -1, -1, false, false});
 }

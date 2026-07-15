@@ -32,10 +32,9 @@ using namespace att;
 
 namespace {
 template <typename NodeT>
-void SetNodeScheduleAndTensor(NodeT &node, int &exec_order, std::initializer_list<int64_t> axis, ge::DataType dtype,
+void SetNodeScheduleAndTensor(NodeT &node, std::initializer_list<int64_t> axis, ge::DataType dtype,
                               std::initializer_list<af::Expression> repeats,
                               std::initializer_list<af::Expression> strides) {
-  node.attr.sched.exec_order = exec_order++;
   node.attr.sched.axis = axis;
   node.y.dtype = dtype;
   *node.y.axis = axis;
@@ -44,11 +43,10 @@ void SetNodeScheduleAndTensor(NodeT &node, int &exec_order, std::initializer_lis
 }
 
 template <typename NodeT, typename InputT>
-void InitInputNode(NodeT &node, const InputT &input, int &exec_order, std::initializer_list<int64_t> axis,
-                   ge::DataType dtype, std::initializer_list<af::Expression> repeats,
-                   std::initializer_list<af::Expression> strides) {
+void InitInputNode(NodeT &node, const InputT &input, std::initializer_list<int64_t> axis, ge::DataType dtype,
+                   std::initializer_list<af::Expression> repeats, std::initializer_list<af::Expression> strides) {
   node.x = input;
-  SetNodeScheduleAndTensor(node, exec_order, axis, dtype, repeats, strides);
+  SetNodeScheduleAndTensor(node, axis, dtype, repeats, strides);
 }
 
 template <typename NodeT>
@@ -71,12 +69,12 @@ void SetQueueNode(const NodeT &node, int &tensor_id, int queue_id, af::Position 
   node->outputs[0].attr.opt.ref_tensor = ascir::ID_NONE;
 }
 
-void CreateDataAndLoad(Load &load, ascir::HintGraph &graph, const char *data_name, int &exec_order,
-                       std::initializer_list<int64_t> axis, ge::DataType dtype,
-                       std::initializer_list<af::Expression> repeats, std::initializer_list<af::Expression> strides) {
+void CreateDataAndLoad(Load &load, ascir::HintGraph &graph, const char *data_name, std::initializer_list<int64_t> axis,
+                       ge::DataType dtype, std::initializer_list<af::Expression> repeats,
+                       std::initializer_list<af::Expression> strides) {
   Data data(data_name, graph);
-  SetNodeScheduleAndTensor(data, exec_order, axis, dtype, repeats, strides);
-  InitInputNode(load, data.y, exec_order, axis, dtype, repeats, strides);
+  SetNodeScheduleAndTensor(data, axis, dtype, repeats, strides);
+  InitInputNode(load, data.y, axis, dtype, repeats, strides);
 }
 
 template <typename NodeT>
@@ -141,55 +139,53 @@ void Add_Layer_Norm_Normal_BeforeAutofuseConstInput(ascir::HintGraph &graph) {
   auto r = graph.CreateAxis("R", R);
   auto bl = graph.CreateAxis("BL", BL);
   const std::initializer_list<int64_t> axes = {a.id, r.id, bl.id};
-
-  int exec_order = 0;
   Load x1Local("x1Local");
-  CreateDataAndLoad(x1Local, graph, "x1", exec_order, axes, ge::DT_FLOAT16, {A, R, ONE}, {R, ONE, ZERO});
+  CreateDataAndLoad(x1Local, graph, "x1", axes, ge::DT_FLOAT16, {A, R, ONE}, {R, ONE, ZERO});
   Load x2Local("x2Local");
-  CreateDataAndLoad(x2Local, graph, "x2", exec_order, axes, ge::DT_FLOAT16, {A, R, ONE}, {R, ONE, ZERO});
+  CreateDataAndLoad(x2Local, graph, "x2", axes, ge::DT_FLOAT16, {A, R, ONE}, {R, ONE, ZERO});
   Load biasLocal("biasLocal");
-  CreateDataAndLoad(biasLocal, graph, "bias", exec_order, axes, ge::DT_FLOAT16, {A, R, ONE}, {R, ONE, ZERO});
+  CreateDataAndLoad(biasLocal, graph, "bias", axes, ge::DT_FLOAT16, {A, R, ONE}, {R, ONE, ZERO});
 
   Concat mean("mean");
   mean.x = {x1Local.y, x2Local.y, biasLocal.y};
-  SetNodeScheduleAndTensor(mean, exec_order, axes, ge::DT_FLOAT, {A, R, ONE}, {R, ONE, ZERO});
+  SetNodeScheduleAndTensor(mean, axes, ge::DT_FLOAT, {A, R, ONE}, {R, ONE, ZERO});
 
   Store x_out("x_out");
-  InitInputNode(x_out, mean.y, exec_order, axes, ge::DT_FLOAT16, {A, R, ONE}, {R, ONE, ZERO});
+  InitInputNode(x_out, mean.y, axes, ge::DT_FLOAT16, {A, R, ONE}, {R, ONE, ZERO});
   Store mean_out("mean_out");
-  InitInputNode(mean_out, mean.y, exec_order, axes, ge::DT_FLOAT, {A, ONE, ONE}, {ONE, ZERO, ZERO});
+  InitInputNode(mean_out, mean.y, axes, ge::DT_FLOAT, {A, ONE, ONE}, {ONE, ZERO, ZERO});
 
   Data one("one", graph);
-  SetNodeScheduleAndTensor(one, exec_order, axes, ge::DT_FLOAT, {ONE, ONE, BL}, {ZERO, ZERO, ONE});
+  SetNodeScheduleAndTensor(one, axes, ge::DT_FLOAT, {ONE, ONE, BL}, {ZERO, ZERO, ONE});
 
   Concat rstd("rstd");
   rstd.x = {mean.y, mean.y, one.y};
-  SetNodeScheduleAndTensor(rstd, exec_order, axes, ge::DT_FLOAT, {A, R, ONE}, {R, ONE, ZERO});
+  SetNodeScheduleAndTensor(rstd, axes, ge::DT_FLOAT, {A, R, ONE}, {R, ONE, ZERO});
 
   Store rstd_out("rstd_out");
-  InitInputNode(rstd_out, rstd.y, exec_order, axes, ge::DT_FLOAT, {A, ONE, ONE}, {ONE, ZERO, ZERO});
+  InitInputNode(rstd_out, rstd.y, axes, ge::DT_FLOAT, {A, ONE, ONE}, {ONE, ZERO, ZERO});
 
   Load betaLocal("betaLocal");
-  CreateDataAndLoad(betaLocal, graph, "beta", exec_order, axes, ge::DT_FLOAT16, {ONE, R, ONE}, {ZERO, ONE, ZERO});
+  CreateDataAndLoad(betaLocal, graph, "beta", axes, ge::DT_FLOAT16, {ONE, R, ONE}, {ZERO, ONE, ZERO});
   Load gammaLocal("gammaLocal");
-  CreateDataAndLoad(gammaLocal, graph, "gamma", exec_order, axes, ge::DT_FLOAT16, {ONE, R, ONE}, {ZERO, ONE, ZERO});
+  CreateDataAndLoad(gammaLocal, graph, "gamma", axes, ge::DT_FLOAT16, {ONE, R, ONE}, {ZERO, ONE, ZERO});
 
   Concat y("y");
   y.attr.api.unit = af::ComputeUnit::kUnitVector;
   y.x = {rstd.y, betaLocal.y, gammaLocal.y, rstd.y};
-  SetNodeScheduleAndTensor(y, exec_order, axes, ge::DT_FLOAT16, {A, R, ONE}, {R, ONE, ZERO});
+  SetNodeScheduleAndTensor(y, axes, ge::DT_FLOAT16, {A, R, ONE}, {R, ONE, ZERO});
 
   Store y_out("y_out");
-  InitInputNode(y_out, y.y, exec_order, axes, ge::DT_FLOAT16, {A, R, ONE}, {R, ONE, ZERO});
+  InitInputNode(y_out, y.y, axes, ge::DT_FLOAT16, {A, R, ONE}, {R, ONE, ZERO});
 
   Output buf1("buf1");
-  InitInputNode(buf1, x_out.y, exec_order, axes, ge::DT_FLOAT16, {A, R, ONE}, {R, ONE, ZERO});
+  InitInputNode(buf1, x_out.y, axes, ge::DT_FLOAT16, {A, R, ONE}, {R, ONE, ZERO});
   Output buf2("buf2");
-  InitInputNode(buf2, mean_out.y, exec_order, axes, ge::DT_FLOAT, {A, ONE, ONE}, {ONE, ZERO, ZERO});
+  InitInputNode(buf2, mean_out.y, axes, ge::DT_FLOAT, {A, ONE, ONE}, {ONE, ZERO, ZERO});
   Output buf3("buf3");
-  InitInputNode(buf3, rstd_out.y, exec_order, axes, ge::DT_FLOAT, {A, ONE, ONE}, {ONE, ZERO, ZERO});
+  InitInputNode(buf3, rstd_out.y, axes, ge::DT_FLOAT, {A, ONE, ONE}, {ONE, ZERO, ZERO});
   Output buf("buf");
-  InitInputNode(buf, y_out.y, exec_order, axes, ge::DT_FLOAT16, {A, R, ONE}, {R, ONE, ZERO});
+  InitInputNode(buf, y_out.y, axes, ge::DT_FLOAT16, {A, R, ONE}, {R, ONE, ZERO});
 }
 
 void Add_Layer_Norm_Normal_BeforeAutofuse(ascir::HintGraph &graph, const std::string &ident = "") {
@@ -209,55 +205,53 @@ void Add_Layer_Norm_Normal_BeforeAutofuse(ascir::HintGraph &graph, const std::st
   auto r = graph.CreateAxis(axis_name2, R);
   auto bl = graph.CreateAxis(axis_name3, BL);
   const std::initializer_list<int64_t> axes = {a.id, r.id, bl.id};
-
-  int exec_order = 0;
   Load x1Local("x1Local");
-  CreateDataAndLoad(x1Local, graph, "x1", exec_order, axes, ge::DT_FLOAT16, {A, R, ONE}, {R, ONE, ZERO});
+  CreateDataAndLoad(x1Local, graph, "x1", axes, ge::DT_FLOAT16, {A, R, ONE}, {R, ONE, ZERO});
   Load x2Local("x2Local");
-  CreateDataAndLoad(x2Local, graph, "x2", exec_order, axes, ge::DT_FLOAT16, {A, R, ONE}, {R, ONE, ZERO});
+  CreateDataAndLoad(x2Local, graph, "x2", axes, ge::DT_FLOAT16, {A, R, ONE}, {R, ONE, ZERO});
   Load biasLocal("biasLocal");
-  CreateDataAndLoad(biasLocal, graph, "bias", exec_order, axes, ge::DT_FLOAT16, {A, R, ONE}, {R, ONE, ZERO});
+  CreateDataAndLoad(biasLocal, graph, "bias", axes, ge::DT_FLOAT16, {A, R, ONE}, {R, ONE, ZERO});
 
   Concat mean("mean");
   mean.x = {x1Local.y, x2Local.y, biasLocal.y};
-  SetNodeScheduleAndTensor(mean, exec_order, axes, ge::DT_FLOAT, {A, ONE, ONE}, {ONE, ZERO, ZERO});
+  SetNodeScheduleAndTensor(mean, axes, ge::DT_FLOAT, {A, ONE, ONE}, {ONE, ZERO, ZERO});
 
   Store x_out("x_out");
-  InitInputNode(x_out, mean.y, exec_order, axes, ge::DT_FLOAT16, {A, R, ONE}, {R, ONE, ZERO});
+  InitInputNode(x_out, mean.y, axes, ge::DT_FLOAT16, {A, R, ONE}, {R, ONE, ZERO});
   Store mean_out("mean_out");
-  InitInputNode(mean_out, mean.y, exec_order, axes, ge::DT_FLOAT, {A, ONE, ONE}, {ONE, ZERO, ZERO});
+  InitInputNode(mean_out, mean.y, axes, ge::DT_FLOAT, {A, ONE, ONE}, {ONE, ZERO, ZERO});
 
   Data one("one", graph);
-  SetNodeScheduleAndTensor(one, exec_order, axes, ge::DT_FLOAT, {ONE, ONE, BL}, {ZERO, ZERO, ONE});
+  SetNodeScheduleAndTensor(one, axes, ge::DT_FLOAT, {ONE, ONE, BL}, {ZERO, ZERO, ONE});
 
   Concat rstd("rstd");
   rstd.x = {mean.y, mean.y, one.y};
-  SetNodeScheduleAndTensor(rstd, exec_order, axes, ge::DT_FLOAT, {A, R, ONE}, {R, ONE, ZERO});
+  SetNodeScheduleAndTensor(rstd, axes, ge::DT_FLOAT, {A, R, ONE}, {R, ONE, ZERO});
 
   Store rstd_out("rstd_out");
-  InitInputNode(rstd_out, rstd.y, exec_order, axes, ge::DT_FLOAT, {A, ONE, ONE}, {ONE, ZERO, ZERO});
+  InitInputNode(rstd_out, rstd.y, axes, ge::DT_FLOAT, {A, ONE, ONE}, {ONE, ZERO, ZERO});
 
   Load betaLocal("betaLocal");
-  CreateDataAndLoad(betaLocal, graph, "beta", exec_order, axes, ge::DT_FLOAT16, {ONE, R, ONE}, {ZERO, ONE, ZERO});
+  CreateDataAndLoad(betaLocal, graph, "beta", axes, ge::DT_FLOAT16, {ONE, R, ONE}, {ZERO, ONE, ZERO});
   Load gammaLocal("gammaLocal");
-  CreateDataAndLoad(gammaLocal, graph, "gamma", exec_order, axes, ge::DT_FLOAT16, {ONE, R, ONE}, {ZERO, ONE, ZERO});
+  CreateDataAndLoad(gammaLocal, graph, "gamma", axes, ge::DT_FLOAT16, {ONE, R, ONE}, {ZERO, ONE, ZERO});
 
   Concat y("y");
   y.attr.api.unit = af::ComputeUnit::kUnitVector;
   y.x = {rstd.y, betaLocal.y, gammaLocal.y, rstd.y};
-  SetNodeScheduleAndTensor(y, exec_order, axes, ge::DT_FLOAT16, {A, R, ONE}, {R, ONE, ZERO});
+  SetNodeScheduleAndTensor(y, axes, ge::DT_FLOAT16, {A, R, ONE}, {R, ONE, ZERO});
 
   Store y_out("y_out");
-  InitInputNode(y_out, y.y, exec_order, axes, ge::DT_FLOAT16, {A, R, ONE}, {R, ONE, ZERO});
+  InitInputNode(y_out, y.y, axes, ge::DT_FLOAT16, {A, R, ONE}, {R, ONE, ZERO});
 
   Output buf1("buf1");
-  InitInputNode(buf1, x_out.y, exec_order, axes, ge::DT_FLOAT16, {A, R, ONE}, {R, ONE, ZERO});
+  InitInputNode(buf1, x_out.y, axes, ge::DT_FLOAT16, {A, R, ONE}, {R, ONE, ZERO});
   Output buf2("buf2");
-  InitInputNode(buf2, mean_out.y, exec_order, axes, ge::DT_FLOAT, {A, ONE, ONE}, {ONE, ZERO, ZERO});
+  InitInputNode(buf2, mean_out.y, axes, ge::DT_FLOAT, {A, ONE, ONE}, {ONE, ZERO, ZERO});
   Output buf3("buf3");
-  InitInputNode(buf3, rstd_out.y, exec_order, axes, ge::DT_FLOAT, {A, ONE, ONE}, {ONE, ZERO, ZERO});
+  InitInputNode(buf3, rstd_out.y, axes, ge::DT_FLOAT, {A, ONE, ONE}, {ONE, ZERO, ZERO});
   Output buf("buf");
-  InitInputNode(buf, y_out.y, exec_order, axes, ge::DT_FLOAT16, {A, R, ONE}, {R, ONE, ZERO});
+  InitInputNode(buf, y_out.y, axes, ge::DT_FLOAT16, {A, R, ONE}, {R, ONE, ZERO});
 }
 
 /*
@@ -365,53 +359,51 @@ void Add_Layer_Norm_Slice_BeforeAutofuse(ascir::HintGraph &graph) {
   auto a = graph.CreateAxis("A", A);
   auto r = graph.CreateAxis("R", R);
   const std::initializer_list<int64_t> axes = {a.id, r.id};
-
-  int exec_order = 0;
   Load x1Local("x1Local");
-  CreateDataAndLoad(x1Local, graph, "x1", exec_order, axes, ge::DT_FLOAT16, {A, R}, {R, ONE});
+  CreateDataAndLoad(x1Local, graph, "x1", axes, ge::DT_FLOAT16, {A, R}, {R, ONE});
   Load x2Local("x2Local");
-  CreateDataAndLoad(x2Local, graph, "x2", exec_order, axes, ge::DT_FLOAT16, {A, R}, {R, ONE});
+  CreateDataAndLoad(x2Local, graph, "x2", axes, ge::DT_FLOAT16, {A, R}, {R, ONE});
   Load biasLocal("biasLocal");
-  CreateDataAndLoad(biasLocal, graph, "bias", exec_order, axes, ge::DT_FLOAT16, {A, R}, {R, ONE});
+  CreateDataAndLoad(biasLocal, graph, "bias", axes, ge::DT_FLOAT16, {A, R}, {R, ONE});
 
   Concat mean("mean");
   mean.attr.api.unit = af::ComputeUnit::kUnitVector;
   mean.x = {x1Local.y, x2Local.y, biasLocal.y};
-  SetNodeScheduleAndTensor(mean, exec_order, axes, ge::DT_FLOAT, {A, ONE}, {ONE, ONE});
+  SetNodeScheduleAndTensor(mean, axes, ge::DT_FLOAT, {A, ONE}, {ONE, ONE});
 
   Store x_out("x_out");
-  InitInputNode(x_out, mean.y, exec_order, axes, ge::DT_FLOAT16, {A, R}, {R, ONE});
+  InitInputNode(x_out, mean.y, axes, ge::DT_FLOAT16, {A, R}, {R, ONE});
 
   Concat rstd("rstd");
   rstd.attr.api.unit = af::ComputeUnit::kUnitVector;
   rstd.x = {mean.y, mean.y};
-  SetNodeScheduleAndTensor(rstd, exec_order, axes, ge::DT_FLOAT, {A, R}, {R, ONE});
+  SetNodeScheduleAndTensor(rstd, axes, ge::DT_FLOAT, {A, R}, {R, ONE});
 
   Store mean_out("mean_out");
-  InitInputNode(mean_out, mean.y, exec_order, axes, ge::DT_FLOAT, {A, ONE}, {ONE, ONE});
+  InitInputNode(mean_out, mean.y, axes, ge::DT_FLOAT, {A, ONE}, {ONE, ONE});
   Store rstd_out("rstd_out");
-  InitInputNode(rstd_out, rstd.y, exec_order, axes, ge::DT_FLOAT, {A, ONE}, {ONE, ONE});
+  InitInputNode(rstd_out, rstd.y, axes, ge::DT_FLOAT, {A, ONE}, {ONE, ONE});
 
   Load betaLocal("betaLocal");
-  CreateDataAndLoad(betaLocal, graph, "beta", exec_order, axes, ge::DT_FLOAT16, {ONE, R}, {ZERO, ONE});
+  CreateDataAndLoad(betaLocal, graph, "beta", axes, ge::DT_FLOAT16, {ONE, R}, {ZERO, ONE});
   Load gammaLocal("gammaLocal");
-  CreateDataAndLoad(gammaLocal, graph, "gamma", exec_order, axes, ge::DT_FLOAT16, {ONE, R}, {ZERO, ONE});
+  CreateDataAndLoad(gammaLocal, graph, "gamma", axes, ge::DT_FLOAT16, {ONE, R}, {ZERO, ONE});
 
   Concat y("y");
   y.attr.api.unit = af::ComputeUnit::kUnitVector;
   y.x = {rstd.y, betaLocal.y, gammaLocal.y, rstd.y};
-  SetNodeScheduleAndTensor(y, exec_order, axes, ge::DT_FLOAT16, {A, R}, {R, ONE});
+  SetNodeScheduleAndTensor(y, axes, ge::DT_FLOAT16, {A, R}, {R, ONE});
   Store y_out("y_out");
-  InitInputNode(y_out, y.y, exec_order, axes, ge::DT_FLOAT16, {A, R}, {R, ONE});
+  InitInputNode(y_out, y.y, axes, ge::DT_FLOAT16, {A, R}, {R, ONE});
 
   Output buf1("buf1");
-  InitInputNode(buf1, x_out.y, exec_order, axes, ge::DT_FLOAT16, {A, R}, {R, ONE});
+  InitInputNode(buf1, x_out.y, axes, ge::DT_FLOAT16, {A, R}, {R, ONE});
   Output buf2("buf2");
-  InitInputNode(buf2, mean_out.y, exec_order, axes, ge::DT_FLOAT, {A, ONE}, {ONE, ONE});
+  InitInputNode(buf2, mean_out.y, axes, ge::DT_FLOAT, {A, ONE}, {ONE, ONE});
   Output buf3("buf3");
-  InitInputNode(buf3, rstd_out.y, exec_order, axes, ge::DT_FLOAT, {A, ONE}, {ONE, ONE});
+  InitInputNode(buf3, rstd_out.y, axes, ge::DT_FLOAT, {A, ONE}, {ONE, ONE});
   Output buf("buf");
-  InitInputNode(buf, y_out.y, exec_order, axes, ge::DT_FLOAT16, {A, R}, {R, ONE});
+  InitInputNode(buf, y_out.y, axes, ge::DT_FLOAT16, {A, R}, {R, ONE});
 }
 
 /*
@@ -532,57 +524,55 @@ void Add_Layer_Norm_Welford_BeforeAutofuse(ascir::HintGraph &graph) {
   auto a = graph.CreateAxis("A", A);
   auto r = graph.CreateAxis("R", R);
   const std::initializer_list<int64_t> axes = {a.id, r.id};
-
-  int exec_order = 0;
   Load x1Local("x1Local");
-  CreateDataAndLoad(x1Local, graph, "x1", exec_order, axes, ge::DT_FLOAT16, {A, R}, {R, ONE});
+  CreateDataAndLoad(x1Local, graph, "x1", axes, ge::DT_FLOAT16, {A, R}, {R, ONE});
   Load x2Local("x2Local");
-  CreateDataAndLoad(x2Local, graph, "x2", exec_order, axes, ge::DT_FLOAT16, {A, R}, {R, ONE});
+  CreateDataAndLoad(x2Local, graph, "x2", axes, ge::DT_FLOAT16, {A, R}, {R, ONE});
   Load biasLocal("biasLocal");
-  CreateDataAndLoad(biasLocal, graph, "bias", exec_order, axes, ge::DT_FLOAT16, {A, R}, {R, ONE});
+  CreateDataAndLoad(biasLocal, graph, "bias", axes, ge::DT_FLOAT16, {A, R}, {R, ONE});
 
   Concat part1("part1");
   part1.attr.api.unit = af::ComputeUnit::kUnitVector;
   part1.x = {x1Local.y, x2Local.y, biasLocal.y};
-  SetNodeScheduleAndTensor(part1, exec_order, axes, ge::DT_FLOAT16, {A, R}, {R, ONE});
+  SetNodeScheduleAndTensor(part1, axes, ge::DT_FLOAT16, {A, R}, {R, ONE});
 
   Store x_out("x_out");
-  InitInputNode(x_out, part1.y, exec_order, axes, ge::DT_FLOAT16, {A, R}, {R, ONE});
+  InitInputNode(x_out, part1.y, axes, ge::DT_FLOAT16, {A, R}, {R, ONE});
   Store x_fp32_out("x_fp32_out");
-  InitInputNode(x_fp32_out, part1.y, exec_order, axes, ge::DT_FLOAT, {A, R}, {R, ONE});
+  InitInputNode(x_fp32_out, part1.y, axes, ge::DT_FLOAT, {A, R}, {R, ONE});
 
   Concat part1Final("part1Final");
   part1Final.attr.api.unit = af::ComputeUnit::kUnitVector;
   part1Final.x = {part1.y, part1.y};
-  SetNodeScheduleAndTensor(part1Final, exec_order, axes, ge::DT_FLOAT, {A, ONE}, {ONE, ONE});
+  SetNodeScheduleAndTensor(part1Final, axes, ge::DT_FLOAT, {A, ONE}, {ONE, ONE});
 
   Store mean_out("mean_out");
-  InitInputNode(mean_out, part1Final.y, exec_order, axes, ge::DT_FLOAT, {A, ONE}, {ONE, ONE});
+  InitInputNode(mean_out, part1Final.y, axes, ge::DT_FLOAT, {A, ONE}, {ONE, ONE});
   Store rstd_out("rstd_out");
-  InitInputNode(rstd_out, part1Final.y, exec_order, axes, ge::DT_FLOAT, {A, ONE}, {ONE, ONE});
+  InitInputNode(rstd_out, part1Final.y, axes, ge::DT_FLOAT, {A, ONE}, {ONE, ONE});
 
   Load x32("x32");
-  InitInputNode(x32, x_fp32_out.y, exec_order, axes, ge::DT_FLOAT, {A, R}, {R, ONE});
+  InitInputNode(x32, x_fp32_out.y, axes, ge::DT_FLOAT, {A, R}, {R, ONE});
   Load betaLocal("betaLocal");
-  CreateDataAndLoad(betaLocal, graph, "beta", exec_order, axes, ge::DT_FLOAT16, {ONE, R}, {ZERO, ONE});
+  CreateDataAndLoad(betaLocal, graph, "beta", axes, ge::DT_FLOAT16, {ONE, R}, {ZERO, ONE});
   Load gammaLocal("gammaLocal");
-  CreateDataAndLoad(gammaLocal, graph, "gamma", exec_order, axes, ge::DT_FLOAT16, {ONE, R}, {ZERO, ONE});
+  CreateDataAndLoad(gammaLocal, graph, "gamma", axes, ge::DT_FLOAT16, {ONE, R}, {ZERO, ONE});
 
   Concat y("y");
   y.attr.api.unit = af::ComputeUnit::kUnitVector;
   y.x = {x32.y, betaLocal.y, gammaLocal.y, x32.y};
-  SetNodeScheduleAndTensor(y, exec_order, axes, ge::DT_FLOAT16, {A, R}, {R, ONE});
+  SetNodeScheduleAndTensor(y, axes, ge::DT_FLOAT16, {A, R}, {R, ONE});
   Store y_out("y_out");
-  InitInputNode(y_out, y.y, exec_order, axes, ge::DT_FLOAT16, {A, R}, {R, ONE});
+  InitInputNode(y_out, y.y, axes, ge::DT_FLOAT16, {A, R}, {R, ONE});
 
   Output buf1("buf1");
-  InitInputNode(buf1, x_out.y, exec_order, axes, ge::DT_FLOAT16, {A, R}, {R, ONE});
+  InitInputNode(buf1, x_out.y, axes, ge::DT_FLOAT16, {A, R}, {R, ONE});
   Output buf2("buf2");
-  InitInputNode(buf2, mean_out.y, exec_order, axes, ge::DT_FLOAT, {A, ONE}, {ONE, ONE});
+  InitInputNode(buf2, mean_out.y, axes, ge::DT_FLOAT, {A, ONE}, {ONE, ONE});
   Output buf3("buf3");
-  InitInputNode(buf3, rstd_out.y, exec_order, axes, ge::DT_FLOAT, {A, ONE}, {ONE, ONE});
+  InitInputNode(buf3, rstd_out.y, axes, ge::DT_FLOAT, {A, ONE}, {ONE, ONE});
   Output buf("buf");
-  InitInputNode(buf, y_out.y, exec_order, axes, ge::DT_FLOAT16, {A, R}, {R, ONE});
+  InitInputNode(buf, y_out.y, axes, ge::DT_FLOAT16, {A, R}, {R, ONE});
 }
 
 void Add_Layer_Norm_Welford_AfterScheduler(ascir::HintGraph &graph) {

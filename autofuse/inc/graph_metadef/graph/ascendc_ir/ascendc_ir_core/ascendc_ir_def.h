@@ -237,7 +237,7 @@ struct ApiInfo {
 };
 
 struct SchedInfo {
-  // [HI] 执行序，按值从小到大执行
+  // [HI] 已废弃(2026-07-15)，仅为兼容性保留，经过兼容周期后可删除
   int64_t exec_order{kIdNone};
 
   // [HI] 节点所处的多层嵌套循环的轴`id`，按循环表示从外层到内层的轴`id`

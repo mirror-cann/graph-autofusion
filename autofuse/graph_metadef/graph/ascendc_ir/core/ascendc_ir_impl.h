@@ -105,12 +105,10 @@ class AscGraphImpl {
   std::string GetName() const;
 
   AscOpOutput CreateContiguousData(const char *name, const ge::DataType &dt, const std::vector<Axis> &axes,
-                                   const ge::Format &format);
+                                   const size_t index, const ge::Format &format);
 
   AscOpOutput CreateContiguousOut(const char *name, const ge::DataType &dt, const std::vector<Axis> &axes,
                                   const ge::Format &format);
-
-  void SortByExecOrder();
 
   const ComputeGraphPtr GetComputeGraph() const;
 

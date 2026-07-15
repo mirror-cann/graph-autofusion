@@ -15,9 +15,8 @@ using namespace att;
 using namespace af::ascir_op;
 namespace {
 template <typename T>
-void InitGraphNode(T &node, int32_t &exec_order, std::initializer_list<int64_t> axis, af::DataType dtype,
+void InitGraphNode(T &node, std::initializer_list<int64_t> axis, af::DataType dtype,
                    std::initializer_list<Expr> repeats, std::initializer_list<Expr> strides) {
-  node.attr.sched.exec_order = exec_order++;
   node.attr.sched.axis = axis;
   node.y.dtype = dtype;
   *node.y.axis = axis;
@@ -106,31 +105,29 @@ void BrcBufBeforeAutoFuse1(af::AscGraph &graph) {
   auto normalS = std::initializer_list<Expr>{Z1 * Z2, Z2, ONE};
   auto beforeR = std::initializer_list<Expr>{Z0, ONE, Z2};
   auto beforeS = std::initializer_list<Expr>{Z2, ZERO, ONE};
-  int32_t exec_order = 0;
 
   Data input_data("input_data", graph);
-  InitGraphNode(input_data, exec_order, axis, af::DT_FLOAT16, beforeR, beforeS);
+  InitGraphNode(input_data, axis, af::DT_FLOAT16, beforeR, beforeS);
   Load load("load");
   load.x = input_data.y;
-  InitGraphNode(load, exec_order, axis, af::DT_FLOAT16, beforeR, beforeS);
+  InitGraphNode(load, axis, af::DT_FLOAT16, beforeR, beforeS);
   Cast cast0("cast0");
   cast0.x = load.y;
-  InitGraphNode(cast0, exec_order, axis, af::DT_FLOAT, beforeR, beforeS);
+  InitGraphNode(cast0, axis, af::DT_FLOAT, beforeR, beforeS);
   Broadcast broadcast("broadcast");
   broadcast.x = cast0.y;
-  InitGraphNode(broadcast, exec_order, axis, af::DT_FLOAT, normalR, normalS);
+  InitGraphNode(broadcast, axis, af::DT_FLOAT, normalR, normalS);
   Sum sum("sum");
   sum.x = broadcast.y;
-  InitGraphNode(sum, exec_order, axis, af::DT_FLOAT, beforeR, beforeS);
+  InitGraphNode(sum, axis, af::DT_FLOAT, beforeR, beforeS);
   Cast cast1("cast1");
   cast1.x = sum.y;
-  InitGraphNode(cast1, exec_order, axis, af::DT_FLOAT16, beforeR, beforeS);
+  InitGraphNode(cast1, axis, af::DT_FLOAT16, beforeR, beforeS);
   Store store("store");
   store.x = cast1.y;
-  InitGraphNode(store, exec_order, axis, af::DT_FLOAT16, beforeR, beforeS);
+  InitGraphNode(store, axis, af::DT_FLOAT16, beforeR, beforeS);
   Output output_data("output_data");
   output_data.x = store.y;
-  output_data.attr.sched.exec_order = exec_order++;
 }
 
 void BrcBufAfterScheduler1(af::AscGraph &graph) {
@@ -194,31 +191,29 @@ void BrcBufBeforeAutoFuse2(af::AscGraph &graph) {
   auto beforeS = std::initializer_list<Expr>{Z2, ZERO, ONE};
   auto reduceR = std::initializer_list<Expr>{Z0, Z1, ONE};
   auto reduceS = std::initializer_list<Expr>{Z1, ONE, ZERO};
-  int32_t exec_order = 0;
 
   Data input_data("input_data", graph);
-  InitGraphNode(input_data, exec_order, axis, af::DT_FLOAT16, beforeR, beforeS);
+  InitGraphNode(input_data, axis, af::DT_FLOAT16, beforeR, beforeS);
   Load load("load");
   load.x = input_data.y;
-  InitGraphNode(load, exec_order, axis, af::DT_FLOAT16, beforeR, beforeS);
+  InitGraphNode(load, axis, af::DT_FLOAT16, beforeR, beforeS);
   Cast cast0("cast0");
   cast0.x = load.y;
-  InitGraphNode(cast0, exec_order, axis, af::DT_FLOAT, beforeR, beforeS);
+  InitGraphNode(cast0, axis, af::DT_FLOAT, beforeR, beforeS);
   Broadcast broadcast("broadcast");
   broadcast.x = cast0.y;
-  InitGraphNode(broadcast, exec_order, axis, af::DT_FLOAT, normalR, normalS);
+  InitGraphNode(broadcast, axis, af::DT_FLOAT, normalR, normalS);
   Sum sum("sum");
   sum.x = broadcast.y;
-  InitGraphNode(sum, exec_order, axis, af::DT_FLOAT, reduceR, reduceS);
+  InitGraphNode(sum, axis, af::DT_FLOAT, reduceR, reduceS);
   Cast cast1("cast1");
   cast1.x = sum.y;
-  InitGraphNode(cast1, exec_order, axis, af::DT_FLOAT16, reduceR, reduceS);
+  InitGraphNode(cast1, axis, af::DT_FLOAT16, reduceR, reduceS);
   Store store("store");
   store.x = cast1.y;
-  InitGraphNode(store, exec_order, axis, af::DT_FLOAT16, reduceR, reduceS);
+  InitGraphNode(store, axis, af::DT_FLOAT16, reduceR, reduceS);
   Output output_data("output_data");
   output_data.x = store.y;
-  output_data.attr.sched.exec_order = exec_order++;
 }
 
 void BrcBufBeforeAutoFuse3(af::AscGraph &graph) {
@@ -236,28 +231,26 @@ void BrcBufBeforeAutoFuse3(af::AscGraph &graph) {
   auto normalS = std::initializer_list<Expr>{Z1 * Z2, Z2, ONE};
   auto beforeR = std::initializer_list<Expr>{Z0, ONE, Z2};
   auto beforeS = std::initializer_list<Expr>{Z2, ZERO, ONE};
-  int32_t exec_order = 0;
 
   Data input_data("input_data", graph);
-  InitGraphNode(input_data, exec_order, axis, af::DT_FLOAT16, beforeR, beforeS);
+  InitGraphNode(input_data, axis, af::DT_FLOAT16, beforeR, beforeS);
   Load load("load");
   load.x = input_data.y;
-  InitGraphNode(load, exec_order, axis, af::DT_FLOAT16, beforeR, beforeS);
+  InitGraphNode(load, axis, af::DT_FLOAT16, beforeR, beforeS);
   Cast cast0("cast0");
   cast0.x = load.y;
-  InitGraphNode(cast0, exec_order, axis, af::DT_FLOAT, beforeR, beforeS);
+  InitGraphNode(cast0, axis, af::DT_FLOAT, beforeR, beforeS);
   Broadcast broadcast("broadcast");
   broadcast.x = cast0.y;
-  InitGraphNode(broadcast, exec_order, axis, af::DT_FLOAT, normalR, normalS);
+  InitGraphNode(broadcast, axis, af::DT_FLOAT, normalR, normalS);
   Cast cast1("cast1");
   cast1.x = broadcast.y;
-  InitGraphNode(cast1, exec_order, axis, af::DT_FLOAT16, normalR, normalS);
+  InitGraphNode(cast1, axis, af::DT_FLOAT16, normalR, normalS);
   Store store("store");
   store.x = cast1.y;
-  InitGraphNode(store, exec_order, axis, af::DT_FLOAT16, normalR, normalS);
+  InitGraphNode(store, axis, af::DT_FLOAT16, normalR, normalS);
   Output output_data("output_data");
   output_data.x = store.y;
-  output_data.attr.sched.exec_order = exec_order++;
 }
 
 void BrcBufAfterScheduler3(af::AscGraph &graph) {
@@ -318,28 +311,26 @@ void BrcBufBeforeAutoFuse4(af::AscGraph &graph) {
   auto normalS = std::initializer_list<Expr>{Z1 * Z2, Z2, ONE};
   auto beforeR = std::initializer_list<Expr>{Z0, ONE, Z2};
   auto beforeS = std::initializer_list<Expr>{Z2, ZERO, ONE};
-  int32_t exec_order = 0;
 
   Data input_data("input_data", graph);
-  InitGraphNode(input_data, exec_order, axis, af::DT_FLOAT16, beforeR, beforeS);
+  InitGraphNode(input_data, axis, af::DT_FLOAT16, beforeR, beforeS);
   Load load("load");
   load.x = input_data.y;
-  InitGraphNode(load, exec_order, axis, af::DT_FLOAT16, beforeR, beforeS);
+  InitGraphNode(load, axis, af::DT_FLOAT16, beforeR, beforeS);
   Cast cast0("cast0");
   cast0.x = load.y;
-  InitGraphNode(cast0, exec_order, axis, af::DT_FLOAT, beforeR, beforeS);
+  InitGraphNode(cast0, axis, af::DT_FLOAT, beforeR, beforeS);
   Sum sum("sum");
   sum.x = cast0.y;
-  InitGraphNode(sum, exec_order, axis, af::DT_FLOAT, beforeR, beforeS);
+  InitGraphNode(sum, axis, af::DT_FLOAT, beforeR, beforeS);
   Cast cast1("cast1");
   cast1.x = sum.y;
-  InitGraphNode(cast1, exec_order, axis, af::DT_FLOAT16, beforeR, beforeS);
+  InitGraphNode(cast1, axis, af::DT_FLOAT16, beforeR, beforeS);
   Store store("store");
   store.x = cast1.y;
-  InitGraphNode(store, exec_order, axis, af::DT_FLOAT16, beforeR, beforeS);
+  InitGraphNode(store, axis, af::DT_FLOAT16, beforeR, beforeS);
   Output output_data("output_data");
   output_data.x = store.y;
-  output_data.attr.sched.exec_order = exec_order++;
 }
 
 void BrcBufAfterScheduler4(af::AscGraph &graph) {

@@ -55,7 +55,6 @@ void ConstructAscGraph(AscGraph &graph) {
   Axis &s1_axis = graph.CreateAxis("S1", s1);
 
   ascir_op::Scalar scalar("Scalar", graph);
-  scalar.attr.sched.exec_order = 0;
   scalar.attr.sched.axis = {s0_axis.id, s1_axis.id};
   scalar.y.dtype = ge::DT_FLOAT16;
   scalar.y.format = ge::FORMAT_ND;
@@ -65,7 +64,6 @@ void ConstructAscGraph(AscGraph &graph) {
   scalar.ir_attr.SetValue("Test");
 
   ascir_op::Data data1("data1", graph);
-  data1.attr.sched.exec_order = 0;
   data1.attr.sched.axis = {s0_axis.id, s1_axis.id};
   data1.y.dtype = ge::DT_FLOAT16;
   data1.y.format = ge::FORMAT_ND;
@@ -75,7 +73,6 @@ void ConstructAscGraph(AscGraph &graph) {
   data1.ir_attr.SetIndex(2);
 
   ascir_op::Data data2("data2", graph);
-  data2.attr.sched.exec_order = 0;
   data2.attr.sched.axis = {s0_axis.id, s1_axis.id};
   data2.y.dtype = ge::DT_FLOAT16;
   data2.y.format = ge::FORMAT_ND;
@@ -87,7 +84,6 @@ void ConstructAscGraph(AscGraph &graph) {
   ascir_op::Add add("add");
   add.x1 = scalar.y;
   add.x2 = scalar.y;
-  add.attr.sched.exec_order = 1;
   add.attr.sched.axis = {s0_axis.id, s1_axis.id};
   add.y.dtype = ge::DT_FLOAT16;
   add.y.format = ge::FORMAT_ND;
@@ -97,7 +93,6 @@ void ConstructAscGraph(AscGraph &graph) {
 
   ascir_op::Exp exp("exp");
   exp.x = scalar.y;
-  exp.attr.sched.exec_order = 2;
   exp.attr.sched.axis = {s0_axis.id, s1_axis.id};
   exp.y.dtype = ge::DT_FLOAT16;
   exp.y.format = ge::FORMAT_ND;
@@ -107,7 +102,6 @@ void ConstructAscGraph(AscGraph &graph) {
 
   ascir_op::Concat concat("concat");
   concat.x = {add.y, exp.y};
-  concat.attr.sched.exec_order = 3;
   concat.attr.sched.axis = {s0_axis.id, s1_axis.id};
   concat.y.dtype = ge::DT_FLOAT16;
   concat.y.format = ge::FORMAT_ND;
@@ -119,7 +113,6 @@ void ConstructAscGraph(AscGraph &graph) {
   fake_opa.x1 = exp.y;
   fake_opa.x2 = exp.y;  // 可选输入
   fake_opa.x3 = data1.y;
-  fake_opa.attr.sched.exec_order = 4;
   fake_opa.attr.sched.axis = {s0_axis.id, s1_axis.id};
   fake_opa.y.dtype = ge::DT_FLOAT16;
   fake_opa.y.format = ge::FORMAT_ND;
@@ -132,7 +125,6 @@ void ConstructAscGraph(AscGraph &graph) {
   leaky_relu.ir_attr.SetNegative_slope(1);
 
   ascir_op::Output output("output");
-  output.attr.sched.exec_order = 4;
   output.x = fake_opa.y;
   output.ir_attr.SetIndex(1);
 }
@@ -225,7 +217,6 @@ void ConstructWrongAscGraph(AscGraph &graph) {
   Axis &s1_axis = graph.CreateAxis("S1", s1);
 
   ascir_op::Data data("data", graph);
-  data.attr.sched.exec_order = 0;
   data.attr.sched.axis = {s0_axis.id, s1_axis.id};
   data.y.dtype = ge::DT_FLOAT16;
   data.y.format = ge::FORMAT_ND;
@@ -236,7 +227,6 @@ void ConstructWrongAscGraph(AscGraph &graph) {
 
   ascir_op::Add add("add");
   add.x1 = data.y;
-  add.attr.sched.exec_order = 1;
   add.attr.sched.axis = {s0_axis.id, s1_axis.id};
   add.y.dtype = ge::DT_FLOAT16;
   add.y.format = ge::FORMAT_ND;
@@ -246,7 +236,6 @@ void ConstructWrongAscGraph(AscGraph &graph) {
 
   ascir_op::Exp exp("exp");
   exp.x = add.y;
-  exp.attr.sched.exec_order = 2;
   exp.attr.sched.axis = {s0_axis.id, s1_axis.id};
   exp.y.dtype = ge::DT_FLOAT16;
   exp.y.format = ge::FORMAT_ND;
@@ -257,7 +246,6 @@ void ConstructWrongAscGraph(AscGraph &graph) {
   add.x2 = exp.y;
 
   ascir_op::Output output("output");
-  output.attr.sched.exec_order = 4;
   output.x = add.y;
   output.ir_attr.SetIndex(1);
 }

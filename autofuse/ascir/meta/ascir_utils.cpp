@@ -851,7 +851,6 @@ std::string DebugStr(const ascir::Graph &graph, bool verbose) {
   ss << "Nodes:" << std::endl;
   size_t idx = 0UL;
   for (auto node : graph.GetAllNodes()) {
-    // Node name and exec_order
     ss << "  " << node->GetName() << ": " << node->GetType() << " (" << idx++ << ")" << std::endl;
 
     NodeAttrStr(ss, graph, node, verbose);

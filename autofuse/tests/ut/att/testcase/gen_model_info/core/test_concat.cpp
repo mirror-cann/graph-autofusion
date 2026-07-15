@@ -21,9 +21,8 @@
 
 using namespace af::ascir_op;
 namespace {
-void InitDataNode(Data &node, int &exec_order, const std::vector<int64_t> &axis, af::DataType dtype,
+void InitDataNode(Data &node, const std::vector<int64_t> &axis, af::DataType dtype,
                   const std::vector<af::Expression> &repeats, const std::vector<af::Expression> &strides) {
-  node.attr.sched.exec_order = exec_order++;
   node.attr.sched.axis = axis;
   node.y.dtype = dtype;
   *node.y.axis = axis;
@@ -31,9 +30,8 @@ void InitDataNode(Data &node, int &exec_order, const std::vector<int64_t> &axis,
   *node.y.strides = strides;
 }
 
-void InitLoadNode(Load &node, int &exec_order, const std::vector<int64_t> &axis, af::DataType dtype,
+void InitLoadNode(Load &node, const std::vector<int64_t> &axis, af::DataType dtype,
                   const std::vector<af::Expression> &repeats, const std::vector<af::Expression> &strides) {
-  node.attr.sched.exec_order = exec_order++;
   node.attr.sched.axis = axis;
   node.y.dtype = dtype;
   *node.y.axis = axis;
@@ -41,9 +39,8 @@ void InitLoadNode(Load &node, int &exec_order, const std::vector<int64_t> &axis,
   *node.y.strides = strides;
 }
 
-void InitStoreNode(Store &node, int &exec_order, const std::vector<int64_t> &axis, af::DataType dtype,
+void InitStoreNode(Store &node, const std::vector<int64_t> &axis, af::DataType dtype,
                    const std::vector<af::Expression> &repeats, const std::vector<af::Expression> &strides) {
-  node.attr.sched.exec_order = exec_order++;
   node.attr.sched.axis = axis;
   node.y.dtype = dtype;
   *node.y.axis = axis;
@@ -51,9 +48,8 @@ void InitStoreNode(Store &node, int &exec_order, const std::vector<int64_t> &axi
   *node.y.strides = strides;
 }
 
-void InitOutputNode(Output &node, int &exec_order, const std::vector<int64_t> &axis, af::DataType dtype,
+void InitOutputNode(Output &node, const std::vector<int64_t> &axis, af::DataType dtype,
                     const std::vector<af::Expression> &repeats, const std::vector<af::Expression> &strides) {
-  node.attr.sched.exec_order = exec_order++;
   node.y.dtype = dtype;
   *node.y.axis = axis;
   *node.y.repeats = repeats;
@@ -104,9 +100,8 @@ std::string RemoveAutoFuseTilingHeadGuards(const std::string &input) {
 
   return oss.str();
 }
-void InitConcatAxes(Concat &node, int &exec_order, const std::vector<int64_t> &axis, af::DataType dtype,
+void InitConcatAxes(Concat &node, const std::vector<int64_t> &axis, af::DataType dtype,
                     const std::vector<af::Expression> &repeats, const std::vector<af::Expression> &strides) {
-  node.attr.sched.exec_order = exec_order++;
   node.attr.sched.axis = axis;
   node.y.dtype = dtype;
   *node.y.axis = axis;
@@ -123,59 +118,57 @@ void Concat_Normal_BeforeAutofuse(ascir::HintGraph &graph) {
   auto str_ar = std::vector<af::Expression>{R, ONE, ZERO};
   auto rep_a = std::vector<af::Expression>{A, ONE, ONE};
   auto str_a = std::vector<af::Expression>{ONE, ZERO, ZERO};
-  int exec_order = 0;
 
   Data x1("x1", graph);
-  InitDataNode(x1, exec_order, axis, af::DT_FLOAT16, rep_ar, str_ar);
+  InitDataNode(x1, axis, af::DT_FLOAT16, rep_ar, str_ar);
   Load x1L("x1Local");
   x1L.x = x1.y;
-  InitLoadNode(x1L, exec_order, axis, af::DT_FLOAT16, rep_ar, str_ar);
+  InitLoadNode(x1L, axis, af::DT_FLOAT16, rep_ar, str_ar);
   Data x2("x2", graph);
-  InitDataNode(x2, exec_order, axis, af::DT_FLOAT16, rep_ar, str_ar);
+  InitDataNode(x2, axis, af::DT_FLOAT16, rep_ar, str_ar);
   Load x2L("x2Local");
   x2L.x = x2.y;
-  InitLoadNode(x2L, exec_order, axis, af::DT_FLOAT16, rep_ar, str_ar);
+  InitLoadNode(x2L, axis, af::DT_FLOAT16, rep_ar, str_ar);
   Data bias("bias", graph);
-  InitDataNode(bias, exec_order, axis, af::DT_FLOAT16, rep_ar, str_ar);
+  InitDataNode(bias, axis, af::DT_FLOAT16, rep_ar, str_ar);
   Load biasL("biasLocal");
   biasL.x = bias.y;
-  InitLoadNode(biasL, exec_order, axis, af::DT_FLOAT16, rep_ar, str_ar);
+  InitLoadNode(biasL, axis, af::DT_FLOAT16, rep_ar, str_ar);
 
   Concat mean("mean");
   mean.x = {x1L.y, x2L.y, biasL.y};
-  InitConcatAxes(mean, exec_order, axis, af::DT_FLOAT, rep_ar, str_ar);
+  InitConcatAxes(mean, axis, af::DT_FLOAT, rep_ar, str_ar);
   Store x_out("x_out");
   x_out.x = mean.y;
-  InitStoreNode(x_out, exec_order, axis, af::DT_FLOAT16, rep_ar, str_ar);
+  InitStoreNode(x_out, axis, af::DT_FLOAT16, rep_ar, str_ar);
   Store mean_out("mean_out");
   mean_out.x = mean.y;
-  InitStoreNode(mean_out, exec_order, axis, af::DT_FLOAT, rep_a, str_a);
+  InitStoreNode(mean_out, axis, af::DT_FLOAT, rep_a, str_a);
 
   Data one("one", graph);
-  InitDataNode(one, exec_order, axis, af::DT_FLOAT, {ONE, ONE, BL}, {ZERO, ZERO, ONE});
+  InitDataNode(one, axis, af::DT_FLOAT, {ONE, ONE, BL}, {ZERO, ZERO, ONE});
   Concat rstd("rstd");
   rstd.x = {mean.y, mean.y, one.y};
-  InitConcatAxes(rstd, exec_order, axis, af::DT_FLOAT, rep_ar, str_ar);
+  InitConcatAxes(rstd, axis, af::DT_FLOAT, rep_ar, str_ar);
   Store rstd_out("rstd_out");
   rstd_out.x = rstd.y;
-  InitStoreNode(rstd_out, exec_order, axis, af::DT_FLOAT, rep_a, str_a);
+  InitStoreNode(rstd_out, axis, af::DT_FLOAT, rep_a, str_a);
 
   auto rep_r = std::vector<af::Expression>{ONE, R, ONE};
   auto str_r = std::vector<af::Expression>{ZERO, ONE, ZERO};
   Data beta("beta", graph);
-  InitDataNode(beta, exec_order, axis, af::DT_FLOAT16, rep_r, str_r);
+  InitDataNode(beta, axis, af::DT_FLOAT16, rep_r, str_r);
   Load betaL("betaLocal");
   betaL.x = beta.y;
-  InitLoadNode(betaL, exec_order, axis, af::DT_FLOAT16, rep_r, str_r);
+  InitLoadNode(betaL, axis, af::DT_FLOAT16, rep_r, str_r);
   Data gamma("gamma", graph);
-  InitDataNode(gamma, exec_order, axis, af::DT_FLOAT16, rep_r, str_r);
+  InitDataNode(gamma, axis, af::DT_FLOAT16, rep_r, str_r);
   Load gammaL("gammaLocal");
   gammaL.x = gamma.y;
-  InitLoadNode(gammaL, exec_order, axis, af::DT_FLOAT16, rep_r, str_r);
+  InitLoadNode(gammaL, axis, af::DT_FLOAT16, rep_r, str_r);
 
   Concat y("y");
   y.attr.api.unit = af::ComputeUnit::kUnitVector;
-  y.attr.sched.exec_order = exec_order++;
   y.attr.sched.axis = axis;
   y.x = {rstd.y, betaL.y, gammaL.y, rstd.y};
   y.y.dtype = af::DT_FLOAT16;
@@ -187,26 +180,26 @@ void Concat_Normal_BeforeAutofuse(ascir::HintGraph &graph) {
   *concat.y.axis = axis, *concat.y.repeats = rep_ar, *concat.y.strides = str_ar;
   Store cat_out("cat_out");
   cat_out.x = y.y;
-  InitStoreNode(cat_out, exec_order, axis, af::DT_FLOAT16, rep_ar, str_ar);
+  InitStoreNode(cat_out, axis, af::DT_FLOAT16, rep_ar, str_ar);
   Store y_out("y_out");
   y_out.x = y.y;
-  InitStoreNode(y_out, exec_order, axis, af::DT_FLOAT16, rep_ar, str_ar);
+  InitStoreNode(y_out, axis, af::DT_FLOAT16, rep_ar, str_ar);
 
   Output buf1("buf1");
   buf1.x = x_out.y;
-  InitOutputNode(buf1, exec_order, axis, af::DT_FLOAT16, rep_ar, str_ar);
+  InitOutputNode(buf1, axis, af::DT_FLOAT16, rep_ar, str_ar);
   Output buf2("buf2");
   buf2.x = mean_out.y;
-  InitOutputNode(buf2, exec_order, axis, af::DT_FLOAT, rep_a, str_a);
+  InitOutputNode(buf2, axis, af::DT_FLOAT, rep_a, str_a);
   Output buf3("buf3");
   buf3.x = rstd_out.y;
-  InitOutputNode(buf3, exec_order, axis, af::DT_FLOAT, rep_a, str_a);
+  InitOutputNode(buf3, axis, af::DT_FLOAT, rep_a, str_a);
   Output buf("buf");
   buf.x = y_out.y;
-  InitOutputNode(buf, exec_order, axis, af::DT_FLOAT16, rep_ar, str_ar);
+  InitOutputNode(buf, axis, af::DT_FLOAT16, rep_ar, str_ar);
   Output buf4("buf4");
   buf4.x = cat_out.y;
-  InitOutputNode(buf4, exec_order, axis, af::DT_FLOAT16, rep_ar, str_ar);
+  InitOutputNode(buf4, axis, af::DT_FLOAT16, rep_ar, str_ar);
 }
 
 /*
@@ -449,8 +442,8 @@ Status BuildTqueTbufAscendGraph_single_case(af::AscGraph &graph, bool reuse_temp
   auto nd = graph.CreateAxis("nd", ND);
   auto [ndB, ndb] = graph.BlockSplit(nd.id);
   auto [ndbT, ndbt] = graph.TileSplit(ndb->id);
-  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {nd});
-  auto data2 = graph.CreateContiguousData("input2", DT_FLOAT, {nd});
+  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {nd}, 0);
+  auto data2 = graph.CreateContiguousData("input2", DT_FLOAT, {nd}, 1);
   LOOP(*ndB) {
     LOOP(*ndbT) {
       auto load1 = Load("load1", data1).TQue(Position::kPositionVecIn, 1, 1);
@@ -480,10 +473,10 @@ Status BuildTqueTbufAscendGraph_multi_case_g0(af::AscGraph &graph) {
   auto nd = graph.CreateAxis("nd", ND);
   auto [ndB, ndb] = graph.BlockSplit(nd.id);
   auto [ndbT, ndbt] = graph.TileSplit(ndb->id);
-  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {nd});
-  auto data2 = graph.CreateContiguousData("input2", DT_FLOAT, {nd});
-  auto data3 = graph.CreateContiguousData("input3", DT_FLOAT, {nd});
-  auto data4 = graph.CreateContiguousData("input4", DT_FLOAT, {nd});
+  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {nd}, 0);
+  auto data2 = graph.CreateContiguousData("input2", DT_FLOAT, {nd}, 1);
+  auto data3 = graph.CreateContiguousData("input3", DT_FLOAT, {nd}, 2);
+  auto data4 = graph.CreateContiguousData("input4", DT_FLOAT, {nd}, 3);
   LOOP(*ndB) {
     LOOP(*ndbT) {
       auto load_tque0 = Load("load1", data1).TQue(Position::kPositionVecIn, 1, 1);
@@ -523,10 +516,10 @@ Status BuildTqueTbufAscendGraph_multi_case_g1(af::AscGraph &graph) {
   auto z0 = graph.CreateAxis("z0", S0);
   auto [z0B, z0b] = graph.BlockSplit(z0.id);
   auto [z0bT, z0bt] = graph.TileSplit(z0b->id);
-  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {z0});
-  auto data2 = graph.CreateContiguousData("input2", DT_FLOAT, {z0});
-  auto data3 = graph.CreateContiguousData("input3", DT_FLOAT, {z0});
-  auto data4 = graph.CreateContiguousData("input4", DT_FLOAT, {z0});
+  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {z0}, 0);
+  auto data2 = graph.CreateContiguousData("input2", DT_FLOAT, {z0}, 1);
+  auto data3 = graph.CreateContiguousData("input3", DT_FLOAT, {z0}, 2);
+  auto data4 = graph.CreateContiguousData("input4", DT_FLOAT, {z0}, 3);
   LOOP(*z0B) {
     LOOP(*z0bT) {
       auto load_tque0 = Load("load1", data1).TQue(Position::kPositionVecIn, 1, 1);

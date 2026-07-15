@@ -58,9 +58,7 @@ void OriGraphBasicBlock(ge::AscGraph &graph) {
   auto axis_list = {z0.id, z1.id};
   std::initializer_list<Expr> repeats = {s0, s1};
   std::initializer_list<Expr> strides = {s1, ONE};
-  int32_t exec_order = 0;
   Data data("data", graph);
-  data.attr.sched.exec_order = exec_order++;
   data.attr.sched.axis = axis_list;
   data.y.dtype = ge::DT_FLOAT16;
   *data.y.axis = axis_list;
@@ -69,7 +67,6 @@ void OriGraphBasicBlock(ge::AscGraph &graph) {
 
   Load load("load");
   load.x = data.y;
-  load.attr.sched.exec_order = exec_order++;
   load.attr.sched.axis = axis_list;
   load.y.dtype = ge::DT_FLOAT16;
   *load.y.axis = axis_list;
@@ -78,7 +75,6 @@ void OriGraphBasicBlock(ge::AscGraph &graph) {
 
   Output data_out("out");
   data_out.x = load.y;
-  data_out.attr.sched.exec_order = exec_order++;
   data_out.y.dtype = ge::DT_FLOAT16;
   *data_out.y.axis = axis_list;
   *data_out.y.repeats = repeats;
@@ -130,9 +126,7 @@ void OriGraphReduceScalar(ge::AscGraph &graph) {
   auto axis_list = {z0.id, z1.id};
   std::initializer_list<Expr> repeats = {s0, s1};
   std::initializer_list<Expr> strides = {s1, ONE};
-  int32_t exec_order = 0;
   Data data("data", graph);
-  data.attr.sched.exec_order = exec_order++;
   data.attr.sched.axis = axis_list;
   data.y.dtype = ge::DT_FLOAT16;
   *data.y.axis = axis_list;
@@ -141,7 +135,6 @@ void OriGraphReduceScalar(ge::AscGraph &graph) {
 
   Load load("load");
   load.x = data.y;
-  load.attr.sched.exec_order = exec_order++;
   load.attr.sched.axis = axis_list;
   load.y.dtype = ge::DT_FLOAT16;
   *load.y.axis = axis_list;
@@ -150,7 +143,6 @@ void OriGraphReduceScalar(ge::AscGraph &graph) {
 
   Sum reduce_sum("reduce_sum");
   reduce_sum.x = load.y;
-  reduce_sum.attr.sched.exec_order = exec_order++;
   reduce_sum.attr.sched.axis = axis_list;
   reduce_sum.y.dtype = ge::DT_FLOAT16;
   *reduce_sum.y.axis = axis_list;
@@ -159,7 +151,6 @@ void OriGraphReduceScalar(ge::AscGraph &graph) {
 
   Output data_out("out");
   data_out.x = reduce_sum.y;
-  data_out.attr.sched.exec_order = exec_order++;
   data_out.y.dtype = ge::DT_FLOAT16;
   *data_out.y.axis = axis_list;
   *data_out.y.repeats = repeats;

@@ -182,7 +182,8 @@ message ShapeEnvAttrGroupsDef {
 }
 
 message SchedInfoDef {
-  int64 exec_order = 1;
+  // Deprecated since 2026-07-15. Kept only for compatibility and can be removed after compatibility window.
+  int64 exec_order = 1 [deprecated = true];
   repeated int64 axis = 2;
   int64 loop_axis = 3;
   int32 exec_condition = 4;
@@ -396,7 +397,7 @@ message GraphDef
 message ModelDef
 {
 	string name         = 1;  // name
-	uint32 version      = 2;  // IR Proto verion
+	uint32 version      = 2;  // IR Proto version
 	string custom_version = 3;  // User model version number, passed in by user
 
     repeated GraphDef graph = 7;  // Graph definition，graph[0] represents the main diagram in modeldef

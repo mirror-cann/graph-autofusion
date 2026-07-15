@@ -51,10 +51,7 @@ void FaBeforeAutoFuse(ge::AscGraph &graph) {
 
   std::initializer_list<Expr> reduceResRepeat = {ONE, ONE, ONE, S1, ONE, ONE, BL};
   std::initializer_list<Expr> reduceResStride = {ZERO, ZERO, ZERO, BL, ZERO, ZERO, ONE};
-
-  int32_t exec_order = 0;
   Data query("query", graph);
-  query.attr.sched.exec_order = exec_order++;
   query.attr.sched.axis = bmm1ResAxis;
   query.y.dtype = ge::DT_FLOAT16;
   *query.y.axis = bmm1ResAxis;
@@ -64,7 +61,6 @@ void FaBeforeAutoFuse(ge::AscGraph &graph) {
   query.axis_continuous_map = {{0, 1}, {2}, {3}, {4}, {INT64_MAX}, {5}, {INT64_MAX}};
 
   Data key("key", graph);
-  key.attr.sched.exec_order = exec_order++;
   key.attr.sched.axis = bmm1ResAxis;
   key.y.dtype = ge::DT_FLOAT16;
   *key.y.axis = bmm1ResAxis;
@@ -76,7 +72,6 @@ void FaBeforeAutoFuse(ge::AscGraph &graph) {
   MatMul bmm1("bmm1");
   bmm1.x1 = query.y;
   bmm1.x2 = key.y;
-  bmm1.attr.sched.exec_order = exec_order++;
   bmm1.attr.sched.axis = bmm1ResAxis;
   bmm1.y.dtype = ge::DT_FLOAT;
   *bmm1.y.axis = bmm1ResAxis;
@@ -85,7 +80,6 @@ void FaBeforeAutoFuse(ge::AscGraph &graph) {
 
   Load load1("load1");
   load1.x = bmm1.y;
-  load1.attr.sched.exec_order = exec_order++;
   load1.attr.sched.axis = bmm1ResAxis;
   load1.y.dtype = ge::DT_FLOAT;
   *load1.y.axis = bmm1ResAxis;
@@ -93,7 +87,6 @@ void FaBeforeAutoFuse(ge::AscGraph &graph) {
   *load1.y.strides = vec1ResStride;
 
   Data pse("pse", graph);
-  pse.attr.sched.exec_order = exec_order++;
   pse.y.dtype = ge::DT_FLOAT16;
   *pse.y.axis = bmm1ResAxis;
   *pse.y.repeats = vec1ResRepeat;
@@ -101,7 +94,6 @@ void FaBeforeAutoFuse(ge::AscGraph &graph) {
 
   Load loadPse("loadPse");
   loadPse.x = pse.y;
-  loadPse.attr.sched.exec_order = exec_order++;
   loadPse.attr.sched.axis = bmm1ResAxis;
   loadPse.y.dtype = ge::DT_FLOAT16;
   *loadPse.y.axis = bmm1ResAxis;
@@ -110,7 +102,6 @@ void FaBeforeAutoFuse(ge::AscGraph &graph) {
 
   Cast castPse("castPse");
   castPse.x = loadPse.y;
-  castPse.attr.sched.exec_order = exec_order++;
   castPse.attr.sched.axis = bmm1ResAxis;
   castPse.y.dtype = ge::DT_FLOAT;
   *castPse.y.axis = bmm1ResAxis;
@@ -120,7 +111,6 @@ void FaBeforeAutoFuse(ge::AscGraph &graph) {
   ge::ascir_op::Add add1("add1");
   add1.x1 = load1.y;
   add1.x2 = castPse.y;
-  add1.attr.sched.exec_order = exec_order++;
   add1.attr.sched.axis = bmm1ResAxis;
   add1.y.dtype = ge::DT_FLOAT;
   *add1.y.axis = bmm1ResAxis;
@@ -128,13 +118,11 @@ void FaBeforeAutoFuse(ge::AscGraph &graph) {
   *add1.y.strides = vec1ResStride;
 
   Data scaleValue("scaleValue", graph);
-  scaleValue.attr.sched.exec_order = exec_order++;
   scaleValue.y.dtype = ge::DT_FLOAT;
 
   ge::ascir_op::Muls mul1("mul1");
   mul1.x1 = add1.y;
   mul1.x2 = scaleValue.y;
-  mul1.attr.sched.exec_order = exec_order++;
   mul1.attr.sched.axis = bmm1ResAxis;
   mul1.y.dtype = ge::DT_FLOAT;
   *mul1.y.axis = bmm1ResAxis;
@@ -142,7 +130,6 @@ void FaBeforeAutoFuse(ge::AscGraph &graph) {
   *mul1.y.strides = vec1ResStride;
 
   Data attenMask("attenMask", graph);
-  attenMask.attr.sched.exec_order = exec_order++;
   attenMask.y.dtype = ge::DT_UINT8;
   *attenMask.y.axis = bmm1ResAxis;
   *attenMask.y.repeats = {B, ONE, ONE, S1, S2, ONE, ONE};
@@ -150,7 +137,6 @@ void FaBeforeAutoFuse(ge::AscGraph &graph) {
 
   Load loadAttenMask("loadAttenMask");
   loadAttenMask.x = attenMask.y;
-  loadAttenMask.attr.sched.exec_order = exec_order++;
   loadAttenMask.attr.sched.axis = bmm1ResAxis;
   loadAttenMask.y.dtype = ge::DT_UINT8;
   *loadAttenMask.y.axis = bmm1ResAxis;
@@ -160,7 +146,6 @@ void FaBeforeAutoFuse(ge::AscGraph &graph) {
   Select select("select");
   select.x1 = mul1.y;
   select.x2 = loadAttenMask.y;
-  select.attr.sched.exec_order = exec_order++;
   select.attr.sched.axis = bmm1ResAxis;
   select.y.dtype = ge::DT_FLOAT;
   *select.y.axis = bmm1ResAxis;
@@ -168,7 +153,6 @@ void FaBeforeAutoFuse(ge::AscGraph &graph) {
   *select.y.strides = vec1ResStride;
 
   TbufData softmaxExp("softmaxExp", graph);
-  softmaxExp.attr.sched.exec_order = exec_order++;
   softmaxExp.attr.sched.axis = bmm1ResAxis;
   softmaxExp.y.dtype = ge::DT_FLOAT;
   *softmaxExp.y.axis = bmm1ResAxis;
@@ -176,7 +160,6 @@ void FaBeforeAutoFuse(ge::AscGraph &graph) {
   *softmaxExp.y.strides = reduceResStride;
 
   TbufData softmaxApiTmpBuf("softmaxApiTmpBuf", graph);
-  softmaxApiTmpBuf.attr.sched.exec_order = exec_order++;
   softmaxApiTmpBuf.attr.sched.axis = bmm1ResAxis;
   softmaxApiTmpBuf.y.dtype = ge::DT_FLOAT;
   *softmaxApiTmpBuf.y.axis = bmm1ResAxis;
@@ -187,7 +170,6 @@ void FaBeforeAutoFuse(ge::AscGraph &graph) {
   flashSoftmax.x1 = select.y;
   flashSoftmax.x2 = softmaxExp.y;
   flashSoftmax.x3 = softmaxApiTmpBuf.y;
-  flashSoftmax.attr.sched.exec_order = exec_order++;
   flashSoftmax.attr.sched.axis = bmm1ResAxis;
   flashSoftmax.y1.dtype = ge::DT_FLOAT;
   *flashSoftmax.y1.axis = bmm1ResAxis;
@@ -206,7 +188,6 @@ void FaBeforeAutoFuse(ge::AscGraph &graph) {
 
   Store storeSoftmaxMax("storeSoftmaxMax");
   storeSoftmaxMax.x = flashSoftmax.y3;
-  storeSoftmaxMax.attr.sched.exec_order = exec_order++;
   storeSoftmaxMax.attr.sched.axis = bmm1ResAxis;
   storeSoftmaxMax.y.dtype = ge::DT_FLOAT;
   *storeSoftmaxMax.y.axis = bmm1ResAxis;
@@ -215,10 +196,8 @@ void FaBeforeAutoFuse(ge::AscGraph &graph) {
 
   Output softmaxMax("softmaxMax");
   softmaxMax.x = storeSoftmaxMax.y;
-  softmaxMax.attr.sched.exec_order = exec_order++;
 
   Data dropMask("dropMask", graph);
-  dropMask.attr.sched.exec_order = exec_order++;
   dropMask.y.dtype = ge::DT_UINT8;
   *dropMask.y.axis = bmm1ResAxis;
   *dropMask.y.repeats = vec1ResRepeat;
@@ -226,7 +205,6 @@ void FaBeforeAutoFuse(ge::AscGraph &graph) {
 
   Load loadDropMask("loadDropMask");
   loadDropMask.x = dropMask.y;
-  loadDropMask.attr.sched.exec_order = exec_order++;
   loadDropMask.attr.sched.axis = bmm1ResAxis;
   loadDropMask.y.dtype = ge::DT_UINT8;
   *loadDropMask.y.axis = bmm1ResAxis;
@@ -236,7 +214,6 @@ void FaBeforeAutoFuse(ge::AscGraph &graph) {
   Dropout dropout("dropout");
   dropout.x1 = flashSoftmax.y1;
   dropout.x2 = loadDropMask.y;
-  dropout.attr.sched.exec_order = exec_order++;
   dropout.attr.sched.axis = bmm1ResAxis;
   dropout.y.dtype = ge::DT_FLOAT;
   *dropout.y.axis = bmm1ResAxis;
@@ -245,7 +222,6 @@ void FaBeforeAutoFuse(ge::AscGraph &graph) {
 
   Cast castVec1Res("castVec1Res");
   castVec1Res.x = dropout.y;
-  castVec1Res.attr.sched.exec_order = exec_order++;
   castVec1Res.attr.sched.axis = bmm1ResAxis;
   castVec1Res.y.dtype = ge::DT_FLOAT16;
   *castVec1Res.y.axis = bmm1ResAxis;
@@ -254,7 +230,6 @@ void FaBeforeAutoFuse(ge::AscGraph &graph) {
 
   Store storeVec1Res("storeVec1Res");
   storeVec1Res.x = castVec1Res.y;
-  storeVec1Res.attr.sched.exec_order = exec_order++;
   storeVec1Res.attr.sched.axis = bmm1ResAxis;
   storeVec1Res.y.dtype = ge::DT_FLOAT16;
   *storeVec1Res.y.axis = bmm1ResAxis;
@@ -262,7 +237,6 @@ void FaBeforeAutoFuse(ge::AscGraph &graph) {
   *storeVec1Res.y.strides = vec1ResStride;
 
   Data value("value", graph);
-  value.attr.sched.exec_order = exec_order++;
   value.attr.sched.axis = bmm2ResAxis;
   value.y.dtype = ge::DT_FLOAT16;
   *value.y.axis = bmm2ResAxis;
@@ -272,7 +246,6 @@ void FaBeforeAutoFuse(ge::AscGraph &graph) {
   MatMul bmm2("bmm2");
   bmm2.x1 = storeVec1Res.y;
   bmm2.x2 = value.y;
-  bmm2.attr.sched.exec_order = exec_order++;
   bmm2.attr.sched.axis = bmm2ResAxis;
   bmm2.y.dtype = ge::DT_FLOAT;
   *bmm2.y.axis = bmm2ResAxis;
@@ -281,7 +254,6 @@ void FaBeforeAutoFuse(ge::AscGraph &graph) {
 
   Load load2("load2");
   load2.x = bmm2.y;
-  load2.attr.sched.exec_order = exec_order++;
   load2.attr.sched.axis = bmm2ResAxis;
   load2.y.dtype = ge::DT_FLOAT;
   *load2.y.axis = bmm2ResAxis;
@@ -289,7 +261,6 @@ void FaBeforeAutoFuse(ge::AscGraph &graph) {
   *load2.y.strides = vec2ResStride;
 
   Workspace addResOut("addResOut", graph);
-  addResOut.attr.sched.exec_order = exec_order++;
   addResOut.attr.sched.axis = bmm2ResAxis;
   addResOut.y.dtype = ge::DT_FLOAT;
   *addResOut.y.axis = bmm2ResAxis;
@@ -298,7 +269,6 @@ void FaBeforeAutoFuse(ge::AscGraph &graph) {
 
   Load loadAddResOut("loadAddResOut");
   loadAddResOut.x = addResOut.y;
-  loadAddResOut.attr.sched.exec_order = exec_order++;
   loadAddResOut.attr.sched.axis = bmm2ResAxis;
   loadAddResOut.y.dtype = ge::DT_FLOAT;
   *loadAddResOut.y.axis = bmm2ResAxis;
@@ -308,7 +278,6 @@ void FaBeforeAutoFuse(ge::AscGraph &graph) {
   ge::ascir_op::Mul mulRes("mulRes");
   mulRes.x1 = loadAddResOut.y;
   mulRes.x2 = softmaxExp.y;
-  mulRes.attr.sched.exec_order = exec_order++;
   mulRes.attr.sched.axis = bmm2ResAxis;
   mulRes.y.dtype = ge::DT_FLOAT;
   *mulRes.y.axis = bmm2ResAxis;
@@ -318,7 +287,6 @@ void FaBeforeAutoFuse(ge::AscGraph &graph) {
   ge::ascir_op::Add addRes("addRes");
   addRes.x1 = load2.y;
   addRes.x2 = mulRes.y;
-  addRes.attr.sched.exec_order = exec_order++;
   addRes.attr.sched.axis = bmm2ResAxis;
   addRes.y.dtype = ge::DT_FLOAT;
   *addRes.y.axis = bmm2ResAxis;
@@ -328,7 +296,6 @@ void FaBeforeAutoFuse(ge::AscGraph &graph) {
   ge::ascir_op::Div div("div");
   div.x1 = addRes.y;
   div.x2 = flashSoftmax.y3;
-  div.attr.sched.exec_order = exec_order++;
   div.attr.sched.axis = bmm2ResAxis;
   div.y.dtype = ge::DT_FLOAT;
   *div.y.axis = bmm2ResAxis;
@@ -337,7 +304,6 @@ void FaBeforeAutoFuse(ge::AscGraph &graph) {
 
   Cast castBmm2Res("castBmm2Res");
   castBmm2Res.x = div.y;
-  castBmm2Res.attr.sched.exec_order = exec_order++;
   castBmm2Res.attr.sched.axis = bmm2ResAxis;
   castBmm2Res.y.dtype = ge::DT_FLOAT16;
   *castBmm2Res.y.axis = bmm2ResAxis;
@@ -346,7 +312,6 @@ void FaBeforeAutoFuse(ge::AscGraph &graph) {
 
   Store store("store");
   store.x = castBmm2Res.y;
-  store.attr.sched.exec_order = exec_order++;
   store.attr.sched.axis = bmm2ResAxis;
   store.y.dtype = ge::DT_FLOAT16;
   *store.y.axis = bmm2ResAxis;
@@ -355,7 +320,6 @@ void FaBeforeAutoFuse(ge::AscGraph &graph) {
 
   Output buf("buf");
   buf.x = store.y;
-  buf.attr.sched.exec_order = exec_order++;
   buf.y.dtype = ge::DT_FLOAT16;
   *buf.y.axis = bmm2ResAxis;
   *buf.y.repeats = vec2ResRepeat;
