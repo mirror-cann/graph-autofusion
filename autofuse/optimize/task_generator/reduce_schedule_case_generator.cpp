@@ -17,7 +17,7 @@
 #include "ascir_utils.h"
 #include "node_utils.h"
 #include "reduce_schedule_case_generator.h"
-#include "register/op_def_factory.h"
+#include "register/op_def_factory_af.h"
 #include "base/err_msg.h"
 #include "graph/symbolizer/symbolic.h"
 

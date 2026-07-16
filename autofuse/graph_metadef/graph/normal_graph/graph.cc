@@ -10,7 +10,7 @@
 
 #include "graph/graph.h"
 #include <cstring>
-#include "graph/graph_buffer.h"
+#include "graph/graph_buffer_af.h"
 #include "graph_metadef/graph/debug/ge_util.h"
 #include "graph/debug/ge_attr_define.h"
 #include "graph/debug/ge_op_types.h"

@@ -10,7 +10,7 @@
 
 #ifndef CANN_GRAPH_ENGINE_CUSTOM_OP_REGISTRY_H
 #define CANN_GRAPH_ENGINE_CUSTOM_OP_REGISTRY_H
-#include "graph/custom_op.h"
+#include "graph/custom_op_af.h"
 #include "graph/ascend_string.h"
 #include "graph/ge_error_codes.h"
 

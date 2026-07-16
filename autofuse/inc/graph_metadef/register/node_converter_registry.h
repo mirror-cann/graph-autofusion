@@ -15,7 +15,7 @@
 #include <vector>
 
 #include "graph/node.h"
-#include "graph/types.h"
+#include "graph/types_af.h"
 #include "exe_graph/lowering/dev_mem_value_holder.h"
 #include "exe_graph/lowering/lowering_global_data.h"
 #include "common/hyper_status.h"

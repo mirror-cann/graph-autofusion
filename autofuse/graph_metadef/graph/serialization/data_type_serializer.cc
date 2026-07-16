@@ -11,7 +11,7 @@
 #include "data_type_serializer.h"
 #include "proto/af_ir.pb.h"
 #include "framework/common/debug/ge_log.h"
-#include "graph/types.h"
+#include "graph/types_af.h"
 
 namespace af {
 graphStatus DataTypeSerializer::Serialize(const AnyValue &av, GeIrAttrDef &def) {

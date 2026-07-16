@@ -17,8 +17,8 @@
 #include <vector>
 #include <memory>
 
-#include "ge_common_af/ge_api_error_codes.h"
-#include "graph/types.h"
+#include "ge_common_af/ge_api_error_codes_af.h"
+#include "graph/types_af.h"
 #include "register/register_error_codes.h"
 #include "register/register_fmk_types.h"
 

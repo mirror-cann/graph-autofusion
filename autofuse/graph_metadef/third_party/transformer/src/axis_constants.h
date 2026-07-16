@@ -14,7 +14,7 @@
 #include <cstdint>
 #include <cstddef>
 #include <set>
-#include "graph/types.h"
+#include "graph/types_af.h"
 
 namespace transformer {
 extern const size_t DIM_SIZE_TWO;

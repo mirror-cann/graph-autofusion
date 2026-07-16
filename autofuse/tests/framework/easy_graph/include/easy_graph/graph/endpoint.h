@@ -13,7 +13,7 @@
 
 #include "easy_graph/graph/node_id.h"
 #include "easy_graph/graph/port_id.h"
-#include "easy_graph/infra/operator.h"
+#include "easy_graph/infra/easy_graph_operator_af.h"
 
 EG_NS_BEGIN
 

@@ -8,13 +8,13 @@
  * See LICENSE in the root of the software repository for the full text of the License.
  */
 
-#include "base/utils/type_utils_impl.h"
+#include "base/utils/type_utils_impl_af.h"
 #include "graph/utils/type_utils.h"
 #include <algorithm>
 #include <map>
 
 #include "graph/debug/ge_util.h"
-#include "graph/types.h"
+#include "graph/types_af.h"
 
 namespace af {
 namespace {

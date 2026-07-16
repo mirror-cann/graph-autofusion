@@ -18,8 +18,8 @@
 #include "graph/ge_error_codes.h"
 #include "graph/op_desc.h"
 #include "graph/node.h"
-#include "register/hidden_inputs_func_registry.h"
-#include "graph/utils/args_format_desc_utils.h"
+#include "register/hidden_inputs_func_registry_af.h"
+#include "graph/utils/args_format_desc_utils_af.h"
 
 namespace af {
 

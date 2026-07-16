@@ -15,7 +15,7 @@
 #include <structmember.h>
 #include <google/protobuf/text_format.h>
 
-#include "graph/operator.h"
+#include "graph/operator_af.h"
 #include "graph/ascendc_ir/utils/asc_graph_utils.h"
 #include "graph/detail/model_serialize_imp.h"
 #include "graph/utils/graph_utils.h"

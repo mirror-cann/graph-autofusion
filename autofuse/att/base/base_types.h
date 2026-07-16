@@ -23,7 +23,7 @@
 #include <map>
 #include <algorithm>
 #include "graph/def_types.h"
-#include "ge_common_af/ge_api_types.h"
+#include "ge_common_af/ge_api_types_af.h"
 #include "graph/symbolizer/symbolic.h"
 #include "graph/expression/const_values.h"
 #include "graph/symbolizer/symbolic_utils.h"

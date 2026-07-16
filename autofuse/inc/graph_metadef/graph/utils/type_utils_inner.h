@@ -13,7 +13,7 @@
 
 #include <string>
 #include "graph/ge_error_codes.h"
-#include "graph/types.h"
+#include "graph/types_af.h"
 #include "register/register_types.h"
 #include "register/register_fmk_types.h"
 

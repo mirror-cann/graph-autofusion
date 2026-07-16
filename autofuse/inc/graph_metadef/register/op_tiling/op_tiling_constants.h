@@ -13,7 +13,7 @@
 
 #include <string>
 #include <map>
-#include "graph/types.h"
+#include "graph/types_af.h"
 
 namespace optiling {
 const std::string COMPILE_INFO_JSON = "compile_info_json";

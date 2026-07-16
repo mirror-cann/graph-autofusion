@@ -19,7 +19,7 @@
 #include "ascendc_ir/ascendc_ir_core/ascendc_ir_def.h"
 #include "ascendc_ir/utils/asc_graph_utils.h"
 #include "graph/debug/ge_op_types.h"
-#include "graph/gnode.h"
+#include "graph/gnode_af.h"
 #include "graph/utils/graph_utils.h"
 #include "graph/utils/node_utils.h"
 #include "ascir_ops.h"

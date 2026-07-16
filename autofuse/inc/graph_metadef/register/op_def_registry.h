@@ -11,8 +11,8 @@
 #ifndef OP_DEF_REGISTRY_H
 #define OP_DEF_REGISTRY_H
 
-#include "register/op_def.h"
-#include "register/op_def_factory.h"
+#include "register/op_def_af.h"
+#include "register/op_def_factory_af.h"
 
 #if defined(OP_PROTO_LIB)
 

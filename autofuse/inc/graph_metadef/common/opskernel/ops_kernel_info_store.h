@@ -21,7 +21,7 @@
 #include "common/opskernel/ops_kernel_info_types.h"
 #include "common/ge_common/ge_inner_error_codes.h"
 #include "graph/node.h"
-#include "graph/operator.h"
+#include "graph/operator_af.h"
 
 namespace af {
 class OpsKernelInfoStore {

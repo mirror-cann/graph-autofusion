@@ -10,7 +10,7 @@
 
 #include "esb_graph.h"
 #include "graph/utils/op_type_utils.h"
-#include "graph/operator_factory.h"
+#include "graph/operator_factory_af.h"
 #include "graph/utils/op_desc_utils.h"
 #include "graph/utils/graph_utils.h"
 #include "graph/utils/graph_utils_ex.h"

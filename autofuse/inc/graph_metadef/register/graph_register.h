@@ -12,7 +12,7 @@
 #define INC_GRAPH_REGISTER_REGISTRY_H_
 
 #include "register/register.h"
-#include "graph/types.h"
+#include "graph/types_af.h"
 
 namespace af {
 class FMK_FUNC_HOST_VISIBILITY FMK_FUNC_DEV_VISIBILITY HostCpuOp {

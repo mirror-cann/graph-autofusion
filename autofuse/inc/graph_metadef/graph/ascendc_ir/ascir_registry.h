@@ -19,7 +19,7 @@
 #include <vector>
 #include <algorithm>
 #include "ascendc_ir/ascendc_ir_check.h"
-#include "graph/types.h"
+#include "graph/types_af.h"
 #include "op_desc.h"
 #include "ir/ir_data_type_symbol_store.h"
 #include "graph/ascendc_ir/ascendc_ir_core/ascendc_ir_def.h"

@@ -14,7 +14,7 @@
 #include <string>
 #include <utility>
 #include "graph/op_desc.h"
-#include "graph/operator.h"
+#include "graph/operator_af.h"
 
 namespace af {
 enum IrAttrType { kAttrRequired, kAttrOptional };

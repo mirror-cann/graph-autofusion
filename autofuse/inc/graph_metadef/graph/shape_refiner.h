@@ -12,7 +12,7 @@
 #define INC_GRAPH_SHAPE_REFINER_H_
 
 #include <string>
-#include "graph/inference_context.h"
+#include "graph/inference_context_af.h"
 
 #include "graph/ge_error_codes.h"
 #include "graph/node.h"

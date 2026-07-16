@@ -12,8 +12,8 @@
 #define INC_REGISTER_INFER_AXIS_SLICE_REGISTRY_H_
 
 #include "graph/ge_error_codes.h"
-#include "graph/operator.h"
-#include "graph/types.h"
+#include "graph/operator_af.h"
+#include "graph/types_af.h"
 #include "graph/axis_type_info.h"
 
 namespace af {

@@ -18,7 +18,7 @@
 #include "common_utils.h"
 #include "ascir_register.h"
 #include "codegen_api_param/codegen_api_param.h"
-#include "graph/types.h"
+#include "graph/types_af.h"
 #include "graph/tensor.h"
 
 using namespace af::ops;

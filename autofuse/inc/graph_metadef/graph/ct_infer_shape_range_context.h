@@ -12,7 +12,7 @@
 #define METADEF_CXX_INC_GRAPH_CT_INFER_SHAPE_RANGE_CONTEXT_H_
 #include <type_traits>
 #include "exe_graph/runtime/infer_shape_range_context.h"
-#include "graph/inference_context.h"
+#include "graph/inference_context_af.h"
 
 namespace gert {
 /**

@@ -13,7 +13,7 @@
 
 #include <string>
 #include <utility>
-#include "graph/types.h"
+#include "graph/types_af.h"
 #include "graph/def_types.h"
 
 namespace af {

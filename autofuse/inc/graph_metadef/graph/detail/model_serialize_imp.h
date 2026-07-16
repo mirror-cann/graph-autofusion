@@ -12,7 +12,7 @@
 #define INC_GRAPH_DETAIL_MODEL_SERIALIZE_IMP_H_
 
 #include <google/protobuf/repeated_field.h>
-#include "ge_common_af/ge_api_types.h"
+#include "ge_common_af/ge_api_types_af.h"
 #include "graph/model.h"
 
 namespace af {

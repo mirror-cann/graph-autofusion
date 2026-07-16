@@ -30,7 +30,7 @@
 #include <graph/utils/type_utils.h>
 
 #include "framework/common/debug/ge_log.h"
-#include "ge_common_af/ge_api_types.h"
+#include "ge_common_af/ge_api_types_af.h"
 #include "utils/node_utils.h"
 #include "graph/debug/ge_attr_define.h"
 #include "graph/utils/op_desc_utils.h"

@@ -13,7 +13,7 @@
 #include <string>
 #include <memory>
 #include <functional>
-#include "graph/types.h"
+#include "graph/types_af.h"
 
 namespace af {
 class AscendStringImpl;

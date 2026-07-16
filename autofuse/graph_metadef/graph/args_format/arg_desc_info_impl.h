@@ -11,8 +11,8 @@
 #ifndef METADEF_GRAPH_ARGS_FORMAT_ARG_DESC_INFO_IMPL_H
 #define METADEF_GRAPH_ARGS_FORMAT_ARG_DESC_INFO_IMPL_H
 
-#include "graph/arg_desc_info.h"
-#include "graph/utils/args_format_desc_utils.h"
+#include "graph/arg_desc_info_af.h"
+#include "graph/utils/args_format_desc_utils_af.h"
 
 namespace af {
 class ArgDescInfoImpl {

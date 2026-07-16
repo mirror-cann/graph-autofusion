@@ -15,7 +15,7 @@
 #include <cmath>
 #include <limits>
 #include "register/scope/scope_fusion_pass_register.h"
-#include "graph/types.h"
+#include "graph/types_af.h"
 #include "graph/compute_graph.h"
 
 namespace af {

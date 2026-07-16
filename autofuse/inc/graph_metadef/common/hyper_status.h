@@ -12,7 +12,7 @@
 #define AIR_CXX_BASE_COMMON_HYPER_STATUS_H_
 #include <memory>
 #include <cstdarg>
-#include "graph/types.h"
+#include "graph/types_af.h"
 namespace gert {
 ge::char_t *CreateMessage(const ge::char_t *format, va_list arg);
 class HyperStatus {

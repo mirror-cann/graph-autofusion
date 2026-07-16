@@ -8,7 +8,7 @@
  * See LICENSE in the root of the software repository for the full text of the License.
  */
 
-#include "graph/graph_buffer.h"
+#include "graph/graph_buffer_af.h"
 #include "graph/buffer.h"
 #include "common/util/mem_utils.h"
 

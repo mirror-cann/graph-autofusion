@@ -9,7 +9,7 @@
  */
 #ifndef METADEF_CXX_INC_GRAPH_UTILS_DTYPE_TRANSFORM_UTILS_H_
 #define METADEF_CXX_INC_GRAPH_UTILS_DTYPE_TRANSFORM_UTILS_H_
-#include "graph/types.h"
+#include "graph/types_af.h"
 class DtypeTransformUtils {
  public:
   static ge::DataType Prompt(ge::DataType src_type);

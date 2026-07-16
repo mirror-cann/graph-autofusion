@@ -17,7 +17,7 @@
 #include "graph/anchor.h"
 #include "graph/compute_graph.h"
 #include "graph/utils/op_desc_utils.h"
-#include "graph/operator.h"
+#include "graph/operator_af.h"
 #include "graph/utils/type_utils.h"
 #include "ascendc_ir/ascendc_ir_check.h"
 #include "graph/expression/const_values.h"

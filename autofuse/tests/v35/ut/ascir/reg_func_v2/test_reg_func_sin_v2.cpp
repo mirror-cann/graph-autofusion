@@ -15,7 +15,7 @@
  */
 #include "gtest/gtest.h"
 
-#include "graph/operator_reg.h"
+#include "graph/operator_reg_af.h"
 #include "graph_utils_ex.h"
 #include "node_utils.h"
 #include "op_desc_utils.h"

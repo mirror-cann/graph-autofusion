@@ -22,7 +22,7 @@
 
 #include "base/err_msg.h"
 #include "dlog_pub.h"
-#include "common/ge_common/error_codes_define.h"
+#include "common/ge_common/error_codes_define_af.h"
 
 #ifdef __GNUC__
 #include <unistd.h>

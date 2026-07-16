@@ -10,7 +10,7 @@
 
 #include "graph/args_format/arg_desc_info_impl.h"
 #include <unordered_map>
-#include "graph/utils/args_format_desc_utils.h"
+#include "graph/utils/args_format_desc_utils_af.h"
 #include "common/checker.h"
 
 namespace af {

@@ -11,7 +11,7 @@
 #ifndef BASE_TYPE_ASCEND_STRING_IMPL_H_
 #define BASE_TYPE_ASCEND_STRING_IMPL_H_
 
-#include "graph/types.h"
+#include "graph/types_af.h"
 #include "graph/ascend_string.h"
 
 namespace af {

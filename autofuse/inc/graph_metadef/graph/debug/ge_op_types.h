@@ -11,7 +11,7 @@
 #ifndef COMMON_GRAPH_DEBUG_GE_OP_TYPES_H_
 #define COMMON_GRAPH_DEBUG_GE_OP_TYPES_H_
 
-#include "graph/types.h"
+#include "graph/types_af.h"
 #include "graph/compiler_options.h"
 
 #define GE_REGISTER_OPTYPE(var_name, str_name) static const ge::char_t *var_name METADEF_ATTRIBUTE_UNUSED = str_name

@@ -10,7 +10,7 @@
 #include "ascir_register.h"
 #include "v2_ascir_codegen_impl.h"
 #include "v2_ascir_att_impl.h"
-#include "graph/types.h"
+#include "graph/types_af.h"
 #include <utility>
 #include <type_traits>
 

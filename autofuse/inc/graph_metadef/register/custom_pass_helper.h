@@ -12,7 +12,7 @@
 #define INC_REGISTER_CUSTOM_PASS_HELPER_H_
 
 #include <set>
-#include "ge_common_af/ge_api_error_codes.h"
+#include "ge_common_af/ge_api_error_codes_af.h"
 #include "register/register_custom_pass.h"
 #include "register/register_types.h"
 

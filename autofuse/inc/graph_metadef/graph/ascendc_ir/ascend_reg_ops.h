@@ -12,7 +12,7 @@
 
 #include <type_traits>
 #include <utility>
-#include "graph/operator_reg.h"
+#include "graph/operator_reg_af.h"
 #include "ascendc_ir/ascendc_ir_core/ascendc_ir.h"
 
 #define OP_END_FACTORY_REG_WITHOUT_REGISTER(x) __OP_END_IMPL_WITHOUT_REGISTER__(x)

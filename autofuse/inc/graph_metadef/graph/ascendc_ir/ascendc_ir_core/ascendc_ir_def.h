@@ -23,7 +23,7 @@
 #include "proto/ascendc_ir.pb.h"
 #include "serialization/attr_serializer_registry.h"
 #include "attribute_group/af_attr_group_base.h"
-#include "graph/operator.h"
+#include "graph/operator_af.h"
 #include "graph/anchor.h"
 #include "proto/af_ir.pb.h"
 // proto调整后，兼容老代码

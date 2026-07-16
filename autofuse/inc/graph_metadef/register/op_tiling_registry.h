@@ -16,7 +16,7 @@
 #include <sstream>
 #include <string>
 #include <vector>
-#include "graph/operator.h"
+#include "graph/operator_af.h"
 #include "register/register_error_codes.h"
 #include "register/register_types.h"
 #include "register/op_compile_info_base.h"

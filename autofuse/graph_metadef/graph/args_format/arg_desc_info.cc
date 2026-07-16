@@ -8,7 +8,7 @@
  * See LICENSE in the root of the software repository for the full text of the License.
  */
 
-#include "graph/arg_desc_info.h"
+#include "graph/arg_desc_info_af.h"
 #include "arg_desc_info_impl.h"
 #include "graph_metadef/graph/debug/ge_util.h"
 #include "common/checker.h"

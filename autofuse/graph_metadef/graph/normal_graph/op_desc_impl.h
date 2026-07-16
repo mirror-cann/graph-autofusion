@@ -15,7 +15,7 @@
 #include <utility>
 #include <vector>
 #include <set>
-#include "graph/types.h"
+#include "graph/types_af.h"
 #include "graph/op_desc.h"
 #include "graph/ge_tensor.h"
 #include "graph/small_vector.h"

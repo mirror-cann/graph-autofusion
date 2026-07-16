@@ -11,7 +11,7 @@
 #include "graph_utils_ex.h"
 #include "gtest/gtest.h"
 #include "ascir_ops.h"
-#include "graph/operator_reg.h"
+#include "graph/operator_reg_af.h"
 #include "test_util.h"
 #include "base/base_types.h"
 

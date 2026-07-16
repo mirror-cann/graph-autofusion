@@ -13,7 +13,7 @@
 
 #include <string>
 #include <vector>
-#include "graph/types.h"
+#include "graph/types_af.h"
 #include "graph/ge_tensor.h"
 #include "exe_graph/runtime/shape.h"
 #include "transfer_def.h"
