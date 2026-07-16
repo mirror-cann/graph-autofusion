@@ -24,9 +24,8 @@ using namespace ge::ascir_op;
 
 namespace {
 template <typename NodeT>
-void InitNode(NodeT &node, int32_t &exec_order, std::initializer_list<int64_t> axis, ge::DataType dtype,
+void InitNode(NodeT &node, std::initializer_list<int64_t> axis, ge::DataType dtype,
               std::initializer_list<ge::Expression> repeats, std::initializer_list<ge::Expression> strides) {
-  node.attr.sched.exec_order = exec_order++;
   node.attr.sched.axis = axis;
   node.y.dtype = dtype;
   *node.y.axis = axis;
@@ -35,11 +34,10 @@ void InitNode(NodeT &node, int32_t &exec_order, std::initializer_list<int64_t> a
 }
 
 template <typename NodeT, typename InputT>
-void InitInputNode(NodeT &node, const InputT &input, int32_t &exec_order, std::initializer_list<int64_t> axis,
-                   ge::DataType dtype, std::initializer_list<ge::Expression> repeats,
-                   std::initializer_list<ge::Expression> strides) {
+void InitInputNode(NodeT &node, const InputT &input, std::initializer_list<int64_t> axis, ge::DataType dtype,
+                   std::initializer_list<ge::Expression> repeats, std::initializer_list<ge::Expression> strides) {
   node.x = input;
-  InitNode(node, exec_order, axis, dtype, repeats, strides);
+  InitNode(node, axis, dtype, repeats, strides);
 }
 
 void ApplySchedulerTransform(ge::AscGraph &graph, const char *name, int64_t z1T, int64_t z1t, int64_t z2T, int64_t z2t,
@@ -113,32 +111,29 @@ void BrcBufBeforeAutoFuse1(ge::AscGraph &graph) {
   auto z2 = graph.CreateAxis("z2", Z2);
 
   auto normalAxis = {z0.id, z1.id, z2.id};
-
-  int32_t exec_order = 0;
   Data input_data("input_data", graph);
-  InitNode(input_data, exec_order, normalAxis, ge::DT_FLOAT16, {Z0, ONE, Z2}, {Z2, ZERO, ONE});
+  InitNode(input_data, normalAxis, ge::DT_FLOAT16, {Z0, ONE, Z2}, {Z2, ZERO, ONE});
 
   Load load("load");
-  InitInputNode(load, input_data.y, exec_order, normalAxis, ge::DT_FLOAT16, {Z0, ONE, Z2}, {Z2, ZERO, ONE});
+  InitInputNode(load, input_data.y, normalAxis, ge::DT_FLOAT16, {Z0, ONE, Z2}, {Z2, ZERO, ONE});
 
   Cast cast0("cast0");
-  InitInputNode(cast0, load.y, exec_order, normalAxis, ge::DT_FLOAT, {Z0, ONE, Z2}, {Z2, ZERO, ONE});
+  InitInputNode(cast0, load.y, normalAxis, ge::DT_FLOAT, {Z0, ONE, Z2}, {Z2, ZERO, ONE});
 
   Broadcast broadcast("broadcast");
-  InitInputNode(broadcast, cast0.y, exec_order, normalAxis, ge::DT_FLOAT, {Z0, Z1, Z2}, {Z1 * Z2, Z2, ONE});
+  InitInputNode(broadcast, cast0.y, normalAxis, ge::DT_FLOAT, {Z0, Z1, Z2}, {Z1 * Z2, Z2, ONE});
 
   Sum sum("sum");
-  InitInputNode(sum, broadcast.y, exec_order, normalAxis, ge::DT_FLOAT, {Z0, ONE, Z2}, {Z2, ZERO, ONE});
+  InitInputNode(sum, broadcast.y, normalAxis, ge::DT_FLOAT, {Z0, ONE, Z2}, {Z2, ZERO, ONE});
 
   Cast cast1("cast1");
-  InitInputNode(cast1, sum.y, exec_order, normalAxis, ge::DT_FLOAT16, {Z0, ONE, Z2}, {Z2, ZERO, ONE});
+  InitInputNode(cast1, sum.y, normalAxis, ge::DT_FLOAT16, {Z0, ONE, Z2}, {Z2, ZERO, ONE});
 
   Store store("store");
-  InitInputNode(store, cast1.y, exec_order, normalAxis, ge::DT_FLOAT16, {Z0, ONE, Z2}, {Z2, ZERO, ONE});
+  InitInputNode(store, cast1.y, normalAxis, ge::DT_FLOAT16, {Z0, ONE, Z2}, {Z2, ZERO, ONE});
 
   Output output_data("output_data");
   output_data.x = store.y;
-  output_data.attr.sched.exec_order = exec_order++;
 }
 
 void BrcBufAfterScheduler1(ge::AscGraph &graph) {
@@ -197,32 +192,29 @@ void BrcBufBeforeAutoFuse2(ge::AscGraph &graph) {
   auto z2 = graph.CreateAxis("z2", Z2);
 
   auto normalAxis = {z0.id, z1.id, z2.id};
-
-  int32_t exec_order = 0;
   Data input_data("input_data", graph);
-  InitNode(input_data, exec_order, normalAxis, ge::DT_FLOAT16, {Z0, ONE, Z2}, {Z2, ZERO, ONE});
+  InitNode(input_data, normalAxis, ge::DT_FLOAT16, {Z0, ONE, Z2}, {Z2, ZERO, ONE});
 
   Load load("load");
-  InitInputNode(load, input_data.y, exec_order, normalAxis, ge::DT_FLOAT16, {Z0, ONE, Z2}, {Z2, ZERO, ONE});
+  InitInputNode(load, input_data.y, normalAxis, ge::DT_FLOAT16, {Z0, ONE, Z2}, {Z2, ZERO, ONE});
 
   Cast cast0("cast0");
-  InitInputNode(cast0, load.y, exec_order, normalAxis, ge::DT_FLOAT, {Z0, ONE, Z2}, {Z2, ZERO, ONE});
+  InitInputNode(cast0, load.y, normalAxis, ge::DT_FLOAT, {Z0, ONE, Z2}, {Z2, ZERO, ONE});
 
   Broadcast broadcast("broadcast");
-  InitInputNode(broadcast, cast0.y, exec_order, normalAxis, ge::DT_FLOAT, {Z0, Z1, Z2}, {Z1 * Z2, Z2, ONE});
+  InitInputNode(broadcast, cast0.y, normalAxis, ge::DT_FLOAT, {Z0, Z1, Z2}, {Z1 * Z2, Z2, ONE});
 
   Sum sum("sum");
-  InitInputNode(sum, broadcast.y, exec_order, normalAxis, ge::DT_FLOAT, {Z0, Z1, ONE}, {Z1, ONE, ZERO});
+  InitInputNode(sum, broadcast.y, normalAxis, ge::DT_FLOAT, {Z0, Z1, ONE}, {Z1, ONE, ZERO});
 
   Cast cast1("cast1");
-  InitInputNode(cast1, sum.y, exec_order, normalAxis, ge::DT_FLOAT16, {Z0, Z1, ONE}, {Z1, ONE, ZERO});
+  InitInputNode(cast1, sum.y, normalAxis, ge::DT_FLOAT16, {Z0, Z1, ONE}, {Z1, ONE, ZERO});
 
   Store store("store");
-  InitInputNode(store, cast1.y, exec_order, normalAxis, ge::DT_FLOAT16, {Z0, Z1, ONE}, {Z1, ONE, ZERO});
+  InitInputNode(store, cast1.y, normalAxis, ge::DT_FLOAT16, {Z0, Z1, ONE}, {Z1, ONE, ZERO});
 
   Output output_data("output_data");
   output_data.x = store.y;
-  output_data.attr.sched.exec_order = exec_order++;
 }
 
 void BrcBufAfterScheduler2(ge::AscGraph &graph) {

@@ -25,9 +25,8 @@ using namespace ge::ascir_op;
 
 namespace {
 template <typename NodeT>
-void InitNode(NodeT &node, int32_t &exec_order, std::initializer_list<int64_t> axis, ge::DataType dtype,
+void InitNode(NodeT &node, std::initializer_list<int64_t> axis, ge::DataType dtype,
               std::initializer_list<ge::Expression> repeats, std::initializer_list<ge::Expression> strides) {
-  node.attr.sched.exec_order = exec_order++;
   node.attr.sched.axis = axis;
   node.y.dtype = dtype;
   *node.y.axis = axis;
@@ -36,11 +35,10 @@ void InitNode(NodeT &node, int32_t &exec_order, std::initializer_list<int64_t> a
 }
 
 template <typename NodeT, typename InputT>
-void InitInputNode(NodeT &node, const InputT &input, int32_t &exec_order, std::initializer_list<int64_t> axis,
-                   ge::DataType dtype, std::initializer_list<ge::Expression> repeats,
-                   std::initializer_list<ge::Expression> strides) {
+void InitInputNode(NodeT &node, const InputT &input, std::initializer_list<int64_t> axis, ge::DataType dtype,
+                   std::initializer_list<ge::Expression> repeats, std::initializer_list<ge::Expression> strides) {
   node.x = input;
-  InitNode(node, exec_order, axis, dtype, repeats, strides);
+  InitNode(node, axis, dtype, repeats, strides);
 }
 
 void ApplySchedulerTransform(ge::AscGraph &graph, const char *name, int64_t z1T, int64_t z1t, int64_t z0z1T,
@@ -88,30 +86,28 @@ void AutoFuseBeforeAutoFuse(ge::AscGraph &graph) {
   auto axis_list = {z0.id, z1.id};
   auto repeats = std::initializer_list<Expr>{s0 * s1, s2};
   auto strides = std::initializer_list<Expr>{ZERO, ONE};
-
-  int32_t exec_order = 0;
   Data data("data", graph);
-  InitNode(data, exec_order, axis_list, ge::DT_FLOAT16, repeats, strides);
+  InitNode(data, axis_list, ge::DT_FLOAT16, repeats, strides);
 
   Load load("load");
-  InitInputNode(load, data.y, exec_order, axis_list, ge::DT_FLOAT16, repeats, strides);
+  InitInputNode(load, data.y, axis_list, ge::DT_FLOAT16, repeats, strides);
 
   Data data1("data1", graph);
-  InitNode(data1, exec_order, axis_list, ge::DT_FLOAT16, repeats, strides);
+  InitNode(data1, axis_list, ge::DT_FLOAT16, repeats, strides);
 
   Load load1("load1");
-  InitInputNode(load1, data1.y, exec_order, axis_list, ge::DT_FLOAT16, repeats, strides);
+  InitInputNode(load1, data1.y, axis_list, ge::DT_FLOAT16, repeats, strides);
 
   ge::ascir_op::Add add("add");
   add.x1 = load.y;
   add.x2 = load1.y;
-  InitNode(add, exec_order, axis_list, ge::DT_FLOAT16, repeats, strides);
+  InitNode(add, axis_list, ge::DT_FLOAT16, repeats, strides);
 
   Store store("store");
-  InitInputNode(store, add.y, exec_order, axis_list, ge::DT_FLOAT16, repeats, strides);
+  InitInputNode(store, add.y, axis_list, ge::DT_FLOAT16, repeats, strides);
 
   Output data_out("out");
-  InitInputNode(data_out, store.y, exec_order, axis_list, ge::DT_FLOAT16, repeats, strides);
+  InitInputNode(data_out, store.y, axis_list, ge::DT_FLOAT16, repeats, strides);
   std::cout << graph.GetAllAxis()[0]->id << std::endl;
   std::cout << graph.GetAllAxis()[0]->id << std::endl;
   std::cout << graph.GetAllAxis()[0]->id << std::endl;

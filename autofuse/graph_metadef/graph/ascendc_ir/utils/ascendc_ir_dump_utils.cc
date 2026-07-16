@@ -94,7 +94,7 @@ std::string DumpAscirGraph::ComputeTypeToString(ComputeType type) {
       {ComputeType::kComputeElewise, "ELEWISE"},
       {ComputeType::kComputeBroadcast, "BROADCAST"},
       {ComputeType::kComputeReduce, "REDUCE"},
-      {ComputeType::kComputeTranspose, "TRANPOSE"},
+      {ComputeType::kComputeTranspose, "TRANSPOSE"},
       {ComputeType::kComputeGather, "GATHER"},
       {ComputeType::kComputeInvalid, "INVALID"},
   };
@@ -108,7 +108,6 @@ std::string DumpAscirGraph::ComputeTypeToString(ComputeType type) {
 std::stringstream &DumpAscirGraph::AscNodeAttrStr(std::stringstream &ss, AscNodeAttr &attr) {
   ss << "            AscNode: " << std::endl;
   ss << "                sched: " << std::endl;
-  ss << "                    exec_order: " << attr.sched.exec_order << std::endl;
   ss << "                    axis: ";
   for (auto axis : attr.sched.axis) {
     ss << axis << ", ";

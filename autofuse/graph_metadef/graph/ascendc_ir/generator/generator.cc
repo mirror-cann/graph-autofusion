@@ -1436,7 +1436,6 @@ class FunctionGenerator {
   virtual bool GenConnectInputs(std::stringstream &ss, const bool has_optional_input) const;
   virtual bool GenAttrAssignment(std::stringstream &ss) const;
   virtual void GenSchedInfo(std::stringstream &ss) const {
-    ss << "  op.attr.sched.exec_order = CodeGenUtils::GenNextExecId(op);" << std::endl;
     ss << "  SET_SCHED_AXIS_IF_IN_CONTEXT(op);" << std::endl;
   }
   virtual void TryGenOutputsVectorizedAxis(std::stringstream &ss) const {
@@ -1645,8 +1644,6 @@ class StoreNodeFuncGenerator : public FunctionGenerator {
     ss << "  auto &store_op = const_cast<af::Operator &>(store_out.GetOwnerOp());" << std::endl;
     ss << "  gm_producer.SetInput(0U, store_op, 0U);" << std::endl;
     ss << "  AddEdgeForNode(store_op, 0U, gm_producer, 0U);" << std::endl;
-    ss << "  auto *gm_producer_attr = CodeGenUtils::GetOwnerOpAscAttr(gm_producer);" << std::endl;
-    ss << "  gm_producer_attr->sched.exec_order = CodeGenUtils::GenNextExecId(store_op);" << std::endl;
     ss << "}" << std::endl;
   }
 };

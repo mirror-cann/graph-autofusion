@@ -591,11 +591,10 @@ class AscGraph {
   bool CheckValid() const;
 
   AscOpOutput CreateContiguousData(const char *name, const ge::DataType &dt, const std::vector<Axis> &axes,
-                                   const ge::Format &format = ge::FORMAT_ND);
+                                   const size_t index, const ge::Format &format = ge::FORMAT_ND);
 
   AscOpOutput CreateContiguousOut(const char *name, const ge::DataType &dt, const std::vector<Axis> &axes,
                                   const ge::Format &format = ge::FORMAT_ND);
-  void SortByExecOrder();
   bool CopyFrom(const AscGraph &graph);
   bool CopyAttrFrom(const AscGraph &src_graph);
   static bool CopyAscNodeTensorAttr(const AscNodePtr &src_node, AscNodePtr &dst_node);
@@ -606,7 +605,6 @@ class AscGraph {
  private:
   bool CheckExprValid() const;
   bool CheckAxisValid() const;
-  bool CheckExecOrderValid() const;
   bool CheckTensorValid() const;
   bool CheckNodeConnectionValid() const;
   std::shared_ptr<AscGraphImpl> impl_;

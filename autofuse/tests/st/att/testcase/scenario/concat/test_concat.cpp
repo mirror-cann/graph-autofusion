@@ -434,10 +434,9 @@ struct ConcatNormalAxisInfo {
 };
 
 // 创建Data节点（输入数据）并设置属性
-void CreateDataNode(Data &node, ascir::HintGraph &graph, const char *name, int &exec_order,
-                    const ConcatNormalAxisInfo &ax, ge::DataType dtype, const std::vector<af::Expression> &repeats,
+void CreateDataNode(Data &node, ascir::HintGraph &graph, const char *name, const ConcatNormalAxisInfo &ax,
+                    ge::DataType dtype, const std::vector<af::Expression> &repeats,
                     const std::vector<af::Expression> &strides) {
-  node.attr.sched.exec_order = exec_order++;
   node.attr.sched.axis = {ax.a_id, ax.r_id, ax.bl_id};
   node.y.dtype = dtype;
   *node.y.axis = {ax.a_id, ax.r_id, ax.bl_id};
@@ -446,10 +445,9 @@ void CreateDataNode(Data &node, ascir::HintGraph &graph, const char *name, int &
 }
 
 // 创建Load节点并设置属性
-void CreateLoadNode(Load &node, const Data &src, int &exec_order, const ConcatNormalAxisInfo &ax, ge::DataType dtype,
+void CreateLoadNode(Load &node, const Data &src, const ConcatNormalAxisInfo &ax, ge::DataType dtype,
                     const std::vector<af::Expression> &repeats, const std::vector<af::Expression> &strides) {
   node.x = src.y;
-  node.attr.sched.exec_order = exec_order++;
   node.attr.sched.axis = {ax.a_id, ax.r_id, ax.bl_id};
   node.y.dtype = dtype;
   *node.y.axis = {ax.a_id, ax.r_id, ax.bl_id};
@@ -458,9 +456,8 @@ void CreateLoadNode(Load &node, const Data &src, int &exec_order, const ConcatNo
 }
 
 // 创建Store节点并设置属性
-void CreateStoreNode(Store &node, int &exec_order, const ConcatNormalAxisInfo &ax, ge::DataType dtype,
+void CreateStoreNode(Store &node, const ConcatNormalAxisInfo &ax, ge::DataType dtype,
                      const std::vector<af::Expression> &repeats, const std::vector<af::Expression> &strides) {
-  node.attr.sched.exec_order = exec_order++;
   node.attr.sched.axis = {ax.a_id, ax.r_id, ax.bl_id};
   node.y.dtype = dtype;
   *node.y.axis = {ax.a_id, ax.r_id, ax.bl_id};
@@ -469,22 +466,19 @@ void CreateStoreNode(Store &node, int &exec_order, const ConcatNormalAxisInfo &a
 }
 
 // 创建Output节点并设置属性
-void CreateOutputNode(Output &node, int &exec_order, const ConcatNormalAxisInfo &ax, ge::DataType dtype,
+void CreateOutputNode(Output &node, const ConcatNormalAxisInfo &ax, ge::DataType dtype,
                       const std::vector<af::Expression> &repeats, const std::vector<af::Expression> &strides) {
-  node.attr.sched.exec_order = exec_order++;
   node.y.dtype = dtype;
   *node.y.axis = {ax.a_id, ax.r_id, ax.bl_id};
   *node.y.repeats = repeats;
   *node.y.strides = strides;
 }
 
-void BuildMeanConcatNode(Concat &mean, int &exec_order, const ConcatNormalAxisInfo &ax,
-                         const std::vector<af::AscOpOutput> &inputs) {
+void BuildMeanConcatNode(Concat &mean, const ConcatNormalAxisInfo &ax, const std::vector<af::AscOpOutput> &inputs) {
   auto aoo = std::vector<af::Expression>{ax.A, ax.ONE, ax.ONE};
   auto oss_v = std::vector<af::Expression>{ax.ONE, ax.ZERO, ax.ZERO};
   mean.attr.api.unit = af::ComputeUnit::kUnitVector;
   mean.x = inputs;
-  mean.attr.sched.exec_order = exec_order++;
   mean.attr.sched.axis = {ax.a_id, ax.r_id, ax.bl_id};
   mean.y.dtype = ge::DT_FLOAT;
   *mean.y.axis = {ax.a_id, ax.r_id, ax.bl_id};
@@ -492,7 +486,7 @@ void BuildMeanConcatNode(Concat &mean, int &exec_order, const ConcatNormalAxisIn
   *mean.y.strides = oss_v;
 }
 
-void BuildConcatOutputNodes(int &exec_order, const ConcatNormalAxisInfo &ax, const Store &x_out,
+void BuildConcatOutputNodes(const ConcatNormalAxisInfo &ax, const Store &x_out,
                             const std::vector<Store> &output_stores) {
   auto arb = std::vector<af::Expression>{ax.A, ax.R, ax.ONE};
   auto rs = std::vector<af::Expression>{ax.R, ax.ONE, ax.ZERO};
@@ -500,23 +494,22 @@ void BuildConcatOutputNodes(int &exec_order, const ConcatNormalAxisInfo &ax, con
   auto oss_v = std::vector<af::Expression>{ax.ONE, ax.ZERO, ax.ZERO};
   Output buf1("buf1");
   buf1.x = x_out.y;
-  buf1.attr.sched.exec_order = exec_order++;
   buf1.y.dtype = ge::DT_FLOAT16;
   *buf1.y.axis = {ax.a_id, ax.r_id, ax.bl_id};
   *buf1.y.repeats = arb;
   *buf1.y.strides = rs;
 
   Output buf2("buf2");
-  CreateOutputNode(buf2, exec_order, ax, ge::DT_FLOAT, aoo, oss_v);
+  CreateOutputNode(buf2, ax, ge::DT_FLOAT, aoo, oss_v);
   buf2.x = output_stores[0].y;
   Output buf3("buf3");
-  CreateOutputNode(buf3, exec_order, ax, ge::DT_FLOAT, aoo, oss_v);
+  CreateOutputNode(buf3, ax, ge::DT_FLOAT, aoo, oss_v);
   buf3.x = output_stores[1].y;
   Output buf("buf");
-  CreateOutputNode(buf, exec_order, ax, ge::DT_FLOAT16, arb, rs);
+  CreateOutputNode(buf, ax, ge::DT_FLOAT16, arb, rs);
   buf.x = output_stores[2].y;
   Output buf4("buf4");
-  CreateOutputNode(buf4, exec_order, ax, ge::DT_FLOAT16, arb, rs);
+  CreateOutputNode(buf4, ax, ge::DT_FLOAT16, arb, rs);
   buf4.x = output_stores[3].y;
 }
 
@@ -527,9 +520,8 @@ struct ConcatVecExprs {
   std::vector<af::Expression> oss_v;
 };
 
-void CreateStoreFp16Node(Store &store, int &exec_order, const ConcatNormalAxisInfo &ax, const af::AscOpOutput &input,
+void CreateStoreFp16Node(Store &store, const ConcatNormalAxisInfo &ax, const af::AscOpOutput &input,
                          const ConcatVecExprs &vecs) {
-  store.attr.sched.exec_order = exec_order++;
   store.attr.sched.axis = {ax.a_id, ax.r_id, ax.bl_id};
   store.x = input;
   store.y.dtype = ge::DT_FLOAT16;
@@ -538,16 +530,15 @@ void CreateStoreFp16Node(Store &store, int &exec_order, const ConcatNormalAxisIn
   *store.y.strides = vecs.rs;
 }
 
-void BuildConcatRstdYAndOutputs(int &exec_order, const ConcatNormalAxisInfo &ax, const ConcatVecExprs &vecs,
+void BuildConcatRstdYAndOutputs(const ConcatNormalAxisInfo &ax, const ConcatVecExprs &vecs,
                                 const af::AscOpOutput &mean_y, const Store &x_out, const Store &mean_out,
                                 ascir::HintGraph &graph, const af::AscOpOutput &x1_out, const af::AscOpOutput &x2_out) {
   auto oob = std::vector<af::Expression>{ax.ONE, ax.ONE, ax.BL};
   auto oso = std::vector<af::Expression>{ax.ZERO, ax.ZERO, ax.ONE};
   Data one("one", graph);
-  CreateDataNode(one, graph, "one", exec_order, ax, ge::DT_FLOAT, oob, oso);
+  CreateDataNode(one, graph, "one", ax, ge::DT_FLOAT, oob, oso);
   Concat rstd("rstd");
   rstd.attr.api.unit = af::ComputeUnit::kUnitVector;
-  rstd.attr.sched.exec_order = exec_order++;
   rstd.attr.sched.axis = {ax.a_id, ax.r_id, ax.bl_id};
   rstd.x = {mean_y, mean_y, one.y};
   rstd.y.dtype = ge::DT_FLOAT;
@@ -556,23 +547,22 @@ void BuildConcatRstdYAndOutputs(int &exec_order, const ConcatNormalAxisInfo &ax,
   *rstd.y.strides = vecs.rs;
 
   Store rstd_out("rstd_out");
-  CreateStoreNode(rstd_out, exec_order, ax, ge::DT_FLOAT, vecs.aoo, vecs.oss_v);
+  CreateStoreNode(rstd_out, ax, ge::DT_FLOAT, vecs.aoo, vecs.oss_v);
   rstd_out.x = rstd.y;
 
   auto orb = std::vector<af::Expression>{ax.ONE, ax.R, ax.ONE};
   auto bg_strides = std::vector<af::Expression>{ax.ZERO, ax.ONE, ax.ZERO};
   Data beta("beta", graph);
-  CreateDataNode(beta, graph, "beta", exec_order, ax, ge::DT_FLOAT16, orb, bg_strides);
+  CreateDataNode(beta, graph, "beta", ax, ge::DT_FLOAT16, orb, bg_strides);
   Load betaLocal("betaLocal");
-  CreateLoadNode(betaLocal, beta, exec_order, ax, ge::DT_FLOAT16, orb, bg_strides);
+  CreateLoadNode(betaLocal, beta, ax, ge::DT_FLOAT16, orb, bg_strides);
   Data gamma("gamma", graph);
-  CreateDataNode(gamma, graph, "gamma", exec_order, ax, ge::DT_FLOAT16, orb, bg_strides);
+  CreateDataNode(gamma, graph, "gamma", ax, ge::DT_FLOAT16, orb, bg_strides);
   Load gammaLocal("gammaLocal");
-  CreateLoadNode(gammaLocal, gamma, exec_order, ax, ge::DT_FLOAT16, orb, bg_strides);
+  CreateLoadNode(gammaLocal, gamma, ax, ge::DT_FLOAT16, orb, bg_strides);
 
   Concat y("y");
   y.attr.api.unit = af::ComputeUnit::kUnitVector;
-  y.attr.sched.exec_order = exec_order++;
   y.attr.sched.axis = {ax.a_id, ax.r_id, ax.bl_id};
   y.x = {rstd.y, betaLocal.y, gammaLocal.y, rstd.y};
   y.y.dtype = ge::DT_FLOAT16;
@@ -590,13 +580,13 @@ void BuildConcatRstdYAndOutputs(int &exec_order, const ConcatNormalAxisInfo &ax,
   *concat.y.strides = vecs.rs;
 
   Store y_out("y_out");
-  CreateStoreFp16Node(y_out, exec_order, ax, y.y, vecs);
+  CreateStoreFp16Node(y_out, ax, y.y, vecs);
   Store cat_out("cat_out");
-  CreateStoreFp16Node(cat_out, exec_order, ax, y.y, vecs);
+  CreateStoreFp16Node(cat_out, ax, y.y, vecs);
   (void)y_out;
   (void)cat_out;
 
-  BuildConcatOutputNodes(exec_order, ax, x_out, {mean_out, rstd_out, y_out, cat_out});
+  BuildConcatOutputNodes(ax, x_out, {mean_out, rstd_out, y_out, cat_out});
 }
 
 void Concat_Normal_BeforeAutofuse(ascir::HintGraph &graph) {
@@ -610,32 +600,31 @@ void Concat_Normal_BeforeAutofuse(ascir::HintGraph &graph) {
   auto bl = graph.CreateAxis("BL", BL);
   ConcatNormalAxisInfo ax{A, R, BL, ONE, ZERO, a.id, r.id, bl.id};
   ConcatVecExprs vecs{{A, R, ONE}, {R, ONE, ZERO}, {A, ONE, ONE}, {ONE, ZERO, ZERO}};
-  int exec_order = 0;
 
   auto arb = std::vector<af::Expression>{ax.A, ax.R, ax.ONE};
   auto rs = std::vector<af::Expression>{ax.R, ax.ONE, ax.ZERO};
   Data x1("x1", graph);
-  CreateDataNode(x1, graph, "x1", exec_order, ax, ge::DT_FLOAT16, arb, rs);
+  CreateDataNode(x1, graph, "x1", ax, ge::DT_FLOAT16, arb, rs);
   Load x1Local("x1Local");
-  CreateLoadNode(x1Local, x1, exec_order, ax, ge::DT_FLOAT16, arb, rs);
+  CreateLoadNode(x1Local, x1, ax, ge::DT_FLOAT16, arb, rs);
   Data x2("x2", graph);
-  CreateDataNode(x2, graph, "x2", exec_order, ax, ge::DT_FLOAT16, arb, rs);
+  CreateDataNode(x2, graph, "x2", ax, ge::DT_FLOAT16, arb, rs);
   Load x2Local("x2Local");
-  CreateLoadNode(x2Local, x2, exec_order, ax, ge::DT_FLOAT16, arb, rs);
+  CreateLoadNode(x2Local, x2, ax, ge::DT_FLOAT16, arb, rs);
   Data bias("bias", graph);
-  CreateDataNode(bias, graph, "bias", exec_order, ax, ge::DT_FLOAT16, arb, rs);
+  CreateDataNode(bias, graph, "bias", ax, ge::DT_FLOAT16, arb, rs);
   Load biasLocal("biasLocal");
-  CreateLoadNode(biasLocal, bias, exec_order, ax, ge::DT_FLOAT16, arb, rs);
+  CreateLoadNode(biasLocal, bias, ax, ge::DT_FLOAT16, arb, rs);
   Concat mean("mean");
-  BuildMeanConcatNode(mean, exec_order, ax, {x1Local.y, x2Local.y, biasLocal.y});
+  BuildMeanConcatNode(mean, ax, {x1Local.y, x2Local.y, biasLocal.y});
 
   Store x_out("x_out");
-  CreateStoreFp16Node(x_out, exec_order, ax, mean.y, vecs);
+  CreateStoreFp16Node(x_out, ax, mean.y, vecs);
   Store mean_out("mean_out");
-  CreateStoreNode(mean_out, exec_order, ax, ge::DT_FLOAT, vecs.aoo, vecs.oss_v);
+  CreateStoreNode(mean_out, ax, ge::DT_FLOAT, vecs.aoo, vecs.oss_v);
   mean_out.x = mean.y;
 
-  BuildConcatRstdYAndOutputs(exec_order, ax, vecs, mean.y, x_out, mean_out, graph, x1Local.y, x2Local.y);
+  BuildConcatRstdYAndOutputs(ax, vecs, mean.y, x_out, mean_out, graph, x1Local.y, x2Local.y);
 }
 
 /*
@@ -775,8 +764,8 @@ Status BuildConcatGroupAscendGraphND(af::AscGraph &graph) {
   auto nd = graph.CreateAxis("nd", ND);
   auto [ndB, ndb] = graph.BlockSplit(nd.id);
   auto [ndbT, ndbt] = graph.TileSplit(ndb->id);
-  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {nd});
-  auto data2 = graph.CreateContiguousData("input2", DT_FLOAT, {nd});
+  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {nd}, 0);
+  auto data2 = graph.CreateContiguousData("input2", DT_FLOAT, {nd}, 1);
   LOOP(*ndB) {
     LOOP(*ndbT) {
       auto load1 = Load("load1", data1).TQue(Position::kPositionVecIn, 1, 1);
@@ -801,7 +790,7 @@ Status BuildConcatGroupAscendGraphS0S1MultiTiling(af::AscGraph &graph) {
   auto [s1T, s1t] = graph.TileSplit(s1.id);
   auto s1Ts2T = *graph.MergeAxis({s1T->id, s2T->id});
   auto [s1Ts2TB, s1Ts2Tb] = graph.BlockSplit(s1Ts2T.id);
-  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {s0, s1});
+  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {s0, s1}, 0);
   LOOP(*s1Ts2TB) {
     LOOP(*s1Ts2Tb) {
       auto load1 = Load("load1", data1).TQue(Position::kPositionVecIn, 1, 1);
@@ -851,8 +840,8 @@ Status BuildConcatGroupAscendGraphS0S1_Reorder(af::AscGraph &graph) {
   auto s1 = graph.CreateAxis("s1", S1);
   auto [ndB, ndb] = graph.BlockSplit(s0.id);
   auto [ndbT, ndbt] = graph.TileSplit(ndb->id);
-  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {s0});
-  auto data2 = graph.CreateContiguousData("input2", DT_FLOAT, {s1});
+  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {s0}, 0);
+  auto data2 = graph.CreateContiguousData("input2", DT_FLOAT, {s1}, 1);
   LOOP(*ndB) {
     LOOP(*ndbT) {
       auto load1 = Load("load1", data1).TQue(Position::kPositionVecIn, 1, 1);
@@ -883,8 +872,8 @@ Status BuildConcatGroupAscendGraphS1S0_Reorder(af::AscGraph &graph) {
   auto s0 = graph.CreateAxis("s0", S0);
   auto [ndB, ndb] = graph.BlockSplit(s1.id);
   auto [ndbT, ndbt] = graph.TileSplit(ndb->id);
-  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {s1});
-  auto data2 = graph.CreateContiguousData("input2", DT_FLOAT, {s0});
+  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {s1}, 0);
+  auto data2 = graph.CreateContiguousData("input2", DT_FLOAT, {s0}, 1);
   LOOP(*ndB) {
     LOOP(*ndbT) {
       auto load1 = Load("load1", data1).TQue(Position::kPositionVecIn, 1, 1);
@@ -913,8 +902,8 @@ Status BuildConcatGroupAscendGraphS0(af::AscGraph &graph) {
   auto z0 = graph.CreateAxis("z0", S0);
   auto [z0B, z0b] = graph.BlockSplit(z0.id);
   auto [z0bT, z0bt] = graph.TileSplit(z0b->id);
-  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {z0});
-  auto data2 = graph.CreateContiguousData("input2", DT_FLOAT, {z0});
+  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {z0}, 0);
+  auto data2 = graph.CreateContiguousData("input2", DT_FLOAT, {z0}, 1);
   LOOP(*z0B) {
     LOOP(*z0bT) {
       auto load1 = Load("load1", data1).TQue(Position::kPositionVecIn, 1, 1);
@@ -942,8 +931,8 @@ Status BuildConcatGroupAscendGraphND2(af::AscGraph &graph) {
   auto nd = graph.CreateAxis("nd2", ND);
   auto [ndB, ndb] = graph.BlockSplit(nd.id);
   auto [ndbT, ndbt] = graph.TileSplit(ndb->id);
-  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {nd});
-  auto data2 = graph.CreateContiguousData("input2", DT_FLOAT, {nd});
+  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {nd}, 0);
+  auto data2 = graph.CreateContiguousData("input2", DT_FLOAT, {nd}, 1);
   LOOP(*ndB) {
     LOOP(*ndbT) {
       auto load1 = Load("load1", data1).TQue(Position::kPositionVecIn, 1, 1);
@@ -965,8 +954,8 @@ Status BuildConcatGroupAscendGraphND2WithAbs(af::AscGraph &graph) {
   auto nd = graph.CreateAxis("nd2", ND);
   auto [ndB, ndb] = graph.BlockSplit(nd.id);
   auto [ndbT, ndbt] = graph.TileSplit(ndb->id);
-  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {nd});
-  auto data2 = graph.CreateContiguousData("input2", DT_FLOAT, {nd});
+  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {nd}, 0);
+  auto data2 = graph.CreateContiguousData("input2", DT_FLOAT, {nd}, 1);
   LOOP(*ndB) {
     LOOP(*ndbT) {
       auto load1 = Load("load1", data1).TQue(Position::kPositionVecIn, 1, 1);
@@ -989,8 +978,8 @@ Status BuildConcatGroupAscendGraphND2TB(af::AscGraph &graph) {
   auto nd = graph.CreateAxis("nd2", ND);
   auto [ndT, ndt] = graph.TileSplit(nd.id);
   auto [ndTB, ndTb] = graph.BlockSplit(ndT->id);
-  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {nd});
-  auto data2 = graph.CreateContiguousData("input2", DT_FLOAT, {nd});
+  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {nd}, 0);
+  auto data2 = graph.CreateContiguousData("input2", DT_FLOAT, {nd}, 1);
   LOOP(*ndTB) {
     LOOP(*ndTb) {
       auto load1 = Load("load1", data1).TQue(Position::kPositionVecIn, 1, 1);
@@ -1019,8 +1008,8 @@ Status BuildConcatGroupAscendGraphStatic(af::AscGraph &graph) {
   auto nd = graph.CreateAxis("nd", ND);
   auto [ndB, ndb] = graph.BlockSplit(nd.id);
   auto [ndbT, ndbt] = graph.TileSplit(ndb->id);
-  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {nd});
-  auto data2 = graph.CreateContiguousData("input2", DT_FLOAT, {nd});
+  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {nd}, 0);
+  auto data2 = graph.CreateContiguousData("input2", DT_FLOAT, {nd}, 1);
   LOOP(*ndB) {
     LOOP(*ndbT) {
       auto load1 = Load("load1", data1).TQue(Position::kPositionVecIn, 1, 1);
@@ -1048,8 +1037,8 @@ Status BuildTqueTbufAscendGraph_single_case(af::AscGraph &graph) {
   auto nd = graph.CreateAxis("nd", ND);
   auto [ndB, ndb] = graph.BlockSplit(nd.id);
   auto [ndbT, ndbt] = graph.TileSplit(ndb->id);
-  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {nd});
-  auto data2 = graph.CreateContiguousData("input2", DT_FLOAT, {nd});
+  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {nd}, 0);
+  auto data2 = graph.CreateContiguousData("input2", DT_FLOAT, {nd}, 1);
   LOOP(*ndB) {
     LOOP(*ndbT) {
       auto load1 = Load("load1", data1).TQue(Position::kPositionVecIn, 1, 1);
@@ -1079,10 +1068,10 @@ Status BuildTqueTbufAscendGraphMultiCaseG0(af::AscGraph &graph) {
   auto nd = graph.CreateAxis("nd", ND);
   auto [ndB, ndb] = graph.BlockSplit(nd.id);
   auto [ndbT, ndbt] = graph.TileSplit(ndb->id);
-  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {nd});
-  auto data2 = graph.CreateContiguousData("input2", DT_FLOAT, {nd});
-  auto data3 = graph.CreateContiguousData("input3", DT_FLOAT, {nd});
-  auto data4 = graph.CreateContiguousData("input4", DT_FLOAT, {nd});
+  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {nd}, 0);
+  auto data2 = graph.CreateContiguousData("input2", DT_FLOAT, {nd}, 1);
+  auto data3 = graph.CreateContiguousData("input3", DT_FLOAT, {nd}, 2);
+  auto data4 = graph.CreateContiguousData("input4", DT_FLOAT, {nd}, 3);
   LOOP(*ndB) {
     LOOP(*ndbT) {
       auto load_tque0 = Load("load1", data1).TQue(Position::kPositionVecIn, 1, 1);
@@ -1122,10 +1111,10 @@ Status BuildTqueTbufAscendGraphMultiCaseG1(af::AscGraph &graph) {
   auto z0 = graph.CreateAxis("z0", S0);
   auto [z0B, z0b] = graph.BlockSplit(z0.id);
   auto [z0bT, z0bt] = graph.TileSplit(z0b->id);
-  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {z0});
-  auto data2 = graph.CreateContiguousData("input2", DT_FLOAT, {z0});
-  auto data3 = graph.CreateContiguousData("input3", DT_FLOAT, {z0});
-  auto data4 = graph.CreateContiguousData("input4", DT_FLOAT, {z0});
+  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {z0}, 0);
+  auto data2 = graph.CreateContiguousData("input2", DT_FLOAT, {z0}, 1);
+  auto data3 = graph.CreateContiguousData("input3", DT_FLOAT, {z0}, 2);
+  auto data4 = graph.CreateContiguousData("input4", DT_FLOAT, {z0}, 3);
   LOOP(*z0B) {
     LOOP(*z0bT) {
       auto load_tque0 = Load("load1", data1).TQue(Position::kPositionVecIn, 1, 1);
@@ -1155,10 +1144,10 @@ Status BuildMultiCaseG0(af::AscGraph &graph) {
   auto nd = graph.CreateAxis("nd", ND);
   auto [ndT, ndt] = graph.TileSplit(nd.id);
   auto [ndTB, ndTb] = graph.BlockSplit(ndT->id);
-  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {nd});
-  auto data2 = graph.CreateContiguousData("input2", DT_FLOAT, {nd});
-  auto data3 = graph.CreateContiguousData("input3", DT_FLOAT, {nd});
-  auto data4 = graph.CreateContiguousData("input4", DT_FLOAT, {nd});
+  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {nd}, 0);
+  auto data2 = graph.CreateContiguousData("input2", DT_FLOAT, {nd}, 1);
+  auto data3 = graph.CreateContiguousData("input3", DT_FLOAT, {nd}, 2);
+  auto data4 = graph.CreateContiguousData("input4", DT_FLOAT, {nd}, 3);
   LOOP(*ndTB) {
     LOOP(*ndTb) {
       auto load_tque0 = Load("load1", data1).TQue(Position::kPositionVecIn, 1, 1);
@@ -1190,10 +1179,10 @@ Status BuildMultiCaseG1(af::AscGraph &graph) {
   auto z0 = graph.CreateAxis("z0", S0);
   auto [z0T, z0t] = graph.TileSplit(z0.id);
   auto [z0TB, z0Tb] = graph.BlockSplit(z0T->id);
-  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {z0});
-  auto data2 = graph.CreateContiguousData("input2", DT_FLOAT, {z0});
-  auto data3 = graph.CreateContiguousData("input3", DT_FLOAT, {z0});
-  auto data4 = graph.CreateContiguousData("input4", DT_FLOAT, {z0});
+  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {z0}, 0);
+  auto data2 = graph.CreateContiguousData("input2", DT_FLOAT, {z0}, 1);
+  auto data3 = graph.CreateContiguousData("input3", DT_FLOAT, {z0}, 2);
+  auto data4 = graph.CreateContiguousData("input4", DT_FLOAT, {z0}, 3);
   LOOP(*z0TB) {
     LOOP(*z0Tb) {
       auto load_tque0 = Load("load1", data1).TQue(Position::kPositionVecIn, 1, 1);
@@ -1224,13 +1213,13 @@ Status BuildSevenInputsMiddleAxisCacheLineConflict(ge::AscGraph &graph) {
   auto s1 = graph.CreateAxis("s1", S1);
   auto [s0B, s0b] = graph.BlockSplit(s0.id);
   auto [s0bT, s0bt] = graph.TileSplit(s0b->id);
-  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {s0, s1});
-  auto data2 = graph.CreateContiguousData("input2", DT_FLOAT, {s0, s1});
-  auto data3 = graph.CreateContiguousData("input3", DT_FLOAT, {s0, s1});
-  auto data4 = graph.CreateContiguousData("input4", DT_FLOAT, {s0, s1});
-  auto data5 = graph.CreateContiguousData("input5", DT_FLOAT, {s0, s1});
-  auto data6 = graph.CreateContiguousData("input6", DT_FLOAT, {s0, s1});
-  auto data7 = graph.CreateContiguousData("input7", DT_FLOAT, {s0, s1});
+  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {s0, s1}, 0);
+  auto data2 = graph.CreateContiguousData("input2", DT_FLOAT, {s0, s1}, 1);
+  auto data3 = graph.CreateContiguousData("input3", DT_FLOAT, {s0, s1}, 2);
+  auto data4 = graph.CreateContiguousData("input4", DT_FLOAT, {s0, s1}, 3);
+  auto data5 = graph.CreateContiguousData("input5", DT_FLOAT, {s0, s1}, 4);
+  auto data6 = graph.CreateContiguousData("input6", DT_FLOAT, {s0, s1}, 5);
+  auto data7 = graph.CreateContiguousData("input7", DT_FLOAT, {s0, s1}, 6);
   LOOP(*s0B) {
     LOOP(*s0bT) {
       auto load1 = Load("load1", data1).TQue(Position::kPositionVecIn, 1, 1);

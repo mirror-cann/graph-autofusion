@@ -48,3 +48,6 @@ super_kernel/tests/aot/third_party/mockcpp_src/
 # IDE settings
 .vscode/
 .idea/
+
+# AOT reports
+oat_reports/

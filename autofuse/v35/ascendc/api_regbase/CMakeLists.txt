@@ -64,12 +64,14 @@ set(ascendc_api_regbase_extend_src
         shifted_chebyshev_polynomial_v.h
         shifted_chebyshev_polynomial_w.h
         ndtr.h
+        log_ndtr.h
         next_after.h
         i0.h
         igammac_helper/series.h
         igammac_helper/continued_fraction.h
         igammac_helper/asymptotic_series.h
         igammac_helper/series_complement.h
+        hypot.h
 )
 
 set(generated_regbase_files)

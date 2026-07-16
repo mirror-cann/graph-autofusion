@@ -183,28 +183,4 @@ TEST(AscirOps_FlashSoftmaxInferDataType, Ok) {
   EXPECT_EQ(fs->outputs[1].attr.dtype, af::DT_INT32);
   EXPECT_EQ(fs->outputs[2].attr.dtype, af::DT_INT32);
 }
-TEST(AscirOps, ExecOrderIncreaseOk) {
-  af::AscGraph graph("test_graph");
-  auto A = af::Symbol("A");
-  auto B = af::Symbol("B");
-  auto C = af::Symbol("C");
-  auto a = graph.CreateAxis("a", A);
-  auto b = graph.CreateAxis("b", B);
-  auto c = graph.CreateAxis("c", C);
-
-  auto data0 = ascir::cg::ContiguousData("data0", graph, af::DT_INT32, {a, b, c});
-  auto data1 = ascir::cg::ContiguousData("data1", graph, af::DT_FLOAT16, {a, b, c});
-  auto data2 = ascir::cg::ContiguousData("data2", graph, af::DT_FLOAT16, {a, b, c});
-
-  ascir::cg::FlashSoftmax("fs", data0, data1, data2);
-
-  auto data0_node = graph.FindNode("data0");
-  auto data1_node = graph.FindNode("data1");
-  auto data2_node = graph.FindNode("data2");
-  auto fs_node = graph.FindNode("fs");
-  EXPECT_EQ(static_cast<int64_t>(data0_node->attr.sched.exec_order), 0);
-  EXPECT_EQ(static_cast<int64_t>(data1_node->attr.sched.exec_order), 1);
-  EXPECT_EQ(static_cast<int64_t>(data2_node->attr.sched.exec_order), 2);
-  EXPECT_EQ(static_cast<int64_t>(fs_node->attr.sched.exec_order), 3);
-}
 };  // namespace af

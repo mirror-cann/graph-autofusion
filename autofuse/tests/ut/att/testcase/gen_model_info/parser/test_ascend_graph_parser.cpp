@@ -33,8 +33,8 @@ Status BuildGatherAscendGraphND(AscGraph &graph) {
   auto nd = graph.CreateAxis("nd", ND);
   auto [ndB, ndb] = graph.BlockSplit(nd.id);
   auto [ndbT, ndbt] = graph.TileSplit(ndb->id);
-  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {nd});
-  auto data2 = graph.CreateContiguousData("input2", DT_FLOAT, {nd});
+  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {nd}, 0);
+  auto data2 = graph.CreateContiguousData("input2", DT_FLOAT, {nd}, 1);
   LOOP(*ndB) {
     LOOP(*ndbT) {
       auto load1 = Load("load1", data1).TQue(Position::kPositionVecIn, 1, 1);
@@ -66,8 +66,8 @@ Status BuildReduceAscendGraphND(AscGraph &graph) {
   auto nd = graph.CreateAxis("nd", ND);
   auto [ndB, ndb] = graph.BlockSplit(nd.id);
   auto [ndbT, ndbt] = graph.TileSplit(ndb->id);
-  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {nd});
-  auto data2 = graph.CreateContiguousData("input2", DT_FLOAT, {nd});
+  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {nd}, 0);
+  auto data2 = graph.CreateContiguousData("input2", DT_FLOAT, {nd}, 1);
   LOOP(*ndB) {
     LOOP(*ndbT) {
       auto load1 = Load("load1", data1).TQue(Position::kPositionVecIn, 1, 1);

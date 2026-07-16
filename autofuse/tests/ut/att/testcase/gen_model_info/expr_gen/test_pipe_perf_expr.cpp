@@ -37,7 +37,7 @@ Status BuildEqAscendGraphND(af::AscGraph &graph) {
   auto z3 = graph.CreateAxis("z3", s3);
   auto [z0T, z0t] = graph.TileSplit(z0.id);
   auto [z0TB, z0Tb] = graph.BlockSplit(z0T->id);
-  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {z0, z2, z3}, FORMAT_ND);
+  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {z0, z2, z3}, 0, FORMAT_ND);
   LOOP(*z0TB) {
     LOOP(*z0T) {
       auto load1 = Load("load1", data1).TQue(Position::kPositionVecIn, 1, 1);
@@ -58,7 +58,7 @@ static Status BuildVectorFuncSubgraph(af::AscGraph &subgraph) {
   auto nd = subgraph.CreateAxis("nd", ND);
   auto [ndB, ndb] = subgraph.BlockSplit(nd.id);
   auto [ndbT, ndbt] = subgraph.TileSplit(ndb->id);
-  auto data1 = subgraph.CreateContiguousData("input1", DT_FLOAT, {*ndbt});
+  auto data1 = subgraph.CreateContiguousData("input1", DT_FLOAT, {*ndbt}, 0);
   auto load1 = Load("load1", data1);
   auto abs1 = Abs("abs1", load1);
   auto sub1 = Sub("sub1", abs1, abs1);
@@ -78,8 +78,7 @@ static Status AddVectorFuncToMainGraph(af::AscGraph &graph) {
   auto z0 = CreateS0Axis(graph);
   auto [z0B, z0b] = graph.BlockSplit(z0.id);
   auto [z0bT, z0bt] = graph.TileSplit(z0b->id);
-  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {z0});
-
+  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {z0}, 0);
   LOOP(*z0B) {
     LOOP(*z0bT) {
       auto load1 = Load("load1", data1).TQue(Position::kPositionVecIn, 1, 1);

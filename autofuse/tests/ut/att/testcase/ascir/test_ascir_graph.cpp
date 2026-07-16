@@ -29,7 +29,6 @@ void MakeGraph0Normal(af::AscGraph &graph) {
   auto z2 = graph.CreateAxis("z2", s2);
 
   Data x("x", graph);
-  x.attr.sched.exec_order = 0;
   x.attr.sched.axis = {z0.id, z1.id, z2.id};
 
   x.y.dtype = af::DT_FLOAT16;
@@ -39,7 +38,6 @@ void MakeGraph0Normal(af::AscGraph &graph) {
 
   Load load("load");
   load.x = x.y;
-  load.attr.sched.exec_order = 1;
   load.attr.sched.axis = {z0.id, z1.id, z2.id};
 
   load.y.dtype = af::DT_FLOAT16;
@@ -48,7 +46,6 @@ void MakeGraph0Normal(af::AscGraph &graph) {
   *load.y.strides = {s1 * s2, s2, ONE};
   Abs abs("abs");
   abs.x = load.y;
-  abs.attr.sched.exec_order = 2;
   abs.attr.sched.axis = {z0.id, z1.id, z2.id};
 
   abs.y.dtype = af::DT_FLOAT16;
@@ -57,7 +54,6 @@ void MakeGraph0Normal(af::AscGraph &graph) {
   *abs.y.strides = {s1 * s2, s2, ONE};
   Store store("store");
   store.x = abs.y;
-  store.attr.sched.exec_order = 3;
   store.attr.sched.axis = {z0.id, z1.id, z2.id};
 
   store.y.dtype = af::DT_FLOAT16;
@@ -66,7 +62,6 @@ void MakeGraph0Normal(af::AscGraph &graph) {
   *store.y.strides = {s1 * s2, s2, ONE};
   Output y("y");
   y.x = store.y;
-  y.attr.sched.exec_order = 4;
   y.attr.sched.axis = {z0.id, z1.id, z2.id};
 
   y.y.dtype = af::DT_FLOAT16;
@@ -88,7 +83,6 @@ void MakeGraph0ByCg(af::AscGraph &graph) {
       LOOP(z1) {
         LOOP(z2) {
           // 当前作用域内的所有的节点自动设置为sched.axis设置为{z0, z1, z2}
-          // 执行序exec_order根据创建的节点顺序自动生成
           auto x =
               cg::ContiguousData("x", graph, af::DT_FLOAT16, axis);  // 因为是连续tensor, 由axis推导出repeats, strides
           auto load = ascir::cg::Load(

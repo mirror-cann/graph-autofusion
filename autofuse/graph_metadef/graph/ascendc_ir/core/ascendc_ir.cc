@@ -819,7 +819,7 @@ AscGraphAttr *AscGraphImpl::GetGraphAttrsGroup() const {
 }
 
 AscOpOutput AscGraphImpl::CreateContiguousData(const char *name, const ge::DataType &dt, const vector<Axis> &axes,
-                                               const Format &format) {
+                                               const size_t index, const Format &format) {
   auto data_op_desc = OpDescBuilder(name, kAscData).AddOutput("y").Build();
   GE_ASSERT_NOTNULL(data_op_desc);
   // Add output and attr
@@ -831,10 +831,9 @@ AscOpOutput AscGraphImpl::CreateContiguousData(const char *name, const ge::DataT
   GE_ASSERT_NOTNULL(data_attr);
   AddNode(*data_op);
   data_op_desc->SetExtAttr(ascir::cg::RELATED_OP, data_op);
-  data_attr->sched.exec_order = ascir::cg::CodeGenUtils::GenNextExecId(*data_op);
   auto data_ir_attr = ComGraphMakeUnique<AscDataIrAttrDef>();
   GE_ASSERT_NOTNULL(data_ir_attr);
-  GE_ASSERT_GRAPH_SUCCESS(data_ir_attr->SetIndex(data_attr->sched.exec_order));
+  GE_ASSERT_GRAPH_SUCCESS(data_ir_attr->SetIndex(index));
   data_attr->ir_attr = std::move(data_ir_attr);
 
   AscOpOutput asc_op_output(data_op.get(), 0U);  // data只有一个输出
@@ -859,14 +858,6 @@ AscOpOutput AscGraphImpl::CreateContiguousOut(const char *name, const DataType &
   GE_ASSERT_TRUE(asc_op_output.SetContiguousView(axes));
   *asc_op_output.vectorized_axis = AxisUtils::GetDefaultVectorizedAxis(*asc_op_output.axis, -1);
   return asc_op_output;
-}
-
-void AscGraphImpl::SortByExecOrder() {
-  compute_graph_->TopologicalSorting([](const NodePtr &a, const NodePtr &b) {
-    auto node_a = std::dynamic_pointer_cast<AscNode>(a);
-    auto node_b = std::dynamic_pointer_cast<AscNode>(b);
-    return node_a->attr.sched.exec_order < node_b->attr.sched.exec_order;
-  });
 }
 
 const ComputeGraphPtr AscGraphImpl::GetComputeGraph() const {
@@ -913,10 +904,6 @@ AscGraph::AscGraph(const char *name) : impl_(ComGraphMakeSharedAndThrow<AscGraph
 
 std::string AscGraph::GetName() const {
   return impl_->GetName();
-}
-
-void AscGraph::SortByExecOrder() {
-  impl_->SortByExecOrder();
 }
 
 bool AscGraph::CopyFrom(const AscGraph &graph) {
@@ -1167,17 +1154,6 @@ bool AscGraph::CheckAxisValid() const {
   return true;
 }
 
-bool AscGraph::CheckExecOrderValid() const {
-  std::set<int64_t> exec_order_set;
-  for (const auto &node : GetAllNodes()) {
-    const auto exec_order = node->attr.sched.exec_order;
-    const auto iter = exec_order_set.find(exec_order);
-    GE_ASSERT_TRUE(iter == exec_order_set.end(), "Redundant exec_order[%ld].", exec_order);
-    exec_order_set.insert(exec_order);
-  }
-  return true;
-}
-
 bool AscGraph::CheckTensorValid() const {
   for (const auto &node : GetAllNodes()) {
     int32_t output_index = -1;
@@ -1238,8 +1214,8 @@ TransInfoRoadOfGraph AscGraph::GetAllAxisTransInfo() const {
 }
 
 AscOpOutput AscGraph::CreateContiguousData(const char *name, const ge::DataType &dt, const std::vector<Axis> &axes,
-                                           const ge::Format &format) {
-  return impl_->CreateContiguousData(name, dt, axes, format);
+                                           const size_t index, const ge::Format &format) {
+  return impl_->CreateContiguousData(name, dt, axes, index, format);
 }
 
 AscOpOutput AscGraph::CreateContiguousOut(const char *name, const ge::DataType &dt, const std::vector<Axis> &axes,
@@ -1466,12 +1442,10 @@ graphStatus AscNodeAttr::SerializeAttr(ascendc_ir::proto::AscNodeAttrGroupsDef &
   asc_node_group.set_name(name);
   asc_node_group.set_type(type);
   auto sched_def = asc_node_group.mutable_sched();
-  sched_def->set_exec_order(sched.exec_order);
   for (const int64_t axis_id : sched.axis) {
     sched_def->add_axis(axis_id);
   }
   sched_def->set_loop_axis(sched.loop_axis);
-  sched_def->set_exec_order(sched.exec_order);
   sched_def->set_exec_condition(static_cast<int32_t>(sched.exec_condition));
   auto api_def = asc_node_group.mutable_api();
   api_def->set_type(static_cast<int32_t>(api.type));
@@ -1509,7 +1483,6 @@ graphStatus AscNodeAttr::DeserializeAttr(const ascendc_ir::proto::AscNodeAttrGro
     sched.axis.emplace_back(ax);
   }
   sched.loop_axis = sched_def.loop_axis();
-  sched.exec_order = sched_def.exec_order();
   sched.exec_condition = static_cast<ExecuteCondition>(sched_def.exec_condition());
   const auto &api_def = asc_node_group.api();
   api.type = static_cast<ApiType>((api_def.type()));
