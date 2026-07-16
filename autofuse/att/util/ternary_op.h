@@ -70,6 +70,7 @@ public:
   Expr GetVariable() const;
   std::string GetTernaryOpStr() const;
   std::vector<Expr> GetRelatedVars() const;
+  std::vector<Expr> GetUsedArgs() const;
   TernaryOp DeepCopy() const;
   std::shared_ptr<IfCase> DeepCopyIfCase() const;
   void SetVariable(const Expr &expr);

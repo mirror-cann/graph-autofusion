@@ -175,6 +175,12 @@ std::vector<Expr> TernaryOp::GetRelatedVars() const {
   return res;
 }
 
+std::vector<Expr> TernaryOp::GetUsedArgs() const {
+  std::vector<Expr> used_args;
+  ternary_op_->GetUsedArgs(used_args);
+  return used_args;
+}
+
 TernaryOp TernaryOp::DeepCopy() const {
   TernaryOp copy(variable_, ternary_op_->DeepCopy(), related_vars_);
   copy.description_ = description_;  // 复制描述信息
