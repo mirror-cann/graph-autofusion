@@ -18,9 +18,9 @@
 
 namespace optimize {
 
-using ReduceType =
-    std::variant<af::ascir_op::Max, af::ascir_op::Sum, af::ascir_op::Min, af::ascir_op::Prod, af::ascir_op::Any,
-                 af::ascir_op::All, af::ascir_op::ArgMaxMultiRPhase1, af::ascir_op::ArgMaxMultiRPhase2>;
+using ReduceType = std::variant<af::ascir_op::Max, af::ascir_op::Sum, af::ascir_op::Min, af::ascir_op::Prod,
+                                af::ascir_op::Any, af::ascir_op::All, af::ascir_op::ArgMaxMultiRPhase1,
+                                af::ascir_op::ArgMaxMultiRPhase2, af::ascir_op::Softmax>;
 
 class ReducePartitionCaseGenerator : public FusionCaseGenerator {
  public:

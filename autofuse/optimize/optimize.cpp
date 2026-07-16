@@ -740,6 +740,14 @@ Status Optimizer::GetNonContinuousAxisPairBySpecialRule(ascir::ImplGraph &impl_g
         non_continuous_pair.emplace(attr_axis, attr_axis + 1);
       }
     }
+
+    if (node->GetType() == "Softmax") {
+      auto axis_size = static_cast<int64_t>(node->inputs[0].attr.repeats.size());
+      if (axis_size > 1) {
+        non_continuous_pair.emplace(
+            axis_size - 2, axis_size - 1);  // Softmax沿最后一个轴做归约，最后两个轴(axis - 2、axis - 1)不能合并
+      }
+    }
   }
   return af::SUCCESS;
 }

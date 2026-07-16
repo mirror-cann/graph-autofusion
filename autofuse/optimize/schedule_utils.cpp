@@ -533,6 +533,9 @@ bool HasReduceNodeOnPath(const af::AscNodePtr &b, const af::AscNodePtr &a) {
 bool ScheduleUtils::IsLastAxisReduce(const ascir::ImplGraph &impl_graph) {
   for (const auto &node : impl_graph.GetAllNodes()) {
     if (ScheduleUtils::IsReduce(node)) {
+      if (node->GetType() == "Softmax") {
+        return true;
+      }
       std::vector<ascir::SizeExpr> src_strides;
       ScheduleUtils::GetReduceInputStrides(*node, src_strides);
       const std::vector<ascir::SizeExpr> &dst_strides = node->outputs[0].attr.strides;
@@ -639,6 +642,11 @@ bool ScheduleUtils::IsReduceArFullLoad(const ascir::ImplGraph &implGraph) {
   for (const auto &node : implGraph.GetAllNodes()) {
     if (!ScheduleUtils::IsReduce(node)) {
       continue;
+    }
+
+    if (node->GetType() == "Softmax") {
+      GELOGD("Reduce node %s is Softmax, force all load.", node->GetName().c_str());
+      return true;
     }
 
     if (HasBroadcastDescendantNode(node)) {

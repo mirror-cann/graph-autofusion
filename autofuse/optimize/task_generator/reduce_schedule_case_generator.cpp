@@ -79,7 +79,8 @@ const std::unordered_map<std::string, std::function<ReduceType(const char *)>> r
     {"Min", [](const char *n) { return ReduceType{std::in_place_type_t<af::ascir_op::Min>{}, n}; }},
     {"Prod", [](const char *n) { return ReduceType{std::in_place_type_t<af::ascir_op::Prod>{}, n}; }},
     {"Any", [](const char *n) { return ReduceType{std::in_place_type_t<af::ascir_op::Any>{}, n}; }},
-    {"All", [](const char *n) { return ReduceType{std::in_place_type_t<af::ascir_op::All>{}, n}; }}};
+    {"All", [](const char *n) { return ReduceType{std::in_place_type_t<af::ascir_op::All>{}, n}; }},
+    {"Softmax", [](const char *n) { return ReduceType{std::in_place_type_t<af::ascir_op::Softmax>{}, n}; }}};
 
 bool IsNotPartitionReduce(const af::AscNodePtr &reduce_node, size_t threshold) {
   std::queue<af::NodePtr> node_queue;
@@ -252,6 +253,13 @@ Status ReducePartitionCaseGenerator::Generate([[maybe_unused]] ascir::HintGraph 
 }
 
 bool ReducePartitionCaseGenerator::ShouldForceAllLoad(ascir::HintGraph &graph) {
+  for (const auto &node : graph.GetAllNodes()) {
+    if (node->GetType() == "Softmax") {
+      GELOGI("Graph %s contains Softmax node %s, force AllLoad", graph.GetName().c_str(), node->GetName().c_str());
+      return true;
+    }
+  }
+
   if (!IsGroupGraphLegal(graph)) {
     return true;
   }
