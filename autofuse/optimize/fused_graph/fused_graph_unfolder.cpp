@@ -724,9 +724,12 @@ Status FusedGraphUnfolder::CollectPreConcatMappings(const std::map<af::Node *, a
       GE_ASSERT_NOTNULL(source_attr);
       GE_ASSERT_NOTNULL(target_attr);
       std::vector<size_t> mapping;
-      GE_ASSERT_TRUE(BuildGraphAxisMapping(source_iter->second, *source_attr, target_iter->second, *target_attr,
-                                           pre_concat_mappings.at(target_node), mapping),
-                     "Cannot map pre-concat.");
+      if (!BuildGraphAxisMapping(source_iter->second, *source_attr, target_iter->second, *target_attr,
+                                 pre_concat_mappings.at(target_node), mapping)) {
+        GELOGW("Cannot map pre-concat for source node [%s], falling back to merged loop axis.",
+               source_node->GetNamePtr());
+        continue;
+      }
       const auto mapping_iter = pre_concat_mappings.find(source_node);
       if (mapping_iter == pre_concat_mappings.end()) {
         pre_concat_mappings.emplace(source_node, std::move(mapping));
