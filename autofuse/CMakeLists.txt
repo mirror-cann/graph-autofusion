@@ -20,6 +20,8 @@ else()
     add_compile_options(-D_GLIBCXX_USE_CXX11_ABI=${USE_CXX11_ABI})
 endif()
 
+option(ENABLE_AUTOFUSE_MLIR "Enable Autofuse MLIR migration infrastructure" OFF)
+
 if (EXISTS "${CMAKE_SOURCE_DIR}/.dev_env")
     if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/.dev_env")
         set(ENABLE_OPEN_SRC True)
@@ -149,6 +151,10 @@ endif()
 if(NOT DEFINED RUN_TEST OR NOT RUN_TEST EQUAL 1)
     add_subdirectory(compiler)
 endif ()
+
+if(ENABLE_AUTOFUSE_MLIR)
+    add_subdirectory(mlir)
+endif()
 
 if (DEFINED RUN_TEST AND RUN_TEST EQUAL 1 AND IS_DIRECTORY "${CODE_ROOT_DIR}/tests")
     add_subdirectory(tests)

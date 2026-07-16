@@ -23,6 +23,9 @@
 #include "codegen_infershape.h"
 #include "common/platform_context.h"
 #include "graph/ascendc_ir/utils/asc_graph_utils.h"
+#ifdef ENABLE_AUTOFUSE_MLIR
+#include "ScheduleToAfir/ScheduleToAfir.h"
+#endif
 
 using namespace codegen;
 using namespace ascgen_utils;
@@ -383,6 +386,11 @@ Status Codegen::GenerateForInductor(const ascir::FusedScheduledResult &fused_sch
   std::map<std::string, std::string> tiling_file_name_to_content;
   GE_CHK_STATUS_RET(GenerateTilingForInductor(fused_schedule_result, tiling_file_name_to_content));
   GE_CHK_STATUS_RET(CombineTilingsWithSplitMarkers(tiling_file_name_to_content, result.tiling));
+#ifdef ENABLE_AUTOFUSE_MLIR
+  // In-process direct bridge: FusedScheduledResult → AFIR (zero serialization).
+  // No-op unless AF_MLIR_AFIR_DUMP_DIR is set; never throws into codegen.
+  af_demo::MaybeDumpAfirFromSchedule("after_codegen", fused_schedule_result);
+#endif
   return af::SUCCESS;
 }
 

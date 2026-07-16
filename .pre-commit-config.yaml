@@ -21,7 +21,9 @@ repos:
     rev: v4.6.0
     hooks:
       - id: trailing-whitespace
+        exclude: \.patch$
       - id: end-of-file-fixer
+        exclude: \.patch$
       - id: check-yaml
         args: ["--allow-multiple-documents"]
       - id: check-added-large-files
@@ -58,7 +60,7 @@ repos:
       - id: codespell
         args: [
             "-L",
-            "CANN,cann,NNAL,nnal,ASCEND,ascend,EnQue,CopyIn,ArchType,AND,ND,tbe,copyin,alog,Vistor,BUILDIN,buildin",
+            "CANN,cann,NNAL,nnal,ASCEND,ascend,EnQue,enque,CopyIn,ArchType,AND,ND,tbe,copyin,alog,Vistor,BUILDIN,buildin",
             "--skip",
             "*.py,*.cpp,*.hpp,*.c,*.h",
           ]

@@ -1,0 +1,377 @@
+From 8e1644f270aea055c1dacee3415702e6d54d5288 Mon Sep 17 00:00:00 2001
+From: neo <niuyuhucs@google.com>
+Date: Thu, 2 Jul 2026 20:46:13 -0700
+Subject: [PATCH 1/3] Adapt pyasc for LLVM 21 integration
+
+---
+ bin/CMakeLists.txt                            |  2 ++
+ bin/ascir-translate.cpp                       |  3 +++
+ .../ascir/Dialect/Utils/ConstantOpBuilder.h   |  2 +-
+ lib/Dialect/Asc/Transforms/HoistQueBind.cpp   |  2 +-
+ .../Asc/Transforms/HoistUBAllocation.cpp      |  2 +-
+ .../Asc/Transforms/InputOutputTensor.cpp      | 16 ++++++--------
+ lib/Dialect/Asc/Transforms/InsertSync.cpp     | 21 +++++++++---------
+ .../Asc/Transforms/LegalizeKernelArgs.cpp     | 22 +++++++++++--------
+ .../Asc/Transforms/MaterializeTensor.cpp      | 16 +++++++-------
+ lib/Dialect/Asc/Transforms/UnifyPipe.cpp      |  2 +-
+ lib/TableGen/GenAPITypes.cpp                  | 18 ---------------
+ lib/TableGen/main.cpp                         |  2 +-
+ python/src/IR.cpp                             |  2 +-
+ python/src/OpBuilder.cpp                      |  1 +
+ 14 files changed, 50 insertions(+), 61 deletions(-)
+
+diff --git a/bin/CMakeLists.txt b/bin/CMakeLists.txt
+index aed9859..fa5bd35 100644
+--- a/bin/CMakeLists.txt
++++ b/bin/CMakeLists.txt
+@@ -23,6 +23,8 @@ target_link_libraries(${ASCIR_LSP_NAME} PRIVATE
+   MLIRLspServerLib
+   MLIRAsc
+   MLIREmitAsc
++  MLIRRegisterAllDialects
++  MLIRRegisterAllExtensions
+ )
+
+ mlir_check_all_link_libraries(${ASCIR_LSP_NAME})
+diff --git a/bin/ascir-translate.cpp b/bin/ascir-translate.cpp
+index 4a645a5..0d8b0cd 100644
+--- a/bin/ascir-translate.cpp
++++ b/bin/ascir-translate.cpp
+@@ -12,6 +12,8 @@
+ #include "ascir/Dialect/EmitAsc/IR/EmitAsc.h"
+ #include "ascir/Target/Asc/Translation.h"
+
++#include "mlir/Dialect/Affine/IR/AffineOps.h"
++#include "mlir/Dialect/Bufferization/IR/Bufferization.h"
+ #include "mlir/Dialect/Arith/IR/Arith.h"
+ #include "mlir/Dialect/ControlFlow/IR/ControlFlowOps.h"
+ #include "mlir/Dialect/DLTI/DLTI.h"
+@@ -36,6 +38,7 @@ int main(int argc, char** argv)
+         "mlir-to-ascendc", "translate from mlir to Ascend C",
+         [](Operation* op, raw_ostream& output) { return translateToAscendC(op, output); },
+         [](DialectRegistry& registry) {
++            registry.insert<affine::AffineDialect, bufferization::BufferizationDialect>();
+             registry.insert<
+                 //
+                 arith::ArithDialect, ascendc::AscendCDialect, cf::ControlFlowDialect, DLTIDialect,
+diff --git a/include/ascir/Dialect/Utils/ConstantOpBuilder.h b/include/ascir/Dialect/Utils/ConstantOpBuilder.h
+index ec5fb49..a60484b 100644
+--- a/include/ascir/Dialect/Utils/ConstantOpBuilder.h
++++ b/include/ascir/Dialect/Utils/ConstantOpBuilder.h
+@@ -25,7 +25,7 @@ struct ConstantOpBuilder {
+
+     ConstantOp create(TypedAttr attr)
+     {
+-        auto op = builder.create<ConstantOp>(builder.getUnknownLoc(), attr);
++        auto op = ConstantOp::create(builder, builder.getUnknownLoc(), attr);
+         return op;
+     }
+
+diff --git a/lib/Dialect/Asc/Transforms/HoistQueBind.cpp b/lib/Dialect/Asc/Transforms/HoistQueBind.cpp
+index 9cae7de..8ae125f 100644
+--- a/lib/Dialect/Asc/Transforms/HoistQueBind.cpp
++++ b/lib/Dialect/Asc/Transforms/HoistQueBind.cpp
+@@ -39,7 +39,7 @@ public:
+             ascendc::HoistOpPattern<ascendc::TPipeInitQueueOp>, ascendc::HoistOpPattern<ascendc::TBufGetTensorOp>
+             //
+             >(context);
+-        if (applyPatternsAndFoldGreedily(getOperation(), std::move(patterns)).failed()) {
++        if (applyPatternsGreedily(getOperation(), std::move(patterns)).failed()) {
+             signalPassFailure();
+         }
+     }
+diff --git a/lib/Dialect/Asc/Transforms/HoistUBAllocation.cpp b/lib/Dialect/Asc/Transforms/HoistUBAllocation.cpp
+index c0290ed..d1aa806 100644
+--- a/lib/Dialect/Asc/Transforms/HoistUBAllocation.cpp
++++ b/lib/Dialect/Asc/Transforms/HoistUBAllocation.cpp
+@@ -38,7 +38,7 @@ struct HoistUBAllocationPass : public ascendc::impl::HoistUBAllocationBase<Hoist
+         MLIRContext* context = &getContext();
+         RewritePatternSet patterns(context);
+         patterns.add<HoistTensor>(context);
+-        if (applyPatternsAndFoldGreedily(getOperation(), std::move(patterns)).failed()) {
++        if (applyPatternsGreedily(getOperation(), std::move(patterns)).failed()) {
+             signalPassFailure();
+         }
+     }
+diff --git a/lib/Dialect/Asc/Transforms/InputOutputTensor.cpp b/lib/Dialect/Asc/Transforms/InputOutputTensor.cpp
+index e7e2d1b..ea7d0bb 100644
+--- a/lib/Dialect/Asc/Transforms/InputOutputTensor.cpp
++++ b/lib/Dialect/Asc/Transforms/InputOutputTensor.cpp
+@@ -38,12 +38,11 @@ void createDataCopyIfNeeded(Operation* op)
+         OpBuilder builder(op);
+         ascir::ConstantOpBuilder consts(builder);
+         auto type = cast<ascendc::BaseTensorType>(use.get().getType());
+-        auto dst = builder.create<ascendc::LocalTensorAutoOp>(
+-            op->getLoc(), type, /*input*/ false,
+-            /*output*/ true, ValueRange{});
++        auto dst = ascendc::LocalTensorAutoOp::create(builder, op->getLoc(), type, /*input*/ false,
++                                                              /*output*/ true, ValueRange {});
+         builder.setInsertionPointAfter(op);
+         Value calCount = consts.i64(type.getNumElements());
+-        builder.create<ascendc::DataCopyL2Op>(op->getLoc(), dst, use.get(), calCount);
++        ascendc::DataCopyL2Op::create(builder, op->getLoc(), dst, use.get(), calCount);
+         copyOp.setSrc(dst);
+     }
+ }
+@@ -89,10 +88,9 @@ void fixInOutTensor(func::FuncOp& funcOp)
+                 return builder.setInsertionPoint(owner);
+             ascir::ConstantOpBuilder consts(builder);
+             Value calCount = consts.i64(tensorType.getNumElements());
+-            auto outTensor = builder.create<ascendc::LocalTensorAutoOp>(
+-                loc, tensorType, /*input*/ false,
+-                /*output*/ true, ValueRange{});
+-            builder.create<ascendc::DataCopyL2Op>(loc, outTensor, inTensor, calCount);
++            auto outTensor = ascendc::LocalTensorAutoOp::create(builder, loc, tensorType, /*input*/ false,
++                                                                        /*output*/ true, ValueRange {});
++            ascendc::DataCopyL2Op::create(builder, loc, outTensor, inTensor, calCount);
+             owner->setOperand(use.getOperandNumber(), outTensor);
+         }
+     });
+@@ -110,7 +108,7 @@ struct InputOutputTensorPass : public ascendc::impl::InputOutputTensorBase<Input
+         MLIRContext* context = &getContext();
+         RewritePatternSet patterns(context);
+         ascendc::LocalTensorAutoOp::getCanonicalizationPatterns(patterns, context);
+-        if (applyPatternsAndFoldGreedily(funcOp, std::move(patterns)).failed()) {
++        if (applyPatternsGreedily(funcOp, std::move(patterns)).failed()) {
+             signalPassFailure();
+             return;
+         }
+diff --git a/lib/Dialect/Asc/Transforms/InsertSync.cpp b/lib/Dialect/Asc/Transforms/InsertSync.cpp
+index 3fc4736..5daab39 100644
+--- a/lib/Dialect/Asc/Transforms/InsertSync.cpp
++++ b/lib/Dialect/Asc/Transforms/InsertSync.cpp
+@@ -51,21 +51,20 @@ void enqueueTensors(func::FuncOp funcOp)
+         OpBuilder builder(op.getContext());
+         builder.setInsertionPointAfter(op);
+         if (auto queue = findQueue(tensor)) {
+-            builder.create<ascendc::TQueBindEnqueTensorOp>(op.getLoc(), queue, tensor);
++            ascendc::TQueBindEnqueTensorOp::create(builder, op.getLoc(), queue, tensor);
+             return;
+         }
+-        builder.create<ascendc::PipeBarrierOp>(op.getLoc(), ascendc::Pipe::PIPE_V);
++        ascendc::PipeBarrierOp::create(builder, op.getLoc(), ascendc::Pipe::PIPE_V);
+     });
+ }
+
+ void createSetGetValueSync(bool isBefore, OpBuilder& builder, Location loc)
+ {
+     ascendc::HardEvent currentEvent = isBefore ? ascendc::HardEvent::V_S : ascendc::HardEvent::S_V;
+-    Value pipe = builder.create<ascendc::PipeOp>(loc);
+-    auto eventId =
+-        builder.create<ascendc::TPipeFetchEventIDOp>(loc, builder.getI8Type(), pipe, currentEvent).getResult();
+-    builder.create<ascendc::SetFlagOp>(loc, currentEvent, eventId);
+-    builder.create<ascendc::WaitFlagOp>(loc, currentEvent, eventId);
++    Value pipe = ascendc::PipeOp::create(builder, loc);
++    auto eventId = ascendc::TPipeFetchEventIDOp::create(builder, loc, builder.getI8Type(), pipe, currentEvent).getResult();
++    ascendc::SetFlagOp::create(builder, loc, currentEvent, eventId);
++    ascendc::WaitFlagOp::create(builder, loc, currentEvent, eventId);
+ }
+
+ void syncGetValueOp(func::FuncOp& funcOp)
+@@ -114,7 +113,7 @@ bool reEnque(OpBuilder& b, Location loc, ascendc::TQueBindEnqueTensorOp enq, asc
+             return false;
+         }
+         b.setInsertionPointAfter(enqParent);
+-        b.create<ascendc::TQueBindEnqueTensorOp>(loc, enq.getQueue(), enq.getTensor());
++        ascendc::TQueBindEnqueTensorOp::create(b, loc, enq.getQueue(), enq.getTensor());
+         enq.erase();
+     }
+     return true;
+@@ -149,7 +148,7 @@ bool dequeueTensors(Region& region)
+                 firstUser = userInSameRegion;
+             }
+             OpBuilder builder(firstUser);
+-            auto deq = builder.create<ascendc::TQueBindDequeTensorOp>(enq.getLoc(), tensor.getType(), enq.getQueue());
++            auto deq = ascendc::TQueBindDequeTensorOp::create(builder, enq.getLoc(), tensor.getType(), enq.getQueue());
+             if (!reEnque(builder, op.getLoc(), enq, deq)) {
+                 return false;
+             }
+@@ -165,10 +164,10 @@ bool dequeueTensors(Region& region)
+ void canonicalizeBarriers(func::FuncOp funcOp)
+ {
+     auto builder = OpBuilder::atBlockTerminator(&funcOp.getFunctionBody().back());
+-    builder.create<ascendc::PipeBarrierOp>(builder.getUnknownLoc(), ascendc::Pipe::PIPE_ALL);
++    ascendc::PipeBarrierOp::create(builder, builder.getUnknownLoc(), ascendc::Pipe::PIPE_ALL);
+     RewritePatternSet patterns(funcOp.getContext());
+     ascendc::PipeBarrierOp::getCanonicalizationPatterns(patterns, funcOp.getContext());
+-    (void)applyPatternsAndFoldGreedily(funcOp, std::move(patterns));
++    (void)applyPatternsGreedily(funcOp, std::move(patterns));
+ }
+
+ struct InsertSyncPass : public ascendc::impl::InsertSyncBase<InsertSyncPass> {
+diff --git a/lib/Dialect/Asc/Transforms/LegalizeKernelArgs.cpp b/lib/Dialect/Asc/Transforms/LegalizeKernelArgs.cpp
+index 9568a0f..798f849 100644
+--- a/lib/Dialect/Asc/Transforms/LegalizeKernelArgs.cpp
++++ b/lib/Dialect/Asc/Transforms/LegalizeKernelArgs.cpp
+@@ -20,6 +20,7 @@
+ #include "mlir/IR/Builders.h"
+ #include "mlir/IR/BuiltinOps.h"
+ #include "mlir/IR/BuiltinTypes.h"
++#include "llvm/Support/ErrorHandling.h"
+
+ namespace mlir {
+ namespace ascendc {
+@@ -38,7 +39,10 @@ BlockArgument appendKernelArgument(func::FuncOp op, emitasc::KernelArgument kind
+     NamedAttribute kernelArg(
+         builder.getStringAttr(emitasc::attr::kernelArg), builder.getAttr<emitasc::KernelArgumentAttr>(kind));
+     unsigned idx = op.getNumArguments();
+-    op.insertArgument(idx, type, builder.getDictionaryAttr(kernelArg), NameLoc::get(builder.getStringAttr(name)));
++    if (failed(op.insertArgument(
++            idx, type, builder.getDictionaryAttr(kernelArg), NameLoc::get(builder.getStringAttr(name))))) {
++        llvm_unreachable("failed to insert kernel argument");
++    }
+     return op.getArgument(idx);
+ }
+
+@@ -52,18 +56,18 @@ void processKernel(func::FuncOp op)
+     }
+     auto as = builder.getI64IntegerAttr(static_cast<int64_t>(ascendc::AddressSpace::gm));
+     auto loc = builder.getUnknownLoc();
+-    auto fftsAddr = appendKernelArgument(
+-        op, emitasc::KernelArgument::FftsAddr, "ffts_addr",
+-        MemRefType::get(ShapedType::kDynamic, builder.getIntegerType(64, false), AffineMap(), as));
+-    builder.create<ascendc::SetFftsBaseAddrOp>(loc, fftsAddr);
++    auto fftsAddr =
++        appendKernelArgument(op, emitasc::KernelArgument::FftsAddr, "ffts_addr",
++                             MemRefType::get(ShapedType::kDynamic, builder.getIntegerType(64, false), AffineMap(), as));
++    ascendc::SetFftsBaseAddrOp::create(builder, loc, fftsAddr);
+     bool hasMatmul = op.walk([](ascendc::RegistMatmulObjOp) { return WalkResult::interrupt(); }).wasInterrupted();
+     bool matmulCubeOnly = op->getParentOfType<ModuleOp>()->hasAttrOfType<UnitAttr>(ascendc::attr::matmulCubeOnly);
+     if (hasMatmul && !matmulCubeOnly) {
+-        Value cond = builder.create<ascendc::AscendIsAICOp>(loc, builder.getI1Type());
+-        auto ifOp = builder.create<scf::IfOp>(loc, cond, false);
++        Value cond = ascendc::AscendIsAICOp::create(builder, loc, builder.getI1Type());
++        auto ifOp = scf::IfOp::create(builder, loc, cond, false);
+         builder.setInsertionPointToStart(ifOp.thenBlock());
+-        Value flag = builder.create<arith::ConstantOp>(loc, builder.getI64IntegerAttr(0xf21));
+-        builder.create<ascendc::FftsCrossCoreSyncOp>(loc, ascendc::Pipe::PIPE_MTE3, flag);
++        Value flag = arith::ConstantOp::create(builder, loc, builder.getI64IntegerAttr(0xf21));
++        ascendc::FftsCrossCoreSyncOp::create(builder, loc, ascendc::Pipe::PIPE_MTE3, flag);
+         builder.setInsertionPointAfter(ifOp);
+     }
+ }
+diff --git a/lib/Dialect/Asc/Transforms/MaterializeTensor.cpp b/lib/Dialect/Asc/Transforms/MaterializeTensor.cpp
+index 1f7baa8..b764eae 100644
+--- a/lib/Dialect/Asc/Transforms/MaterializeTensor.cpp
++++ b/lib/Dialect/Asc/Transforms/MaterializeTensor.cpp
+@@ -55,24 +55,24 @@ struct MaterializeLocalTensor : OpRewritePattern<ascendc::LocalTensorAutoOp> {
+             assert(op->getNumOperands() != 0 && "must have operands for dynamic shape");
+             length = consts.i64(type.getElementTypeBitWidth() / CHAR_BIT);
+             for (auto dim : op.getDynamicShape()) {
+-                length = rewriter.create<arith::MulIOp>(loc, length, dim);
++                length = arith::MulIOp::create(rewriter, loc, length, dim);
+             }
+         }
+-        Value pipe = rewriter.create<ascendc::PipeOp>(loc);
++        Value pipe = ascendc::PipeOp::create(rewriter, loc);
+         if (!op.getInput() && !op.getOutput()) {
+             auto bufferTy = ascendc::TBufType::get(op.getContext(), ascendc::TPosition::VECCALC);
+-            Value buffer = rewriter.create<ascendc::TBufOp>(loc, bufferTy);
+-            rewriter.create<ascendc::TPipeInitBufferOp>(loc, pipe, buffer, length);
++            Value buffer = ascendc::TBufOp::create(rewriter, loc, bufferTy);
++            ascendc::TPipeInitBufferOp::create(rewriter, loc, pipe, buffer, length);
+             rewriter.replaceOpWithNewOp<ascendc::TBufGetTensorOp>(op, type, buffer);
+             return success();
+         }
+         auto queueTy = ascendc::QueueType::get(op.getContext(), getPosition(op), 1);
+-        Value queue = rewriter.create<ascendc::QueueOp>(loc, queueTy);
++        Value queue = ascendc::QueueOp::create(rewriter, loc, queueTy);
+         Value num = consts.i32(1);
+-        rewriter.create<ascendc::TPipeInitQueueOp>(loc, pipe, queue, num, length);
++        ascendc::TPipeInitQueueOp::create(rewriter, loc, pipe, queue, num, length);
+         auto allocOp = rewriter.replaceOpWithNewOp<ascendc::TQueBindAllocTensorOp>(op, type, queue);
+         rewriter.setInsertionPoint(allocOp->getBlock()->getTerminator());
+-        rewriter.create<ascendc::TQueBindFreeTensorOp>(allocOp->getLoc(), queue, allocOp.getTensor());
++        ascendc::TQueBindFreeTensorOp::create(rewriter, loc, queue, allocOp.getTensor());
+         return success();
+     }
+ };
+@@ -87,7 +87,7 @@ class MaterializeTensorPass : public ascendc::impl::MaterializeTensorBase<Materi
+         MLIRContext* context = &getContext();
+         RewritePatternSet patterns(context);
+         patterns.add<MaterializeLocalTensor>(context);
+-        if (applyPatternsAndFoldGreedily(funcOp, std::move(patterns)).failed()) {
++        if (applyPatternsGreedily(funcOp, std::move(patterns)).failed()) {
+             signalPassFailure();
+         }
+     }
+diff --git a/lib/Dialect/Asc/Transforms/UnifyPipe.cpp b/lib/Dialect/Asc/Transforms/UnifyPipe.cpp
+index d742c64..9dfe0bd 100644
+--- a/lib/Dialect/Asc/Transforms/UnifyPipe.cpp
++++ b/lib/Dialect/Asc/Transforms/UnifyPipe.cpp
+@@ -34,7 +34,7 @@ void unifyPipe(func::FuncOp root)
+         return;
+     }
+     auto builder = OpBuilder::atBlockBegin(&root.getBody().front());
+-    Value uniPipe = builder.create<ascendc::PipeOp>(builder.getUnknownLoc());
++    Value uniPipe = ascendc::PipeOp::create(builder, builder.getUnknownLoc());
+     for (auto pipe : pipes) {
+         pipe.replaceAllUsesWith(uniPipe);
+         pipe.erase();
+diff --git a/lib/TableGen/GenAPITypes.cpp b/lib/TableGen/GenAPITypes.cpp
+index 853f4a3..ae08704 100644
+--- a/lib/TableGen/GenAPITypes.cpp
++++ b/lib/TableGen/GenAPITypes.cpp
+@@ -19,24 +19,6 @@ using mlir::raw_indented_ostream;
+
+ namespace {
+
+-std::string snakeToCamel(StringRef str)
+-{
+-    SmallVector<StringRef> tokens;
+-    str.split(tokens, '_', -1, false);
+-    size_t size = 0;
+-    for (auto token : tokens) {
+-        size += token.size();
+-    }
+-    std::string result;
+-    result.reserve(size);
+-    result += std::string_view(tokens.front());
+-    for (auto* it = tokens.begin() + 1; it != tokens.end(); ++it) {
+-        result += it->take_front(1).upper();
+-        result += std::string_view(it->drop_front(1));
+-    }
+-    return result;
+-}
+-
+ class GenAPITypes {
+     const RecordKeeper& records;
+
+diff --git a/lib/TableGen/main.cpp b/lib/TableGen/main.cpp
+index 7c84805..aa0119a 100644
+--- a/lib/TableGen/main.cpp
++++ b/lib/TableGen/main.cpp
+@@ -18,5 +18,5 @@ int main(int argc, char** argv)
+ {
+     InitLLVM y(argc, argv);
+     cl::ParseCommandLineOptions(argc, argv);
+-    return TableGenMain(argv[0]);
++    return TableGenMain(argv[0], nullptr);
+ }
+diff --git a/python/src/IR.cpp b/python/src/IR.cpp
+index c046fa7..ee3272e 100644
+--- a/python/src/IR.cpp
++++ b/python/src/IR.cpp
+@@ -428,7 +428,7 @@ void bindInlineBlock(py::module& m)
+         "inline_block_at_end",
+         [](Block* src, Block* dst, const std::optional<std::vector<Value>>& args) {
+             // See RewriterBase::inlineBlockBefore()
+-            ValueRange argValues({});
++            ValueRange argValues;
+             if (args)
+                 argValues = *args;
+             auto before = dst->end();
+diff --git a/python/src/OpBuilder.cpp b/python/src/OpBuilder.cpp
+index 419a16a..312db95 100644
+--- a/python/src/OpBuilder.cpp
++++ b/python/src/OpBuilder.cpp
+@@ -134,6 +134,7 @@ public:
+     template <typename OpTy, typename... Args>
+     auto create(Args&&... args) -> OpTy
+     {
++        // Use builder.create directly for better type handling
+         return builder.create<OpTy>(loc, std::forward<Args>(args)...);
+     }
+
+--
+2.39.5 (Apple Git-154)

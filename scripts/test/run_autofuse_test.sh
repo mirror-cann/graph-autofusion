@@ -31,7 +31,7 @@ export DISABLE_COMPILATION_WERROR=ON
 # print usage message
 usage() {
   echo "Usage:"
-  echo "sh run_autofuse_test.sh [-s | --st] [-u | --ut] [-j<N>] [-c | --cov]"
+  echo "sh run_autofuse_test.sh [-s | --st] [-u | --ut] [-j<N>] [-c | --cov] [--enable-mlir]"
   echo "               [--ascend_install_path=<PATH>]"
   echo "               [--ascend_3rd_lib_path=<PATH>]"
   echo ""
@@ -43,6 +43,7 @@ usage() {
   echo "    -c, --cov        Build ut with coverage tag"
   echo "                     Please ensure that the environment has correctly installed lcov, gcov, and genhtml."
   echo "                     and the version matched gcc/g++."
+  echo "    --enable-mlir    Enable Autofuse MLIR migration infrastructure during test builds"
   echo "    -h, --help     Print usage"
   echo "    --ascend_install_path=<PATH>"
   echo "                   Set ascend package install path, default /usr/local/Ascend/ascend-toolkit/latest"
@@ -56,6 +57,7 @@ checkopts() {
   ENABLE_UT="off"
   ENABLE_ST="off"
   ENABLE_COV="off"
+  ENABLE_AUTOFUSE_MLIR="off"
   THREAD_NUM=8
   MODEL_NAME="all"
   if [ -n "$ASCEND_INSTALL_PATH" ]; then
@@ -78,7 +80,7 @@ checkopts() {
   fi
 
   # Process the options
-  parsed_args=$(getopt -a -o hsucj:hvm: -l help,st,ut,cov,verbose,ascend_install_path:,ascend_3rd_lib_path:,module: -- "$@") || {
+  parsed_args=$(getopt -a -o hsucj:hvm: -l help,st,ut,cov,verbose,enable-mlir,ascend_install_path:,ascend_3rd_lib_path:,module: -- "$@") || {
     usage
     exit 1
   }
@@ -119,6 +121,10 @@ checkopts() {
         ENABLE_COV="on"
         shift
         ;;
+      --enable-mlir)
+        ENABLE_AUTOFUSE_MLIR="on"
+        shift
+        ;;
       --)
         shift
         break
@@ -130,6 +136,27 @@ checkopts() {
         ;;
     esac
   done
+
+  if [[ "X${ENABLE_AUTOFUSE_MLIR}" = "Xon" ]]; then
+    AUTOFUSE_MLIR_CMAKE_ARG="-D ENABLE_AUTOFUSE_MLIR=ON"
+  else
+    AUTOFUSE_MLIR_CMAKE_ARG="-D ENABLE_AUTOFUSE_MLIR=OFF"
+  fi
+}
+
+require_coverage_tools() {
+  local missing_tools=()
+  local tool
+  for tool in lcov genhtml gcov; do
+    if ! command -v "${tool}" >/dev/null 2>&1; then
+      missing_tools+=("${tool}")
+    fi
+  done
+  if [ "${#missing_tools[@]}" -ne 0 ]; then
+    echo "ERROR: coverage requires missing tool(s): ${missing_tools[*]}" >&2
+    echo "       Install lcov package in the dev image; it provides lcov and genhtml." >&2
+    return 1
+  fi
 }
 
 mk_dir() {
@@ -191,7 +218,8 @@ build_ascgen-dev() {
               -D ENABLE_PKG=${ENABLE_PKG} \
               -D ENABLE_TEST=${ENABLE_TEST_FLAG} \
               -D ENABLE_GE_UT=${ENABLE_GE_UT_FLAG} \
-              -D ENABLE_GE_ST=${ENABLE_GE_ST_FLAG}"
+              -D ENABLE_GE_ST=${ENABLE_GE_ST_FLAG} \
+              ${AUTOFUSE_MLIR_CMAKE_ARG}"
 
   echo "CMAKE_ARGS is: $CMAKE_ARGS"
   ORIGINAL_LD_LIBRARY_PATH=$LD_LIBRARY_PATH
@@ -230,7 +258,8 @@ build_test_ascendc_api_test() {
               -D ENABLE_PKG=${ENABLE_PKG} \
               -D ENABLE_TEST=True \
               -D ENABLE_GE_UT=on \
-              -D ENABLE_LLT_PKG=ON"
+              -D ENABLE_LLT_PKG=ON \
+              ${AUTOFUSE_MLIR_CMAKE_ARG}"
   cmake $CMAKE_ARGS ..
   MAKE_TEST_TARGET="test_ascendc_api
                     test_ascendc_api_v35 \
@@ -320,7 +349,8 @@ build_test_ascir_st() {
               -D ENABLE_PKG=${ENABLE_PKG} \
               -D ENABLE_TEST=True \
               -D ENABLE_GE_ST=on \
-              -D ENABLE_LLT_PKG=ON"
+              -D ENABLE_LLT_PKG=ON \
+              ${AUTOFUSE_MLIR_CMAKE_ARG}"
   cmake $CMAKE_ARGS ..
 
   make -j${THREAD_NUM} test_ascir_st
@@ -605,7 +635,8 @@ codegen_e2e_st() {
             -D ENABLE_TEST=True \
             -D RUN_TEST=1 \
             -D ENABLE_GE_ST=on \
-            -D ENABLE_LLT_PKG=ON"
+            -D ENABLE_LLT_PKG=ON \
+            ${AUTOFUSE_MLIR_CMAKE_ARG}"
 
   ORIGINAL_LD_LIBRARY_PATH=$LD_LIBRARY_PATH
   unset LD_LIBRARY_PATH
@@ -733,7 +764,8 @@ build_backend() {
             -D ENABLE_PKG=${ENABLE_PKG} \
             -D ENABLE_TEST=True \
             -D ENABLE_GE_ST=on \
-            -D ENABLE_LLT_PKG=ON"
+            -D ENABLE_LLT_PKG=ON \
+            ${AUTOFUSE_MLIR_CMAKE_ARG}"
 
   ORIGINAL_LD_LIBRARY_PATH=$LD_LIBRARY_PATH
   unset LD_LIBRARY_PATH
@@ -1006,7 +1038,8 @@ build_ut_att() {
               -D ENABLE_PKG=${ENABLE_PKG} \
               -D ENABLE_TEST=True \
               -D ENABLE_GE_UT=on \
-              -D ENABLE_LLT_PKG=ON"
+              -D ENABLE_LLT_PKG=ON \
+              ${AUTOFUSE_MLIR_CMAKE_ARG}"
   cmake $CMAKE_ARGS ..
   make -j${THREAD_NUM} att_ut
   if [ $? -ne 0 ]
@@ -1048,7 +1081,8 @@ build_st_att() {
               -D ENABLE_PKG=${ENABLE_PKG} \
               -D ENABLE_TEST=True \
               -D ENABLE_GE_ST=on \
-              -D ENABLE_LLT_PKG=ON"
+              -D ENABLE_LLT_PKG=ON \
+              ${AUTOFUSE_MLIR_CMAKE_ARG}"
   cmake $CMAKE_ARGS ..
   make -j${THREAD_NUM} att_st
   if [ $? -ne 0 ]
@@ -1175,6 +1209,9 @@ build_st() {
 main() {
   cd "${BASEPATH}"
   checkopts "$@"
+  if [[ "X${ENABLE_COV}" = "Xon" ]]; then
+    require_coverage_tools || exit 1
+  fi
 
   export ASCEND_CUSTOM_PATH=${ASCEND_INSTALL_PATH}
   ASCEND_INSTALL_LIB_PATH=${ASCEND_INSTALL_PATH}/$(uname -m)-linux/lib64/

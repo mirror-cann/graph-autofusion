@@ -1,0 +1,66 @@
+if(NOT ENABLE_AUTOFUSE_MLIR)
+    return()
+endif()
+
+set(AF_LLVM_ROOT "$ENV{AF_LLVM_ROOT}" CACHE PATH "Prebuilt LLVM/MLIR root for Autofuse MLIR")
+set(LLVM_BUILD_DIR "$ENV{LLVM_BUILD_DIR}" CACHE PATH "LLVM/MLIR build directory for Autofuse MLIR")
+if(NOT DEFINED MLIR_DIR AND DEFINED ENV{MLIR_DIR})
+    set(MLIR_DIR "$ENV{MLIR_DIR}" CACHE PATH "MLIR CMake config directory")
+endif()
+if(NOT DEFINED LLVM_DIR AND DEFINED ENV{LLVM_DIR})
+    set(LLVM_DIR "$ENV{LLVM_DIR}" CACHE PATH "LLVM CMake config directory")
+endif()
+
+get_filename_component(_af_mlir_root "${CMAKE_CURRENT_LIST_DIR}/.." ABSOLUTE)
+
+if(LLVM_BUILD_DIR)
+    set(_af_llvm_root "${LLVM_BUILD_DIR}")
+    set(_af_mlir_cmake_dir "${_af_llvm_root}/lib/cmake/mlir")
+elseif(AF_LLVM_ROOT)
+    set(_af_llvm_root "${AF_LLVM_ROOT}")
+    set(_af_mlir_cmake_dir "${_af_llvm_root}/lib/cmake/mlir")
+elseif(MLIR_DIR)
+    set(_af_mlir_cmake_dir "${MLIR_DIR}")
+    get_filename_component(_af_llvm_root "${_af_mlir_cmake_dir}/../../.." ABSOLUTE)
+elseif(LLVM_DIR)
+    get_filename_component(_af_llvm_root "${LLVM_DIR}/../../.." ABSOLUTE)
+    set(_af_mlir_cmake_dir "${_af_llvm_root}/lib/cmake/mlir")
+else()
+    set(_af_llvm_root "${_af_mlir_root}/.deps/llvm")
+    set(_af_mlir_cmake_dir "${_af_llvm_root}/lib/cmake/mlir")
+endif()
+
+set(_af_llvm_cmake_dir "${_af_llvm_root}/lib/cmake/llvm")
+if(NOT EXISTS "${_af_mlir_cmake_dir}/MLIRConfig.cmake")
+    message(FATAL_ERROR
+        "ENABLE_AUTOFUSE_MLIR=ON requires MLIRConfig.cmake. "
+        "Set -DLLVM_BUILD_DIR=/path/to/llvm-build or AF_LLVM_ROOT=/path/to/prebuilt/llvm. "
+        "Checked: ${_af_mlir_cmake_dir}")
+endif()
+
+list(APPEND CMAKE_PREFIX_PATH "${_af_llvm_root}")
+set(MLIR_DIR "${_af_mlir_cmake_dir}" CACHE PATH "MLIR CMake config directory" FORCE)
+if(EXISTS "${_af_llvm_cmake_dir}/LLVMConfig.cmake")
+    set(LLVM_DIR "${_af_llvm_cmake_dir}" CACHE PATH "LLVM CMake config directory" FORCE)
+endif()
+
+find_package(MLIR REQUIRED CONFIG)
+if(LLVM_DIR)
+    find_package(LLVM REQUIRED CONFIG)
+endif()
+
+if(DEFINED MLIR_CMAKE_DIR)
+    list(APPEND CMAKE_MODULE_PATH "${MLIR_CMAKE_DIR}")
+endif()
+if(DEFINED LLVM_CMAKE_DIR)
+    list(APPEND CMAKE_MODULE_PATH "${LLVM_CMAKE_DIR}")
+endif()
+
+include(TableGen)
+include(AddLLVM)
+include(AddMLIR)
+include(HandleLLVMOptions)
+
+include_directories(SYSTEM ${LLVM_INCLUDE_DIRS})
+include_directories(SYSTEM ${MLIR_INCLUDE_DIRS})
+add_definitions(${LLVM_DEFINITIONS})

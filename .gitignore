@@ -20,6 +20,7 @@ dist/
 super_kernel/tests/generated/
 
 # Coverage reports
+cov/
 super_kernel/coverage/
 
 # UT temporary files
@@ -48,3 +49,21 @@ super_kernel/tests/aot/third_party/mockcpp_src/
 # IDE settings
 .vscode/
 .idea/
+
+# macOS
+.DS_Store
+
+# Local agent configs
+.agents/
+.codex/
+tracker
+
+# Autofuse MLIR environment artifacts
+autofuse/mlir/.artifacts/
+autofuse/mlir/.deps/
+/autofuse/docs/agents/domain.md
+/autofuse/docs/agents/issue-tracker.md
+/autofuse/docs/agents/triage-labels.md
+/autofuse/CLAUDE.md
+/afmlir-build/
+/build-afmlir-demo/

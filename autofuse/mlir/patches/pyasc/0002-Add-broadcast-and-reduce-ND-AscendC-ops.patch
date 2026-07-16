@@ -1,0 +1,243 @@
+From 63f4b1c3daf577c2caef6bf2efb02ef1e3f0df51 Mon Sep 17 00:00:00 2001
+From: neo <niuyuhucs@google.com>
+Date: Thu, 2 Jul 2026 20:46:26 -0700
+Subject: [PATCH 2/3] Add broadcast and reduce ND AscendC ops
+
+---
+ include/ascir/Dialect/Asc/IR/Asc.h            |  1 +
+ .../Dialect/Asc/IR/Basic/OpVecBroadcastExt.td | 35 +++++++++++
+ .../Dialect/Asc/IR/Basic/OpVecReduceND.td     | 60 +++++++++++++++++++
+ include/ascir/Dialect/Asc/IR/CMakeLists.txt   |  4 ++
+ .../Dialect/Asc/IR/Core/AttributesExt.td      | 28 +++++++++
+ include/ascir/Dialect/Asc/IR/Ops.td           |  2 +
+ include/ascir/Target/Asc/CodeEmitter.h        | 11 ++++
+ lib/Dialect/Asc/IR/Attributes.cpp             |  1 +
+ 8 files changed, 142 insertions(+)
+ create mode 100644 include/ascir/Dialect/Asc/IR/Basic/OpVecBroadcastExt.td
+ create mode 100644 include/ascir/Dialect/Asc/IR/Basic/OpVecReduceND.td
+ create mode 100644 include/ascir/Dialect/Asc/IR/Core/AttributesExt.td
+
+diff --git a/include/ascir/Dialect/Asc/IR/Asc.h b/include/ascir/Dialect/Asc/IR/Asc.h
+index 9f92c6c..e31431d 100644
+--- a/include/ascir/Dialect/Asc/IR/Asc.h
++++ b/include/ascir/Dialect/Asc/IR/Asc.h
+@@ -24,6 +24,7 @@
+ #include "ascir/Dialect/Asc/IR/AscendCDialect.h.inc"
+
+ #include "ascir/Dialect/Asc/IR/AscendCEnums.h.inc"
++#include "ascir/Dialect/Asc/IR/AscendCEnumsExt.h.inc"
+
+ #include "ascir/Dialect/Asc/IR/AscendCTypeInterfaces.h.inc"
+
+diff --git a/include/ascir/Dialect/Asc/IR/Basic/OpVecBroadcastExt.td b/include/ascir/Dialect/Asc/IR/Basic/OpVecBroadcastExt.td
+new file mode 100644
+index 0000000..17fe5fe
+--- /dev/null
++++ b/include/ascir/Dialect/Asc/IR/Basic/OpVecBroadcastExt.td
+@@ -0,0 +1,35 @@
++/*
++ * Copyright (c) 2025 Huawei Technologies Co., Ltd.
++ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
++ * CANN Open Software License Agreement Version 2.0 (the "License").
++ * Please refer to the License for details. You may not use this file except in compliance with the License.
++ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
++ * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
++ * See LICENSE in the root of the software repository for the full text of the License.
++ */
++
++#ifndef ASC_BASIC_OP_VEC_BROADCAST_EXT_TD
++#define ASC_BASIC_OP_VEC_BROADCAST_EXT_TD
++
++include "Base.td"
++include "Core/Attributes.td"
++include "Core/Interfaces.td"
++include "Core/Types.td"
++
++include "mlir/Interfaces/CastInterfaces.td"
++include "mlir/Interfaces/SideEffectInterfaces.td"
++include "mlir/IR/OpBase.td"
++
++def AscendC_BroadcastL2Op : VectorOp<"broadcast_l2", "Broadcast", [AscFunc, AttrSizedOperandSegments]> {
++    let description = "Broadcast elements from source tensor to destination tensor (L2 API)";
++    let arguments = (ins
++        AscendC_LocalTensor:$dst,
++        AscendC_LocalTensor:$src,
++        Variadic<I32>:$dstShape,
++        Variadic<I32>:$srcShape,
++        I32Attr:$constRank
++    );
++    let paramTypeLists = [2, 2, -2, -2, 4];
++}
++
++#endif //ASC_BASIC_OP_VEC_BROADCAST_EXT_TD
+diff --git a/include/ascir/Dialect/Asc/IR/Basic/OpVecReduceND.td b/include/ascir/Dialect/Asc/IR/Basic/OpVecReduceND.td
+new file mode 100644
+index 0000000..5c1fa0f
+--- /dev/null
++++ b/include/ascir/Dialect/Asc/IR/Basic/OpVecReduceND.td
+@@ -0,0 +1,60 @@
++/*
++ * Copyright (c) 2025 Huawei Technologies Co., Ltd.
++ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
++ * CANN Open Software License Agreement Version 2.0 (the "License").
++ * Please refer to the License for details. You may not use this file except in compliance with the License.
++ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
++ * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
++ * See LICENSE in the root of the software repository for the full text of the License.
++ */
++
++#ifndef ASC_ADV_OP_VEC_REDUCE_ND_TD
++#define ASC_ADV_OP_VEC_REDUCE_ND_TD
++
++include "Base.td"
++include "Core/Attributes.td"
++include "Core/AttributesExt.td"
++include "Core/Interfaces.td"
++include "Core/Types.td"
++
++include "mlir/Interfaces/SideEffectInterfaces.td"
++include "mlir/IR/OpBase.td"
++
++
++class BaseReduceNDL2Op<string mnemonic, string apiName, list<Trait> traits = []>
++    : VectorOp<mnemonic, apiName, [OpWithDstInterface, AscFunc] # traits> {
++  let arguments = (ins
++    AscendC_LocalTensor:$dst,
++    AscendC_LocalTensor:$src,
++    AscendC_ReduceLayoutAttr:$layout,
++    Optional<AscendC_LocalTensor>:$sharedTmpBuffer
++  );
++  let paramTypeLists = [0, 0, 3, 0];
++  let description = [{
++    Generic reduce operation with configurable layout.
++
++    Computes reduction on `src` tensor and stores result in `dst`.
++    Layout parameter determines the dimension ordering:
++    - AR: Reduce along R dimension of shape [A, R]
++    - RA: Reduce along R dimension of shape [R, A]
++
++    `sharedTmpBuffer`, when present, provides a scratch space for temporary storage.
++  }];
++  let extraClassDeclaration = extraClassDeclarationBase # [{
++    bool isARLayout() {
++      return getLayout() == ReduceLayout::AR;
++    }
++
++    bool isRALayout() {
++      return getLayout() == ReduceLayout::RA;
++    }
++  }];
++}
++
++def AscendC_ReduceSum2DL2Op : BaseReduceNDL2Op<"reduce_sum_2d_l2", "ReduceSum">;
++def AscendC_ReduceMin2DL2Op : BaseReduceNDL2Op<"reduce_min_2d_l2", "ReduceMin">;
++def AscendC_ReduceMax2DL2Op : BaseReduceNDL2Op<"reduce_max_2d_l2", "ReduceMax">;
++def AscendC_ReduceProd2DL2Op : BaseReduceNDL2Op<"reduce_prod_2d_l2", "ReduceProd">;
++
++
++#endif // ASC_ADV_OP_VEC_REDUCE_ND_TD
+diff --git a/include/ascir/Dialect/Asc/IR/CMakeLists.txt b/include/ascir/Dialect/Asc/IR/CMakeLists.txt
+index 93977a3..d37d09d 100644
+--- a/include/ascir/Dialect/Asc/IR/CMakeLists.txt
++++ b/include/ascir/Dialect/Asc/IR/CMakeLists.txt
+@@ -32,6 +32,10 @@ mlir_tablegen(AscendCAttributes.cpp.inc -gen-attrdef-defs -attrdefs-dialect=asce
+ mlir_tablegen(AscendCEnums.h.inc -gen-enum-decls)
+ mlir_tablegen(AscendCEnums.cpp.inc -gen-enum-defs)
+
++set(LLVM_TARGET_DEFINITIONS Core/AttributesExt.td)
++mlir_tablegen(AscendCEnumsExt.h.inc -gen-enum-decls)
++mlir_tablegen(AscendCEnumsExt.cpp.inc -gen-enum-defs)
++
+ add_public_tablegen_target(MLIRAscIncGen)
+ add_dependencies(MLIRAscIncGen AscIRAPITypesIncGen)
+
+diff --git a/include/ascir/Dialect/Asc/IR/Core/AttributesExt.td b/include/ascir/Dialect/Asc/IR/Core/AttributesExt.td
+new file mode 100644
+index 0000000..e490fa2
+--- /dev/null
++++ b/include/ascir/Dialect/Asc/IR/Core/AttributesExt.td
+@@ -0,0 +1,28 @@
++/*
++ * Copyright (c) 2025 Huawei Technologies Co., Ltd.
++ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
++ * CANN Open Software License Agreement Version 2.0 (the "License").
++ * Please refer to the License for details. You may not use this file except in compliance with the License.
++ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
++ * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
++ * See LICENSE in the root of the software repository for the full text of the License.
++ */
++
++#ifndef ASC_CORE_ATTRIBUTES_EXT_TD
++#define ASC_CORE_ATTRIBUTES_EXT_TD
++
++include "Dialect.td"
++
++include "mlir/IR/AttrTypeBase.td"
++include "mlir/IR/EnumAttr.td"
++
++def AscendC_ReduceLayoutAttr : I32EnumAttr<"ReduceLayout", "", [
++  I32EnumAttrCase<"AR", 0>,
++  I32EnumAttrCase<"RA", 1>
++]> {
++  let cppNamespace = "::mlir::ascendc";
++  let description = "Reduce layout: AR (A,R) or RA (R,A)";
++  let underlyingType = "uint8_t";
++}
++
++#endif // ASC_CORE_ATTRIBUTES_EXT_TD
+diff --git a/include/ascir/Dialect/Asc/IR/Ops.td b/include/ascir/Dialect/Asc/IR/Ops.td
+index a284d15..c19e2c7 100644
+--- a/include/ascir/Dialect/Asc/IR/Ops.td
++++ b/include/ascir/Dialect/Asc/IR/Ops.td
+@@ -45,6 +45,7 @@ include "Basic/OpVecBilinearInterpolation.td"
+ include "Basic/OpVecBinary.td"
+ include "Basic/OpVecBinaryScalar.td"
+ include "Basic/OpVecBrcb.td"
++include "Basic/OpVecBroadcastExt.td"
+ include "Basic/OpVecCmpsel.td"
+ include "Basic/OpVecCreatevecindex.td"
+ include "Basic/OpVecDuplicate.td"
+@@ -52,6 +53,7 @@ include "Basic/OpVecGather.td"
+ include "Basic/OpVecGatherMask.td"
+ include "Basic/OpVecMulCast.td"
+ include "Basic/OpVecReduce.td"
++include "Basic/OpVecReduceND.td"
+ include "Basic/OpVecScatter.td"
+ include "Basic/OpVecTensor.td"
+ include "Basic/OpVecTernaryScalar.td"
+diff --git a/include/ascir/Target/Asc/CodeEmitter.h b/include/ascir/Target/Asc/CodeEmitter.h
+index 3066e1a..aa69a41 100644
+--- a/include/ascir/Target/Asc/CodeEmitter.h
++++ b/include/ascir/Target/Asc/CodeEmitter.h
+@@ -77,6 +77,17 @@ struct CodeEmitter {
+     /// Return the existing or a new name for a Value.
+     StringRef getOrCreateName(Value val);
+
++    /// Return the name of the first value in a range (for Variadic operands).
++    StringRef getOrCreateName(Operation::operand_range vals)
++    {
++        assert(!vals.empty() && "operand range is empty");
++        return getOrCreateName(*vals.begin());
++    }
++
++    /// Return a string representation of an integer attribute value.
++    /// Used by generated code for I32Attr template parameters.
++    std::string getOrCreateName(uint32_t val) { return std::to_string(val); }
++
+     /// Emits an address space for MemRefType
+     void emitAddressSpace(ascendc::AddressSpace addressSpace);
+
+diff --git a/lib/Dialect/Asc/IR/Attributes.cpp b/lib/Dialect/Asc/IR/Attributes.cpp
+index d5930e6..3dcecf7 100644
+--- a/lib/Dialect/Asc/IR/Attributes.cpp
++++ b/lib/Dialect/Asc/IR/Attributes.cpp
+@@ -16,6 +16,7 @@
+ #include "llvm/ADT/TypeSwitch.h"
+
+ #include "ascir/Dialect/Asc/IR/AscendCEnums.cpp.inc"
++#include "ascir/Dialect/Asc/IR/AscendCEnumsExt.cpp.inc"
+
+ #define GET_ATTRDEF_CLASSES
+ #include "ascir/Dialect/Asc/IR/AscendCAttributes.cpp.inc"
+--
+2.39.5 (Apple Git-154)

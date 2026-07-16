@@ -1,0 +1,183 @@
+From 5d81a390f7cfe1dc6a1cc57788694fcc01447634 Mon Sep 17 00:00:00 2001
+From: neo <niuyuhucs@google.com>
+Date: Mon, 13 Jul 2026 02:29:20 -0700
+Subject: [PATCH] Add custom broadcast emitter (hand-written VecBroadcast
+ printer)
+
+The auto-generated emitter cannot express broadcast_l2's C++ form
+`AscendC::Broadcast<T, dim, axis>(dst, src, dstShape[], srcShape[])`:
+it needs two non-type template params (dim AND axis), the two LocalTensor
+operands share one element type, and the shape variadics must become stack
+`uint32_t[]` arrays. So:
+
+- OpVecBroadcastExt.td: drop the `AscFunc` trait + `paramTypeLists` so the
+  auto emitter steps aside for broadcast_l2.
+- Translation.cpp: register `BroadcastL2Op` in PrintableOpTypes + include the
+  hand-written header.
+- Basic/VecBroadcast.{cpp,h}: the hand-written printer (recovers `axis` from
+  the src==1/dst!=1 dimension; rank from `constRank`).
+---
+ .../Dialect/Asc/IR/Basic/OpVecBroadcastExt.td |  9 ++-
+ include/ascir/Target/Asc/Basic/VecBroadcast.h | 28 ++++++++
+ lib/Target/AscendC/Basic/VecBroadcast.cpp     | 65 +++++++++++++++++++
+ lib/Target/AscendC/Translation.cpp            |  3 +
+ 4 files changed, 103 insertions(+), 2 deletions(-)
+ create mode 100644 include/ascir/Target/Asc/Basic/VecBroadcast.h
+ create mode 100644 lib/Target/AscendC/Basic/VecBroadcast.cpp
+
+diff --git a/include/ascir/Dialect/Asc/IR/Basic/OpVecBroadcastExt.td b/include/ascir/Dialect/Asc/IR/Basic/OpVecBroadcastExt.td
+index 17fe5fe..0861b63 100644
+--- a/include/ascir/Dialect/Asc/IR/Basic/OpVecBroadcastExt.td
++++ b/include/ascir/Dialect/Asc/IR/Basic/OpVecBroadcastExt.td
+@@ -20,7 +20,13 @@ include "mlir/Interfaces/CastInterfaces.td"
+ include "mlir/Interfaces/SideEffectInterfaces.td"
+ include "mlir/IR/OpBase.td"
+ 
+-def AscendC_BroadcastL2Op : VectorOp<"broadcast_l2", "Broadcast", [AscFunc, AttrSizedOperandSegments]> {
++// NOTE: no `AscFunc` trait — the auto-generated emitter cannot express this op's
++// C++ form (`AscendC::Broadcast<T, dim, axis>(dst, src, dstShape[], srcShape[])`):
++// it needs two non-type template params (dim AND axis), the two LocalTensor
++// operands share one element type, and the shape variadics must become stack
++// `uint32_t[]` arrays rather than a `reinterpret_cast`. A hand-written printer in
++// lib/Target/AscendC/Basic/VecBroadcast.cpp handles all of that instead.
++def AscendC_BroadcastL2Op : VectorOp<"broadcast_l2", "Broadcast", [AttrSizedOperandSegments]> {
+     let description = "Broadcast elements from source tensor to destination tensor (L2 API)";
+     let arguments = (ins
+         AscendC_LocalTensor:$dst,
+@@ -29,7 +35,6 @@ def AscendC_BroadcastL2Op : VectorOp<"broadcast_l2", "Broadcast", [AscFunc, Attr
+         Variadic<I32>:$srcShape,
+         I32Attr:$constRank
+     );
+-    let paramTypeLists = [2, 2, -2, -2, 4];
+ }
+ 
+ #endif //ASC_BASIC_OP_VEC_BROADCAST_EXT_TD
+diff --git a/include/ascir/Target/Asc/Basic/VecBroadcast.h b/include/ascir/Target/Asc/Basic/VecBroadcast.h
+new file mode 100644
+index 0000000..188170b
+--- /dev/null
++++ b/include/ascir/Target/Asc/Basic/VecBroadcast.h
+@@ -0,0 +1,28 @@
++/*
++ * Copyright (c) 2025 Huawei Technologies Co., Ltd.
++ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
++ * CANN Open Software License Agreement Version 2.0 (the "License").
++ * Please refer to the License for details. You may not use this file except in compliance with the License.
++ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
++ * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
++ * See LICENSE in the root of the software repository for the full text of the License.
++ */
++
++#ifndef ASCIR_TARGET_ASC_BASIC_VEC_BROADCAST_H
++#define ASCIR_TARGET_ASC_BASIC_VEC_BROADCAST_H
++
++#include "ascir/Target/Asc/Common.h"
++
++namespace mlir {
++namespace ascendc {
++
++//===----------------------------------------------------------------------===//
++// Vector broadcast operations
++//===----------------------------------------------------------------------===//
++
++LogicalResult printOperation(CodeEmitter& emitter, ascendc::BroadcastL2Op op);
++
++} // namespace ascendc
++} // namespace mlir
++
++#endif // ASCIR_TARGET_ASC_BASIC_VEC_BROADCAST_H
+diff --git a/lib/Target/AscendC/Basic/VecBroadcast.cpp b/lib/Target/AscendC/Basic/VecBroadcast.cpp
+new file mode 100644
+index 0000000..21c2399
+--- /dev/null
++++ b/lib/Target/AscendC/Basic/VecBroadcast.cpp
+@@ -0,0 +1,65 @@
++/*
++ * Copyright (c) 2025 Huawei Technologies Co., Ltd.
++ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
++ * CANN Open Software License Agreement Version 2.0 (the "License").
++ * Please refer to the License for details. You may not use this file except in compliance with the License.
++ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
++ * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
++ * See LICENSE in the root of the software repository for the full text of the License.
++ */
++
++#include "ascir/Target/Asc/Basic/VecBroadcast.h"
++
++using namespace mlir;
++using namespace mlir::ascendc;
++
++//===----------------------------------------------------------------------===//
++// Vector broadcast operations
++//===----------------------------------------------------------------------===//
++
++// Emits `AscendC::Broadcast<T, dim, axis>(dst, src, dstShape[], srcShape[])`.
++//
++// The C++ API takes the two shapes as `const uint32_t[dim]` arrays and needs two
++// non-type template params: `dim` (rank) and `axis` (the dimension being
++// stretched). `dim` comes from `constRank`; `axis` is recovered from the tensor
++// types as the single dimension where the source extent is 1 but the destination
++// extent is not. The shape arrays are materialized as local `uint32_t[]` decls
++// from the op's shape operands, mirroring how DataCopySlice emits SliceInfo[].
++LogicalResult mlir::ascendc::printOperation(CodeEmitter& emitter, ascendc::BroadcastL2Op op)
++{
++    auto& os = emitter.ostream();
++
++    auto dstTy = cast<LocalTensorType>(op.getDst().getType());
++    auto srcTy = cast<LocalTensorType>(op.getSrc().getType());
++    auto dstShape = dstTy.getShape();
++    auto srcShape = srcTy.getShape();
++
++    // axis = the broadcast dimension (src extent 1, dst extent != 1).
++    int64_t axis = 0;
++    for (auto [i, dims] : llvm::enumerate(llvm::zip(srcShape, dstShape))) {
++        auto [s, d] = dims;
++        if (s == 1 && d != 1) {
++            axis = static_cast<int64_t>(i);
++            break;
++        }
++    }
++
++    auto dstName = emitter.getOrCreateName(op.getDst());
++    auto srcName = emitter.getOrCreateName(op.getSrc());
++    auto dstShapeName = (dstName + "_bc_dst_shape").str();
++    auto srcShapeName = (dstName + "_bc_src_shape").str();
++
++    os << "uint32_t " << dstShapeName << "[] = {";
++    llvm::interleaveComma(op.getDstShape(), os, [&](Value v) { os << emitter.getOrCreateName(v); });
++    os << "};\n";
++    os << "uint32_t " << srcShapeName << "[] = {";
++    llvm::interleaveComma(op.getSrcShape(), os, [&](Value v) { os << emitter.getOrCreateName(v); });
++    os << "};\n";
++
++    os << ascNamespace << "::" << op.getAPIName() << "<";
++    FAIL_OR(emitter.emitType(op.getLoc(), dstTy.getElementType()));
++    os << ", " << op.getConstRank() << ", " << axis << ">(" << dstName << ", " << srcName << ", " << dstShapeName
++       << ", " << srcShapeName << ")";
++
++    return success();
++}
+diff --git a/lib/Target/AscendC/Translation.cpp b/lib/Target/AscendC/Translation.cpp
+index 4881a2a..f0894fc 100644
+--- a/lib/Target/AscendC/Translation.cpp
++++ b/lib/Target/AscendC/Translation.cpp
+@@ -29,6 +29,7 @@
+ #include "ascir/Target/Asc/Basic/VecBilinearInterpolation.h"
+ #include "ascir/Target/Asc/Basic/VecBinary.h"
+ #include "ascir/Target/Asc/Basic/VecBinaryScalar.h"
++#include "ascir/Target/Asc/Basic/VecBroadcast.h"
+ #include "ascir/Target/Asc/Basic/VecCmpsel.h"
+ #include "ascir/Target/Asc/Basic/VecDuplicate.h"
+ #include "ascir/Target/Asc/Basic/VecGather.h"
+@@ -231,6 +232,8 @@ using PrintableOpTypes = std::tuple<
+     ascendc::ToQueBindOp,
+     // Buffer operations (TBuf)
+     ascendc::TBufGetTensorOp, ascendc::TBufGetWithOffsetOp,
++    // Vector broadcast operations (custom emitter — see VecBroadcast.cpp)
++    ascendc::BroadcastL2Op,
+ 
+ #define GET_OP_TYPE_LIST
+ #include "ascir/Dialect/Asc/IR/AscendCOpEmit.h.inc"
+-- 
+2.39.5 (Apple Git-154)
+

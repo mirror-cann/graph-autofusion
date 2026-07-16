@@ -1,0 +1,607 @@
+From 33402f19bba6987ff84333e64897517beb0f3ca5 Mon Sep 17 00:00:00 2001
+From: neo <niuyuhucs@google.com>
+Date: Thu, 2 Jul 2026 20:46:39 -0700
+Subject: [PATCH 3/3] Add custom AscendC vector op stubs
+
+---
+ .../Asc/IR/Basic/OpVecActivationExt.td        |  89 ++++++++++
+ .../Dialect/Asc/IR/Basic/OpVecBinaryExt.td    |  45 +++++
+ .../Dialect/Asc/IR/Basic/OpVecCastExt.td      |  42 +++++
+ .../Dialect/Asc/IR/Basic/OpVecCompareExt.td   |  44 +++++
+ .../Dialect/Asc/IR/Basic/OpVecDataMoveExt.td  | 155 ++++++++++++++++++
+ .../Dialect/Asc/IR/Basic/OpVecReduceExt.td    |  41 +++++
+ .../Dialect/Asc/IR/Basic/OpVecScalarExt.td    |  29 ++++
+ .../Dialect/Asc/IR/Basic/OpVecTernaryExt.td   |  39 +++++
+ .../Dialect/Asc/IR/Basic/OpVecUnaryExt.td     |  41 +++++
+ 9 files changed, 525 insertions(+)
+ create mode 100644 include/ascir/Dialect/Asc/IR/Basic/OpVecActivationExt.td
+ create mode 100644 include/ascir/Dialect/Asc/IR/Basic/OpVecBinaryExt.td
+ create mode 100644 include/ascir/Dialect/Asc/IR/Basic/OpVecCastExt.td
+ create mode 100644 include/ascir/Dialect/Asc/IR/Basic/OpVecCompareExt.td
+ create mode 100644 include/ascir/Dialect/Asc/IR/Basic/OpVecDataMoveExt.td
+ create mode 100644 include/ascir/Dialect/Asc/IR/Basic/OpVecReduceExt.td
+ create mode 100644 include/ascir/Dialect/Asc/IR/Basic/OpVecScalarExt.td
+ create mode 100644 include/ascir/Dialect/Asc/IR/Basic/OpVecTernaryExt.td
+ create mode 100644 include/ascir/Dialect/Asc/IR/Basic/OpVecUnaryExt.td
+
+diff --git a/include/ascir/Dialect/Asc/IR/Basic/OpVecActivationExt.td b/include/ascir/Dialect/Asc/IR/Basic/OpVecActivationExt.td
+new file mode 100644
+index 0000000..ef8ed02
+--- /dev/null
++++ b/include/ascir/Dialect/Asc/IR/Basic/OpVecActivationExt.td
+@@ -0,0 +1,89 @@
++/*
++ * Copyright (c) 2025 Huawei Technologies Co., Ltd.
++ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
++ * CANN Open Software License Agreement Version 2.0 (the "License").
++ * Please refer to the License for details. You may not use this file except in compliance with the License.
++ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
++ * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
++ * See LICENSE in the software repository for the full text of the License.
++ */
++
++#ifndef ASC_BASIC_OP_VEC_ACTIVATION_EXT_TD
++#define ASC_BASIC_OP_VEC_ACTIVATION_EXT_TD
++
++include "Base.td"
++include "Core/Attributes.td"
++include "Core/Interfaces.td"
++include "Core/Types.td"
++
++include "mlir/Interfaces/CastInterfaces.td"
++include "mlir/Interfaces/SideEffectInterfaces.td"
++include "mlir/IR/OpBase.td"
++
++def AscendC_GeluOp : MathLibraryOp<"gelu", "Gelu", [AttrSizedOperandSegments]> {
++  let description = "`AscendC::Gelu` Gaussian Error Linear Unit activation function.\n";
++  let arguments = (ins AscendC_LocalTensor:$dst, AnyType:$src,
++                   Optional<AnyType>:$sharedTmpBuffer, Optional<AnyType>:$calCount,
++                   UnitAttr:$highPrecision, UnitAttr:$highPerformance);
++}
++
++def AscendC_SigmoidOp : MathLibraryOp<"sigmoid", "Sigmoid", [AttrSizedOperandSegments]> {
++  let description = "`AscendC::Sigmoid` sigmoid activation function.\n";
++  let arguments = (ins AscendC_LocalTensor:$dst, AnyType:$src,
++                   Optional<AnyType>:$sharedTmpBuffer, Optional<AnyType>:$calCount);
++}
++
++def AscendC_SiluOp : MathLibraryOp<"silu", "Silu", [AttrSizedOperandSegments]> {
++  let description = "`AscendC::Silu` SiLU (Swish) activation function.\n";
++  let arguments = (ins AscendC_LocalTensor:$dst, AnyType:$src,
++                   Optional<AnyType>:$sharedTmpBuffer, Optional<AnyType>:$calCount);
++}
++
++def AscendC_SwishOp : MathLibraryOp<"swish", "Swish", [AttrSizedOperandSegments]> {
++  let description = "`AscendC::Swish` Swish activation function (same as SiLU).\n";
++  let arguments = (ins AscendC_LocalTensor:$dst, AnyType:$src,
++                   Optional<AnyType>:$sharedTmpBuffer, Optional<AnyType>:$calCount);
++}
++
++def AscendC_LogSoftmaxOp : MathLibraryOp<"log_softmax", "LogSoftmax", [AttrSizedOperandSegments]> {
++  let description = "`AscendC::LogSoftmax` log softmax activation function.\n";
++  let arguments = (ins AscendC_LocalTensor:$dst, AnyType:$src,
++                   Optional<AnyType>:$sharedTmpBuffer, Optional<AnyType>:$calCount,
++                   AnyType:$axis);
++}
++
++def AscendC_GeGLUOp : MathLibraryOp<"geglu", "GeGLU", [AttrSizedOperandSegments]> {
++  let description = "`AscendC::GeGLU` GELU-gated Linear Unit.\n";
++  let arguments = (ins AscendC_LocalTensor:$dst, AnyType:$src0, AnyType:$src1,
++                   Optional<AnyType>:$sharedTmpBuffer, Optional<AnyType>:$calCount);
++}
++
++def AscendC_SwiGLUOp : MathLibraryOp<"swiglu", "SwiGLU", [AttrSizedOperandSegments]> {
++  let description = "`AscendC::SwiGLU` Swish-gated Linear Unit.\n";
++  let arguments = (ins AscendC_LocalTensor:$dst, AnyType:$src0, AnyType:$src1,
++                   Optional<AnyType>:$sharedTmpBuffer, Optional<AnyType>:$calCount);
++}
++
++def AscendC_ReGLUOp : MathLibraryOp<"reglu", "ReGLU", [AttrSizedOperandSegments]> {
++  let description = "`AscendC::ReGLU` ReLU-gated Linear Unit.\n";
++  let arguments = (ins AscendC_LocalTensor:$dst, AnyType:$src0, AnyType:$src1,
++                   Optional<AnyType>:$sharedTmpBuffer, Optional<AnyType>:$calCount);
++}
++
++def AscendC_ClipByValueOp : MathLibraryOp<"clip_by_value", "ClipByValue", [AttrSizedOperandSegments]> {
++  let description = "`AscendC::ClipByValue` clips tensor values to a specified range.\n";
++  let arguments = (ins AscendC_LocalTensor:$dst, AnyType:$src, AnyType:$clipValueMin, AnyType:$clipValueMax,
++                   Optional<AnyType>:$sharedTmpBuffer, Optional<AnyType>:$calCount);
++}
++
++def AscendC_GeluExtendOp : MathLibraryOp<"gelu_extend", "GeluExtend", [AttrSizedOperandSegments]> {
++  let description = "`AscendC::GeluExtend` GELU activation function extended implementation.\n";
++  let arguments = (ins AscendC_LocalTensor:$dst, AnyType:$src, AnyType:$count);
++}
++
++def AscendC_SigmoidExtendOp : MathLibraryOp<"sigmoid_extend", "SigmoidExtend", [AttrSizedOperandSegments]> {
++  let description = "`AscendC::SigmoidExtend` sigmoid activation function extended implementation with tmp buffer.\n";
++  let arguments = (ins AscendC_LocalTensor:$dst, AnyType:$src, AnyType:$calCount, AscendC_LocalTensor:$tmpBuf);
++}
++
++#endif // ASC_BASIC_OP_VEC_ACTIVATION_EXT_TD
+diff --git a/include/ascir/Dialect/Asc/IR/Basic/OpVecBinaryExt.td b/include/ascir/Dialect/Asc/IR/Basic/OpVecBinaryExt.td
+new file mode 100644
+index 0000000..231b326
+--- /dev/null
++++ b/include/ascir/Dialect/Asc/IR/Basic/OpVecBinaryExt.td
+@@ -0,0 +1,45 @@
++/*
++ * Copyright (c) 2025 Huawei Technologies Co., Ltd.
++ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
++ * CANN Open Software License Agreement Version 2.0 (the "License").
++ * Please refer to the License for details. You may not use this file except in compliance with the License.
++ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
++ * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
++ * See LICENSE in the software repository for the full text of the License.
++ */
++
++#ifndef ASC_BASIC_OP_VEC_BINARY_EXT_TD
++#define ASC_BASIC_OP_VEC_BINARY_EXT_TD
++
++include "Base.td"
++include "Core/Attributes.td"
++include "Core/Interfaces.td"
++include "Core/Types.td"
++
++include "mlir/Interfaces/CastInterfaces.td"
++include "mlir/Interfaces/SideEffectInterfaces.td"
++include "mlir/IR/OpBase.td"
++
++def AscendC_BitwiseAndOp : BinaryMathOp<"bitwise_and", "BitwiseAnd">;
++def AscendC_BitwiseOrOp : BinaryMathOp<"bitwise_or", "BitwiseOr">;
++def AscendC_BitwiseXorOp : BinaryMathOp<"bitwise_xor", "BitwiseXor">;
++def AscendC_FmodOp : BinaryMathOp<"fmod", "Fmod">;
++def AscendC_HypotOp : BinaryMathOp<"hypot", "Hypot">;
++def AscendC_LogicalAndOp : BinaryMathOp<"logical_and", "LogicalAnd">;
++def AscendC_LogicalOrOp : BinaryMathOp<"logical_or", "LogicalOr">;
++def AscendC_LogicalXorOp : BinaryMathOp<"logical_xor", "LogicalXor">;
++def AscendC_FloorDivOp : BinaryMathOp<"floor_div", "FloorDiv">;
++
++def AscendC_BitwiseNotOp : MathLibraryOp<"bitwise_not", "BitwiseNot", [AttrSizedOperandSegments]> {
++  let description = "`AscendC::BitwiseNot` performs bitwise NOT operation.\n";
++  let arguments = (ins AscendC_LocalTensor:$dst, AnyType:$src, Optional<AnyType>:$sharedTmpBuffer,
++                   Optional<AnyType>:$calCount);
++}
++
++def AscendC_AxpyExtendOp : MathLibraryOp<"axpy_extend", "AxpyExtend", [AttrSizedOperandSegments]> {
++  let description = "`AscendC::AxpyExtend` performs dst = src0 + alpha * src1 with extended type support.\n";
++  let arguments = (ins AscendC_LocalTensor:$dst, AnyType:$src0, AnyType:$src1, AnyType:$alpha, AnyType:$count,
++                   AscendC_LocalTensor:$tmpBuf);
++}
++
++#endif // ASC_BASIC_OP_VEC_BINARY_EXT_TD
+diff --git a/include/ascir/Dialect/Asc/IR/Basic/OpVecCastExt.td b/include/ascir/Dialect/Asc/IR/Basic/OpVecCastExt.td
+new file mode 100644
+index 0000000..670ee5b
+--- /dev/null
++++ b/include/ascir/Dialect/Asc/IR/Basic/OpVecCastExt.td
+@@ -0,0 +1,42 @@
++/*
++ * Copyright (c) 2025 Huawei Technologies Co., Ltd.
++ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
++ * CANN Open Software License Agreement Version 2.0 (the "License").
++ * Please refer to the License for details. You may not use this file except in compliance with the License.
++ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
++ * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
++ * See LICENSE in the software repository for the full text of the License.
++ */
++
++#ifndef ASC_BASIC_OP_VEC_CAST_EXT_TD
++#define ASC_BASIC_OP_VEC_CAST_EXT_TD
++
++include "Base.td"
++include "Core/Attributes.td"
++include "Core/Interfaces.td"
++include "Core/Types.td"
++
++include "mlir/Interfaces/CastInterfaces.td"
++include "mlir/Interfaces/SideEffectInterfaces.td"
++include "mlir/IR/OpBase.td"
++
++def AscendC_CastExtendOp : VectorOp<"cast_extend", "Cast", [AscFunc]> {
++  let description = "`AscendC::Cast` extended type cast for int64.\n";
++  let arguments = (ins AnyType:$dst, AnyType:$src,
++                   AscendC_RoundModeAttr:$roundMode, AnyType:$calCount,
++                   AscendC_LocalTensor:$tmpBuf);
++}
++
++def AscendC_ShiftLeftOp : VectorOp<"shift_left", "ShiftLeft", [AscFunc]> {
++  let description = "`AscendC::ShiftLeft` left shift operation.\n";
++  let arguments = (ins AnyType:$dst, AnyType:$src, AnyType:$shiftBits,
++                   AnyType:$calCount);
++}
++
++def AscendC_ShiftRightOp : VectorOp<"shift_right", "ShiftRight", [AscFunc]> {
++  let description = "`AscendC::ShiftRight` right shift operation.\n";
++  let arguments = (ins AnyType:$dst, AnyType:$src, AnyType:$shiftBits,
++                   AnyType:$calCount);
++}
++
++#endif // ASC_BASIC_OP_VEC_CAST_EXT_TD
+diff --git a/include/ascir/Dialect/Asc/IR/Basic/OpVecCompareExt.td b/include/ascir/Dialect/Asc/IR/Basic/OpVecCompareExt.td
+new file mode 100644
+index 0000000..4134214
+--- /dev/null
++++ b/include/ascir/Dialect/Asc/IR/Basic/OpVecCompareExt.td
+@@ -0,0 +1,44 @@
++/*
++ * Copyright (c) 2025 Huawei Technologies Co., Ltd.
++ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
++ * CANN Open Software License Agreement Version 2.0 (the "License").
++ * Please refer to the License for details. You may not use this file except in compliance with the License.
++ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
++ * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
++ * See LICENSE in the software repository for the full text of the License.
++ */
++
++#ifndef ASC_BASIC_OP_VEC_COMPARE_EXT_TD
++#define ASC_BASIC_OP_VEC_COMPARE_EXT_TD
++
++include "Base.td"
++include "Core/Attributes.td"
++include "Core/Interfaces.td"
++include "Core/Types.td"
++
++include "mlir/Interfaces/CastInterfaces.td"
++include "mlir/Interfaces/SideEffectInterfaces.td"
++include "mlir/IR/OpBase.td"
++
++def AscendC_CompareExtendOp : VectorOp<"compare_extend", "Compare", [AscFunc]> {
++  let description = "`AscendC::Compare` extended comparison for int64.\n";
++  let arguments = (ins AnyType:$dst, AnyType:$src0, AnyType:$src1,
++                   AscendC_CmpModeAttr:$cmpMode, AnyType:$calCount,
++                   AscendC_LocalTensor:$tmpBuf);
++}
++
++def AscendC_CompareScalarExtendOp : VectorOp<"compare_scalar_extend", "CompareScalar", [AscFunc]> {
++  let description = "`AscendC::CompareScalar` extended scalar comparison for int64.\n";
++  let arguments = (ins AnyType:$dst, AnyType:$src, AnyType:$scalar,
++                   AscendC_CmpModeAttr:$cmpMode, AnyType:$calCount,
++                   AscendC_LocalTensor:$tmpBuf);
++}
++
++def AscendC_CompareScalarExtendInt32Op : VectorOp<"compare_scalar_extend_int32", "CompareScalar", [AscFunc]> {
++  let description = "`AscendC::CompareScalar` extended scalar comparison for int32.\n";
++  let arguments = (ins AnyType:$dst, AnyType:$src, AnyType:$scalar,
++                   AscendC_CmpModeAttr:$cmpMode, AnyType:$calCount,
++                   AscendC_LocalTensor:$tmpBuf);
++}
++
++#endif // ASC_BASIC_OP_VEC_COMPARE_EXT_TD
+diff --git a/include/ascir/Dialect/Asc/IR/Basic/OpVecDataMoveExt.td b/include/ascir/Dialect/Asc/IR/Basic/OpVecDataMoveExt.td
+new file mode 100644
+index 0000000..242a52e
+--- /dev/null
++++ b/include/ascir/Dialect/Asc/IR/Basic/OpVecDataMoveExt.td
+@@ -0,0 +1,155 @@
++/*
++ * Copyright (c) 2025 Huawei Technologies Co., Ltd.
++ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
++ * CANN Open Software License Agreement Version 2.0 (the "License").
++ * Please refer to the License for details. You may not use this file except in compliance with the License.
++ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
++ * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
++ * See LICENSE in the software repository for the full text of the License.
++ */
++
++#ifndef ASC_BASIC_OP_VEC_DATA_MOVE_EXT_TD
++#define ASC_BASIC_OP_VEC_DATA_MOVE_EXT_TD
++
++include "Base.td"
++include "Core/Attributes.td"
++include "Core/Interfaces.td"
++include "Core/Types.td"
++
++include "mlir/Interfaces/CastInterfaces.td"
++include "mlir/Interfaces/SideEffectInterfaces.td"
++include "mlir/IR/OpBase.td"
++
++class DataMoveOp<string mnemonic, string apiName, list<Trait> traits = []>
++    : VectorOp<mnemonic, apiName, [AscFunc] # traits> {
++  let description = "`AscendC::" # apiName # "` is a data movement operation.\n";
++}
++
++def AscendC_BroadcastOp : DataMoveOp<"broadcast", "Broadcast"> {
++  let description = "Broadcast tensor to target shape (main entry point).\n";
++  let arguments = (ins AscendC_LocalTensor:$dst, AscendC_LocalTensor:$src,
++                   AscendC_LocalTensor:$sharedTmpBuffer,
++                   AnyType:$srcM, AnyType:$srcK, AnyType:$srcZ,
++                   AnyType:$dstM, AnyType:$dstK, AnyType:$dstZ);
++}
++
++def AscendC_BroadcastFirstDimOp : DataMoveOp<"broadcast_first_dim", "BroadcastFirstDim"> {
++  let description = "Broadcast first dimension (1,B) -> (A,B) or (1,B,C) -> (A,B,C).\n";
++  let arguments = (ins AscendC_LocalTensor:$dst, AscendC_LocalTensor:$src,
++                   AnyType:$srcM, AnyType:$srcK, AnyType:$srcZ,
++                   AnyType:$dstM, AnyType:$dstK, AnyType:$dstZ,
++                   AscendC_LocalTensor:$tmpBuf);
++}
++
++def AscendC_BroadcastMiddleDimOp : DataMoveOp<"broadcast_middle_dim", "BroadcastMiddleDim"> {
++  let description = "Broadcast middle dimension (A,1) -> (A,B) or (A,1,C) -> (A,B,C).\n";
++  let arguments = (ins AscendC_LocalTensor:$dst, AscendC_LocalTensor:$src,
++                   AnyType:$srcM, AnyType:$srcK, AnyType:$srcZ,
++                   AnyType:$dstM, AnyType:$dstK, AnyType:$dstZ,
++                   AscendC_LocalTensor:$tmpBuf);
++}
++
++def AscendC_BroadcastMiddleDimWithCopyOp : DataMoveOp<"broadcast_middle_dim_with_copy", "BroadcastMiddleDimWithCopy"> {
++  let description = "Broadcast middle dimension using Copy operation.\n";
++  let arguments = (ins AscendC_LocalTensor:$dst, AscendC_LocalTensor:$src,
++                   AnyType:$srcM, AnyType:$srcK, AnyType:$srcZ,
++                   AnyType:$dstM, AnyType:$dstK, AnyType:$dstZ,
++                   AscendC_LocalTensor:$tmpBuf, AnyType:$lastDimStride);
++}
++
++def AscendC_BroadcastWithStrideOp : DataMoveOp<"broadcast_with_stride", "BroadcastWithStride"> {
++  let description = "Broadcast with stride for non-contiguous memory.\n";
++  let arguments = (ins AscendC_LocalTensor:$dst, AscendC_LocalTensor:$src,
++                   AnyType:$srcM, AnyType:$srcK, AnyType:$srcZ,
++                   AnyType:$dstM, AnyType:$dstK, AnyType:$dstZ,
++                   AscendC_LocalTensor:$tmpBuf);
++}
++
++def AscendC_BroadcastCommonOp : DataMoveOp<"broadcast_common", "BroadcastCommon"> {
++  let description = "Common broadcast implementation with type dispatch.\n";
++  let arguments = (ins AscendC_LocalTensor:$dst, AscendC_LocalTensor:$src,
++                   AnyType:$srcM, AnyType:$srcK, AnyType:$srcZ,
++                   AnyType:$dstM, AnyType:$dstK, AnyType:$dstZ,
++                   AscendC_LocalTensor:$tmpBuf, AnyType:$lastDimStride);
++}
++
++def AscendC_BroadcastWithCastOp : DataMoveOp<"broadcast_with_cast", "BroadcastWithCast"> {
++  let description = "Broadcast with type cast for uint8/int8 types.\n";
++  let arguments = (ins AscendC_LocalTensor:$dst, AscendC_LocalTensor:$src,
++                   AnyType:$srcM, AnyType:$srcK, AnyType:$srcZ,
++                   AnyType:$dstM, AnyType:$dstK, AnyType:$dstZ,
++                   AscendC_LocalTensor:$tmpBuf, AnyType:$lastDimStride);
++}
++
++def AscendC_BroadcastInt64Op : DataMoveOp<"broadcast_int64", "BroadcastInt64"> {
++  let description = "Broadcast for int64/uint64 types (special handling).\n";
++  let arguments = (ins AscendC_LocalTensor:$dst, AscendC_LocalTensor:$src,
++                   AnyType:$srcM, AnyType:$srcK, AnyType:$srcZ,
++                   AnyType:$dstM, AnyType:$dstK, AnyType:$dstZ,
++                   AscendC_LocalTensor:$tmpBuf, AnyType:$lastDimStride);
++}
++
++def AscendC_BroadcastInt64LastDimOp : DataMoveOp<"broadcast_int64_last_dim", "BroadcastInt64LastDim"> {
++  let description = "Broadcast last dimension for int64 type.\n";
++  let arguments = (ins AscendC_LocalTensor:$dst, AscendC_LocalTensor:$src,
++                   AnyType:$srcM, AnyType:$srcK, AnyType:$srcZ,
++                   AnyType:$dstM, AnyType:$dstK, AnyType:$dstZ,
++                   AscendC_LocalTensor:$calcBuf, AnyType:$lastDimStride);
++}
++
++def AscendC_BrcbSrcToOneBlockOp : DataMoveOp<"brcb_src_to_one_block", "BrcbSrcToOneBlock"> {
++  let description = "Broadcast source data to one block size.\n";
++  let arguments = (ins AscendC_LocalTensor:$src, AnyType:$firstDim,
++                   AnyType:$oneBlkNum, AscendC_LocalTensor:$brcbBuf);
++}
++
++def AscendC_GatherOp : DataMoveOp<"gather", "Gather"> {
++  let description = "Gather elements from source tensor.\n";
++  let arguments = (ins AscendC_LocalTensor:$dst, AscendC_LocalTensor:$src,
++                   AnyType:$indices, AnyType:$calCount);
++}
++
++def AscendC_ScatterOp : DataMoveOp<"scatter", "Scatter"> {
++  let description = "Scatter elements to destination tensor.\n";
++  let arguments = (ins AscendC_LocalTensor:$dst, AscendC_LocalTensor:$src,
++                   AnyType:$indices, AnyType:$calCount);
++}
++
++def AscendC_ConcatOp : DataMoveOp<"concat", "Concat", [AttrSizedOperandSegments]> {
++  let description = "Concatenate tensors along an axis.\n";
++  let arguments = (ins AscendC_LocalTensor:$dst, Variadic<AscendC_LocalTensor>:$srcList,
++                   AnyType:$axis, AnyType:$calCount);
++}
++
++def AscendC_SplitOp : DataMoveOp<"split", "Split", [AttrSizedOperandSegments]> {
++  let description = "Split tensor along an axis.\n";
++  let arguments = (ins Variadic<AscendC_LocalTensor>:$dstList, AscendC_LocalTensor:$src,
++                   AnyType:$axis, AnyType:$splitSizes);
++}
++
++def AscendC_RemovePadOp : DataMoveOp<"remove_pad", "RemovePad"> {
++  let description = "Remove padding from tensor.\n";
++  let arguments = (ins AscendC_LocalTensor:$dst, AscendC_LocalTensor:$src,
++                   AnyType:$calCount);
++}
++
++def AscendC_InterleaveOp : DataMoveOp<"interleave", "Interleave"> {
++  let description = "Interleave two tensors.\n";
++  let arguments = (ins AscendC_LocalTensor:$dst, AscendC_LocalTensor:$src0,
++                   AscendC_LocalTensor:$src1, AnyType:$calCount);
++}
++
++def AscendC_DeInterleaveOp : DataMoveOp<"deinterleave", "DeInterleave"> {
++  let description = "De-interleave tensor into two tensors.\n";
++  let arguments = (ins AscendC_LocalTensor:$dst0, AscendC_LocalTensor:$dst1,
++                   AscendC_LocalTensor:$src, AnyType:$calCount);
++}
++
++def AscendC_GatherExtendOp : DataMoveOp<"gather_extend", "GatherExtend"> {
++  let description = "Gather elements from global tensor with extended support.\n";
++  let arguments = (ins AscendC_LocalTensor:$dst, AnyType:$src0, AnyType:$src1,
++                   AnyType:$paramLastAxisSize, AnyType:$vectorizedAxisSize,
++                   AscendC_LocalTensor:$tmpBuf);
++}
++
++#endif // ASC_BASIC_OP_VEC_DATA_MOVE_EXT_TD
+diff --git a/include/ascir/Dialect/Asc/IR/Basic/OpVecReduceExt.td b/include/ascir/Dialect/Asc/IR/Basic/OpVecReduceExt.td
+new file mode 100644
+index 0000000..fc4a0b6
+--- /dev/null
++++ b/include/ascir/Dialect/Asc/IR/Basic/OpVecReduceExt.td
+@@ -0,0 +1,41 @@
++/*
++ * Copyright (c) 2025 Huawei Technologies Co., Ltd.
++ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
++ * CANN Open Software License Agreement Version 2.0 (the "License").
++ * Please refer to the License for details. You may not use this file except in compliance with the License.
++ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
++ * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
++ * See LICENSE in the software repository for the full text of the License.
++ */
++
++#ifndef ASC_BASIC_OP_VEC_REDUCE_EXT_TD
++#define ASC_BASIC_OP_VEC_REDUCE_EXT_TD
++
++include "Base.td"
++include "Core/Attributes.td"
++include "Core/Interfaces.td"
++include "Core/Types.td"
++
++include "mlir/Interfaces/CastInterfaces.td"
++include "mlir/Interfaces/SideEffectInterfaces.td"
++include "mlir/IR/OpBase.td"
++
++def AscendC_ReduceProdOp : MathLibraryOp<"reduce_prod", "ReduceProd", [AttrSizedOperandSegments]> {
++  let description = "`AscendC::ReduceProd` computes the product of elements.\n";
++  let arguments = (ins AscendC_LocalTensor:$dst, AnyType:$src, AnyType:$sharedTmpBuffer,
++                   AnyType:$srcShape, AnyType:$isReuseSource);
++}
++
++def AscendC_ReduceMeanOp : MathLibraryOp<"reduce_mean", "ReduceMean", [AttrSizedOperandSegments]> {
++  let description = "`AscendC::ReduceMean` computes the mean of elements.\n";
++  let arguments = (ins AscendC_LocalTensor:$dst, AnyType:$src, AnyType:$sharedTmpBuffer,
++                   Optional<AnyType>:$calCount, AnyType:$isReuseSource);
++}
++
++def AscendC_ReduceLastOp : MathLibraryOp<"reduce_last", "ReduceLast", [AttrSizedOperandSegments]> {
++  let description = "`AscendC::ReduceLast` reduces along the last axis with configurable reduce function.\n";
++  let arguments = (ins AscendC_LocalTensor:$dst, AnyType:$src, AnyType:$m, AnyType:$k,
++                   AnyType:$stride, AscendC_LocalTensor:$tmpBuf);
++}
++
++#endif // ASC_BASIC_OP_VEC_REDUCE_EXT_TD
+diff --git a/include/ascir/Dialect/Asc/IR/Basic/OpVecScalarExt.td b/include/ascir/Dialect/Asc/IR/Basic/OpVecScalarExt.td
+new file mode 100644
+index 0000000..d5159ae
+--- /dev/null
++++ b/include/ascir/Dialect/Asc/IR/Basic/OpVecScalarExt.td
+@@ -0,0 +1,29 @@
++/*
++ * Copyright (c) 2025 Huawei Technologies Co., Ltd.
++ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
++ * CANN Open Software License Agreement Version 2.0 (the "License").
++ * Please refer to the License for details. You may not use this file except in compliance with the License.
++ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
++ * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
++ * See LICENSE in the software repository for the full text of the License.
++ */
++
++#ifndef ASC_BASIC_OP_VEC_SCALAR_EXT_TD
++#define ASC_BASIC_OP_VEC_SCALAR_EXT_TD
++
++include "Base.td"
++include "Core/Attributes.td"
++include "Core/Interfaces.td"
++include "Core/Types.td"
++
++include "mlir/Interfaces/CastInterfaces.td"
++include "mlir/Interfaces/SideEffectInterfaces.td"
++include "mlir/IR/OpBase.td"
++
++def AscendC_DuplicateL2WithTmpBufOp : VectorOp<"duplicate_l2_with_tmp_buf", "Duplicate", [AscFunc]> {
++  let description = "`AscendC::Duplicate` fill tensor with scalar (L2 API with tmp buffer).\n";
++  let arguments = (ins AscendC_LocalTensor:$dst, AnyType:$scalarValue,
++                   AnyType:$calCount, AscendC_LocalTensor:$tmpBuf);
++}
++
++#endif // ASC_BASIC_OP_VEC_SCALAR_EXT_TD
+diff --git a/include/ascir/Dialect/Asc/IR/Basic/OpVecTernaryExt.td b/include/ascir/Dialect/Asc/IR/Basic/OpVecTernaryExt.td
+new file mode 100644
+index 0000000..3cdafe5
+--- /dev/null
++++ b/include/ascir/Dialect/Asc/IR/Basic/OpVecTernaryExt.td
+@@ -0,0 +1,39 @@
++/*
++ * Copyright (c) 2025 Huawei Technologies Co., Ltd.
++ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
++ * CANN Open Software License Agreement Version 2.0 (the "License").
++ * Please refer to the License for details. You may not use this file except in compliance with the License.
++ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
++ * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
++ * See LICENSE in the software repository for the full text of the License.
++ */
++
++#ifndef ASC_BASIC_OP_VEC_TERNARY_EXT_TD
++#define ASC_BASIC_OP_VEC_TERNARY_EXT_TD
++
++include "Base.td"
++include "Core/Attributes.td"
++include "Core/Interfaces.td"
++include "Core/Types.td"
++
++include "mlir/Interfaces/CastInterfaces.td"
++include "mlir/Interfaces/SideEffectInterfaces.td"
++include "mlir/IR/OpBase.td"
++
++def AscendC_WhereTernaryOp : VectorOp<"where_ternary", "Where", [AscFunc]> {
++  let description = "`AscendC::Where` ternary operation (select based on condition).\n";
++  let arguments = (ins AnyType:$dst, AnyType:$condition, AnyType:$src0, AnyType:$src1,
++                   AnyType:$calCount);
++}
++
++def AscendC_WhereExtendOp : VectorOp<"where_extend", "WhereExtend", [AscFunc]> {
++  let description = "`AscendC::WhereExtend` extended Where operation with multi-dimension support.\n";
++  let arguments = (ins AscendC_LocalTensor:$dst, AscendC_LocalTensor:$selMask,
++                   AscendC_LocalTensor:$src0, AscendC_LocalTensor:$src1,
++                   AnyType:$firstAxis, AnyType:$lastAxis,
++                   AnyType:$outputLastAxisStride, AnyType:$maskLastAxisStride,
++                   AnyType:$input0LastAxisStride, AnyType:$input1LastAxisStride,
++                   AscendC_LocalTensor:$tmpBuf, AnyType:$usedSize);
++}
++
++#endif // ASC_BASIC_OP_VEC_TERNARY_EXT_TD
+diff --git a/include/ascir/Dialect/Asc/IR/Basic/OpVecUnaryExt.td b/include/ascir/Dialect/Asc/IR/Basic/OpVecUnaryExt.td
+new file mode 100644
+index 0000000..d00f308
+--- /dev/null
++++ b/include/ascir/Dialect/Asc/IR/Basic/OpVecUnaryExt.td
+@@ -0,0 +1,41 @@
++/*
++ * Copyright (c) 2025 Huawei Technologies Co., Ltd.
++ * This program is free software, you can redistribute it and/or modify it under the terms and conditions of
++ * CANN Open Software License Agreement Version 2.0 (the "License").
++ * Please refer to the License for details. You may not use this file except in compliance with the License.
++ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
++ * INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
++ * See LICENSE in the software repository for the full text of the License.
++ */
++
++#ifndef ASC_BASIC_OP_VEC_UNARY_EXT_TD
++#define ASC_BASIC_OP_VEC_UNARY_EXT_TD
++
++include "Base.td"
++include "Core/Attributes.td"
++include "Core/Interfaces.td"
++include "Core/Types.td"
++
++include "mlir/Interfaces/CastInterfaces.td"
++include "mlir/Interfaces/SideEffectInterfaces.td"
++include "mlir/IR/OpBase.td"
++
++def AscendC_IsFiniteOp : MathLibraryOp<"is_finite", "IsFinite", [AttrSizedOperandSegments]> {
++  let description = "`AscendC::IsFinite` checks if elements are finite.\n";
++  let arguments = (ins AscendC_LocalTensor:$dst, AnyType:$src, Optional<AnyType>:$sharedTmpBuffer,
++                   Optional<AnyType>:$calCount);
++}
++
++def AscendC_IsInfOp : MathLibraryOp<"is_inf", "IsInf", [AttrSizedOperandSegments]> {
++  let description = "`AscendC::IsInf` checks if elements are infinity.\n";
++  let arguments = (ins AscendC_LocalTensor:$dst, AnyType:$src, Optional<AnyType>:$sharedTmpBuffer,
++                   Optional<AnyType>:$calCount);
++}
++
++def AscendC_IsNanOp : MathLibraryOp<"is_nan", "IsNan", [AttrSizedOperandSegments]> {
++  let description = "`AscendC::IsNan` checks if elements are NaN.\n";
++  let arguments = (ins AscendC_LocalTensor:$dst, AnyType:$src, Optional<AnyType>:$sharedTmpBuffer,
++                   Optional<AnyType>:$calCount);
++}
++
++#endif // ASC_BASIC_OP_VEC_UNARY_EXT_TD
+--
+2.39.5 (Apple Git-154)

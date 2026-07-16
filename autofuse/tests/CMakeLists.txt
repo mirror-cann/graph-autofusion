@@ -357,6 +357,12 @@ endif ()
 ########################################codegen########################################
 set(CODEGEN_DIR ${CODE_ROOT_DIR}/codegen)
 file(GLOB_RECURSE CODEGEN_SOURCES "${CODEGEN_DIR}/*.cpp")
+if(ENABLE_AUTOFUSE_MLIR)
+    # Only the direct bridge (ScheduleToAfir).
+    list(APPEND CODEGEN_SOURCES
+        ${CODE_ROOT_DIR}/mlir/bridge/ScheduleToAfir/ScheduleToAfir.cpp
+    )
+endif()
 add_library(codegen SHARED
         ${CODEGEN_SOURCES}
 )
@@ -374,6 +380,25 @@ target_include_directories(codegen PUBLIC
     ${CODE_ROOT_DIR}/att
     ${CMAKE_CURRENT_SOURCE_DIR}/depends/runtime/src
 )
+
+if(ENABLE_AUTOFUSE_MLIR)
+    # In-process bridge in the RUN_TEST codegen lib: enable the hook + link AFIR.
+    target_compile_definitions(codegen PRIVATE ENABLE_AUTOFUSE_MLIR=1)
+    set(_af_llvm_root "$ENV{AF_LLVM_ROOT}")
+    if(NOT _af_llvm_root)
+        set(_af_llvm_root "$ENV{LLVM_BUILD_DIR}")
+    endif()
+    target_include_directories(codegen SYSTEM PRIVATE ${_af_llvm_root}/include)
+    target_include_directories(codegen PRIVATE
+        ${CODE_ROOT_DIR}/mlir/bridge
+        ${CODE_ROOT_DIR}/mlir/dialect
+        ${CMAKE_BINARY_DIR}/mlir/dialect/AFIR
+    )
+    set_source_files_properties(
+        ${CODE_ROOT_DIR}/mlir/bridge/ScheduleToAfir/ScheduleToAfir.cpp
+        PROPERTIES COMPILE_OPTIONS "-Wno-error")
+    target_link_libraries(codegen PUBLIC AfirBuilder AFIRDialect)
+endif()
 
 if (ENABLE_OPEN_SRC)
     target_link_libraries(codegen PUBLIC

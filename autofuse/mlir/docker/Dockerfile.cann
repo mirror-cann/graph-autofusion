@@ -1,0 +1,68 @@
+# syntax=docker/dockerfile:1.4
+# -----------------------------------------------------------------------------------------------------------
+# Copyright (c) 2026 Huawei Technologies Co., Ltd.
+# This program is free software, you can redistribute it and/or modify it under the terms and conditions of
+# CANN Open Software License Agreement Version 2.0 (the "License").
+# Please refer to the License for details. You may not use this file except in compliance with the License.
+# THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+# INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
+# See LICENSE in the root of the software repository for the full text of the License.
+# -----------------------------------------------------------------------------------------------------------
+
+ARG BASE_IMAGE=autofuse-mlir-dev:arm64
+FROM ${BASE_IMAGE}
+
+ARG CANN_INSTALL_PATH=/usr/local/Ascend
+ARG CANN_TOOLKIT_INSTALL_ARGS="--install --quiet"
+ARG CANN_OPS_INSTALL_ARGS="--install --quiet"
+ARG CANN_ARCH_DIR=aarch64-linux
+ARG CANN_3RD_LIB_PATH=/opt/autofuse/third_party
+
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
+RUN --mount=type=bind,source=cann,target=/tmp/cann,readonly \
+    set -eux; \
+    tmp_cann="$(mktemp -d)"; \
+    cleanup() { rm -rf "${tmp_cann}"; }; \
+    trap cleanup EXIT; \
+    toolkit_runfile="${tmp_cann}/toolkit.run"; \
+    cp /tmp/cann/toolkit.run "${toolkit_runfile}"; \
+    chmod +x "${toolkit_runfile}"; \
+    read -r -a toolkit_install_args <<< "${CANN_TOOLKIT_INSTALL_ARGS}"; \
+    "${toolkit_runfile}" "${toolkit_install_args[@]}" --install-path="${CANN_INSTALL_PATH}"; \
+    if [[ -f /tmp/cann/ops.run ]]; then \
+        ops_runfile="${tmp_cann}/ops.run"; \
+        cp /tmp/cann/ops.run "${ops_runfile}"; \
+        chmod +x "${ops_runfile}"; \
+        read -r -a ops_install_args <<< "${CANN_OPS_INSTALL_ARGS}"; \
+        "${ops_runfile}" "${ops_install_args[@]}" --install-path="${CANN_INSTALL_PATH}"; \
+    fi; \
+    if compgen -G "/tmp/cann/third_party.tar*" >/dev/null; then \
+        mkdir -p "${CANN_3RD_LIB_PATH}"; \
+        third_party_archive="$(compgen -G "/tmp/cann/third_party.tar*" | head -n 1)"; \
+        third_party_unpack="$(mktemp -d)"; \
+        tar -xf "${third_party_archive}" -C "${third_party_unpack}"; \
+        if [[ -d "${third_party_unpack}/output/third_party" ]]; then \
+            cp -a "${third_party_unpack}/output/third_party/." "${CANN_3RD_LIB_PATH}/"; \
+        elif [[ -d "${third_party_unpack}/third_party" ]]; then \
+            cp -a "${third_party_unpack}/third_party/." "${CANN_3RD_LIB_PATH}/"; \
+        else \
+            cp -a "${third_party_unpack}/." "${CANN_3RD_LIB_PATH}/"; \
+        fi; \
+        rm -rf "${third_party_unpack}"; \
+    fi; \
+    ascend_home="${CANN_INSTALL_PATH}/ascend-toolkit/latest/${CANN_ARCH_DIR}"; \
+    test -d "${ascend_home}"; \
+    ln -sfn ../share "${ascend_home}/share"; \
+    ln -sfn ../set_env.sh "${ascend_home}/set_env.sh"; \
+    mkdir -p "${ascend_home}/compiler/tikcpp"; \
+    ln -sfn ../../tikcpp/ascendc_kernel_cmake "${ascend_home}/compiler/tikcpp/ascendc_kernel_cmake"; \
+    ln -sfn . "${ascend_home}/${CANN_ARCH_DIR}"
+
+ENV CANN_ROOT=${CANN_INSTALL_PATH}/ascend-toolkit
+ENV ASCEND_HOME_PATH=${CANN_INSTALL_PATH}/ascend-toolkit/latest/${CANN_ARCH_DIR}
+ENV AF_CANN_3RD_LIB_PATH=${CANN_3RD_LIB_PATH}
+ENV PATH=${ASCEND_HOME_PATH}/bin:${PATH}
+ENV LD_LIBRARY_PATH=${ASCEND_HOME_PATH}/lib64:${ASCEND_HOME_PATH}/devlib
+
+WORKDIR /workspace

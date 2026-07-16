@@ -11,6 +11,7 @@
 #include "pyascir.h"
 
 #include <algorithm>
+#include <exception>
 
 #include "ascir_ops.h"
 #include "ascir_ops_utils.h"
