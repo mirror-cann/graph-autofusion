@@ -67,6 +67,8 @@ set(ascendc_api_regbase_extend_src
         log_ndtr.h
         next_after.h
         i0.h
+        hermite_polynomial_h.h
+        hermite_polynomial_he.h
         igammac_helper/series.h
         igammac_helper/continued_fraction.h
         igammac_helper/asymptotic_series.h
