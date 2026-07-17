@@ -20,7 +20,7 @@
 #include <memory>
 #include <mutex>
 #include <shared_mutex>
-#include "ge_common_af/ge_api_types.h"
+#include "ge_common_af/ge_api_types_af.h"
 #include "ascir.h"
 #include "expression_struct.h"
 

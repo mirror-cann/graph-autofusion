@@ -11,7 +11,7 @@
 #ifndef INC_EXTERNAL_REGISTER_OP_LIB_REGISTER_H
 #define INC_EXTERNAL_REGISTER_OP_LIB_REGISTER_H
 #include "graph/compiler_def.h"
-#include "graph/types.h"
+#include "graph/types_af.h"
 #include "graph/ascend_string.h"
 
 namespace af {

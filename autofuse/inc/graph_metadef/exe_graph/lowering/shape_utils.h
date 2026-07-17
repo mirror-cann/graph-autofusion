@@ -14,7 +14,7 @@
 #include <sstream>
 #include "exe_graph/runtime/shape.h"
 #include "graph/ge_error_codes.h"
-#include "graph/types.h"
+#include "graph/types_af.h"
 
 namespace gert {
 extern const Shape g_vec_1_shape;

@@ -14,7 +14,7 @@
 #include <set>
 #include <vector>
 #include <cstring>
-#include "graph/types.h"
+#include "graph/types_af.h"
 #include "graph/anchor.h"
 #include "graph/node.h"
 #include "graph/compute_graph.h"

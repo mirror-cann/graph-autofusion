@@ -13,7 +13,7 @@
 #include "common/ge_common/string_util.h"
 #include "common/checker.h"
 #include "graph/ge_local_context.h"
-#include "ge_common_af/ge_api_types.h"
+#include "ge_common_af/ge_api_types_af.h"
 
 namespace af {
 namespace {

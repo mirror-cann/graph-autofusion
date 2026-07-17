@@ -16,7 +16,7 @@
 #include "ascir_ops.h"
 #include "common/checker.h"
 #include "common_utils.h"
-#include "graph/types.h"
+#include "graph/types_af.h"
 
 namespace ascir {
 namespace {

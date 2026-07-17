@@ -18,7 +18,7 @@
 #include "graph/anchor.h"
 #include "graph/utils/op_desc_utils.h"
 #include "common/ge_common/debug/ge_log.h"
-#include "graph/operator.h"
+#include "graph/operator_af.h"
 #include "ascendc_ir/ascendc_ir_core/ascendc_ir.h"
 #include "ascendc_ir/ascendc_ir_core/ascendc_ir_def.h"
 #include "graph/symbolizer/symbolic.h"

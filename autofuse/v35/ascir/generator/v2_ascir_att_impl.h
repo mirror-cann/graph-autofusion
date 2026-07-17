@@ -185,6 +185,7 @@ REG_ASC_IR_ATT_V2_CLASS_DEFINE(LaguerrePolynomialL);
 REG_ASC_IR_ATT_V2_CLASS_DEFINE(LegendrePolynomialP);
 REG_ASC_IR_ATT_V2_CLASS_DEFINE(AiryAi);
 REG_ASC_IR_ATT_V2_CLASS_DEFINE(Erfinv);
+REG_ASC_IR_ATT_V2_CLASS_DEFINE(Softmax);
 }  // namespace ascir
 }  // namespace af
 

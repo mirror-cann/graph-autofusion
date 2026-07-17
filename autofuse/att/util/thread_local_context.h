@@ -14,7 +14,7 @@
 #include <map>
 #include <string>
 #include <mutex>
-#include "ge_common_af/ge_api_error_codes.h"
+#include "ge_common_af/ge_api_error_codes_af.h"
 
 namespace att {
 class ThreadLocalContext {

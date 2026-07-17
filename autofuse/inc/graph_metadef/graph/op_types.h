@@ -14,7 +14,7 @@
 #include <set>
 #include <string>
 
-#include "graph/types.h"
+#include "graph/types_af.h"
 
 namespace af {
 class GE_FUNC_VISIBILITY OpTypeContainer {

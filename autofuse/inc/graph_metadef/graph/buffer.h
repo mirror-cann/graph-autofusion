@@ -11,7 +11,7 @@
 #ifndef INC_GRAPH_BUFFER_H_
 #define INC_GRAPH_BUFFER_H_
 
-#include <graph/types.h>
+#include <graph/types_af.h>
 #include <memory>
 #include <string>
 #include <vector>

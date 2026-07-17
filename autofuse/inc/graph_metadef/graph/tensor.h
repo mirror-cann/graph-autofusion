@@ -18,7 +18,7 @@
 #include <utility>
 
 #include "./ge_error_codes.h"
-#include "graph/types.h"
+#include "graph/types_af.h"
 #include "graph/ascend_string.h"
 
 namespace af {

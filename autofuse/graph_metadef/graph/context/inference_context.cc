@@ -8,7 +8,7 @@
  * See LICENSE in the root of the software repository for the full text of the License.
  */
 
-#include "graph/inference_context.h"
+#include "graph/inference_context_af.h"
 #include "graph_metadef/graph/debug/ge_util.h"
 #include "framework/common/debug/ge_log.h"
 #include "graph/ge_context.h"

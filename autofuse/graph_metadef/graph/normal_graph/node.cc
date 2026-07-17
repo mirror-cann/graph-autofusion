@@ -11,7 +11,7 @@
 #include "graph/node.h"
 #include "debug/ge_op_types.h"
 #include "graph_metadef/graph/debug/ge_util.h"
-#include "graph/operator_factory.h"
+#include "graph/operator_factory_af.h"
 #include "graph/normal_graph/node_impl.h"
 #include "graph/operator_factory_impl.h"
 #include "graph/shape_refiner.h"

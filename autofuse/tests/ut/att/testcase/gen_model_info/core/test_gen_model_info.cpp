@@ -11,10 +11,10 @@
 #include "common_gen_utils.h"
 #include <iostream>
 #include <regex>
-#include "common/ge_common/error_codes_define.h"
+#include "common/ge_common/error_codes_define_af.h"
 #include "gtest/gtest.h"
 #include "gen_model_info.h"
-#include "graph/types.h"
+#include "graph/types_af.h"
 #include "ascir_ops.h"
 #include "test_fa_ascir_graph.h"
 #include "base/att_const_values.h"

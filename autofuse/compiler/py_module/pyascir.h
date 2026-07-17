@@ -82,6 +82,7 @@ PyMODINIT_FUNC PyInit_pyautofuse(void);
   OP(Min)                         \
   OP(Mean)                        \
   OP(Prod)                        \
+  OP(Softmax)                     \
   OP(Ge)                          \
   OP(Ne)                          \
   OP(Eq)                          \

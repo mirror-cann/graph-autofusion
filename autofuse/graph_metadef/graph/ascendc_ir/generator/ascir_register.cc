@@ -9,7 +9,7 @@
  */
 #include "graph/ascendc_ir/ascir_register.h"
 #include "graph/ascendc_ir/ascir_registry.h"
-#include "graph/types.h"
+#include "graph/types_af.h"
 namespace af {
 namespace ascir {
 AscirRegister::AscirRegister(const char *type, const char *def_file_path, int64_t line) : ir_def_{} {

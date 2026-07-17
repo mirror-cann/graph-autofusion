@@ -15,7 +15,7 @@
 #include <memory>
 #include <string>
 #include <vector>
-#include "graph/operator_factory.h"
+#include "graph/operator_factory_af.h"
 #include "register/infer_data_slice_registry.h"
 #include "register/infer_axis_slice_registry.h"
 #include "register/op_impl_kernel_registry.h"

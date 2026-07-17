@@ -11,7 +11,7 @@
 #ifndef METADEF_CXX_TENSOR_TYPE_IMPL_H
 #define METADEF_CXX_TENSOR_TYPE_IMPL_H
 #include <set>
-#include "graph/types.h"
+#include "graph/types_af.h"
 namespace ge {
 class TensorTypeImpl {
  public:

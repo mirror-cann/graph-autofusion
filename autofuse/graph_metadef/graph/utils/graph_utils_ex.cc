@@ -24,7 +24,7 @@
 #include "graph/utils/node_utils_ex.h"
 #include "common/util/mem_utils.h"
 #include "graph/utils/op_type_utils.h"
-#include "graph/operator_factory.h"
+#include "graph/operator_factory_af.h"
 
 namespace af {
 graphStatus GraphUtilsEx::InferOriginFormat(const ComputeGraphPtr &graph) {

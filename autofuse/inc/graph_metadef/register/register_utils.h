@@ -15,7 +15,7 @@
 #include "register/register_types.h"
 #include "register/register_error_codes.h"
 #include "graph_metadef/register/graph_register.h"
-#include "graph/operator.h"
+#include "graph/operator_af.h"
 
 namespace domi {
 FMK_FUNC_HOST_VISIBILITY FMK_FUNC_DEV_VISIBILITY Status OperatorAutoMapping(const Message *op_src, ge::Operator &op);

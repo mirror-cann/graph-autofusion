@@ -8,7 +8,7 @@
  * See LICENSE in the root of the software repository for the full text of the License.
  */
 #include "atracing_reporter.h"
-#include "atrace_pub.h"
+#include "atrace_pub_af.h"
 #include "graph/def_types.h"
 namespace ge {
 af::Status AtracingReporter::Report() const {

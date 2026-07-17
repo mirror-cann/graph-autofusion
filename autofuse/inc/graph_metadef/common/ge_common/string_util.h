@@ -19,7 +19,7 @@
 #include <sstream>
 #include <string>
 #include <vector>
-#include "graph/types.h"
+#include "graph/types_af.h"
 #include "ge_common_af/ge_error_codes.h"
 
 namespace af {

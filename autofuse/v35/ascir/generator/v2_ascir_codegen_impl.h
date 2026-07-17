@@ -4182,6 +4182,35 @@ class RemainderAscIrCodegenImplV2 : public AscIrCodegenV2 {
 };
 
 /*********************************************************************************/
+class SoftmaxAscIrCodegenImplV2 : public AscIrCodegenV2 {
+ public:
+  [[nodiscard]] std::vector<std::unique_ptr<TmpBufDesc>> CalcTmpBufSize(const AscNode &node) override {
+    return CalcSoftmaxTmpSizeV2(node);
+  }
+  [[nodiscard]] std::string GetApiCallName() const override {
+    return "SoftmaxApiCall";
+  }
+  [[nodiscard]] std::string GetApiName() const override {
+    return "SoftmaxARFullLoadExtend";
+  }
+  [[nodiscard]] std::vector<std::string> LoadApiHeaderFiles([[maybe_unused]] bool is_dynamic) const override {
+    return {"softmax_af_reg_base.h"};
+  }
+  [[nodiscard]] std::vector<std::string> IncludeApiHeaderFiles() const override {
+    return {
+        "basic_api/kernel_operator_scalar_intf.h",
+    };
+  }
+  [[nodiscard]] bool IsNodeValid(const AscNode &node) const override {
+    GE_ASSERT_TRUE(!IsNodeHasScalarInput(node), "Node %s[%s] not support scalar input", node.GetTypePtr(),
+                   node.GetNamePtr());
+    GE_ASSERT_SUCCESS(ValidateShapeConsistencyWithSingleOutput(node), "Node %s[%s] check shape consistency failed",
+                      node.GetTypePtr(), node.GetNamePtr());
+    return true;
+  }
+};
+
+/*********************************************************************************/
 class UnsupportedAscIrCodegenImplV2 : public AscIrCodegenV2 {
  public:
   [[nodiscard]] std::string GetApiCallName() const override {

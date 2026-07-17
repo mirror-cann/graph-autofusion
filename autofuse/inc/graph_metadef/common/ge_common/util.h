@@ -17,7 +17,7 @@
 #include <utility>
 #include <vector>
 
-#include "graph/types.h"
+#include "graph/types_af.h"
 #include "graph/ge_error_codes.h"
 #include "common/ge_common/debug/ge_log.h"
 #include "common/ge_common/string_util.h"

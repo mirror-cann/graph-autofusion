@@ -556,9 +556,17 @@ Status TilingGroup::GenReduceTilingGroupFullLoad(af::AscNode &node, AxisGroup &a
   std::vector<ascir::AxisId> axes;
   GE_CHK_STATUS_RET(ScheduleUtils::GetLoopAxis(node, axes), "Get loop axis failed.");
   axes_group.axes_order.resize(axes.size());
-  std::vector<ascir::SizeExpr> src_strides;
-  GE_CHK_STATUS_RET(ScheduleUtils::GetReduceInputStrides(node, src_strides), "Get loop strides failed.");
-  axes_group.n_group = CalcReduceAxes(src_strides, node.outputs[0].attr.strides, axes);
+
+  if (node.GetType() == "Softmax") {
+    if (!axes.empty()) {
+      axes_group.n_group = {axes.back()};
+    }
+  } else {
+    std::vector<ascir::SizeExpr> src_strides;
+    GE_CHK_STATUS_RET(ScheduleUtils::GetReduceInputStrides(node, src_strides), "Get loop strides failed.");
+    axes_group.n_group = CalcReduceAxes(src_strides, node.outputs[0].attr.strides, axes);
+  }
+
   int64_t y_order_index = 0;
   int64_t r_order_index = axes.size() - axes_group.n_group.size();
   for (size_t i = 0; i < axes.size(); ++i) {

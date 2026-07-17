@@ -10,7 +10,7 @@
 
 #ifndef AIR_CXX_RUNTIME_V2_LOWERING_LOWERING_DEFINITIONS_H_
 #define AIR_CXX_RUNTIME_V2_LOWERING_LOWERING_DEFINITIONS_H_
-#include "graph/types.h"
+#include "graph/types_af.h"
 
 namespace gert {
 constexpr const ge::char_t *kLoweringInputInfo = "_lowering_input_info";

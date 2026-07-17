@@ -14,7 +14,7 @@
 #include <string>
 #include <set>
 #include <unordered_map>
-#include "graph/types.h"
+#include "graph/types_af.h"
 #include "graph/ge_error_codes.h"
 #include "graph/type/tensor_type_impl.h"
 #include "graph/op_desc.h"

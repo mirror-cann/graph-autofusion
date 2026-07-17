@@ -13,7 +13,7 @@
 #include <cinttypes>
 #include <ostream>
 #include <sstream>
-#include "graph/operator_factory.h"
+#include "graph/operator_factory_af.h"
 #include "graph/utils/op_desc_utils.h"
 #include "graph/normal_graph/op_desc_impl.h"
 #include "graph/utils/tensor_utils.h"

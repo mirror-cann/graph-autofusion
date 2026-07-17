@@ -16,7 +16,7 @@
 #include "cache_desc.h"
 #include "graph/small_vector.h"
 #include "graph/ascend_limits.h"
-#include "graph/types.h"
+#include "graph/types_af.h"
 #include "graph/def_types.h"
 #include "graph/utils/hash_utils.h"
 #include "framework/common/debug/ge_log.h"

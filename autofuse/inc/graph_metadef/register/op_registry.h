@@ -19,7 +19,7 @@
 #include <vector>
 
 #include "graph_metadef/register/graph_register.h"
-#include "graph/types.h"
+#include "graph/types_af.h"
 
 namespace domi {
 enum class RemoveInputType : uint16_t {

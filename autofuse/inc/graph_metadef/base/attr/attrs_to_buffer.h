@@ -20,7 +20,7 @@
 #include "graph/any_value.h"
 #include "graph/def_types.h"
 #include "graph_metadef/graph/debug/ge_util.h"
-#include "graph/types.h"
+#include "graph/types_af.h"
 #include "graph/utils/math_util.h"
 
 namespace gert {

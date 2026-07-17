@@ -11,7 +11,7 @@
 #include <cerrno>
 #include <fstream>
 #include <algorithm>
-#include "graph/types.h"
+#include "graph/types_af.h"
 #include "common/ge_common/debug/ge_log.h"
 #include "common/ge_common/scope_guard.h"
 #include "mmpa/mmpa_api.h"

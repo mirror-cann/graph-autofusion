@@ -11,7 +11,7 @@
 #ifndef METADEF_CXX_INC_COMMON_UTIL_TILING_UTILS_H_
 #define METADEF_CXX_INC_COMMON_UTIL_TILING_UTILS_H_
 #include <cstdint>
-#include "graph/types.h"
+#include "graph/types_af.h"
 
 namespace optiling {
 union Fp32 {

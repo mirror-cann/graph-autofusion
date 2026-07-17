@@ -36,6 +36,7 @@ set(ascendc_api_regbase_extend_src
         square.h
         trunc_div.h
         remainder.h
+        softmax_af.h
         bessel_j_utils.h
         bessel_j0.h
         bessel_j1.h
@@ -67,6 +68,8 @@ set(ascendc_api_regbase_extend_src
         log_ndtr.h
         next_after.h
         i0.h
+        hermite_polynomial_h.h
+        hermite_polynomial_he.h
         igammac_helper/series.h
         igammac_helper/continued_fraction.h
         igammac_helper/asymptotic_series.h

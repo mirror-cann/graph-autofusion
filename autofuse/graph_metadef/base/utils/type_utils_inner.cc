@@ -11,7 +11,7 @@
 #include "graph/utils/type_utils_inner.h"
 #include <algorithm>
 #include <map>
-#include "graph/types.h"
+#include "graph/types_af.h"
 #include "base/err_msg.h"
 #include "framework/common/debug/ge_log.h"
 

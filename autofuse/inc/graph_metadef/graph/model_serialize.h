@@ -16,7 +16,7 @@
 #include "graph/buffer.h"
 #include "graph/compute_graph.h"
 #include "graph/model.h"
-#include "ge_common_af/ge_api_types.h"
+#include "ge_common_af/ge_api_types_af.h"
 
 namespace af {
 class ModelSerialize {

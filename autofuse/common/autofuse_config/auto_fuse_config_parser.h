@@ -16,7 +16,7 @@
 #include <memory>
 #include <utility>
 #include "common/autofuse_base_type.h"
-#include "ge_common_af/ge_api_types.h"
+#include "ge_common_af/ge_api_types_af.h"
 #include "auto_fuse_config.h"
 
 namespace ge {

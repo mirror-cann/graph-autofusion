@@ -21,7 +21,7 @@
 
 #include "framework/common/debug/ge_log.h"
 #include "debug/ge_op_types.h"
-#include "graph/operator_factory.h"
+#include "graph/operator_factory_af.h"
 #include "graph/operator_factory_impl.h"
 #include "graph/utils/node_utils.h"
 #include "graph/utils/op_desc_utils.h"

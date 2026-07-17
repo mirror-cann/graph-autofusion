@@ -14,8 +14,8 @@
 #include <string>
 #include "graph/op_desc.h"
 #include "graph/node.h"
-#include "graph/operator.h"
-#include "graph/inference_context.h"
+#include "graph/operator_af.h"
+#include "graph/inference_context_af.h"
 #include "graph/runtime_inference_context.h"
 #include "graph/normal_graph/op_io.h"
 namespace af {

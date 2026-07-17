@@ -8,7 +8,7 @@
  * See LICENSE in the root of the software repository for the full text of the License.
  */
 
-#include "graph/utils/args_format_desc_utils.h"
+#include "graph/utils/args_format_desc_utils_af.h"
 #include <functional>
 #include "common/checker.h"
 #include "framework/common/debug/ge_log.h"

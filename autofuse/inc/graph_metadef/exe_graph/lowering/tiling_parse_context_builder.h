@@ -12,7 +12,7 @@
 #define GE_RUNTIME_TILING_PARSE_CONTEXT_BUILDER_H_
 
 #include "exe_graph/runtime/kernel_context.h"
-#include "graph/operator.h"
+#include "graph/operator_af.h"
 #include "exe_graph/lowering/kernel_run_context_builder.h"
 #include "register/op_impl_registry.h"
 

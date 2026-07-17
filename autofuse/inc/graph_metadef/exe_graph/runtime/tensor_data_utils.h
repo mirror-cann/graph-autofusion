@@ -12,7 +12,7 @@
 #define METADEF_CXX_INC_EXE_GRAPH_TENSOR_DATA_UTILS_H_
 
 #include "exe_graph/runtime/tensor_data.h"
-#include "graph/types.h"
+#include "graph/types_af.h"
 
 namespace gert {
 namespace {

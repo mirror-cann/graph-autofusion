@@ -15,7 +15,7 @@
 #include <vector>
 #include "graph/def_types.h"
 #include "graph/node.h"
-#include "graph/operator.h"
+#include "graph/operator_af.h"
 #include "graph/runtime_inference_context.h"
 
 /*lint -e148*/

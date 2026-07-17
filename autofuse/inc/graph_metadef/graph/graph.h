@@ -16,8 +16,8 @@
 #include <utility>
 #include <vector>
 
-#include "graph/operator.h"
-#include "graph/gnode.h"
+#include "graph/operator_af.h"
+#include "graph/gnode_af.h"
 
 namespace af {
 using ge::AscendString;

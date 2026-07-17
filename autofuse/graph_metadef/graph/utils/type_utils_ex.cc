@@ -9,7 +9,7 @@
  */
 
 #include "graph/utils/type_utils.h"
-#include "base/utils/type_utils_impl.h"
+#include "base/utils/type_utils_impl_af.h"
 
 namespace af {
 

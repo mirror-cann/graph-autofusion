@@ -129,6 +129,9 @@ Register::Register() {
   const std::string kAscendcRemainderRegBaseStr = {
 #include "remainder_reg_base.h"
   };
+  const std::string kAscendcSoftmaxAfRegBaseStr = {
+#include "softmax_af_reg_base.h"
+  };
   const std::string kAscendcNegRegBaseStr = {
 #include "neg_reg_base.h"
   };
@@ -272,6 +275,7 @@ Register::Register() {
       {"fmod_reg_base.h", kAscendcFmodRegBaseStr},
       {"trunc_div_reg_base.h", kAscendcTruncDivRegBaseStr},
       {"remainder_reg_base.h", kAscendcRemainderRegBaseStr},
+      {"softmax_af_reg_base.h", kAscendcSoftmaxAfRegBaseStr},
       {"neg_reg_base.h", kAscendcNegRegBaseStr},
       {"square_reg_base.h", kAscendcSquareRegBaseStr},
       {"transpose_reg_base.h", kAscendcTransposeRegBaseStr},

@@ -24,7 +24,7 @@
 #include <graph/node.h>
 #include <graph/utils/graph_utils.h>
 #include <graph/utils/type_utils.h>
-#include <graph/types.h>
+#include <graph/types_af.h>
 #include "normal_graph/ge_tensor_impl.h"
 
 #include <map>

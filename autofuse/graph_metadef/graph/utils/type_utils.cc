@@ -9,12 +9,12 @@
  */
 
 #include "graph/utils/type_utils.h"
-#include "base/utils/type_utils_impl.h"
+#include "base/utils/type_utils_impl_af.h"
 #include "graph/utils/type_utils_inner.h"
 #include <algorithm>
 #include "graph/buffer.h"
 #include "graph_metadef/graph/debug/ge_util.h"
-#include "graph/types.h"
+#include "graph/types_af.h"
 
 namespace af {
 namespace {

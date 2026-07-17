@@ -10,7 +10,7 @@
 
 #ifndef AIR_CXX_RUNTIME_V2_METADEF_EXE_GRAPH_EXE_GRAPH_ATTRS_H_
 #define AIR_CXX_RUNTIME_V2_METADEF_EXE_GRAPH_EXE_GRAPH_ATTRS_H_
-#include "graph/types.h"
+#include "graph/types_af.h"
 
 namespace gert {
 // 打在const节点上，表达const的值，

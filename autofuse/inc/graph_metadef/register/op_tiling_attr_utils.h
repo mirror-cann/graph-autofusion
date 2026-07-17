@@ -12,7 +12,7 @@
 #define INC_EXTERNAL_REGISTER_OP_TILING_ATTR_UTILS_H_
 
 #include <memory>
-#include "graph/operator.h"
+#include "graph/operator_af.h"
 
 namespace optiling {
 class AttrData;

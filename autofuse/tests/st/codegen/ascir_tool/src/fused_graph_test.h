@@ -10,7 +10,7 @@
 
 #include <string>
 #include <cstring>
-#include "graph/types.h"
+#include "graph/types_af.h"
 #include "experiment/mmpa/mmpa_api.h"
 #include "acl/acl.h"
 

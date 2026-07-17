@@ -14,7 +14,7 @@
 #include <string>
 #include <utility>
 #include <vector>
-#include "graph/types.h"
+#include "graph/types_af.h"
 #include "graph/def_types.h"
 #include "graph/host_resource/host_resource.h"
 

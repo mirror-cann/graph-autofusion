@@ -323,7 +323,7 @@ Status TransferNodeAttrs(const NodePtr &src_node, const NodePtr &dst_node) {
   return af::SUCCESS;
 }
 
-Status ConfigureCastTensor(const GeTensorDescPtr &src_tensor_desc, const NodePtr &cast_node, const NodePtr &next_node,
+Status ConfigureCastTensor(const NodePtr &src_node, const NodePtr &cast_node, const NodePtr &next_node,
                            bool is_increase) {
   // Determine output dtype first
   const auto c_opdesc = cast_node->GetOpDesc();
@@ -342,6 +342,18 @@ Status ConfigureCastTensor(const GeTensorDescPtr &src_tensor_desc, const NodePtr
   // Copy tensor attrs from source
   auto c_o_attr = c_out_desc->GetOrCreateAttrsGroup<AscTensorAttr>();
   GE_ASSERT_NOTNULL(c_o_attr);
+  // 当上游节点为 Scalar 时，其输出为标量形状，axis/repeats/strides 不包含目标张量的完整形状信息。
+  // 前因：前端可能传入冗余连续 Cast（如 scalar->cast(FP32->FP32)->cast(FP32->FP16)->store），
+  // ImprovePrecision 的 ShouldDeleteCastNode 会删除所有浮点间 Cast，再在 Store 前重新插入新 Cast。
+  // 若从 Scalar 复制输出信息，新 Cast 的 axis/repeats/strides 为空，
+  // 导致后续 InsertBroadcast 补充的 broadcast 节点输出信息也丢失。
+  // 因此当上游为 Scalar 时，从下游节点取 tensor 信息。
+  GeTensorDescPtr src_tensor_desc;
+  if (src_node->GetType() == af::ascir_op::Scalar::Type) {
+    GE_ASSERT_SUCCESS(GetOutputTensorDesc(next_node, src_tensor_desc));
+  } else {
+    GE_ASSERT_SUCCESS(GetOutputTensorDesc(src_node, src_tensor_desc));
+  }
   GE_ASSERT_NOTNULL(src_tensor_desc);
   const auto src_attr = src_tensor_desc->GetAttrsGroup<AscTensorAttr>();
   GE_ASSERT_NOTNULL(src_attr);
@@ -375,9 +387,7 @@ Status CastNodeProc(AscGraph &asc_graph, const NodePtr &node) {
     GE_ASSERT_SUCCESS(WireCastBeforeInput(asc_graph, node, c_node, 0));
     NodePtr peer_out_of_cast;
     GE_ASSERT_SUCCESS(GetPeerOutNode(c_node, peer_out_of_cast, 0));
-    GeTensorDescPtr peer_tensor_desc;
-    GE_ASSERT_SUCCESS(GetOutputTensorDesc(peer_out_of_cast, peer_tensor_desc));
-    GE_ASSERT_SUCCESS(ConfigureCastTensor(peer_tensor_desc, c_node, node, false));
+    GE_ASSERT_SUCCESS(ConfigureCastTensor(peer_out_of_cast, c_node, node, false));
     GE_ASSERT_SUCCESS(TransferNodeAttrs(node, c_node));
     return af::SUCCESS;
   }
@@ -469,9 +479,7 @@ Status InsertCastBeforeNode(AscGraph &asc_graph, const NodePtr &other_node, bool
     GE_ASSERT_SUCCESS(WireCastBeforeInput(asc_graph, other_node, c_node, input_idx));
     NodePtr peer_out_node;
     GE_ASSERT_SUCCESS(GetPeerOutNode(c_node, peer_out_node, 0));
-    GeTensorDescPtr peer_tensor_desc;
-    GE_ASSERT_SUCCESS(GetOutputTensorDesc(peer_out_node, peer_tensor_desc));
-    GE_ASSERT_SUCCESS(ConfigureCastTensor(peer_tensor_desc, c_node, other_node, is_increase_precision));
+    GE_ASSERT_SUCCESS(ConfigureCastTensor(peer_out_node, c_node, other_node, is_increase_precision));
     GE_ASSERT_SUCCESS(TransferNodeAttrs(other_node, c_node));
   }
   return af::SUCCESS;
