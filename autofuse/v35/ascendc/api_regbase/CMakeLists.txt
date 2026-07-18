@@ -43,6 +43,7 @@ set(ascendc_api_regbase_extend_src
         spherical_bessel_j0.h
         bessel_y0.h
         bessel_y1.h
+        bucketize.h
         modified_bessel_i0.h
         modified_bessel_i1.h
         modified_bessel_k0.h

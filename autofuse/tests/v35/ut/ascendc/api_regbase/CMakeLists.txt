@@ -48,6 +48,7 @@ add_library(test_regbase_ascendc OBJECT
     ./test_bessel_j1.cpp
     ./test_bessel_y0.cpp
     ./test_bessel_y1.cpp
+    ./test_bucketize.cpp
     ./test_shifted_chebyshev_polynomial_t.cpp
     ./test_shifted_chebyshev_polynomial_u.cpp
     ./test_shifted_chebyshev_polynomial_v.cpp
