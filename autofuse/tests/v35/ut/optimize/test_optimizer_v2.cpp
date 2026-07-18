@@ -92,6 +92,251 @@ class TestOptimizerV2 : public ::testing::Test {
   }
 };
 
+namespace {
+enum class SoftmaxGraphVariant { kNormal, kExpExtraConsumer, kInputSourceMismatch, kReduceAxisMismatch };
+
+template <typename Tensor>
+void SetTensorAttr(Tensor &tensor, const std::vector<af::AxisId> &axis, const std::vector<af::Expression> &strides,
+                   const af::Expression &s0, const af::Expression &s1) {
+  tensor.dtype = af::DT_FLOAT;
+  *tensor.axis = axis;
+  *tensor.repeats = {s0, s1};
+  *tensor.strides = strides;
+}
+
+template <typename Op>
+void SetComputeAttr(Op &op, const std::vector<af::AxisId> &axis, const af::ComputeType compute_type) {
+  op.attr.sched.axis = axis;
+  op.attr.api.compute_type = compute_type;
+}
+
+template <typename DataOp>
+void SetDataAttr(DataOp &data, const std::vector<af::AxisId> &axis) {
+  data.attr.sched.axis = axis;
+  data.attr.api.compute_type = af::ComputeType::kComputeInvalid;
+  data.attr.api.type = af::ApiType::kAPITypeBuffer;
+}
+
+void BuildExtraExpConsumer(const Exp &exp0, const std::vector<af::AxisId> &axis, const af::Expression &s0,
+                           const af::Expression &s1) {
+  Abs abs_extra("graph_hint/abs_extra");
+  abs_extra.x = exp0.y;
+  SetComputeAttr(abs_extra, axis, af::ComputeType::kComputeElewise);
+  SetTensorAttr(abs_extra.y, axis, {s1, One}, s0, s1);
+
+  Store store_extra("graph_hint/store_extra");
+  store_extra.x = abs_extra.y;
+  SetComputeAttr(store_extra, axis, af::ComputeType::kComputeStore);
+  SetTensorAttr(store_extra.y, axis, {s1, One}, s0, s1);
+
+  Output output_extra("graph_hint/output_extra");
+  output_extra.ir_attr.SetIndex(1);
+  output_extra.x = store_extra.y;
+  SetDataAttr(output_extra, axis);
+  SetTensorAttr(output_extra.y, axis, {s1, One}, s0, s1);
+}
+
+void BuildSoftmaxInputs(af::ascir_op::Data &data0, Load &load0, af::ascir_op::Data &data1, Load &load1,
+                        const std::vector<af::AxisId> &axis, const af::Expression &s0, const af::Expression &s1) {
+  data0.ir_attr.SetIndex(0);
+  SetDataAttr(data0, axis);
+  SetTensorAttr(data0.y, axis, {s1, One}, s0, s1);
+
+  load0.x = data0.y;
+  SetComputeAttr(load0, axis, af::ComputeType::kComputeLoad);
+  SetTensorAttr(load0.y, axis, {s1, One}, s0, s1);
+
+  data1.ir_attr.SetIndex(1);
+  SetDataAttr(data1, axis);
+  SetTensorAttr(data1.y, axis, {s1, One}, s0, s1);
+
+  load1.x = data1.y;
+  SetComputeAttr(load1, axis, af::ComputeType::kComputeLoad);
+  SetTensorAttr(load1.y, axis, {s1, One}, s0, s1);
+}
+
+void BuildSoftmaxMaxSubExp(const Load &load0, const Load &load1, Max &max0, Broadcast &broadcast0, Sub &sub0, Exp &exp0,
+                           const std::vector<af::AxisId> &axis, const af::Expression &s0, const af::Expression &s1,
+                           const SoftmaxGraphVariant variant) {
+  max0.x = load0.y;
+  SetComputeAttr(max0, axis, af::ComputeType::kComputeReduce);
+  SetTensorAttr(max0.y, axis, {One, Zero}, s0, s1);
+
+  broadcast0.x = max0.y;
+  SetComputeAttr(broadcast0, axis, af::ComputeType::kComputeBroadcast);
+  SetTensorAttr(broadcast0.y, axis, {s1, One}, s0, s1);
+
+  sub0.x1 = (variant == SoftmaxGraphVariant::kInputSourceMismatch) ? load1.y : load0.y;
+  sub0.x2 = broadcast0.y;
+  SetComputeAttr(sub0, axis, af::ComputeType::kComputeElewise);
+  SetTensorAttr(sub0.y, axis, {s1, One}, s0, s1);
+
+  exp0.x = sub0.y;
+  SetComputeAttr(exp0, axis, af::ComputeType::kComputeElewise);
+  SetTensorAttr(exp0.y, axis, {s1, One}, s0, s1);
+}
+
+void BuildSoftmaxSumDivOutput(const Exp &exp0, Sum &sum0, Broadcast &broadcast1, TrueDiv &true_div0, Store &store0,
+                              Output &output0, const std::vector<af::AxisId> &axis, const af::Expression &s0,
+                              const af::Expression &s1, const SoftmaxGraphVariant variant) {
+  sum0.x = exp0.y;
+  SetComputeAttr(sum0, axis, af::ComputeType::kComputeReduce);
+  SetTensorAttr(sum0.y, axis, {One, Zero}, s0, s1);
+  *sum0.y.strides = (variant == SoftmaxGraphVariant::kReduceAxisMismatch) ? std::vector<af::Expression>{Zero, One}
+                                                                          : std::vector<af::Expression>{One, Zero};
+
+  broadcast1.x = sum0.y;
+  SetComputeAttr(broadcast1, axis, af::ComputeType::kComputeBroadcast);
+  SetTensorAttr(broadcast1.y, axis, {s1, One}, s0, s1);
+
+  true_div0.x1 = exp0.y;
+  true_div0.x2 = broadcast1.y;
+  SetComputeAttr(true_div0, axis, af::ComputeType::kComputeElewise);
+  SetTensorAttr(true_div0.y, axis, {s1, One}, s0, s1);
+
+  store0.x = true_div0.y;
+  SetComputeAttr(store0, axis, af::ComputeType::kComputeStore);
+  SetTensorAttr(store0.y, axis, {s1, One}, s0, s1);
+
+  output0.ir_attr.SetIndex(0);
+  output0.x = store0.y;
+  SetDataAttr(output0, axis);
+  SetTensorAttr(output0.y, axis, {s1, One}, s0, s1);
+}
+
+void BuildStableSoftmaxGraph(af::AscGraph &graph, const SoftmaxGraphVariant variant = SoftmaxGraphVariant::kNormal) {
+  auto s0 = graph.CreateSizeVar(76800);
+  auto s1 = graph.CreateSizeVar(150);
+  auto a0 = graph.CreateAxis("a0", s0);
+  auto a1 = graph.CreateAxis("a1", s1);
+  auto axis = std::vector<af::AxisId>{a0.id, a1.id};
+
+  af::ascir_op::Data data0("graph_hint/data", graph);
+  Load load0("graph_hint/load");
+  af::ascir_op::Data data1("graph_hint/data1", graph);
+  Load load1("graph_hint/load1");
+  BuildSoftmaxInputs(data0, load0, data1, load1, axis, s0, s1);
+
+  Max max0("graph_hint/max");
+  Broadcast broadcast0("graph_hint/broadcast");
+  Sub sub0("graph_hint/sub");
+  Exp exp0("graph_hint/exp");
+  BuildSoftmaxMaxSubExp(load0, load1, max0, broadcast0, sub0, exp0, axis, s0, s1, variant);
+
+  if (variant == SoftmaxGraphVariant::kExpExtraConsumer) {
+    BuildExtraExpConsumer(exp0, axis, s0, s1);
+  }
+
+  Sum sum0("graph_hint/sum");
+  Broadcast broadcast1("graph_hint/broadcast1");
+  TrueDiv true_div0("graph_hint/truediv");
+  Store store0("graph_hint/store");
+  Output output0("graph_hint/output");
+  BuildSoftmaxSumDivOutput(exp0, sum0, broadcast1, true_div0, store0, output0, axis, s0, s1, variant);
+}
+
+void BuildIncompleteTrueDivGraph(af::AscGraph &graph) {
+  auto s0 = graph.CreateSizeVar(76800);
+  auto s1 = graph.CreateSizeVar(150);
+  auto a0 = graph.CreateAxis("a0", s0);
+  auto a1 = graph.CreateAxis("a1", s1);
+  auto axis = std::vector<af::AxisId>{a0.id, a1.id};
+
+  af::ascir_op::Data data0("graph_hint/data", graph);
+  data0.ir_attr.SetIndex(0);
+  SetDataAttr(data0, axis);
+  SetTensorAttr(data0.y, axis, {s1, One}, s0, s1);
+
+  Load load0("graph_hint/load");
+  load0.x = data0.y;
+  SetComputeAttr(load0, axis, af::ComputeType::kComputeLoad);
+  SetTensorAttr(load0.y, axis, {s1, One}, s0, s1);
+
+  TrueDiv true_div0("graph_hint/truediv");
+  true_div0.x1 = load0.y;
+  SetComputeAttr(true_div0, axis, af::ComputeType::kComputeElewise);
+  SetTensorAttr(true_div0.y, axis, {s1, One}, s0, s1);
+
+  Store store0("graph_hint/store");
+  store0.x = true_div0.y;
+  SetComputeAttr(store0, axis, af::ComputeType::kComputeStore);
+  SetTensorAttr(store0.y, axis, {s1, One}, s0, s1);
+
+  Output output0("graph_hint/output");
+  output0.ir_attr.SetIndex(0);
+  output0.x = store0.y;
+  SetDataAttr(output0, axis);
+  SetTensorAttr(output0.y, axis, {s1, One}, s0, s1);
+}
+
+void ExpectSoftmaxNotFused(af::AscGraph &graph) {
+  Status res = optimize::autoschedule::PassRunnerHandler().RunPasses(graph);
+  EXPECT_EQ(res, af::SUCCESS);
+  auto compute_graph = af::AscGraphUtils::GetComputeGraph(graph);
+  ASSERT_NE(compute_graph, nullptr);
+  EXPECT_EQ(compute_graph->FindNode("graph_hint/truediv_softmax"), nullptr);
+  EXPECT_NE(compute_graph->FindNode("graph_hint/truediv"), nullptr);
+  EXPECT_NE(compute_graph->FindNode("graph_hint/exp"), nullptr);
+}
+}  // namespace
+
+TEST_F(TestOptimizerV2, SoftmaxPatternFusion_StableSoftmax_Success) {
+  af::AscGraph graph("SoftmaxPatternFusion_StableSoftmax_Success");
+  BuildStableSoftmaxGraph(graph);
+
+  Status res = optimize::autoschedule::PassRunnerHandler().RunPasses(graph);
+  EXPECT_EQ(res, af::SUCCESS);
+  auto compute_graph = af::AscGraphUtils::GetComputeGraph(graph);
+  ASSERT_NE(compute_graph, nullptr);
+
+  auto load = compute_graph->FindNode("graph_hint/load");
+  auto softmax = compute_graph->FindNode("graph_hint/truediv_softmax");
+  auto store = compute_graph->FindNode("graph_hint/store");
+  ASSERT_NE(load, nullptr);
+  ASSERT_NE(softmax, nullptr);
+  ASSERT_NE(store, nullptr);
+  EXPECT_EQ(softmax->GetType(), "Softmax");
+  EXPECT_EQ(softmax->GetInDataAnchor(0)->GetPeerOutAnchor(), load->GetOutDataAnchor(0));
+  EXPECT_EQ(store->GetInDataAnchor(0)->GetPeerOutAnchor(), softmax->GetOutDataAnchor(0));
+  EXPECT_EQ(compute_graph->FindNode("graph_hint/max"), nullptr);
+  EXPECT_EQ(compute_graph->FindNode("graph_hint/broadcast"), nullptr);
+  EXPECT_EQ(compute_graph->FindNode("graph_hint/sub"), nullptr);
+  EXPECT_EQ(compute_graph->FindNode("graph_hint/exp"), nullptr);
+  EXPECT_EQ(compute_graph->FindNode("graph_hint/sum"), nullptr);
+  EXPECT_EQ(compute_graph->FindNode("graph_hint/broadcast1"), nullptr);
+  EXPECT_EQ(compute_graph->FindNode("graph_hint/truediv"), nullptr);
+}
+
+TEST_F(TestOptimizerV2, SoftmaxPatternFusion_ExpExtraConsumer_Skip) {
+  af::AscGraph graph("SoftmaxPatternFusion_ExpExtraConsumer_Skip");
+  BuildStableSoftmaxGraph(graph, SoftmaxGraphVariant::kExpExtraConsumer);
+  ExpectSoftmaxNotFused(graph);
+}
+
+TEST_F(TestOptimizerV2, SoftmaxPatternFusion_InputSourceMismatch_Skip) {
+  af::AscGraph graph("SoftmaxPatternFusion_InputSourceMismatch_Skip");
+  BuildStableSoftmaxGraph(graph, SoftmaxGraphVariant::kInputSourceMismatch);
+  ExpectSoftmaxNotFused(graph);
+}
+
+TEST_F(TestOptimizerV2, SoftmaxPatternFusion_ReduceAxisMismatch_Skip) {
+  af::AscGraph graph("SoftmaxPatternFusion_ReduceAxisMismatch_Skip");
+  BuildStableSoftmaxGraph(graph, SoftmaxGraphVariant::kReduceAxisMismatch);
+  ExpectSoftmaxNotFused(graph);
+}
+
+TEST_F(TestOptimizerV2, SoftmaxPatternFusion_IncompleteTrueDiv_Skip) {
+  af::AscGraph graph("SoftmaxPatternFusion_IncompleteTrueDiv_Skip");
+  BuildIncompleteTrueDivGraph(graph);
+
+  Status res = optimize::autoschedule::PassRunnerHandler().RunPasses(graph);
+  EXPECT_EQ(res, af::SUCCESS);
+  auto compute_graph = af::AscGraphUtils::GetComputeGraph(graph);
+  ASSERT_NE(compute_graph, nullptr);
+  EXPECT_EQ(compute_graph->FindNode("graph_hint/truediv_softmax"), nullptr);
+  EXPECT_NE(compute_graph->FindNode("graph_hint/truediv"), nullptr);
+}
+
 TEST_F(TestOptimizerV2, platform_reg_test) {
   af::AscGraph graph("tmp");
   std::string platform_str;
