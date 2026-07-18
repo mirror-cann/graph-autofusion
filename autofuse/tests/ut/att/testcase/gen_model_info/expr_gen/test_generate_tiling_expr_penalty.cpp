@@ -439,6 +439,30 @@ TEST_F(TestGenerateTilingExprPenalty, CalcPenaltyCoreNumRatio_VerifyFormula) {
   EXPECT_EQ(Str(result), "1");
 }
 
+// Test CalcPenaltyCoreNumRatio - Gather + Reduce uses 32B penalty granularity
+TEST_F(TestGenerateTilingExprPenalty, CalcPenaltyCoreNumRatio_GatherReducePenaltyGranularity) {
+  tuning_space->penalty_cache_line_size = 32;
+  GenerateTilingExpr generator(tuning_space);
+
+  auto split_axis = std::make_shared<AttAxis>();
+  split_axis->name = "R_split";
+  auto split_size = std::make_shared<SymVarInfo>(af::Symbol(128));
+  split_size->data_type_size = 4;
+  split_axis->size = split_size;
+
+  auto a_axis = std::make_shared<AttAxis>();
+  a_axis->name = "A";
+  a_axis->axis_pos = AxisPosition::OUTER;
+  auto a_size = std::make_shared<SymVarInfo>(af::Symbol(1));
+  a_size->data_type_size = 4;
+  a_size->symbol_expr = af::Symbol(1);
+  a_axis->size = a_size;
+
+  const Expr result = generator.CalcPenaltyCoreNumRatio(split_axis.get(), {a_axis.get()});
+
+  EXPECT_EQ(Str(result), "Rational(1 , 8)");
+}
+
 // Test ApplyPenaltyConfig - Basic penalty (enabled by config table)
 TEST_F(TestGenerateTilingExprPenalty, ApplyPenaltyConfig_BasicPenalty) {
   GenerateTilingExpr generator(tuning_space);

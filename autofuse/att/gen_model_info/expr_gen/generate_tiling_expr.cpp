@@ -519,8 +519,9 @@ Expr GenerateTilingExpr::CalcPenaltyCoreNumRatio(const AttAxis *split_axis,
     GELOGD("[DFX] CalcPenaltyCoreNumRatio: accumulated=%s", Str(a_axis_size).c_str());
   }
 
-  // 获取CacheLine大小
-  uint32_t cache_line_size = GetCacheLineSize();
+  // 获取惩罚计算使用的CacheLine大小；特殊融合场景可使用独立粒度，不影响物理Cache Line配置。
+  uint32_t cache_line_size =
+      tuning_space_->penalty_cache_line_size > 0 ? tuning_space_->penalty_cache_line_size : GetCacheLineSize();
 
   // 计算 core_num_ratio = (a_axis_size * data_type_size) / cache_line_size
   Expr core_num_ratio = (a_axis_size * af::Symbol(data_type_size)) / af::Symbol(cache_line_size);

@@ -30,6 +30,8 @@
 #include "reuse_group_utils/reuse_group_utils.h"
 #include "schedule_result.h"
 #include "ascgraph_info_complete.h"
+#include "ascir_ops.h"
+#include "ascir/meta/ascir_ops_utils.h"
 
 namespace att {
 namespace {
@@ -39,7 +41,63 @@ const std::string kModelInfoFileName = "model_info.json";
 constexpr uint32_t kConstType = 1U;
 constexpr uint32_t kVarType = 2U;
 constexpr uint32_t kDefaultAlignValue = 1U;
+constexpr uint32_t kGatherReducePenaltyCacheLineSize = 32U;
 const std::string kModelInfoFilePath = "./";
+
+bool HasComputeType(const std::vector<af::AscGraph> &graphs, const af::ComputeType compute_type) {
+  for (const auto &graph : graphs) {
+    for (const auto &node : graph.GetAllNodes()) {
+      if (node->attr.api.compute_type == compute_type) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+bool HasGatherNode(const std::vector<std::vector<af::AscGraph>> &schedule_groups) {
+  for (const auto &group : schedule_groups) {
+    for (const auto &graph : group) {
+      for (const auto &node : graph.GetAllNodes()) {
+        if (af::ops::IsOps<af::ascir_op::Gather>(node)) {
+          return true;
+        }
+      }
+    }
+  }
+  return false;
+}
+
+bool ShouldEnableGatherReducePenalty(const std::vector<std::vector<af::AscGraph>> &schedule_groups,
+                                     const size_t group_id, const bool enable_group_parallel) {
+  if (enable_group_parallel) {
+    GELOGD(
+        "[DFX] GatherReducePenalty decision: group_id=%zu, group_count=%zu, enable_group_parallel=1, enabled=0, "
+        "reason=group_parallel",
+        group_id, schedule_groups.size());
+    return false;
+  }
+  if (schedule_groups.size() <= 1UL) {
+    GELOGD(
+        "[DFX] GatherReducePenalty decision: group_id=%zu, group_count=%zu, enable_group_parallel=0, enabled=0, "
+        "reason=single_group",
+        group_id, schedule_groups.size());
+    return false;
+  }
+  if (!HasComputeType(schedule_groups[group_id], af::ComputeType::kComputeReduce)) {
+    GELOGD(
+        "[DFX] GatherReducePenalty decision: group_id=%zu, group_count=%zu, enable_group_parallel=0, enabled=0, "
+        "reason=group_without_reduce",
+        group_id, schedule_groups.size());
+    return false;
+  }
+  const bool has_gather = HasGatherNode(schedule_groups);
+  GELOGD(
+      "[DFX] GatherReducePenalty decision: group_id=%zu, group_count=%zu, enable_group_parallel=0, enabled=%d, "
+      "reason=%s",
+      group_id, schedule_groups.size(), has_gather, has_gather ? "gather_reduce" : "gather_not_found");
+  return has_gather;
+}
 
 std::set<std::string> GetUbContainerNames(const ModelInfo &model_info) {
   std::set<std::string> names;
@@ -343,6 +401,12 @@ inline bool IsAxesReorderAlgorithm() {
 
 af::Status GenerateModelInfo(const std::vector<af::AscGraph> &graph_list, std::vector<ModelInfo> &model_info_list,
                              const std::map<std::string, std::string> &options, bool enable_group_parallel) {
+  return GenerateModelInfo(graph_list, model_info_list, options, enable_group_parallel, false);
+}
+
+af::Status GenerateModelInfo(const std::vector<af::AscGraph> &graph_list, std::vector<ModelInfo> &model_info_list,
+                             const std::map<std::string, std::string> &options, bool enable_group_parallel,
+                             bool enable_gather_reduce_penalty) {
   GE_ASSERT_SUCCESS(CheckKeyValid(graph_list));
   uint32_t tiling_key = 0U;
   for (auto &graph : graph_list) {
@@ -354,6 +418,11 @@ af::Status GenerateModelInfo(const std::vector<af::AscGraph> &graph_list, std::v
     std::vector<AttAxisPtr> tiling_R_arg_list;
     TuningSpacePtr tuning_space = af::MakeShared<TuningSpace>();
     GE_ASSERT_NOTNULL(tuning_space, "Make tuning space failed.");
+    if (enable_gather_reduce_penalty) {
+      tuning_space->penalty_cache_line_size = kGatherReducePenaltyCacheLineSize;
+    }
+    GELOGD("[DFX] GatherReducePenalty config: graph=%s, enabled=%d, penalty_cache_line_size=%u",
+           graph.GetName().c_str(), enable_gather_reduce_penalty, tuning_space->penalty_cache_line_size);
     tuning_space->cache_line_config = &model_info.cache_line_config;
     GetThreadLocalContext().SetOption(options);
     GE_ASSERT_SUCCESS(GenerateModelInfo(graph, model_info, tuning_space, tiling_key), "General model info failed.");
@@ -435,8 +504,14 @@ af::Status ProcessAndSetScheduleGroupInfo(const std::vector<std::vector<af::AscG
         "%zu, graph name %s.",
         asc_graph_id, impl_graph_id, schedule_group_id, schedule_groups[schedule_group_id].size(),
         !schedule_groups[schedule_group_id].empty() ? schedule_groups[schedule_group_id][0].GetName().c_str() : "null");
+    const bool enable_gather_reduce_penalty =
+        ShouldEnableGatherReducePenalty(schedule_groups, schedule_group_id, out_schedule_groups.enable_group_parallel);
+    GELOGD(
+        "[DFX] GatherReducePenalty context: asc_graph_id=%zu, impl_graph_id=%zu, group_id=%zu, group_count=%zu, "
+        "enabled=%d",
+        asc_graph_id, impl_graph_id, schedule_group_id, schedule_groups.size(), enable_gather_reduce_penalty);
     GE_ASSERT_SUCCESS(GenerateModelInfo(schedule_groups[schedule_group_id], model_info_list, options,
-                                        out_schedule_groups.enable_group_parallel),
+                                        out_schedule_groups.enable_group_parallel, enable_gather_reduce_penalty),
                       "Get model info failed, impl graph id = %ld, group id = %ld.", impl_graph_id, schedule_group_id);
     for (auto &model_info : model_info_list) {
       model_info.schedule_group_ident.asc_graph_id = asc_graph_id;
