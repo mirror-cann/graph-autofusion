@@ -14,6 +14,7 @@ set(ascendc_api_regbase_extend_src
         compare.h
         floor_div.h
         pow.h
+        polygamma.h
         split.h
         where.h
         erf.h

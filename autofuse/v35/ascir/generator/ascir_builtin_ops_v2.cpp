@@ -356,6 +356,15 @@ REG_ASC_IR(LegendrePolynomialP)
            {{"T", TensorType{DT_FLOAT}},
             {"U", TensorType{DT_INT8, DT_UINT8, DT_INT16, DT_UINT16, DT_INT32, DT_UINT32, DT_INT64, DT_UINT64}}}});
 
+REG_ASC_IR(Polygamma)
+    .Input("x", "T")
+    .Attr<int64_t>("n")
+    .Output("y", "T")
+    .ComputeType(ComputeType::kComputeElewise)
+    .Impl(v2_soc_versions, {af::ascir::AscIrImplCreator<af::ascir::PolygammaAscIrAttImplV2>(),
+                            af::ascir::AscIrImplCreator<af::ascir::PolygammaAscIrCodegenImplV2>(),
+                            {{"T", TensorType{DT_FLOAT}}}});
+
 REG_ASC_IR(AiryAi)
     .Input("x", "T")
     .Output("y", "T")
