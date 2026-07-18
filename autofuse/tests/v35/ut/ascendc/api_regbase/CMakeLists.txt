@@ -62,6 +62,7 @@ add_library(test_regbase_ascendc OBJECT
     ./test_hermite_polynomial_h.cpp
     ./test_hermite_polynomial_he.cpp
     ./test_hypot.cpp
+    ./test_softmax.cpp
     )
 target_link_libraries(test_regbase_ascendc
     ascendc_api_regbase_extend

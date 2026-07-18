@@ -34,9 +34,9 @@ set(ascendc_api_regbase_extend_src
         fmod.h
         neg.h
         square.h
+        softmax_af.h
         trunc_div.h
         remainder.h
-        softmax_af.h
         bessel_j_utils.h
         bessel_j0.h
         bessel_j1.h
