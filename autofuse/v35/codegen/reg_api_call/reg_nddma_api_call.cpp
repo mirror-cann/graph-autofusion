@@ -30,10 +30,6 @@ bool IsZeroStride(const Tensor &tensor, size_t index) {
   return index < tensor.axis_strides.size() && tensor.axis_strides[index] == Zero;
 }
 
-bool IsOneStride(const Tensor &tensor, size_t index) {
-  return index < tensor.axis_strides.size() && tensor.axis_strides[index] == One;
-}
-
 void AppendCvNddmaCall(std::stringstream &ss, const std::string &api_name, const Tensor &gm, const Tensor &ub,
                        const std::string &gm_offset) {
   ss << api_name << "(" << ub << ", " << gm << "[" << gm_offset << "], " << "output_dims_" << ub.id << ", "
@@ -42,20 +38,20 @@ void AppendCvNddmaCall(std::stringstream &ss, const std::string &api_name, const
 
 Status GenerateInductorUbFuseNddma(const std::string &api_name, const Tensor &gm, const Tensor &ub,
                                    std::stringstream &ss) {
-  GE_ASSERT_TRUE(ub.axis_strides.size() >= 2U, "Nddma dst axis-strides less than 2 is invalid in CV-Fusion case");
-  auto last_index = ub.axis_strides.size() - 1U;
-  auto second_to_last_index = ub.axis_strides.size() - 2U;
+  GE_ASSERT_TRUE(gm.axis_strides.size() >= 2U, "Nddma src axis-strides less than 2 is invalid in CV-Fusion case");
+  auto last_index = gm.axis_strides.size() - 1U;
+  auto second_to_last_index = gm.axis_strides.size() - 2U;
   ss << "const int64_t output_dims_" << ub.id << "[2] = {curAivM, curAlignN};" << std::endl;
   std::string gm_offset;
-  if (IsZeroStride(ub, second_to_last_index) && IsZeroStride(ub, last_index)) {
+  if (IsZeroStride(gm, second_to_last_index) && IsZeroStride(gm, last_index)) {
     ss << "const int64_t input_stride_" << ub.id << "[2] = {0, 0};" << std::endl;
     ss << "const int64_t output_stride_" << ub.id << "[2] = {curAlignN, 1};" << std::endl;
     gm_offset = "batch_num";
-  } else if (IsZeroStride(ub, second_to_last_index) && IsOneStride(ub, last_index)) {
+  } else if (IsZeroStride(gm, second_to_last_index) && !IsZeroStride(gm, last_index)) {
     ss << "const int64_t input_stride_" << ub.id << "[2] = {0, 1};" << std::endl;
     ss << "const int64_t output_stride_" << ub.id << "[2] = {curAlignN, 1};" << std::endl;
     gm_offset = "offset % shapeN + batch_num * shapeN";
-  } else if (!IsZeroStride(ub, second_to_last_index) && IsZeroStride(ub, last_index)) {
+  } else if (!IsZeroStride(gm, second_to_last_index) && IsZeroStride(gm, last_index)) {
     ss << "const int64_t input_stride_" << ub.id << "[2] = {1, 0};" << std::endl;
     ss << "const int64_t output_stride_" << ub.id << "[2] = {curAlignN, 1};" << std::endl;
     gm_offset = "offset / shapeN";

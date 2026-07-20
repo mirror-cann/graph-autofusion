@@ -20,6 +20,7 @@
 #include "optimize/graph_pass/masked_fill_input_reorder_pass.h"
 #include "v35/optimize/graph_pass/continues_broadcast_optimization.h"
 #include "v35/optimize/graph_pass/gather_to_load.h"
+#include "v35/optimize/graph_pass/softmax_pattern_fusion_pass.h"
 #include "v35/optimize/graph_pass/split_concat_optimization_pass.h"
 
 namespace optimize {
@@ -33,6 +34,7 @@ class PassRunnerV2 final : public BasePassRunner {
     this->RegisterPass<MaskedFillInputReorderPass>();
     this->RegisterPass<ExpandDimsForAllReducePass>();
     this->RegisterPass<ContinuesBroadcastOptimizationPass>();
+    this->RegisterPass<SoftmaxPatternFusionPass>();
     this->RegisterPass<GatherToLoadPass>();
     this->RegisterPass<SplitConcatOptimizationPass>();
   }

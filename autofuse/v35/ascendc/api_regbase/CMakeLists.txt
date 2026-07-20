@@ -14,6 +14,7 @@ set(ascendc_api_regbase_extend_src
         compare.h
         floor_div.h
         pow.h
+        polygamma.h
         split.h
         where.h
         erf.h
@@ -34,15 +35,16 @@ set(ascendc_api_regbase_extend_src
         fmod.h
         neg.h
         square.h
+        softmax_af.h
         trunc_div.h
         remainder.h
-        softmax_af.h
         bessel_j_utils.h
         bessel_j0.h
         bessel_j1.h
         spherical_bessel_j0.h
         bessel_y0.h
         bessel_y1.h
+        bucketize.h
         modified_bessel_i0.h
         modified_bessel_i1.h
         modified_bessel_k0.h
