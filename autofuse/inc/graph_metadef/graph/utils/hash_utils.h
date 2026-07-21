@@ -15,7 +15,7 @@
 #include <vector>
 #include <functional>
 #include "graph/small_vector.h"
-#include "graph/types.h"
+#include "graph/types_af.h"
 
 namespace af {
 using CacheHashKey = uint64_t;

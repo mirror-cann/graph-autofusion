@@ -8,7 +8,7 @@
  * See LICENSE in the root of the software repository for the full text of the License.
  */
 
-#include "graph/operator.h"
+#include "graph/operator_af.h"
 
 #include <cstdint>
 #include <algorithm>
@@ -18,7 +18,7 @@
 #include "framework/common/debug/ge_log.h"
 #include "debug/ge_op_types.h"
 #include "graph_metadef/graph/debug/ge_util.h"
-#include "graph/attr_value.h"
+#include "graph/attr_value_af.h"
 #include "graph/compute_graph.h"
 #include "graph/ge_context.h"
 #include "graph/runtime_inference_context.h"

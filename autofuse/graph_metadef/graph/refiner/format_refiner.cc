@@ -23,7 +23,7 @@
 #include "graph/utils/tensor_utils.h"
 #include "graph/utils/type_utils.h"
 #include "graph/utils/type_utils_inner.h"
-#include "graph/types.h"
+#include "graph/types_af.h"
 #include "graph/debug/ge_attr_define.h"
 #include "graph/utils/node_utils_ex.h"
 #include "graph/utils/op_type_utils.h"
@@ -423,7 +423,7 @@ graphStatus FormatRefiner::DataNodeFormatProcess(const ComputeGraphPtr &graph,
     return GRAPH_SUCCESS;
   }
   GELOGD("Enter DataNodeFormatProcess");
-  std::vector<NodePtr> uninfered_data_nodes;
+  std::vector<NodePtr> uninferred_data_nodes;
   // Check and renew data nodes format
   for (const auto &data_node : anchor_data_nodes) {
     GE_CHECK_NOTNULL(data_node);
@@ -437,22 +437,22 @@ graphStatus FormatRefiner::DataNodeFormatProcess(const ComputeGraphPtr &graph,
 
     const auto curr_format = output_desc->GetOriginFormat();
     if (curr_format != FORMAT_ND) {
-      // Data format has been infered , continue
+      // Data format has been inferred, continue
       continue;
     }
-    // keep data format be ND because lacking of defination when input shape num is smaller than 4
+    // Keep the data format as ND because the definition is missing when the input shape has fewer than four dims.
     if (input_desc->MutableShape().GetDimNum() < kDimSizeOf4D) {
       continue;
     }
-    // Set format for un-infered data node
+    // Set the format for a data node that has not been inferred.
     input_desc->SetOriginFormat(data_format);
     input_desc->SetFormat(data_format);
     output_desc->SetOriginFormat(data_format);
     output_desc->SetFormat(data_format);
-    uninfered_data_nodes.push_back(data_node);
+    uninferred_data_nodes.push_back(data_node);
   }
-  // Reinfer format from uninfered data nodes
-  for (const auto &node : uninfered_data_nodes) {
+  // Reinfer the format from uninferred data nodes.
+  for (const auto &node : uninferred_data_nodes) {
     if (node == nullptr) {
       continue;
     }
@@ -470,7 +470,7 @@ graphStatus FormatRefiner::DataNodeFormatProcess(const ComputeGraphPtr &graph,
 graphStatus FormatRefiner::InferOrigineFormat(const ComputeGraphPtr &graph) {
   GELOGI("Enter InferOrigineFormat process!");
 
-  // True: infered false:no-infered
+  // True: inferred; false: not inferred.
   std::vector<NodePtr> anchor_points;
   std::vector<NodePtr> anchor_data_nodes;
 
@@ -506,7 +506,7 @@ graphStatus FormatRefiner::InferOrigineFormat(const ComputeGraphPtr &graph) {
     }
   }
   /// According to discuss with sys-enginer, data node default format is ND.Its format
-  /// should be set by infered.But if some data-node can not be got by infer, set context's
+  /// should be set by inference. But if some data-node cannot be inferred, set the context's
   /// format for these data nodes.
   /// Notice: ignore 5D formats
   const auto data_format = graph->GetDataFormat();

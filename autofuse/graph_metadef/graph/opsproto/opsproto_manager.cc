@@ -12,7 +12,7 @@
 #include <cstdlib>
 #include <functional>
 #include "framework/common/debug/ge_log.h"
-#include "graph/types.h"
+#include "graph/types_af.h"
 #include "graph/def_types.h"
 #include "graph/operator_factory_impl.h"
 #include "mmpa/mmpa_api.h"

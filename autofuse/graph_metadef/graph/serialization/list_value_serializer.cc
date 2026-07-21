@@ -14,7 +14,7 @@
 #include <functional>
 
 #include "framework/common/debug/ge_log.h"
-#include "graph/types.h"
+#include "graph/types_af.h"
 #include "graph/utils/attr_utils.h"
 #include "graph_metadef/graph/debug/ge_util.h"
 #include "tensor_desc_serializer.h"

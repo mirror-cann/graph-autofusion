@@ -12,7 +12,7 @@
 #define INC_GRAPH_UTILS_TYPE_UTILS_H_
 
 #include <string>
-#include "graph/types.h"
+#include "graph/types_af.h"
 #include "graph/ascend_string.h"
 
 namespace af {

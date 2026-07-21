@@ -16,7 +16,7 @@
 #ifndef EXTERNAL_OP_COMMON_DATA_TYPE_UTILS_H_
 #define EXTERNAL_OP_COMMON_DATA_TYPE_UTILS_H_
 
-#include "graph/types.h"
+#include "graph/types_af.h"
 
 namespace opcommon {
 inline bool IsComplexType(const ge::DataType type) {

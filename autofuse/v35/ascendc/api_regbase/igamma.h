@@ -11,8 +11,6 @@
 #ifndef __ASCENDC_API_REGBASE_IGAMMA_H__
 #define __ASCENDC_API_REGBASE_IGAMMA_H__
 
-#include "igammac.h"
-
 namespace AscendC {
 namespace IGammaInternal {
 template <typename T>

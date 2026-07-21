@@ -16,7 +16,7 @@
 #define AIR_CXX_COMPILER_GRAPH_EAGER_STYLE_GRAPH_BUILDER_ALL_OPS_H_
 #include "esb_funcs.h"
 #include <stdint.h>
-#include "graph/types.h"
+#include "graph/types_af.h"
 #ifdef __cplusplus
 extern "C" {
 #endif

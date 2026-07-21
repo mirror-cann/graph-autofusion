@@ -15,7 +15,7 @@
 #include <structmember.h>
 #include <google/protobuf/text_format.h>
 
-#include "graph/operator.h"
+#include "graph/operator_af.h"
 #include "graph/ascendc_ir/utils/asc_graph_utils.h"
 #include "graph/detail/model_serialize_imp.h"
 #include "graph/utils/graph_utils.h"
@@ -53,6 +53,7 @@ inline constexpr char kAscGraphAttr[] = "ascgraph";
 inline constexpr char kNegativeSlopeAttr[] = "negative_slope";
 inline constexpr char kNegativeIndexSupportAttr[] = "negative_index_support";
 inline constexpr char kAlphaAttr[] = "alpha";
+inline constexpr char kNAttr[] = "n";
 inline constexpr char kErrorMsgAttr[] = "error_msg";
 struct DTypeEntry {
   const char *py_name{nullptr};
@@ -1196,6 +1197,14 @@ DEFINE_IR_ATTR_ACCESSORS(LeakyRelu, AscLeakyReluIrAttrDef, kNegativeSlopeAttr, f
                          PyFloat_AsDouble, SetNegative_slope, GetNegative_slope)
 DEFINE_IR_ATTR_ACCESSORS(Axpy, AscAxpyIrAttrDef, kAlphaAttr, float, PyFloat_Check, PyFloat_FromDouble, PyFloat_AsDouble,
                          SetAlpha, GetAlpha)
+DEFINE_IR_ATTR_ACCESSORS(ShiftedChebyshevPolynomialT, AscShiftedChebyshevPolynomialTIrAttrDef, kNAttr, int64_t,
+                         PyLong_Check, PyLong_FromLong, PyLong_AsLong, SetN, GetN)
+DEFINE_IR_ATTR_ACCESSORS(ShiftedChebyshevPolynomialU, AscShiftedChebyshevPolynomialUIrAttrDef, kNAttr, int64_t,
+                         PyLong_Check, PyLong_FromLong, PyLong_AsLong, SetN, GetN)
+DEFINE_IR_ATTR_ACCESSORS(ShiftedChebyshevPolynomialV, AscShiftedChebyshevPolynomialVIrAttrDef, kNAttr, int64_t,
+                         PyLong_Check, PyLong_FromLong, PyLong_AsLong, SetN, GetN)
+DEFINE_IR_ATTR_ACCESSORS(ShiftedChebyshevPolynomialW, AscShiftedChebyshevPolynomialWIrAttrDef, kNAttr, int64_t,
+                         PyLong_Check, PyLong_FromLong, PyLong_AsLong, SetN, GetN)
 DEFINE_IR_ATTR_ACCESSORS(
     Unsupported, AscUnsupportedIrAttrDef, kErrorMsgAttr, std::string, PyUnicode_Check,
     [](const std::string &str) { return PyUnicode_FromString(str.c_str()); }, PyUnicode_AsUTF8, SetError_msg,
@@ -1288,6 +1297,10 @@ const std::map<std::string, typename IrAttr<OpType>::handler> IrAttr<OpType>::at
      AutoRegAttrHandle<af::ascir_op::BatchMatMulBias, kHasRelu, kOffsetX, kAdjX1, kAdjX2, kEnableHf32>::RegHandle},
     {"LeakyRelu", AutoRegAttrHandle<af::ascir_op::LeakyRelu, kNegativeSlopeAttr>::RegHandle},
     {"Axpy", AutoRegAttrHandle<af::ascir_op::Axpy, kAlphaAttr>::RegHandle},
+    {"ShiftedChebyshevPolynomialT", AutoRegAttrHandle<af::ascir_op::ShiftedChebyshevPolynomialT, kNAttr>::RegHandle},
+    {"ShiftedChebyshevPolynomialU", AutoRegAttrHandle<af::ascir_op::ShiftedChebyshevPolynomialU, kNAttr>::RegHandle},
+    {"ShiftedChebyshevPolynomialV", AutoRegAttrHandle<af::ascir_op::ShiftedChebyshevPolynomialV, kNAttr>::RegHandle},
+    {"ShiftedChebyshevPolynomialW", AutoRegAttrHandle<af::ascir_op::ShiftedChebyshevPolynomialW, kNAttr>::RegHandle},
     {"Unsupported", AutoRegAttrHandle<af::ascir_op::Unsupported, kErrorMsgAttr>::RegHandle},
 };
 PyTypeObject &OpsOperatorTypeObject::GetPyType() {

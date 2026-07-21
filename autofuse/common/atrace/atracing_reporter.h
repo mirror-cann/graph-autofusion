@@ -12,7 +12,7 @@
 #define AUTOFUSE_ATRACING_REPORTER_H
 #include "common/tracing_type.h"
 #include "atrace_types.h"
-#include "atrace_pub.h"
+#include "atrace_pub_af.h"
 namespace ge {
 class AtracingReporter {
  public:

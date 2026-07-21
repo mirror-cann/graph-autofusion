@@ -9,7 +9,7 @@
  */
 
 #include "graph/custom_op_factory.h"
-#include "graph/custom_op.h"
+#include "graph/custom_op_af.h"
 #include "graph/custom_op_factory_impl.h"
 #include "debug/ge_log.h"
 

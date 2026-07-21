@@ -556,15 +556,16 @@ static AscGraph BuildAddAscGraphAfterConcat(const std::string &name) {
   return graph;
 }
 
-static AscGraph BuildConcatAscGraph(const std::string &name) {
+static AscGraph BuildConcatAscGraph(const std::string &name, const bool same_data = false) {
   auto ONE = Symbol(1);
   const auto s0 = Symbol("s0");
   const auto s1 = Symbol("s1");
   const auto s2 = Symbol("s2");
+  const auto input_dim = same_data ? s1 : s2;
 
   af::AscGraph graph(name.c_str());
   auto z0 = graph.CreateAxis("z0", s0);
-  auto z1 = graph.CreateAxis("z1", s1 + s2 + s2 + s2);
+  auto z1 = graph.CreateAxis("z1", s1 + input_dim + input_dim + input_dim);
 
   af::ascir_op::Data x1("concat_data0", graph);
   x1.attr.sched.axis = {z0.id, z1.id};
@@ -583,44 +584,44 @@ static AscGraph BuildConcatAscGraph(const std::string &name) {
   af::ascir_op::Data x2("concat_data1", graph);
   x2.attr.sched.axis = {z0.id, z1.id};
   *x2.y.axis = {z0.id, z1.id};
-  *x2.y.repeats = {s0, s2};
-  *x2.y.strides = {s2, ONE};
+  *x2.y.repeats = {s0, input_dim};
+  *x2.y.strides = {input_dim, ONE};
   x2.ir_attr.SetIndex(1);
 
   af::ascir_op::Load x2Local("concat_load1");
   x2Local.x = x2.y;
   x2Local.attr.sched.axis = {z0.id, z1.id};
   *x2Local.y.axis = {z0.id, z1.id};
-  *x2Local.y.repeats = {s0, s2};
-  *x2Local.y.strides = {s2, ONE};
+  *x2Local.y.repeats = {s0, input_dim};
+  *x2Local.y.strides = {input_dim, ONE};
 
   af::ascir_op::Data concat_data2("concat_data2", graph);
   concat_data2.attr.sched.axis = {z0.id, z1.id};
   *concat_data2.y.axis = {z0.id, z1.id};
-  *concat_data2.y.repeats = {s0, s2};
-  *concat_data2.y.strides = {s2, ONE};
+  *concat_data2.y.repeats = {s0, input_dim};
+  *concat_data2.y.strides = {input_dim, ONE};
   concat_data2.ir_attr.SetIndex(2);
 
   af::ascir_op::Load concat_load2("concat_load2");
   concat_load2.x = concat_data2.y;
   concat_load2.attr.sched.axis = {z0.id, z1.id};
   *concat_load2.y.axis = {z0.id, z1.id};
-  *concat_load2.y.repeats = {s0, s2};
-  *concat_load2.y.strides = {s2, ONE};
+  *concat_load2.y.repeats = {s0, input_dim};
+  *concat_load2.y.strides = {input_dim, ONE};
 
   af::ascir_op::Concat concat("concat");
   concat.x = {x1Local.y, x2Local.y, concat_load2.y};
   concat.attr.sched.axis = {z0.id, z1.id};
   *concat.y.axis = {z0.id, z1.id};
-  *concat.y.repeats = {s0, s1 + s2 + s2};
-  *concat.y.strides = {s1 + s2 + s2, ONE};
+  *concat.y.repeats = {s0, s1 + input_dim + input_dim};
+  *concat.y.strides = {s1 + input_dim + input_dim, ONE};
 
   af::ascir_op::Store x_out("concat_store");
   x_out.x = concat.y;
   x_out.attr.sched.axis = {z0.id, z1.id};
   *x_out.y.axis = {z0.id, z1.id};
-  *x_out.y.repeats = {s0, s1 + s2 + s2};
-  *x_out.y.strides = {s1 + s2 + s2, ONE};
+  *x_out.y.repeats = {s0, s1 + input_dim + input_dim};
+  *x_out.y.strides = {s1 + input_dim + input_dim, ONE};
 
   af::ascir_op::Output y("concat_out");
   y.x = x_out.y;
@@ -1378,7 +1379,7 @@ TEST_F(OptimizerSt, AscBcNodeUnfolder_With_Same_Data_Same_Load) {
 
   auto add_sub_graph1 = BuildAddAscGraph("sub1_add");
   auto add_sub_graph2 = BuildAddAscGraph3("sub2_add");
-  auto concat_sub_graph = BuildConcatAscGraph("sub3_concat");
+  auto concat_sub_graph = BuildConcatAscGraph("sub3_concat", true);
 
   asc_backend_to_asc_graph.emplace(ascbc1.get(), add_sub_graph1);
   asc_backend_to_asc_graph.emplace(ascbc2.get(), add_sub_graph2);

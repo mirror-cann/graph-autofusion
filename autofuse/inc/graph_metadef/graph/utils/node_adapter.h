@@ -11,7 +11,7 @@
 #ifndef INC_GRAPH_UTILS_NODE_ADAPTER_H_
 #define INC_GRAPH_UTILS_NODE_ADAPTER_H_
 
-#include "graph/gnode.h"
+#include "graph/gnode_af.h"
 #include "graph/node.h"
 
 namespace af {

@@ -11,7 +11,7 @@
 #ifndef INC_REGISTER_HOST_CPU_CONTEXT_H_
 #define INC_REGISTER_HOST_CPU_CONTEXT_H_
 
-#include "ge_common_af/ge_api_error_codes.h"
+#include "ge_common_af/ge_api_error_codes_af.h"
 #include "register/register_types.h"
 
 namespace af {

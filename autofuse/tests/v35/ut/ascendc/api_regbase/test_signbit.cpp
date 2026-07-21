@@ -21,8 +21,8 @@ namespace af {
 
 template <typename InT>
 struct TensorSignBitInputParam {
-  bool *y{};
-  bool *exp{};
+  uint8_t *y{};
+  uint8_t *exp{};
   InT *src{};
   int32_t size{0};
 };
@@ -34,10 +34,10 @@ class TestApiSignBit : public testing::Test {
     TPipe tpipe;
     TBuf<TPosition::VECCALC> xbuf, ybuf, tmpbuf;
     tpipe.InitBuffer(xbuf, sizeof(InT) * param.size);
-    tpipe.InitBuffer(ybuf, sizeof(bool) * param.size);
+    tpipe.InitBuffer(ybuf, sizeof(uint8_t) * param.size);
     tpipe.InitBuffer(tmpbuf, ONE_BLK_SIZE);  // Default buffer, not used internally
     LocalTensor<InT> l_x = xbuf.Get<InT>();
-    LocalTensor<bool> l_y = ybuf.Get<bool>();
+    LocalTensor<uint8_t> l_y = ybuf.Get<uint8_t>();
     LocalTensor<uint8_t> l_tmp = tmpbuf.Get<uint8_t>();
 
     GmToUb(l_x, param.src, param.size);
@@ -45,10 +45,29 @@ class TestApiSignBit : public testing::Test {
     UbToGm(param.y, l_y, param.size);
   }
 
+  // Test SignBitExtend with U=bool output (ReinterpretCast path)
+  template <typename InT>
+  static void InvokeKernelBoolOutput(TensorSignBitInputParam<InT> &param) {
+    TPipe tpipe;
+    TBuf<TPosition::VECCALC> xbuf, ybuf, tmpbuf;
+    tpipe.InitBuffer(xbuf, sizeof(InT) * param.size);
+    tpipe.InitBuffer(ybuf, sizeof(bool) * param.size);
+    tpipe.InitBuffer(tmpbuf, ONE_BLK_SIZE);  // Default buffer, not used internally
+    LocalTensor<InT> l_x = xbuf.Get<InT>();
+    LocalTensor<bool> l_y = ybuf.Get<bool>();
+    LocalTensor<uint8_t> l_tmp = tmpbuf.Get<uint8_t>();
+
+    GmToUb(l_x, param.src, param.size);
+    SignBitExtend<InT, bool>(l_y, l_x, l_tmp, param.size);
+    // ReinterpretCast for UbToGm: bool and uint8_t share the same storage layout
+    LocalTensor<uint8_t> l_y_u8 = l_y.template ReinterpretCast<uint8_t>();
+    UbToGm(param.y, l_y_u8, param.size);
+  }
+
   template <typename InT>
   static void CreateTensorInput(TensorSignBitInputParam<InT> &param) {
-    param.y = static_cast<bool *>(AscendC::GmAlloc(sizeof(bool) * param.size));
-    param.exp = static_cast<bool *>(AscendC::GmAlloc(sizeof(bool) * param.size));
+    param.y = static_cast<uint8_t *>(AscendC::GmAlloc(sizeof(uint8_t) * param.size));
+    param.exp = static_cast<uint8_t *>(AscendC::GmAlloc(sizeof(uint8_t) * param.size));
     param.src = static_cast<InT *>(AscendC::GmAlloc(sizeof(InT) * param.size));
 
     std::mt19937 eng(1);
@@ -64,24 +83,24 @@ class TestApiSignBit : public testing::Test {
     for (int i = 0; i < param.size; i++) {
       InT input = static_cast<InT>(distr(eng));
       param.src[i] = input;
-      param.exp[i] = std::signbit(param.src[i]) ? true : false;
+      param.exp[i] = std::signbit(param.src[i]) ? 1 : 0;
     }
   }
 
   template <typename InT>
   static void CreateBoundaryInput(TensorSignBitInputParam<InT> &param, const std::vector<InT> &boundaryValues) {
     param.size = boundaryValues.size();
-    param.y = static_cast<bool *>(AscendC::GmAlloc(sizeof(bool) * param.size));
-    param.exp = static_cast<bool *>(AscendC::GmAlloc(sizeof(bool) * param.size));
+    param.y = static_cast<uint8_t *>(AscendC::GmAlloc(sizeof(uint8_t) * param.size));
+    param.exp = static_cast<uint8_t *>(AscendC::GmAlloc(sizeof(uint8_t) * param.size));
     param.src = static_cast<InT *>(AscendC::GmAlloc(sizeof(InT) * param.size));
 
     for (size_t i = 0; i < boundaryValues.size(); i++) {
       param.src[i] = boundaryValues[i];
-      param.exp[i] = std::signbit(param.src[i]) ? true : false;
+      param.exp[i] = std::signbit(param.src[i]) ? 1 : 0;
     }
   }
 
-  static uint32_t Valid(bool *y, bool *exp, size_t comp_size) {
+  static uint32_t Valid(uint8_t *y, uint8_t *exp, size_t comp_size) {
     uint32_t diff_count = 0;
     for (uint32_t i = 0; i < comp_size; i++) {
       if (y[i] != exp[i]) {
@@ -105,6 +124,24 @@ class TestApiSignBit : public testing::Test {
     CreateTensorInput(param);
 
     auto kernel = [&param] { InvokeKernel(param); };
+
+    AscendC::SetKernelMode(KernelMode::AIV_MODE);
+    ICPU_RUN_KF(kernel, 1);
+
+    uint32_t diff_count = Valid(param.y, param.exp, param.size);
+    EXPECT_EQ(diff_count, 0);
+
+    FreeTensorInput(param);
+  }
+
+  // Test with bool output: U=bool path via ReinterpretCast
+  template <typename InT>
+  static void SignBitBoolOutputTest(const int32_t size) {
+    TensorSignBitInputParam<InT> param{};
+    param.size = size;
+    CreateTensorInput(param);
+
+    auto kernel = [&param] { InvokeKernelBoolOutput(param); };
 
     AscendC::SetKernelMode(KernelMode::AIV_MODE);
     ICPU_RUN_KF(kernel, 1);
@@ -152,6 +189,15 @@ TEST_F(TestApiSignBit, SignBit_Test_Int32_Boundary) {
   // 0: sign bit is 0, should return false
   // -0 (same as 0 in int32): sign bit is 0, should return false
   SignBitBoundaryTest<int32_t>({0, -0});
+}
+
+// Bool output tests: verify U=bool path with ReinterpretCast
+TEST_F(TestApiSignBit, SignBit_BoolOutput_Int32) {
+  SignBitBoolOutputTest<int32_t>(ONE_BLK_SIZE / sizeof(int32_t));
+}
+
+TEST_F(TestApiSignBit, SignBit_BoolOutput_Float) {
+  SignBitBoolOutputTest<float>(ONE_BLK_SIZE / sizeof(float));
 }
 
 }  // namespace af

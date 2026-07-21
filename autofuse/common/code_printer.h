@@ -13,7 +13,7 @@
 #include <string>
 #include <sstream>
 #include <climits>
-#include "ge_common_af/ge_api_types.h"
+#include "ge_common_af/ge_api_types_af.h"
 
 namespace ge {
 class CodePrinter {

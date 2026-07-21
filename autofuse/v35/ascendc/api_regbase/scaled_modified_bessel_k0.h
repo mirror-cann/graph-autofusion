@@ -11,8 +11,6 @@
 #ifndef __ASCENDC_API_REGBASE_SCALED_MODIFIED_BESSEL_K0_H__
 #define __ASCENDC_API_REGBASE_SCALED_MODIFIED_BESSEL_K0_H__
 
-#include "modified_bessel_k0.h"
-
 template <typename T, uint32_t currentIteration, uint32_t endIteration, uint32_t sliceNum>
 __simd_callee__ inline void ScaledModifiedBesselK0BigSliceCompute(AscendC::Reg::RegTensor<T> &srcReg,
                                                                   AscendC::Reg::RegTensor<T> &bigDstReg,

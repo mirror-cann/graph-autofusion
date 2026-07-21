@@ -14,7 +14,7 @@
 #include <mutex>
 #include <string>
 #include <unistd.h>
-#include "graph/types.h"
+#include "graph/types_af.h"
 
 namespace af {
 class ScreenPrinter {

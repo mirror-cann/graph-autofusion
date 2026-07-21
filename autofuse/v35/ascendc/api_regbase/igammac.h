@@ -11,11 +11,6 @@
 #ifndef __ASCENDC_API_REGBASE_IGAMMAC_H__
 #define __ASCENDC_API_REGBASE_IGAMMAC_H__
 
-#include "igammac_helper/asymptotic_series.h"
-#include "igammac_helper/continued_fraction.h"
-#include "igammac_helper/series.h"
-#include "igammac_helper/series_complement.h"
-
 namespace AscendC {
 namespace IGammaCInternal {
 

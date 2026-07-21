@@ -195,7 +195,7 @@ Status BuildVectorFunctionSubgraph(af::AscGraph &subgraph) {
   auto nd = subgraph.CreateAxis("nd", ND);
   auto [ndB, ndb] = subgraph.BlockSplit(nd.id);
   auto [ndbT, ndbt] = subgraph.TileSplit(ndb->id);
-  auto data1 = subgraph.CreateContiguousData("input1", DT_FLOAT, {*ndbt});
+  auto data1 = subgraph.CreateContiguousData("input1", DT_FLOAT, {*ndbt}, 0);
   auto load1 = Load("load1", data1);
   auto abs1 = Abs("abs1", load1);
   auto sub1 = Sub("sub1", abs1, abs1);
@@ -225,8 +225,7 @@ static Status BuildVectorFuncGraphS0(af::AscGraph &graph) {
   auto z0 = graph.CreateAxis("z0", S0);
   auto [z0B, z0b] = graph.BlockSplit(z0.id);
   auto [z0bT, z0bt] = graph.TileSplit(z0b->id);
-  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {z0});
-
+  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {z0}, 0);
   LOOP(*z0B) {
     LOOP(*z0bT) {
       auto load1 = Load("load1", data1).TQue(Position::kPositionVecIn, 1, 1);
@@ -251,8 +250,7 @@ static Status BuildVectorFuncGraphS0V1(af::AscGraph &graph) {
   auto z0 = graph.CreateAxis("z0", S0);
   auto [z0T, z0t] = graph.TileSplit(z0.id);
   auto [z0TB, z0Tb] = graph.BlockSplit(z0T->id);
-  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {z0});
-
+  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {z0}, 0);
   LOOP(*z0TB) {
     LOOP(*z0Tb) {
       auto load1 = Load("load1", data1).TQue(Position::kPositionVecIn, 1, 1);
@@ -313,8 +311,7 @@ Status BuildTwoGroupTestAscGraphCommon(af::AscGraph &graph, const std::string &z
   auto [z0z1TB, z0z1Tb] = graph.BlockSplit(z0z1T->id);
 
   std::vector<af::Axis> axes = {z0_axis, z1};
-  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, axes);
-
+  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, axes, 0);
   LOOP(*z0z1TB) {
     LOOP(*z0z1Tb) {
       auto load1 = Load("load1", data1).TQue(Position::kPositionVecIn, 1, 1);

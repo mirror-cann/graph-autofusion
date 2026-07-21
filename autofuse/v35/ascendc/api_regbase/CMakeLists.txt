@@ -14,6 +14,7 @@ set(ascendc_api_regbase_extend_src
         compare.h
         floor_div.h
         pow.h
+        polygamma.h
         split.h
         where.h
         erf.h
@@ -24,6 +25,7 @@ set(ascendc_api_regbase_extend_src
         sub.h
         div.h
         sign.h
+        signbit.h
         reduce_init.h
         atan2.h
         airy_ai.h
@@ -33,13 +35,16 @@ set(ascendc_api_regbase_extend_src
         fmod.h
         neg.h
         square.h
+        softmax_af.h
         trunc_div.h
         remainder.h
+        bessel_j_utils.h
         bessel_j0.h
         bessel_j1.h
         spherical_bessel_j0.h
         bessel_y0.h
         bessel_y1.h
+        bucketize.h
         modified_bessel_i0.h
         modified_bessel_i1.h
         modified_bessel_k0.h
@@ -62,17 +67,32 @@ set(ascendc_api_regbase_extend_src
         shifted_chebyshev_polynomial_v.h
         shifted_chebyshev_polynomial_w.h
         ndtr.h
+        log_ndtr.h
         next_after.h
         i0.h
+        hermite_polynomial_h.h
+        hermite_polynomial_he.h
+        igammac_helper/series.h
+        igammac_helper/continued_fraction.h
+        igammac_helper/asymptotic_series.h
+        igammac_helper/series_complement.h
+        hypot.h
 )
 
 set(generated_regbase_files)
 
 foreach(header ${ascendc_api_regbase_extend_src})
     string(REGEX REPLACE "\\.h$" "_reg_base.h" str_header ${header})
+    get_filename_component(output_subdir ${str_header} DIRECTORY)
+    if(output_subdir)
+        set(make_dir_cmd COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_BINARY_DIR}/${output_subdir})
+    else()
+        set(make_dir_cmd)
+    endif()
     add_custom_command(
             OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${str_header}
             WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+            ${make_dir_cmd}
             COMMAND cat ${header}
             | sed "'1i\\R\"===('"
             | sed "'$$a\\)===\"'"

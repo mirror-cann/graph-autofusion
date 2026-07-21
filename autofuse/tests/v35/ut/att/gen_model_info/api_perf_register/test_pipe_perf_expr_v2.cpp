@@ -30,7 +30,7 @@ Status BuildVectorFunctionSubgraph(af::AscGraph &subgraph) {
   auto nd = subgraph.CreateAxis("nd", ND);
   auto [ndB, ndb] = subgraph.BlockSplit(nd.id);
   auto [ndbT, ndbt] = subgraph.TileSplit(ndb->id);
-  auto data1 = subgraph.CreateContiguousData("input1", DT_FLOAT, {*ndbt});
+  auto data1 = subgraph.CreateContiguousData("input1", DT_FLOAT, {*ndbt}, 0);
   auto load1 = Load("load1", data1);
   auto abs1 = Abs("abs1", load1);
   auto sub1 = Sub("sub1", abs1, abs1);
@@ -44,7 +44,7 @@ Status BuildConcatGroupAscendGraphS0WithVectorFunc(af::AscGraph &graph) {
   auto z0 = graph.CreateAxis("z0", S0);
   auto [z0B, z0b] = graph.BlockSplit(z0.id);
   auto [z0bT, z0bt] = graph.TileSplit(z0b->id);
-  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {z0});
+  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {z0}, 0);
   LOOP(*z0B) {
     LOOP(*z0bT) {
       auto load1 = Load("load1", data1).TQue(Position::kPositionVecIn, 1, 1);

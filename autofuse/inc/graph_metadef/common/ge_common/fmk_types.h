@@ -11,7 +11,7 @@
 #ifndef INC_COMMON_FMK_TYPES_H_
 #define INC_COMMON_FMK_TYPES_H_
 
-#include "graph/types.h"
+#include "graph/types_af.h"
 #include "register/register_types.h"
 
 #endif  // INC_COMMON_FMK_TYPES_H_

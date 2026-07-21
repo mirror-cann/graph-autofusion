@@ -14,8 +14,8 @@
 #include <cstdint>
 #include <functional>
 
-#include "ge_common_af/ge_api_types.h"
-#include "graph/gnode.h"
+#include "ge_common_af/ge_api_types_af.h"
+#include "graph/gnode_af.h"
 #include "graph/node.h"
 
 namespace af {

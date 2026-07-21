@@ -12,7 +12,7 @@
 
 #include "ascir_ops.h"
 
-#include "graph/operator_reg.h"
+#include "graph/operator_reg_af.h"
 
 #include "ascir_utils.h"
 #include "test_util.h"

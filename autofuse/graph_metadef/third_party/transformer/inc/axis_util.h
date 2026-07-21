@@ -14,7 +14,7 @@
 #include <memory.h>
 #include <array>
 #include <map>
-#include "graph/types.h"
+#include "graph/types_af.h"
 #include "graph/utils/math_util.h"
 #include "exe_graph/runtime/shape.h"
 

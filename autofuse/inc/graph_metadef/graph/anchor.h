@@ -16,7 +16,7 @@
 #include <memory>
 #include "graph/ge_error_codes.h"
 #include "graph/range_vistor.h"
-#include "graph/types.h"
+#include "graph/types_af.h"
 #include "node.h"
 
 namespace af {

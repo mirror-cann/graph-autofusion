@@ -11,7 +11,7 @@
 #ifndef INC_EXTERNAL_REGISTER_OP_CONFIG_REGISTRY_H_
 #define INC_EXTERNAL_REGISTER_OP_CONFIG_REGISTRY_H_
 
-#include "register/op_def.h"
+#include "register/op_def_af.h"
 
 namespace ops {
 using OpAICoreConfigFunc = OpAICoreConfig (*)();

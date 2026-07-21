@@ -15,7 +15,7 @@
 #include "graph/ge_error_codes.h"
 #include "platform/platform_info.h"
 #include "graph/utils/type_utils.h"
-#include "graph/types.h"
+#include "graph/types_af.h"
 #include "expand_dimension.h"
 
 namespace transformer {
@@ -733,7 +733,7 @@ bool TransferShapeUtils::GetFzC04ShapeByAxisValue(const AxisValue &axis_value, g
 bool TransferShapeUtils::GetFznRNNShapeByAxisValue(const AxisValue &axis_value, gert::Shape &shape) {
   size_t origin_shape_size = shape.GetDimNum();
   CHECK(origin_shape_size < DIM_SIZE_TWO, GELOGW("The number of dimensions in ndValue is less than 2!"), return true);
-  /* check nd shape value */
+  /* Check ND shape value. */
   int64_t k_value = shape.GetDim(origin_shape_size - MINUS_VALUE_TWO);
   int64_t hidden_or_state_size = axis_value[AXIS_HIDDEN_SIZE];
   if (axis_value[AXIS_STATE_SIZE] != RNN_STATE_SIZE_DEFAULT_VALUE) {
@@ -764,7 +764,7 @@ bool TransferShapeUtils::GetFznRNNShapeByAxisValue(const AxisValue &axis_value, 
 bool TransferShapeUtils::GetNDRNNShapeByAxisValue(const AxisValue &axis_value, gert::Shape &shape) {
   CHECK(axis_value[AXIS_HIDDEN_SIZE] == 0, GELOGD("hidden_size is zero"), return true);
   size_t size_of_original_vec = shape.GetDimNum();
-  /* check nd shape value */
+  /* Check ND shape value. */
   int64_t n_num = shape.GetDim(size_of_original_vec - MINUS_VALUE_ONE) / axis_value[AXIS_HIDDEN_SIZE];
   MUL_OVERFLOW(n_num, DivisionCeiling(axis_value[AXIS_HIDDEN_SIZE], axis_value[AXIS_C0]), n_num);
   MUL_OVERFLOW(n_num, axis_value[AXIS_C0], n_num);
@@ -1124,7 +1124,7 @@ bool TransferShapeUtils::GetFractalZnRnnShape(const ExtAxisValue &ext_axis, cons
   for (size_t i = 0; i < origin_shape_size - DIM_SIZE_TWO; i++) {
     shape.AppendDim(origin_shape.GetDim(i));
   }
-  /* check nd shape value */
+  /* Check ND shape value. */
   int64_t k_value = origin_shape.GetDim(origin_shape_size - MINUS_VALUE_TWO);
   int64_t hidden_or_state_size = ext_axis[EXT_INDEX_HIDDEN_SIZE];
   if (ext_axis[EXT_INDEX_STATE_SIZE] != RNN_STATE_SIZE_DEFAULT_VALUE) {
@@ -1159,7 +1159,7 @@ bool TransferShapeUtils::GetNdRnnBiasShape(const ExtAxisValue &ext_axis, const i
   for (size_t i = 0; i < size_of_original_vec - MINUS_VALUE_ONE; i++) {
     shape.AppendDim(origin_shape.GetDim(i));
   }
-  /* check nd shape value */
+  /* Check ND shape value. */
   int64_t n_num = origin_shape.GetDim(size_of_original_vec - MINUS_VALUE_ONE) / ext_axis[EXT_INDEX_HIDDEN_SIZE];
   MUL_OVERFLOW(n_num, DivisionCeiling(ext_axis[EXT_INDEX_HIDDEN_SIZE], c0), n_num);
   MUL_OVERFLOW(n_num, c0, n_num);
@@ -1235,11 +1235,11 @@ bool TransferShapeUtils::TransferDims(const TransferDimsInfo &transfer_dims_info
 }
 
 /**
- * nd-to-nd
+ * ND-to-ND
  * The aligned value for each axis is set to 1.
  **/
 bool TransferShapeUtils::GetNdToNdAlignedShape(const AlignShapeInfo &align_shape_info, gert::Shape &aligned_shape) {
-  GELOGD("There are no alignment requirements for the nd-to-nd scenario.");
+  GELOGD("There are no alignment requirements for the ND-to-ND scenario.");
   (void)aligned_shape.SetDimNum(align_shape_info.src_shape.GetDimNum());
   for (size_t i = 0; i < align_shape_info.src_shape.GetDimNum(); ++i) {
     (void)aligned_shape.SetDim(i, 1);
@@ -1248,7 +1248,7 @@ bool TransferShapeUtils::GetNdToNdAlignedShape(const AlignShapeInfo &align_shape
 }
 
 /**
- * nd-to-nz
+ * ND-to-NZ
  * eg: ND(n, a, b) -> NZ(n, b//c0, a//m0, m0, c0)
  *           |
  *        target
@@ -1259,12 +1259,12 @@ bool TransferShapeUtils::GetNdToNdAlignedShape(const AlignShapeInfo &align_shape
 bool TransferShapeUtils::GetNdToNzAlignedShape(const AlignShapeInfo &align_shape_info, gert::Shape &aligned_shape) {
   size_t src_shape_dim_num = align_shape_info.src_shape.GetDimNum();
   if (src_shape_dim_num < kNzMinDimNum) {
-    GELOGW("The src_shape_dim_num %zu is invalid for the nd-to-nz scenario.", src_shape_dim_num);
+    GELOGW("The src_shape_dim_num %zu is invalid for the ND-to-NZ scenario.", src_shape_dim_num);
     return false;
   }
   ge::Format format = static_cast<ge::Format>(ge::GetPrimaryFormat(align_shape_info.dst_format));
   if (kFormatNZSet.count(format) == 0) {
-    GELOGW("Unsupported dst_format %s for nd-to-nz scenario.",
+    GELOGW("Unsupported dst_format %s for ND-to-NZ scenario.",
            ge::TypeUtils::FormatToSerialString(align_shape_info.dst_format).c_str());
     return false;
   }
@@ -1357,7 +1357,7 @@ bool TransferShapeUtils::GetNotFullSizeAlignedShape(const AlignShapeInfo &align_
 }
 
 /**
- * nd-to-nd
+ * ND-to-ND
  * No change.
  **/
 bool TransferShapeUtils::GetNdToNdAxisIndexMapping(const TransferDimsInfo &transfer_dims_info,
@@ -1372,7 +1372,7 @@ bool TransferShapeUtils::GetNdToNdAxisIndexMapping(const TransferDimsInfo &trans
 }
 
 /**
- * nd-to-nz
+ * ND-to-NZ
  * eg: ND(n, a, b) -> NZ(n, b//c0, a//m0, m0, c0)
  *           |
  *        target
@@ -1384,12 +1384,12 @@ bool TransferShapeUtils::GetNdToNzAxisIndexMapping(const TransferDimsInfo &trans
                                                    AxisIndexMapping &axis_index_mapping) {
   size_t src_shape_dim_num = transfer_dims_info.src_shape.GetDimNum();
   if (src_shape_dim_num < kNzMinDimNum) {
-    GELOGW("The src_shape_dim_num %zu is invalid for the nd-to-nz scenario.", src_shape_dim_num);
+    GELOGW("The src_shape_dim_num %zu is invalid for the ND-to-NZ scenario.", src_shape_dim_num);
     return false;
   }
   ge::Format format = static_cast<ge::Format>(GetPrimaryFormat(transfer_dims_info.dst_format));
   if (kFormatNZSet.count(format) == 0) {
-    GELOGW("Unsupported dst_format %s for nd-to-nz scenario.",
+    GELOGW("Unsupported dst_format %s for ND-to-NZ scenario.",
            ge::TypeUtils::FormatToSerialString(transfer_dims_info.dst_format).c_str());
     return false;
   }

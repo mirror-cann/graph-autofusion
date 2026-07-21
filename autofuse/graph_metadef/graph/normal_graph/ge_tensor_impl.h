@@ -20,7 +20,7 @@
 #include "graph/ge_error_codes.h"
 #include "proto/af_ir.pb.h"
 #include "graph/ge_tensor.h"
-#include "graph/types.h"
+#include "graph/types_af.h"
 
 namespace af {
 class GeTensorDescImpl {

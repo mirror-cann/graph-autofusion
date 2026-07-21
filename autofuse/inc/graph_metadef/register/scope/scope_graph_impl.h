@@ -12,8 +12,8 @@
 #define REGISTER_SCOPE_SCOPE_GRAPH_IMPL_H
 
 #include "register/scope/scope_fusion_pass_register.h"
-#include "graph/types.h"
-#include "graph/operator_factory.h"
+#include "graph/types_af.h"
+#include "graph/operator_factory_af.h"
 #include "proto/tensorflow/graph.pb.h"
 #include "proto/tensorflow/node_def.pb.h"
 #include "graph/utils/type_utils.h"

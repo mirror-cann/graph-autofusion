@@ -49,6 +49,29 @@ Status DoCopyAscNodeTensorAttr(const af::AscNodePtr &cube_node, af::AscNodePtr &
   return af::SUCCESS;
 }
 
+Status DoCopyInputDataTensorAttr(const af::AscNodePtr &producer_node, af::AscNodePtr &data_node) {
+  GE_ASSERT_NOTNULL(producer_node);
+  GE_ASSERT_NOTNULL(data_node);
+  auto op_desc = data_node->GetOpDesc();
+  GE_CHECK_NOTNULL(op_desc);
+  GE_CHECK_NOTNULL(producer_node->GetOpDesc());
+  GE_CHECK_NOTNULL(op_desc->MutableOutputDesc(0));
+  auto tensor_attr_group = op_desc->MutableOutputDesc(0)->GetOrCreateAttrsGroup<af::AscTensorAttr>();
+  GE_CHECK_NOTNULL(tensor_attr_group);
+  auto dst_asc_node_attr = op_desc->GetOrCreateAttrsGroup<af::AscNodeAttr>();
+  auto src_asc_node_attr = producer_node->GetOpDesc()->GetOrCreateAttrsGroup<af::AscNodeAttr>();
+  if ((src_asc_node_attr != nullptr) && (dst_asc_node_attr != nullptr)) {
+    dst_asc_node_attr->sched = src_asc_node_attr->sched;
+  }
+
+  const auto &output_attr = producer_node->outputs[0].attr;
+  tensor_attr_group->dtype = output_attr.dtype;
+  tensor_attr_group->axis = output_attr.axis;
+  tensor_attr_group->repeats = output_attr.repeats;
+  tensor_attr_group->strides = output_attr.strides;
+  return af::SUCCESS;
+}
+
 Status DoCopyAscNodeTensorAttr(const af::AscNodePtr &cube_node, const af::AscNodePtr &cube_next_node,
                                af::AscNodePtr &load_node) {
   GE_ASSERT_NOTNULL(cube_next_node);
@@ -244,6 +267,28 @@ bool HasBroadCastNode(const ascir::ImplGraph &impl_graph) {
   }
   return false;
 }
+
+Status FillInputDataAttrForCvGraph(af::AscGraph &graph) {
+  for (auto node : graph.GetAllNodes()) {
+    GE_ASSERT_NOTNULL(node);
+    if (!af::ops::IsOps<af::ascir_op::Data>(node)) {
+      continue;
+    }
+    const auto &output_attr = node->outputs[0].attr;
+    if (!output_attr.repeats.empty() && !output_attr.strides.empty()) {
+      continue;
+    }
+    for (const auto &out_node : node->GetOutNodes()) {
+      auto out_asc_node = std::dynamic_pointer_cast<af::AscNode>(out_node);
+      if (out_asc_node == nullptr || !ScheduleUtils::IsLoad(out_asc_node)) {
+        continue;
+      }
+      GE_ASSERT_SUCCESS(DoCopyInputDataTensorAttr(out_asc_node, node));
+      break;
+    }
+  }
+  return af::SUCCESS;
+}
 }  // namespace
 
 Status CubeFusionCaseGenerator::GenerateGeneralCase(ascir::HintGraph &graph, std::vector<ascir::ImplGraph> &graphs) {
@@ -324,6 +369,7 @@ Status CubeFusionCaseGenerator::GenerateGeneralCase(ascir::HintGraph &graph, std
   }
   ascir::utils::DumpGraph(graph, "before_partition");
   ascir::utils::DumpGraph(optimize_graph, "after_partition");
+  GE_ASSERT_SUCCESS(FillInputDataAttrForCvGraph(optimize_graph));
   graphs.emplace_back(optimize_graph);
   return af::GRAPH_SUCCESS;
 }

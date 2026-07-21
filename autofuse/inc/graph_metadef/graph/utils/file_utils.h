@@ -13,9 +13,9 @@
 
 #include <cstdint>
 #include <string>
-#include "graph/types.h"
+#include "graph/types_af.h"
 #include "graph/ge_error_codes.h"
-#include "ge_common_af/ge_api_types.h"
+#include "ge_common_af/ge_api_types_af.h"
 #include "mmpa/mmpa_api.h"
 
 namespace af {

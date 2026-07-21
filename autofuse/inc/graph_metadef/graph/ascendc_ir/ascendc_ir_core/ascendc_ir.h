@@ -17,7 +17,7 @@
 #include "graph/anchor.h"
 #include "graph/compute_graph.h"
 #include "graph/utils/op_desc_utils.h"
-#include "graph/operator.h"
+#include "graph/operator_af.h"
 #include "graph/utils/type_utils.h"
 #include "ascendc_ir/ascendc_ir_check.h"
 #include "graph/expression/const_values.h"
@@ -591,11 +591,10 @@ class AscGraph {
   bool CheckValid() const;
 
   AscOpOutput CreateContiguousData(const char *name, const ge::DataType &dt, const std::vector<Axis> &axes,
-                                   const ge::Format &format = ge::FORMAT_ND);
+                                   const size_t index, const ge::Format &format = ge::FORMAT_ND);
 
   AscOpOutput CreateContiguousOut(const char *name, const ge::DataType &dt, const std::vector<Axis> &axes,
                                   const ge::Format &format = ge::FORMAT_ND);
-  void SortByExecOrder();
   bool CopyFrom(const AscGraph &graph);
   bool CopyAttrFrom(const AscGraph &src_graph);
   static bool CopyAscNodeTensorAttr(const AscNodePtr &src_node, AscNodePtr &dst_node);
@@ -606,7 +605,6 @@ class AscGraph {
  private:
   bool CheckExprValid() const;
   bool CheckAxisValid() const;
-  bool CheckExecOrderValid() const;
   bool CheckTensorValid() const;
   bool CheckNodeConnectionValid() const;
   std::shared_ptr<AscGraphImpl> impl_;

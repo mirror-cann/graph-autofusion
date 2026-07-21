@@ -20,9 +20,11 @@ namespace optimize {
 Status GatherToLoadPass::RunPass(af::AscGraph &graph) {
   for (auto node : graph.GetAllNodes()) {
     if (ScheduleUtils::IsGather(node)) {
-      GELOGD("gather node name %s Type %s compute type %d", node->GetNamePtr(), node->GetType().c_str(),
-             node->attr.api.compute_type);
+      const auto original_compute_type = node->attr.api.compute_type;
       node->attr.api.compute_type = af::ComputeType::kComputeLoad;
+      GELOGD("[DFX] GatherToLoad: graph=%s, node=%s, op_type=%s, compute_type=%d->%d", graph.GetName().c_str(),
+             node->GetNamePtr(), node->GetType().c_str(), static_cast<int32_t>(original_compute_type),
+             static_cast<int32_t>(node->attr.api.compute_type));
     }
   }
   return af::SUCCESS;

@@ -12,7 +12,7 @@
 #define METADEF_GRAPH_SERIALIZATION_UTILS_SERIALIZATION_UTIL_H_
 
 #include "proto/af_ir.pb.h"
-#include "graph/types.h"
+#include "graph/types_af.h"
 
 namespace af {
 

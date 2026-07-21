@@ -12,7 +12,7 @@
 #define COMMON_UTILS_TRANSFORMER_INC_TRANSFER_SHAPE_ACCORDING_TO_FORMAT_EXT_H_
 
 #include <memory>
-#include "graph/types.h"
+#include "graph/types_af.h"
 #include "transfer_def.h"
 
 namespace transformer {

@@ -45,8 +45,47 @@ SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 SRC=${SRC:-$(cd "$SCRIPT_DIR/../../.." && pwd)}
 # 持久 build 目录：默认放项目根目录下（方便查找，已在 .gitignore）。
 BUILD=${BUILD:-${AFMLIR_BUILD:-$SRC/build-afmlir-demo}}
-IMAGE=${IMAGE:-swr.cn-east-2.myhuaweicloud.com/ascendmlir/autofuse-mlir-dev:arm64}
+
+# --- 根据系统架构自动选择镜像 -----------------------------------------------
+# 支持通过环境变量 IMAGE 覆盖，否则根据架构自动选择
+detect_arch() {
+  local arch=$(uname -m)
+  case "$arch" in
+    x86_64|i686|i386)
+      echo "x86_64"
+      ;;
+    aarch64|arm64)
+      echo "arm64"
+      ;;
+    *)
+      echo "unknown"
+      ;;
+  esac
+}
+
+ARCH=${ARCH:-$(detect_arch)}
+case "$ARCH" in
+  x86_64)
+    DEFAULT_IMAGE="swr.cn-east-2.myhuaweicloud.com/ascendmlir/autofuse-mlir-dev:x86_64"
+    CANN_ARCH="x86_64-linux"
+    ;;
+  *)
+    DEFAULT_IMAGE="swr.cn-east-2.myhuaweicloud.com/ascendmlir/autofuse-mlir-dev:arm64"
+    CANN_ARCH="aarch64-linux"
+    [ "$ARCH" != "arm64" ] && echo "警告：未知的系统架构 '$ARCH'，请手动设置 IMAGE 环境变量" >&2
+    ;;
+esac
+IMAGE=${IMAGE:-$DEFAULT_IMAGE}
+echo "检测到系统架构: $ARCH，使用镜像: $IMAGE"
+
+# CANN_VOL 支持：docker卷名 或 本地CANN路径
 CANN_VOL=${CANN_VOL:-af-cann-910}
+# 检测 CANN_VOL 是本地目录还是 docker volume
+if [ -d "$CANN_VOL" ]; then
+  echo "使用本地 CANN: $CANN_VOL"
+else
+  echo "使用 CANN docker 卷: $CANN_VOL"
+fi
 # 真机 SSH 环境文件：无通用默认（连接信息因人而异），仅 realnpu 子命令用到。
 REALNPU_ENV=${REALNPU_ENV:-}
 
@@ -72,14 +111,14 @@ do_schedule() {
   docker run --rm -v "$SRC":/workspace -v "$BUILD":/build \
     -v "$CANN_VOL":/opt/cann:ro -w /workspace/autofuse "$IMAGE" bash -lc '
     set -e
-    DB=/workspace/docker-build/autofuse
+    DB=/workspace/build/autofuse
     PKG=/tmp/pypkg
-    CANN=/opt/cann/aarch64-linux
+    CANN=/opt/cann/'"$CANN_ARCH"'
     mkdir -p $PKG/autofuse /build/afir_dump
     cp -f $DB/compiler/py_module/pyautofuse.so $PKG/autofuse/pyautofuse.so
     cp -f /workspace/autofuse/compiler/python/*.py $PKG/autofuse/ 2>/dev/null || true
     export PYTHONPATH=$PKG:$PYTHONPATH
-    export LD_LIBRARY_PATH=$DB:$DB/compiler/py_module:$DB/ascir/generator:$DB/ascir/meta:$DB/graph_metadef/graph:$DB/graph_metadef/graph/ascendc_ir:$DB/graph_metadef/graph/ascendc_ir/generator:$DB/graph_metadef/graph/expression:$CANN/lib64:$CANN/devlib/device:$LD_LIBRARY_PATH
+    export LD_LIBRARY_PATH=$DB:$DB/compiler/py_module:$DB/ascir/generator:$DB/ascir/meta:$DB/graph_metadef/graph:$DB/graph_metadef/graph/ascendc_ir:$DB/graph_metadef/graph/ascendc_ir/generator:$DB/graph_metadef/graph/expression:$CANN/lib64:$CANN/devlib/linux/$CANN_ARCH:$CANN/devlib/device:$LD_LIBRARY_PATH
     cd /workspace/autofuse/tests/ut/python
     AF_MLIR_AFIR_DUMP_DIR=/build/afir_dump \
       python3 -m pytest -s -q "test_python_ascir.py::TestAutofuseLoadAddStore::test_codegen" 2>&1 | tail -3
@@ -115,7 +154,6 @@ set(ENABLE_AUTOFUSE_MLIR ON CACHE BOOL "" FORCE)
 add_subdirectory(/workspace/autofuse/mlir ${CMAKE_BINARY_DIR}/mlir)
 EOF
   docker run --rm -v "$SRC":/workspace \
-    -v "$SRC/autofuse/mlir/.artifacts/llvm-from-current-image":/opt/llvm:ro \
     -v "$BUILD":/build -w /workspace "$IMAGE" bash -lc '
     cmake -G Ninja -S /build/wrap -B /build/b \
       -DMLIR_DIR=/opt/llvm/lib/cmake/mlir -DLLVM_DIR=/opt/llvm/lib/cmake/llvm
@@ -149,7 +187,7 @@ do_pipeline() {
 do_sim() {
   echo "== [sim] CPU 功能仿真（全量数值校验）=="
   dkc '
-  H=/opt/cann/aarch64-linux; CPUD=/opt/cann/tools/cpudebug; SOCL=$CPUD/lib64/Ascend910B1
+  H=/opt/cann/'"$CANN_ARCH"'; CPUD=/opt/cann/tools/cpudebug; SOCL=$CPUD/lib64/Ascend910B1
   INC="-isystem $CPUD/include -isystem $H/asc -isystem $H/asc/include -isystem $H/asc/include/basic_api -isystem $H/asc/include/interface -isystem $H/asc/include/utils -isystem $H/include"
   # 关键：-D_GLIBCXX_USE_CXX11_ABI=0 与 cpudebug 库的旧 ABI 匹配
   $H/bin/ccec --run-mode=cpu -std=c++17 -D_GLIBCXX_USE_CXX11_ABI=0 \
@@ -168,7 +206,7 @@ do_sim() {
 do_kernelbin() {
   echo "== [kernel.bin] bisheng -> aicore ELF =="
   dkc '
-  C=/opt/cann/aarch64-linux; T=$C/tikcpp/tikcfw
+  C=/opt/cann/'"$CANN_ARCH"'; T=$C/tikcpp/tikcfw
   $C/bin/bisheng -c -x cce --cce-aicore-arch=dav-c220-vec --cce-aicore-only -std=c++17 \
     --cce-disable-kernel-global-attr-check \
     -mllvm -cce-aicore-stack-size=0x8000 -mllvm -cce-aicore-function-stack-size=0x8000 \
@@ -186,7 +224,7 @@ do_camodel() {
   # 拷贝 kernel.bin 到 camodel 目录
   cp "$GEN/kernel.bin" "$CAMODEL/"
   dkc '
-  H=/opt/cann/aarch64-linux
+  H=/opt/cann/'"$CANN_ARCH"'
   g++ -std=c++17 -O0 launcher.cpp -ldl -o launcher_cam
   export LD_LIBRARY_PATH=$H/simulator/dav_2201/lib:$H/simulator/Ascend910B1/lib:$H/lib64:$H/devlib/device
   ./launcher_cam $H/simulator/dav_2201/lib/libruntime_camodel.so 2>&1 | grep -iE "PASS|FAIL|total=|ALL|runtime lib"

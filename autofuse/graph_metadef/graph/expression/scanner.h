@@ -15,7 +15,7 @@
 #include <vector>
 #include <map>
 #include <array>
-#include "graph/types.h"
+#include "graph/types_af.h"
 #include "graph/ge_error_codes.h"
 
 namespace af {

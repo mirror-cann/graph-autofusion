@@ -22,7 +22,7 @@
 #include "graph/ge_error_codes.h"
 #include "graph/ge_tensor.h"
 #include "graph/any_value.h"
-#include "graph/attr_value.h"
+#include "graph/attr_value_af.h"
 
 using std::map;
 using std::string;

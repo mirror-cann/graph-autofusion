@@ -12,10 +12,10 @@
 #include <stdexcept>
 #include "graph/ge_global_options.h"
 #include "graph/ge_local_context.h"
-#include "graph/types.h"
+#include "graph/types_af.h"
 #include "framework/common/debug/ge_log.h"
 #include "utils/extern_math_util.h"
-#include "ge_common_af/ge_api_types.h"
+#include "ge_common_af/ge_api_types_af.h"
 
 namespace af {
 namespace {

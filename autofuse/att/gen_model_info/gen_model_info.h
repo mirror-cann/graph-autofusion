@@ -26,6 +26,9 @@ af::Status GenerateModelInfo(const af::AscGraph &graph, ModelInfo &model_info, T
 af::Status GenerateModelInfo(const std::vector<af::AscGraph> &graph_list, std::vector<ModelInfo> &model_info_list);
 af::Status GenerateModelInfo(const std::vector<af::AscGraph> &graph_list, std::vector<ModelInfo> &model_info_list,
                              const std::map<std::string, std::string> &options, bool enable_group_parallel = false);
+af::Status GenerateModelInfo(const std::vector<af::AscGraph> &graph_list, std::vector<ModelInfo> &model_info_list,
+                             const std::map<std::string, std::string> &options, bool enable_group_parallel,
+                             bool enable_gather_reduce_penalty);
 af::Status GetModelInfoMap(const ascir::FusedScheduledResult &schedule_results,
                            const std::map<std::string, std::string> &options,
                            std::map<size_t, std::map<size_t, ParsedScheduleResult>> &out_all_model_infos);

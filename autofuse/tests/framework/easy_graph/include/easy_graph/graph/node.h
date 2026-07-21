@@ -13,7 +13,7 @@
 
 #include <vector>
 #include "easy_graph/graph/node_id.h"
-#include "easy_graph/infra/operator.h"
+#include "easy_graph/infra/easy_graph_operator_af.h"
 #include "easy_graph/infra/ext_traits.h"
 #include "easy_graph/graph/box.h"
 

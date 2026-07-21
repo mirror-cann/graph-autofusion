@@ -15,7 +15,7 @@
 #include <memory>
 #include <string>
 #include <vector>
-#include "graph/types.h"
+#include "graph/types_af.h"
 #include "detail/attributes_holder.h"
 #include "graph/buffer.h"
 #include "graph_metadef/graph/aligned_ptr.h"

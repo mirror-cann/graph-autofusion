@@ -136,8 +136,8 @@ Status BuildTransposeAscendGraph(ge::AscGraph &graph, const std::vector<int64_t>
   auto [z0T, z0t] = graph.TileSplit(z0.id);
   auto [z0TB, z0Tb] = graph.BlockSplit(z0T->id);
 
-  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {z0, z1, z2}, FORMAT_ND);
-  auto data2 = graph.CreateContiguousData("input2", DT_FLOAT, {z0, z1, z2}, FORMAT_ND);
+  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {z0, z1, z2}, 0, FORMAT_ND);
+  auto data2 = graph.CreateContiguousData("input2", DT_FLOAT, {z0, z1, z2}, 1, FORMAT_ND);
 
   // 根据原始维度设置repeats和strides
   *data1.repeats = {s0, s1, s2};
@@ -209,8 +209,8 @@ Status BuildTransposeSplitAscendGraph(ge::AscGraph &graph) {
   auto [z0T, z0t] = graph.TileSplit(z0.id);
   auto [z0TB, z0Tb] = graph.BlockSplit(z0T->id);
 
-  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {z0, z1, z2}, FORMAT_ND);
-  auto data2 = graph.CreateContiguousData("input2", DT_FLOAT, {z0, z1, z2}, FORMAT_ND);
+  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {z0, z1, z2}, 0, FORMAT_ND);
+  auto data2 = graph.CreateContiguousData("input2", DT_FLOAT, {z0, z1, z2}, 1, FORMAT_ND);
 
   // 根据原始维度设置repeats和strides
   *data1.repeats = {s0, s1, s2};
@@ -284,7 +284,7 @@ Status Build4DTransposeAscendGraph(ge::AscGraph &graph, const std::vector<int64_
   auto [z0T, z0t] = graph.TileSplit(z0.id);
   auto [z0TB, z0Tb] = graph.BlockSplit(z0T->id);
 
-  auto data = graph.CreateContiguousData("input", DT_FLOAT, {z0, z1, z2, z3}, FORMAT_ND);
+  auto data = graph.CreateContiguousData("input", DT_FLOAT, {z0, z1, z2, z3}, 0, FORMAT_ND);
 
   // 根据原始维度设置repeats和strides
   *data.repeats = {s0, s1, s2, s3};
@@ -332,8 +332,8 @@ Status BuildFlashSoftmaxAscendGraph(ge::AscGraph &graph) {
   auto nd = graph.CreateAxis("nd", ND);
   auto [ndB, ndb] = graph.BlockSplit(nd.id);
   auto [ndbT, ndbt] = graph.TileSplit(ndb->id);
-  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {nd});
-  auto data2 = graph.CreateContiguousData("input2", DT_FLOAT, {nd});
+  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {nd}, 0);
+  auto data2 = graph.CreateContiguousData("input2", DT_FLOAT, {nd}, 1);
   LOOP(*ndB) {
     LOOP(*ndbT) {
       auto load1 = Load("load1", data1).TQue(Position::kPositionVecIn, 1, 1);
@@ -362,8 +362,8 @@ Status BuildWorkSpaceAscendGraph(ge::AscGraph &graph) {
   auto nd = graph.CreateAxis("nd", ND);
   auto [ndB, ndb] = graph.BlockSplit(nd.id);
   auto [ndbT, ndbt] = graph.TileSplit(ndb->id);
-  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {nd});
-  auto data2 = graph.CreateContiguousData("input2", DT_FLOAT, {nd});
+  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {nd}, 0);
+  auto data2 = graph.CreateContiguousData("input2", DT_FLOAT, {nd}, 1);
   LOOP(*ndB) {
     LOOP(*ndbT) {
       auto load1 = Workspace("workspace1", data1).TQue(Position::kPositionVecIn, 1, 1);
@@ -395,7 +395,7 @@ Status BuildTilingReduceAscendGraph(ge::AscGraph &graph) {
   auto [rT, rt] = graph.TileSplit(r.id);
   auto [rTB, rTb] = graph.BlockSplit(rT->id);
   auto [aT, at] = graph.TileSplit(a.id);
-  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {r, a});
+  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {r, a}, 0);
   LOOP(*rT) {
     LOOP(*rTB) {
       LOOP(*rTb) {
@@ -428,8 +428,8 @@ Status BuildMatMulDemoAscendGraph(ge::AscGraph &graph) {
   auto nd = graph.CreateAxis("nd", ND);
   auto [ndB, ndb] = graph.BlockSplit(nd.id);
   auto [ndbT, ndbt] = graph.TileSplit(ndb->id);
-  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {nd});
-  auto data2 = graph.CreateContiguousData("input2", DT_FLOAT, {nd});
+  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {nd}, 0);
+  auto data2 = graph.CreateContiguousData("input2", DT_FLOAT, {nd}, 1);
   LOOP(*ndB) {
     LOOP(*ndbT) {
       auto load1 = Load("load1", data1).TQue(Position::kPositionVecIn, 1, 1);

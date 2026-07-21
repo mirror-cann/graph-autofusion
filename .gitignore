@@ -67,3 +67,5 @@ autofuse/mlir/.deps/
 /autofuse/CLAUDE.md
 /afmlir-build/
 /build-afmlir-demo/
+# AOT reports
+oat_reports/

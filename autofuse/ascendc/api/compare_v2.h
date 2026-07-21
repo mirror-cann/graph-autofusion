@@ -45,9 +45,10 @@ inline __aicore__ void CompareNormalNoLoop(const AscendC::LocalTensor<uint8_t> &
   // 使用位掩码修正法：result = NE_mask | is_nan0 | is_nan1
   // 其中 is_nan = ~Compare(x, x, EQ)，通过Not翻转EQ结果得到
   if constexpr ((AscendC::IsSameType<T, float>::value || AscendC::IsSameType<T, half>::value) && mode == CMPMODE::NE) {
-    uint32_t elements_per_repeat = ONE_REPEAT_BYTE_SIZE / sizeof(T);
     uint32_t select_bits_per_repeat = ONE_REPEAT_BYTE_SIZE / sizeof(half);
     uint8_t cast_dst_blk_stride = dst_repeat_stride;
+    const bool src1_is_scalar = src1.GetSize() * sizeof(T) == 32;
+    const uint32_t src_offset_per_repeat = static_cast<uint32_t>(src_repeat_stride) * ONE_BLK_SIZE / sizeof(T);
     // compare_out的bit数按int16对齐（Not/Or只支持int16），每个int16包含16个比较bit
     uint32_t mask_int16_count = (compare_element_num + kShortBitWidth - 1) / kShortBitWidth;
     // nan_buf复用select_out空间（步骤1-7使用，步骤8的Duplicate会覆盖）
@@ -55,14 +56,16 @@ inline __aicore__ void CompareNormalNoLoop(const AscendC::LocalTensor<uint8_t> &
     LocalTensor<int16_t> nan_buf_int16 = select_out.ReinterpretCast<int16_t>();
     LocalTensor<int16_t> compare_out_int16 = compare_out.ReinterpretCast<int16_t>();
     BinaryRepeatParams src1_repeat_params = {1, 1, 1, 8, src_repeat_stride, src_repeat_stride};
-    if (src1.GetSize() * sizeof(T) == 32) {
+    if (src1_is_scalar) {
       src1_repeat_params = {1, 1, 0, 8, src_repeat_stride, 0};
     }
 
     for (uint8_t r = 0; r < repeat_times; r++) {
+      const uint32_t src0_offset = r * src_offset_per_repeat;
+      const uint32_t src1_offset = src1_is_scalar ? 0 : src0_offset;
       // Step 1: Compare(src0, src0, EQ) → nan_buf (NaN=0, 非NaN=1)
       AscendC::PipeBarrier<PIPE_V>();
-      Compare(nan_buf, src0[r * elements_per_repeat], src0[r * elements_per_repeat], CMPMODE::EQ, mask, 1,
+      Compare(nan_buf, src0[src0_offset], src0[src0_offset], CMPMODE::EQ, mask, 1,
               {1, 1, 1, 8, src_repeat_stride, src_repeat_stride});
       // Step 2: Not → is_nan0 (NaN=1, 非NaN=0)
       AscendC::PipeBarrier<PIPE_V>();
@@ -70,8 +73,7 @@ inline __aicore__ void CompareNormalNoLoop(const AscendC::LocalTensor<uint8_t> &
 
       // Step 3: Compare(src1, src1, EQ) → compare_out (NaN=0, 非NaN=1)
       AscendC::PipeBarrier<PIPE_V>();
-      Compare(compare_out, src1[r * elements_per_repeat], src1[r * elements_per_repeat], CMPMODE::EQ, mask, 1,
-              src1_repeat_params);
+      Compare(compare_out, src1[src1_offset], src1[src1_offset], CMPMODE::EQ, mask, 1, src1_repeat_params);
       // Step 4: Not → is_nan1 (NaN=1, 非NaN=0)
       AscendC::PipeBarrier<PIPE_V>();
       AscendC::Not(compare_out_int16, compare_out_int16, mask_int16_count);
@@ -82,7 +84,7 @@ inline __aicore__ void CompareNormalNoLoop(const AscendC::LocalTensor<uint8_t> &
 
       // Step 6: Compare(src0, src1, NE) → nan_buf (原始NE结果)
       AscendC::PipeBarrier<PIPE_V>();
-      Compare(nan_buf, src0[r * elements_per_repeat], src1[r * elements_per_repeat], mode, mask, 1, repeat_params);
+      Compare(nan_buf, src0[src0_offset], src1[src1_offset], mode, mask, 1, repeat_params);
 
       // Step 7: Or → 修正后的NE结果 (NE | is_nan)，写入compare_out
       AscendC::PipeBarrier<PIPE_V>();

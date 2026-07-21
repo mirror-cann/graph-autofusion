@@ -12,7 +12,7 @@
 #include "common/checker.h"
 #include "graph/utils/attr_utils.h"
 #include "graph/type/tensor_type_impl.h"
-#include "graph/types.h"
+#include "graph/types_af.h"
 #include "graph/utils/type_utils.h"
 #include "op_common/data_type_utils.h"
 
@@ -300,7 +300,7 @@ graphStatus SymDtype::Eval(const OpDesc &op, DataType &dtype) const {
   GE_WARN_ASSERT(ir_input_2_range.size() == op.GetIrInputsSize(), "Failed get input instance info of %s %s",
                  op.GetName().c_str(), op.GetType().c_str());
 
-  std::set<DataType> infered_dtypes;
+  std::set<DataType> inferred_dtypes;
   for (auto &backend : ir_inputs_) {
     auto &input_range = ir_input_2_range[backend.index];
     size_t start = input_range.first;
@@ -314,18 +314,18 @@ graphStatus SymDtype::Eval(const OpDesc &op, DataType &dtype) const {
       GELOGI("Get dtype %s from %s input %s:%zu of op %s",
              TypeUtils::DataTypeToSerialString(desc->GetDataType()).c_str(), ToString(backend.type),
              backend.name.c_str(), i - start, op.GetName().c_str());
-      infered_dtypes.insert(desc->GetDataType());
+      inferred_dtypes.insert(desc->GetDataType());
     }
   }
 
-  GE_WARN_ASSERT(infered_dtypes.size() == 1, "Infer dtype failed for op %s as %zu types infered", op.GetName().c_str(),
-                 infered_dtypes.size());
-  dtype = *infered_dtypes.begin();
+  GE_WARN_ASSERT(inferred_dtypes.size() == 1, "Infer dtype failed for op %s as %zu types inferred",
+                 op.GetName().c_str(), inferred_dtypes.size());
+  dtype = *inferred_dtypes.begin();
   if (!tensor_type_.tensor_type_impl_->IsDataTypeInRange(dtype)) {
-    REPORT_INNER_ERR_MSG("EZ9999", "Sym %s of op %s %s infered dtype %s not in range %s", id_.c_str(),
+    REPORT_INNER_ERR_MSG("EZ9999", "Sym %s of op %s %s inferred dtype %s not in range %s", id_.c_str(),
                          op.GetName().c_str(), op.GetType().c_str(), TypeUtils::DataTypeToSerialString(dtype).c_str(),
                          ToString(tensor_type_).c_str());
-    GELOGW("Sym %s infered dtype %s not in range %s", id_.c_str(), TypeUtils::DataTypeToSerialString(dtype).c_str(),
+    GELOGW("Sym %s inferred dtype %s not in range %s", id_.c_str(), TypeUtils::DataTypeToSerialString(dtype).c_str(),
            ToString(tensor_type_).c_str());
     return ge::PARAM_INVALID;
   }
@@ -338,7 +338,7 @@ graphStatus SymDtype::Eval(const OpDesc &op, std::vector<DataType> &dtypes) cons
     GE_WARN_ASSERT_GRAPH_SUCCESS(GetListDtypeFromAttr(op, id_, dtypes));
     for (auto &dtype : dtypes) {
       GE_WARN_ASSERT(tensor_type_.tensor_type_impl_->IsDataTypeInRange(dtype),
-                     "Sym %s infered one of list-dtype %s not in range %s", id_.c_str(),
+                     "Sym %s inferred one of list-dtype %s not in range %s", id_.c_str(),
                      TypeUtils::DataTypeToSerialString(dtype).c_str(), ToString(tensor_type_).c_str());
     }
     return GRAPH_SUCCESS;
@@ -381,7 +381,7 @@ graphStatus SymDtype::Eval(const OpDesc &op, std::vector<DataType> &dtypes) cons
 
   for (auto &dtype : dtypes) {
     GE_WARN_ASSERT(tensor_type_.tensor_type_impl_->IsDataTypeInRange(dtype),
-                   "Sym %s infered list-dtype %s not in range %s", id_.c_str(),
+                   "Sym %s inferred list-dtype %s not in range %s", id_.c_str(),
                    TypeUtils::DataTypeToSerialString(dtype).c_str(), ToString(tensor_type_).c_str());
   }
 

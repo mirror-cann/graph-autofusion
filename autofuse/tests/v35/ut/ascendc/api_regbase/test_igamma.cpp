@@ -17,6 +17,11 @@
 #include "tikicpulib.h"
 #include "test_api_utils.h"
 #include "boost/math/special_functions/gamma.hpp"
+#include "api_regbase/igammac_helper/series.h"
+#include "api_regbase/igammac_helper/continued_fraction.h"
+#include "api_regbase/igammac_helper/asymptotic_series.h"
+#include "api_regbase/igammac_helper/series_complement.h"
+#include "api_regbase/igammac.h"
 #include "api_regbase/igamma.h"
 
 using namespace AscendC;

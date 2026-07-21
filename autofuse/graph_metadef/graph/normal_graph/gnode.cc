@@ -8,7 +8,7 @@
  * See LICENSE in the root of the software repository for the full text of the License.
  */
 
-#include "graph/gnode.h"
+#include "graph/gnode_af.h"
 #include "graph_metadef/graph/debug/ge_util.h"
 #include "graph/ge_attr_value.h"
 #include "graph/ge_tensor.h"

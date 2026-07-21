@@ -160,6 +160,36 @@ TEST_F(TestAxesReorderSolverGen, TEST_GEN_SOLVER) {
   EXPECT_NE(invoke_code, "");
 }
 
+TEST_F(TestAxesReorderSolverGen, GenGetPerfStaticDeclaresReduceTreeLeafDependencyBeforeUse) {
+  Expr dim_r = CreateExpr("s22");
+  Expr dim_a = CreateExpr("z3z4t_size");
+  Expr dim_a_tail = CreateExpr("z3z4t_size_tail");
+  Expr tree_cost = CreateExpr("reduce_ra_normal_unaligned_tree_cost_tail");
+
+  TernaryOp tail_op(CondType::K_EQ, dim_a, CreateExpr(0), dim_a, dim_a + CreateExpr(1));
+  tail_op.SetVariable(dim_a_tail);
+  auto small_case = std::make_shared<IfCase>(dim_a_tail + dim_r);
+  auto large_case = std::make_shared<IfCase>(dim_a_tail * CreateExpr(2));
+  auto tree_case =
+      std::make_shared<IfCase>(CondType::K_LT, dim_r, CreateExpr(2), std::move(small_case), std::move(large_case));
+  // Mimic SelectSymbolicTreeCost: cached dependencies only contain dim_r, while leaf expressions use dim_a_tail.
+  TernaryOp tree_op(tree_cost, std::move(tree_case), {dim_r});
+  std::map<Expr, TernaryOp, ExprCmp> ternary_ops{{dim_a_tail, tail_op}, {tree_cost, tree_op}};
+
+  AxesReorderSolverGen solver_gen("case_test", "TilingData");
+  solver_gen.SetInputArgs({dim_r, dim_a});
+  solver_gen.SetTernaryOps(ternary_ops);
+  solver_gen.SetReplaceVars(ConcursiveReplaceVars(ternary_ops));
+  solver_gen.SetObjFunc(CreateExpr(0), {{PipeType::AIV_VEC, tree_cost}});
+
+  const std::string code = solver_gen.GenGetObjStaticFunc();
+  const size_t tail_decl_pos = code.find("double z3z4t_size_tail =");
+  const size_t tree_decl_pos = code.find("double reduce_ra_normal_unaligned_tree_cost_tail =");
+  ASSERT_NE(tail_decl_pos, std::string::npos) << code;
+  ASSERT_NE(tree_decl_pos, std::string::npos) << code;
+  EXPECT_LT(tail_decl_pos, tree_decl_pos) << code;
+}
+
 TEST_F(TestAxesReorderSolverGen, GenRuntimeReorderRuleForDynamicReduceTile) {
   Expr reduce = CreateExpr("reduce");
   Expr tail = CreateExpr("tail");

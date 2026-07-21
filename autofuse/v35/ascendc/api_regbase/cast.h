@@ -299,7 +299,7 @@ inline __simd_vf__ void CastExtendInt16ToInt8(__ubuf__ OutT *dstUb, __ubuf__ InT
 template <typename InT, typename OutT, AscendC::RoundMode roundMode>
 inline __simd_vf__ void CastExtendInt16ToUint8(__ubuf__ OutT *dstUb, __ubuf__ InT *srcUb, const int64_t count,
                                                uint32_t repeatTimes, uint32_t innerLoopStride) {
-  static constexpr MicroAPI::CastTrait castTrait = {MicroAPI::RegLayout::ZERO, MicroAPI::SatMode::SAT,
+  static constexpr MicroAPI::CastTrait castTrait = {MicroAPI::RegLayout::ZERO, MicroAPI::SatMode::NO_SAT,
                                                     MicroAPI::MaskMergeMode::ZEROING, AscendC::RoundMode::UNKNOWN};
 
   uint32_t sreg = static_cast<uint32_t>(count);
@@ -701,6 +701,9 @@ __aicore__ inline void CastExtend(const AscendC::LocalTensor<OutT> &dst, const A
     CastExtendImpl<func, InT, OutT, roundMode, dim>(dstUb, srcUb, count, repeatTimes, innerLoopStride, output_dims,
                                                     output_stride, input_stride);
   } else if constexpr (SupportType<Tuple<OutT, InT>, Tuple<uint8_t, int16_t>>()) {
+#if defined(__NPU_ARCH__) && (__NPU_ARCH__ == 3510)
+    AscendC::SetCtrlSpr<60, 60>(0);
+#endif
     constexpr auto func = CastExtendInt16ToUint8<InT, OutT, roundMode>;
     CastExtendImpl<func, InT, OutT, roundMode, dim>(dstUb, srcUb, count, repeatTimes, innerLoopStride, output_dims,
                                                     output_stride, input_stride);

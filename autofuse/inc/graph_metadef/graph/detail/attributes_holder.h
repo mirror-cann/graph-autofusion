@@ -21,7 +21,7 @@
 #include <vector>
 #include "graph/detail/any_map.h"
 #include "graph/ge_error_codes.h"
-#include "graph/types.h"
+#include "graph/types_af.h"
 #include "graph/attr_store.h"
 #include "graph/any_value.h"
 

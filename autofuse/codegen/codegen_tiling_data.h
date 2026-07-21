@@ -21,8 +21,7 @@ class TilingData {
  public:
   explicit TilingData(const std::string &kernel, const std::string &name_class = "TilingData");
   std::string Generate(const ascir::FusedScheduledResult &fused_schedule_result, bool is_inductor = false);
-  std::string GenCVConstTilingData(const std::string &tiling_data_struct_name,
-                                   const ascir::FusedScheduledResult &fused_schedule_result, bool is_inductor_scene);
+  std::string GenCVConstTilingData(const std::string &tiling_data_struct_name, bool is_inductor_scene);
   std::string GenCVConstReplace(const std::string &tiling_data_struct_name);
   std::string GenerateConst(const ascir::FusedScheduledResult &fused_schedule_result, bool is_inductor_scene = true);
   static void GetTqueAndTbufId(const af::AscGraph &graph, std::set<int64_t> &q_ids, std::set<int64_t> &b_ids);
@@ -55,8 +54,7 @@ class TilingData {
                                             const ascir::NodeView &node);
   void ConstTilingDataFieldPopBack();
 
-  std::string GenGenTilingDataFieldConstDefFunc(const ascir::FusedScheduledResult &fused_schedule_result,
-                                                bool is_inductor_scene) const;
+  std::string GenGenTilingDataFieldConstDefFunc() const;
   std::string GenGenTilingDataFieldConstValueFunc() const;
   af::Status ProcessCubeFusionResult(ascir::FusedScheduledResult &schedule_result);
 

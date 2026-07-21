@@ -42,12 +42,14 @@ add_library(test_regbase_ascendc OBJECT
     ./test_legendre_polynomial_p.cpp
     ./test_igamma.cpp
     ./test_igammac.cpp
+    ./test_polygamma.cpp
     ./test_frexp.cpp
     ./test_transpose.cpp
     ./test_bessel_j0.cpp
     ./test_bessel_j1.cpp
     ./test_bessel_y0.cpp
     ./test_bessel_y1.cpp
+    ./test_bucketize.cpp
     ./test_shifted_chebyshev_polynomial_t.cpp
     ./test_shifted_chebyshev_polynomial_u.cpp
     ./test_shifted_chebyshev_polynomial_v.cpp
@@ -56,8 +58,13 @@ add_library(test_regbase_ascendc OBJECT
     ./test_spherical_bessel_j0.cpp
     ./test_ndtri.cpp
     ./test_ndtr.cpp
+    ./test_log_ndtr.cpp
     ./test_nextafter.cpp
     ./test_i0.cpp
+    ./test_hermite_polynomial_h.cpp
+    ./test_hermite_polynomial_he.cpp
+    ./test_hypot.cpp
+    ./test_softmax.cpp
     )
 target_link_libraries(test_regbase_ascendc
     ascendc_api_regbase_extend

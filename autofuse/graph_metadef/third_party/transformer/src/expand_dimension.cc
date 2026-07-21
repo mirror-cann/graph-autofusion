@@ -16,7 +16,7 @@
 #include <bitset>
 #include "axis_constants.h"
 #include "exe_graph/runtime/expand_dims_type.h"
-#include "graph/types.h"
+#include "graph/types_af.h"
 #include "framework/common/debug/ge_log.h"
 #include "graph/ge_error_codes.h"
 #include "graph/utils/type_utils.h"
@@ -163,7 +163,7 @@ bool IsExpandNecessary(const size_t &old_dims_size, const af::Format &original_f
       return false;
     }
   }
-  /* 2. Check whether the final format does not need expanding demension. */
+  /* 2. Check whether the final format does not need expanding dimension. */
   bool no_need_reshape_flag = reshape_type == RESHAPE_TYPE_FORBIDDEN || kFormatNZSet.count(final_format) > 0 ||
                               (original_format == af::FORMAT_ND && final_format == af::FORMAT_FRACTAL_Z);
   if (no_need_reshape_flag) {
@@ -245,7 +245,7 @@ bool ExpandDimension(const std::string &op_type, const af::Format &original_form
 
   /* 3. Check whether the dimension of original shape is less than or equal to
    * the length of reshape type. If the dimension of original shape if larger,
-   * we cannot find suitable posotion for all axis in original shape and we just return. */
+   * we cannot find a suitable position for all axes in the original shape, so we just return. */
   if (old_dims_size > valid_reshape_type.length()) {
     GELOGW("Dimension %zu of tensor %u in %s exceeds the length of the reshape type, which is %zu.", old_dims_size,
            tensor_index, op_type.c_str(), valid_reshape_type.length());

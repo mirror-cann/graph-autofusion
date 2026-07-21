@@ -11,12 +11,15 @@
 #include "fused_graph_unfolder.h"
 
 #include <cstdint>
+#include <limits>
 #include <map>
+#include <numeric>
+#include <queue>
 #include "ascendc_ir/ascendc_ir_core/ascendc_ir.h"
 #include "ascendc_ir/ascendc_ir_core/ascendc_ir_def.h"
 #include "ascendc_ir/utils/asc_graph_utils.h"
 #include "graph/debug/ge_op_types.h"
-#include "graph/gnode.h"
+#include "graph/gnode_af.h"
 #include "graph/utils/graph_utils.h"
 #include "graph/utils/node_utils.h"
 #include "ascir_ops.h"
@@ -27,6 +30,214 @@
 #include "ascgraph_info_complete.h"
 
 namespace optimize {
+namespace {
+const af::AscTensorAttr *FindBoundaryTensorAttr(const af::AscGraph &graph, const int32_t index, const bool is_output) {
+  // External anchor indices are mirrored by the internal Data/Output ir_attr index.
+  for (const auto &node : graph.GetAllNodes()) {
+    const bool is_expected_node =
+        is_output ? af::ops::IsOps<af::ascir_op::Output>(node) : ScheduleUtils::IsDataInput(node);
+    if (!is_expected_node) {
+      continue;
+    }
+    int64_t node_index = -1;
+    if (ScheduleUtils::GetNodeIrAttrIndex(node, node_index) != af::SUCCESS || node_index != index) {
+      continue;
+    }
+    const auto tensors = is_output ? node->inputs() : node->outputs();
+    if (tensors.empty()) {
+      return nullptr;
+    }
+    return &tensors[0]->attr;
+  }
+  return nullptr;
+}
+
+}  // namespace
+
+bool FusedGraphUnfolder::BuildGraphAxisMapping(const af::AscGraph &source_graph, const af::AscTensorAttr &source_attr,
+                                               const af::AscGraph &target_graph, const af::AscTensorAttr &target_attr,
+                                               const std::vector<size_t> &target_to_global,
+                                               std::vector<size_t> &source_to_global) {
+  const auto source_axes = source_graph.GetAllAxis();
+  const auto target_axes = target_graph.GetAllAxis();
+  if (target_axes.size() != target_to_global.size()) {
+    return false;
+  }
+  std::map<af::AxisId, size_t> source_axis_to_index;
+  std::map<af::AxisId, size_t> target_axis_to_index;
+  if (!BuildAxisIndex(source_axes, source_axis_to_index) || !BuildAxisIndex(target_axes, target_axis_to_index)) {
+    return false;
+  }
+  return ComposeGraphAxisMapping(source_attr, target_attr, source_axis_to_index, target_axis_to_index, target_to_global,
+                                 source_to_global);
+}
+
+//  AxisId -> graph axis index
+bool FusedGraphUnfolder::BuildAxisIndex(const std::vector<af::AxisPtr> &axes,
+                                        std::map<af::AxisId, size_t> &axis_to_index) {
+  for (size_t index = 0UL; index < axes.size(); ++index) {
+    if (axes[index] == nullptr || !axis_to_index.emplace(axes[index]->id, index).second) {
+      return false;
+    }
+  }
+  return true;
+}
+
+// 把局部 tensor 映射组合成图级映射
+bool FusedGraphUnfolder::ComposeGraphAxisMapping(const af::AscTensorAttr &source_attr,
+                                                 const af::AscTensorAttr &target_attr,
+                                                 const std::map<af::AxisId, size_t> &source_axis_to_index,
+                                                 const std::map<af::AxisId, size_t> &target_axis_to_index,
+                                                 const std::vector<size_t> &target_to_global,
+                                                 std::vector<size_t> &source_to_global) {
+  AxisMappingResult local_mapping;
+  if (BuildLocalAxisMapping(source_attr, target_attr, local_mapping) != af::SUCCESS) {
+    return false;
+  }
+  const auto unmapped_axis = std::numeric_limits<size_t>::max();
+  source_to_global.assign(source_axis_to_index.size(), unmapped_axis);
+  std::set<size_t> mapped_global_axes;
+  // Tensor axes are local to a graph. Convert through the target graph before using global positions.
+  for (size_t index = 0UL; index < source_attr.axis.size(); ++index) {
+    const auto source_iter = source_axis_to_index.find(source_attr.axis[index]);
+    const auto target_iter = target_axis_to_index.find(target_attr.axis[local_mapping.old_to_global[index]]);
+    if (source_iter == source_axis_to_index.end() || target_iter == target_axis_to_index.end()) {
+      return false;
+    }
+    const auto global_index = target_to_global[target_iter->second];
+    if (source_to_global[source_iter->second] != unmapped_axis &&
+        source_to_global[source_iter->second] != global_index) {
+      return false;
+    }
+    if (!mapped_global_axes.emplace(global_index).second && source_to_global[source_iter->second] == unmapped_axis) {
+      return false;
+    }
+    source_to_global[source_iter->second] = global_index;
+  }
+  return true;
+}
+
+// 合并同一个 AscGraph 从多条边得到的映射约束
+bool FusedGraphUnfolder::MergeGraphAxisMapping(std::vector<size_t> &existing_mapping,
+                                               const std::vector<size_t> &new_mapping) {
+  const auto unmapped_axis = std::numeric_limits<size_t>::max();
+  if (existing_mapping.empty()) {
+    existing_mapping = new_mapping;
+    return true;
+  }
+  if (existing_mapping.size() != new_mapping.size()) {
+    return false;
+  }
+  for (size_t index = 0UL; index < existing_mapping.size(); ++index) {
+    if (new_mapping[index] == unmapped_axis) {
+      continue;
+    }
+    if (existing_mapping[index] != unmapped_axis && existing_mapping[index] != new_mapping[index]) {
+      return false;
+    }
+    existing_mapping[index] = new_mapping[index];
+  }
+  return true;
+}
+
+// 检查图级映射是否还有未映射轴
+bool FusedGraphUnfolder::IsGraphAxisMappingComplete(const std::vector<size_t> &mapping) {
+  const auto unmapped_axis = std::numeric_limits<size_t>::max();
+  return std::none_of(mapping.begin(), mapping.end(),
+                      [unmapped_axis](const size_t index) { return index == unmapped_axis; });
+}
+
+// 校验 AscTensorAttr 的基本结构是否一致
+bool FusedGraphUnfolder::IsTensorAttrValid(const af::AscTensorAttr &attr) {
+  return attr.axis.size() == attr.repeats.size() && attr.axis.size() == attr.strides.size();
+}
+
+// 判断 source 某一维能否匹配 target 某一维
+// repeats 必须静态相等。
+// 如果 source repeat 静态等于 1，则 stride 可以不同，因为该维索引恒为 0，不影响地址。
+// 如果 source repeat 不是 1，则 stride 也必须静态相等。
+bool FusedGraphUnfolder::IsAxisMatch(const af::AscTensorAttr &source_attr, const size_t source_index,
+                                     const af::AscTensorAttr &target_attr, const size_t target_index) {
+  if (af::SymbolicUtils::StaticCheckEq(source_attr.repeats[source_index], target_attr.repeats[target_index]) !=
+      af::TriBool::kTrue) {
+    return false;
+  }
+  return af::SymbolicUtils::StaticCheckEq(source_attr.repeats[source_index], af::sym::kSymbolOne) ==
+             af::TriBool::kTrue ||
+         af::SymbolicUtils::StaticCheckEq(source_attr.strides[source_index], target_attr.strides[target_index]) ==
+             af::TriBool::kTrue;
+}
+
+// 受限 DFS，搜索 source tensor 维度到 target tensor 维度的保序映射：
+void FusedGraphUnfolder::SearchLocalAxisMappings(const af::AscTensorAttr &source_attr,
+                                                 const af::AscTensorAttr &target_attr, const size_t source_index,
+                                                 const size_t target_index, std::vector<size_t> &mapping,
+                                                 std::vector<std::vector<size_t>> &candidates) {
+  // 找到第二个候选即可判定歧义，避免组合爆炸
+  // 剩余 source 维度数 > 剩余 target 维度数 也直接剪枝返回
+  if (candidates.size() == 2UL || source_attr.axis.size() - source_index > target_attr.axis.size() - target_index) {
+    return;
+  }
+
+  // source_index 到达末尾 → 检查剩余 target 维度均为 size-1，若是则记录一个候选
+  if (source_index == source_attr.axis.size()) {
+    for (size_t index = target_index; index < target_attr.axis.size(); ++index) {
+      if (af::SymbolicUtils::StaticCheckEq(target_attr.repeats[index], af::sym::kSymbolOne) != af::TriBool::kTrue) {
+        return;
+      }
+    }
+    candidates.push_back(mapping);
+    return;
+  }
+  if (target_index == target_attr.axis.size()) {
+    return;
+  }
+  if (IsAxisMatch(source_attr, source_index, target_attr, target_index)) {
+    mapping.push_back(target_index);
+    SearchLocalAxisMappings(source_attr, target_attr, source_index + 1UL, target_index + 1UL, mapping, candidates);
+    mapping.pop_back();
+  }
+  if (af::SymbolicUtils::StaticCheckEq(target_attr.repeats[target_index], af::sym::kSymbolOne) == af::TriBool::kTrue) {
+    // Only unit target axes may be inserted without changing the source address calculation.
+    SearchLocalAxisMappings(source_attr, target_attr, source_index, target_index + 1UL, mapping, candidates);
+  }
+}
+
+// 局部映射的完整入口，将 DFS 搜索结果转换为状态枚举。
+Status FusedGraphUnfolder::BuildLocalAxisMapping(const af::AscTensorAttr &source_attr,
+                                                 const af::AscTensorAttr &target_attr, AxisMappingResult &result) {
+  result = {};
+  if (!IsTensorAttrValid(source_attr) || !IsTensorAttrValid(target_attr)) {
+    result.reason = AxisMappingFailureReason::kInvalidTensorAttr;
+    return af::FAILED;
+  }
+  if (source_attr.axis.size() > target_attr.axis.size()) {
+    result.reason = AxisMappingFailureReason::kInvalidRank;
+    return af::FAILED;
+  }
+
+  std::vector<std::vector<size_t>> candidates;
+  std::vector<size_t> mapping;
+  SearchLocalAxisMappings(source_attr, target_attr, 0UL, 0UL, mapping, candidates);
+
+  if (candidates.empty()) {
+    result.reason = AxisMappingFailureReason::kNonUnitInsertedAxis;
+    return af::FAILED;
+  }
+  if (candidates.size() > 1UL) {
+    result.status = AxisMappingStatus::kAmbiguous;
+    result.reason = AxisMappingFailureReason::kMultipleMappings;
+    return af::FAILED;
+  }
+  result.status = AxisMappingStatus::kSuccess;
+  result.old_to_global = std::move(candidates.front());
+  result.inserted_axes.assign(target_attr.axis.size(), true);
+  for (const auto index : result.old_to_global) {
+    result.inserted_axes[index] = false;
+  }
+  return af::SUCCESS;
+}
+
 Status FusedGraphUnfolder::RemoveUnusedNode(const af::ComputeGraphPtr &graph, const af::NodePtr &node,
                                             const bool force) {
   GE_CHECK_NOTNULL(graph);
@@ -393,7 +604,7 @@ Status FusedGraphUnfolder::UnfoldFusedGraph(const af::ComputeGraphPtr &fused_gra
                                             af::AscGraph &unfolded_asc_graph) {
   // step1 verify and choose loop
   std::vector<af::AxisPtr> new_loop_axes;
-  GE_CHK_STATUS_RET(SelectCommonLoopAxis(asc_backend_to_asc_graph, new_loop_axes),
+  GE_CHK_STATUS_RET(SelectCommonLoopAxis(fused_graph, asc_backend_to_asc_graph, new_loop_axes),
                     "The loop axis verification failed. Please confirm whether the fused graph [%s] is legitimate.",
                     fused_graph->GetName().c_str());
   // set loop and convert to ascgraph
@@ -441,48 +652,146 @@ Status FusedGraphUnfolder::UnfoldFusedGraph(const af::ComputeGraphPtr &fused_gra
                     fused_graph->GetName().c_str());
 
   GE_ASSERT_GRAPH_SUCCESS(af::AscGraphUtils::ConvertComputeGraphToAscGraph(fused_graph, unfolded_asc_graph));
-
   return af::SUCCESS;
 }
 
-Status FusedGraphUnfolder::SelectCommonLoopAxis(std::map<af::Node *, af::AscGraph> &asc_backend_to_asc_graph,
-                                                std::vector<af::AxisPtr> &new_loop_axes) {
-  GE_ASSERT_TRUE(!asc_backend_to_asc_graph.empty(),
-                 "The map is empty after deserialization, which means the fused graph is valid.");
-  size_t concat_dim = 0UL;
-  bool has_concat = false;
-  std::map<af::Node *, af::AscGraph> post_concat_node_to_asc_graph;
-  std::vector<af::AxisId> loop_axis_ids;
-  std::set<af::Node *> seen_nodes;
-  for (auto &iter : asc_backend_to_asc_graph) {
-    for (const auto &node : iter.second.GetAllNodes()) {
+Status FusedGraphUnfolder::CloneAscGraphs(const std::map<af::Node *, af::AscGraph> &source_graphs,
+                                          std::map<af::Node *, af::AscGraph> &cloned_graphs) {
+  // AxisPtr instances must not be shared with the original graphs before commit.
+  for (const auto &iter : source_graphs) {
+    std::string serialized_graph;
+    GE_CHK_STATUS_RET(af::AscGraphUtils::SerializeToReadable(iter.second, serialized_graph), "Serialize failed.");
+    af::AscGraph cloned_graph(iter.second.GetName().c_str());
+    GE_CHK_STATUS_RET(af::AscGraphUtils::DeserializeFromReadable(serialized_graph, cloned_graph),
+                      "Deserialize failed.");
+    GE_CHK_STATUS_RET(AscGraphInfoComplete::CompleteApiInfo(cloned_graph), "Complete api info failed.");
+    cloned_graphs.emplace(iter.first, std::move(cloned_graph));
+  }
+  return af::SUCCESS;
+}
+
+Status FusedGraphUnfolder::FindConcatContext(const af::ComputeGraphPtr &fused_graph,
+                                             const std::map<af::Node *, af::AscGraph> &asc_backend_to_asc_graph,
+                                             af::Node *&concat_ascbc_node, std::vector<af::AxisPtr> &new_loop_axes,
+                                             std::vector<af::AxisId> &loop_axis_ids, size_t &concat_dim) {
+  for (const auto &graph_node : fused_graph->GetDirectNodePtr()) {
+    const auto graph_iter = asc_backend_to_asc_graph.find(graph_node);
+    if (graph_iter == asc_backend_to_asc_graph.end()) {
+      continue;
+    }
+    for (const auto &node : graph_iter->second.GetAllNodes()) {
       if (!af::ops::IsOps<af::ascir_op::Concat>(node)) {
         continue;
       }
-      GE_ASSERT_SUCCESS(ScheduleUtils::GetConcatDim(node, concat_dim));
-      has_concat = true;
-      auto loop_axis = iter.second.GetAllAxis();
-      loop_axis_ids.resize(loop_axis.size());
-      for (size_t i = 0UL; i < loop_axis.size(); ++i) {
-        loop_axis_ids[i] = loop_axis[i]->id;
+      GE_ASSERT_TRUE(concat_ascbc_node == nullptr, "Only one concat is supported in a fused graph.");
+      GE_CHK_STATUS_RET(ScheduleUtils::GetConcatDim(node, concat_dim), "Get concat dim failed.");
+      concat_ascbc_node = graph_node;
+      new_loop_axes = graph_iter->second.GetAllAxis();
+      for (const auto &axis : new_loop_axes) {
+        GE_ASSERT_NOTNULL(axis);
+        loop_axis_ids.push_back(axis->id);
       }
-      GE_ASSERT_SUCCESS(CollectPostConcatAscGraphs(iter.first, asc_backend_to_asc_graph, loop_axis, loop_axis_ids,
-                                                   post_concat_node_to_asc_graph));
-      new_loop_axes = iter.second.GetAllAxis();
-      break;
     }
   }
-  GE_ASSERT_TRUE(concat_dim < new_loop_axes.size(), "Concat dim [%zu] is greater than loop size:[%zu].", concat_dim,
-                 new_loop_axes.size());
-  GE_ASSERT_TRUE(has_concat, "Only subgraphs with concat currently support fused graphs.");
+  GE_ASSERT_NOTNULL(concat_ascbc_node);
+  GE_ASSERT_TRUE(concat_dim < new_loop_axes.size(), "Concat dim is invalid.");
+  return af::SUCCESS;
+}
 
-  // merge and check
+Status FusedGraphUnfolder::CollectPreConcatMappings(const std::map<af::Node *, af::AscGraph> &asc_backend_to_asc_graph,
+                                                    af::Node *concat_ascbc_node,
+                                                    const std::vector<af::AxisId> &loop_axis_ids,
+                                                    std::map<af::Node *, std::vector<size_t>> &pre_concat_mappings) {
+  std::queue<af::Node *> pending_nodes;
+  pre_concat_mappings.emplace(concat_ascbc_node, std::vector<size_t>(loop_axis_ids.size()));
+  std::iota(pre_concat_mappings[concat_ascbc_node].begin(), pre_concat_mappings[concat_ascbc_node].end(), 0UL);
+  pending_nodes.push(concat_ascbc_node);
+  while (!pending_nodes.empty()) {
+    const auto target_node = pending_nodes.front();
+    pending_nodes.pop();
+    const auto target_iter = asc_backend_to_asc_graph.find(target_node);
+    GE_ASSERT_TRUE(target_iter != asc_backend_to_asc_graph.end(), "Cannot find target ascgraph.");
+    for (const auto &in_anchor : target_node->GetAllInDataAnchorsPtr()) {
+      const auto source_out_anchor = in_anchor->GetPeerOutAnchor();
+      if (source_out_anchor == nullptr ||
+          asc_backend_to_asc_graph.count(source_out_anchor->GetOwnerNodeBarePtr()) == 0UL) {
+        continue;
+      }
+      const auto source_node = source_out_anchor->GetOwnerNodeBarePtr();
+      const auto source_iter = asc_backend_to_asc_graph.find(source_node);
+      const auto source_attr = FindBoundaryTensorAttr(source_iter->second, source_out_anchor->GetIdx(), true);
+      const auto target_attr = FindBoundaryTensorAttr(target_iter->second, in_anchor->GetIdx(), false);
+      GE_ASSERT_NOTNULL(source_attr);
+      GE_ASSERT_NOTNULL(target_attr);
+      std::vector<size_t> mapping;
+      if (!BuildGraphAxisMapping(source_iter->second, *source_attr, target_iter->second, *target_attr,
+                                 pre_concat_mappings.at(target_node), mapping)) {
+        GELOGW("Cannot map pre-concat for source node [%s], falling back to merged loop axis.",
+               source_node->GetNamePtr());
+        continue;
+      }
+      const auto mapping_iter = pre_concat_mappings.find(source_node);
+      if (mapping_iter == pre_concat_mappings.end()) {
+        pre_concat_mappings.emplace(source_node, std::move(mapping));
+        pending_nodes.push(source_node);
+      } else {
+        const auto previous_mapping = mapping_iter->second;
+        GE_ASSERT_TRUE(MergeGraphAxisMapping(mapping_iter->second, mapping), "Conflicting boundary mappings.");
+        // Newly constrained target axes may unlock a complete mapping for its upstream producers.
+        if (mapping_iter->second != previous_mapping) {
+          pending_nodes.push(source_node);
+        }
+      }
+    }
+  }
+  return af::SUCCESS;
+}
+
+Status FusedGraphUnfolder::ApplyPreConcatMappings(
+    const std::map<af::Node *, af::AscGraph> &asc_backend_to_asc_graph,
+    const std::map<af::Node *, af::AscGraph> &post_concat_node_to_asc_graph,
+    const std::map<af::Node *, std::vector<size_t>> &pre_concat_mappings, const std::vector<af::AxisPtr> &new_loop_axes,
+    const std::vector<af::AxisId> &loop_axis_ids, const size_t concat_dim) {
   for (const auto &iter : asc_backend_to_asc_graph) {
-    if (post_concat_node_to_asc_graph.count(iter.first) == 0UL) {
-      GE_ASSERT_SUCCESS(ApplyMergedLoopAxis(iter.second, new_loop_axes, loop_axis_ids, concat_dim));
+    if (post_concat_node_to_asc_graph.count(iter.first) != 0UL) {
+      continue;
     }
+    const auto mapping_iter = pre_concat_mappings.find(iter.first);
+    if (mapping_iter == pre_concat_mappings.end()) {
+      GE_CHK_STATUS_RET(ApplyMergedLoopAxis(iter.second, new_loop_axes, loop_axis_ids, concat_dim), "Apply failed.");
+      continue;
+    }
+    GE_ASSERT_TRUE(IsGraphAxisMappingComplete(mapping_iter->second), "Pre-concat graph has unmapped axes.");
+    GE_CHK_STATUS_RET(ApplyMappedLoopAxis(iter.second, new_loop_axes, loop_axis_ids, mapping_iter->second),
+                      "Apply failed.");
   }
+  return af::SUCCESS;
+}
 
+Status FusedGraphUnfolder::SelectCommonLoopAxis(const af::ComputeGraphPtr &fused_graph,
+                                                std::map<af::Node *, af::AscGraph> &asc_backend_to_asc_graph,
+                                                std::vector<af::AxisPtr> &new_loop_axes) {
+  GE_ASSERT_TRUE(!asc_backend_to_asc_graph.empty(), "The map is empty after deserialization.");
+  std::map<af::Node *, af::AscGraph> cloned_graphs;
+  GE_CHK_STATUS_RET(CloneAscGraphs(asc_backend_to_asc_graph, cloned_graphs), "Clone ascgraphs failed.");
+  size_t concat_dim = 0UL;
+  af::Node *concat_ascbc_node = nullptr;
+  std::vector<af::AxisId> loop_axis_ids;
+  GE_CHK_STATUS_RET(
+      FindConcatContext(fused_graph, cloned_graphs, concat_ascbc_node, new_loop_axes, loop_axis_ids, concat_dim),
+      "Find concat context failed.");
+  std::map<af::Node *, af::AscGraph> post_concat_graphs;
+  GE_CHK_STATUS_RET(
+      CollectPostConcatAscGraphs(concat_ascbc_node, cloned_graphs, new_loop_axes, loop_axis_ids, post_concat_graphs),
+      "Collect post-concat graphs failed.");
+  std::map<af::Node *, std::vector<size_t>> pre_concat_mappings;
+  GE_CHK_STATUS_RET(CollectPreConcatMappings(cloned_graphs, concat_ascbc_node, loop_axis_ids, pre_concat_mappings),
+                    "Collect pre-concat mappings failed.");
+  GE_CHK_STATUS_RET(ApplyPreConcatMappings(cloned_graphs, post_concat_graphs, pre_concat_mappings, new_loop_axes,
+                                           loop_axis_ids, concat_dim),
+                    "Apply pre-concat mappings failed.");
+  // The original map remains untouched until every clone has been mapped successfully.
+  asc_backend_to_asc_graph.swap(cloned_graphs);
   return af::SUCCESS;
 }
 
@@ -605,6 +914,71 @@ Status FusedGraphUnfolder::ApplyMergedLoopAxis(const af::AscGraph &graph, const 
                                     af::sym::kSymbolZero);
       }
     }
+  }
+  return af::SUCCESS;
+}
+
+Status FusedGraphUnfolder::ApplyMappedLoopAxis(const af::AscGraph &graph, const std::vector<af::AxisPtr> &new_loop_axes,
+                                               const std::vector<af::AxisId> &loop_axis_ids,
+                                               const std::vector<size_t> &old_to_global) {
+  auto compute_graph = af::AscGraphUtils::GetComputeGraph(graph);
+  GE_ASSERT_NOTNULL(compute_graph);
+  const auto graph_attr = compute_graph->GetOrCreateAttrsGroup<af::AscGraphAttr>();
+  GE_ASSERT_NOTNULL(graph_attr);
+  const auto old_axis = graph_attr->axis;
+  GE_ASSERT_TRUE(old_axis.size() == old_to_global.size(), "Axis mapping rank mismatch, graph:[%s].",
+                 graph.GetName().c_str());
+  std::map<af::AxisId, size_t> old_axis_to_global;
+  std::set<size_t> mapped_global_axes;
+  for (size_t index = 0UL; index < old_axis.size(); ++index) {
+    GE_ASSERT_NOTNULL(old_axis[index]);
+    GE_ASSERT_TRUE(old_to_global[index] < loop_axis_ids.size(), "Axis mapping index is invalid, graph:[%s].",
+                   graph.GetName().c_str());
+    GE_ASSERT_TRUE(mapped_global_axes.emplace(old_to_global[index]).second, "Axis mapping is not injective.");
+    GE_ASSERT_TRUE(old_axis_to_global.emplace(old_axis[index]->id, old_to_global[index]).second,
+                   "Graph has duplicate axis id.");
+  }
+  graph_attr->axis = new_loop_axes;
+  for (const auto &node : graph.GetAllNodes()) {
+    GE_ASSERT_NOTNULL(node);
+    if (ScheduleUtils::IsBuffer(node)) {
+      continue;
+    }
+    node->attr.sched.axis = loop_axis_ids;
+    if (node->attr.sched.loop_axis != af::kIdNone) {
+      const auto loop_iter = old_axis_to_global.find(node->attr.sched.loop_axis);
+      GE_ASSERT_TRUE(loop_iter != old_axis_to_global.end(), "Cannot map loop axis, node:[%s].", node->GetNamePtr());
+      node->attr.sched.loop_axis = loop_axis_ids[loop_iter->second];
+    }
+    for (auto &output : node->outputs()) {
+      GE_ASSERT_NOTNULL(output);
+      GE_CHK_STATUS_RET(RewriteTensorAxis(node, output->attr, old_axis_to_global, loop_axis_ids),
+                        "Rewrite tensor axis failed.");
+    }
+  }
+  return af::SUCCESS;
+}
+
+Status FusedGraphUnfolder::RewriteTensorAxis(const af::AscNodePtr &node, af::AscTensorAttr &tensor_attr,
+                                             const std::map<af::AxisId, size_t> &old_axis_to_global,
+                                             const std::vector<af::AxisId> &loop_axis_ids) {
+  GE_ASSERT_TRUE(IsTensorAttrValid(tensor_attr), "Tensor axis attr size mismatch, node:[%s].", node->GetNamePtr());
+  std::vector<af::Expression> new_repeats(loop_axis_ids.size(), af::sym::kSymbolOne);
+  std::vector<af::Expression> new_strides(loop_axis_ids.size(), af::sym::kSymbolZero);
+  for (size_t index = 0UL; index < tensor_attr.axis.size(); ++index) {
+    const auto axis_iter = old_axis_to_global.find(tensor_attr.axis[index]);
+    GE_ASSERT_TRUE(axis_iter != old_axis_to_global.end(), "Cannot map tensor axis, node:[%s].", node->GetNamePtr());
+    new_repeats[axis_iter->second] = tensor_attr.repeats[index];
+    new_strides[axis_iter->second] = tensor_attr.strides[index];
+  }
+  tensor_attr.axis = loop_axis_ids;
+  // Preserve local repeat/stride at mapped positions; missing global axes are unit/zero-stride.
+  tensor_attr.repeats = std::move(new_repeats);
+  tensor_attr.strides = std::move(new_strides);
+  for (auto &axis_id : tensor_attr.vectorized_axis) {
+    const auto axis_iter = old_axis_to_global.find(axis_id);
+    GE_ASSERT_TRUE(axis_iter != old_axis_to_global.end(), "Cannot map vectorized axis, node:[%s].", node->GetNamePtr());
+    axis_id = loop_axis_ids[axis_iter->second];
   }
   return af::SUCCESS;
 }

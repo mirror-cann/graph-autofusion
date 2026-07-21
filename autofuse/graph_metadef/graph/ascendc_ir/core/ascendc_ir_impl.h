@@ -18,7 +18,7 @@
 #include "graph/anchor.h"
 #include "graph/utils/op_desc_utils.h"
 #include "common/ge_common/debug/ge_log.h"
-#include "graph/operator.h"
+#include "graph/operator_af.h"
 #include "ascendc_ir/ascendc_ir_core/ascendc_ir.h"
 #include "ascendc_ir/ascendc_ir_core/ascendc_ir_def.h"
 #include "graph/symbolizer/symbolic.h"
@@ -105,12 +105,10 @@ class AscGraphImpl {
   std::string GetName() const;
 
   AscOpOutput CreateContiguousData(const char *name, const ge::DataType &dt, const std::vector<Axis> &axes,
-                                   const ge::Format &format);
+                                   const size_t index, const ge::Format &format);
 
   AscOpOutput CreateContiguousOut(const char *name, const ge::DataType &dt, const std::vector<Axis> &axes,
                                   const ge::Format &format);
-
-  void SortByExecOrder();
 
   const ComputeGraphPtr GetComputeGraph() const;
 

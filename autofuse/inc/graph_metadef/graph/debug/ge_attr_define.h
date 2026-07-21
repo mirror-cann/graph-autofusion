@@ -13,7 +13,7 @@
 
 /*lint -e618*/
 #include <string>
-#include "graph/types.h"
+#include "graph/types_af.h"
 #include "graph/compiler_options.h"
 
 namespace af {

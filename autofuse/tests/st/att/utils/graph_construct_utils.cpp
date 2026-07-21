@@ -22,7 +22,7 @@ Status ConstructSimpleLoadStoreOp(af::AscGraph &graph) {
   auto nd = graph.CreateAxis("nd", ND);
   auto [ndB, ndb] = graph.BlockSplit(nd.id);
   auto [ndbT, ndbt] = graph.TileSplit(ndb->id);
-  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {nd});
+  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {nd}, 0);
   LOOP(*ndB) {
     LOOP(*ndbT) {
       auto load1 = Load("load", data1).TQue(Position::kPositionVecIn, 1, 1);
@@ -54,7 +54,7 @@ Status BuildConcatGroupAscendGraphS0S1ReduceMultiTiling(af::AscGraph &graph) {
   auto [s1T, s1t] = graph.TileSplit(s1.id);
   auto s1Ts0T = *graph.MergeAxis({s1T->id, s0T->id});
   auto [s1Ts0TB, s1Ts0Tb] = graph.BlockSplit(s1Ts0T.id);
-  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {s0, s1});
+  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {s0, s1}, 0);
   LOOP(*s1Ts0TB) {
     LOOP(*s1Ts0Tb) {
       auto load1 = Load("load1", data1).TQue(Position::kPositionVecIn, 1, 1);

@@ -18,9 +18,9 @@
 #include <functional>
 
 #include "graph/ascend_string.h"
-#include "graph/operator.h"
+#include "graph/operator_af.h"
 #include "graph/ge_error_codes.h"
-#include "register/op_def.h"
+#include "register/op_def_af.h"
 
 namespace af {
 class Operator;

@@ -30,7 +30,7 @@
 #include <unordered_map>
 #include <vector>
 #include "graph/compute_graph.h"
-#include "graph/types.h"
+#include "graph/types_af.h"
 #include "graph/ge_error_codes.h"
 
 namespace af {

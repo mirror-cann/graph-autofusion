@@ -90,7 +90,11 @@ inline __aicore__ void CastWithOr(const AscendC::LocalTensor<OutT> &dst, const A
                                   const uint32_t size, LocalTensor<uint8_t> &tmp_buf) {
   LocalTensor<int16_t> src_tmp = src.template ReinterpretCast<int16_t>();
   LocalTensor<int16_t> dst_tmp = dst.template ReinterpretCast<int16_t>();
-  AscendC::Or(dst_tmp, src_tmp, src_tmp, size * sizeof(InT) / sizeof(int16_t));
+  uint32_t or_count = size * sizeof(InT) / sizeof(int16_t);
+  if constexpr (sizeof(InT) == sizeof(uint8_t) && sizeof(OutT) == sizeof(uint8_t)) {
+    or_count = (size + 1U) / 2U;
+  }
+  AscendC::Or(dst_tmp, src_tmp, src_tmp, or_count);
 }
 
 template <typename InT, typename OutT>

@@ -18,6 +18,7 @@ namespace ascir {
 
 std::vector<std::unique_ptr<TmpBufDesc>> CalcLog2TmpSizeV2(const AscNode &node);
 std::vector<std::unique_ptr<TmpBufDesc>> CalcModTmpSizeV2(const AscNode &node);
+std::vector<std::unique_ptr<TmpBufDesc>> CalcPolygammaTmpSizeV2(const AscNode &node);
 std::vector<std::unique_ptr<TmpBufDesc>> CalcReduceTmpSizeV2(const AscNode &node);
 std::vector<std::unique_ptr<TmpBufDesc>> CalcErfTmpSizeV2(const AscNode &node);
 std::vector<std::unique_ptr<TmpBufDesc>> CalcGeluTmpSizeV2(const AscNode &node);
@@ -42,6 +43,7 @@ std::vector<std::unique_ptr<TmpBufDesc>> CalcDigammaTmpSizeV2(const AscNode &nod
 std::vector<std::unique_ptr<TmpBufDesc>> CalcErfcTmpSizeV2(const AscNode &node);
 std::vector<std::unique_ptr<TmpBufDesc>> CalcAcoshTmpSizeV2(const AscNode &node);
 std::vector<std::unique_ptr<TmpBufDesc>> CalcAtan2TmpSizeV2(const AscNode &node);
+std::vector<std::unique_ptr<TmpBufDesc>> CalcBucketizeTmpSizeV2(const AscNode &node);
 std::vector<std::unique_ptr<TmpBufDesc>> CalcCeilTmpSizeV2(const AscNode &node);
 std::vector<std::unique_ptr<TmpBufDesc>> CalcSinhTmpSizeV2(const AscNode &node);
 std::vector<std::unique_ptr<TmpBufDesc>> CalcTanTmpSizeV2(const AscNode &node);
@@ -52,7 +54,10 @@ std::vector<std::unique_ptr<TmpBufDesc>> CalcModifiedBesselI0TmpSizeV2(const Asc
 std::vector<std::unique_ptr<TmpBufDesc>> CalcModifiedBesselI1TmpSizeV2(const AscNode &node);
 std::vector<std::unique_ptr<TmpBufDesc>> CalcModifiedBesselK0TmpSizeV2(const AscNode &node);
 std::vector<std::unique_ptr<TmpBufDesc>> CalcModifiedBesselK1TmpSizeV2(const AscNode &node);
+std::vector<std::unique_ptr<TmpBufDesc>> CalcScaledModifiedBesselK0TmpSizeV2(const AscNode &node);
+std::vector<std::unique_ptr<TmpBufDesc>> CalcScaledModifiedBesselK1TmpSizeV2(const AscNode &node);
 std::vector<std::unique_ptr<TmpBufDesc>> CalcIsInfTmpSize(const AscNode &node);
+std::vector<std::unique_ptr<TmpBufDesc>> CalcSoftmaxTmpSizeV2(const AscNode &node);
 std::vector<std::unique_ptr<TmpBufDesc>> CalcMaskedFillTmpSize(const AscNode &node);
 }  // namespace ascir
 }  // namespace af

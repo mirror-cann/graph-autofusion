@@ -255,6 +255,7 @@ struct TuningSpace {
   vector<CacheLineConfig> *cache_line_config{nullptr};
   const TilingScheduleConfigTable *tiling_schedule_config_table{nullptr};
   const af::AscGraph *asc_graph{nullptr};
+  uint32_t penalty_cache_line_size{0};  // Reduce核数惩罚粒度，0表示使用配置的Cache Line
 };
 using TuningSpacePtr = std::shared_ptr<TuningSpace>;
 }  // namespace att

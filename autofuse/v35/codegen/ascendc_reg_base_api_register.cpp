@@ -129,6 +129,9 @@ Register::Register() {
   const std::string kAscendcRemainderRegBaseStr = {
 #include "remainder_reg_base.h"
   };
+  const std::string kAscendcSoftmaxAfRegBaseStr = {
+#include "softmax_af_reg_base.h"
+  };
   const std::string kAscendcNegRegBaseStr = {
 #include "neg_reg_base.h"
   };
@@ -168,6 +171,78 @@ Register::Register() {
   const std::string kAscendcErfinvRegBaseStr = {
 #include "erfinv_reg_base.h"
   };
+  const std::string kAscendcBesselJUtilsRegBaseStr = {
+#include "bessel_j_utils_reg_base.h"
+  };
+  const std::string kAscendcBesselJ0RegBaseStr = {
+#include "bessel_j0_reg_base.h"
+  };
+  const std::string kAscendcBesselJ1RegBaseStr = {
+#include "bessel_j1_reg_base.h"
+  };
+  const std::string kAscendcBesselY0RegBaseStr = {
+#include "bessel_y0_reg_base.h"
+  };
+  const std::string kAscendcBesselY1RegBaseStr = {
+#include "bessel_y1_reg_base.h"
+  };
+  const std::string kAscendcScaledModifiedBesselK0RegBaseStr = {
+#include "scaled_modified_bessel_k0_reg_base.h"
+  };
+  const std::string kAscendcScaledModifiedBesselK1RegBaseStr = {
+#include "scaled_modified_bessel_k1_reg_base.h"
+  };
+  const std::string kAscendcSphericalBesselJ0RegBaseStr = {
+#include "spherical_bessel_j0_reg_base.h"
+  };
+  const std::string kAscendcIgammaRegBaseStr = {
+#include "igamma_reg_base.h"
+  };
+  const std::string kAscendcIgammacRegBaseStr = {
+#include "igammac_reg_base.h"
+  };
+  const std::string kAscendcIgammacHelperSeriesRegBaseStr = {
+#include "igammac_helper/series_reg_base.h"
+  };
+  const std::string kAscendcIgammacHelperContinuedFractionRegBaseStr = {
+#include "igammac_helper/continued_fraction_reg_base.h"
+  };
+  const std::string kAscendcIgammacHelperAsymptoticSeriesRegBaseStr = {
+#include "igammac_helper/asymptotic_series_reg_base.h"
+  };
+  const std::string kAscendcIgammacHelperSeriesComplementRegBaseStr = {
+#include "igammac_helper/series_complement_reg_base.h"
+  };
+  const std::string kAscendcZetaRegBaseStr = {
+#include "zeta_reg_base.h"
+  };
+  const std::string kAscendcNdtrRegBaseStr = {
+#include "ndtr_reg_base.h"
+  };
+  const std::string kAscendcNdtriRegBaseStr = {
+#include "ndtri_reg_base.h"
+  };
+  const std::string kAscendcSignBitRegBaseStr = {
+#include "signbit_reg_base.h"
+  };
+  const std::string kAscendcFrexpRegBaseStr = {
+#include "frexp_reg_base.h"
+  };
+  const std::string kAscendcShiftedChebyshevPolynomialUtilsRegBaseStr = {
+#include "shifted_chebyshev_polynomial_utils_reg_base.h"
+  };
+  const std::string kAscendcShiftedChebyshevPolynomialTRegBaseStr = {
+#include "shifted_chebyshev_polynomial_t_reg_base.h"
+  };
+  const std::string kAscendcShiftedChebyshevPolynomialURegBaseStr = {
+#include "shifted_chebyshev_polynomial_u_reg_base.h"
+  };
+  const std::string kAscendcShiftedChebyshevPolynomialVRegBaseStr = {
+#include "shifted_chebyshev_polynomial_v_reg_base.h"
+  };
+  const std::string kAscendcShiftedChebyshevPolynomialWRegBaseStr = {
+#include "shifted_chebyshev_polynomial_w_reg_base.h"
+  };
   std::unordered_map<std::string, std::string> api_to_file{
       {"cast_reg_base.h", kAscendcCastRegStr},
       {"compare_reg_base.h", kAscendcCompareRegStr},
@@ -200,6 +275,7 @@ Register::Register() {
       {"fmod_reg_base.h", kAscendcFmodRegBaseStr},
       {"trunc_div_reg_base.h", kAscendcTruncDivRegBaseStr},
       {"remainder_reg_base.h", kAscendcRemainderRegBaseStr},
+      {"softmax_af_reg_base.h", kAscendcSoftmaxAfRegBaseStr},
       {"neg_reg_base.h", kAscendcNegRegBaseStr},
       {"square_reg_base.h", kAscendcSquareRegBaseStr},
       {"transpose_reg_base.h", kAscendcTransposeRegBaseStr},
@@ -213,6 +289,30 @@ Register::Register() {
       {"legendre_polynomial_p_reg_base.h", kAscendcLegendrePolynomialPRegBaseStr},
       {"airy_ai_reg_base.h", kAscendcAiryAiRegBaseStr},
       {"erfinv_reg_base.h", kAscendcErfinvRegBaseStr},
+      {"bessel_j_utils_reg_base.h", kAscendcBesselJUtilsRegBaseStr},
+      {"bessel_j0_reg_base.h", kAscendcBesselJ0RegBaseStr},
+      {"bessel_j1_reg_base.h", kAscendcBesselJ1RegBaseStr},
+      {"bessel_y0_reg_base.h", kAscendcBesselY0RegBaseStr},
+      {"bessel_y1_reg_base.h", kAscendcBesselY1RegBaseStr},
+      {"scaled_modified_bessel_k0_reg_base.h", kAscendcScaledModifiedBesselK0RegBaseStr},
+      {"scaled_modified_bessel_k1_reg_base.h", kAscendcScaledModifiedBesselK1RegBaseStr},
+      {"spherical_bessel_j0_reg_base.h", kAscendcSphericalBesselJ0RegBaseStr},
+      {"igamma_reg_base.h", kAscendcIgammaRegBaseStr},
+      {"igammac_reg_base.h", kAscendcIgammacRegBaseStr},
+      {"igammac_helper/series_reg_base.h", kAscendcIgammacHelperSeriesRegBaseStr},
+      {"igammac_helper/continued_fraction_reg_base.h", kAscendcIgammacHelperContinuedFractionRegBaseStr},
+      {"igammac_helper/asymptotic_series_reg_base.h", kAscendcIgammacHelperAsymptoticSeriesRegBaseStr},
+      {"igammac_helper/series_complement_reg_base.h", kAscendcIgammacHelperSeriesComplementRegBaseStr},
+      {"zeta_reg_base.h", kAscendcZetaRegBaseStr},
+      {"ndtr_reg_base.h", kAscendcNdtrRegBaseStr},
+      {"ndtri_reg_base.h", kAscendcNdtriRegBaseStr},
+      {"signbit_reg_base.h", kAscendcSignBitRegBaseStr},
+      {"frexp_reg_base.h", kAscendcFrexpRegBaseStr},
+      {"shifted_chebyshev_polynomial_utils_reg_base.h", kAscendcShiftedChebyshevPolynomialUtilsRegBaseStr},
+      {"shifted_chebyshev_polynomial_t_reg_base.h", kAscendcShiftedChebyshevPolynomialTRegBaseStr},
+      {"shifted_chebyshev_polynomial_u_reg_base.h", kAscendcShiftedChebyshevPolynomialURegBaseStr},
+      {"shifted_chebyshev_polynomial_v_reg_base.h", kAscendcShiftedChebyshevPolynomialVRegBaseStr},
+      {"shifted_chebyshev_polynomial_w_reg_base.h", kAscendcShiftedChebyshevPolynomialWRegBaseStr},
   };
 
   AscendCApiRegistry::GetInstance().RegisterApi(api_to_file);

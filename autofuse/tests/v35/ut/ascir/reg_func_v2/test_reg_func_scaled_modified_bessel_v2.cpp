@@ -12,7 +12,7 @@
 
 #include "gtest/gtest.h"
 
-#include "graph/operator_reg.h"
+#include "graph/operator_reg_af.h"
 #include "graph_utils_ex.h"
 #include "node_utils.h"
 #include "op_desc_utils.h"
@@ -21,13 +21,6 @@
 #include "ascir_ops.h"
 #include "ascir_utils.h"
 #include "default_reg_func_v2.h"
-
-namespace ge {
-namespace ascir {
-std::vector<std::unique_ptr<ge::TmpBufDesc>> CalcScaledModifiedBesselK0TmpSizeV2(const ge::AscNode &node);
-std::vector<std::unique_ptr<ge::TmpBufDesc>> CalcScaledModifiedBesselK1TmpSizeV2(const ge::AscNode &node);
-}  // namespace ascir
-}  // namespace ge
 
 namespace af {
 namespace ascir {
@@ -101,7 +94,7 @@ TEST_F(CalcScaledModifiedBesselTmpSizeV2Test,
 
   std::shared_ptr<AscNode> node = graph.FindNode("op_node");
   node->inputs[0].attr.vectorized_strides = {s1, Symbol(1)};
-  std::vector<std::unique_ptr<ge::TmpBufDesc>> result = ge::ascir::CalcScaledModifiedBesselK0TmpSizeV2(*node);
+  std::vector<std::unique_ptr<af::TmpBufDesc>> result = af::ascir::CalcScaledModifiedBesselK0TmpSizeV2(*node);
   ASSERT_EQ(result.size(), 1);
   ASSERT_EQ(result[0]->size, Symbol(512));  // 256 * 2
 }
@@ -166,7 +159,7 @@ TEST_F(CalcScaledModifiedBesselTmpSizeV2Test,
 
   std::shared_ptr<AscNode> node = graph.FindNode("op_node");
   node->inputs[0].attr.vectorized_strides = {s1, Symbol(1)};
-  std::vector<std::unique_ptr<ge::TmpBufDesc>> result = ge::ascir::CalcScaledModifiedBesselK1TmpSizeV2(*node);
+  std::vector<std::unique_ptr<af::TmpBufDesc>> result = af::ascir::CalcScaledModifiedBesselK1TmpSizeV2(*node);
   ASSERT_EQ(result.size(), 1);
   ASSERT_EQ(result[0]->size, Symbol(512));  // 256 * 2
 }

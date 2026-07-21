@@ -47,8 +47,8 @@ Status BuildAscendGraphTest1(af::AscGraph &graph) {
   auto nd = graph.CreateAxis("nd", ND);
   auto [ndB, ndb] = graph.BlockSplit(nd.id);
   auto [ndbT, ndbt] = graph.TileSplit(ndb->id);
-  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {nd});
-  auto data2 = graph.CreateContiguousData("input2", DT_FLOAT, {nd});
+  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {nd}, 0);
+  auto data2 = graph.CreateContiguousData("input2", DT_FLOAT, {nd}, 1);
   GELOGD("axis id = [%d, %d, %d, %d, %d]", nd.id, ndB->id, ndb->id, ndbT->id, ndbt->id);
   GELOGD("axis id = [%d, %d]", ndB->id, ndbT->id);
   LOOP(*ndB) {
@@ -72,8 +72,8 @@ Status BuildAscendGraphTest2(af::AscGraph &graph) {
   auto nd = graph.CreateAxis("nd", ND);
   auto [ndB, ndb] = graph.BlockSplit(nd.id);
   auto [ndbT, ndbt] = graph.TileSplit(ndb->id);
-  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {nd});
-  auto data2 = graph.CreateContiguousData("input2", DT_FLOAT, {nd});
+  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {nd}, 0);
+  auto data2 = graph.CreateContiguousData("input2", DT_FLOAT, {nd}, 1);
   LOOP(*ndB) {
     LOOP(*ndbT) {
       auto load1 = Load("load1", data1).TQue(Position::kPositionVecIn, 1, 1);
@@ -97,8 +97,8 @@ Status BuildAscendGraphTest3(af::AscGraph &graph) {
   auto nd = graph.CreateAxis("nd", ND);
   auto [ndB, ndb] = graph.BlockSplit(nd.id);
   auto [ndbT, ndbt] = graph.TileSplit(ndb->id);
-  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {nd});
-  auto data2 = graph.CreateContiguousData("input2", DT_FLOAT, {nd});
+  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {nd}, 0);
+  auto data2 = graph.CreateContiguousData("input2", DT_FLOAT, {nd}, 1);
   LOOP(*ndB) {
     LOOP(*ndbT) {
       auto load1 = Load("load1", data1).TQue(Position::kPositionVecIn, 1, 1);
@@ -120,8 +120,8 @@ Status BuildAscendGraphTest4(af::AscGraph &graph) {
   auto nd = graph.CreateAxis("nd", ND);
   auto [ndB, ndb] = graph.BlockSplit(nd.id);
   auto [ndbT, ndbt] = graph.TileSplit(ndb->id);
-  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {nd});
-  auto data2 = graph.CreateContiguousData("input2", DT_FLOAT, {nd});
+  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {nd}, 0);
+  auto data2 = graph.CreateContiguousData("input2", DT_FLOAT, {nd}, 1);
   LOOP(*ndB) {
     LOOP(*ndbT) {
       auto load1 = Load("load1", data1).TQue(Position::kPositionVecIn, 1, 1);
@@ -143,8 +143,8 @@ Status BuildAscendGraphTest5(af::AscGraph &graph) {
   auto nd = graph.CreateAxis("nd", ND);
   auto [ndB, ndb] = graph.BlockSplit(nd.id);
   auto [ndbT, ndbt] = graph.TileSplit(ndb->id);
-  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT16, {nd});
-  auto data2 = graph.CreateContiguousData("input2", DT_FLOAT, {nd});
+  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT16, {nd}, 0);
+  auto data2 = graph.CreateContiguousData("input2", DT_FLOAT, {nd}, 1);
   LOOP(*ndB) {
     LOOP(*ndbT) {
       auto load1 = Load("load1", data1).TQue(Position::kPositionVecIn, 1, 1);
@@ -171,8 +171,8 @@ Status BuildAscendGraphTest6(af::AscGraph &graph) {
   auto [ndTB, ndTb] = graph.BlockSplit(ndt->id);
   std::swap(ndTB->id, ndT->id);
   std::swap(ndTb->id, ndt->id);
-  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {nd});
-  auto data2 = graph.CreateContiguousData("input2", DT_FLOAT, {nd});
+  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {nd}, 0);
+  auto data2 = graph.CreateContiguousData("input2", DT_FLOAT, {nd}, 1);
   GELOGD("axis id = [%d, %d, %d, %d, %d]", nd.id, ndT->id, ndt->id, ndTB->id, ndTb->id);
   GELOGD("axis id = [%d, %d]", ndTB->id, ndT->id);
   LOOP(*ndTB) {
@@ -196,8 +196,8 @@ Status BuildAscendGraphTest1_Equal(af::AscGraph &graph) {
   auto z0 = graph.CreateAxis("z0", S0);
   auto [ndB, ndb] = graph.BlockSplit(z0.id);
   auto [ndbT, ndbt] = graph.TileSplit(ndb->id);
-  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {z0});
-  auto data2 = graph.CreateContiguousData("input2", DT_FLOAT, {z0});
+  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {z0}, 0);
+  auto data2 = graph.CreateContiguousData("input2", DT_FLOAT, {z0}, 1);
   GELOGD("axis id = [%d, %d, %d, %d, %d]", z0.id, ndB->id, ndb->id, ndbT->id, ndbt->id);
   GELOGD("axis id = [%d, %d]", ndB->id, ndbT->id);
   LOOP(*ndB) {
@@ -220,8 +220,8 @@ Status BuildAscendGraphTest7_AddDefaultInput(af::AscGraph &graph) {
   auto z0 = graph.CreateAxis("z0", S0);
   auto [ndB, ndb] = graph.BlockSplit(z0.id);
   auto [ndbT, ndbt] = graph.TileSplit(ndb->id);
-  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {z0});
-  auto data2 = graph.CreateContiguousData("input2", DT_FLOAT, {z0});
+  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {z0}, 0);
+  auto data2 = graph.CreateContiguousData("input2", DT_FLOAT, {z0}, 1);
   GELOGD("axis id = [%d, %d, %d, %d, %d]", z0.id, ndB->id, ndb->id, ndbT->id, ndbt->id);
   GELOGD("axis id = [%d, %d]", ndB->id, ndbT->id);
   LOOP(*ndB) {
@@ -245,8 +245,8 @@ Status BuildAscendGraphTest7_AddSwapInput(af::AscGraph &graph) {
   auto z1 = graph.CreateAxis("z1", S1);
   auto [ndB, ndb] = graph.BlockSplit(z0.id);
   auto [ndbT, ndbt] = graph.TileSplit(ndb->id);
-  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {z0});
-  auto data2 = graph.CreateContiguousData("input2", DT_FLOAT, {z1});
+  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {z0}, 0);
+  auto data2 = graph.CreateContiguousData("input2", DT_FLOAT, {z1}, 1);
   GELOGD("axis id = [%d, %d, %d, %d, %d]", z0.id, ndB->id, ndb->id, ndbT->id, ndbt->id);
   GELOGD("axis id = [%d, %d]", ndB->id, ndbT->id);
   LOOP(*ndB) {
@@ -269,8 +269,8 @@ Status BuildAscendGraphTest1_ConstND(af::AscGraph &graph) {
   auto nd = graph.CreateAxis("nd", ND);
   auto [ndB, ndb] = graph.BlockSplit(nd.id);
   auto [ndbT, ndbt] = graph.TileSplit(ndb->id);
-  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {nd});
-  auto data2 = graph.CreateContiguousData("input2", DT_FLOAT, {nd});
+  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {nd}, 0);
+  auto data2 = graph.CreateContiguousData("input2", DT_FLOAT, {nd}, 1);
   GELOGD("axis id = [%d, %d, %d, %d, %d]", nd.id, ndB->id, ndb->id, ndbT->id, ndbt->id);
   GELOGD("axis id = [%d, %d]", ndB->id, ndbT->id);
   LOOP(*ndB) {
@@ -294,8 +294,8 @@ Status BuildAscendGraphTest1_EqualValue(af::AscGraph &graph) {
   auto z0 = graph.CreateAxis("z0", S0);
   auto [ndB, ndb] = graph.BlockSplit(z0.id);
   auto [ndbT, ndbt] = graph.TileSplit(ndb->id);
-  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {z0});
-  auto data2 = graph.CreateContiguousData("input2", DT_FLOAT, {z0});
+  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {z0}, 0);
+  auto data2 = graph.CreateContiguousData("input2", DT_FLOAT, {z0}, 1);
   GELOGD("axis id = [%d, %d, %d, %d, %d]", z0.id, ndB->id, ndb->id, ndbT->id, ndbt->id);
   GELOGD("axis id = [%d, %d]", ndB->id, ndbT->id);
   LOOP(*ndB) {
@@ -319,8 +319,8 @@ Status BuildAscendGraphTest1_NotEqualValue(af::AscGraph &graph) {
   auto z0 = graph.CreateAxis("z0", S0);
   auto [ndB, ndb] = graph.BlockSplit(z0.id);
   auto [ndbT, ndbt] = graph.TileSplit(ndb->id);
-  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {z0});
-  auto data2 = graph.CreateContiguousData("input2", DT_FLOAT, {z0});
+  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {z0}, 0);
+  auto data2 = graph.CreateContiguousData("input2", DT_FLOAT, {z0}, 1);
   GELOGD("axis id = [%d, %d, %d, %d, %d]", z0.id, ndB->id, ndb->id, ndbT->id, ndbt->id);
   GELOGD("axis id = [%d, %d]", ndB->id, ndbT->id);
   LOOP(*ndB) {
@@ -366,8 +366,8 @@ Status BuildAscendGraphTest1_InputAxes1(af::AscGraph &graph) {
   auto z2 = graph.CreateAxis("z2", S2);          // 2
   auto [ndB, ndb] = graph.BlockSplit(z0.id);     // 3,4
   auto [ndbT, ndbt] = graph.TileSplit(ndb->id);  // 5,6
-  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {z0});
-  auto data2 = graph.CreateContiguousData("input2", DT_FLOAT, {z1});
+  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {z0}, 0);
+  auto data2 = graph.CreateContiguousData("input2", DT_FLOAT, {z1}, 1);
   LOOP(*ndB) {
     LOOP(*ndbT) {
       auto load1 = Load("load1", data1).TQue(Position::kPositionVecIn, 1, 1);
@@ -393,8 +393,8 @@ Status BuildAscendGraphTest1_InputAxes2(af::AscGraph &graph) {
   auto z2 = graph.CreateAxis("z2", S2);          // 2
   auto [ndB, ndb] = graph.BlockSplit(z0.id);     // 3,4
   auto [ndbT, ndbt] = graph.TileSplit(ndb->id);  // 5,6
-  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {z0});
-  auto data2 = graph.CreateContiguousData("input2", DT_FLOAT, {z1});
+  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {z0}, 0);
+  auto data2 = graph.CreateContiguousData("input2", DT_FLOAT, {z1}, 1);
   LOOP(*ndB) {
     LOOP(*ndbT) {
       auto load1 = Load("load1", data1).TQue(Position::kPositionVecIn, 1, 1);

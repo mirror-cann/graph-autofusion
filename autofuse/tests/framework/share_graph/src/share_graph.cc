@@ -6768,6 +6768,367 @@ af::ComputeGraphPtr ShareGraph::LoadErfinvStoreFusedGraph(size_t dims_size) {
 }
 
 /**
+ *         data0
+ *           |
+ *         load0
+ *           |
+ *       BesselJ0
+ *           |
+ *         store
+ *           |
+ *        output0
+ */
+static void CreateBesselJ0StoreAscGraph(af::AscGraph &graph, size_t dims_size) {
+  af::ascir_op::Data x("data0", graph);
+  x.ir_attr.SetIndex(0);
+
+  af::ascir_op::Load load("load0");
+  load.x = x.y;
+
+  af::ascir_op::BesselJ0 op("bessel_j0");
+  op.x = load.y;
+
+  af::ascir_op::Store store("store");
+  store.x = op.y;
+
+  af::ascir_op::Output y("output");
+  y.x = store.y;
+
+  y.ir_attr.SetIndex(0);
+
+  ConstructVVAscGraphAxisInfo(graph, dims_size);
+}
+
+af::ComputeGraphPtr ShareGraph::BesselJ0StoreFusedGraph(size_t dims_size) {
+  return CreateOneInputAscGraphComputeGraph("bessel_j0_store_test", "bessel_j0_store", dims_size,
+                                            CreateBesselJ0StoreAscGraph);
+}
+
+template <typename Op>
+static void CreateUnarySpecialStoreAscGraph(af::AscGraph &graph, size_t dims_size, const char *op_name) {
+  af::ascir_op::Data x("data0", graph);
+  x.ir_attr.SetIndex(0);
+
+  af::ascir_op::Load load("load0");
+  load.x = x.y;
+
+  Op op(op_name);
+  op.x = load.y;
+
+  af::ascir_op::Store store("store");
+  store.x = op.y;
+
+  af::ascir_op::Output y("output");
+  y.x = store.y;
+  y.ir_attr.SetIndex(0);
+
+  ConstructVVAscGraphAxisInfo(graph, dims_size);
+}
+
+static void CreateBesselJ1StoreAscGraph(af::AscGraph &graph, size_t dims_size) {
+  CreateUnarySpecialStoreAscGraph<af::ascir_op::BesselJ1>(graph, dims_size, "bessel_j1");
+}
+
+af::ComputeGraphPtr ShareGraph::BesselJ1StoreFusedGraph(size_t dims_size) {
+  return CreateOneInputAscGraphComputeGraph("bessel_j1_store_test", "bessel_j1_store", dims_size,
+                                            CreateBesselJ1StoreAscGraph);
+}
+
+static void CreateBesselY0StoreAscGraph(af::AscGraph &graph, size_t dims_size) {
+  CreateUnarySpecialStoreAscGraph<af::ascir_op::BesselY0>(graph, dims_size, "bessel_y0");
+}
+
+af::ComputeGraphPtr ShareGraph::BesselY0StoreFusedGraph(size_t dims_size) {
+  return CreateOneInputAscGraphComputeGraph("bessel_y0_store_test", "bessel_y0_store", dims_size,
+                                            CreateBesselY0StoreAscGraph);
+}
+
+static void CreateBesselY1StoreAscGraph(af::AscGraph &graph, size_t dims_size) {
+  CreateUnarySpecialStoreAscGraph<af::ascir_op::BesselY1>(graph, dims_size, "bessel_y1");
+}
+
+af::ComputeGraphPtr ShareGraph::BesselY1StoreFusedGraph(size_t dims_size) {
+  return CreateOneInputAscGraphComputeGraph("bessel_y1_store_test", "bessel_y1_store", dims_size,
+                                            CreateBesselY1StoreAscGraph);
+}
+
+static void CreateScaledModifiedBesselK0StoreAscGraph(af::AscGraph &graph, size_t dims_size) {
+  CreateUnarySpecialStoreAscGraph<af::ascir_op::ScaledModifiedBesselK0>(graph, dims_size, "scaled_modified_bessel_k0");
+}
+
+af::ComputeGraphPtr ShareGraph::ScaledModifiedBesselK0StoreFusedGraph(size_t dims_size) {
+  return CreateOneInputAscGraphComputeGraph("scaled_modified_bessel_k0_store_test", "scaled_modified_bessel_k0_store",
+                                            dims_size, CreateScaledModifiedBesselK0StoreAscGraph);
+}
+
+static void CreateScaledModifiedBesselK1StoreAscGraph(af::AscGraph &graph, size_t dims_size) {
+  CreateUnarySpecialStoreAscGraph<af::ascir_op::ScaledModifiedBesselK1>(graph, dims_size, "scaled_modified_bessel_k1");
+}
+
+af::ComputeGraphPtr ShareGraph::ScaledModifiedBesselK1StoreFusedGraph(size_t dims_size) {
+  return CreateOneInputAscGraphComputeGraph("scaled_modified_bessel_k1_store_test", "scaled_modified_bessel_k1_store",
+                                            dims_size, CreateScaledModifiedBesselK1StoreAscGraph);
+}
+
+static void CreateSphericalBesselJ0StoreAscGraph(af::AscGraph &graph, size_t dims_size) {
+  CreateUnarySpecialStoreAscGraph<af::ascir_op::SphericalBesselJ0>(graph, dims_size, "spherical_bessel_j0");
+}
+
+af::ComputeGraphPtr ShareGraph::SphericalBesselJ0StoreFusedGraph(size_t dims_size) {
+  return CreateOneInputAscGraphComputeGraph("spherical_bessel_j0_store_test", "spherical_bessel_j0_store", dims_size,
+                                            CreateSphericalBesselJ0StoreAscGraph);
+}
+
+static void CreateNdtrStoreAscGraph(af::AscGraph &graph, size_t dims_size) {
+  CreateUnarySpecialStoreAscGraph<af::ascir_op::Ndtr>(graph, dims_size, "ndtr");
+}
+
+af::ComputeGraphPtr ShareGraph::NdtrStoreFusedGraph(size_t dims_size) {
+  return CreateOneInputAscGraphComputeGraph("ndtr_store_test", "ndtr_store", dims_size, CreateNdtrStoreAscGraph);
+}
+
+static void CreateNdtriStoreAscGraph(af::AscGraph &graph, size_t dims_size) {
+  CreateUnarySpecialStoreAscGraph<af::ascir_op::Ndtri>(graph, dims_size, "ndtri");
+}
+
+af::ComputeGraphPtr ShareGraph::NdtriStoreFusedGraph(size_t dims_size) {
+  return CreateOneInputAscGraphComputeGraph("ndtri_store_test", "ndtri_store", dims_size, CreateNdtriStoreAscGraph);
+}
+
+template <typename Op>
+static void CreateBinarySpecialStoreAscGraph(af::AscGraph &graph, size_t dims_size, const char *op_name) {
+  af::ascir_op::Data x0("data0", graph);
+  x0.ir_attr.SetIndex(0);
+  af::ascir_op::Data x1("data1", graph);
+  x1.ir_attr.SetIndex(1);
+
+  af::ascir_op::Load load0("load0");
+  load0.x = x0.y;
+  af::ascir_op::Load load1("load1");
+  load1.x = x1.y;
+
+  Op op(op_name);
+  op.x1 = load0.y;
+  op.x2 = load1.y;
+
+  af::ascir_op::Store store("store");
+  store.x = op.y;
+
+  af::ascir_op::Output y("output");
+  y.x = store.y;
+  y.ir_attr.SetIndex(0);
+
+  ConstructVVAscGraphAxisInfo(graph, dims_size);
+}
+
+static void CreateZetaStoreAscGraph(af::AscGraph &graph, size_t dims_size) {
+  CreateBinarySpecialStoreAscGraph<af::ascir_op::Zeta>(graph, dims_size, "zeta");
+}
+
+af::ComputeGraphPtr ShareGraph::ZetaStoreFusedGraph(size_t dims_size) {
+  return CreateTwoInputAscGraphComputeGraph("zeta_store_test", "zeta_store", dims_size, CreateZetaStoreAscGraph);
+}
+
+/**
+ *         data0
+ *           |
+ *         load0
+ *           |
+ *       SignBit
+ *           |
+ *         store
+ *           |
+ *        output0
+ */
+static void CreateSignBitStoreAscGraph(af::AscGraph &graph, size_t dims_size) {
+  af::ascir_op::Data x("data0", graph);
+  x.ir_attr.SetIndex(0);
+
+  af::ascir_op::Load load("load0");
+  load.x = x.y;
+
+  af::ascir_op::SignBit op("signbit");
+  op.x = load.y;
+  op.y.dtype = af::DT_UINT8;
+
+  af::ascir_op::Store store("store");
+  store.x = op.y;
+  store.y.dtype = af::DT_UINT8;
+
+  af::ascir_op::Output y("output");
+  y.x = store.y;
+  y.y.dtype = af::DT_UINT8;
+  y.ir_attr.SetIndex(0);
+
+  ConstructVVAscGraphAxisInfo(graph, dims_size);
+}
+
+af::ComputeGraphPtr ShareGraph::SignBitStoreFusedGraph(size_t dims_size) {
+  return CreateOneInputAscGraphComputeGraph("signbit_store_test", "signbit_store", dims_size,
+                                            CreateSignBitStoreAscGraph);
+}
+
+/**
+ *         data0
+ *           |
+ *         load0
+ *           |
+ *       Frexp
+ *         /    \
+ *     store0  store1
+ *         |      |
+ *    output0  output1
+ */
+static void CreateFrexpStoreAscGraph(af::AscGraph &graph, size_t dims_size) {
+  af::ascir_op::Data x("data0", graph);
+  x.ir_attr.SetIndex(0);
+
+  af::ascir_op::Load load("load0");
+  load.x = x.y;
+
+  af::ascir_op::Frexp op("frexp");
+  op.x = load.y;
+  op.exponent.dtype = af::DT_INT32;
+
+  af::ascir_op::Store store0("store0");
+  store0.x = op.mantissa;
+
+  af::ascir_op::Store store1("store1");
+  store1.x = op.exponent;
+  store1.y.dtype = af::DT_INT32;
+
+  af::ascir_op::Output y0("output0");
+  y0.x = store0.y;
+  y0.ir_attr.SetIndex(0);
+
+  af::ascir_op::Output y1("output1");
+  y1.x = store1.y;
+  y1.y.dtype = af::DT_INT32;
+  y1.ir_attr.SetIndex(1);
+
+  ConstructVVAscGraphAxisInfo(graph, dims_size);
+}
+
+af::ComputeGraphPtr ShareGraph::FrexpStoreFusedGraph(size_t dims_size) {
+  auto builder = GraphBuilder("frexp_store_test");
+  auto data0 = builder.AddNode("data0", "Data", 0, 1);
+  af::AttrUtils::SetInt(data0->GetOpDescBarePtr(), "_parent_node_index", 0);
+
+  auto ascbc = builder.AddNode("ascbc", "AscGraph", 1, 2);
+  auto netoutput = builder.AddNode("netoutput1", af::NETOUTPUT, 2, 0);
+
+  builder.AddDataEdge(data0, 0, ascbc, 0);
+  builder.AddDataEdge(ascbc, 0, netoutput, 0);
+  builder.AddDataEdge(ascbc, 1, netoutput, 1);
+  auto compute_graph = builder.GetGraph();
+  if (compute_graph == nullptr) {
+    return nullptr;
+  }
+  auto ascbc_node = compute_graph->FindNode("ascbc");
+  af::AscGraph sub_graph("frexp_store");
+  CreateFrexpStoreAscGraph(sub_graph, dims_size);
+
+  std::string sub_graph_str;
+  af::AscGraphUtils::SerializeToReadable(sub_graph, sub_graph_str);
+  af::AttrUtils::SetStr(ascbc_node->GetOpDescBarePtr(), "ascgraph", sub_graph_str);
+  return compute_graph;
+}
+
+/**
+ *         data0
+ *           |
+ *         load0
+ *           |
+ *  ShiftedChebyshevPolynomialT (attr: n=3)
+ *           |
+ *         store
+ *           |
+ *        output0
+ */
+static void CreateShiftedChebyshevPolynomialTStoreAscGraph(af::AscGraph &graph, size_t dims_size) {
+  af::ascir_op::Data x("data0", graph);
+  x.ir_attr.SetIndex(0);
+
+  af::ascir_op::Load load("load0");
+  load.x = x.y;
+
+  af::ascir_op::ShiftedChebyshevPolynomialT op("shifted_chebyshev_polynomial_t");
+  op.x = load.y;
+  op.ir_attr.SetN(3);
+
+  af::ascir_op::Store store("store");
+  store.x = op.y;
+
+  af::ascir_op::Output y("output");
+  y.x = store.y;
+
+  y.ir_attr.SetIndex(0);
+
+  ConstructVVAscGraphAxisInfo(graph, dims_size);
+}
+
+af::ComputeGraphPtr ShareGraph::ShiftedChebyshevPolynomialTStoreFusedGraph(size_t dims_size) {
+  return CreateOneInputAscGraphComputeGraph("shifted_chebyshev_polynomial_t_store_test",
+                                            "shifted_chebyshev_polynomial_t_store", dims_size,
+                                            CreateShiftedChebyshevPolynomialTStoreAscGraph);
+}
+
+template <typename Op>
+static void CreateShiftedChebyshevStoreAscGraph(af::AscGraph &graph, size_t dims_size, const char *op_name) {
+  af::ascir_op::Data x("data0", graph);
+  x.ir_attr.SetIndex(0);
+
+  af::ascir_op::Load load("load0");
+  load.x = x.y;
+
+  Op op(op_name);
+  op.x = load.y;
+  op.ir_attr.SetN(3);
+
+  af::ascir_op::Store store("store");
+  store.x = op.y;
+
+  af::ascir_op::Output y("output");
+  y.x = store.y;
+  y.ir_attr.SetIndex(0);
+
+  ConstructVVAscGraphAxisInfo(graph, dims_size);
+}
+
+static void CreateShiftedChebyshevPolynomialUStoreAscGraph(af::AscGraph &graph, size_t dims_size) {
+  CreateShiftedChebyshevStoreAscGraph<af::ascir_op::ShiftedChebyshevPolynomialU>(graph, dims_size,
+                                                                                 "shifted_chebyshev_polynomial_u");
+}
+
+af::ComputeGraphPtr ShareGraph::ShiftedChebyshevPolynomialUStoreFusedGraph(size_t dims_size) {
+  return CreateOneInputAscGraphComputeGraph("shifted_chebyshev_polynomial_u_store_test",
+                                            "shifted_chebyshev_polynomial_u_store", dims_size,
+                                            CreateShiftedChebyshevPolynomialUStoreAscGraph);
+}
+
+static void CreateShiftedChebyshevPolynomialVStoreAscGraph(af::AscGraph &graph, size_t dims_size) {
+  CreateShiftedChebyshevStoreAscGraph<af::ascir_op::ShiftedChebyshevPolynomialV>(graph, dims_size,
+                                                                                 "shifted_chebyshev_polynomial_v");
+}
+
+af::ComputeGraphPtr ShareGraph::ShiftedChebyshevPolynomialVStoreFusedGraph(size_t dims_size) {
+  return CreateOneInputAscGraphComputeGraph("shifted_chebyshev_polynomial_v_store_test",
+                                            "shifted_chebyshev_polynomial_v_store", dims_size,
+                                            CreateShiftedChebyshevPolynomialVStoreAscGraph);
+}
+
+static void CreateShiftedChebyshevPolynomialWStoreAscGraph(af::AscGraph &graph, size_t dims_size) {
+  CreateShiftedChebyshevStoreAscGraph<af::ascir_op::ShiftedChebyshevPolynomialW>(graph, dims_size,
+                                                                                 "shifted_chebyshev_polynomial_w");
+}
+
+af::ComputeGraphPtr ShareGraph::ShiftedChebyshevPolynomialWStoreFusedGraph(size_t dims_size) {
+  return CreateOneInputAscGraphComputeGraph("shifted_chebyshev_polynomial_w_store_test",
+                                            "shifted_chebyshev_polynomial_w_store", dims_size,
+                                            CreateShiftedChebyshevPolynomialWStoreAscGraph);
+}
+
+/**
  *   data0  data1
  *     |      |
  *   load0  load1

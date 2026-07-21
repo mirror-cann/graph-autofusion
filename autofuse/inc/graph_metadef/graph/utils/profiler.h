@@ -15,7 +15,7 @@
 #include <ostream>
 #include <chrono>
 #include <atomic>
-#include "graph/types.h"
+#include "graph/types_af.h"
 
 namespace af {
 namespace profiling {

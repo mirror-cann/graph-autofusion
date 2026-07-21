@@ -11,7 +11,7 @@
 #include <map>
 #include <string>
 #include "mmpa/mmpa_api.h"
-#include "atrace_pub.h"
+#include "atrace_pub_af.h"
 
 namespace ge {
 namespace {

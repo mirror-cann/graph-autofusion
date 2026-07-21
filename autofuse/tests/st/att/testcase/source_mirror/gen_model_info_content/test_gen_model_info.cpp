@@ -172,14 +172,12 @@ TEST_F(TestGenModelInfo, input_check_01)
   auto g = graph.CreateAxis("g", G, 1, 100000);
 
   Data query("query", graph);
-  query.attr.sched.exec_order = 0;
   query.attr.sched.axis = {b.id, n.id, g.id};
   query.y.dtype = ge::DT_FLOAT16;
   *query.y.axis = {b.id, n.id, g.id};
   *query.y.repeats = {B, N, G};
 
   Data key("key", graph);
-  key.attr.sched.exec_order = 1;
   key.attr.sched.axis = {b.id, n.id, g.id};
   key.y.dtype = ge::DT_FLOAT16;
   *key.y.axis = {b.id, n.id, g.id};
@@ -215,14 +213,12 @@ TEST_F(TestGenModelInfo, input_check_02)
   auto g = graph.CreateAxis("g", G, 1, 100000);
 
   Data query("query", graph);
-  query.attr.sched.exec_order = 0;
   query.attr.sched.axis = {b.id, n.id, g.id};
   query.y.dtype = ge::DT_FLOAT16;
   *query.y.axis = {b.id, n.id, g.id};
   *query.y.repeats = {B, N, G};
 
   Data key("key", graph);
-  key.attr.sched.exec_order = 1;
   key.attr.sched.axis = {b.id, n.id, g.id};
   key.y.dtype = ge::DT_FLOAT16;
   *key.y.axis = {b.id, n.id, g.id};
@@ -259,14 +255,12 @@ TEST_F(TestGenModelInfo, input_check_03)
   auto g = graph.CreateAxis("g", G, 1, 100000);
 
   Data query("query", graph);
-  query.attr.sched.exec_order = 0;
   query.attr.sched.axis = {b.id, n.id, g.id};
   query.y.dtype = ge::DT_FLOAT16;
   *query.y.axis = {b.id, n.id, g.id};
   *query.y.repeats = {B, N, G};
 
   Data key("key", graph);
-  key.attr.sched.exec_order = 1;
   key.attr.sched.axis = {b.id, n.id, g.id};
   key.y.dtype = ge::DT_FLOAT16;
   *key.y.axis = {b.id, n.id, g.id};
@@ -303,14 +297,12 @@ TEST_F(TestGenModelInfo, input_check_04)
   auto g = graph.CreateAxis("g", G, 1, 100000);
 
   Data query("query", graph);
-  query.attr.sched.exec_order = 0;
   query.attr.sched.axis = {b.id, n.id, g.id};
   query.y.dtype = ge::DT_FLOAT16;
   *query.y.axis = {b.id, n.id, g.id};
   *query.y.repeats = {B, N, G};
 
   Data key("key", graph);
-  key.attr.sched.exec_order = 1;
   key.attr.sched.axis = {b.id, n.id, g.id};
   key.y.dtype = ge::DT_FLOAT16;
   *key.y.axis = {b.id, n.id, g.id};
@@ -347,14 +339,12 @@ TEST_F(TestGenModelInfo, input_check_05)
   auto g = graph.CreateAxis("g", G, 1, 100000);
 
   Data query("query", graph);
-  query.attr.sched.exec_order = 0;
   query.attr.sched.axis = {b.id, n.id, g.id};
   query.y.dtype = ge::DT_FLOAT16;
   *query.y.axis = {b.id, n.id, g.id};
   *query.y.repeats = {B, N, G};
 
   Data key("key", graph);
-  key.attr.sched.exec_order = 1;
   key.attr.sched.axis = {b.id, n.id, g.id};
   key.y.dtype = ge::DT_FLOAT16;
   *key.y.axis = {b.id, n.id, g.id};
@@ -397,14 +387,12 @@ TEST_F(TestGenModelInfo, input_check_06)
   auto m = graph.CreateAxis("g", M, 1, 100000);
 
   Data query("query", graph);
-  query.attr.sched.exec_order = 0;
   query.attr.sched.axis = {b.id, n.id, g.id};
   query.y.dtype = ge::DT_FLOAT16;
   *query.y.axis = {b.id, n.id, g.id};
   *query.y.repeats = {B, N, G};
 
   Data key("key", graph);
-  key.attr.sched.exec_order = 1;
   key.attr.sched.axis = {b.id, n.id, g.id};
   key.y.dtype = ge::DT_FLOAT16;
   *key.y.axis = {b.id, n.id, g.id};

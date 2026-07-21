@@ -11,6 +11,8 @@
 #include "gtest/gtest.h"
 #include "gen_model_info.h"
 #include "test_fa_ascir_graph.h"
+#include "base/att_const_values.h"
+#include "common/platform_context.h"
 #define private public
 #include "expr_gen/generate_tiling_expr.h"
 #include "parser/ascend_graph_parser.h"
@@ -33,8 +35,8 @@ Status BuildGatherAscendGraphND(AscGraph &graph) {
   auto nd = graph.CreateAxis("nd", ND);
   auto [ndB, ndb] = graph.BlockSplit(nd.id);
   auto [ndbT, ndbt] = graph.TileSplit(ndb->id);
-  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {nd});
-  auto data2 = graph.CreateContiguousData("input2", DT_FLOAT, {nd});
+  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {nd}, 0);
+  auto data2 = graph.CreateContiguousData("input2", DT_FLOAT, {nd}, 1);
   LOOP(*ndB) {
     LOOP(*ndbT) {
       auto load1 = Load("load1", data1).TQue(Position::kPositionVecIn, 1, 1);
@@ -66,8 +68,8 @@ Status BuildReduceAscendGraphND(AscGraph &graph) {
   auto nd = graph.CreateAxis("nd", ND);
   auto [ndB, ndb] = graph.BlockSplit(nd.id);
   auto [ndbT, ndbt] = graph.TileSplit(ndb->id);
-  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {nd});
-  auto data2 = graph.CreateContiguousData("input2", DT_FLOAT, {nd});
+  auto data1 = graph.CreateContiguousData("input1", DT_FLOAT, {nd}, 0);
+  auto data2 = graph.CreateContiguousData("input2", DT_FLOAT, {nd}, 1);
   LOOP(*ndB) {
     LOOP(*ndbT) {
       auto load1 = Load("load1", data1).TQue(Position::kPositionVecIn, 1, 1);
@@ -89,6 +91,68 @@ Status BuildReduceAscendGraphND(AscGraph &graph) {
 }  // namespace ascir
 }  // namespace af
 namespace att {
+namespace {
+ascir::FusedScheduledResult BuildGatherReduceScheduleResult(const af::AscGraph &gather_graph,
+                                                            const af::AscGraph &reduce_graph,
+                                                            const bool enable_group_parallel) {
+  ascir::ScheduledResult schedule_result;
+  ascir::ScheduleGroup gather_group;
+  gather_group.impl_graphs.emplace_back(gather_graph);
+  schedule_result.schedule_groups.emplace_back(gather_group);
+  ascir::ScheduleGroup reduce_group;
+  reduce_group.impl_graphs.emplace_back(reduce_graph);
+  schedule_result.schedule_groups.emplace_back(reduce_group);
+  schedule_result.enable_group_parallel = enable_group_parallel;
+
+  ascir::FusedScheduledResult fused_schedule_result;
+  fused_schedule_result.node_idx_to_scheduled_results.emplace_back(
+      std::vector<ascir::ScheduledResult>{schedule_result});
+  return fused_schedule_result;
+}
+
+af::Status GenerateGatherReduceModelInfos(const bool enable_group_parallel, const bool gather_as_load,
+                                          FusedParsedScheduleResult &model_infos) {
+  ge::PlatformContext::GetInstance().SetPlatform("5102");
+  af::AscGraph gather_graph("gather_graph");
+  af::AscGraph reduce_graph("reduce_graph");
+  if (af::ascir::cg::BuildGatherAscendGraphND(gather_graph) != af::SUCCESS ||
+      GraphConstructUtils::BuildConcatGroupAscendGraphS0S1ReduceMultiTiling(reduce_graph) != af::SUCCESS) {
+    return af::FAILED;
+  }
+  if (gather_as_load) {
+    const auto gather_node = gather_graph.FindNode("gather1");
+    GE_ASSERT_NOTNULL(gather_node);
+    GE_ASSERT_TRUE(gather_node->GetType() == af::ascir_op::Gather::Type);
+    gather_node->attr.api.compute_type = af::ComputeType::kComputeLoad;
+  }
+  GraphConstructUtils::UpdateGraphVectorizedStride(reduce_graph);
+  std::map<std::string, std::string> options = {{kOutputFilePath, "./"}, {kGenConfigType, "HighPerf"}};
+  auto schedule_result = BuildGatherReduceScheduleResult(gather_graph, reduce_graph, enable_group_parallel);
+  return GetModelInfoMap(schedule_result, options, model_infos);
+}
+
+af::Status GenerateReduceOnlyModelInfos(const size_t group_count, FusedParsedScheduleResult &model_infos) {
+  ge::PlatformContext::GetInstance().SetPlatform("5102");
+  af::AscGraph reduce_graph("reduce_graph");
+  if (GraphConstructUtils::BuildConcatGroupAscendGraphS0S1ReduceMultiTiling(reduce_graph) != af::SUCCESS) {
+    return af::FAILED;
+  }
+  GraphConstructUtils::UpdateGraphVectorizedStride(reduce_graph);
+  ascir::ScheduledResult schedule_result;
+  for (size_t group_id = 0UL; group_id < group_count; ++group_id) {
+    ascir::ScheduleGroup reduce_group;
+    reduce_group.impl_graphs.emplace_back(reduce_graph);
+    schedule_result.schedule_groups.emplace_back(reduce_group);
+  }
+  ascir::FusedScheduledResult fused_schedule_result;
+  fused_schedule_result.node_idx_to_scheduled_results.emplace_back(
+      std::vector<ascir::ScheduledResult>{schedule_result});
+
+  std::map<std::string, std::string> options = {{kOutputFilePath, "./"}, {kGenConfigType, "HighPerf"}};
+  return GetModelInfoMap(fused_schedule_result, options, model_infos);
+}
+}  // namespace
+
 class TestAscendGraphParser : public ::testing::Test {
  public:
   static void TearDownTestCase() {
@@ -104,9 +168,73 @@ class TestAscendGraphParser : public ::testing::Test {
     att::FaAfterScheduler(*graph);
     att::FaAfterQueBufAlloc(*graph);
   }
-  void TearDown() override {}
+  void TearDown() override {
+    ge::PlatformContext::GetInstance().Reset();
+  }
   std::shared_ptr<af::AscGraph> graph;
 };
+
+TEST_F(TestAscendGraphParser, GatherReduceMultiGroupUsesRelaxedPenalty) {
+  FusedParsedScheduleResult model_infos;
+  ASSERT_EQ(GenerateGatherReduceModelInfos(false, false, model_infos), af::SUCCESS);
+
+  ASSERT_EQ(model_infos.size(), 1UL);
+  ASSERT_EQ(model_infos.at(0).at(0).groups_tiling_model_info.size(), 2UL);
+  const auto &gather_info = model_infos.at(0).at(0).groups_tiling_model_info.at(0).at(0);
+  const auto &reduce_info = model_infos.at(0).at(0).groups_tiling_model_info.at(1).at(0);
+  EXPECT_FALSE(gather_info.tiling_schedule_config.is_penalty_config);
+  ASSERT_TRUE(reduce_info.tiling_schedule_config.is_penalty_config);
+  EXPECT_NE(Str(reduce_info.tiling_schedule_config.trade_off_config.core_num_ratio).find("Rational(1 , 8)"),
+            std::string::npos);
+}
+
+TEST_F(TestAscendGraphParser, GatherLoweredToLoadStillUsesRelaxedPenalty) {
+  FusedParsedScheduleResult model_infos;
+  ASSERT_EQ(GenerateGatherReduceModelInfos(false, true, model_infos), af::SUCCESS);
+
+  ASSERT_EQ(model_infos.size(), 1UL);
+  ASSERT_EQ(model_infos.at(0).at(0).groups_tiling_model_info.size(), 2UL);
+  const auto &reduce_info = model_infos.at(0).at(0).groups_tiling_model_info.at(1).at(0);
+  ASSERT_TRUE(reduce_info.tiling_schedule_config.is_penalty_config);
+  EXPECT_NE(Str(reduce_info.tiling_schedule_config.trade_off_config.core_num_ratio).find("Rational(1 , 8)"),
+            std::string::npos);
+}
+
+TEST_F(TestAscendGraphParser, GatherReduceGroupParallelKeepsDefaultPenalty) {
+  FusedParsedScheduleResult model_infos;
+  ASSERT_EQ(GenerateGatherReduceModelInfos(true, false, model_infos), af::SUCCESS);
+
+  ASSERT_EQ(model_infos.size(), 1UL);
+  ASSERT_EQ(model_infos.at(0).at(0).groups_tiling_model_info.size(), 2UL);
+  const auto &reduce_info = model_infos.at(0).at(0).groups_tiling_model_info.at(1).at(0);
+  ASSERT_TRUE(reduce_info.tiling_schedule_config.is_penalty_config);
+  EXPECT_NE(Str(reduce_info.tiling_schedule_config.trade_off_config.core_num_ratio).find("Rational(1 , 32)"),
+            std::string::npos);
+}
+
+TEST_F(TestAscendGraphParser, SingleReduceGroupKeepsDefaultPenalty) {
+  FusedParsedScheduleResult model_infos;
+  ASSERT_EQ(GenerateReduceOnlyModelInfos(1UL, model_infos), af::SUCCESS);
+
+  ASSERT_EQ(model_infos.size(), 1UL);
+  ASSERT_EQ(model_infos.at(0).at(0).groups_tiling_model_info.size(), 1UL);
+  const auto &reduce_info = model_infos.at(0).at(0).groups_tiling_model_info.at(0).at(0);
+  ASSERT_TRUE(reduce_info.tiling_schedule_config.is_penalty_config);
+  EXPECT_NE(Str(reduce_info.tiling_schedule_config.trade_off_config.core_num_ratio).find("Rational(1 , 32)"),
+            std::string::npos);
+}
+
+TEST_F(TestAscendGraphParser, MultiReduceGroupsWithoutGatherKeepDefaultPenalty) {
+  FusedParsedScheduleResult model_infos;
+  ASSERT_EQ(GenerateReduceOnlyModelInfos(2UL, model_infos), af::SUCCESS);
+
+  ASSERT_EQ(model_infos.size(), 1UL);
+  ASSERT_EQ(model_infos.at(0).at(0).groups_tiling_model_info.size(), 2UL);
+  const auto &reduce_info = model_infos.at(0).at(0).groups_tiling_model_info.at(1).at(0);
+  ASSERT_TRUE(reduce_info.tiling_schedule_config.is_penalty_config);
+  EXPECT_NE(Str(reduce_info.tiling_schedule_config.trade_off_config.core_num_ratio).find("Rational(1 , 32)"),
+            std::string::npos);
+}
 
 TEST_F(TestAscendGraphParser, case1) {
   af::AscGraph graph1("graph");

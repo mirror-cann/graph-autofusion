@@ -14,7 +14,7 @@
 #include "graph/node.h"
 #include "graph/op_desc.h"
 #include "graph/ge_error_codes.h"
-#include "graph/operator.h"
+#include "graph/operator_af.h"
 
 namespace af {
 #ifdef AUTOFUSE_USE_GE_METADEF
