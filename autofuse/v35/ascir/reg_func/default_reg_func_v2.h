@@ -18,7 +18,6 @@ namespace ascir {
 
 std::vector<std::unique_ptr<TmpBufDesc>> CalcLog2TmpSizeV2(const AscNode &node);
 std::vector<std::unique_ptr<TmpBufDesc>> CalcModTmpSizeV2(const AscNode &node);
-std::vector<std::unique_ptr<TmpBufDesc>> CalcPolygammaTmpSizeV2(const AscNode &node);
 std::vector<std::unique_ptr<TmpBufDesc>> CalcReduceTmpSizeV2(const AscNode &node);
 std::vector<std::unique_ptr<TmpBufDesc>> CalcErfTmpSizeV2(const AscNode &node);
 std::vector<std::unique_ptr<TmpBufDesc>> CalcGeluTmpSizeV2(const AscNode &node);
