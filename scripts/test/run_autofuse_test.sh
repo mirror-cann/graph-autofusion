@@ -977,19 +977,21 @@ run_py_module_test() {
     local local_runtime_lib_path="${AUTOFUSE_BUILD_PATH}/graph_metadef/graph/ascendc_ir/generator:${AUTOFUSE_BUILD_PATH}/graph_metadef/graph/ascendc_ir:${AUTOFUSE_BUILD_PATH}/graph_metadef/graph/expression:${AUTOFUSE_BUILD_PATH}/graph_metadef/graph:${AUTOFUSE_BUILD_PATH}/tests:${AUTOFUSE_BUILD_PATH}/tests/depends/trace:${AUTOFUSE_BUILD_PATH}/tests/depends/runtime"
     local ascend_devlib_path="${ASCEND_INSTALL_PATH}/$(uname -m)-linux/devlib"
     local ascend_device_path="${ASCEND_INSTALL_PATH}/$(uname -m)-linux/devlib/device"
+    local test_ld_library_path="${local_runtime_lib_path}:${METADEF_LIB_PATH}:${ASCEND_INSTALL_LIB_PATH}:${ascend_devlib_path}:${ascend_device_path}"
+
+    if [ -n "${INITIAL_LD_LIBRARY_PATH}" ]; then
+        test_ld_library_path="${test_ld_library_path}:${INITIAL_LD_LIBRARY_PATH}"
+    fi
 
     mk_dir ${PYTHON_LIB_PATH}/autofuse || true
     cp -f "${AUTOFUSE_BUILD_PATH}/tests/pyautofuse.so" "${PYTHON_LIB_PATH}/autofuse/pyautofuse.so"
     cp "${PYTHON_MODULE_PATH}"/*.py "${PYTHON_LIB_PATH}/autofuse" || true
     export PYTHONPATH="${PYTHON_LIB_PATH}:${PYTHONPATH}"
-    export LD_LIBRARY_PATH=${local_runtime_lib_path}:${METADEF_LIB_PATH}:${ASCEND_INSTALL_LIB_PATH}:${ascend_devlib_path}:${ascend_device_path}
     rm -rf "${test_dir}/__pycache__/" || true
-    if ! pytest -s -vv "$test_dir"; then
-        unset LD_LIBRARY_PATH
+    if ! LD_LIBRARY_PATH="${test_ld_library_path}" python3 -m pytest -s -vv "$test_dir"; then
         echo "py module test failed."
         return 1
     fi
-    unset LD_LIBRARY_PATH
     echo "py module test success!"
 }
 
@@ -1191,6 +1193,7 @@ build_st() {
 main() {
   cd "${BASEPATH}"
   checkopts "$@"
+  INITIAL_LD_LIBRARY_PATH="${LD_LIBRARY_PATH-}"
 
   export ASCEND_CUSTOM_PATH=${ASCEND_INSTALL_PATH}
   ASCEND_INSTALL_LIB_PATH=${ASCEND_INSTALL_PATH}/$(uname -m)-linux/lib64/
