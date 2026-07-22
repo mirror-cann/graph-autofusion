@@ -1,8 +1,25 @@
-# aarch64 架构 TF 1.15 源码编译
+# aarch64 架构 TF 源码编译
 
-本文档介绍 aarch64 架构下从源码编译 TensorFlow 1.15 及 TF Adapter 的完整流程。
+本文档介绍 aarch64 架构下从源码编译 TensorFlow 及 TF Adapter 的完整流程，覆盖 TF 1.15.0 和 TF 2.6.5 两个版本。
 
 > **注意**：下文中的 `/mnt/workspace` 为华为云开发者环境挂载目录，可根据实际环境替换。
+
+## 版本差异对照
+
+编译前请先确认目标 TF 版本，两者的关键差异如下：
+
+| 项目 | TF 1.15.0 | TF 2.6.5 |
+|------|-----------|----------|
+| Python | 3.7.11 | 3.9.25 |
+| numpy | 1.18.5 | 1.23.5 |
+| h5py | 2.8.0 | 3.1.0 |
+| TF 源码 | v1.15.0 | v2.6.5 |
+| bazel | 0.26.1 | 3.7.2 |
+| NPU 插件 | npu_bridge | npu_device |
+| TF Adapter 源码路径 | `tfadapter/` | `tf_adapter_2.x/` |
+| TF Adapter 源码修改 | 需修改三处 | 无需修改 |
+
+下文中各步骤如无特殊说明，两个版本流程相同；有差异时分别标注 **TF 1.15** 和 **TF 2.6.5**。
 
 ---
 
@@ -53,21 +70,35 @@ export LD_LIBRARY_PATH=/usr/local/hdf5/lib:$LD_LIBRARY_PATH
 ```bash
 pip3 install Cython==0.29.14
 pip3 install wheel
+# TF 1.15
 pip3 install numpy==1.18.5 --no-build-isolation
 pip3 install h5py==2.8.0 --no-deps
+# TF 2.6.5
+pip3 install numpy==1.23.5 --no-build-isolation
+pip3 install h5py==3.1.0 --no-deps
 ```
+
+> 按目标 TF 版本选择对应的 numpy 和 h5py 版本，不要同时安装。
 
 ---
 
-## 六、下载解压 tf1.15
+## 六、下载解压 TF 源码
 
 ```bash
 cd /mnt/workspace/tf_build
+# TF 1.15
 wget https://github.com/tensorflow/tensorflow/archive/refs/tags/v1.15.0.tar.gz
 tar -zxvf v1.15.0.tar.gz
+# TF 2.6.5
+wget https://github.com/tensorflow/tensorflow/archive/refs/tags/v2.6.5.tar.gz
+tar -zxvf v2.6.5.tar.gz
 ```
 
 > 后续步骤（步骤 7~11）均为参考 [安装开源框架 TensorFlow 1.15 - TensorFlow 社区版 9.0.0 - 昇腾社区](https://www.hiascend.com/document/detail/zh/TensorFlowCommunity/900/migration/tfmigr1/tfmigr1_000001.html) 中「安装 TensorFlow」章节对 tf 源码进行修改的具体操作。
+>
+> **两个版本都需要步骤 7~10 的 nsync 修改**：TF 1.15 和 TF 2.6.5 均依赖 nsync-1.22.0，该版本在 aarch64 + 新 glibc 上存在 `gettid` 声明冲突，必须修改。差异在于步骤十修改的文件路径不同：
+> - TF 1.15：`tensorflow-1.15.0/tensorflow/workspace.bzl`
+> - TF 2.6.5：`tensorflow-2.6.5/tensorflow/workspace2.bzl`
 
 ---
 
@@ -159,9 +190,11 @@ c0423d005fb9bd21e73df809e2a2a4d6a1da0beaf036305d3285fcaff5a4dcf3
 
 ---
 
-## 十、修改 workspace.bzl 参数
+## 十、修改 workspace.bzl（TF 1.15）/workspace2.bzl（TF 2.6.5） 参数
 
-文件位置：`/mnt/workspace/tf_build/tensorflow-1.15.0/tensorflow/workspace.bzl`
+文件位置：
+- TF 1.15：`/mnt/workspace/tf_build/tensorflow-1.15.0/tensorflow/workspace.bzl`
+- TF 2.6.5：`/mnt/workspace/tf_build/tensorflow-2.6.5/tensorflow/workspace2.bzl`
 
 修改前：
 
@@ -196,7 +229,7 @@ tf_http_archive(
 
 ---
 
-## 十一、安装 tf1.15 编译依赖包
+## 十一、安装 TF 编译依赖包
 
 ```bash
 pip3 install protobuf==3.19.0
@@ -212,11 +245,15 @@ pip3 install -U keras_preprocessing==1.1.2 --no-deps
 ```bash
 sudo apt install -y openjdk-11-jdk
 cd /mnt/workspace/tf_build
+# TF 1.15 需要 bazel 0.26.1
 wget https://temp-a7fd.obs.cn-north-4.myhuaweicloud.com/tmp/bazel-0.26.1-dist.zip
 unzip bazel-0.26.1-dist.zip -d bazel-0.26.1
+# TF 2.6.5 需要 bazel 3.7.2
+wget https://github.com/bazelbuild/bazel/releases/download/3.7.2/bazel-3.7.2-dist.zip
+unzip bazel-3.7.2-dist.zip -d bazel-3.7.2
 ```
 
-### 12.2 修改 bazel 源码
+### 12.2 修改 bazel 源码（TF 1.15 的 bazel 0.26.1）
 
 文件：`/mnt/workspace/tf_build/bazel-0.26.1/third_party/grpc/src/core/lib/gpr/log_linux.cc`
 
@@ -242,24 +279,36 @@ if (tid == 0) tid = grpc_gettid();
 
 ```bash
 export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-arm64/
+# TF 1.15
 cd /mnt/workspace/tf_build/bazel-0.26.1
+env EXTRA_BAZEL_ARGS="--host_javabase=@local_jdk//:jdk" ./compile.sh
+# TF 2.6.5
+cd /mnt/workspace/tf_build/bazel-3.7.2
 env EXTRA_BAZEL_ARGS="--host_javabase=@local_jdk//:jdk" ./compile.sh
 ```
 
 构建成功后会在控制台日志中打印 Bazel 产物位置，将其路径添加到系统环境变量中：
 
 ```bash
+# TF 1.15
 export PATH=/mnt/workspace/tf_build/bazel-0.26.1/output/bazel:$PATH
+# TF 2.6.5
+export PATH=/mnt/workspace/tf_build/bazel-3.7.2/output/bazel:$PATH
 ```
+
+> **TF 2.6.5 无需步骤 12.2**：bazel 3.7.2 源码树中不包含 `third_party/grpc/src/core/lib/gpr/log_linux.cc`，编译 bazel 本身时不会触发 `gettid` 冲突。
 
 ---
 
-## 十三、配置并构建 tf1.15
+## 十三、配置并构建 TF
 
 ### 13.1 进入源码目录
 
 ```bash
+# TF 1.15
 cd /mnt/workspace/tf_build/tensorflow-1.15.0
+# TF 2.6.5
+cd /mnt/workspace/tf_build/tensorflow-2.6.5
 ```
 
 ### 13.2 配置编译选项
@@ -311,12 +360,17 @@ Configuration finished
 > 构建过程中会下载大量的三方包，可能存在下载失败的情况，可以反复重试构建命令直到构建成功。有条件的话可在环境上配置代理。
 
 ```bash
+# TF 1.15
+bazel build --cxxopt="-D_GLIBCXX_USE_CXX11_ABI=0" //tensorflow/tools/pip_package:build_pip_package
+# TF 2.6.5
 bazel build --cxxopt="-D_GLIBCXX_USE_CXX11_ABI=0" //tensorflow/tools/pip_package:build_pip_package
 ```
 
-### 13.4 处理构建报错
+### 13.4 处理构建报错（仅 TF 1.15）
 
-构建过程中可能出现如下报错，其修改方法和原因与 [步骤 12.2](#122-修改-bazel-源码) 一致，参照修改即可。注意报错文件路径是 `bazel-tensorflow-1.15.0/external/grpc/src/core/lib/gpr/log_linux.cc`（构建后会出现这个目录）。
+构建 TF 1.15 过程中，bazel 会下载 grpc 依赖，其中 `log_linux.cc` 的 `gettid` 函数与新 glibc 声明冲突，修改方法与 [步骤 12.2](#122-修改-bazel-源码tf-115-的-bazel-0261) 一致。报错文件路径为 `bazel-tensorflow-1.15.0/external/grpc/src/core/lib/gpr/log_linux.cc`（构建后会出现这个目录）。
+
+> **TF 2.6.5 不会遇到此报错**：其依赖的 grpc 已将 `gettid` 重命名为 `sys_gettid`，不再与新 glibc 冲突。
 
 报错示例：
 
@@ -338,7 +392,10 @@ Use --verbose_failures to see the command lines of failed build steps.
 
 ```bash
 ./bazel-bin/tensorflow/tools/pip_package/build_pip_package /tmp/tensorflow_pkg
+# TF 1.15
 pip3 install /tmp/tensorflow_pkg/tensorflow-1.15.0-cp37-cp37m-linux_aarch64.whl
+# TF 2.6.5
+pip3 install /tmp/tensorflow_pkg/tensorflow-2.6.5-cp39-cp39-linux_aarch64.whl
 ```
 
 ---
@@ -346,6 +403,9 @@ pip3 install /tmp/tensorflow_pkg/tensorflow-1.15.0-cp37-cp37m-linux_aarch64.whl
 ## 十四、编译安装 TF Adapter
 
 > 不要使用 tfa 仓中的预编译包，存在 `_ZN10tensorflow11GraphCyclesC1Ev` 符号不兼容问题。需要相应修改 tfa 源码确保编译通过。
+>
+> **TF 1.15（npu_bridge）**：需修改 tfa 源码（`tfadapter/`）三处后编译，见 14.1~14.4。
+> **TF 2.6.5（npu_device）**：使用 tfa 源码中独立的 `tf_adapter_2.x/` 构建系统，无需修改源码，见 14.6。
 
 ### 14.1 下载 tfa 源码
 
@@ -360,7 +420,7 @@ git clone https://gitcode.com/cann/tensorflow.git
 sudo apt install swig
 ```
 
-### 14.3 修改 tfa 源码
+### 14.3 修改 tfa 源码（仅 TF 1.15）
 
 共有三处修改。
 
@@ -437,7 +497,7 @@ const std::string kTotalStep = "TOTAL_STEP";
 }
 ```
 
-### 14.4 执行编译并安装
+### 14.4 执行编译并安装（TF 1.15）
 
 ```bash
 cd /mnt/workspace/tf_build/tensorflow
@@ -448,5 +508,20 @@ pip3 install build/tfadapter/dist/python/dist/npu_bridge-1.15.0-py3-none-manylin
 ### 14.5 安装其它依赖包
 
 ```bash
-pip3 install pandas decorator sympy scipy attrs psutil protobuf==3.19.6
+# TF 1.15
+pip3 install "numpy==1.18.5" pandas decorator sympy scipy attrs psutil protobuf==3.19.0
+# TF 2.6.5
+pip3 install "numpy==1.23.5" pandas decorator sympy scipy attrs psutil protobuf==3.19.0
+```
+
+> 此处必须锁定 numpy 版本（通过 `numpy==<版本>` 与其它包同条命令安装），否则 pandas/scipy 会将 numpy 升级到 2.x，破坏前面步骤五安装的 h5py 的 ABI 兼容性。protobuf 版本统一使用 3.19.0，与步骤十一保持一致。
+
+### 14.6 编译安装 npu_device（TF 2.6.5）
+
+TF 2.6.5 使用 tfa 源码中独立的 `tf_adapter_2.x/` 构建系统，无需修改源码，直接编译安装：
+
+```bash
+cd /mnt/workspace/tf_build/tensorflow
+bash tf_adapter_2.x/build.sh -c -j8
+pip3 install build/dist/python/dist/npu_device-2.6.5-py3-none-manylinux2014_aarch64.whl --upgrade --no-deps
 ```
