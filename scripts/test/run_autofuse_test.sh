@@ -21,6 +21,7 @@ METADEF_LIB_PATH=${OUTPUT_PATH}/metadef/lib/
 PYTHON_LIB_PATH=${AUTOFUSE_BUILD_PATH}/tests/
 PYTHON_MODULE_PATH=${AUTOFUSE_PATH}/compiler/python/
 TESTS_ST_PATH="${AUTOFUSE_PATH}/tests/st/"
+LOCAL_RUNTIME_LIB_PATH="${AUTOFUSE_BUILD_PATH}/graph_metadef/graph/ascendc_ir/generator:${AUTOFUSE_BUILD_PATH}/graph_metadef/graph/ascendc_ir:${AUTOFUSE_BUILD_PATH}/graph_metadef/graph/expression:${AUTOFUSE_BUILD_PATH}/graph_metadef/graph:${AUTOFUSE_BUILD_PATH}/tests:${AUTOFUSE_BUILD_PATH}/tests/depends/trace:${AUTOFUSE_BUILD_PATH}/tests/depends/runtime"
 RUN_V35_TESTS="off"
 
 source ${BASEPATH}/scripts/support_multiple_versions_of_lcov.sh
@@ -287,8 +288,6 @@ build_test() {
 
   echo "$(date '+%F %T') run test_main success!"
 
-  LOCAL_RUNTIME_LIB_PATH="${AUTOFUSE_BUILD_PATH}/graph_metadef/graph/ascendc_ir/generator:${AUTOFUSE_BUILD_PATH}/graph_metadef/graph/ascendc_ir:${AUTOFUSE_BUILD_PATH}/graph_metadef/graph/expression:${AUTOFUSE_BUILD_PATH}/graph_metadef/graph:${AUTOFUSE_BUILD_PATH}/tests:${AUTOFUSE_BUILD_PATH}/tests/depends/trace:${AUTOFUSE_BUILD_PATH}/tests/depends/runtime"
-
   export LD_LIBRARY_PATH=${LOCAL_RUNTIME_LIB_PATH}:${METADEF_LIB_PATH}:${ASCEND_INSTALL_LIB_PATH}
   ctest --output-on-failure -j${THREAD_NUM} -R '^test_main_ut_aggregate$' \
         --test-dir ${AUTOFUSE_BUILD_PATH}/tests/ut --no-tests=error
@@ -333,7 +332,6 @@ build_test_ascir_st() {
   echo "build test_ascir_st success!"
 
   cp ${AUTOFUSE_BUILD_PATH}/tests/st/ascir/test_ascir_st  ${OUTPUT_PATH}
-  LOCAL_RUNTIME_LIB_PATH="${AUTOFUSE_BUILD_PATH}/graph_metadef/graph/ascendc_ir/generator:${AUTOFUSE_BUILD_PATH}/graph_metadef/graph/ascendc_ir:${AUTOFUSE_BUILD_PATH}/graph_metadef/graph/expression:${BUILD_PATH}/graph:${AUTOFUSE_BUILD_PATH}/tests:${AUTOFUSE_BUILD_PATH}/tests/depends/trace:${AUTOFUSE_BUILD_PATH}/tests/depends/runtime"
   export LD_LIBRARY_PATH=${LOCAL_RUNTIME_LIB_PATH}:${METADEF_LIB_PATH}:${ASCEND_INSTALL_LIB_PATH}
   ctest --output-on-failure -j${THREAD_NUM} -L st -L ascir_st \
         --test-dir ${AUTOFUSE_BUILD_PATH}/tests --no-tests=error
@@ -508,7 +506,6 @@ build_st_common() {
     return 1
   fi
 
-  LOCAL_RUNTIME_LIB_PATH="${AUTOFUSE_BUILD_PATH}/graph_metadef/graph/ascendc_ir/generator:${AUTOFUSE_BUILD_PATH}/graph_metadef/graph/ascendc_ir:${AUTOFUSE_BUILD_PATH}/graph_metadef/graph/expression:${BUILD_PATH}/graph:${AUTOFUSE_BUILD_PATH}/tests:${AUTOFUSE_BUILD_PATH}/tests/depends/trace:${AUTOFUSE_BUILD_PATH}/tests/depends/runtime"
   export LD_LIBRARY_PATH=${LOCAL_RUNTIME_LIB_PATH}:${METADEF_LIB_PATH}:${ASCEND_INSTALL_LIB_PATH}
   ctest --output-on-failure -j${THREAD_NUM} -L st -L test_common_st --test-dir ${AUTOFUSE_BUILD_PATH}/tests --no-tests=error \
         -O ${BUILD_PATH}/test_common_st.log
@@ -951,10 +948,9 @@ build_kernel_tool() {
 
 run_py_module_test() {
     local test_dir="$1"
-    local local_runtime_lib_path="${AUTOFUSE_BUILD_PATH}/graph_metadef/graph/ascendc_ir/generator:${AUTOFUSE_BUILD_PATH}/graph_metadef/graph/ascendc_ir:${AUTOFUSE_BUILD_PATH}/graph_metadef/graph/expression:${AUTOFUSE_BUILD_PATH}/graph_metadef/graph:${AUTOFUSE_BUILD_PATH}/tests:${AUTOFUSE_BUILD_PATH}/tests/depends/trace:${AUTOFUSE_BUILD_PATH}/tests/depends/runtime"
     local ascend_devlib_path="${ASCEND_INSTALL_PATH}/$(uname -m)-linux/devlib"
     local ascend_device_path="${ASCEND_INSTALL_PATH}/$(uname -m)-linux/devlib/device"
-    local test_ld_library_path="${local_runtime_lib_path}:${METADEF_LIB_PATH}:${ASCEND_INSTALL_LIB_PATH}:${ascend_devlib_path}:${ascend_device_path}"
+    local test_ld_library_path="${LOCAL_RUNTIME_LIB_PATH}:${METADEF_LIB_PATH}:${ASCEND_INSTALL_LIB_PATH}:${ascend_devlib_path}:${ascend_device_path}"
 
     if [ -n "${INITIAL_LD_LIBRARY_PATH}" ]; then
         test_ld_library_path="${test_ld_library_path}:${INITIAL_LD_LIBRARY_PATH}"
